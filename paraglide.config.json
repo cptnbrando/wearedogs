@@ -2,6 +2,25 @@
   "projectId": "wearedogs",
   "paraglideVersion": "1",
   "baseLanguage": "en",
-  "languages": ["en", "es", "fr", "de", "ja", "zh"],
+  "languages": [
+    "ar",
+    "bn",
+    "de",
+    "en",
+    "es",
+    "fr",
+    "he",
+    "hi",
+    "id",
+    "it",
+    "ja",
+    "ko",
+    "nl",
+    "pt-br",
+    "ru",
+    "th",
+    "vi",
+    "zh-hans"
+  ],
   "messagesDirectory": "./messages"
 }
