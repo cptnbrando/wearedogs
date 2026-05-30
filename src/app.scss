@@ -1,0 +1,10 @@
+@import "tailwindcss";
+
+// You can write native SCSS nestings and variables here safely
+body {
+  @apply bg-slate-50 text-slate-900;
+
+  main {
+    padding: 2rem;
+  }
+}
