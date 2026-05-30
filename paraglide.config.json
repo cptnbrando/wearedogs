@@ -1,0 +1,7 @@
+{
+  "projectId": "wearedogs",
+  "paraglideVersion": "1",
+  "baseLanguage": "en",
+  "languages": ["en", "es", "fr", "de", "ja", "zh"],
+  "messagesDirectory": "./messages"
+}
