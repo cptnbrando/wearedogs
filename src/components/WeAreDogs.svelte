@@ -1,6 +1,7 @@
 <script>
   import translations from "../lib/translations.js";
   import "../lib/i18n.js";
+  import { Pause, Play, ChevronLeft, ChevronRight } from "lucide-svelte";
 
   const langs = Object.keys(translations);
 
@@ -46,6 +47,22 @@
   // Navigation history tracking
   let history = $state([initialLang]);
   let historyIndex = $state(0);
+
+  // Flashing indicator in top-right
+  let flashIcon = $state(null); // 'pause', 'play', 'forward', 'backward'
+  let flashVisible = $state(false);
+  let flashTimeout = null;
+  let flashKey = $state(0);
+
+  function triggerFlash(type) {
+    if (flashTimeout) clearTimeout(flashTimeout);
+    flashIcon = type;
+    flashVisible = true;
+    flashKey++;
+    flashTimeout = setTimeout(() => {
+      flashVisible = false;
+    }, 800); // 800ms flash duration
+  }
 
   function randLang() {
     const available = langs.filter((l) => l !== currentLang);
@@ -115,10 +132,12 @@
       // PAUSE — freeze on current language
       isPaused = true;
       stopCycling();
+      triggerFlash("pause");
     } else {
       // UNPAUSE — resume cycling
       isPaused = false;
-      if (isHovering) {
+      triggerFlash("play");
+      if (isHovering || isTouchDevice) {
         startCycling();
       } else {
         // Mouse already left while paused — snap back
@@ -138,8 +157,30 @@
       speakers:
         t.speakers && t.speakers !== "—"
           ? (() => {
-              // 1. Remove commas and lowercase everything for parsing
               let clean = t.speakers.replace(/,/g, "").toLowerCase();
+              let multiplier = 1;
+
+              if (clean.includes("billion")) {
+                multiplier = 1_000_000_000;
+                clean = clean.replace("billion", "");
+              } else if (clean.includes("million")) {
+                multiplier = 1_000_000;
+                clean = clean.replace("million", "");
+              }
+
+              const numValue = parseFloat(clean) * multiplier;
+
+              if (isNaN(numValue)) return t.speakers;
+              const percentage = ((numValue / 8_300_000_000) * 100).toFixed(3);
+              return `${t.speakers} (${percentage}%)`;
+            })()
+          : "—",
+
+      dogs_count:
+        t.dogs_count && t.dogs_count !== "—"
+          ? (() => {
+              // 1. Remove commas and lowercase everything for parsing
+              let clean = t.dogs_count.replace(/,/g, "").toLowerCase();
               let multiplier = 1;
 
               // 2. Detect scale suffixes and assign exact math multipliers
@@ -149,18 +190,19 @@
               } else if (clean.includes("million")) {
                 multiplier = 1_000_000;
                 clean = clean.replace("million", "");
+              } else if (clean.includes("sleigh dogs")) {
+                clean = clean.replace("sleigh dogs", "");
               }
 
               // 3. Convert remaining string to a float number
               const numValue = parseFloat(clean) * multiplier;
 
-              // 4. Return formatted string if valid, otherwise fallback to original text
-              if (isNaN(numValue)) return t.speakers;
-              const percentage = ((numValue / 8_300_000_000) * 100).toFixed(3);
-              return `${t.speakers} (${percentage}%)`;
+              // 4. Calculate percentage based on ~900,000,000 global dogs
+              if (isNaN(numValue)) return t.dogs_count;
+              const percentage = ((numValue / 900_000_000) * 100).toFixed(3);
+              return `${t.dogs_count} (${percentage}%)`;
             })()
           : "—",
-      dogs_count: t.dogs_count || "—",
     };
   }
 
@@ -196,6 +238,7 @@
     if (historyIndex > 0) {
       isPaused = true;
       stopCycling();
+      triggerFlash("backward");
       goToIndex(historyIndex - 1);
     }
   }
@@ -203,10 +246,49 @@
   function handleRightArrow() {
     isPaused = true;
     stopCycling();
+    triggerFlash("forward");
     if (historyIndex < history.length - 1) {
       goToIndex(historyIndex + 1);
     } else {
       cycle();
+    }
+  }
+
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let isTouchDevice = $state(false);
+
+  function handleTouchStart(e) {
+    isTouchDevice = true;
+    if (e.touches && e.touches.length > 0) {
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    }
+    // Start cycling on first touch if not paused
+    if (!isPaused && !hoverTimer) {
+      startCycling();
+    }
+  }
+
+  function handleTouchEnd(e) {
+    if (!e.changedTouches || e.changedTouches.length === 0) return;
+    const touchEndX = e.changedTouches[0].clientX;
+    const touchEndY = e.changedTouches[0].clientY;
+
+    const diffX = touchEndX - touchStartX;
+    const diffY = touchEndY - touchStartY;
+
+    // Minimum swipe distance
+    const threshold = 40;
+
+    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > threshold) {
+      if (diffX < 0) {
+        // Swipe Left -> Next
+        handleRightArrow();
+      } else {
+        // Swipe Right -> Prev
+        handleLeftArrow();
+      }
     }
   }
 
@@ -215,12 +297,31 @@
       handleLeftArrow();
     } else if (e.key === "ArrowRight") {
       handleRightArrow();
+    } else if (e.key === " ") {
+      e.preventDefault();
+      onClick();
     }
   }
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
 
+<!-- Top Right Status Flash Overlay -->
+{#key flashKey}
+  {#if flashVisible}
+    <div class="status-flash">
+      {#if flashIcon === "pause"}
+        <Pause size={28} />
+      {:else if flashIcon === "play"}
+        <Play size={28} />
+      {:else if flashIcon === "forward"}
+        <ChevronRight size={28} />
+      {:else if flashIcon === "backward"}
+        <ChevronLeft size={28} />
+      {/if}
+    </div>
+  {/if}
+{/key}
 
 <!-- Language indicator — full name + expandable info panel -->
 <div class="lang-display" class:paused={isPaused}>
@@ -229,19 +330,19 @@
   {#if isPaused}
     <div class="lang-meta">
       <div class="meta-row" style="animation-delay: 0ms">
-        <span class="meta-label">Region</span>
+        <span class="meta-label">🌐 Region</span>
         <span class="meta-value">{meta.country}</span>
       </div>
       <div class="meta-row" style="animation-delay: 60ms">
-        <span class="meta-label">Dialect</span>
+        <span class="meta-label">💬 Dialect</span>
         <span class="meta-value">{meta.dialect}</span>
       </div>
       <div class="meta-row" style="animation-delay: 120ms">
-        <span class="meta-label">Speakers</span>
+        <span class="meta-label">🗣️ Speakers</span>
         <span class="meta-value">{meta.speakers}</span>
       </div>
       <div class="meta-row" style="animation-delay: 180ms">
-        <span class="meta-label">Dogs</span>
+        <span class="meta-label">🐕 Dogs</span>
         <span class="meta-value">{meta.dogs_count}</span>
       </div>
     </div>
@@ -254,6 +355,8 @@
   onmouseenter={onEnter}
   onmouseleave={onLeave}
   onclick={onClick}
+  ontouchstart={handleTouchStart}
+  ontouchend={handleTouchEnd}
   role="presentation"
 >
   <!-- WORD 1: "We" -->
@@ -391,7 +494,7 @@
 
   /* ── Pronunciation ── */
   .pronunciation {
-    margin: 0.6rem 0 0 0;
+    margin: 3rem 0 0 0;
     padding: 0;
     font-size: clamp(0.7rem, 2vw, 1rem);
     font-weight: 400;
@@ -462,6 +565,49 @@
       transform: rotateX(0deg) rotateZ(0deg) scale(1);
       opacity: 1;
       filter: blur(0) brightness(1);
+    }
+  }
+
+  /* ── Top-Right Status Flash Indicator ── */
+  .status-flash {
+    position: fixed;
+    top: 1.5rem;
+    right: 1.5rem;
+    z-index: 100;
+    pointer-events: none;
+    color: rgba(255, 255, 255, 0.85);
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    padding: 0.8rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    animation: flashFade 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  @keyframes flashFade {
+    0% {
+      transform: scale(0.6) rotate(-15deg);
+      opacity: 0;
+    }
+    15% {
+      transform: scale(1.1) rotate(5deg);
+      opacity: 1;
+    }
+    30% {
+      transform: scale(1) rotate(0deg);
+      opacity: 1;
+    }
+    75% {
+      transform: scale(1) rotate(0deg);
+      opacity: 1;
+    }
+    100% {
+      transform: scale(0.8) rotate(10deg);
+      opacity: 0;
     }
   }
 </style>
