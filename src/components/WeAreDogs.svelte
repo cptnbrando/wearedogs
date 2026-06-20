@@ -2,6 +2,7 @@
   import translations from "../lib/translations.js";
   import "../lib/i18n.js";
   import { Pause, Play, ChevronLeft, ChevronRight, Flag } from "lucide-svelte";
+  import { untrack } from "svelte";
 
   const langs = Object.keys(translations);
 
@@ -104,21 +105,45 @@
     }
   }
 
-  // Current word states — all three words use the same language
-  let currentLang = $state(initialLang);
-  let currentWe = $state(translations[initialLang].we);
-  let currentAre = $state(translations[initialLang].are);
-  let currentDogs = $state(translations[initialLang].dogs);
+  // Intl.DisplayNames in English for stable, localized keyboard letter matching
+  const englishLangNames = new Intl.DisplayNames(["en"], { type: "language" });
+
+  function langEnglishName(code) {
+    try {
+      return englishLangNames.of(code) || code;
+    } catch {
+      return code;
+    }
+  }
+
+  let { isFaded = false, onOpenStats, currentLang = $bindable(initialLang) } = $props();
+
+  let refreshKey = $state(0);
+
+  // Current word states derived from translations + refreshKey dependency
+  let currentWe = $derived(refreshKey >= 0 ? (translations[currentLang]?.we || "") : "");
+  let currentAre = $derived(refreshKey >= 0 ? (translations[currentLang]?.are || "") : "");
+  let currentDogs = $derived(refreshKey >= 0 ? (translations[currentLang]?.dogs || "") : "");
 
   // Pronunciation state
-  let pronWe = $state(translations[initialLang].we_p);
-  let pronAre = $state(translations[initialLang].are_p);
-  let pronDogs = $state(translations[initialLang].dogs_p);
+  let pronWe = $derived(refreshKey >= 0 ? (translations[currentLang]?.we_p || "") : "");
+  let pronAre = $derived(refreshKey >= 0 ? (translations[currentLang]?.are_p || "") : "");
+  let pronDogs = $derived(refreshKey >= 0 ? (translations[currentLang]?.dogs_p || "") : "");
 
   // Animation generation counters — incrementing triggers {#key} remount
   let weGen = $state(0);
   let areGen = $state(0);
   let dogsGen = $state(0);
+
+  // Watch currentLang reactive updates and trigger animation remount
+  $effect(() => {
+    currentLang;
+    untrack(() => {
+      weGen++;
+      areGen++;
+      dogsGen++;
+    });
+  });
 
   let hoverTimer = $state(null);
   let isHovering = $state(false);
@@ -171,15 +196,6 @@
   /** Set all words to a given language */
   function setLang(lang) {
     currentLang = lang;
-    currentWe = translations[lang].we;
-    currentAre = translations[lang].are;
-    currentDogs = translations[lang].dogs;
-    pronWe = translations[lang].we_p;
-    pronAre = translations[lang].are_p;
-    pronDogs = translations[lang].dogs_p;
-    weGen++;
-    areGen++;
-    dogsGen++;
   }
 
   /** Go to index in the navigation history */
@@ -256,6 +272,7 @@
   /** Get metadata for the current language */
   function getMeta(lang) {
     const t = translations[lang];
+    if (!t) return { country: "—", dialect: "—", speakers: "—", dogs_count: "—" };
     return {
       country: t.country || "—",
       dialect: t.dialect || "—",
@@ -311,7 +328,7 @@
     };
   }
 
-  let meta = $derived(getMeta(currentLang));
+  let meta = $derived(refreshKey >= 0 ? getMeta(currentLang) : null);
 
   /** Split a word into grapheme clusters (handles CJK, emoji, diacritics) */
   function toLetters(word) {
@@ -417,22 +434,20 @@
   function handleLetterPress(letter) {
     const matches = langs
       .map((code) => {
-        const name = langDisplayName(code).trim();
+        const name = langEnglishName(code).trim();
         const t = translations[code];
         const dialect = t.dialect || "";
         const country = t.country || "";
         return { code, name, dialect, country };
       })
       .filter((item) => {
-        const nameWords = item.name.toLowerCase().split(/[\s()&,-]+/);
-        const dialectWords = item.dialect.toLowerCase().split(/[\s()&,-]+/);
-        const countryWords = item.country.toLowerCase().split(/[\s()&,-]+/);
-
-        const matchesName = nameWords.some((w) => w.startsWith(letter));
-        const matchesDialect = dialectWords.some((w) => w.startsWith(letter));
-        const matchesCountry = countryWords.some((w) => w.startsWith(letter));
-
-        return matchesName || matchesDialect || matchesCountry;
+        // Strip parenthetical text (e.g. '(Jopará)', '(Patwa)') before splitting into words
+        const nameClean = item.name
+          .replace(/\([^)]*\)/g, "")
+          .toLowerCase()
+          .trim();
+        const nameWords = nameClean.split(/[\s&,-]+/);
+        return nameWords.some((w) => w.startsWith(letter));
       })
       .sort((a, b) => a.name.localeCompare(b.name));
 
@@ -464,8 +479,8 @@
     goToIndex(history.length - 1);
   }
 
-
   function handleKeydown(e) {
+    if (isFaded) return; // bypass all navigation keys when details panel is open
     if (e.key === "ArrowLeft") {
       handleLeftArrow();
     } else if (e.key === "ArrowRight") {
@@ -480,6 +495,21 @@
     } else if (e.key.length === 1 && e.key.match(/[a-zA-Z]/)) {
       handleLetterPress(e.key.toLowerCase());
     }
+  }
+
+  export function forceLanguage(code) {
+    currentLang = code;
+    history = [code];
+    historyIndex = 0;
+    lastPressedLetter = "";
+    lastPressedLetterIndex = -1;
+  }
+
+  export function refreshLanguage() {
+    refreshKey++;
+    weGen++;
+    areGen++;
+    dogsGen++;
   }
 </script>
 
@@ -515,32 +545,44 @@
   {/if}
 {/key}
 
-<!-- Top Right Corner Click/Tap Target (Flag Colors Toggle) -->
-<!-- svelte-ignore a11y_click_events_have_key_events -->
-<!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="top-right-trigger" onclick={() => toggleFlagColors()}></div>
+{#if !isFaded}
+  <!-- Top Right Corner Click/Tap Target (Flag Colors Toggle) -->
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div class="top-right-trigger" onclick={() => toggleFlagColors()}></div>
+{/if}
 
 <!-- Language indicator — full name + expandable info panel -->
-<div class="lang-display" class:paused={isPaused}>
-  <span class="lang-name">{langDisplayName(currentLang)}</span>
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div
+  class="lang-display"
+  class:paused={isPaused}
+  class:faded={isFaded}
+  onclick={onOpenStats}
+>
+  <span class="lang-name">
+    {langDisplayName(currentLang)}
+    <span class="stats-badge">📊 DATA PANEL</span>
+  </span>
 
-  {#if isPaused}
+  {#if isPaused && !isFaded}
     <div class="lang-meta">
       <div class="meta-row" style="animation-delay: 0ms">
         <span class="meta-label">🌐 Region</span>
-        <span class="meta-value">{meta.country}</span>
+        <span class="meta-value">{meta?.country || "—"}</span>
       </div>
       <div class="meta-row" style="animation-delay: 60ms">
         <span class="meta-label">💬 Dialect</span>
-        <span class="meta-value">{meta.dialect}</span>
+        <span class="meta-value">{meta?.dialect || "—"}</span>
       </div>
       <div class="meta-row" style="animation-delay: 120ms">
         <span class="meta-label">🗣️ Speakers</span>
-        <span class="meta-value">{meta.speakers}</span>
+        <span class="meta-value">{meta?.speakers || "—"}</span>
       </div>
       <div class="meta-row" style="animation-delay: 180ms">
         <span class="meta-label">🐕 Dogs</span>
-        <span class="meta-value">{meta.dogs_count}</span>
+        <span class="meta-value">{meta?.dogs_count || "—"}</span>
       </div>
     </div>
   {/if}
@@ -549,6 +591,8 @@
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
   class="wad-container"
+  class:faded={isFaded}
+  class:colored={isFlagColors}
   onmouseenter={onEnter}
   onmouseleave={onLeave}
   onclick={onClick}
@@ -631,6 +675,48 @@
     left: 1.25rem;
     z-index: 50;
     max-width: 280px;
+    cursor: pointer;
+    transition: opacity 0.3s ease;
+  }
+
+  .lang-display.faded {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .stats-badge {
+    display: inline-block;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.45);
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 6px;
+    opacity: 0;
+    transform: translateX(-4px);
+    transition: all 0.2s ease;
+  }
+
+  .lang-display:hover .stats-badge {
+    opacity: 1;
+    transform: translateX(0);
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+  }
+
+  /* Fade out background title when stats or other panels are active */
+  .wad-container.faded {
+    opacity: 0.15;
+    filter: blur(12px) saturate(0.8);
+    transform: scale(0.95);
+    pointer-events: none;
+    transition: opacity 0.5s ease, filter 0.5s ease, transform 0.5s ease;
+  }
+
+  .wad-container.faded:not(.colored) {
+    filter: blur(12px) grayscale(1);
   }
 
   .lang-name {
