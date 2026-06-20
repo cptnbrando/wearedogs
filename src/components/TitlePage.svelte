@@ -48,7 +48,8 @@
 {#if activePage === null}
   <!-- Bottom Left: Networking Panel -->
   <button
-    class="absolute bottom-6 left-6 border-2 border-white cursor-pointer p-2 bg-black/60 hover:bg-white hover:text-black transition-colors rounded-lg z-50 flex items-center justify-center"
+    class="fixed bottom-6 left-6 border-2 border-white cursor-pointer p-2 bg-black/60 hover:bg-white hover:text-black transition-colors rounded-lg z-50 flex items-center justify-center"
+    style="bottom: max(1.5rem, calc(1.5rem + env(safe-area-inset-bottom, 0px)))"
     onclick={() => openPage("networking")}
     aria-label="Open Networking page"
   >
@@ -57,7 +58,8 @@
 
   <!-- Bottom Right: Toolbox Panel -->
   <button
-    class="absolute bottom-6 right-6 border-2 border-white cursor-pointer p-2 bg-black/60 hover:bg-white hover:text-black transition-colors rounded-lg z-50 flex items-center justify-center"
+    class="fixed bottom-6 right-6 border-2 border-white cursor-pointer p-2 bg-black/60 hover:bg-white hover:text-black transition-colors rounded-lg z-50 flex items-center justify-center"
+    style="bottom: max(1.5rem, calc(1.5rem + env(safe-area-inset-bottom, 0px)))"
     onclick={() => openPage("toolbox")}
     aria-label="Open Toolbox page"
   >

@@ -5,7 +5,10 @@ body {
     margin: 0;
     padding: 0;
     width: 100vw;
-    height: 100vh;
+    /* Use dvh (dynamic viewport height) so the background fills correctly on
+       mobile even when the browser address bar is visible */
+    height: 100dvh;
+    min-height: 100vh; /* fallback for browsers without dvh support */
     overflow-x: hidden;
     overflow-y: hidden;
     overscroll-behavior: none;
@@ -18,14 +21,6 @@ body {
     -webkit-tap-highlight-color: transparent;
     -webkit-touch-callout: none;
     -webkit-user-drag: none;
-    -webkit-tap-highlight-color: transparent;
-    -webkit-tap-highlight-color: transparent;
-    -webkit-tap-highlight-color: transparent;
-    -webkit-tap-highlight-color: transparent;
-    -webkit-tap-highlight-color: transparent;
-    -webkit-tap-highlight-color: transparent;
-    -webkit-tap-highlight-color: transparent;
-    -webkit-tap-highlight-color: transparent;
 }
 
 /* ── Custom Global Scrollbars (Batman Beyond Theme: Black, White, Red) ── */

@@ -479,8 +479,8 @@ const translations = {
     country: "Pakistan & India", dialect: "Standard Urdu", speakers: "231 million", dogs_count: "35 million (Pakistan)"
   },
   he: {
-    we: "אנחנו", are: "הם", dogs: "כלבים",
-    we_p: "ah-NAHKH-noo", are_p: "hem", dogs_p: "klah-VEEM",
+    we: "אנחנו", are: "—", dogs: "כלבים",
+    we_p: "ah-NAHKH-noo", are_p: "—", dogs_p: "klah-VEEM",
     country: "Israel", dialect: "Modern Hebrew", speakers: "9 million", dogs_count: "550,000"
   },
   ps: {
@@ -504,7 +504,7 @@ const translations = {
     country: "Georgia", dialect: "Standard Georgian (Kartuli)", speakers: "3.7 million", dogs_count: "600,000"
   },
   hy: {
-    we: "Մենք", are: " Delays", dogs: "Շներ",
+    we: "Մենք", are: "Ենք", dogs: "Շներ",
     we_p: "menk", are_p: "yenk", dogs_p: "shner",
     country: "Armenia", dialect: "Eastern Armenian (Standard)", speakers: "6.7 million", dogs_count: "350,000"
   },

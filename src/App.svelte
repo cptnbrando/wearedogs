@@ -3,7 +3,7 @@
 </script>
 
 <main
-  class="relative flex items-center justify-center w-screen h-screen bg-black text-white"
+  class="relative flex items-center justify-center w-screen h-dvh bg-black text-white overflow-hidden"
 >
   <TitlePage />
 </main>
