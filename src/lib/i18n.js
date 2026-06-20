@@ -1,86 +1,25 @@
-import { writable, get } from 'svelte/store';
+import { register, init, getLocaleFromNavigator } from 'svelte-i18n';
+import translations from './translations.js';
 
-// Language detection
-const browserLang = typeof window !== 'undefined' ? navigator.language.split('-')[0] : 'en';
-/** @typedef {'en'|'es'|'fr'|'de'|'ja'|'zh'} Language */
-/** @type {Language[]} */
-const supportedLangs = ['en', 'es', 'fr', 'de', 'ja', 'zh'];
-/** @type {Language} */
-// supportedLangs is typed as Language[], so cast browserLang when checking includes
-const initialLang = /** @type {Language} */ (supportedLangs.includes(/** @type {Language} */(browserLang)) ? browserLang : 'en');
+// All supported language codes (keys from translation dict)
+export const supportedLangs = Object.keys(translations);
 
-// Types for translations
-/** @typedef {Record<string,string>} LocaleStrings */
-/**
- * @typedef {{
- *   en: LocaleStrings,
- *   es: LocaleStrings,
- *   fr: LocaleStrings,
- *   de: LocaleStrings,
- *   ja: LocaleStrings,
- *   zh: LocaleStrings
- * }} Translations
- */
+// Register each locale with svelte-i18n using the translation data
+supportedLangs.forEach((lang) => {
+  register(lang, () => Promise.resolve({
+    we: translations[lang].we,
+    are: translations[lang].are,
+    dogs: translations[lang].dogs,
+  }));
+});
 
-// Translation data
-/** @type {Translations} */
-const translations = {
-  en: {
-    we_are_dogs: 'We are dogs'
-  },
-  es: {
-    we_are_dogs: 'Somos perros'
-  },
-  fr: {
-    we_are_dogs: 'Nous sommes des chiens'
-  },
-  de: {
-    we_are_dogs: 'Wir sind Hunde'
-  },
-  ja: {
-    we_are_dogs: '私たちは犬です'
-  },
-  zh: {
-    we_are_dogs: '我们是狗'
-  }
-};
+// Detect browser locale, fallback to 'en'
+const browserLang = getLocaleFromNavigator()?.split('-')[0] || 'en';
+const initialLocale = supportedLangs.includes(browserLang) ? browserLang : 'en';
 
-// Language store (paraglide-compatible)
-/** @type {import('svelte/store').Writable<Language>} */
-export const currentLanguage = writable(initialLang);
+init({
+  fallbackLocale: 'en',
+  initialLocale,
+});
 
-// Translation function
-/**
- * Translate a key for the current language.
- * @param {string} key
- * @returns {string}
- */
-export function t(key) {
-  /** @type {Language} */
-  const lang = get(currentLanguage);
-  const langKey = lang in translations ? lang : 'en';
-  return translations[langKey]?.[key] || translations.en[key] || key;
-}
-
-// Paraglide-compatible message functions
-export const we_are_dogs = () => t('we_are_dogs');
-
-// Get all languages
-/** @type {Language[]} */
-export const languages = supportedLangs;
-
-// Set language
-/**
- * @param {Language} lang
- */
-export function setLanguage(lang) {
-  if (supportedLangs.includes(lang)) {
-    currentLanguage.set(lang);
-  }
-}
-
-// Get current language
-export function getLanguage() {
-  return get(currentLanguage);
-}
-
+export { initialLocale };
