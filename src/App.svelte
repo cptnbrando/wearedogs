@@ -8,35 +8,15 @@
 </script>
 
 <main
-  class="h-screen w-screen flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600"
+  class="flex flex-col items-center justify-center w-screen h-screen bg-black text-white gap-8"
 >
-  <article class="text-center">
-    <h1 class="text-6xl font-bold text-white drop-shadow-lg mb-8">
-      {we_are_dogs()}
-    </h1>
-
-    <div class="flex gap-2 flex-wrap justify-center">
-      {#each languages as lang}
-        <button
-          on:click={() => setLanguage(lang)}
-          class="px-4 py-2 rounded font-semibold transition {$currentLanguage ===
-          lang
-            ? 'bg-white text-blue-600'
-            : 'bg-white/20 text-white hover:bg-white/30'}"
-        >
-          {lang.toUpperCase()}
-        </button>
-      {/each}
-    </div>
-  </article>
-  <h1>hey</h1>
+  <h1 class="text-8xl font-black text-center">
+    {we_are_dogs()}
+  </h1>
+  <button
+    class="btn btn-primary cursor-pointer"
+    onclick={() => setLanguage(currentLanguage === "en" ? "es" : "en")}
+  >
+    Switch Language
+  </button>
 </main>
-
-<style>
-  main {
-    font-family:
-      system-ui,
-      -apple-system,
-      sans-serif;
-  }
-</style>

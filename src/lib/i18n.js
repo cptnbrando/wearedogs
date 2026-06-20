@@ -7,7 +7,7 @@ const browserLang = typeof window !== 'undefined' ? navigator.language.split('-'
 const supportedLangs = ['en', 'es', 'fr', 'de', 'ja', 'zh'];
 /** @type {Language} */
 // supportedLangs is typed as Language[], so cast browserLang when checking includes
-const initialLang = /** @type {Language} */ (supportedLangs.includes(/** @type {Language} */ (browserLang)) ? browserLang : 'en');
+const initialLang = /** @type {Language} */ (supportedLangs.includes(/** @type {Language} */(browserLang)) ? browserLang : 'en');
 
 // Types for translations
 /** @typedef {Record<string,string>} LocaleStrings */
