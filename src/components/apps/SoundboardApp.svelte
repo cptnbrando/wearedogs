@@ -1,4 +1,6 @@
 <script>
+  // We will be expanding this app to be more like a full fledged Teenage Engineering OP1 / Novation Launchpad
+
   let activeBarkIdx = $state(null);
   let audioContext = null;
 
@@ -13,11 +15,11 @@
     if (!audioContext) return;
 
     activeBarkIdx = type;
-    setTimeout(() => activeBarkIdx = null, 400);
+    setTimeout(() => (activeBarkIdx = null), 400);
 
     const osc = audioContext.createOscillator();
     const gain = audioContext.createGain();
-    
+
     osc.connect(gain);
     gain.connect(audioContext.destination);
 
@@ -28,7 +30,7 @@
       osc.type = "triangle";
       osc.frequency.setValueAtTime(140, now);
       osc.frequency.exponentialRampToValueAtTime(60, now + 0.18);
-      
+
       gain.gain.setValueAtTime(0.8, now);
       gain.gain.exponentialRampToValueAtTime(0.01, now + 0.22);
       osc.start(now);
@@ -38,7 +40,7 @@
       osc.type = "sine";
       osc.frequency.setValueAtTime(550, now);
       osc.frequency.exponentialRampToValueAtTime(320, now + 0.1);
-      
+
       gain.gain.setValueAtTime(0.6, now);
       gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
       osc.start(now);
@@ -49,7 +51,7 @@
       osc.frequency.setValueAtTime(180, now);
       osc.frequency.linearRampToValueAtTime(250, now + 0.15);
       osc.frequency.exponentialRampToValueAtTime(90, now + 0.45);
-      
+
       gain.gain.setValueAtTime(0.4, now);
       gain.gain.exponentialRampToValueAtTime(0.01, now + 0.45);
       osc.start(now);
@@ -67,8 +69,8 @@
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div
       class="bark-card"
-      class:pulse-active={activeBarkIdx === 'woof'}
-      onclick={() => playBarkSound(1, 'woof')}
+      class:pulse-active={activeBarkIdx === "woof"}
+      onclick={() => playBarkSound(1, "woof")}
     >
       <span class="bark-emoji">🐕</span>
       <h3>Deep Woof</h3>
@@ -79,8 +81,8 @@
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div
       class="bark-card"
-      class:pulse-active={activeBarkIdx === 'yip'}
-      onclick={() => playBarkSound(2, 'yip')}
+      class:pulse-active={activeBarkIdx === "yip"}
+      onclick={() => playBarkSound(2, "yip")}
     >
       <span class="bark-emoji">🐶</span>
       <h3>Puppy Yip</h3>
@@ -91,8 +93,8 @@
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div
       class="bark-card"
-      class:pulse-active={activeBarkIdx === 'growl'}
-      onclick={() => playBarkSound(3, 'growl')}
+      class:pulse-active={activeBarkIdx === "growl"}
+      onclick={() => playBarkSound(3, "growl")}
     >
       <span class="bark-emoji">🐺</span>
       <h3>Playful Growl</h3>
@@ -176,7 +178,13 @@
   }
 
   @keyframes paneFadeIn {
-    0% { opacity: 0; transform: translateY(8px); }
-    100% { opacity: 1; transform: translateY(0); }
+    0% {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 </style>
