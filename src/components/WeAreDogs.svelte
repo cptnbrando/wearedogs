@@ -6,56 +6,56 @@
   const langs = Object.keys(translations);
 
   const flagColorMap = {
-    "france": ["#00209F", "#FFFFFF", "#E0000F"],
-    "germany": ["#000000", "#FF0000", "#FFCC00"],
-    "italy": ["#009246", "#F1F2F1", "#CE2B37"],
-    "spain": ["#AD1519", "#FABD00", "#AD1519"],
-    "poland": ["#FFFFFF", "#DC143C", "#FFFFFF"],
-    "ukraine": ["#0057B7", "#FFD700", "#0057B7"],
-    "japan": ["#FFFFFF", "#BC002D", "#FFFFFF"],
+    france: ["#00209F", "#FFFFFF", "#E0000F"],
+    germany: ["#000000", "#FF0000", "#FFCC00"],
+    italy: ["#009246", "#F1F2F1", "#CE2B37"],
+    spain: ["#AD1519", "#FABD00", "#AD1519"],
+    poland: ["#FFFFFF", "#DC143C", "#FFFFFF"],
+    ukraine: ["#0057B7", "#FFD700", "#0057B7"],
+    japan: ["#FFFFFF", "#BC002D", "#FFFFFF"],
     "united states": ["#0A3161", "#FFFFFF", "#B31942"],
     "united kingdom": ["#012169", "#FFFFFF", "#C8102E"],
-    "brazil": ["#009739", "#FEDF00", "#012169"],
-    "china": ["#DE2910", "#FFDE00", "#DE2910"],
-    "india": ["#FF9933", "#FFFFFF", "#128807"],
-    "ireland": ["#169B62", "#FFFFFF", "#FF883E"],
-    "netherlands": ["#AE1C28", "#FFFFFF", "#21468B"],
-    "sweden": ["#006AA7", "#FECC00", "#006AA7"],
-    "greece": ["#0D5EAF", "#FFFFFF", "#0D5EAF"],
-    "canada": ["#FF0000", "#FFFFFF", "#FF0000"],
+    brazil: ["#009739", "#FEDF00", "#012169"],
+    china: ["#DE2910", "#FFDE00", "#DE2910"],
+    india: ["#FF9933", "#FFFFFF", "#128807"],
+    ireland: ["#169B62", "#FFFFFF", "#FF883E"],
+    netherlands: ["#AE1C28", "#FFFFFF", "#21468B"],
+    sweden: ["#006AA7", "#FECC00", "#006AA7"],
+    greece: ["#0D5EAF", "#FFFFFF", "#0D5EAF"],
+    canada: ["#FF0000", "#FFFFFF", "#FF0000"],
     "south korea": ["#FFFFFF", "#CD2E3A", "#0F64CD"],
-    "russia": ["#FFFFFF", "#0039A6", "#D52B1E"],
-    "mexico": ["#006847", "#FFFFFF", "#CE1126"],
-    "belgium": ["#000000", "#FDDA24", "#EF3340"],
-    "austria": ["#ED2939", "#FFFFFF", "#ED2939"],
-    "switzerland": ["#D52B1E", "#FFFFFF", "#D52B1E"],
-    "portugal": ["#006600", "#FF0000", "#FFD700"],
-    "norway": ["#EF2B2D", "#002868", "#FFFFFF"],
-    "denmark": ["#C60C30", "#FFFFFF", "#C60C30"],
-    "finland": ["#FFFFFF", "#003580", "#FFFFFF"],
-    "turkey": ["#E30A17", "#FFFFFF", "#E30A17"],
-    "australia": ["#00008B", "#FFFFFF", "#FF0000"],
+    russia: ["#FFFFFF", "#0039A6", "#D52B1E"],
+    mexico: ["#006847", "#FFFFFF", "#CE1126"],
+    belgium: ["#000033", "#FDDA24", "#EF3340"],
+    austria: ["#ED2939", "#FFFFFF", "#ED2939"],
+    switzerland: ["#D52B1E", "#FFFFFF", "#D52B1E"],
+    portugal: ["#006600", "#FF0000", "#FFD700"],
+    norway: ["#EF2B2D", "#002868", "#FFFFFF"],
+    denmark: ["#C60C30", "#FFFFFF", "#C60C30"],
+    finland: ["#FFFFFF", "#003580", "#FFFFFF"],
+    turkey: ["#E30A17", "#FFFFFF", "#E30A17"],
+    australia: ["#00008B", "#FFFFFF", "#FF0000"],
     "new zealand": ["#00008B", "#FFFFFF", "#FF0000"],
     "south africa": ["#E23D28", "#007A4D", "#002395"],
     "saudi arabia": ["#006C35", "#FFFFFF", "#006C35"],
-    "egypt": ["#C09307", "#FFFFFF", "#000000"],
-    "vietnam": ["#DA251D", "#FFFF00", "#DA251D"],
-    "thailand": ["#A51931", "#F4F5F8", "#2D2A4A"],
-    "philippines": ["#0038A8", "#FFFFFF", "#CE1126"],
-    "indonesia": ["#FF0000", "#FFFFFF", "#FF0000"],
-    "malaysia": ["#C8102E", "#FFFFFF", "#012169"],
-    "singapore": ["#ED2939", "#FFFFFF", "#ED2939"],
-    "argentina": ["#75AADB", "#FFFFFF", "#75AADB"],
-    "colombia": ["#FCD116", "#003893", "#CE1126"],
-    "chile": ["#0039A6", "#FFFFFF", "#D52B1E"],
-    "peru": ["#D91414", "#FFFFFF", "#D91414"],
-    "venezuela": ["#FCE300", "#0038A8", "#CE1126"],
-    "ecuador": ["#FEE11A", "#032A70", "#D61622"],
-    "bolivia": ["#F7141A", "#F7DE1A", "#279E47"],
-    "saudi": ["#006C35", "#FFFFFF", "#006C35"],
-    "uk": ["#012169", "#FFFFFF", "#C8102E"],
-    "us": ["#0A3161", "#FFFFFF", "#B31942"],
-    "usa": ["#0A3161", "#FFFFFF", "#B31942"]
+    egypt: ["#C09307", "#FFFFFF", "#000000"],
+    vietnam: ["#DA251D", "#FFFF00", "#DA251D"],
+    thailand: ["#A51931", "#F4F5F8", "#2D2A4A"],
+    philippines: ["#0038A8", "#FFFFFF", "#CE1126"],
+    indonesia: ["#FF0000", "#FFFFFF", "#FF0000"],
+    malaysia: ["#C8102E", "#FFFFFF", "#012169"],
+    singapore: ["#ED2939", "#FFFFFF", "#ED2939"],
+    argentina: ["#75AADB", "#FFFFFF", "#75AADB"],
+    colombia: ["#FCD116", "#003893", "#CE1126"],
+    chile: ["#0039A6", "#FFFFFF", "#D52B1E"],
+    peru: ["#D91414", "#FFFFFF", "#D91414"],
+    venezuela: ["#FCE300", "#0038A8", "#CE1126"],
+    ecuador: ["#FEE11A", "#032A70", "#D61622"],
+    bolivia: ["#F7141A", "#F7DE1A", "#279E47"],
+    saudi: ["#006C35", "#FFFFFF", "#006C35"],
+    uk: ["#012169", "#FFFFFF", "#C8102E"],
+    us: ["#0A3161", "#FFFFFF", "#B31942"],
+    usa: ["#0A3161", "#FFFFFF", "#B31942"],
   };
 
   function getHashColors(str) {
@@ -69,7 +69,7 @@
     return [
       `hsl(${h1}, 85%, 55%)`,
       `hsl(${h2}, 85%, 60%)`,
-      `hsl(${h3}, 85%, 55%)`
+      `hsl(${h3}, 85%, 55%)`,
     ];
   }
 
@@ -148,6 +148,10 @@
   let isFlagColors = $state(false);
   let flagColors = $derived(getFlagColors(currentLang));
 
+  // Letter navigation memory state
+  let lastPressedLetter = $state("");
+  let lastPressedLetterIndex = $state(-1);
+
   function toggleFlagColors(val) {
     const nextVal = typeof val === "boolean" ? val : !isFlagColors;
     if (isFlagColors === nextVal) return;
@@ -188,6 +192,8 @@
   /** Swap all words to a random language */
   function cycle() {
     const next = randLang();
+    lastPressedLetter = "";
+    lastPressedLetterIndex = -1;
     history = history.slice(0, historyIndex + 1);
     history.push(next);
     goToIndex(history.length - 1);
@@ -218,6 +224,8 @@
       setLang(initialLang);
       history = [initialLang];
       historyIndex = 0;
+      lastPressedLetter = "";
+      lastPressedLetterIndex = -1;
     }
     // If paused, language stays locked
   }
@@ -232,6 +240,8 @@
       // UNPAUSE — resume cycling
       isPaused = false;
       triggerFlash("play");
+      lastPressedLetter = "";
+      lastPressedLetterIndex = -1;
       if (isHovering || isTouchDevice) {
         startCycling();
       } else {
@@ -334,6 +344,8 @@
       isPaused = true;
       stopCycling();
       triggerFlash("backward");
+      lastPressedLetter = "";
+      lastPressedLetterIndex = -1;
       goToIndex(historyIndex - 1);
     }
   }
@@ -342,6 +354,8 @@
     isPaused = true;
     stopCycling();
     triggerFlash("forward");
+    lastPressedLetter = "";
+    lastPressedLetterIndex = -1;
     if (historyIndex < history.length - 1) {
       goToIndex(historyIndex + 1);
     } else {
@@ -400,6 +414,57 @@
     }
   }
 
+  function handleLetterPress(letter) {
+    const matches = langs
+      .map((code) => {
+        const name = langDisplayName(code).trim();
+        const t = translations[code];
+        const dialect = t.dialect || "";
+        const country = t.country || "";
+        return { code, name, dialect, country };
+      })
+      .filter((item) => {
+        const nameWords = item.name.toLowerCase().split(/[\s()&,-]+/);
+        const dialectWords = item.dialect.toLowerCase().split(/[\s()&,-]+/);
+        const countryWords = item.country.toLowerCase().split(/[\s()&,-]+/);
+
+        const matchesName = nameWords.some((w) => w.startsWith(letter));
+        const matchesDialect = dialectWords.some((w) => w.startsWith(letter));
+        const matchesCountry = countryWords.some((w) => w.startsWith(letter));
+
+        return matchesName || matchesDialect || matchesCountry;
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    if (matches.length === 0) {
+      // Flash the letter anyway for visual feedback
+      triggerFlash(letter.toUpperCase());
+      return;
+    }
+
+    // Pause cycling
+    isPaused = true;
+    stopCycling();
+
+    let nextIndex = 0;
+    if (lastPressedLetter === letter) {
+      nextIndex = (lastPressedLetterIndex + 1) % matches.length;
+    } else {
+      nextIndex = 0;
+    }
+
+    lastPressedLetter = letter;
+    lastPressedLetterIndex = nextIndex;
+
+    const selectedCode = matches[nextIndex].code;
+    triggerFlash(letter.toUpperCase());
+
+    history = history.slice(0, historyIndex + 1);
+    history.push(selectedCode);
+    goToIndex(history.length - 1);
+  }
+
+
   function handleKeydown(e) {
     if (e.key === "ArrowLeft") {
       handleLeftArrow();
@@ -412,6 +477,8 @@
     } else if (e.key === " ") {
       e.preventDefault();
       onClick();
+    } else if (e.key.length === 1 && e.key.match(/[a-zA-Z]/)) {
+      handleLetterPress(e.key.toLowerCase());
     }
   }
 </script>
@@ -422,7 +489,9 @@
 {#key flashKey}
   {#if flashVisible}
     <div class="status-flash">
-      {#if flashIcon === "pause"}
+      {#if flashIcon.length === 1}
+        <span class="flash-text">{flashIcon}</span>
+      {:else if flashIcon === "pause"}
         <Pause size={28} />
       {:else if flashIcon === "play"}
         <Play size={28} />
@@ -433,9 +502,13 @@
       {:else if flashIcon === "flag_on"}
         <Flag size={28} style="fill: currentColor;" />
       {:else if flashIcon === "flag_off"}
-        <div style="position: relative; display: flex; align-items: center; justify-content: center;">
+        <div
+          style="position: relative; display: flex; align-items: center; justify-content: center;"
+        >
           <Flag size={28} />
-          <div style="position: absolute; width: 30px; height: 2px; background: currentColor; transform: rotate(-45deg); opacity: 0.85;"></div>
+          <div
+            style="position: absolute; width: 30px; height: 2px; background: currentColor; transform: rotate(-45deg); opacity: 0.85;"
+          ></div>
         </div>
       {/if}
     </div>
@@ -489,7 +562,14 @@
       {#each toLetters(currentWe) as letter, i}
         <span
           class="letter"
-          style="{letterStyle(i, toLetters(currentWe).length)} --trans-delay: {i * 30}ms; color: {isFlagColors ? flagColors[0] : 'white'}; text-shadow: {isFlagColors ? `0 0 15px ${flagColors[0]}44` : 'none'}"
+          style="{letterStyle(
+            i,
+            toLetters(currentWe).length,
+          )} --trans-delay: {i * 30}ms; color: {isFlagColors
+            ? flagColors[0]
+            : 'white'}; text-shadow: {isFlagColors
+            ? `0 0 15px ${flagColors[0]}44`
+            : 'none'}"
         >
           {letter}
         </span>
@@ -503,7 +583,14 @@
       {#each toLetters(currentAre) as letter, i}
         <span
           class="letter"
-          style="{letterStyle(i, toLetters(currentAre).length)} --trans-delay: {i * 30}ms; color: {isFlagColors ? flagColors[1] : 'white'}; text-shadow: {isFlagColors ? `0 0 15px ${flagColors[1]}44` : 'none'}"
+          style="{letterStyle(
+            i,
+            toLetters(currentAre).length,
+          )} --trans-delay: {i * 30}ms; color: {isFlagColors
+            ? flagColors[1]
+            : 'white'}; text-shadow: {isFlagColors
+            ? `0 0 15px ${flagColors[1]}44`
+            : 'none'}"
         >
           {letter}
         </span>
@@ -517,7 +604,14 @@
       {#each toLetters(currentDogs) as letter, i}
         <span
           class="letter"
-          style="{letterStyle(i, toLetters(currentDogs).length)} --trans-delay: {i * 30}ms; color: {isFlagColors ? flagColors[2] : 'white'}; text-shadow: {isFlagColors ? `0 0 15px ${flagColors[2]}44` : 'none'}"
+          style="{letterStyle(
+            i,
+            toLetters(currentDogs).length,
+          )} --trans-delay: {i * 30}ms; color: {isFlagColors
+            ? flagColors[2]
+            : 'white'}; text-shadow: {isFlagColors
+            ? `0 0 15px ${flagColors[2]}44`
+            : 'none'}"
         >
           {letter}
         </span>
@@ -618,7 +712,7 @@
 
   /* ── Pronunciation ── */
   .pronunciation {
-    margin: 3rem 0 0 0;
+    margin: 4rem 0 0 0;
     padding: 0;
     font-size: clamp(0.7rem, 2vw, 1rem);
     font-weight: 400;
@@ -667,7 +761,9 @@
     animation: matrixFlip 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
     animation-delay: var(--delay, 0ms);
     will-change: transform, opacity;
-    transition: color 0.5s cubic-bezier(0.25, 1, 0.5, 1), text-shadow 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+    transition:
+      color 0.5s cubic-bezier(0.25, 1, 0.5, 1),
+      text-shadow 0.5s cubic-bezier(0.25, 1, 0.5, 1);
     transition-delay: var(--trans-delay, 0ms);
   }
 
@@ -716,13 +812,23 @@
     background: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(8px);
     border: 1px solid rgba(255, 255, 255, 0.15);
-    padding: 0.8rem;
+    width: 3.2rem;
+    height: 3.2rem;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
     animation: flashFade 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .flash-text {
+    font-size: 1.5rem;
+    font-weight: 800;
+    line-height: 1;
+    font-family: "Outfit", "Inter", system-ui, sans-serif;
+    color: rgba(255, 255, 255, 0.95);
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
   }
 
   @keyframes flashFade {
