@@ -1,13 +1,15 @@
 <script>
-  import { X, Undo, Award, Volume2, Paintbrush, Watch } from "lucide-svelte";
+  import { X, Undo, Award, Volume2, Paintbrush, Watch, Video, QrCode } from "lucide-svelte";
   import SnakeApp from "./apps/SnakeApp.svelte";
   import SoundboardApp from "./apps/SoundboardApp.svelte";
   import PaintApp from "./apps/PaintApp.svelte";
   import StopwatchApp from "./apps/StopwatchApp.svelte";
+  import GoPro from "./apps/GoPro.svelte";
+  import QRFlash from "./apps/QRFlash.svelte";
 
   let { isClosing = false, onClose } = $props();
 
-  // Active App state: null | 'snake' | 'soundboard' | 'paint' | 'stopwatch'
+  // Active App state: null | 'snake' | 'soundboard' | 'paint' | 'stopwatch' | 'gopro' | 'qrflash'
   let activeApp = $state(null);
 
   function handleBack() {
@@ -152,6 +154,55 @@
                 >
               </div>
             </div>
+
+            <!-- App 5: GoPro Player -->
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div
+              class="app-card border-neon-purple"
+              onclick={() => {
+                activeApp = "gopro";
+              }}
+            >
+              <div class="app-visual">
+                <div class="video-preview-mini">
+                  <span class="lens"></span>
+                  <span class="tape t1"></span>
+                  <span class="tape t2"></span>
+                </div>
+              </div>
+              <div class="app-meta">
+                <span class="app-title"><Video size={14} /> GoPro Cinema</span>
+                <span class="app-desc"
+                  >Stream retro TV series and clip custom audio loops.</span
+                >
+              </div>
+            </div>
+
+            <!-- App 6: QRFlash Visual Transfer -->
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div
+              class="app-card border-neon-cyan"
+              onclick={() => {
+                activeApp = "qrflash";
+              }}
+            >
+              <div class="app-visual">
+                <div class="qr-preview-mini">
+                  <span class="corner c1"></span>
+                  <span class="corner c2"></span>
+                  <span class="corner c3"></span>
+                  <span class="scan-bar"></span>
+                </div>
+              </div>
+              <div class="app-meta">
+                <span class="app-title"><QrCode size={14} /> QRFlash Link</span>
+                <span class="app-desc"
+                  >Visual file transfer protocol over flashing QR codes.</span
+                >
+              </div>
+            </div>
           </div>
         </div>
       {:else if activeApp === "snake"}
@@ -162,6 +213,10 @@
         <PaintApp />
       {:else if activeApp === "stopwatch"}
         <StopwatchApp />
+      {:else if activeApp === "gopro"}
+        <GoPro />
+      {:else if activeApp === "qrflash"}
+        <QRFlash />
       {/if}
     </div>
 
@@ -172,7 +227,7 @@
         <span>UTILITY GRID STABLE</span>
       </div>
       <div class="stats-counter">
-        <span>APPS LOADED: 4</span>
+        <span>APPS LOADED: 6</span>
         <span class="divider">|</span>
         <span>ACTIVE APP: {activeApp ? activeApp.toUpperCase() : "NONE"}</span>
       </div>
@@ -199,11 +254,11 @@
 
   /* ── Container ── */
   .toolbox-panel-container {
-    width: 85vw;
-    height: 80vh;
-    max-width: 900px;
-    max-height: 600px;
-    background: rgba(10, 10, 14, 0.6); /* Slightly transparent mandatory */
+    width: 94vw;
+    height: 90vh;
+    max-width: 1280px;
+    max-height: 850px;
+    background: rgba(10, 10, 14, 0.45); /* Slightly transparent mandatory */
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 24px;
     box-shadow:
@@ -212,8 +267,8 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    backdrop-filter: blur(30px) saturate(180%);
-    -webkit-backdrop-filter: blur(30px) saturate(180%);
+    backdrop-filter: blur(15px) saturate(160%);
+    -webkit-backdrop-filter: blur(15px) saturate(160%);
     animation: panelSlideUpIn 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     transform-origin: center bottom;
   }
@@ -231,7 +286,7 @@
     100% {
       opacity: 1;
       transform: translateY(0) scale(1);
-      backdrop-filter: blur(30px) saturate(180%);
+      backdrop-filter: blur(15px) saturate(160%);
     }
   }
 
@@ -239,7 +294,7 @@
     0% {
       opacity: 1;
       transform: translateY(0) scale(1);
-      backdrop-filter: blur(30px) saturate(180%);
+      backdrop-filter: blur(15px) saturate(160%);
     }
     100% {
       opacity: 0;
@@ -427,6 +482,14 @@
   .border-neon-green:hover {
     border-color: rgba(0, 255, 102, 0.6);
     box-shadow: 0 8px 30px rgba(0, 255, 102, 0.1);
+  }
+  .border-neon-purple:hover {
+    border-color: rgba(180, 85, 255, 0.6);
+    box-shadow: 0 8px 30px rgba(180, 85, 255, 0.1);
+  }
+  .border-neon-cyan:hover {
+    border-color: rgba(0, 191, 255, 0.6);
+    box-shadow: 0 8px 30px rgba(0, 191, 255, 0.1);
   }
 
   .app-visual {
@@ -681,5 +744,69 @@
 
   .divider {
     color: rgba(255, 255, 255, 0.15);
+  }
+
+  /* Custom App Previews */
+  .video-preview-mini {
+    position: relative;
+    width: 24px;
+    height: 24px;
+    border: 2px solid #ff55bb;
+    border-radius: 4px;
+    color: #ff55bb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .video-preview-mini .lens {
+    width: 6px;
+    height: 6px;
+    background: #ff55bb;
+    border-radius: 50%;
+  }
+  .video-preview-mini .tape {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border: 2px solid #ff55bb;
+    border-radius: 50%;
+    top: -8px;
+  }
+  .video-preview-mini .tape.t1 { left: -3px; animation: tapeRoll 2s infinite linear; }
+  .video-preview-mini .tape.t2 { right: -3px; animation: tapeRoll 2s infinite linear; }
+
+  @keyframes tapeRoll {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  .qr-preview-mini {
+    position: relative;
+    width: 20px;
+    height: 20px;
+    color: #00bfff;
+  }
+  .qr-preview-mini .corner {
+    position: absolute;
+    width: 5px;
+    height: 5px;
+    border: 2px solid #00bfff;
+  }
+  .qr-preview-mini .corner.c1 { top: 0; left: 0; }
+  .qr-preview-mini .corner.c2 { top: 0; right: 0; }
+  .qr-preview-mini .corner.c3 { bottom: 0; left: 0; }
+  .qr-preview-mini .scan-bar {
+    position: absolute;
+    width: 100%;
+    height: 2px;
+    background: #00bfff;
+    box-shadow: 0 0 6px #00bfff;
+    top: 2px;
+    animation: qrScanMini 1.5s infinite alternate ease-in-out;
+  }
+
+  @keyframes qrScanMini {
+    0% { top: 2px; }
+    100% { top: 16px; }
   }
 </style>

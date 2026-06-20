@@ -612,11 +612,11 @@
 
   /* ── Container ── */
   .stats-panel-container {
-    width: 90vw;
-    height: 85vh;
-    max-width: 1300px;
-    max-height: 800px;
-    background: rgba(15, 15, 18, 0.72);
+    width: 94vw;
+    height: 90vh;
+    max-width: 1280px;
+    max-height: 850px;
+    background: rgba(10, 10, 14, 0.45);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 20px;
     box-shadow: 0 32px 80px rgba(0, 0, 0, 0.7),
@@ -624,8 +624,8 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    backdrop-filter: blur(25px) saturate(180%);
-    -webkit-backdrop-filter: blur(25px) saturate(180%);
+    backdrop-filter: blur(15px) saturate(160%);
+    -webkit-backdrop-filter: blur(15px) saturate(160%);
     animation: panelSlideUpIn 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     transform-origin: center bottom;
   }
@@ -643,7 +643,7 @@
     100% {
       opacity: 1;
       transform: translateY(0) scale(1);
-      backdrop-filter: blur(25px) saturate(180%);
+      backdrop-filter: blur(15px) saturate(160%);
     }
   }
 
@@ -651,7 +651,7 @@
     0% {
       opacity: 1;
       transform: translateY(0) scale(1);
-      backdrop-filter: blur(25px) saturate(180%);
+      backdrop-filter: blur(15px) saturate(160%);
     }
     100% {
       opacity: 0;
@@ -833,25 +833,7 @@
     background: rgba(0, 0, 0, 0.05);
   }
 
-  /* Scrollbars */
-  .scroll-container::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
 
-  .scroll-container::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.02);
-    border-radius: 3px;
-  }
-
-  .scroll-container::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.12);
-    border-radius: 3px;
-  }
-
-  .scroll-container::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.25);
-  }
 
   /* Animated Entrance for tabs */
   .animated-pane {

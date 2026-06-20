@@ -27,3 +27,34 @@ body {
     -webkit-tap-highlight-color: transparent;
     -webkit-tap-highlight-color: transparent;
 }
+
+/* ── Custom Global Scrollbars (Batman Beyond Theme: Black, White, Red) ── */
+
+/* Webkit browsers (Chrome, Edge, Safari, Opera) */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #050508;
+    border-left: 1px solid rgba(255, 51, 68, 0.15);
+    border-top: 1px solid rgba(255, 51, 68, 0.15);
+}
+
+::-webkit-scrollbar-thumb {
+    background: #ff3344;
+    border: 2px solid #050508;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #ffffff;
+    border-color: #ff3344;
+}
+
+/* Firefox standard styling */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: #ff3344 #050508;
+}
