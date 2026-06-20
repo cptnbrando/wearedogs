@@ -1,5 +1,14 @@
 <script>
-  import { X, Undo, Award, Volume2, Paintbrush, Watch, Video, QrCode } from "lucide-svelte";
+  import {
+    X,
+    Undo,
+    Award,
+    Volume2,
+    Paintbrush,
+    Watch,
+    Video,
+    QrCode,
+  } from "lucide-svelte";
   import SnakeApp from "./apps/SnakeApp.svelte";
   import SoundboardApp from "./apps/SoundboardApp.svelte";
   import PaintApp from "./apps/PaintApp.svelte";
@@ -57,7 +66,81 @@
           </p>
 
           <div class="apps-grid">
-            <!-- App 1: Snake Game -->
+            <!-- App 1: GoPro Player -->
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div
+              class="app-card border-neon-purple"
+              onclick={() => {
+                activeApp = "gopro";
+              }}
+            >
+              <div class="app-visual">
+                <div class="video-preview-mini">
+                  <span class="lens"></span>
+                  <span class="tape t1"></span>
+                  <span class="tape t2"></span>
+                </div>
+              </div>
+              <div class="app-meta">
+                <span class="app-title"><Video size={14} /> GoPro Cinema</span>
+                <span class="app-desc"
+                  >Stream retro TV series and clip custom audio loops.</span
+                >
+              </div>
+            </div>
+
+            <!-- App 2: QRFlash Visual Transfer -->
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div
+              class="app-card border-neon-cyan"
+              onclick={() => {
+                activeApp = "qrflash";
+              }}
+            >
+              <div class="app-visual">
+                <div class="qr-preview-mini">
+                  <span class="corner c1"></span>
+                  <span class="corner c2"></span>
+                  <span class="corner c3"></span>
+                  <span class="scan-bar"></span>
+                </div>
+              </div>
+              <div class="app-meta">
+                <span class="app-title"><QrCode size={14} /> QRFlash Link</span>
+                <span class="app-desc"
+                  >Visual file transfer protocol over flashing QR codes.</span
+                >
+              </div>
+            </div>
+
+            <!-- App 3: Dog Soundboard -->
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div
+              class="app-card border-neon-pink"
+              onclick={() => {
+                activeApp = "soundboard";
+              }}
+            >
+              <div class="app-visual">
+                <div class="wave-preview">
+                  <span></span><span></span><span></span><span></span><span
+                  ></span>
+                </div>
+              </div>
+              <div class="app-meta">
+                <span class="app-title"
+                  ><Volume2 size={14} /> Dog Soundboard</span
+                >
+                <span class="app-desc"
+                  >Play high fidelity dog bark synthesizers.</span
+                >
+              </div>
+            </div>
+
+            <!-- App 4: Snake Game -->
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div
@@ -83,32 +166,7 @@
               </div>
             </div>
 
-            <!-- App 2: Dog Soundboard -->
-            <!-- svelte-ignore a11y_click_events_have_key_events -->
-            <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <div
-              class="app-card border-neon-pink"
-              onclick={() => {
-                activeApp = "soundboard";
-              }}
-            >
-              <div class="app-visual">
-                <div class="wave-preview">
-                  <span></span><span></span><span></span><span></span><span
-                  ></span>
-                </div>
-              </div>
-              <div class="app-meta">
-                <span class="app-title"
-                  ><Volume2 size={14} /> Dog Soundboard</span
-                >
-                <span class="app-desc"
-                  >Play high fidelity dog bark synthesizers.</span
-                >
-              </div>
-            </div>
-
-            <!-- App 3: Sketch Canvas -->
+            <!-- App 5: Sketch Canvas -->
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div
@@ -133,7 +191,7 @@
               </div>
             </div>
 
-            <!-- App 4: Stopwatch -->
+            <!-- App 6: Stopwatch -->
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div
@@ -151,55 +209,6 @@
                 <span class="app-title"><Watch size={14} /> Chronometer</span>
                 <span class="app-desc"
                   >Track elapsed lap times with sub-millisecond precision.</span
-                >
-              </div>
-            </div>
-
-            <!-- App 5: GoPro Player -->
-            <!-- svelte-ignore a11y_click_events_have_key_events -->
-            <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <div
-              class="app-card border-neon-purple"
-              onclick={() => {
-                activeApp = "gopro";
-              }}
-            >
-              <div class="app-visual">
-                <div class="video-preview-mini">
-                  <span class="lens"></span>
-                  <span class="tape t1"></span>
-                  <span class="tape t2"></span>
-                </div>
-              </div>
-              <div class="app-meta">
-                <span class="app-title"><Video size={14} /> GoPro Cinema</span>
-                <span class="app-desc"
-                  >Stream retro TV series and clip custom audio loops.</span
-                >
-              </div>
-            </div>
-
-            <!-- App 6: QRFlash Visual Transfer -->
-            <!-- svelte-ignore a11y_click_events_have_key_events -->
-            <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <div
-              class="app-card border-neon-cyan"
-              onclick={() => {
-                activeApp = "qrflash";
-              }}
-            >
-              <div class="app-visual">
-                <div class="qr-preview-mini">
-                  <span class="corner c1"></span>
-                  <span class="corner c2"></span>
-                  <span class="corner c3"></span>
-                  <span class="scan-bar"></span>
-                </div>
-              </div>
-              <div class="app-meta">
-                <span class="app-title"><QrCode size={14} /> QRFlash Link</span>
-                <span class="app-desc"
-                  >Visual file transfer protocol over flashing QR codes.</span
                 >
               </div>
             </div>
@@ -772,12 +781,22 @@
     border-radius: 50%;
     top: -8px;
   }
-  .video-preview-mini .tape.t1 { left: -3px; animation: tapeRoll 2s infinite linear; }
-  .video-preview-mini .tape.t2 { right: -3px; animation: tapeRoll 2s infinite linear; }
+  .video-preview-mini .tape.t1 {
+    left: -3px;
+    animation: tapeRoll 2s infinite linear;
+  }
+  .video-preview-mini .tape.t2 {
+    right: -3px;
+    animation: tapeRoll 2s infinite linear;
+  }
 
   @keyframes tapeRoll {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
   }
 
   .qr-preview-mini {
@@ -792,9 +811,18 @@
     height: 5px;
     border: 2px solid #00bfff;
   }
-  .qr-preview-mini .corner.c1 { top: 0; left: 0; }
-  .qr-preview-mini .corner.c2 { top: 0; right: 0; }
-  .qr-preview-mini .corner.c3 { bottom: 0; left: 0; }
+  .qr-preview-mini .corner.c1 {
+    top: 0;
+    left: 0;
+  }
+  .qr-preview-mini .corner.c2 {
+    top: 0;
+    right: 0;
+  }
+  .qr-preview-mini .corner.c3 {
+    bottom: 0;
+    left: 0;
+  }
   .qr-preview-mini .scan-bar {
     position: absolute;
     width: 100%;
@@ -806,7 +834,11 @@
   }
 
   @keyframes qrScanMini {
-    0% { top: 2px; }
-    100% { top: 16px; }
+    0% {
+      top: 2px;
+    }
+    100% {
+      top: 16px;
+    }
   }
 </style>
