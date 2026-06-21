@@ -1,11 +1,25 @@
 <script>
   import translations from "../lib/translations.js";
-  import { X, Search, Globe, TrendingUp, Palette, ChevronRight } from "lucide-svelte";
+  import {
+    X,
+    Search,
+    Globe,
+    TrendingUp,
+    Palette,
+    ChevronRight,
+  } from "lucide-svelte";
 
-  let { isClosing = false, currentLang = $bindable(), onClose, onHoverLang, onSelectLang } = $props();
+  let {
+    isClosing = false,
+    currentLang = $bindable(),
+    onClose,
+    onHoverLang,
+    onSelectLang,
+  } = $props();
 
   const langs = Object.keys(translations);
-  const userLocale = typeof navigator !== "undefined" ? navigator.language : "en";
+  const userLocale =
+    typeof navigator !== "undefined" ? navigator.language : "en";
   const langNames = new Intl.DisplayNames([userLocale], { type: "language" });
   const englishLangNames = new Intl.DisplayNames(["en"], { type: "language" });
 
@@ -75,7 +89,7 @@
     saudi: ["#006C35", "#FFFFFF", "#006C35"],
     uk: ["#012169", "#FFFFFF", "#C8102E"],
     us: ["#0A3161", "#FFFFFF", "#B31942"],
-    usa: ["#0A3161", "#FFFFFF", "#B31942"]
+    usa: ["#0A3161", "#FFFFFF", "#B31942"],
   };
 
   function getHashColors(str) {
@@ -89,7 +103,7 @@
     return [
       `hsl(${h1}, 85%, 55%)`,
       `hsl(${h2}, 85%, 60%)`,
-      `hsl(${h3}, 85%, 55%)`
+      `hsl(${h3}, 85%, 55%)`,
     ];
   }
 
@@ -170,12 +184,15 @@
       we: t.we,
       are: t.are,
       dogs: t.dogs,
-      colors: getFlagColors(code)
+      colors: getFlagColors(code),
     };
   });
 
   // Total global metrics calculation
-  const totalSpeakers = allLangItems.reduce((acc, curr) => acc + curr.speakersNum, 0);
+  const totalSpeakers = allLangItems.reduce(
+    (acc, curr) => acc + curr.speakersNum,
+    0,
+  );
   const totalDogs = allLangItems.reduce((acc, curr) => acc + curr.dogsNum, 0);
 
   // Derived filtered languages for Language Explorer
@@ -191,7 +208,7 @@
           item.displayName.toLowerCase().includes(q) ||
           item.code.toLowerCase().includes(q) ||
           item.country.toLowerCase().includes(q) ||
-          item.dialect.toLowerCase().includes(q)
+          item.dialect.toLowerCase().includes(q),
       );
     }
 
@@ -201,7 +218,9 @@
       let bVal = b[sortField];
 
       if (typeof aVal === "string") {
-        return sortAscending ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+        return sortAscending
+          ? aVal.localeCompare(bVal)
+          : bVal.localeCompare(aVal);
       } else {
         return sortAscending ? aVal - bVal : bVal - aVal;
       }
@@ -240,7 +259,9 @@
   }
 
   // Active language detailed info card details
-  let activeLangItem = $derived(allLangItems.find((item) => item.code === currentLang) || allLangItems[0]);
+  let activeLangItem = $derived(
+    allLangItems.find((item) => item.code === currentLang) || allLangItems[0],
+  );
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -255,15 +276,21 @@
     <!-- Header -->
     <header class="panel-header">
       <div class="brand">
-        <svg viewBox="0 0 100 100" style="width: 24px; height: 24px; filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.4)); flex-shrink: 0;">
-          <path d="M 50,38 C 42,38 34,26 16,8 C 21,34 18,48 10,56 C 18,66 32,74 50,94 C 68,74 82,66 90,56 C 82,48 79,34 84,8 C 66,26 58,38 50,38 Z" fill="#ffffff"/>
-          <path d="M 34,50 L 44,54 L 35,58 Z" fill="#000000"/>
-          <path d="M 66,50 L 56,54 L 65,58 Z" fill="#000000"/>
+        <svg
+          viewBox="0 0 100 100"
+          style="width: 24px; height: 24px; filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.4)); flex-shrink: 0;"
+        >
+          <path
+            d="M 50,38 C 42,38 34,26 16,8 C 21,34 18,48 10,56 C 18,66 32,74 50,94 C 68,74 82,66 90,56 C 82,48 79,34 84,8 C 66,26 58,38 50,38 Z"
+            fill="#ffffff"
+          />
+          <path d="M 34,50 L 44,54 L 35,58 Z" fill="#000000" />
+          <path d="M 66,50 L 56,54 L 65,58 Z" fill="#000000" />
         </svg>
-        <h1>DOGS LLC | LINGUISTIC SYSTEM</h1>
+        <h1>DOGSDOGSDOGS</h1>
         <span class="path-indicator">/ {activeTab.toUpperCase()}</span>
       </div>
-      
+
       <button class="close-btn" onclick={onClose} aria-label="Close panel">
         <X size={20} />
       </button>
@@ -273,23 +300,43 @@
     <div class="panel-body">
       <!-- Sidebar Navigation -->
       <nav class="panel-sidebar">
-        <button class="nav-item" class:active={activeTab === 'dashboard'} onclick={() => activeTab = 'dashboard'}>
+        <button
+          class="nav-item"
+          class:active={activeTab === "dashboard"}
+          onclick={() => (activeTab = "dashboard")}
+        >
           <Globe size={16} />
           <span>Dashboard</span>
         </button>
-        <button class="nav-item" class:active={activeTab === 'explorer'} onclick={() => activeTab = 'explorer'}>
+        <button
+          class="nav-item"
+          class:active={activeTab === "explorer"}
+          onclick={() => (activeTab = "explorer")}
+        >
           <Search size={16} />
           <span>Languages Explorer</span>
         </button>
-        <button class="nav-item" class:active={activeTab === 'speakers'} onclick={() => activeTab = 'speakers'}>
+        <button
+          class="nav-item"
+          class:active={activeTab === "speakers"}
+          onclick={() => (activeTab = "speakers")}
+        >
           <TrendingUp size={16} />
           <span>Speakers Analytics</span>
         </button>
-        <button class="nav-item" class:active={activeTab === 'dogs'} onclick={() => activeTab = 'dogs'}>
+        <button
+          class="nav-item"
+          class:active={activeTab === "dogs"}
+          onclick={() => (activeTab = "dogs")}
+        >
           <span style="font-size: 1.1rem; line-height: 1;">🐕</span>
           <span>Dog Populations</span>
         </button>
-        <button class="nav-item" class:active={activeTab === 'themes'} onclick={() => activeTab = 'themes'}>
+        <button
+          class="nav-item"
+          class:active={activeTab === "themes"}
+          onclick={() => (activeTab = "themes")}
+        >
           <Palette size={16} />
           <span>Color Palettes</span>
         </button>
@@ -306,7 +353,9 @@
             <span style="background: {activeLangItem.colors[2]}"></span>
           </div>
           <div class="translation-preview">
-            "{activeLangItem.we} {activeLangItem.are} {activeLangItem.dogs}"
+            "{activeLangItem.we}
+            {activeLangItem.are}
+            {activeLangItem.dogs}"
           </div>
         </div>
       </nav>
@@ -314,7 +363,7 @@
       <!-- Content Area -->
       <main class="panel-content-pane scroll-container">
         <!-- 1. DASHBOARD VIEW -->
-        {#if activeTab === 'dashboard'}
+        {#if activeTab === "dashboard"}
           <div class="tab-pane animated-pane">
             <!-- Metric grid showing total catalog sizes and DOGS tech details -->
             <div class="dashboard-stats-grid">
@@ -336,7 +385,7 @@
                 <span class="metric-icon">🔥</span>
                 <div class="metric-details">
                   <span class="metric-label">Founder & Architect</span>
-                  <span class="metric-value">Capt. Brando</span>
+                  <span class="metric-value">Captain Brando!</span>
                 </div>
               </div>
             </div>
@@ -344,15 +393,26 @@
             <div class="dashboard-split">
               <!-- Left side: Interactive info block -->
               <div class="intro-block">
-                <h2 style="font-family: 'Outfit', 'Inter', sans-serif; font-weight: 900; letter-spacing: -0.02em; color: #ff3366;">DOGS: PUNK ROCK TECHNOLOGY</h2>
+                <h2
+                  style="font-family: 'Outfit', 'Inter', sans-serif; font-weight: 900; letter-spacing: -0.02em; color: #ff3366;"
+                >
+                  DOGS: THE TECH COMPANY
+                </h2>
                 <p style="margin-bottom: 12px;">
-                  We are <strong>DOGS</strong>—a high-profile, simple, insane, dope, bold, new tech company building for the web, apps, hardware, software, and everything awesome. We live to break this world from the inside out. Punk rock style more than anything.
+                  We are <strong>DOGS</strong>—a high-profile, simple, insane,
+                  dope, bold, new tech company building for the web, apps,
+                  hardware, software, and everything awesome. We live to break
+                  this world from the inside out. Punk rock style more than
+                  anything.
                 </p>
-                <p style="margin-bottom: 20px; font-style: italic; color: rgba(255, 255, 255, 0.45); line-height: 1.4;">
-                  "We live just to die. We have taxes in our eyes. Can't pay rent. Trying to stay alive. We're just doing things now."
+                <p
+                  style="margin-bottom: 20px; font-style: italic; color: rgba(255, 255, 255, 0.45); line-height: 1.4;"
+                >
+                  "We live just to die. We have taxes in our eyes. Can't pay
+                  rent. Trying to stay alive. We're just doing things now."
                 </p>
 
-                <div class="quick-tips" style="border-left: 3px solid #ff3366; background: rgba(255, 51, 102, 0.03);">
+                <!-- <div class="quick-tips" style="border-left: 3px solid #ff3366; background: rgba(255, 51, 102, 0.03);">
                   <h4 style="color: #ff3366; font-weight: 700;">🎤 Project Scope & Stack</h4>
                   <ul style="list-style-type: square; color: rgba(255,255,255,0.65); padding-left: 20px;">
                     <li><strong>DOGS Rap Project:</strong> The official digital node and translation engine for Captain Brando's rap release.</li>
@@ -360,7 +420,7 @@
                     <li><strong>Oklahoma & Texas Indie Tech:</strong> Crafting custom frontends, hardware integrations, cloud servers, and local AI.</li>
                     <li><strong>Lighthouse Score:</strong> Fully optimized for maximum speed, accessibility, and clean SEO.</li>
                   </ul>
-                </div>
+                </div> -->
               </div>
 
               <!-- Right side: Detail showcase card + LLC block -->
@@ -378,24 +438,42 @@
                     </div>
                     <div class="info-row">
                       <span class="info-lbl">Estimated Speakers</span>
-                      <span class="info-val" style="color: #ffd700;">{activeLangItem.speakersText}</span>
+                      <span class="info-val" style="color: #ffd700;"
+                        >{activeLangItem.speakersText}</span
+                      >
                     </div>
                     <div class="info-row">
                       <span class="info-lbl">Local Dog Population</span>
-                      <span class="info-val" style="color: #ffd700;">{activeLangItem.dogsText}</span>
+                      <span class="info-val" style="color: #ffd700;"
+                        >{activeLangItem.dogsText}</span
+                      >
                     </div>
                   </div>
                 </div>
 
-                <div class="showcase-card" style="border: 1px solid rgba(255, 215, 0, 0.15); background: rgba(255, 215, 0, 0.02);">
+                <div
+                  class="showcase-card"
+                  style="border: 1px solid rgba(255, 215, 0, 0.15); background: rgba(255, 215, 0, 0.02);"
+                >
                   <h3 style="color: #ffd700;">DOGS LLC Registry</h3>
-                  <p style="font-size: 0.72rem; color: rgba(255,255,255,0.6); line-height: 1.5; margin: 0 0 10px 0;">
-                    DOGS is a registered Texas Limited Liability Company (LLC) building next-gen web, app, and hardware platforms. Engineered to be fast, loud, and proud.
+                  <p
+                    style="font-size: 0.72rem; color: rgba(255,255,255,0.6); line-height: 1.5; margin: 0 0 10px 0;"
+                  >
+                    DOGS is a registered Texas Limited Liability Company (LLC)
+                    building next-gen web, app, and hardware platforms.
+                    Engineered to be fast, loud, and proud.
                   </p>
                   <div class="info-row">
-                    <span class="info-lbl" style="color: rgba(255,215,0,0.5);">Main Portal</span>
+                    <span class="info-lbl" style="color: rgba(255,215,0,0.5);"
+                      >Main Portal</span
+                    >
                     <span class="info-val">
-                      <a href="https://captainbrando.com" target="_blank" rel="noopener noreferrer" style="color: #ffd700; text-decoration: underline; font-weight: 700; font-family: monospace;">
+                      <a
+                        href="https://captainbrando.com"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style="color: #ffd700; text-decoration: underline; font-weight: 700; font-family: monospace;"
+                      >
                         captainbrando.com
                       </a>
                     </span>
@@ -407,7 +485,7 @@
         {/if}
 
         <!-- 2. EXPLORER VIEW -->
-        {#if activeTab === 'explorer'}
+        {#if activeTab === "explorer"}
           <div class="tab-pane animated-pane explorer-pane">
             <div class="explorer-toolbar">
               <div class="search-box">
@@ -418,7 +496,10 @@
                   bind:value={searchQuery}
                 />
                 {#if searchQuery}
-                  <button class="clear-search" onclick={() => searchQuery = ""}>&times;</button>
+                  <button
+                    class="clear-search"
+                    onclick={() => (searchQuery = "")}>&times;</button
+                  >
                 {/if}
               </div>
               <div class="results-count">
@@ -430,18 +511,40 @@
               <table class="explorer-table">
                 <thead>
                   <tr>
-                    <th onclick={() => toggleSort('name')} class="sortable">
-                      Language {sortField === 'name' ? (sortAscending ? '▲' : '▼') : ''}
+                    <th onclick={() => toggleSort("name")} class="sortable">
+                      Language {sortField === "name"
+                        ? sortAscending
+                          ? "▲"
+                          : "▼"
+                        : ""}
                     </th>
-                    <th onclick={() => toggleSort('country')} class="sortable">
-                      Primary Country / Region {sortField === 'country' ? (sortAscending ? '▲' : '▼') : ''}
+                    <th onclick={() => toggleSort("country")} class="sortable">
+                      Primary Country / Region {sortField === "country"
+                        ? sortAscending
+                          ? "▲"
+                          : "▼"
+                        : ""}
                     </th>
                     <th>Dialect Info</th>
-                    <th onclick={() => toggleSort('speakersNum')} class="sortable text-right">
-                      Speakers {sortField === 'speakersNum' ? (sortAscending ? '▲' : '▼') : ''}
+                    <th
+                      onclick={() => toggleSort("speakersNum")}
+                      class="sortable text-right"
+                    >
+                      Speakers {sortField === "speakersNum"
+                        ? sortAscending
+                          ? "▲"
+                          : "▼"
+                        : ""}
                     </th>
-                    <th onclick={() => toggleSort('dogsNum')} class="sortable text-right">
-                      Local Dogs {sortField === 'dogsNum' ? (sortAscending ? '▲' : '▼') : ''}
+                    <th
+                      onclick={() => toggleSort("dogsNum")}
+                      class="sortable text-right"
+                    >
+                      Local Dogs {sortField === "dogsNum"
+                        ? sortAscending
+                          ? "▲"
+                          : "▼"
+                        : ""}
                     </th>
                     <th>Action</th>
                   </tr>
@@ -456,19 +559,37 @@
                     >
                       <td>
                         <div class="lang-cell">
-                          <span class="lang-flag-indicator" style="background: {item.colors[0]}"></span>
+                          <span
+                            class="lang-flag-indicator"
+                            style="background: {item.colors[0]}"
+                          ></span>
                           <div class="lang-text-grp">
-                            <span class="lang-disp-name">{item.displayName}</span>
-                            <span class="lang-code">{item.code.toUpperCase()}</span>
+                            <span class="lang-disp-name"
+                              >{item.displayName}</span
+                            >
+                            <span class="lang-code"
+                              >{item.code.toUpperCase()}</span
+                            >
                           </div>
                         </div>
                       </td>
                       <td><span class="country-cell">{item.country}</span></td>
                       <td><span class="dialect-cell">{item.dialect}</span></td>
-                      <td class="text-right"><span class="speakers-cell">{item.speakersText}</span></td>
-                      <td class="text-right"><span class="dogs-cell">{item.dogsText}</span></td>
+                      <td class="text-right"
+                        ><span class="speakers-cell">{item.speakersText}</span
+                        ></td
+                      >
+                      <td class="text-right"
+                        ><span class="dogs-cell">{item.dogsText}</span></td
+                      >
                       <td>
-                        <button class="row-select-btn" onclick={(e) => { e.stopPropagation(); handleSelect(item.code); }}>
+                        <button
+                          class="row-select-btn"
+                          onclick={(e) => {
+                            e.stopPropagation();
+                            handleSelect(item.code);
+                          }}
+                        >
                           <ChevronRight size={14} />
                         </button>
                       </td>
@@ -488,11 +609,12 @@
         {/if}
 
         <!-- 3. SPEAKERS ANALYTICS -->
-        {#if activeTab === 'speakers'}
+        {#if activeTab === "speakers"}
           <div class="tab-pane animated-pane">
             <h2>Speakers Distribution</h2>
             <p class="description">
-              A breakdown of the top cataloged languages by approximate speaker counts worldwide.
+              A breakdown of the top cataloged languages by approximate speaker
+              counts worldwide.
             </p>
 
             <div class="speakers-chart-container">
@@ -505,7 +627,10 @@
                   <div class="chart-bar-outer">
                     <div
                       class="chart-bar-inner"
-                      style="width: {(item.speakersNum / topSpeakers[0].speakersNum * 100)}%; background: linear-gradient(90deg, {item.colors[0]}, {item.colors[1] || item.colors[0]})"
+                      style="width: {(item.speakersNum /
+                        topSpeakers[0].speakersNum) *
+                        100}%; background: linear-gradient(90deg, {item
+                        .colors[0]}, {item.colors[1] || item.colors[0]})"
                     ></div>
                   </div>
                 </div>
@@ -517,15 +642,24 @@
               <div class="tiers-grid">
                 <div class="tier-card">
                   <h5>Global Lingua Francas</h5>
-                  <p>English, Spanish, French, Mandarin Chinese, and other primary international networks of trade and commerce.</p>
+                  <p>
+                    English, Spanish, French, Mandarin Chinese, and other
+                    primary international networks of trade and commerce.
+                  </p>
                 </div>
                 <div class="tier-card">
                   <h5>Regional Standards</h5>
-                  <p>National and provincial standards like Hindi, Bengali, Vietnamese, Polish, and Ukrainian spanning Europe and Asia.</p>
+                  <p>
+                    National and provincial standards like Hindi, Bengali,
+                    Vietnamese, Polish, and Ukrainian spanning Europe and Asia.
+                  </p>
                 </div>
                 <div class="tier-card">
                   <h5>Indigenous & Classical</h5>
-                  <p>Sanskrit, Latin, Old Church Slavonic, Guarani, Navajo, and Quechua representing deep historical roots.</p>
+                  <p>
+                    Sanskrit, Latin, Old Church Slavonic, Guarani, Navajo, and
+                    Quechua representing deep historical roots.
+                  </p>
                 </div>
               </div>
             </div>
@@ -533,24 +667,32 @@
         {/if}
 
         <!-- 4. DOG POPULATIONS -->
-        {#if activeTab === 'dogs'}
+        {#if activeTab === "dogs"}
           <div class="tab-pane animated-pane">
             <h2>Dog Populations by Region</h2>
             <p class="description">
-              Analysis of domestic dog populations estimated within the primary geographic regions of each language.
+              Analysis of domestic dog populations estimated within the primary
+              geographic regions of each language.
             </p>
 
             <div class="speakers-chart-container">
               {#each topDogs as item}
                 <div class="chart-row">
                   <div class="chart-row-lbl">
-                    <span class="chart-lang-name">{item.displayName} ({item.country.split('&')[0].trim()})</span>
+                    <span class="chart-lang-name"
+                      >{item.displayName} ({item.country
+                        .split("&")[0]
+                        .trim()})</span
+                    >
                     <span class="chart-lang-val">{item.dogsText}</span>
                   </div>
                   <div class="chart-bar-outer">
                     <div
                       class="chart-bar-inner"
-                      style="width: {(item.dogsNum / topDogs[0].dogsNum * 100)}%; background: linear-gradient(90deg, {item.colors[1] || item.colors[0]}, {item.colors[2] || item.colors[0]})"
+                      style="width: {(item.dogsNum / topDogs[0].dogsNum) *
+                        100}%; background: linear-gradient(90deg, {item
+                        .colors[1] || item.colors[0]}, {item.colors[2] ||
+                        item.colors[0]})"
                     ></div>
                   </div>
                 </div>
@@ -561,13 +703,16 @@
               <h3>🐕 Global Canine Facts</h3>
               <div class="facts-list">
                 <div class="fact-item">
-                  <strong>United States:</strong> Boasts over 90 million domestic dogs, translating to dog ownership in roughly 45% of American households.
+                  <strong>United States:</strong> Boasts over 90 million domestic
+                  dogs, translating to dog ownership in roughly 45% of American households.
                 </div>
                 <div class="fact-item">
-                  <strong>China:</strong> Rapidly growing urban pet ownership registers over 110 million dogs, primarily concentrated in metropolitan hubs.
+                  <strong>China:</strong> Rapidly growing urban pet ownership registers
+                  over 110 million dogs, primarily concentrated in metropolitan hubs.
                 </div>
                 <div class="fact-item">
-                  <strong>Brazil:</strong> Possesses one of the highest dog-to-human ratios in South America, with an estimated 54 million canines.
+                  <strong>Brazil:</strong> Possesses one of the highest dog-to-human
+                  ratios in South America, with an estimated 54 million canines.
                 </div>
               </div>
             </div>
@@ -575,22 +720,35 @@
         {/if}
 
         <!-- 5. PALETTES EXPLORER -->
-        {#if activeTab === 'themes'}
+        {#if activeTab === "themes"}
           <div class="tab-pane animated-pane">
             <h2>Flag Color Palettes</h2>
             <p class="description">
-              Each language features a signature tri-color gradient sweep based on national flags or HSL hash values.
+              Each language features a signature tri-color gradient sweep based
+              on national flags or HSL hash values.
             </p>
 
             <div class="palettes-grid">
               {#each allLangItems.slice(0, 36) as item}
                 <!-- svelte-ignore a11y_click_events_have_key_events -->
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
-                <div class="palette-card" onclick={() => handleSelect(item.code)}>
+                <div
+                  class="palette-card"
+                  onclick={() => handleSelect(item.code)}
+                >
                   <div class="palette-swatch-box">
-                    <div class="swatch-strip" style="background: {item.colors[0]}"></div>
-                    <div class="swatch-strip" style="background: {item.colors[1]}"></div>
-                    <div class="swatch-strip" style="background: {item.colors[2]}"></div>
+                    <div
+                      class="swatch-strip"
+                      style="background: {item.colors[0]}"
+                    ></div>
+                    <div
+                      class="swatch-strip"
+                      style="background: {item.colors[1]}"
+                    ></div>
+                    <div
+                      class="swatch-strip"
+                      style="background: {item.colors[2]}"
+                    ></div>
                   </div>
                   <div class="palette-card-meta">
                     <span class="p-name">{item.displayName}</span>
@@ -608,12 +766,12 @@
     <footer class="panel-footer">
       <div class="sys-status">
         <span class="status-indicator-green"></span>
-        <span>DOGS LLC TECH SYSTEM ACTIVE</span>
+        <span>WE ARE DOGS</span>
       </div>
       <div class="stats-counter">
         <span>TX REGISTERED LLC</span>
         <span class="divider">|</span>
-        <span>AUTHOR: CAPTAIN BRANDO</span>
+        <span>AUTHOR: CAPTAIN BRANDO!</span>
       </div>
     </footer>
   </div>
@@ -645,8 +803,9 @@
     background: rgba(10, 10, 14, 0.45);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 20px;
-    box-shadow: 0 32px 80px rgba(0, 0, 0, 0.7),
-                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    box-shadow:
+      0 32px 80px rgba(0, 0, 0, 0.7),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -702,8 +861,6 @@
     align-items: center;
     gap: 12px;
   }
-
-
 
   .brand h1 {
     margin: 0;
@@ -847,16 +1004,20 @@
     background: rgba(0, 0, 0, 0.05);
   }
 
-
-
   /* Animated Entrance for tabs */
   .animated-pane {
     animation: paneFadeIn 0.3s ease forwards;
   }
 
   @keyframes paneFadeIn {
-    0% { opacity: 0; transform: translateY(8px); }
-    100% { opacity: 1; transform: translateY(0); }
+    0% {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   /* ── Dashboard Content ── */
@@ -1154,7 +1315,10 @@
     letter-spacing: 0.05em;
   }
 
-  .country-cell, .dialect-cell, .speakers-cell, .dogs-cell {
+  .country-cell,
+  .dialect-cell,
+  .speakers-cell,
+  .dogs-cell {
     display: block;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1243,7 +1407,8 @@
   }
 
   /* Tiers Info */
-  .linguistic-tiers-info h3, .dog-facts-box h3 {
+  .linguistic-tiers-info h3,
+  .dog-facts-box h3 {
     font-size: 0.95rem;
     font-weight: 700;
     color: white;
@@ -1373,7 +1538,10 @@
     color: rgba(255, 255, 255, 0.35);
     font-weight: 500;
     letter-spacing: 0.05em;
-    font-family: system-ui, -apple-system, sans-serif;
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
   }
 
   .sys-status {
