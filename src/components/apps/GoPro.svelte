@@ -43,7 +43,7 @@
 
     // Seasons selection state
     let selectedSeasons = $state({}); // key: showKey, value: seasonNum
-    
+
     function getEpisodeSeason(ep) {
         if (!ep || !ep.file) return 1;
         const match = ep.file.match(/S([0-9]+)/i);
@@ -54,7 +54,7 @@
         const show = catalog[showKey];
         if (!show || !show.episodes) return [1];
         const seasons = new Set();
-        show.episodes.forEach(ep => {
+        show.episodes.forEach((ep) => {
             seasons.add(getEpisodeSeason(ep));
         });
         return Array.from(seasons).sort((a, b) => a - b);
@@ -77,8 +77,11 @@
             }
 
             // Fallback check for the old s01e01.mp4 naming
-            // if (activeShowKey === "Batman Beyond" && currentEpisodeIndex === 0) {
-            //     let fallbackPath = "/batman/s01e01.mp4";
+            // if (
+            //     activeShowKey === "Batman Beyond" &&
+            //     currentEpisodeIndex === 0
+            // ) {
+            //     let fallbackPath = "http://localhost:5174/batman/batman1.mp4";
             //     let fallbackRes = await fetch(fallbackPath, { method: "HEAD" });
             //     if (fallbackRes.ok) {
             //         streamUrl = fallbackPath;
@@ -117,7 +120,7 @@
     $effect(() => {
         const url = streamUrl;
         const active = isPlayingEpisode;
-        
+
         if (url && active && videoEl) {
             const playVideo = () => {
                 videoEl.play().catch((err) => {
@@ -987,7 +990,8 @@
             <div class="catalog-shelves">
                 {#each Object.keys(catalog) as showKey}
                     {@const seasons = getSeasonsForShow(showKey)}
-                    {@const activeSeason = selectedSeasons[showKey] || seasons[0] || 1}
+                    {@const activeSeason =
+                        selectedSeasons[showKey] || seasons[0] || 1}
                     <div class="shelf-container">
                         <div class="shelf-header">
                             <h2 class="shelf-title">
@@ -999,7 +1003,8 @@
                                         <button
                                             class="season-tab-btn"
                                             class:active={activeSeason === s}
-                                            onclick={() => selectedSeasons[showKey] = s}
+                                            onclick={() =>
+                                                (selectedSeasons[showKey] = s)}
                                         >
                                             Season {s}
                                         </button>
@@ -1009,15 +1014,17 @@
                         </div>
 
                         <div class="cards-row">
-                            {#each catalog[showKey].episodes.filter(ep => getEpisodeSeason(ep) === activeSeason) as ep, seasonIdx}
-                                {@const actualIndex = catalog[showKey].episodes.indexOf(ep)}
+                            {#each catalog[showKey].episodes.filter((ep) => getEpisodeSeason(ep) === activeSeason) as ep, seasonIdx}
+                                {@const actualIndex =
+                                    catalog[showKey].episodes.indexOf(ep)}
                                 <!-- svelte-ignore a11y_click_events_have_key_events -->
                                 <!-- svelte-ignore a11y_no_static_element_interactions -->
                                 <div
                                     class="episode-card"
                                     class:active={activeShowKey === showKey &&
                                         currentEpisodeIndex === actualIndex}
-                                    onclick={() => playEpisode(showKey, actualIndex)}
+                                    onclick={() =>
+                                        playEpisode(showKey, actualIndex)}
                                 >
                                     <div class="card-thumbnail">
                                         <span class="thumbnail-number"
