@@ -116,19 +116,326 @@
     }
   }
 
-  let { isFaded = false, onOpenStats, currentLang = $bindable(initialLang) } = $props();
+  let {
+    isFaded = false,
+    onOpenStats,
+    currentLang = $bindable(initialLang),
+  } = $props();
 
   let refreshKey = $state(0);
 
+  function parseSpeakers(text) {
+    if (!text || text === "—") return 0;
+    let clean = text.replace(/,/g, "").toLowerCase().trim();
+    let multiplier = 1;
+    if (clean.includes("billion")) {
+      multiplier = 1_000_000_000;
+      clean = clean.replace("billion", "");
+    } else if (clean.includes("million")) {
+      multiplier = 1_000_000;
+      clean = clean.replace("million", "");
+    }
+    const val = parseFloat(clean);
+    return isNaN(val) ? 0 : val * multiplier;
+  }
+
+  function parseDogs(text) {
+    if (!text || text === "—") return 0;
+    let clean = text.replace(/,/g, "").toLowerCase().trim();
+    let multiplier = 1;
+    if (clean.includes("billion")) {
+      multiplier = 1_000_000_000;
+      clean = clean.replace("billion", "");
+    } else if (clean.includes("million")) {
+      multiplier = 1_000_000;
+      clean = clean.replace("million", "");
+    } else if (clean.includes("sleigh dogs")) {
+      clean = clean.replace("sleigh dogs", "");
+    }
+    const val = parseFloat(clean);
+    return isNaN(val) ? 0 : val * multiplier;
+  }
+
+  // This is the genesis for the death calculation stats
+  // Time elapsed since this will be used to calculate mortality
+  // TODO You oughta change this on every push to the repo
+  const TIME_LOCK = new Date("2026-06-21T18:28:24Z").getTime();
+  let utcStartStr = new Date(TIME_LOCK).toUTCString();
+  let elapsedSeconds = $state((Date.now() - TIME_LOCK) / 1000);
+
+  $effect(() => {
+    let animFrame;
+    const update = () => {
+      elapsedSeconds = (Date.now() - TIME_LOCK) / 1000;
+      animFrame = requestAnimationFrame(update);
+    };
+    animFrame = requestAnimationFrame(update);
+    return () => cancelAnimationFrame(animFrame);
+  });
+
+  // 2026 demographic growth factors from translations baseline to active 2026 counts
+  const HUMAN_GROWTH_FACTOR_2026 = 1.031; // ~3.1% human population growth
+  const DOG_GROWTH_FACTOR_2026 = 1.052; // ~5.2% canine population growth
+
+  let baseSpeakers = $derived(
+    refreshKey >= 0
+      ? parseSpeakers(translations[currentLang]?.speakers) *
+          HUMAN_GROWTH_FACTOR_2026
+      : 0,
+  );
+  let baseDogs = $derived(
+    refreshKey >= 0
+      ? parseDogs(translations[currentLang]?.dogs_count) *
+          DOG_GROWTH_FACTOR_2026
+      : 0,
+  );
+
+  // Find the maximum scaled speaker and dog populations across all languages in translations (calculated once)
+  const maxSpeakersInDataset =
+    Math.max(
+      ...Object.keys(translations).map((code) =>
+        parseSpeakers(translations[code]?.speakers),
+      ),
+    ) * HUMAN_GROWTH_FACTOR_2026;
+  const maxDogsInDataset =
+    Math.max(
+      ...Object.keys(translations).map((code) =>
+        parseDogs(translations[code]?.dogs_count),
+      ),
+    ) * DOG_GROWTH_FACTOR_2026;
+
+  // Deterministic helper to generate country/region-specific demographics (births and deaths per 1000)
+  function getDemographics(lang) {
+    const t = translations[lang];
+    if (!t)
+      return { humanCBR: 12.0, humanCDR: 8.0, dogCBR: 95.0, dogCDR: 90.0 };
+
+    let humanCBR = 12.0;
+    let humanCDR = 8.0;
+    let dogCBR = 95.0;
+    let dogCDR = 90.0;
+
+    const str = t.country || lang;
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    hash = Math.abs(hash);
+
+    // Human CBR: 8.0 + (hash % 150) / 10 (gives 8.0 to 23.0 per 1,000)
+    humanCBR = 8.0 + (hash % 150) / 10;
+    // Human CDR: 5.5 + (hash % 80) / 10 (gives 5.5 to 13.5 per 1,000)
+    humanCDR = 5.5 + (hash % 80) / 10;
+
+    // Dog CBR: 80.0 + (hash % 40) (gives 80 to 120 per 1,000)
+    dogCBR = 80.0 + (hash % 40);
+    // Dog CDR: 75.0 + (hash % 35) (gives 75 to 110 per 1,000)
+    dogCDR = 75.0 + (hash % 35);
+
+    // Specific major country mappings
+    const countryLower = (t.country || "").toLowerCase();
+    if (countryLower.includes("united states") || countryLower.includes("us")) {
+      humanCBR = 11.0;
+      humanCDR = 8.8;
+      dogCBR = 93.0;
+      dogCDR = 91.0;
+    } else if (countryLower.includes("japan")) {
+      humanCBR = 7.0;
+      humanCDR = 11.1; // shrinking
+      dogCBR = 80.0;
+      dogCDR = 83.0;
+    } else if (countryLower.includes("china")) {
+      humanCBR = 6.7;
+      humanCDR = 7.1; // shrinking
+      dogCBR = 92.0;
+      dogCDR = 95.0;
+    } else if (countryLower.includes("germany")) {
+      humanCBR = 9.3;
+      humanCDR = 11.5;
+      dogCBR = 86.0;
+      dogCDR = 88.0;
+    } else if (countryLower.includes("ukraine")) {
+      humanCBR = 6.0;
+      humanCDR = 14.5;
+      dogCBR = 98.0;
+      dogCDR = 105.0;
+    } else if (countryLower.includes("brazil")) {
+      humanCBR = 12.9;
+      humanCDR = 6.8;
+      dogCBR = 102.0;
+      dogCDR = 98.0;
+    } else if (countryLower.includes("india")) {
+      humanCBR = 16.5;
+      humanCDR = 7.3;
+      dogCBR = 105.0;
+      dogCDR = 100.0;
+    }
+
+    return { humanCBR, humanCDR, dogCBR, dogCDR };
+  }
+
+  const SECONDS_IN_YEAR = 31536000;
+
+  let activeDemographics = $derived(getDemographics(currentLang));
+
+  let speakerBirthRatePerSecond = $derived(
+    (baseSpeakers * (activeDemographics.humanCBR / 1000)) / SECONDS_IN_YEAR,
+  );
+  let speakerDeathRatePerSecond = $derived(
+    (baseSpeakers * (activeDemographics.humanCDR / 1000)) / SECONDS_IN_YEAR,
+  );
+
+  let dogBirthRatePerSecond = $derived(
+    (baseDogs * (activeDemographics.dogCBR / 1000)) / SECONDS_IN_YEAR,
+  );
+  let dogDeathRatePerSecond = $derived(
+    (baseDogs * (activeDemographics.dogCDR / 1000)) / SECONDS_IN_YEAR,
+  );
+
+  let birthAccumulatorSpeakers = $derived(
+    elapsedSeconds * speakerBirthRatePerSecond,
+  );
+  let deathAccumulatorSpeakers = $derived(
+    elapsedSeconds * speakerDeathRatePerSecond,
+  );
+  let liveSpeakers = $derived(
+    Math.max(
+      0,
+      baseSpeakers +
+        Math.floor(birthAccumulatorSpeakers) -
+        Math.floor(deathAccumulatorSpeakers),
+    ),
+  );
+
+  let birthAccumulatorDogs = $derived(elapsedSeconds * dogBirthRatePerSecond);
+  let deathAccumulatorDogs = $derived(elapsedSeconds * dogDeathRatePerSecond);
+  let liveDogs = $derived(
+    Math.max(
+      0,
+      baseDogs +
+        Math.floor(birthAccumulatorDogs) -
+        Math.floor(deathAccumulatorDogs),
+    ),
+  );
+
+  let speakerPercentage = $derived(
+    baseSpeakers > 0 ? (liveSpeakers / 8_300_000_000) * 100 : 0,
+  );
+  let dogPercentage = $derived(
+    baseDogs > 0 ? (liveDogs / 900_000_000) * 100 : 0,
+  );
+
+  let intSpeakers = $derived(Math.floor(liveSpeakers));
+  let intDogs = $derived(Math.floor(liveDogs));
+
+  let intBirthSpeakers = $derived(Math.floor(birthAccumulatorSpeakers));
+  let intDeathSpeakers = $derived(Math.floor(deathAccumulatorSpeakers));
+  let intBirthDogs = $derived(Math.floor(birthAccumulatorDogs));
+  let intDeathDogs = $derived(Math.floor(deathAccumulatorDogs));
+
+  let speakersFlashType = $state("none"); // 'none' | 'birth' | 'death'
+  let dogsFlashType = $state("none");
+
+  let prevBirthSpeakers = $state(0);
+  let prevDeathSpeakers = $state(0);
+  let prevBirthDogs = $state(0);
+  let prevDeathDogs = $state(0);
+
+  let prevLang = $state(currentLang);
+  let prevLangDogs = $state(currentLang);
+
+  let speakersFlashTimeout;
+  let dogsFlashTimeout;
+
+  $effect(() => {
+    const val = intBirthSpeakers;
+    const lang = currentLang;
+    if (lang === prevLang) {
+      if (prevBirthSpeakers > 0 && val > prevBirthSpeakers) {
+        speakersFlashType = "birth";
+        if (speakersFlashTimeout) clearTimeout(speakersFlashTimeout);
+        speakersFlashTimeout = setTimeout(() => {
+          speakersFlashType = "none";
+        }, 200);
+      }
+    }
+    prevBirthSpeakers = val;
+    prevLang = lang;
+  });
+
+  $effect(() => {
+    const val = intDeathSpeakers;
+    const lang = currentLang;
+    if (lang === prevLang) {
+      if (prevDeathSpeakers > 0 && val > prevDeathSpeakers) {
+        speakersFlashType = "death";
+        if (speakersFlashTimeout) clearTimeout(speakersFlashTimeout);
+        speakersFlashTimeout = setTimeout(() => {
+          speakersFlashType = "none";
+        }, 200);
+      }
+    }
+    prevDeathSpeakers = val;
+  });
+
+  $effect(() => {
+    const val = intBirthDogs;
+    const lang = currentLang;
+    if (lang === prevLangDogs) {
+      if (prevBirthDogs > 0 && val > prevBirthDogs) {
+        dogsFlashType = "birth";
+        if (dogsFlashTimeout) clearTimeout(dogsFlashTimeout);
+        dogsFlashTimeout = setTimeout(() => {
+          dogsFlashType = "none";
+        }, 200);
+      }
+    }
+    prevBirthDogs = val;
+    prevLangDogs = lang;
+  });
+
+  $effect(() => {
+    const val = intDeathDogs;
+    const lang = currentLang;
+    if (lang === prevLangDogs) {
+      if (prevDeathDogs > 0 && val > prevDeathDogs) {
+        dogsFlashType = "death";
+        if (dogsFlashTimeout) clearTimeout(dogsFlashTimeout);
+        dogsFlashTimeout = setTimeout(() => {
+          dogsFlashType = "none";
+        }, 200);
+      }
+    }
+    prevDeathDogs = val;
+  });
+
+  function formatRate(rate) {
+    if (rate === 0) return ".00";
+    const str = rate < 0.01 ? rate.toFixed(3) : rate.toFixed(2);
+    return str.startsWith("0.") ? str.substring(1) : str;
+  }
+
   // Current word states derived from translations + refreshKey dependency
-  let currentWe = $derived(refreshKey >= 0 ? (translations[currentLang]?.we || "") : "");
-  let currentAre = $derived(refreshKey >= 0 ? (translations[currentLang]?.are || "") : "");
-  let currentDogs = $derived(refreshKey >= 0 ? (translations[currentLang]?.dogs || "") : "");
+  let currentWe = $derived(
+    refreshKey >= 0 ? translations[currentLang]?.we || "" : "",
+  );
+  let currentAre = $derived(
+    refreshKey >= 0 ? translations[currentLang]?.are || "" : "",
+  );
+  let currentDogs = $derived(
+    refreshKey >= 0 ? translations[currentLang]?.dogs || "" : "",
+  );
 
   // Pronunciation state
-  let pronWe = $derived(refreshKey >= 0 ? (translations[currentLang]?.we_p || "") : "");
-  let pronAre = $derived(refreshKey >= 0 ? (translations[currentLang]?.are_p || "") : "");
-  let pronDogs = $derived(refreshKey >= 0 ? (translations[currentLang]?.dogs_p || "") : "");
+  let pronWe = $derived(
+    refreshKey >= 0 ? translations[currentLang]?.we_p || "" : "",
+  );
+  let pronAre = $derived(
+    refreshKey >= 0 ? translations[currentLang]?.are_p || "" : "",
+  );
+  let pronDogs = $derived(
+    refreshKey >= 0 ? translations[currentLang]?.dogs_p || "" : "",
+  );
 
   // Animation generation counters — incrementing triggers {#key} remount
   let weGen = $state(0);
@@ -272,7 +579,8 @@
   /** Get metadata for the current language */
   function getMeta(lang) {
     const t = translations[lang];
-    if (!t) return { country: "—", dialect: "—", speakers: "—", dogs_count: "—" };
+    if (!t)
+      return { country: "—", dialect: "—", speakers: "—", dogs_count: "—" };
     return {
       country: t.country || "—",
       dialect: t.dialect || "—",
@@ -561,13 +869,106 @@
   class:faded={isFaded}
   onclick={onOpenStats}
 >
-  <span class="lang-name">
-    {langDisplayName(currentLang)}
+  <div class="lang-header">
+    <span class="lang-name">
+      {langDisplayName(currentLang)}
+    </span>
     <span class="stats-badge">📊 DATA PANEL</span>
-  </span>
+  </div>
 
   {#if isPaused && !isFaded}
     <div class="lang-meta">
+      <div class="utc-clock">
+        <span>UTC START: {utcStartStr}</span>
+      </div>
+
+      <div class="live-stats">
+        <!-- Speakers -->
+        <div class="stat-item">
+          <div class="stat-info">
+            <span class="stat-icon">🗣️</span>
+            <span class="stat-lbl">Speakers:</span>
+            <span
+              class="stat-val"
+              class:flashing-death={speakersFlashType === "death"}
+              class:flashing-birth={speakersFlashType === "birth"}
+            >
+              {intSpeakers === 0 ? "—" : intSpeakers.toLocaleString()}
+            </span>
+            {#if baseSpeakers > 0}
+              <span class="stat-pct">({speakerPercentage.toFixed(4)}%)</span>
+            {/if}
+          </div>
+          {#if baseSpeakers > 0}
+            <div class="stat-bar-container">
+              <div
+                class="stat-bar-fill"
+                style="width: {liveSpeakers > 0
+                  ? (liveSpeakers / maxSpeakersInDataset) * 100
+                  : 0}%; background: linear-gradient(90deg, {flagColors[0]}, {flagColors[1] ||
+                  flagColors[0]}, {flagColors[2] || flagColors[0]});"
+              ></div>
+            </div>
+            <div class="stat-sub-info">
+              <span
+                class:highlight-green={speakerBirthRatePerSecond >
+                  speakerDeathRatePerSecond}
+                >+{formatRate(speakerBirthRatePerSecond)}/s</span
+              >
+              <span> , </span>
+              <span
+                class:highlight-red={speakerDeathRatePerSecond >
+                  speakerBirthRatePerSecond}
+                >-{formatRate(speakerDeathRatePerSecond)}/s</span
+              >
+            </div>
+          {/if}
+        </div>
+
+        <!-- Dogs -->
+        <div class="stat-item">
+          <div class="stat-info">
+            <span class="stat-icon">🐕</span>
+            <span class="stat-lbl">Dogs:</span>
+            <span
+              class="stat-val"
+              class:flashing-death={dogsFlashType === "death"}
+              class:flashing-birth={dogsFlashType === "birth"}
+            >
+              {intDogs === 0 ? "—" : intDogs.toLocaleString()}
+            </span>
+            {#if baseDogs > 0}
+              <span class="stat-pct">({dogPercentage.toFixed(4)}%)</span>
+            {/if}
+          </div>
+          {#if baseDogs > 0}
+            <div class="stat-bar-container">
+              <div
+                class="stat-bar-fill"
+                style="width: {liveDogs > 0
+                  ? (liveDogs / maxDogsInDataset) * 100
+                  : 0}%; background: linear-gradient(90deg, {flagColors[2] ||
+                  flagColors[0]}, {flagColors[1] ||
+                  flagColors[0]}, {flagColors[0]});"
+              ></div>
+            </div>
+            <div class="stat-sub-info">
+              <span
+                class:highlight-green={dogBirthRatePerSecond >
+                  dogDeathRatePerSecond}
+                >+{formatRate(dogBirthRatePerSecond)}/s</span
+              >
+              <span> , </span>
+              <span
+                class:highlight-red={dogDeathRatePerSecond >
+                  dogBirthRatePerSecond}
+                >-{formatRate(dogDeathRatePerSecond)}/s</span
+              >
+            </div>
+          {/if}
+        </div>
+      </div>
+
       <div class="meta-row" style="animation-delay: 0ms">
         <span class="meta-label">🌐 Region</span>
         <span class="meta-value">{meta?.country || "—"}</span>
@@ -575,14 +976,6 @@
       <div class="meta-row" style="animation-delay: 60ms">
         <span class="meta-label">💬 Dialect</span>
         <span class="meta-value">{meta?.dialect || "—"}</span>
-      </div>
-      <div class="meta-row" style="animation-delay: 120ms">
-        <span class="meta-label">🗣️ Speakers</span>
-        <span class="meta-value">{meta?.speakers || "—"}</span>
-      </div>
-      <div class="meta-row" style="animation-delay: 180ms">
-        <span class="meta-label">🐕 Dogs</span>
-        <span class="meta-value">{meta?.dogs_count || "—"}</span>
       </div>
     </div>
   {/if}
@@ -669,33 +1062,76 @@
 
 <style>
   /* ── Language Display & Info Panel ── */
+  /* ── Language Display & Info Panel ── */
   .lang-display {
     position: fixed;
     top: 1.25rem;
     left: 1.25rem;
     z-index: 50;
-    max-width: 280px;
+    width: auto;
+    padding: 0;
+    background: transparent;
+    border: 1px solid transparent;
+    box-shadow: none;
     cursor: pointer;
-    transition: opacity 0.3s ease;
+    transition: all 0.38s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .lang-display.paused {
+    width: 270px;
+    padding: 12px;
+    background: rgba(10, 10, 15, 0.45);
+    backdrop-filter: blur(12px) saturate(160%);
+    -webkit-backdrop-filter: blur(12px) saturate(160%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    box-shadow:
+      0 12px 36px rgba(0, 0, 0, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
 
   .lang-display.faded {
     opacity: 0;
+    transform: translateY(-10px);
     pointer-events: none;
+  }
+
+  .lang-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 2px;
+  }
+
+  .lang-name {
+    font-size: 0.8rem;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    color: rgba(255, 255, 255, 0.4);
+    transition: all 0.3s ease;
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
+  }
+
+  .lang-display.paused .lang-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.95);
   }
 
   .stats-badge {
     display: inline-block;
-    font-size: 0.6rem;
+    font-size: 0.55rem;
     font-weight: 700;
     letter-spacing: 0.05em;
     background: rgba(255, 255, 255, 0.08);
     color: rgba(255, 255, 255, 0.45);
-    padding: 2px 6px;
-    border-radius: 4px;
-    margin-left: 6px;
+    padding: 1px 4px;
+    border-radius: 3px;
     opacity: 0;
-    transform: translateX(-4px);
+    transform: translateX(4px);
     transition: all 0.2s ease;
   }
 
@@ -706,58 +1142,150 @@
     color: white;
   }
 
+  .utc-clock {
+    font-size: 0.55rem;
+    font-family: monospace;
+    color: rgba(255, 255, 255, 0.3);
+    margin-bottom: 6px;
+    letter-spacing: 0.01em;
+  }
+
+  .live-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+
+  .stat-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .stat-info {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 0.68rem;
+    color: rgba(255, 255, 255, 0.85);
+    font-family: monospace;
+  }
+
+  .stat-icon {
+    font-size: 0.8rem;
+    line-height: 1;
+  }
+
+  .stat-lbl {
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.45);
+  }
+
+  .stat-val {
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.95);
+    transition:
+      color 0.3s ease,
+      text-shadow 0.3s ease;
+    display: inline-block;
+  }
+
+  .stat-val.flashing-death {
+    color: #d03040;
+    text-shadow:
+      0 0 10px rgba(208, 48, 64, 0.9),
+      0 0 20px rgba(208, 48, 64, 0.5);
+    transition: none; /* Instant flash on */
+  }
+
+  .stat-val.flashing-birth {
+    color: #1b8a5a;
+    text-shadow:
+      0 0 10px rgba(27, 138, 90, 0.9),
+      0 0 20px rgba(27, 138, 90, 0.5);
+    transition: none; /* Instant flash on */
+  }
+
+  .stat-pct {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: #ffd700; /* Gold */
+    margin-left: auto;
+    text-shadow: 0 0 8px rgba(255, 215, 0, 0.2);
+  }
+
+  .stat-bar-container {
+    width: 100%;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .stat-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+  }
+
+  .stat-sub-info {
+    font-size: 0.55rem;
+    font-family: monospace;
+    color: rgba(255, 255, 255, 0.3);
+    text-align: right;
+    margin-top: 1px;
+  }
+
+  .stat-sub-info span {
+    color: rgba(255, 255, 255, 0.3);
+  }
+
+  .stat-sub-info span.highlight-green {
+    color: #00ff66;
+    font-weight: 600;
+  }
+
+  .stat-sub-info span.highlight-red {
+    color: #ff4d4d;
+    font-weight: 600;
+  }
+
   /* Fade out background title when stats or other panels are active */
   .wad-container.faded {
     opacity: 0.15;
     filter: blur(12px) saturate(0.8);
     transform: scale(0.95);
     pointer-events: none;
-    transition: opacity 0.5s ease, filter 0.5s ease, transform 0.5s ease;
+    transition:
+      opacity 0.5s ease,
+      filter 0.5s ease,
+      transform 0.5s ease;
   }
 
   .wad-container.faded:not(.colored) {
     filter: blur(12px) grayscale(1);
   }
 
-  .lang-name {
-    font-size: 0.8rem;
-    font-weight: 500;
-    letter-spacing: 0.04em;
-    color: rgba(255, 255, 255, 0.4);
-    transition: color 0.25s ease;
-    font-family:
-      system-ui,
-      -apple-system,
-      sans-serif;
-  }
-
-  .lang-display.paused .lang-name {
-    color: rgba(255, 255, 255, 0.9);
-    font-weight: 600;
-  }
-
-  .lang-display:hover .lang-name {
-    color: rgba(255, 255, 255, 0.75);
-  }
-
   /* ── Metadata slide-out panel ── */
   .lang-meta {
-    margin-top: 0.6rem;
+    margin-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    padding-top: 8px;
     display: flex;
     flex-direction: column;
-    gap: 0.3rem;
+    gap: 4px;
   }
 
   .meta-row {
     display: flex;
     flex-direction: column;
-    gap: 0.05rem;
+    gap: 0px;
     animation: metaSlideIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
     transform-style: preserve-3d;
   }
 
   .meta-label {
-    font-size: 0.55rem;
+    font-size: 0.5rem;
     font-weight: 700;
     letter-spacing: 0.12em;
     text-transform: uppercase;
@@ -769,9 +1297,9 @@
   }
 
   .meta-value {
-    font-size: 0.75rem;
+    font-size: 0.68rem;
     font-weight: 400;
-    color: rgba(255, 255, 255, 0.7);
+    color: rgba(255, 255, 255, 0.65);
     font-family:
       system-ui,
       -apple-system,
