@@ -576,6 +576,48 @@
     }
   }
 
+  let lastClickTime = 0;
+  function handleMainClick(e) {
+    if (isFaded) return;
+
+    // Ignore clicks on controls or badges
+    if (
+      e.target.closest(".lang-display") ||
+      e.target.closest(".top-right-trigger")
+    ) {
+      return;
+    }
+
+    const now = Date.now();
+    if (now - lastClickTime < 300) {
+      toggleFullscreen();
+    } else {
+      onClick();
+    }
+    lastClickTime = now;
+  }
+
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch((err) => {
+        console.warn("Fullscreen request failed:", err);
+      });
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch((err) => console.warn(err));
+      }
+    }
+  }
+
+  function handleWheel(e) {
+    if (isFaded) return;
+    if (e.deltaY > 0) {
+      toggleFlagColors(false); // Scroll down -> Flag Colors OFF
+    } else if (e.deltaY < 0) {
+      toggleFlagColors(true); // Scroll up -> Flag Colors ON
+    }
+  }
+
   /** Get metadata for the current language */
   function getMeta(lang) {
     const t = translations[lang];
@@ -821,7 +863,14 @@
   }
 </script>
 
-<svelte:window onkeydown={handleKeydown} />
+<svelte:window onkeydown={handleKeydown} onwheel={handleWheel} />
+
+<!-- Persistent Paused Indicator in Top Right -->
+{#if isPaused && !isFaded && !flashVisible}
+  <div class="paused-indicator">
+    <Pause size={28} />
+  </div>
+{/if}
 
 <!-- Top Right Status Flash Overlay -->
 {#key flashKey}
@@ -988,7 +1037,7 @@
   class:colored={isFlagColors}
   onmouseenter={onEnter}
   onmouseleave={onLeave}
-  onclick={onClick}
+  onclick={handleMainClick}
   ontouchstart={handleTouchStart}
   ontouchend={handleTouchEnd}
   role="presentation"
@@ -1342,6 +1391,11 @@
 
   /* ── Main Container ── */
   .wad-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -1351,6 +1405,7 @@
     perspective: 900px;
     user-select: none;
     -webkit-user-select: none;
+    z-index: 10;
   }
 
   .word {
@@ -1443,6 +1498,38 @@
     font-family: "Outfit", "Inter", system-ui, sans-serif;
     color: rgba(255, 255, 255, 0.95);
     text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+  }
+
+  /* ── Persistent Paused Indicator ── */
+  .paused-indicator {
+    position: fixed;
+    top: 1.5rem;
+    right: 1.5rem;
+    z-index: 100;
+    pointer-events: none;
+    color: rgba(255, 255, 255, 0.85);
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    width: 3.2rem;
+    height: 3.2rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    animation: pausedIndicatorFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  @keyframes pausedIndicatorFadeIn {
+    0% {
+      transform: scale(0.8);
+      opacity: 0;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
   }
 
   @keyframes flashFade {

@@ -255,8 +255,12 @@
     <!-- Header -->
     <header class="panel-header">
       <div class="brand">
-        <span class="pulse-dot"></span>
-        <h1>Global Linguistic Dog Data</h1>
+        <svg viewBox="0 0 100 100" style="width: 24px; height: 24px; filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.4)); flex-shrink: 0;">
+          <path d="M 50,38 C 42,38 34,26 16,8 C 21,34 18,48 10,56 C 18,66 32,74 50,94 C 68,74 82,66 90,56 C 82,48 79,34 84,8 C 66,26 58,38 50,38 Z" fill="#ffffff"/>
+          <path d="M 34,50 L 44,54 L 35,58 Z" fill="#000000"/>
+          <path d="M 66,50 L 56,54 L 65,58 Z" fill="#000000"/>
+        </svg>
+        <h1>DOGS LLC | LINGUISTIC SYSTEM</h1>
         <span class="path-indicator">/ {activeTab.toUpperCase()}</span>
       </div>
       
@@ -312,26 +316,27 @@
         <!-- 1. DASHBOARD VIEW -->
         {#if activeTab === 'dashboard'}
           <div class="tab-pane animated-pane">
+            <!-- Metric grid showing total catalog sizes and DOGS tech details -->
             <div class="dashboard-stats-grid">
               <div class="metric-card">
                 <span class="metric-icon">🌐</span>
                 <div class="metric-details">
-                  <span class="metric-label">Languages Logged</span>
+                  <span class="metric-label">Locales Cataloged</span>
                   <span class="metric-value">{langs.length}</span>
                 </div>
               </div>
               <div class="metric-card">
-                <span class="metric-icon">🗣️</span>
+                <span class="metric-icon">⚡</span>
                 <div class="metric-details">
-                  <span class="metric-label">Speakers Covered</span>
-                  <span class="metric-value">~{(totalSpeakers / 1e9).toFixed(2)} Billion</span>
+                  <span class="metric-label">DOGS LLC HQ</span>
+                  <span class="metric-value">TX, USA</span>
                 </div>
               </div>
               <div class="metric-card">
-                <span class="metric-icon">🐕</span>
+                <span class="metric-icon">🔥</span>
                 <div class="metric-details">
-                  <span class="metric-label">Domestic Dogs</span>
-                  <span class="metric-value">~{(totalDogs / 1e6).toFixed(1)} Million</span>
+                  <span class="metric-label">Founder & Architect</span>
+                  <span class="metric-value">Capt. Brando</span>
                 </div>
               </div>
             </div>
@@ -339,40 +344,61 @@
             <div class="dashboard-split">
               <!-- Left side: Interactive info block -->
               <div class="intro-block">
-                <h2>Welcome to We Are Dogs Database</h2>
-                <p>
-                  Explore the multi-lingual, global translation project cataloging the phrase <strong>"We Are Dogs"</strong> across over 200 linguistic groups, indigenous dialects, creoles, and classical constructs.
+                <h2 style="font-family: 'Outfit', 'Inter', sans-serif; font-weight: 900; letter-spacing: -0.02em; color: #ff3366;">DOGS: PUNK ROCK TECHNOLOGY</h2>
+                <p style="margin-bottom: 12px;">
+                  We are <strong>DOGS</strong>—a high-profile, simple, insane, dope, bold, new tech company building for the web, apps, hardware, software, and everything awesome. We live to break this world from the inside out. Punk rock style more than anything.
                 </p>
-                <div class="quick-tips">
-                  <h4>💡 Quick Tips</h4>
-                  <ul>
-                    <li>Go to **Languages Explorer** to filter, search, and sort all entries.</li>
-                    <li>Hover over rows in the explorer table to see the background title morph in real-time.</li>
-                    <li>Clicking a row lock-selects that language and resets the browser traversal index.</li>
-                    <li>Toggle "Flag Colors" in the main screen's top right to see custom visual sweeps.</li>
+                <p style="margin-bottom: 20px; font-style: italic; color: rgba(255, 255, 255, 0.45); line-height: 1.4;">
+                  "We live just to die. We have taxes in our eyes. Can't pay rent. Trying to stay alive. We're just doing things now."
+                </p>
+
+                <div class="quick-tips" style="border-left: 3px solid #ff3366; background: rgba(255, 51, 102, 0.03);">
+                  <h4 style="color: #ff3366; font-weight: 700;">🎤 Project Scope & Stack</h4>
+                  <ul style="list-style-type: square; color: rgba(255,255,255,0.65); padding-left: 20px;">
+                    <li><strong>DOGS Rap Project:</strong> The official digital node and translation engine for Captain Brando's rap release.</li>
+                    <li><strong>DOGS Stack:</strong> High-performance front-ends powered by Svelte, Vite, and absolute vanilla layouts.</li>
+                    <li><strong>Oklahoma & Texas Indie Tech:</strong> Crafting custom frontends, hardware integrations, cloud servers, and local AI.</li>
+                    <li><strong>Lighthouse Score:</strong> Fully optimized for maximum speed, accessibility, and clean SEO.</li>
                   </ul>
                 </div>
               </div>
 
-              <!-- Right side: Detail showcase card -->
-              <div class="showcase-card">
-                <h3>Selected Locale Metrics</h3>
-                <div class="showcase-info">
-                  <div class="info-row">
-                    <span class="info-lbl">Country / Region</span>
-                    <span class="info-val">{activeLangItem.country}</span>
+              <!-- Right side: Detail showcase card + LLC block -->
+              <div style="display: flex; flex-direction: column; gap: 16px;">
+                <div class="showcase-card">
+                  <h3>Selected Locale Metrics</h3>
+                  <div class="showcase-info">
+                    <div class="info-row">
+                      <span class="info-lbl">Country / Region</span>
+                      <span class="info-val">{activeLangItem.country}</span>
+                    </div>
+                    <div class="info-row">
+                      <span class="info-lbl">Dialect / Variety</span>
+                      <span class="info-val">{activeLangItem.dialect}</span>
+                    </div>
+                    <div class="info-row">
+                      <span class="info-lbl">Estimated Speakers</span>
+                      <span class="info-val" style="color: #ffd700;">{activeLangItem.speakersText}</span>
+                    </div>
+                    <div class="info-row">
+                      <span class="info-lbl">Local Dog Population</span>
+                      <span class="info-val" style="color: #ffd700;">{activeLangItem.dogsText}</span>
+                    </div>
                   </div>
+                </div>
+
+                <div class="showcase-card" style="border: 1px solid rgba(255, 215, 0, 0.15); background: rgba(255, 215, 0, 0.02);">
+                  <h3 style="color: #ffd700;">DOGS LLC Registry</h3>
+                  <p style="font-size: 0.72rem; color: rgba(255,255,255,0.6); line-height: 1.5; margin: 0 0 10px 0;">
+                    DOGS is a registered Texas Limited Liability Company (LLC) building next-gen web, app, and hardware platforms. Engineered to be fast, loud, and proud.
+                  </p>
                   <div class="info-row">
-                    <span class="info-lbl">Dialect / Variety</span>
-                    <span class="info-val">{activeLangItem.dialect}</span>
-                  </div>
-                  <div class="info-row">
-                    <span class="info-lbl">Estimated Speakers</span>
-                    <span class="info-val">{activeLangItem.speakersText}</span>
-                  </div>
-                  <div class="info-row">
-                    <span class="info-lbl">Local Dog Population</span>
-                    <span class="info-val">{activeLangItem.dogsText}</span>
+                    <span class="info-lbl" style="color: rgba(255,215,0,0.5);">Main Portal</span>
+                    <span class="info-val">
+                      <a href="https://captainbrando.com" target="_blank" rel="noopener noreferrer" style="color: #ffd700; text-decoration: underline; font-weight: 700; font-family: monospace;">
+                        captainbrando.com
+                      </a>
+                    </span>
                   </div>
                 </div>
               </div>
@@ -582,12 +608,12 @@
     <footer class="panel-footer">
       <div class="sys-status">
         <span class="status-indicator-green"></span>
-        <span>CORE ENGINE ONLINE</span>
+        <span>DOGS LLC TECH SYSTEM ACTIVE</span>
       </div>
       <div class="stats-counter">
-        <span>CATALOG SIZE: {langs.length} LOCALES</span>
+        <span>TX REGISTERED LLC</span>
         <span class="divider">|</span>
-        <span>ACTIVE LANG: {currentLang.toUpperCase()}</span>
+        <span>AUTHOR: CAPTAIN BRANDO</span>
       </div>
     </footer>
   </div>
@@ -677,19 +703,7 @@
     gap: 12px;
   }
 
-  .pulse-dot {
-    width: 8px;
-    height: 8px;
-    background: #00ff66;
-    border-radius: 50%;
-    box-shadow: 0 0 10px #00ff66;
-    animation: pulseDot 2s infinite;
-  }
 
-  @keyframes pulseDot {
-    0%, 100% { opacity: 0.6; transform: scale(1); }
-    50% { opacity: 1; transform: scale(1.2); }
-  }
 
   .brand h1 {
     margin: 0;
