@@ -25,9 +25,34 @@
 
   function langDisplayName(code) {
     try {
-      return langNames.of(code) || code;
+      let fullLangName = langNames.of(code);
+      if (fullLangName === code) {
+        fullLangName = langDisplayBridge(code);
+      }
+
+      return fullLangName ?? code;
+      // return langNames.of(code) || langDisplayBridge(code) || code;
     } catch {
       return code;
+    }
+  }
+
+  function langDisplayBridge(code) {
+    switch (code) {
+      case "ab":
+        return "Abkhaz";
+      case "ak":
+        return "Akan";
+      case "xh":
+        return "Xhosa";
+      case "an":
+        return "Aragonese";
+      case "ang":
+        return "Old English";
+      case "arc":
+        return "Aramaic";
+      default:
+        return false;
     }
   }
 
@@ -517,6 +542,71 @@
                   {/if}
                 </tbody>
               </table>
+            </div>
+
+            <div class="explorer-cards-mobile scroll-container">
+              {#each filteredLangs as item}
+                <!-- svelte-ignore a11y_click_events_have_key_events -->
+                <!-- svelte-ignore a11y_no_static_element_interactions -->
+                <div
+                  class="lang-mobile-card"
+                  class:active={item.code === currentLang}
+                  onclick={() => handleSelect(item.code)}
+                  style="--brand-color: {item.colors[0]}"
+                >
+                  <div class="card-header">
+                    <div class="lang-title">
+                      <span
+                        class="flag-indicator"
+                        style="background: {item.colors[0]}"
+                      ></span>
+                      <div class="lang-meta-text">
+                        <span class="lang-disp-name">{item.displayName}</span>
+                        <span class="lang-code-val"
+                          >{item.code.toUpperCase()}</span
+                        >
+                      </div>
+                    </div>
+                    <button
+                      class="select-btn"
+                      onclick={(e) => {
+                        e.stopPropagation();
+                        handleSelect(item.code);
+                      }}
+                    >
+                      <ChevronRight size={16} />
+                    </button>
+                  </div>
+
+                  <div class="card-body-grid">
+                    <div class="grid-item">
+                      <span class="label">🌐 Country</span>
+                      <span class="value" title={item.country}
+                        >{item.country}</span
+                      >
+                    </div>
+                    <div class="grid-item">
+                      <span class="label">💬 Dialect</span>
+                      <span class="value" title={item.dialect}
+                        >{item.dialect || "—"}</span
+                      >
+                    </div>
+                    <div class="grid-item">
+                      <span class="label">🗣️ Speakers</span>
+                      <span class="value">{item.speakersText}</span>
+                    </div>
+                    <div class="grid-item">
+                      <span class="label">🐕 Local Dogs</span>
+                      <span class="value">{item.dogsText}</span>
+                    </div>
+                  </div>
+                </div>
+              {/each}
+              {#if filteredLangs.length === 0}
+                <div class="empty-cards-cell">
+                  No languages found matching "{searchQuery}"
+                </div>
+              {/if}
             </div>
           </div>
         {/if}
@@ -1009,6 +1099,10 @@
     background: rgba(0, 0, 0, 0.15);
   }
 
+  .explorer-cards-mobile {
+    display: none;
+  }
+
   .explorer-table {
     width: 100%;
     border-collapse: collapse;
@@ -1447,22 +1541,145 @@
       padding: 16px;
     }
 
-    /* Hide Speakers and Local Dogs columns on mobile as well to fit the row */
-    .explorer-table th:nth-child(4),
-    .explorer-table td:nth-child(4),
-    .explorer-table th:nth-child(5),
-    .explorer-table td:nth-child(5) {
+    .table-wrapper {
       display: none;
     }
 
-    .explorer-table td {
-      padding: 12px 8px;
+    .explorer-cards-mobile {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow-y: auto;
+      flex-grow: 1;
+      padding-bottom: 20px;
     }
 
-    .row-select-btn {
-      width: 44px;
-      height: 44px;
-      border-radius: 8px;
+    .lang-mobile-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      cursor: pointer;
+      transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+      box-sizing: border-box;
+      width: 100%;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .lang-mobile-card:active {
+      transform: scale(0.98);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .lang-mobile-card.active {
+      border-color: var(--brand-color);
+      background: rgba(255, 255, 255, 0.06);
+      box-shadow:
+        0 8px 24px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+    }
+
+    .lang-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .flag-indicator {
+      width: 8px;
+      height: 24px;
+      border-radius: 4px;
+      flex-shrink: 0;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 0 4px rgba(255, 255, 255, 0.15);
+    }
+
+    .lang-meta-text {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .lang-disp-name {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.95);
+    }
+
+    .lang-code-val {
+      font-size: 0.65rem;
+      font-family: monospace;
+      color: rgba(255, 255, 255, 0.4);
+    }
+
+    .select-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 50%;
+      color: rgba(255, 255, 255, 0.5);
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .lang-mobile-card.active .select-btn {
+      background: var(--brand-color);
+      color: white;
+      border-color: transparent;
+      box-shadow: 0 0 8px var(--brand-color);
+    }
+
+    .card-body-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .grid-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .grid-item .label {
+      font-size: 0.55rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: rgba(255, 255, 255, 0.3);
+    }
+
+    .grid-item .value {
+      font-size: 0.72rem;
+      color: rgba(255, 255, 255, 0.7);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .empty-cards-cell {
+      text-align: center;
+      padding: 30px;
+      color: rgba(255, 255, 255, 0.35);
+      font-style: italic;
+      font-size: 0.8rem;
     }
 
     .explorer-toolbar {

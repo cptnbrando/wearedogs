@@ -1237,16 +1237,19 @@
       top: 0.75rem;
       left: 0.75rem;
       max-width: 62vw;
+      gap: 0px;
     }
     .lang-display.paused {
       width: 62vw;
       padding: 8px 10px;
       box-sizing: border-box;
       word-break: break-word;
+      gap: 0px;
     }
 
     .live-stats {
       max-width: 100%;
+      gap: 0px;
     }
 
     .stat-info {
@@ -1320,27 +1323,6 @@
     font-weight: 600;
     color: rgba(255, 255, 255, 0.95);
   }
-
-  /* .stats-badge {
-    display: inline-block;
-    font-size: 0.55rem;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-    background: rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.45);
-    padding: 1px 4px;
-    border-radius: 3px;
-    opacity: 0;
-    transform: translateX(4px);
-    transition: all 0.2s ease;
-  }
-
-  .lang-display:hover .stats-badge {
-    opacity: 1;
-    transform: translateX(0);
-    background: rgba(255, 255, 255, 0.15);
-    color: white;
-  } */
 
   .live-stats {
     display: flex;
