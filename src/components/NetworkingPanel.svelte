@@ -1,6 +1,6 @@
 <script>
   import { X, Play, RefreshCw, Radio, Terminal } from "lucide-svelte";
-  import translations from "../lib/translations.js";
+  import { translations } from "../lib/langUtils.js";
 
   let { isClosing = false, onClose } = $props();
 

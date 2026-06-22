@@ -1,90 +1,16 @@
 <script>
-  import translations from "../lib/translations.js";
+  import {
+    translations,
+    langs,
+    parseSpeakers,
+    parseDogs,
+    langDisplayName as getLangDisplayName,
+    langEnglishName as getLangEnglishName,
+    getFlagColors,
+  } from "../lib/langUtils.js";
   import "../lib/i18n.js";
   import { Pause, Play, ChevronLeft, ChevronRight, Flag } from "lucide-svelte";
   import { untrack } from "svelte";
-
-  const langs = Object.keys(translations);
-
-  const flagColorMap = {
-    france: ["#00209F", "#FFFFFF", "#E0000F"],
-    germany: ["#000000", "#FF0000", "#FFCC00"],
-    italy: ["#009246", "#F1F2F1", "#CE2B37"],
-    spain: ["#AD1519", "#FABD00", "#AD1519"],
-    poland: ["#FFFFFF", "#DC143C", "#FFFFFF"],
-    ukraine: ["#0057B7", "#FFD700", "#0057B7"],
-    japan: ["#FFFFFF", "#BC002D", "#FFFFFF"],
-    "united states": ["#0A3161", "#FFFFFF", "#B31942"],
-    "united kingdom": ["#012169", "#FFFFFF", "#C8102E"],
-    brazil: ["#009739", "#FEDF00", "#012169"],
-    china: ["#DE2910", "#FFDE00", "#DE2910"],
-    india: ["#FF9933", "#FFFFFF", "#128807"],
-    ireland: ["#169B62", "#FFFFFF", "#FF883E"],
-    netherlands: ["#AE1C28", "#FFFFFF", "#21468B"],
-    sweden: ["#006AA7", "#FECC00", "#006AA7"],
-    greece: ["#0D5EAF", "#FFFFFF", "#0D5EAF"],
-    canada: ["#FF0000", "#FFFFFF", "#FF0000"],
-    "south korea": ["#FFFFFF", "#CD2E3A", "#0F64CD"],
-    russia: ["#FFFFFF", "#0039A6", "#D52B1E"],
-    mexico: ["#006847", "#FFFFFF", "#CE1126"],
-    belgium: ["#000033", "#FDDA24", "#EF3340"],
-    austria: ["#ED2939", "#FFFFFF", "#ED2939"],
-    switzerland: ["#D52B1E", "#FFFFFF", "#D52B1E"],
-    portugal: ["#006600", "#FF0000", "#FFD700"],
-    norway: ["#EF2B2D", "#002868", "#FFFFFF"],
-    denmark: ["#C60C30", "#FFFFFF", "#C60C30"],
-    finland: ["#FFFFFF", "#003580", "#FFFFFF"],
-    turkey: ["#E30A17", "#FFFFFF", "#E30A17"],
-    australia: ["#00008B", "#FFFFFF", "#FF0000"],
-    "new zealand": ["#00008B", "#FFFFFF", "#FF0000"],
-    "south africa": ["#E23D28", "#007A4D", "#002395"],
-    "saudi arabia": ["#006C35", "#FFFFFF", "#006C35"],
-    egypt: ["#C09307", "#FFFFFF", "#000000"],
-    vietnam: ["#DA251D", "#FFFF00", "#DA251D"],
-    thailand: ["#A51931", "#F4F5F8", "#2D2A4A"],
-    philippines: ["#0038A8", "#FFFFFF", "#CE1126"],
-    indonesia: ["#FF0000", "#FFFFFF", "#FF0000"],
-    malaysia: ["#C8102E", "#FFFFFF", "#012169"],
-    singapore: ["#ED2939", "#FFFFFF", "#ED2939"],
-    argentina: ["#75AADB", "#FFFFFF", "#75AADB"],
-    colombia: ["#FCD116", "#003893", "#CE1126"],
-    chile: ["#0039A6", "#FFFFFF", "#D52B1E"],
-    peru: ["#D91414", "#FFFFFF", "#D91414"],
-    venezuela: ["#FCE300", "#0038A8", "#CE1126"],
-    ecuador: ["#FEE11A", "#032A70", "#D61622"],
-    bolivia: ["#F7141A", "#F7DE1A", "#279E47"],
-    saudi: ["#006C35", "#FFFFFF", "#006C35"],
-    uk: ["#012169", "#FFFFFF", "#C8102E"],
-    us: ["#0A3161", "#FFFFFF", "#B31942"],
-    usa: ["#0A3161", "#FFFFFF", "#B31942"],
-  };
-
-  function getHashColors(str) {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      hash = (hash << 5) - hash + str.charCodeAt(i);
-    }
-    const h1 = Math.abs(hash) % 360;
-    const h2 = (h1 + 120) % 360;
-    const h3 = (h1 + 240) % 360;
-    return [
-      `hsl(${h1}, 85%, 55%)`,
-      `hsl(${h2}, 85%, 60%)`,
-      `hsl(${h3}, 85%, 55%)`,
-    ];
-  }
-
-  function getFlagColors(lang) {
-    const t = translations[lang];
-    if (!t || !t.country) return ["#FFFFFF", "#FFFFFF", "#FFFFFF"];
-    const countryLower = t.country.toLowerCase();
-    for (const [key, colors] of Object.entries(flagColorMap)) {
-      if (countryLower.includes(key)) {
-        return colors;
-      }
-    }
-    return getHashColors(t.country);
-  }
 
   function getRegionIdentity(lang) {
     const t = translations[lang];
@@ -138,27 +64,13 @@
     typeof navigator !== "undefined" ? navigator.language : "en";
   const initialLang = langs.includes(browserLang) ? browserLang : "en";
 
-  // Intl.DisplayNames gives us full language names in the user's locale
-  const langNames = new Intl.DisplayNames([userLocale], { type: "language" });
-
-  /** Get full display name for a language code, falling back to the code itself */
+  /** Get full display name for a language code, falling back to friendly name or dialect */
   function langDisplayName(code) {
-    try {
-      return langNames.of(code) || code;
-    } catch {
-      return code;
-    }
+    return getLangDisplayName(code, userLocale);
   }
 
-  // Intl.DisplayNames in English for stable, localized keyboard letter matching
-  const englishLangNames = new Intl.DisplayNames(["en"], { type: "language" });
-
   function langEnglishName(code) {
-    try {
-      return englishLangNames.of(code) || code;
-    } catch {
-      return code;
-    }
+    return getLangEnglishName(code);
   }
 
   let {
@@ -168,38 +80,6 @@
   } = $props();
 
   let refreshKey = $state(0);
-
-  function parseSpeakers(text) {
-    if (!text || text === "—") return 0;
-    let clean = text.replace(/,/g, "").toLowerCase().trim();
-    let multiplier = 1;
-    if (clean.includes("billion")) {
-      multiplier = 1_000_000_000;
-      clean = clean.replace("billion", "");
-    } else if (clean.includes("million")) {
-      multiplier = 1_000_000;
-      clean = clean.replace("million", "");
-    }
-    const val = parseFloat(clean);
-    return isNaN(val) ? 0 : val * multiplier;
-  }
-
-  function parseDogs(text) {
-    if (!text || text === "—") return 0;
-    let clean = text.replace(/,/g, "").toLowerCase().trim();
-    let multiplier = 1;
-    if (clean.includes("billion")) {
-      multiplier = 1_000_000_000;
-      clean = clean.replace("billion", "");
-    } else if (clean.includes("million")) {
-      multiplier = 1_000_000;
-      clean = clean.replace("million", "");
-    } else if (clean.includes("sleigh dogs")) {
-      clean = clean.replace("sleigh dogs", "");
-    }
-    const val = parseFloat(clean);
-    return isNaN(val) ? 0 : val * multiplier;
-  }
 
   // This is the genesis for the death calculation stats
   // Time elapsed since this will be used to calculate mortality
@@ -249,79 +129,16 @@
       ),
     ) * DOG_GROWTH_FACTOR_2026;
 
-  // Deterministic helper to generate country/region-specific demographics (births and deaths per 1000)
-  function getDemographics(lang) {
-    const t = translations[lang];
-    if (!t)
-      return { humanCBR: 12.0, humanCDR: 8.0, dogCBR: 95.0, dogCDR: 90.0 };
-
-    let humanCBR = 12.0;
-    let humanCDR = 8.0;
-    let dogCBR = 95.0;
-    let dogCDR = 90.0;
-
-    const str = t.country || lang;
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      hash = str.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    hash = Math.abs(hash);
-
-    // Human CBR: 8.0 + (hash % 150) / 10 (gives 8.0 to 23.0 per 1,000)
-    humanCBR = 8.0 + (hash % 150) / 10;
-    // Human CDR: 5.5 + (hash % 80) / 10 (gives 5.5 to 13.5 per 1,000)
-    humanCDR = 5.5 + (hash % 80) / 10;
-
-    // Dog CBR: 80.0 + (hash % 40) (gives 80 to 120 per 1,000)
-    dogCBR = 80.0 + (hash % 40);
-    // Dog CDR: 75.0 + (hash % 35) (gives 75 to 110 per 1,000)
-    dogCDR = 75.0 + (hash % 35);
-
-    // Specific major country mappings
-    const countryLower = (t.country || "").toLowerCase();
-    if (countryLower.includes("united states") || countryLower.includes("us")) {
-      humanCBR = 11.0;
-      humanCDR = 8.8;
-      dogCBR = 93.0;
-      dogCDR = 91.0;
-    } else if (countryLower.includes("japan")) {
-      humanCBR = 7.0;
-      humanCDR = 11.1; // shrinking
-      dogCBR = 80.0;
-      dogCDR = 83.0;
-    } else if (countryLower.includes("china")) {
-      humanCBR = 6.7;
-      humanCDR = 7.1; // shrinking
-      dogCBR = 92.0;
-      dogCDR = 95.0;
-    } else if (countryLower.includes("germany")) {
-      humanCBR = 9.3;
-      humanCDR = 11.5;
-      dogCBR = 86.0;
-      dogCDR = 88.0;
-    } else if (countryLower.includes("ukraine")) {
-      humanCBR = 6.0;
-      humanCDR = 14.5;
-      dogCBR = 98.0;
-      dogCDR = 105.0;
-    } else if (countryLower.includes("brazil")) {
-      humanCBR = 12.9;
-      humanCDR = 6.8;
-      dogCBR = 102.0;
-      dogCDR = 98.0;
-    } else if (countryLower.includes("india")) {
-      humanCBR = 16.5;
-      humanCDR = 7.3;
-      dogCBR = 105.0;
-      dogCDR = 100.0;
-    }
-
-    return { humanCBR, humanCDR, dogCBR, dogCDR };
-  }
-
   const SECONDS_IN_YEAR = 31536000;
 
-  let activeDemographics = $derived(getDemographics(currentLang));
+  let activeDemographics = $derived(
+    translations[currentLang] || {
+      humanCBR: 12.0,
+      humanCDR: 8.0,
+      dogCBR: 95.0,
+      dogCDR: 90.0,
+    },
+  );
 
   let speakerBirthRatePerSecond = $derived(
     (baseSpeakers * (activeDemographics.humanCBR / 1000)) / SECONDS_IN_YEAR,
@@ -456,7 +273,13 @@
 
   function formatRate(rate) {
     if (rate === 0) return ".00";
+
+    // If it's positive but below your threshold, explicitly show it's too low
+    if (rate > 0 && rate < 0.001) return "~0";
+
     const str = rate < 0.01 ? rate.toFixed(3) : rate.toFixed(2);
+
+    // Strip the leading zero for consistency (e.g., "0.005" -> ".005")
     return str.startsWith("0.") ? str.substring(1) : str;
   }
 
@@ -1045,7 +868,7 @@
                     speakerDeathRatePerSecond}
                   >+{formatRate(speakerBirthRatePerSecond)}/s</span
                 >
-                <span class="comma"> , </span>
+                <span class="comma">,</span>
                 <span
                   class:highlight-red={speakerDeathRatePerSecond >
                     speakerBirthRatePerSecond}
@@ -1237,19 +1060,16 @@
       top: 0.75rem;
       left: 0.75rem;
       max-width: 62vw;
-      gap: 0px;
     }
     .lang-display.paused {
       width: 62vw;
       padding: 8px 10px;
       box-sizing: border-box;
       word-break: break-word;
-      gap: 0px;
     }
 
     .live-stats {
       max-width: 100%;
-      gap: 0px;
     }
 
     .stat-info {
@@ -1258,8 +1078,7 @@
     }
 
     .stat-item {
-      padding: 4px;
-      margin-bottom: 2px;
+      margin-bottom: 8px;
     }
 
     .stat-bar-container {

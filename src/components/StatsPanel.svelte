@@ -1,5 +1,13 @@
 <script>
-  import translations from "../lib/translations.js";
+  import {
+    translations,
+    langs,
+    parseSpeakers,
+    parseDogs,
+    langDisplayName as getLangDisplayName,
+    langEnglishName as getLangEnglishName,
+    getFlagColors
+  } from "../lib/langUtils.js";
   import {
     X,
     Search,
@@ -17,131 +25,15 @@
     onSelectLang,
   } = $props();
 
-  const langs = Object.keys(translations);
   const userLocale =
     typeof navigator !== "undefined" ? navigator.language : "en";
-  const langNames = new Intl.DisplayNames([userLocale], { type: "language" });
-  const englishLangNames = new Intl.DisplayNames(["en"], { type: "language" });
 
   function langDisplayName(code) {
-    try {
-      let fullLangName = langNames.of(code);
-      if (fullLangName === code) {
-        fullLangName = langDisplayBridge(code);
-      }
-
-      return fullLangName ?? code;
-      // return langNames.of(code) || langDisplayBridge(code) || code;
-    } catch {
-      return code;
-    }
-  }
-
-  function langDisplayBridge(code) {
-    switch (code) {
-      case "ab":
-        return "Abkhaz";
-      case "ak":
-        return "Akan";
-      case "xh":
-        return "Xhosa";
-      case "an":
-        return "Aragonese";
-      case "ang":
-        return "Old English";
-      case "arc":
-        return "Aramaic";
-      default:
-        return false;
-    }
+    return getLangDisplayName(code, userLocale);
   }
 
   function langEnglishName(code) {
-    try {
-      return englishLangNames.of(code) || code;
-    } catch {
-      return code;
-    }
-  }
-
-  const flagColorMap = {
-    france: ["#00209F", "#FFFFFF", "#E0000F"],
-    germany: ["#000000", "#FF0000", "#FFCC00"],
-    italy: ["#009246", "#F1F2F1", "#CE2B37"],
-    spain: ["#AD1519", "#FABD00", "#AD1519"],
-    poland: ["#FFFFFF", "#DC143C", "#FFFFFF"],
-    ukraine: ["#0057B7", "#FFD700", "#0057B7"],
-    japan: ["#FFFFFF", "#BC002D", "#FFFFFF"],
-    "united states": ["#0A3161", "#FFFFFF", "#B31942"],
-    "united kingdom": ["#012169", "#FFFFFF", "#C8102E"],
-    brazil: ["#009739", "#FEDF00", "#012169"],
-    china: ["#DE2910", "#FFDE00", "#DE2910"],
-    india: ["#FF9933", "#FFFFFF", "#128807"],
-    ireland: ["#169B62", "#FFFFFF", "#FF883E"],
-    netherlands: ["#AE1C28", "#FFFFFF", "#21468B"],
-    sweden: ["#006AA7", "#FECC00", "#006AA7"],
-    greece: ["#0D5EAF", "#FFFFFF", "#0D5EAF"],
-    canada: ["#FF0000", "#FFFFFF", "#FF0000"],
-    "south korea": ["#FFFFFF", "#CD2E3A", "#0F64CD"],
-    russia: ["#FFFFFF", "#0039A6", "#D52B1E"],
-    mexico: ["#006847", "#FFFFFF", "#CE1126"],
-    belgium: ["#000033", "#FDDA24", "#EF3340"],
-    austria: ["#ED2939", "#FFFFFF", "#ED2939"],
-    switzerland: ["#D52B1E", "#FFFFFF", "#D52B1E"],
-    portugal: ["#006600", "#FF0000", "#FFD700"],
-    norway: ["#EF2B2D", "#002868", "#FFFFFF"],
-    denmark: ["#C60C30", "#FFFFFF", "#C60C30"],
-    finland: ["#FFFFFF", "#003580", "#FFFFFF"],
-    turkey: ["#E30A17", "#FFFFFF", "#E30A17"],
-    australia: ["#00008B", "#FFFFFF", "#FF0000"],
-    "new zealand": ["#00008B", "#FFFFFF", "#FF0000"],
-    "south africa": ["#E23D28", "#007A4D", "#002395"],
-    "saudi arabia": ["#006C35", "#FFFFFF", "#006C35"],
-    egypt: ["#C09307", "#FFFFFF", "#000000"],
-    vietnam: ["#DA251D", "#FFFF00", "#DA251D"],
-    thailand: ["#A51931", "#F4F5F8", "#2D2A4A"],
-    philippines: ["#0038A8", "#FFFFFF", "#CE1126"],
-    indonesia: ["#FF0000", "#FFFFFF", "#FF0000"],
-    malaysia: ["#C8102E", "#FFFFFF", "#012169"],
-    singapore: ["#ED2939", "#FFFFFF", "#ED2939"],
-    argentina: ["#75AADB", "#FFFFFF", "#75AADB"],
-    colombia: ["#FCD116", "#003893", "#CE1126"],
-    chile: ["#0039A6", "#FFFFFF", "#D52B1E"],
-    peru: ["#D91414", "#FFFFFF", "#D91414"],
-    venezuela: ["#FCE300", "#0038A8", "#CE1126"],
-    ecuador: ["#FEE11A", "#032A70", "#D61622"],
-    bolivia: ["#F7141A", "#F7DE1A", "#279E47"],
-    saudi: ["#006C35", "#FFFFFF", "#006C35"],
-    uk: ["#012169", "#FFFFFF", "#C8102E"],
-    us: ["#0A3161", "#FFFFFF", "#B31942"],
-    usa: ["#0A3161", "#FFFFFF", "#B31942"],
-  };
-
-  function getHashColors(str) {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      hash = (hash << 5) - hash + str.charCodeAt(i);
-    }
-    const h1 = Math.abs(hash) % 360;
-    const h2 = (h1 + 120) % 360;
-    const h3 = (h1 + 240) % 360;
-    return [
-      `hsl(${h1}, 85%, 55%)`,
-      `hsl(${h2}, 85%, 60%)`,
-      `hsl(${h3}, 85%, 55%)`,
-    ];
-  }
-
-  function getFlagColors(code) {
-    const t = translations[code];
-    if (!t || !t.country) return ["#FFFFFF", "#FFFFFF", "#FFFFFF"];
-    const countryLower = t.country.toLowerCase();
-    for (const [key, colors] of Object.entries(flagColorMap)) {
-      if (countryLower.includes(key)) {
-        return colors;
-      }
-    }
-    return getHashColors(t.country);
+    return getLangEnglishName(code);
   }
 
   // Active Tab state: 'explorer' | 'speakers' | 'dogs' | 'themes'
@@ -160,42 +52,6 @@
     const name = langEnglishName(code);
     const dispName = langDisplayName(code);
 
-    // Parse speakers to numeric
-    let speakersNum = 0;
-    if (t.speakers && t.speakers !== "—") {
-      let clean = t.speakers.replace(/,/g, "").toLowerCase().trim();
-      let mult = 1;
-      if (clean.includes("billion")) {
-        mult = 1_000_000_000;
-        clean = clean.replace("billion", "");
-      } else if (clean.includes("million")) {
-        mult = 1_000_000;
-        clean = clean.replace("million", "");
-      }
-      const val = parseFloat(clean);
-      if (!isNaN(val)) {
-        speakersNum = val * mult;
-      }
-    }
-
-    // Parse dogs count to numeric
-    let dogsNum = 0;
-    if (t.dogs_count && t.dogs_count !== "—") {
-      let clean = t.dogs_count.replace(/,/g, "").toLowerCase().trim();
-      let mult = 1;
-      if (clean.includes("billion")) {
-        mult = 1_000_000_000;
-        clean = clean.replace("billion", "");
-      } else if (clean.includes("million")) {
-        mult = 1_000_000;
-        clean = clean.replace("million", "");
-      }
-      const val = parseFloat(clean);
-      if (!isNaN(val)) {
-        dogsNum = val * mult;
-      }
-    }
-
     return {
       code,
       name,
@@ -203,9 +59,9 @@
       country: t.country || "—",
       dialect: t.dialect || "—",
       speakersText: t.speakers || "—",
-      speakersNum,
+      speakersNum: parseSpeakers(t.speakers),
       dogsText: t.dogs_count || "—",
-      dogsNum,
+      dogsNum: parseDogs(t.dogs_count),
       we: t.we,
       are: t.are,
       dogs: t.dogs,
