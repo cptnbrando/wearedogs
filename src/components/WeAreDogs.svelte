@@ -1089,13 +1089,13 @@
   class="wad-container"
   class:faded={isFaded}
   class:colored={isFlagColors}
-  // onmouseenter={onEnter}
-  onmouseleave={onLeave}
   onclick={handleMainClick}
   ontouchstart={handleTouchStart}
   ontouchend={handleTouchEnd}
   role="presentation"
 >
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div class="words-wrapper" onmouseenter={onEnter} onmouseleave={onLeave} role="presentation">
   <!-- WORD 1: "We" -->
   {#key weGen}
     <h1 class="word" aria-label={currentWe}>
@@ -1161,6 +1161,7 @@
 
   <!-- Pronunciation -->
   <p class="pronunciation">({pronWe} {pronAre} {pronDogs})</p>
+  </div>
 </div>
 
 <style>
@@ -1477,6 +1478,13 @@
     user-select: none;
     -webkit-user-select: none;
     z-index: 10;
+  }
+
+  .words-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
   }
 
   .word {

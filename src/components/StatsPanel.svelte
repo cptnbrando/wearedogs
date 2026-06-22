@@ -287,7 +287,7 @@
           <path d="M 34,50 L 44,54 L 35,58 Z" fill="#000000" />
           <path d="M 66,50 L 56,54 L 65,58 Z" fill="#000000" />
         </svg>
-        <h1>DOGSDOGSDOGS</h1>
+        <h1>DOGS</h1>
         <span class="path-indicator">/ {activeTab.toUpperCase()}</span>
       </div>
 
