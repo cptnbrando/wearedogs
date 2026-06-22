@@ -1207,8 +1207,8 @@
   /* ── Language Display & Info Panel ── */
   .lang-display {
     position: fixed;
-    top: 1.25rem;
-    left: 1.25rem;
+    top: 0.75rem;
+    left: 0.75rem;
     z-index: 50;
     width: auto;
     padding: 0;
@@ -1256,7 +1256,7 @@
 
     .stat-item {
       padding: 4px;
-      margin-bottom: 4px;
+      margin-bottom: 2px;
     }
 
     .stat-bar-container {
@@ -1265,7 +1265,7 @@
     }
 
     .lang-meta {
-      margin-bottom: 6px;
+      margin-bottom: 3px;
       gap: 3px;
     }
 
@@ -1321,7 +1321,7 @@
     color: rgba(255, 255, 255, 0.95);
   }
 
-  .stats-badge {
+  /* .stats-badge {
     display: inline-block;
     font-size: 0.55rem;
     font-weight: 700;
@@ -1340,19 +1340,16 @@
     transform: translateX(0);
     background: rgba(255, 255, 255, 0.15);
     color: white;
-  }
+  } */
 
   .live-stats {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    margin-bottom: 6px;
   }
 
   .stat-item {
     display: flex;
     flex-direction: column;
-    gap: 2px;
   }
 
   .stat-info {
@@ -1648,8 +1645,8 @@
   /* ── Top-Right Status Flash Indicator (Bookmark Tab) ── */
   .status-flash {
     position: fixed;
-    top: 1.25rem;
-    right: 1.25rem;
+    top: 0.75rem;
+    right: 0.75rem;
     z-index: 100;
     pointer-events: none;
     color: rgba(255, 255, 255, 0.85);
