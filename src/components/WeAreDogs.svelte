@@ -1089,7 +1089,7 @@
   class="wad-container"
   class:faded={isFaded}
   class:colored={isFlagColors}
-  onmouseenter={onEnter}
+  // onmouseenter={onEnter}
   onmouseleave={onLeave}
   onclick={handleMainClick}
   ontouchstart={handleTouchStart}

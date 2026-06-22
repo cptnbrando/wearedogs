@@ -364,16 +364,33 @@
       <main class="panel-content-pane scroll-container">
         <!-- 1. DASHBOARD VIEW -->
         {#if activeTab === "dashboard"}
+          <!-- Left side: Interactive info block -->
+          <div class="intro-block">
+            <h2
+              style="font-family: 'Outfit', 'Inter', sans-serif; font-weight: 900; letter-spacing: -0.02em; color: #ff3366;"
+            >
+              DOGS: THE TECH COMPANY
+            </h2>
+            <p style="margin-bottom: 12px;">
+              We are <strong>DOGS</strong>—a high-profile, bold, stylish tech
+              company building for the future.
+            </p>
+            <p
+              style="margin-bottom: 20px; font-style: italic; color: rgba(255, 255, 255, 0.45); line-height: 1.4;"
+            >
+              "We live now"
+            </p>
+          </div>
           <div class="tab-pane animated-pane">
             <!-- Metric grid showing total catalog sizes and DOGS tech details -->
             <div class="dashboard-stats-grid">
-              <div class="metric-card">
+              <!-- <div class="metric-card">
                 <span class="metric-icon">🌐</span>
                 <div class="metric-details">
                   <span class="metric-label">Locales Cataloged</span>
                   <span class="metric-value">{langs.length}</span>
                 </div>
-              </div>
+              </div> -->
               <div class="metric-card">
                 <span class="metric-icon">⚡</span>
                 <div class="metric-details">
@@ -381,7 +398,10 @@
                   <span class="metric-value">TX, USA</span>
                 </div>
               </div>
-              <div class="metric-card">
+              <div
+                class="metric-card cursor-pointer"
+                onclick={() => window.open("https://captainbrando.com")}
+              >
                 <span class="metric-icon">🔥</span>
                 <div class="metric-details">
                   <span class="metric-label">Founder & Architect</span>
@@ -391,41 +411,9 @@
             </div>
 
             <div class="dashboard-split">
-              <!-- Left side: Interactive info block -->
-              <div class="intro-block">
-                <h2
-                  style="font-family: 'Outfit', 'Inter', sans-serif; font-weight: 900; letter-spacing: -0.02em; color: #ff3366;"
-                >
-                  DOGS: THE TECH COMPANY
-                </h2>
-                <p style="margin-bottom: 12px;">
-                  We are <strong>DOGS</strong>—a high-profile, simple, insane,
-                  dope, bold, new tech company building for the web, apps,
-                  hardware, software, and everything awesome. We live to break
-                  this world from the inside out. Punk rock style more than
-                  anything.
-                </p>
-                <p
-                  style="margin-bottom: 20px; font-style: italic; color: rgba(255, 255, 255, 0.45); line-height: 1.4;"
-                >
-                  "We live just to die. We have taxes in our eyes. Can't pay
-                  rent. Trying to stay alive. We're just doing things now."
-                </p>
-
-                <!-- <div class="quick-tips" style="border-left: 3px solid #ff3366; background: rgba(255, 51, 102, 0.03);">
-                  <h4 style="color: #ff3366; font-weight: 700;">🎤 Project Scope & Stack</h4>
-                  <ul style="list-style-type: square; color: rgba(255,255,255,0.65); padding-left: 20px;">
-                    <li><strong>DOGS Rap Project:</strong> The official digital node and translation engine for Captain Brando's rap release.</li>
-                    <li><strong>DOGS Stack:</strong> High-performance front-ends powered by Svelte, Vite, and absolute vanilla layouts.</li>
-                    <li><strong>Oklahoma & Texas Indie Tech:</strong> Crafting custom frontends, hardware integrations, cloud servers, and local AI.</li>
-                    <li><strong>Lighthouse Score:</strong> Fully optimized for maximum speed, accessibility, and clean SEO.</li>
-                  </ul>
-                </div> -->
-              </div>
-
               <!-- Right side: Detail showcase card + LLC block -->
               <div style="display: flex; flex-direction: column; gap: 16px;">
-                <div class="showcase-card">
+                <!-- <div class="showcase-card">
                   <h3>Selected Locale Metrics</h3>
                   <div class="showcase-info">
                     <div class="info-row">
@@ -449,23 +437,23 @@
                       >
                     </div>
                   </div>
-                </div>
+                </div> -->
 
                 <div
                   class="showcase-card"
                   style="border: 1px solid rgba(255, 215, 0, 0.15); background: rgba(255, 215, 0, 0.02);"
                 >
-                  <h3 style="color: #ffd700;">DOGS LLC Registry</h3>
+                  <h3 style="color: #ffd700;">DOGS LLC</h3>
                   <p
                     style="font-size: 0.72rem; color: rgba(255,255,255,0.6); line-height: 1.5; margin: 0 0 10px 0;"
                   >
-                    DOGS is a registered Texas Limited Liability Company (LLC)
-                    building next-gen web, app, and hardware platforms.
-                    Engineered to be fast, loud, and proud.
+                    DOGS is (about to be) a registered Texas Limited Liability
+                    Company (LLC) building next-gen web, apps, AI, and hardware
+                    platforms that feel just right.
                   </p>
-                  <div class="info-row">
+                  <!-- <div class="info-row">
                     <span class="info-lbl" style="color: rgba(255,215,0,0.5);"
-                      >Main Portal</span
+                      >Built by</span
                     >
                     <span class="info-val">
                       <a
@@ -477,7 +465,7 @@
                         captainbrando.com
                       </a>
                     </span>
-                  </div>
+                  </div> -->
                 </div>
               </div>
             </div>
