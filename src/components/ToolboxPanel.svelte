@@ -9,40 +9,12 @@
     Video,
     QrCode,
   } from "lucide-svelte";
-  let SnakeComponent = $state(null);
-  let SoundboardComponent = $state(null);
-  let PaintComponent = $state(null);
-  let StopwatchComponent = $state(null);
-  let GoProComponent = $state(null);
-  let QRFlashComponent = $state(null);
-
-  $effect(() => {
-    if (activeApp === "snake" && !SnakeComponent) {
-      import("./apps/SnakeApp.svelte").then((m) => {
-        SnakeComponent = m.default;
-      });
-    } else if (activeApp === "soundboard" && !SoundboardComponent) {
-      import("./apps/SoundboardApp.svelte").then((m) => {
-        SoundboardComponent = m.default;
-      });
-    } else if (activeApp === "paint" && !PaintComponent) {
-      import("./apps/PaintApp.svelte").then((m) => {
-        PaintComponent = m.default;
-      });
-    } else if (activeApp === "stopwatch" && !StopwatchComponent) {
-      import("./apps/StopwatchApp.svelte").then((m) => {
-        StopwatchComponent = m.default;
-      });
-    } else if (activeApp === "gopro" && !GoProComponent) {
-      import("./apps/GoPro.svelte").then((m) => {
-        GoProComponent = m.default;
-      });
-    } else if (activeApp === "qrflash" && !QRFlashComponent) {
-      import("./apps/QRFlash.svelte").then((m) => {
-        QRFlashComponent = m.default;
-      });
-    }
-  });
+  import SnakeApp from "./apps/SnakeApp.svelte";
+  import SoundboardApp from "./apps/SoundboardApp.svelte";
+  import PaintApp from "./apps/PaintApp.svelte";
+  import StopwatchApp from "./apps/StopwatchApp.svelte";
+  import GoPro from "./apps/GoPro.svelte";
+  import QRFlash from "./apps/QRFlash.svelte";
 
   let { isClosing = false, onClose, activeApp = $bindable(null) } = $props();
 
@@ -243,18 +215,18 @@
             </div>
           </div>
         </div>
-      {:else if activeApp === "snake" && SnakeComponent}
-        <SnakeComponent />
-      {:else if activeApp === "soundboard" && SoundboardComponent}
-        <SoundboardComponent />
-      {:else if activeApp === "paint" && PaintComponent}
-        <PaintComponent />
-      {:else if activeApp === "stopwatch" && StopwatchComponent}
-        <StopwatchComponent />
-      {:else if activeApp === "gopro" && GoProComponent}
-        <GoProComponent />
-      {:else if activeApp === "qrflash" && QRFlashComponent}
-        <QRFlashComponent />
+      {:else if activeApp === "snake"}
+        <SnakeApp />
+      {:else if activeApp === "soundboard"}
+        <SoundboardApp />
+      {:else if activeApp === "paint"}
+        <PaintApp />
+      {:else if activeApp === "stopwatch"}
+        <StopwatchApp />
+      {:else if activeApp === "gopro"}
+        <GoPro />
+      {:else if activeApp === "qrflash"}
+        <QRFlash />
       {/if}
     </div>
 
@@ -401,7 +373,7 @@
     align-items: center;
     gap: 8px;
     cursor: pointer;
-    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    transition: all 0.2s ease;
   }
 
   .back-btn:hover {
@@ -427,7 +399,7 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+    transition: all 0.2s ease;
   }
 
   .close-btn:hover {
@@ -496,7 +468,7 @@
     align-items: center;
     gap: 20px;
     cursor: pointer;
-    transition: background-color 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .app-card:hover {

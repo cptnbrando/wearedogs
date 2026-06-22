@@ -1,5 +1,5 @@
 import { register, init, getLocaleFromNavigator } from 'svelte-i18n';
-import translations from './translations.json';
+import translations from './translations.js';
 
 // All supported language codes (keys from translation dict)
 export const supportedLangs = Object.keys(translations);

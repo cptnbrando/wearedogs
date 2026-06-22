@@ -713,7 +713,7 @@
     font-weight: 700;
     padding: 6px 14px;
     cursor: pointer;
-    transition: background-color 0.2s, color 0.2s;
+    transition: all 0.2s;
   }
 
   .mode-btn.active {
@@ -787,7 +787,7 @@
     gap: 8px;
     cursor: pointer;
     color: rgba(255, 255, 255, 0.55);
-    transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+    transition: all 0.2s;
   }
 
   .file-drop-target:hover {
@@ -891,7 +891,7 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    transition: background-color 0.2s, box-shadow 0.2s, transform 0.2s;
+    transition: all 0.2s;
   }
 
   .action-btn.play-btn {
@@ -1018,7 +1018,7 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+    transition: all 0.2s;
   }
 
   .rec-control-btn:hover {
@@ -1043,7 +1043,7 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    transition: background-color 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s;
+    transition: all 0.2s;
   }
 
   .loopback-demo-toggle:hover {
@@ -1120,14 +1120,12 @@
     background: rgba(255, 85, 187, 0.5);
     box-shadow: 0 0 8px #ff55bb;
     top: 0;
-    left: 0;
-    transform: translateY(0);
     animation: scanLine 2s infinite linear;
   }
 
   @keyframes scanLine {
-    0% { transform: translateY(0); }
-    100% { transform: translateY(178px); }
+    0% { top: 0; }
+    100% { top: 100%; }
   }
 
   /* ── Assembly grid matrix ── */
@@ -1224,7 +1222,7 @@
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(255, 255, 255, 0.03);
     border-radius: 2px;
-    transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    transition: all 0.2s ease;
   }
 
   .matrix-cell.filled {
@@ -1352,7 +1350,7 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    transition: background-color 0.2s, color 0.2s, box-shadow 0.2s, transform 0.2s;
+    transition: all 0.2s;
   }
 
   .modal-btn.download-btn {

@@ -2,6 +2,9 @@
   import "../lib/i18n.js";
   import { ChartNoAxesColumn, Component } from "lucide-svelte";
   import WeAreDogs from "./WeAreDogs.svelte";
+  import StatsPanel from "./StatsPanel.svelte";
+  import NetworkingPanel from "./NetworkingPanel.svelte";
+  import ToolboxPanel from "./ToolboxPanel.svelte";
 
   // Active view state: 'stats' | 'networking' | 'toolbox' | null
   let activePage = $state(null);
@@ -90,26 +93,6 @@
     }, 320);
   }
 
-  let StatsPanelComponent = $state(null);
-  let NetworkingPanelComponent = $state(null);
-  let ToolboxPanelComponent = $state(null);
-
-  $effect(() => {
-    if (activePage === "stats" && !StatsPanelComponent) {
-      import("./StatsPanel.svelte").then((m) => {
-        StatsPanelComponent = m.default;
-      });
-    } else if (activePage === "networking" && !NetworkingPanelComponent) {
-      import("./NetworkingPanel.svelte").then((m) => {
-        NetworkingPanelComponent = m.default;
-      });
-    } else if (activePage === "toolbox" && !ToolboxPanelComponent) {
-      import("./ToolboxPanel.svelte").then((m) => {
-        ToolboxPanelComponent = m.default;
-      });
-    }
-  });
-
   function handleKeydown(e) {
     if (e.key === "Escape" && activePage !== null) {
       closePage();
@@ -131,7 +114,7 @@
 {#if activePage === null}
   <!-- Bottom Left: Networking Panel -->
   <button
-    class="fixed bottom-6 left-6 border border-white/20 cursor-pointer p-2 bg-black/80 hover:bg-white hover:text-black hover:border-white transition-all rounded z-50 flex items-center justify-center"
+    class="fixed bottom-6 left-6 border-2 border-white cursor-pointer p-2 bg-black/60 hover:bg-white hover:text-black transition-colors rounded-lg z-50 flex items-center justify-center"
     style="bottom: max(1.5rem, calc(1.5rem + env(safe-area-inset-bottom, 0px)))"
     onclick={() => openPage("networking")}
     aria-label="Open Networking page"
@@ -141,7 +124,7 @@
 
   <!-- Bottom Right: Toolbox Panel -->
   <button
-    class="fixed bottom-6 right-6 border border-white/20 cursor-pointer p-2 bg-black/80 hover:bg-white hover:text-black hover:border-white transition-all rounded z-50 flex items-center justify-center"
+    class="fixed bottom-6 right-6 border-2 border-white cursor-pointer p-2 bg-black/60 hover:bg-white hover:text-black transition-colors rounded-lg z-50 flex items-center justify-center"
     style="bottom: max(1.5rem, calc(1.5rem + env(safe-area-inset-bottom, 0px)))"
     onclick={() => openPage("toolbox")}
     aria-label="Open Toolbox page"
@@ -151,8 +134,8 @@
 {/if}
 
 <!-- Overlay panels -->
-{#if activePage === "stats" && StatsPanelComponent}
-  <StatsPanelComponent
+{#if activePage === "stats"}
+  <StatsPanel
     isClosing={isClosing}
     currentLang={activeLang}
     onClose={closePage}
@@ -164,13 +147,13 @@
       }
     }}
   />
-{:else if activePage === "networking" && NetworkingPanelComponent}
-  <NetworkingPanelComponent
+{:else if activePage === "networking"}
+  <NetworkingPanel
     isClosing={isClosing}
     onClose={closePage}
   />
-{:else if activePage === "toolbox" && ToolboxPanelComponent}
-  <ToolboxPanelComponent
+{:else if activePage === "toolbox"}
+  <ToolboxPanel
     isClosing={isClosing}
     onClose={closePage}
     bind:activeApp={activeApp}

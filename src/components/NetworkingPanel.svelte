@@ -1,6 +1,6 @@
 <script>
   import { X, Play, RefreshCw, Radio, Terminal } from "lucide-svelte";
-  import translations from "../lib/translations.json";
+  import translations from "../lib/translations.js";
 
   let { isClosing = false, onClose } = $props();
 
@@ -326,7 +326,7 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+    transition: all 0.2s ease;
   }
 
   .close-btn:hover {
@@ -437,7 +437,7 @@
     align-items: center;
     justify-content: center;
     gap: 10px;
-    transition: background-color 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    transition: all 0.2s ease;
   }
 
   .action-btn:hover:not(:disabled) {
@@ -488,7 +488,7 @@
     height: 6px;
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.1);
-    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    transition: all 0.3s ease;
   }
 
   .node-dot.active {

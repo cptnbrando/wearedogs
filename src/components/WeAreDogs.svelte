@@ -1,26 +1,134 @@
 <script>
-  import translations from "../lib/translations.json";
+  import translations from "../lib/translations.js";
   import "../lib/i18n.js";
   import { Pause, Play, ChevronLeft, ChevronRight, Flag } from "lucide-svelte";
   import { untrack } from "svelte";
 
   const langs = Object.keys(translations);
 
-  import {
-    getHashColors,
-    getFlagColors as getFlagColorsUtil,
-    getRegionIdentity as getRegionIdentityUtil,
-    growthFactors,
-    defaultRates,
-    specificRates,
-  } from "../lib/demographics.js";
+  const flagColorMap = {
+    france: ["#00209F", "#FFFFFF", "#E0000F"],
+    germany: ["#000000", "#FF0000", "#FFCC00"],
+    italy: ["#009246", "#F1F2F1", "#CE2B37"],
+    spain: ["#AD1519", "#FABD00", "#AD1519"],
+    poland: ["#FFFFFF", "#DC143C", "#FFFFFF"],
+    ukraine: ["#0057B7", "#FFD700", "#0057B7"],
+    japan: ["#FFFFFF", "#BC002D", "#FFFFFF"],
+    "united states": ["#0A3161", "#FFFFFF", "#B31942"],
+    "united kingdom": ["#012169", "#FFFFFF", "#C8102E"],
+    brazil: ["#009739", "#FEDF00", "#012169"],
+    china: ["#DE2910", "#FFDE00", "#DE2910"],
+    india: ["#FF9933", "#FFFFFF", "#128807"],
+    ireland: ["#169B62", "#FFFFFF", "#FF883E"],
+    netherlands: ["#AE1C28", "#FFFFFF", "#21468B"],
+    sweden: ["#006AA7", "#FECC00", "#006AA7"],
+    greece: ["#0D5EAF", "#FFFFFF", "#0D5EAF"],
+    canada: ["#FF0000", "#FFFFFF", "#FF0000"],
+    "south korea": ["#FFFFFF", "#CD2E3A", "#0F64CD"],
+    russia: ["#FFFFFF", "#0039A6", "#D52B1E"],
+    mexico: ["#006847", "#FFFFFF", "#CE1126"],
+    belgium: ["#000033", "#FDDA24", "#EF3340"],
+    austria: ["#ED2939", "#FFFFFF", "#ED2939"],
+    switzerland: ["#D52B1E", "#FFFFFF", "#D52B1E"],
+    portugal: ["#006600", "#FF0000", "#FFD700"],
+    norway: ["#EF2B2D", "#002868", "#FFFFFF"],
+    denmark: ["#C60C30", "#FFFFFF", "#C60C30"],
+    finland: ["#FFFFFF", "#003580", "#FFFFFF"],
+    turkey: ["#E30A17", "#FFFFFF", "#E30A17"],
+    australia: ["#00008B", "#FFFFFF", "#FF0000"],
+    "new zealand": ["#00008B", "#FFFFFF", "#FF0000"],
+    "south africa": ["#E23D28", "#007A4D", "#002395"],
+    "saudi arabia": ["#006C35", "#FFFFFF", "#006C35"],
+    egypt: ["#C09307", "#FFFFFF", "#000000"],
+    vietnam: ["#DA251D", "#FFFF00", "#DA251D"],
+    thailand: ["#A51931", "#F4F5F8", "#2D2A4A"],
+    philippines: ["#0038A8", "#FFFFFF", "#CE1126"],
+    indonesia: ["#FF0000", "#FFFFFF", "#FF0000"],
+    malaysia: ["#C8102E", "#FFFFFF", "#012169"],
+    singapore: ["#ED2939", "#FFFFFF", "#ED2939"],
+    argentina: ["#75AADB", "#FFFFFF", "#75AADB"],
+    colombia: ["#FCD116", "#003893", "#CE1126"],
+    chile: ["#0039A6", "#FFFFFF", "#D52B1E"],
+    peru: ["#D91414", "#FFFFFF", "#D91414"],
+    venezuela: ["#FCE300", "#0038A8", "#CE1126"],
+    ecuador: ["#FEE11A", "#032A70", "#D61622"],
+    bolivia: ["#F7141A", "#F7DE1A", "#279E47"],
+    saudi: ["#006C35", "#FFFFFF", "#006C35"],
+    uk: ["#012169", "#FFFFFF", "#C8102E"],
+    us: ["#0A3161", "#FFFFFF", "#B31942"],
+    usa: ["#0A3161", "#FFFFFF", "#B31942"],
+  };
+
+  function getHashColors(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = (hash << 5) - hash + str.charCodeAt(i);
+    }
+    const h1 = Math.abs(hash) % 360;
+    const h2 = (h1 + 120) % 360;
+    const h3 = (h1 + 240) % 360;
+    return [
+      `hsl(${h1}, 85%, 55%)`,
+      `hsl(${h2}, 85%, 60%)`,
+      `hsl(${h3}, 85%, 55%)`,
+    ];
+  }
 
   function getFlagColors(lang) {
-    return getFlagColorsUtil(lang, translations);
+    const t = translations[lang];
+    if (!t || !t.country) return ["#FFFFFF", "#FFFFFF", "#FFFFFF"];
+    const countryLower = t.country.toLowerCase();
+    for (const [key, colors] of Object.entries(flagColorMap)) {
+      if (countryLower.includes(key)) {
+        return colors;
+      }
+    }
+    return getHashColors(t.country);
   }
 
   function getRegionIdentity(lang) {
-    return getRegionIdentityUtil(lang, translations);
+    const t = translations[lang];
+    if (!t || !t.country) return "default";
+    const country = t.country.toLowerCase();
+
+    if (
+      country.includes("switzerland") ||
+      country.includes("nepal") ||
+      country.includes("tibet") ||
+      country.includes("austria") ||
+      country.includes("peru") ||
+      country.includes("bolivia") ||
+      country.includes("greece") ||
+      country.includes("norway") ||
+      country.includes("chile") ||
+      country.includes("ecuador") ||
+      country.includes("georgia") ||
+      country.includes("armenia") ||
+      country.includes("bhutan") ||
+      country.includes("kashmir")
+    ) {
+      return "mountain";
+    }
+
+    if (
+      country.includes("germany") ||
+      country.includes("japan") ||
+      country.includes("china") ||
+      country.includes("united states") ||
+      country.includes("us") ||
+      country.includes("usa") ||
+      country.includes("south korea") ||
+      country.includes("united kingdom") ||
+      country.includes("uk") ||
+      country.includes("belgium") ||
+      country.includes("russia") ||
+      country.includes("singapore") ||
+      country.includes("taiwan")
+    ) {
+      return "industrial";
+    }
+
+    return "agricultural";
   }
 
   // Detect initial language from browser
@@ -111,8 +219,8 @@
   });
 
   // 2026 demographic growth factors from translations baseline to active 2026 counts
-  const HUMAN_GROWTH_FACTOR_2026 = growthFactors.human;
-  const DOG_GROWTH_FACTOR_2026 = growthFactors.dog;
+  const HUMAN_GROWTH_FACTOR_2026 = 1.031; // ~3.1% human population growth
+  const DOG_GROWTH_FACTOR_2026 = 1.052; // ~5.2% canine population growth
 
   let baseSpeakers = $derived(
     refreshKey >= 0
@@ -144,47 +252,68 @@
   // Deterministic helper to generate country/region-specific demographics (births and deaths per 1000)
   function getDemographics(lang) {
     const t = translations[lang];
-    if (!t) {
-      return {
-        humanCBR: defaultRates.humanCBR,
-        humanCDR: defaultRates.humanCDR,
-        dogCBR: defaultRates.dogCBR,
-        dogCDR: defaultRates.dogCDR,
-      };
+    if (!t)
+      return { humanCBR: 12.0, humanCDR: 8.0, dogCBR: 95.0, dogCDR: 90.0 };
+
+    let humanCBR = 12.0;
+    let humanCDR = 8.0;
+    let dogCBR = 95.0;
+    let dogCDR = 90.0;
+
+    const str = t.country || lang;
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = str.charCodeAt(i) + ((hash << 5) - hash);
     }
+    hash = Math.abs(hash);
 
-    let humanCBR = defaultRates.humanCBR;
-    let humanCDR = defaultRates.humanCDR;
-    let dogCBR = defaultRates.dogCBR;
-    let dogCDR = defaultRates.dogCDR;
+    // Human CBR: 8.0 + (hash % 150) / 10 (gives 8.0 to 23.0 per 1,000)
+    humanCBR = 8.0 + (hash % 150) / 10;
+    // Human CDR: 5.5 + (hash % 80) / 10 (gives 5.5 to 13.5 per 1,000)
+    humanCDR = 5.5 + (hash % 80) / 10;
 
-    // Specific country mappings from JSON database
+    // Dog CBR: 80.0 + (hash % 40) (gives 80 to 120 per 1,000)
+    dogCBR = 80.0 + (hash % 40);
+    // Dog CDR: 75.0 + (hash % 35) (gives 75 to 110 per 1,000)
+    dogCDR = 75.0 + (hash % 35);
+
+    // Specific major country mappings
     const countryLower = (t.country || "").toLowerCase();
-    let matched = false;
-    for (const [key, rates] of Object.entries(specificRates)) {
-      if (countryLower.includes(key)) {
-        humanCBR = rates.humanCBR;
-        humanCDR = rates.humanCDR;
-        dogCBR = rates.dogCBR;
-        dogCDR = rates.dogCDR;
-        matched = true;
-        break;
-      }
-    }
-
-    if (!matched) {
-      // Fallback hash logic for non-mapped locales
-      const str = t.country || lang;
-      let hash = 0;
-      for (let i = 0; i < str.length; i++) {
-        hash = str.charCodeAt(i) + ((hash << 5) - hash);
-      }
-      hash = Math.abs(hash);
-
-      humanCBR = 8.0 + (hash % 150) / 10;
-      humanCDR = 5.5 + (hash % 80) / 10;
-      dogCBR = 80.0 + (hash % 40);
-      dogCDR = 75.0 + (hash % 35);
+    if (countryLower.includes("united states") || countryLower.includes("us")) {
+      humanCBR = 11.0;
+      humanCDR = 8.8;
+      dogCBR = 93.0;
+      dogCDR = 91.0;
+    } else if (countryLower.includes("japan")) {
+      humanCBR = 7.0;
+      humanCDR = 11.1; // shrinking
+      dogCBR = 80.0;
+      dogCDR = 83.0;
+    } else if (countryLower.includes("china")) {
+      humanCBR = 6.7;
+      humanCDR = 7.1; // shrinking
+      dogCBR = 92.0;
+      dogCDR = 95.0;
+    } else if (countryLower.includes("germany")) {
+      humanCBR = 9.3;
+      humanCDR = 11.5;
+      dogCBR = 86.0;
+      dogCDR = 88.0;
+    } else if (countryLower.includes("ukraine")) {
+      humanCBR = 6.0;
+      humanCDR = 14.5;
+      dogCBR = 98.0;
+      dogCDR = 105.0;
+    } else if (countryLower.includes("brazil")) {
+      humanCBR = 12.9;
+      humanCDR = 6.8;
+      dogCBR = 102.0;
+      dogCDR = 98.0;
+    } else if (countryLower.includes("india")) {
+      humanCBR = 16.5;
+      humanCDR = 7.3;
+      dogCBR = 105.0;
+      dogCDR = 100.0;
     }
 
     return { humanCBR, humanCDR, dogCBR, dogCDR };
@@ -235,10 +364,10 @@
   );
 
   let speakerPercentage = $derived(
-    baseSpeakers > 0 ? (liveSpeakers / globalPopulations.human) * 100 : 0,
+    baseSpeakers > 0 ? (liveSpeakers / 8_300_000_000) * 100 : 0,
   );
   let dogPercentage = $derived(
-    baseDogs > 0 ? (liveDogs / globalPopulations.dog) * 100 : 0,
+    baseDogs > 0 ? (liveDogs / 900_000_000) * 100 : 0,
   );
 
   let intSpeakers = $derived(Math.floor(liveSpeakers));
@@ -559,10 +688,7 @@
               const numValue = parseFloat(clean) * multiplier;
 
               if (isNaN(numValue)) return t.speakers;
-              const percentage = (
-                (numValue / globalPopulations.human) *
-                100
-              ).toFixed(3);
+              const percentage = ((numValue / 8_300_000_000) * 100).toFixed(3);
               return `${t.speakers} (${percentage}%)`;
             })()
           : "—",
@@ -590,10 +716,7 @@
 
               // 4. Calculate percentage based on ~900,000,000 global dogs
               if (isNaN(numValue)) return t.dogs_count;
-              const percentage = (
-                (numValue / globalPopulations.dog) *
-                100
-              ).toFixed(3);
+              const percentage = ((numValue / 900_000_000) * 100).toFixed(3);
               return `${t.dogs_count} (${percentage}%)`;
             })()
           : "—",
@@ -966,85 +1089,78 @@
   class="wad-container"
   class:faded={isFaded}
   class:colored={isFlagColors}
+  onmouseenter={onEnter}
+  onmouseleave={onLeave}
+  onclick={handleMainClick}
+  ontouchstart={handleTouchStart}
+  ontouchend={handleTouchEnd}
   role="presentation"
 >
-  <!-- svelte-ignore a11y_click_events_have_key_events -->
-  <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div
-    class="text-block"
-    onmouseenter={onEnter}
-    onmouseleave={onLeave}
-    onclick={handleMainClick}
-    ontouchstart={handleTouchStart}
-    ontouchend={handleTouchEnd}
-  >
-    <!-- WORD 1: "We" -->
-    {#key weGen}
-      <h1 class="word" aria-label={currentWe}>
-        {#each toLetters(currentWe) as letter, i}
-          <span
-            class="letter"
-            style="{letterStyle(
-              i,
-              toLetters(currentWe).length,
-            )} --trans-delay: {i * 30}ms; color: {isFlagColors
-              ? flagColors[0]
-              : 'white'};"
-          >
-            {letter}
-          </span>
-        {/each}
-      </h1>
-    {/key}
+  <!-- WORD 1: "We" -->
+  {#key weGen}
+    <h1 class="word" aria-label={currentWe}>
+      {#each toLetters(currentWe) as letter, i}
+        <span
+          class="letter"
+          style="{letterStyle(
+            i,
+            toLetters(currentWe).length,
+          )} --trans-delay: {i * 30}ms; color: {isFlagColors
+            ? flagColors[0]
+            : 'white'}; text-shadow: {isFlagColors
+            ? `0 0 15px ${flagColors[0]}44`
+            : 'none'}"
+        >
+          {letter}
+        </span>
+      {/each}
+    </h1>
+  {/key}
 
-    <!-- WORD 2: "Are" -->
-    {#key areGen}
-      <h1 class="word" aria-label={currentAre}>
-        {#each toLetters(currentAre) as letter, i}
-          <span
-            class="letter"
-            style="{letterStyle(
-              i,
-              toLetters(currentAre).length,
-            )} --trans-delay: {i * 30}ms; color: {isFlagColors
-              ? flagColors[1]
-              : 'white'};"
-          >
-            {letter}
-          </span>
-        {/each}
-      </h1>
-    {/key}
+  <!-- WORD 2: "Are" -->
+  {#key areGen}
+    <h1 class="word" aria-label={currentAre}>
+      {#each toLetters(currentAre) as letter, i}
+        <span
+          class="letter"
+          style="{letterStyle(
+            i,
+            toLetters(currentAre).length,
+          )} --trans-delay: {i * 30}ms; color: {isFlagColors
+            ? flagColors[1]
+            : 'white'}; text-shadow: {isFlagColors
+            ? `0 0 15px ${flagColors[1]}44`
+            : 'none'}"
+        >
+          {letter}
+        </span>
+      {/each}
+    </h1>
+  {/key}
 
-    <!-- WORD 3: "Dogs" -->
-    {#key dogsGen}
-      <h1 class="word" aria-label={currentDogs}>
-        {#each toLetters(currentDogs) as letter, i}
-          <span
-            class="letter"
-            style="{letterStyle(
-              i,
-              toLetters(currentDogs).length,
-            )} --trans-delay: {i * 30}ms; color: {isFlagColors
-              ? flagColors[2]
-              : 'white'};"
-          >
-            {letter}
-          </span>
-        {/each}
-      </h1>
-    {/key}
+  <!-- WORD 3: "Dogs" -->
+  {#key dogsGen}
+    <h1 class="word" aria-label={currentDogs}>
+      {#each toLetters(currentDogs) as letter, i}
+        <span
+          class="letter"
+          style="{letterStyle(
+            i,
+            toLetters(currentDogs).length,
+          )} --trans-delay: {i * 30}ms; color: {isFlagColors
+            ? flagColors[2]
+            : 'white'}; text-shadow: {isFlagColors
+            ? `0 0 15px ${flagColors[2]}44`
+            : 'none'}"
+        >
+          {letter}
+        </span>
+      {/each}
+    </h1>
+  {/key}
 
-    <!-- Pronunciation -->
-    <p class="pronunciation">({pronWe} {pronAre} {pronDogs})</p>
-  </div>
-  <!-- Where there is currently an ugly, 
-   annoying, stupid advertisemenet to my name and my mortal enemy, deepmind productions, 
-   i want you to remove it at once. and cover it up, right there, with a horizontal rope, 
-   using three.js, with batman arkham cape like interactable physics. 
-   tap touch and click. make the color of the rope match the region. 
-   add other regional elements to the rope using three.js  -->
-  <!-- <p class="poster-credits">a brandon & deepmind production</p> -->
+  <!-- Pronunciation -->
+  <p class="pronunciation">({pronWe} {pronAre} {pronDogs})</p>
 </div>
 
 <style>
@@ -1061,60 +1177,30 @@
     border: 1px solid transparent;
     box-shadow: none;
     cursor: pointer;
-    transition:
-      width 0.38s cubic-bezier(0.16, 1, 0.3, 1),
-      padding 0.38s cubic-bezier(0.16, 1, 0.3, 1),
-      background-color 0.38s cubic-bezier(0.16, 1, 0.3, 1),
-      border-color 0.38s cubic-bezier(0.16, 1, 0.3, 1),
-      box-shadow 0.38s cubic-bezier(0.16, 1, 0.3, 1),
-      border-radius 0.38s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: all 0.38s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .lang-display.paused {
     width: 270px;
     padding: 12px;
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(10, 10, 15, 0.45);
     backdrop-filter: blur(12px) saturate(160%);
     -webkit-backdrop-filter: blur(12px) saturate(160%);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 4px;
-    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    box-shadow:
+      0 12px 36px rgba(0, 0, 0, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
 
-  @media (max-width: 768px) {
+  @media (max-width: 480px) {
     .lang-display {
-      top: 1.25rem;
-      right: 1.25rem;
-      left: auto;
+      top: 0.75rem;
+      left: 0.75rem;
     }
     .lang-display.paused {
-      width: calc(33vw);
-      min-width: 130px;
-      max-width: 175px;
-      padding: 10px;
+      width: calc(100vw - 1.5rem);
       box-sizing: border-box;
-      border-radius: 4px;
-    }
-    .stat-info {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 2px;
-    }
-    .stat-pct {
-      margin-left: 0;
-      font-size: 0.52rem;
-      margin-top: 1px;
-    }
-    .stat-sub-info {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      text-align: left;
-      font-size: 0.52rem;
-      gap: 1px;
-    }
-    .stat-sub-info span:nth-child(2) {
-      display: none;
     }
   }
 
@@ -1136,10 +1222,11 @@
     font-weight: 500;
     letter-spacing: 0.04em;
     color: rgba(255, 255, 255, 0.4);
-    transition:
-      color 0.3s ease,
-      font-size 0.3s ease;
-    font-family: "Outfit", "Inter", sans-serif;
+    transition: all 0.3s ease;
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
   }
 
   .lang-display.paused .lang-name {
@@ -1159,11 +1246,7 @@
     border-radius: 3px;
     opacity: 0;
     transform: translateX(4px);
-    transition:
-      opacity 0.2s ease,
-      transform 0.2s ease,
-      background-color 0.2s ease,
-      color 0.2s ease;
+    transition: all 0.2s ease;
   }
 
   .lang-display:hover .stats-badge {
@@ -1173,13 +1256,13 @@
     color: white;
   }
 
-  /* .utc-clock {
+  .utc-clock {
     font-size: 0.55rem;
     font-family: monospace;
     color: rgba(255, 255, 255, 0.3);
     margin-bottom: 6px;
     letter-spacing: 0.01em;
-  } */
+  }
 
   .live-stats {
     display: flex;
@@ -1367,20 +1450,11 @@
     color: rgba(255, 255, 255, 0.35);
     text-align: center;
     letter-spacing: 0.06em;
-    font-family: "Outfit", "Inter", sans-serif;
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
   }
-
-  /* .poster-credits {
-    margin: 1.5rem 0 0 0;
-    padding: 0;
-    font-size: 0.48rem;
-    font-weight: 700;
-    letter-spacing: 0.25em;
-    color: rgba(255, 255, 255, 0.25);
-    text-transform: uppercase;
-    text-align: center;
-    font-family: "Outfit", "Inter", sans-serif;
-  } */
 
   /* ── Main Container ── */
   .wad-container {
@@ -1394,20 +1468,11 @@
     align-items: center;
     justify-content: center;
     gap: 0;
+    cursor: pointer;
     perspective: 900px;
     user-select: none;
     -webkit-user-select: none;
     z-index: 10;
-  }
-
-  .text-block {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 0;
-    cursor: pointer;
-    padding: 2rem;
   }
 
   .word {
@@ -1432,7 +1497,9 @@
     animation: matrixFlip 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
     animation-delay: var(--delay, 0ms);
     will-change: transform, opacity;
-    transition: color 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+    transition:
+      color 0.5s cubic-bezier(0.25, 1, 0.5, 1),
+      text-shadow 0.5s cubic-bezier(0.25, 1, 0.5, 1);
     transition-delay: var(--trans-delay, 0ms);
   }
 
@@ -1441,17 +1508,21 @@
       transform: rotateX(var(--flip-x, 90deg)) rotateZ(var(--flip-z, 0deg))
         scale(0.3);
       opacity: 0;
+      filter: blur(6px) brightness(2.5);
     }
     35% {
       opacity: 0.4;
+      filter: blur(2px) brightness(1.8);
     }
     65% {
       transform: rotateX(-6deg) rotateZ(0deg) scale(1.04);
       opacity: 1;
+      filter: blur(0) brightness(1.2);
     }
     100% {
       transform: rotateX(0deg) rotateZ(0deg) scale(1);
       opacity: 1;
+      filter: blur(0) brightness(1);
     }
   }
 
@@ -1551,6 +1622,7 @@
     }
   }
 
+  /* ── Ambient Background & Textures ── */
   .ambient-bg {
     position: fixed;
     top: 0;
@@ -1561,8 +1633,41 @@
     pointer-events: none;
     background-color: #000000;
   }
+  .ambient-bg::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+      circle at 50% 50%,
+      var(--dominant-color, transparent) 0%,
+      transparent 70%
+    );
+    opacity: 0.18;
+    transition: background 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
 
   .ambient-texture {
-    display: none;
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.03;
+    transition:
+      background-image 0.8s ease,
+      opacity 0.8s ease;
+  }
+
+  [data-region-type="mountain"] .ambient-texture {
+    background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0 l50 50 l50 -50 M50 50 l0 50 M0 100 l50 -50 l50 50' fill='none' stroke='white' stroke-width='1.5' stroke-opacity='0.25'/%3E%3C/svg%3E");
+    background-size: 80px 80px;
+  }
+
+  [data-region-type="industrial"] .ambient-texture {
+    background-image: url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 12 12' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='6' cy='6' r='2' fill='white' fill-opacity='0.3'/%3E%3C/svg%3E");
+    background-size: 12px 12px;
+  }
+
+  [data-region-type="agricultural"] .ambient-texture {
+    background-image: url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 40 Q 20 20, 40 40 T 80 40 M0 20 Q 20 0, 40 20 T 80 20 M0 60 Q 20 40, 40 60 T 80 60' fill='none' stroke='white' stroke-width='1' stroke-opacity='0.25'/%3E%3C/svg%3E");
+    background-size: 60px 60px;
   }
 </style>
