@@ -569,7 +569,6 @@
 
   function startCycling() {
     clearInterval(hoverTimer);
-    cycle();
     hoverTimer = setInterval(cycle, 1000);
   }
 
@@ -623,6 +622,7 @@
 
   let lastClickTime = 0;
   function handleMainClick(e) {
+    e.stopPropagation();
     if (isFaded) return;
 
     // Ignore clicks on controls or badges
@@ -638,6 +638,34 @@
       toggleFullscreen();
     } else {
       onClick();
+    }
+    lastClickTime = now;
+  }
+
+  function handleBackgroundClick(e) {
+    if (isFaded) return;
+
+    // Ignore clicks on controls or badges
+    if (
+      e.target.closest(".lang-display") ||
+      e.target.closest(".top-right-trigger")
+    ) {
+      return;
+    }
+
+    const now = Date.now();
+    if (now - lastClickTime < 300) {
+      toggleFullscreen();
+    } else {
+      // Reset to original state
+      isPaused = false;
+      isHovering = false;
+      stopCycling();
+      setLang(initialLang);
+      history = [initialLang];
+      historyIndex = 0;
+      lastPressedLetter = "";
+      lastPressedLetterIndex = -1;
     }
     lastClickTime = now;
   }
@@ -785,8 +813,8 @@
       touchStartX = e.touches[0].clientX;
       touchStartY = e.touches[0].clientY;
     }
-    // Start cycling on first touch if not paused
-    if (!isPaused && !hoverTimer) {
+    // Start cycling on first touch if not paused and touch is on words
+    if (!isPaused && !hoverTimer && e.target.closest(".words-wrapper")) {
       startCycling();
     }
   }
@@ -973,7 +1001,13 @@
   onclick={onOpenStats}
 >
   <div class="lang-header">
-    <span class="lang-name">
+    <span
+      class="lang-name"
+      class:flash-life={speakersFlashType === "birth" ||
+        dogsFlashType === "birth"}
+      class:flash-death={speakersFlashType === "death" ||
+        dogsFlashType === "death"}
+    >
       {langDisplayName(currentLang)}
     </span>
     <span class="stats-badge">📊 DATA PANEL</span>
@@ -998,9 +1032,6 @@
             >
               {intSpeakers === 0 ? "—" : intSpeakers.toLocaleString()}
             </span>
-            {#if baseSpeakers > 0}
-              <span class="stat-pct">({speakerPercentage.toFixed(4)}%)</span>
-            {/if}
           </div>
           {#if baseSpeakers > 0}
             <div class="stat-bar-container">
@@ -1013,17 +1044,26 @@
               ></div>
             </div>
             <div class="stat-sub-info">
-              <span
-                class:highlight-green={speakerBirthRatePerSecond >
-                  speakerDeathRatePerSecond}
-                >+{formatRate(speakerBirthRatePerSecond)}/s</span
-              >
-              <span> , </span>
-              <span
-                class:highlight-red={speakerDeathRatePerSecond >
-                  speakerBirthRatePerSecond}
-                >-{formatRate(speakerDeathRatePerSecond)}/s</span
-              >
+              {#if baseSpeakers > 0}
+                <div class="pct-container">
+                  <span class="gold-pct">[{speakerPercentage.toFixed(2)}%]</span
+                  >
+                  <span class="pct-label">of all people</span>
+                </div>
+              {/if}
+              <div class="rates-container">
+                <span
+                  class:highlight-green={speakerBirthRatePerSecond >
+                    speakerDeathRatePerSecond}
+                  >+{formatRate(speakerBirthRatePerSecond)}/s</span
+                >
+                <span class="comma"> , </span>
+                <span
+                  class:highlight-red={speakerDeathRatePerSecond >
+                    speakerBirthRatePerSecond}
+                  >-{formatRate(speakerDeathRatePerSecond)}/s</span
+                >
+              </div>
             </div>
           {/if}
         </div>
@@ -1040,9 +1080,6 @@
             >
               {intDogs === 0 ? "—" : intDogs.toLocaleString()}
             </span>
-            {#if baseDogs > 0}
-              <span class="stat-pct">({dogPercentage.toFixed(4)}%)</span>
-            {/if}
           </div>
           {#if baseDogs > 0}
             <div class="stat-bar-container">
@@ -1056,17 +1093,25 @@
               ></div>
             </div>
             <div class="stat-sub-info">
-              <span
-                class:highlight-green={dogBirthRatePerSecond >
-                  dogDeathRatePerSecond}
-                >+{formatRate(dogBirthRatePerSecond)}/s</span
-              >
-              <span> , </span>
-              <span
-                class:highlight-red={dogDeathRatePerSecond >
-                  dogBirthRatePerSecond}
-                >-{formatRate(dogDeathRatePerSecond)}/s</span
-              >
+              {#if baseDogs > 0}
+                <div class="pct-container">
+                  <span class="gold-pct">[{dogPercentage.toFixed(2)}%]</span>
+                  <span class="pct-label">of all dogs</span>
+                </div>
+              {/if}
+              <div class="rates-container">
+                <span
+                  class:highlight-green={dogBirthRatePerSecond >
+                    dogDeathRatePerSecond}
+                  >+{formatRate(dogBirthRatePerSecond)}/s</span
+                >
+                <span class="comma"> , </span>
+                <span
+                  class:highlight-red={dogDeathRatePerSecond >
+                    dogBirthRatePerSecond}
+                  >-{formatRate(dogDeathRatePerSecond)}/s</span
+                >
+              </div>
             </div>
           {/if}
         </div>
@@ -1089,78 +1134,84 @@
   class="wad-container"
   class:faded={isFaded}
   class:colored={isFlagColors}
-  onclick={handleMainClick}
+  onclick={handleBackgroundClick}
   ontouchstart={handleTouchStart}
   ontouchend={handleTouchEnd}
   role="presentation"
 >
   <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div class="words-wrapper" onmouseenter={onEnter} onmouseleave={onLeave} role="presentation">
-  <!-- WORD 1: "We" -->
-  {#key weGen}
-    <h1 class="word" aria-label={currentWe}>
-      {#each toLetters(currentWe) as letter, i}
-        <span
-          class="letter"
-          style="{letterStyle(
-            i,
-            toLetters(currentWe).length,
-          )} --trans-delay: {i * 30}ms; color: {isFlagColors
-            ? flagColors[0]
-            : 'white'}; text-shadow: {isFlagColors
-            ? `0 0 15px ${flagColors[0]}44`
-            : 'none'}"
-        >
-          {letter}
-        </span>
-      {/each}
-    </h1>
-  {/key}
+  <div
+    class="words-wrapper"
+    onmouseenter={onEnter}
+    onmouseleave={onLeave}
+    onclick={handleMainClick}
+    role="presentation"
+  >
+    <!-- WORD 1: "We" -->
+    {#key weGen}
+      <h1 class="word" aria-label={currentWe}>
+        {#each toLetters(currentWe) as letter, i}
+          <span
+            class="letter"
+            style="{letterStyle(
+              i,
+              toLetters(currentWe).length,
+            )} --trans-delay: {i * 30}ms; color: {isFlagColors
+              ? flagColors[0]
+              : 'white'}; text-shadow: {isFlagColors
+              ? `0 0 15px ${flagColors[0]}44`
+              : 'none'}"
+          >
+            {letter}
+          </span>
+        {/each}
+      </h1>
+    {/key}
 
-  <!-- WORD 2: "Are" -->
-  {#key areGen}
-    <h1 class="word" aria-label={currentAre}>
-      {#each toLetters(currentAre) as letter, i}
-        <span
-          class="letter"
-          style="{letterStyle(
-            i,
-            toLetters(currentAre).length,
-          )} --trans-delay: {i * 30}ms; color: {isFlagColors
-            ? flagColors[1]
-            : 'white'}; text-shadow: {isFlagColors
-            ? `0 0 15px ${flagColors[1]}44`
-            : 'none'}"
-        >
-          {letter}
-        </span>
-      {/each}
-    </h1>
-  {/key}
+    <!-- WORD 2: "Are" -->
+    {#key areGen}
+      <h1 class="word" aria-label={currentAre}>
+        {#each toLetters(currentAre) as letter, i}
+          <span
+            class="letter"
+            style="{letterStyle(
+              i,
+              toLetters(currentAre).length,
+            )} --trans-delay: {i * 30}ms; color: {isFlagColors
+              ? flagColors[1]
+              : 'white'}; text-shadow: {isFlagColors
+              ? `0 0 15px ${flagColors[1]}44`
+              : 'none'}"
+          >
+            {letter}
+          </span>
+        {/each}
+      </h1>
+    {/key}
 
-  <!-- WORD 3: "Dogs" -->
-  {#key dogsGen}
-    <h1 class="word" aria-label={currentDogs}>
-      {#each toLetters(currentDogs) as letter, i}
-        <span
-          class="letter"
-          style="{letterStyle(
-            i,
-            toLetters(currentDogs).length,
-          )} --trans-delay: {i * 30}ms; color: {isFlagColors
-            ? flagColors[2]
-            : 'white'}; text-shadow: {isFlagColors
-            ? `0 0 15px ${flagColors[2]}44`
-            : 'none'}"
-        >
-          {letter}
-        </span>
-      {/each}
-    </h1>
-  {/key}
+    <!-- WORD 3: "Dogs" -->
+    {#key dogsGen}
+      <h1 class="word" aria-label={currentDogs}>
+        {#each toLetters(currentDogs) as letter, i}
+          <span
+            class="letter"
+            style="{letterStyle(
+              i,
+              toLetters(currentDogs).length,
+            )} --trans-delay: {i * 30}ms; color: {isFlagColors
+              ? flagColors[2]
+              : 'white'}; text-shadow: {isFlagColors
+              ? `0 0 15px ${flagColors[2]}44`
+              : 'none'}"
+          >
+            {letter}
+          </span>
+        {/each}
+      </h1>
+    {/key}
 
-  <!-- Pronunciation -->
-  <p class="pronunciation">({pronWe} {pronAre} {pronDogs})</p>
+    <!-- Pronunciation -->
+    <p class="pronunciation">({pronWe} {pronAre} {pronDogs})</p>
   </div>
 </div>
 
@@ -1198,14 +1249,41 @@
     .lang-display {
       top: 0.75rem;
       left: 0.75rem;
+      max-width: 62vw;
     }
     .lang-display.paused {
-      width: calc(100vw - 1.5rem);
+      width: 62vw;
+      padding: 8px 10px;
       box-sizing: border-box;
+      word-break: break-word;
     }
 
     .live-stats {
-      max-width: 33%;
+      max-width: 100%;
+    }
+
+    .stat-info {
+      flex-wrap: wrap;
+      margin-bottom: 2px;
+    }
+
+    .stat-item {
+      padding: 4px;
+      margin-bottom: 4px;
+    }
+
+    .stat-bar-container {
+      height: 2px;
+      margin-bottom: 2px;
+    }
+
+    .lang-meta {
+      margin-bottom: 6px;
+      gap: 3px;
+    }
+
+    .lang-display.paused .lang-name {
+      font-size: 0.75rem;
     }
   }
 
@@ -1227,15 +1305,30 @@
     font-weight: 500;
     letter-spacing: 0.04em;
     color: rgba(255, 255, 255, 0.4);
-    transition: all 0.3s ease;
+    transition:
+      all 0.3s ease,
+      color 0.1s ease,
+      text-shadow 0.1s ease;
     font-family:
       system-ui,
       -apple-system,
       sans-serif;
   }
 
+  .lang-name.flash-life {
+    color: #4a6b5a;
+    text-shadow: 0 0 8px rgba(74, 107, 90, 0.5);
+    transition: none;
+  }
+
+  .lang-name.flash-death {
+    color: #8c3b4a;
+    text-shadow: 0 0 8px rgba(140, 59, 74, 0.5);
+    transition: none;
+  }
+
   .lang-display.paused .lang-name {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     font-weight: 600;
     color: rgba(255, 255, 255, 0.95);
   }
@@ -1286,7 +1379,7 @@
     display: flex;
     align-items: center;
     gap: 3px;
-    font-size: 0.68rem;
+    font-size: 0.5rem;
     color: rgba(255, 255, 255, 0.85);
     font-family: monospace;
   }
@@ -1326,14 +1419,6 @@
     transition: none; /* Instant flash on */
   }
 
-  .stat-pct {
-    font-size: 0.65rem;
-    font-weight: 600;
-    color: #ffd700; /* Gold */
-    margin-left: auto;
-    text-shadow: 0 0 8px rgba(255, 215, 0, 0.2);
-  }
-
   .stat-bar-container {
     width: 100%;
     height: 4px;
@@ -1350,15 +1435,45 @@
   }
 
   .stat-sub-info {
-    font-size: 0.55rem;
     font-family: monospace;
-    color: rgba(255, 255, 255, 0.3);
-    text-align: right;
-    margin-top: 1px;
+    margin-top: 2px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
   }
 
-  .stat-sub-info span {
+  .pct-container {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    text-align: left;
+  }
+
+  .gold-pct {
+    color: #ffd700;
+    font-weight: 700;
+    font-size: 0.6rem;
+    text-shadow: 0 0 6px rgba(255, 215, 0, 0.25);
+  }
+
+  .pct-label {
+    font-size: 0.45rem;
+    color: rgba(255, 255, 255, 0.4);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .rates-container {
+    display: flex;
+    gap: 2px;
+    text-align: right;
+    font-size: 0.55rem;
     color: rgba(255, 255, 255, 0.3);
+  }
+
+  .rates-container .comma {
+    color: rgba(255, 255, 255, 0.2);
   }
 
   .stat-sub-info span.highlight-green {
@@ -1473,7 +1588,7 @@
     align-items: center;
     justify-content: center;
     gap: 0;
-    cursor: pointer;
+    /* cursor: pointer; */
     perspective: 900px;
     user-select: none;
     -webkit-user-select: none;
@@ -1501,6 +1616,7 @@
     text-transform: uppercase;
     color: white;
     white-space: nowrap;
+    cursor: pointer;
   }
 
   .letter {

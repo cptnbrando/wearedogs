@@ -119,8 +119,8 @@
     return getHashColors(t.country);
   }
 
-  // Active Tab state: 'dashboard' | 'explorer' | 'speakers' | 'dogs' | 'themes'
-  let activeTab = $state("dashboard");
+  // Active Tab state: 'explorer' | 'speakers' | 'dogs' | 'themes'
+  let activeTab = $state("explorer");
 
   // Search state for Language Explorer
   let searchQuery = $state("");
@@ -302,14 +302,6 @@
       <nav class="panel-sidebar">
         <button
           class="nav-item"
-          class:active={activeTab === "dashboard"}
-          onclick={() => (activeTab = "dashboard")}
-        >
-          <Globe size={16} />
-          <span>Dashboard</span>
-        </button>
-        <button
-          class="nav-item"
           class:active={activeTab === "explorer"}
           onclick={() => (activeTab = "explorer")}
         >
@@ -362,116 +354,6 @@
 
       <!-- Content Area -->
       <main class="panel-content-pane scroll-container">
-        <!-- 1. DASHBOARD VIEW -->
-        {#if activeTab === "dashboard"}
-          <!-- Left side: Interactive info block -->
-          <div class="intro-block">
-            <h2
-              style="font-family: 'Outfit', 'Inter', sans-serif; font-weight: 900; letter-spacing: -0.02em; color: #ff3366;"
-            >
-              DOGS: THE TECH COMPANY
-            </h2>
-            <p style="margin-bottom: 12px;">
-              We are <strong>DOGS</strong>—a high-profile, bold, stylish tech
-              company building for the future.
-            </p>
-            <p
-              style="margin-bottom: 20px; font-style: italic; color: rgba(255, 255, 255, 0.45); line-height: 1.4;"
-            >
-              "We live now"
-            </p>
-          </div>
-          <div class="tab-pane animated-pane">
-            <!-- Metric grid showing total catalog sizes and DOGS tech details -->
-            <div class="dashboard-stats-grid">
-              <!-- <div class="metric-card">
-                <span class="metric-icon">🌐</span>
-                <div class="metric-details">
-                  <span class="metric-label">Locales Cataloged</span>
-                  <span class="metric-value">{langs.length}</span>
-                </div>
-              </div> -->
-              <div class="metric-card">
-                <span class="metric-icon">⚡</span>
-                <div class="metric-details">
-                  <span class="metric-label">DOGS LLC HQ</span>
-                  <span class="metric-value">TX, USA</span>
-                </div>
-              </div>
-              <div
-                class="metric-card cursor-pointer"
-                onclick={() => window.open("https://captainbrando.com")}
-              >
-                <span class="metric-icon">🔥</span>
-                <div class="metric-details">
-                  <span class="metric-label">Founder & Architect</span>
-                  <span class="metric-value">Captain Brando!</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="dashboard-split">
-              <!-- Right side: Detail showcase card + LLC block -->
-              <div style="display: flex; flex-direction: column; gap: 16px;">
-                <!-- <div class="showcase-card">
-                  <h3>Selected Locale Metrics</h3>
-                  <div class="showcase-info">
-                    <div class="info-row">
-                      <span class="info-lbl">Country / Region</span>
-                      <span class="info-val">{activeLangItem.country}</span>
-                    </div>
-                    <div class="info-row">
-                      <span class="info-lbl">Dialect / Variety</span>
-                      <span class="info-val">{activeLangItem.dialect}</span>
-                    </div>
-                    <div class="info-row">
-                      <span class="info-lbl">Estimated Speakers</span>
-                      <span class="info-val" style="color: #ffd700;"
-                        >{activeLangItem.speakersText}</span
-                      >
-                    </div>
-                    <div class="info-row">
-                      <span class="info-lbl">Local Dog Population</span>
-                      <span class="info-val" style="color: #ffd700;"
-                        >{activeLangItem.dogsText}</span
-                      >
-                    </div>
-                  </div>
-                </div> -->
-
-                <div
-                  class="showcase-card"
-                  style="border: 1px solid rgba(255, 215, 0, 0.15); background: rgba(255, 215, 0, 0.02);"
-                >
-                  <h3 style="color: #ffd700;">DOGS LLC</h3>
-                  <p
-                    style="font-size: 0.72rem; color: rgba(255,255,255,0.6); line-height: 1.5; margin: 0 0 10px 0;"
-                  >
-                    DOGS is (about to be) a registered Texas Limited Liability
-                    Company (LLC) building next-gen web, apps, AI, and hardware
-                    platforms that feel just right.
-                  </p>
-                  <!-- <div class="info-row">
-                    <span class="info-lbl" style="color: rgba(255,215,0,0.5);"
-                      >Built by</span
-                    >
-                    <span class="info-val">
-                      <a
-                        href="https://captainbrando.com"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style="color: #ffd700; text-decoration: underline; font-weight: 700; font-family: monospace;"
-                      >
-                        captainbrando.com
-                      </a>
-                    </span>
-                  </div> -->
-                </div>
-              </div>
-            </div>
-          </div>
-        {/if}
-
         <!-- 2. EXPLORER VIEW -->
         {#if activeTab === "explorer"}
           <div class="tab-pane animated-pane explorer-pane">
@@ -1014,138 +896,6 @@
     }
   }
 
-  /* ── Dashboard Content ── */
-  .dashboard-stats-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 20px;
-    margin-bottom: 28px;
-  }
-
-  .metric-card {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 14px;
-    padding: 20px;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  }
-
-  .metric-icon {
-    font-size: 2rem;
-    opacity: 0.9;
-  }
-
-  .metric-details {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .metric-label {
-    font-size: 0.65rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: rgba(255, 255, 255, 0.35);
-  }
-
-  .metric-value {
-    font-size: 1.4rem;
-    font-weight: 800;
-    color: white;
-    font-family: "Outfit", "Inter", sans-serif;
-  }
-
-  .dashboard-split {
-    display: grid;
-    grid-template-columns: 1.5fr 1fr;
-    gap: 24px;
-  }
-
-  .intro-block h2 {
-    margin: 0 0 12px 0;
-    font-size: 1.3rem;
-    font-weight: 700;
-    color: white;
-  }
-
-  .intro-block p {
-    font-size: 0.88rem;
-    line-height: 1.6;
-    color: rgba(255, 255, 255, 0.65);
-    margin-bottom: 20px;
-  }
-
-  /* .quick-tips {
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.04);
-    border-radius: 12px;
-    padding: 16px 20px;
-  }
-
-  .quick-tips h4 {
-    margin: 0 0 8px 0;
-    font-size: 0.8rem;
-    font-weight: 700;
-    color: white;
-  }
-
-  .quick-tips ul {
-    margin: 0;
-    padding-left: 18px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  .quick-tips li {
-    font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.55);
-    line-height: 1.4;
-  } */
-
-  .showcase-card {
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 14px;
-    padding: 20px;
-  }
-
-  .showcase-card h3 {
-    margin: 0 0 16px 0;
-    font-size: 0.95rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: white;
-  }
-
-  .showcase-info {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-  }
-
-  .info-row {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  .info-lbl {
-    font-size: 0.6rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.35);
-  }
-
-  .info-val {
-    font-size: 0.85rem;
-    color: rgba(255, 255, 255, 0.8);
-  }
-
   /* ── Explorer Tab ── */
   .explorer-pane {
     display: flex;
@@ -1633,17 +1383,6 @@
 
     .panel-content-pane {
       padding: 16px;
-    }
-
-    .dashboard-stats-grid {
-      grid-template-columns: 1fr;
-      gap: 12px;
-      margin-bottom: 20px;
-    }
-
-    .dashboard-split {
-      grid-template-columns: 1fr;
-      gap: 20px;
     }
 
     /* Hide separate Country and Dialect columns */
