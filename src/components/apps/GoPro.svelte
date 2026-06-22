@@ -3410,4 +3410,196 @@
         background: #ff5566;
         box-shadow: 0 0 15px rgba(255, 51, 68, 0.4);
     }
+
+    /* ── Mobile Layout Adjustments for GoPro ── */
+    @media (max-width: 768px) {
+        .catalog-container {
+            padding: 12px;
+            gap: 20px;
+            background: radial-gradient(
+                circle at top right,
+                rgba(255, 85, 187, 0.08),
+                rgba(0, 0, 0, 0.98)
+            );
+        }
+
+        .hero-spotlight {
+            min-height: auto;
+            padding: 16px;
+            border-radius: 12px;
+        }
+
+        .hero-content {
+            max-width: 100%;
+            gap: 8px;
+        }
+
+        .hero-title {
+            font-size: 1.3rem;
+        }
+
+        .hero-fact {
+            font-size: 0.72rem;
+            line-height: 1.4;
+        }
+
+        .hero-meta-badges {
+            gap: 4px;
+        }
+
+        .badge {
+            font-size: 0.6rem;
+            padding: 3px 8px;
+        }
+
+        .hero-cast {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 4px;
+        }
+
+        .cast-tags {
+            gap: 4px;
+        }
+
+        .hero-actions {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 10px;
+            margin-top: 8px;
+            width: 100%;
+        }
+
+        .hero-play-btn {
+            width: 100%;
+            justify-content: center;
+            box-sizing: border-box;
+            padding: 10px 20px;
+        }
+
+        .hero-external-links {
+            width: 100%;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .hero-link-btn {
+            flex-grow: 1;
+            text-align: center;
+            padding: 6px 10px;
+            font-size: 0.68rem;
+        }
+
+        .shelf-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .season-selector-tabs {
+            align-self: flex-start;
+        }
+
+        .cards-row {
+            gap: 10px;
+            padding-bottom: 12px;
+        }
+
+        .episode-card {
+            flex: 0 0 140px;
+        }
+
+        .card-thumbnail {
+            height: 80px;
+        }
+
+        /* Video Player HUD Layouts */
+        .player-overlay-top {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+            padding: 12px;
+        }
+
+        .player-episode-info-hud {
+            align-self: stretch;
+            justify-content: center;
+            padding: 6px 12px;
+        }
+
+        .player-drawer-toggles {
+            align-self: flex-end;
+        }
+
+        .player-controls-panel {
+            padding: 12px;
+            gap: 12px;
+        }
+
+        .controls-row {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 12px;
+        }
+
+        .play-btn-group {
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .speed-group {
+            justify-content: center;
+        }
+
+        .loop-group {
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+
+        .volume-slider-box {
+            justify-content: center;
+            width: 100%;
+        }
+
+        .volume-slider {
+            flex-grow: 1;
+            max-width: 200px;
+        }
+
+        .grid-filters {
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+
+        .filter-selector-row {
+            justify-content: center;
+        }
+
+        .sampler-clipper-box {
+            gap: 8px;
+            padding: 8px;
+        }
+
+        .clipper-header-row {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .bpm-control-box {
+            width: 100%;
+            box-sizing: border-box;
+            justify-content: center;
+        }
+
+        .timeline-headers {
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            text-align: center;
+        }
+    }
 </style>

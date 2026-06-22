@@ -636,4 +636,70 @@
   .divider {
     color: rgba(255, 255, 255, 0.15);
   }
+
+  /* ── Mobile Layout Bottom Sheet & Stacking ── */
+  @media (max-width: 768px) {
+    .network-panel-container {
+      width: 100vw;
+      height: 92vh;
+      max-height: 92vh;
+      border-radius: 20px 20px 0 0;
+      border-bottom: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      transform-origin: center bottom;
+      animation: panelSlideUpInMobile 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .network-panel-container.closing {
+      animation: panelSlideUpDownMobile 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .panel-body {
+      display: flex;
+      flex-direction: column;
+      height: calc(100% - 64px - 40px);
+      overflow-y: auto;
+    }
+
+    .telemetry-col {
+      border-right: none;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 16px;
+      overflow-y: visible;
+    }
+
+    .terminal-col {
+      height: 320px;
+      flex-shrink: 0;
+    }
+
+    .metrics-grid {
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+  }
+
+  @keyframes panelSlideUpInMobile {
+    0% {
+      transform: translateY(100%);
+      backdrop-filter: blur(0px);
+    }
+    100% {
+      transform: translateY(0);
+      backdrop-filter: blur(15px) saturate(160%);
+    }
+  }
+
+  @keyframes panelSlideUpDownMobile {
+    0% {
+      transform: translateY(0);
+      backdrop-filter: blur(15px) saturate(160%);
+    }
+    100% {
+      transform: translateY(100%);
+      backdrop-filter: blur(0px);
+    }
+  }
 </style>

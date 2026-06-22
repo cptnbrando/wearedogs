@@ -567,9 +567,14 @@
                             <span class="lang-disp-name"
                               >{item.displayName}</span
                             >
-                            <span class="lang-code"
-                              >{item.code.toUpperCase()}</span
-                            >
+                            <span class="lang-code-desc">
+                              <span class="lang-code"
+                                >{item.code.toUpperCase()}</span
+                              >
+                              <span class="mobile-only-meta"
+                                > • {item.country} • {item.dialect}</span
+                              >
+                            </span>
                           </div>
                         </div>
                       </td>
@@ -981,6 +986,7 @@
     overflow: hidden;
     margin-bottom: 12px;
     gap: 1px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
   }
 
   .color-track span {
@@ -1296,6 +1302,8 @@
     height: 24px;
     border-radius: 4px;
     flex-shrink: 0;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 0 4px rgba(255, 255, 255, 0.15);
   }
 
   .lang-text-grp {
@@ -1313,6 +1321,10 @@
     font-family: monospace;
     color: rgba(255, 255, 255, 0.35);
     letter-spacing: 0.05em;
+  }
+
+  .mobile-only-meta {
+    display: none;
   }
 
   .country-cell,
@@ -1496,6 +1508,8 @@
     overflow: hidden;
     display: flex;
     margin-bottom: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 0 6px rgba(255, 255, 255, 0.10);
   }
 
   .swatch-strip {
@@ -1567,5 +1581,156 @@
 
   .divider {
     color: rgba(255, 255, 255, 0.15);
+  }
+
+  /* ── Mobile Layout Bottom Sheet & Tab Bar ── */
+  @media (max-width: 768px) {
+    .stats-panel-container {
+      width: 100vw;
+      height: 92vh;
+      max-height: 92vh;
+      border-radius: 20px 20px 0 0;
+      border-bottom: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      transform-origin: center bottom;
+      animation: panelSlideUpInMobile 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .stats-panel-container.closing {
+      animation: panelSlideUpDownMobile 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .panel-body {
+      flex-direction: column;
+      height: calc(100% - 64px - 40px);
+    }
+
+    .panel-sidebar {
+      width: 100%;
+      height: auto;
+      flex-direction: row;
+      overflow-x: auto;
+      border-right: none;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 8px;
+      gap: 8px;
+      background: rgba(0, 0, 0, 0.2);
+      flex-shrink: 0;
+      scrollbar-width: none;
+    }
+    
+    .panel-sidebar::-webkit-scrollbar {
+      display: none;
+    }
+
+    .nav-item {
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      white-space: nowrap;
+      width: auto;
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .current-selection-card {
+      display: none;
+    }
+
+    .panel-content-pane {
+      padding: 16px;
+    }
+
+    .dashboard-stats-grid {
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .dashboard-split {
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+
+    /* Hide separate Country and Dialect columns */
+    .explorer-table th:nth-child(2),
+    .explorer-table td:nth-child(2),
+    .explorer-table th:nth-child(3),
+    .explorer-table td:nth-child(3) {
+      display: none;
+    }
+
+    .explorer-table td {
+      padding: 12px 8px;
+    }
+
+    .row-select-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 8px;
+    }
+
+    .explorer-toolbar {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 8px;
+    }
+
+    .search-box {
+      max-width: 100%;
+    }
+
+    .results-count {
+      text-align: right;
+    }
+
+    .tiers-grid {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .palettes-grid {
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .lang-code-desc {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+
+    .mobile-only-meta {
+      display: inline;
+      font-size: 0.7rem;
+      color: rgba(255, 255, 255, 0.4);
+    }
+  }
+
+  @keyframes panelSlideUpInMobile {
+    0% {
+      transform: translateY(100%);
+      backdrop-filter: blur(0px);
+    }
+    100% {
+      transform: translateY(0);
+      backdrop-filter: blur(15px) saturate(160%);
+    }
+  }
+
+  @keyframes panelSlideUpDownMobile {
+    0% {
+      transform: translateY(0);
+      backdrop-filter: blur(15px) saturate(160%);
+    }
+    100% {
+      transform: translateY(100%);
+      backdrop-filter: blur(0px);
+    }
   }
 </style>

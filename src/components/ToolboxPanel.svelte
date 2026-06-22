@@ -16,13 +16,14 @@
   import GoPro from "./apps/GoPro.svelte";
   import QRFlash from "./apps/QRFlash.svelte";
 
-  let { isClosing = false, onClose } = $props();
-
-  // Active App state: null | 'snake' | 'soundboard' | 'paint' | 'stopwatch' | 'gopro' | 'qrflash'
-  let activeApp = $state(null);
+  let { isClosing = false, onClose, activeApp = $bindable(null) } = $props();
 
   function handleBack() {
-    activeApp = null;
+    if (history.state?.app) {
+      history.back();
+    } else {
+      activeApp = null;
+    }
   }
 </script>
 
@@ -839,6 +840,65 @@
     }
     100% {
       top: 16px;
+    }
+  }
+
+  /* ── Mobile Layout Bottom Sheet & App Grid ── */
+  @media (max-width: 768px) {
+    .toolbox-panel-container {
+      width: 100vw;
+      height: 92vh;
+      max-height: 92vh;
+      border-radius: 20px 20px 0 0;
+      border-bottom: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      transform-origin: center bottom;
+      animation: panelSlideUpInMobile 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .toolbox-panel-container.closing {
+      animation: panelSlideUpDownMobile 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .panel-body {
+      display: flex;
+      flex-direction: column;
+      height: calc(100% - 64px - 40px);
+      overflow-y: auto;
+    }
+
+    .apps-grid {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .app-card {
+      padding: 12px;
+      gap: 12px;
+    }
+  }
+
+  @keyframes panelSlideUpInMobile {
+    0% {
+      transform: translateY(100%);
+      backdrop-filter: blur(0px);
+    }
+    100% {
+      transform: translateY(0);
+      backdrop-filter: blur(15px) saturate(160%);
+    }
+  }
+
+  @keyframes panelSlideUpDownMobile {
+    0% {
+      transform: translateY(0);
+      backdrop-filter: blur(15px) saturate(160%);
+    }
+    100% {
+      transform: translateY(100%);
+      backdrop-filter: blur(0px);
     }
   }
 </style>

@@ -10,21 +10,87 @@
   let activePage = $state(null);
   let isClosing = $state(false);
   let activeLang = $state("en");
+  let activeApp = $state(null);
 
   // Component reference for API calls
   let weAreDogsRef = $state();
 
+  // History stack depth
+  let depth = 0;
+
+  // Sync activeApp pushes and pops procedurally/reactively
+  $effect(() => {
+    const page = activePage;
+    const app = activeApp;
+
+    if (page === "toolbox") {
+      if (app) {
+        if (depth < 2) {
+          history.pushState({ view: page, app: app, depth: 2 }, "");
+          depth = 2;
+        }
+      } else {
+        if (depth > 1) {
+          history.back();
+          depth = 1;
+        }
+      }
+    }
+  });
+
+  // Listen to popstate event for browser/device back key navigation
+  $effect(() => {
+    const handlePop = (e) => {
+      const state = e.state;
+      const targetView = state?.view || null;
+      const targetApp = state?.app || null;
+      const targetDepth = state?.depth || 0;
+
+      // Update depth to match popped state
+      depth = targetDepth;
+
+      if (activePage === "toolbox" && activeApp && !targetApp) {
+        // Go back to app launcher
+        activeApp = null;
+      } else if (activePage && !targetView) {
+        // Close overlay panel
+        closePageInternal();
+      } else {
+        activePage = targetView;
+        activeApp = targetApp;
+      }
+    };
+
+    window.addEventListener("popstate", handlePop);
+    return () => window.removeEventListener("popstate", handlePop);
+  });
+
   function openPage(page) {
     activePage = page;
+    activeApp = null;
     isClosing = false;
+    
+    // Push the state procedurally
+    history.pushState({ view: page, app: null, depth: 1 }, "");
+    depth = 1;
   }
 
   function closePage() {
+    if (depth > 0) {
+      history.go(-depth);
+      depth = 0;
+    } else {
+      closePageInternal();
+    }
+  }
+
+  function closePageInternal() {
     isClosing = true;
     setTimeout(() => {
       activePage = null;
       isClosing = false;
-    }, 320); // match animation duration (0.32s)
+      activeApp = null;
+    }, 320);
   }
 
   function handleKeydown(e) {
@@ -90,5 +156,6 @@
   <ToolboxPanel
     isClosing={isClosing}
     onClose={closePage}
+    bind:activeApp={activeApp}
   />
 {/if}
