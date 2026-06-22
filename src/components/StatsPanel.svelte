@@ -1,5 +1,6 @@
 <script>
-  import translations from "../lib/translations.js";
+  import translations from "../lib/translations.json";
+import { getHashColors, getFlagColors as getFlagColorsUtil, parseSpeakers, parseDogs } from "../lib/demographics.js";
   import {
     X,
     Search,
@@ -39,84 +40,8 @@
     }
   }
 
-  const flagColorMap = {
-    france: ["#00209F", "#FFFFFF", "#E0000F"],
-    germany: ["#000000", "#FF0000", "#FFCC00"],
-    italy: ["#009246", "#F1F2F1", "#CE2B37"],
-    spain: ["#AD1519", "#FABD00", "#AD1519"],
-    poland: ["#FFFFFF", "#DC143C", "#FFFFFF"],
-    ukraine: ["#0057B7", "#FFD700", "#0057B7"],
-    japan: ["#FFFFFF", "#BC002D", "#FFFFFF"],
-    "united states": ["#0A3161", "#FFFFFF", "#B31942"],
-    "united kingdom": ["#012169", "#FFFFFF", "#C8102E"],
-    brazil: ["#009739", "#FEDF00", "#012169"],
-    china: ["#DE2910", "#FFDE00", "#DE2910"],
-    india: ["#FF9933", "#FFFFFF", "#128807"],
-    ireland: ["#169B62", "#FFFFFF", "#FF883E"],
-    netherlands: ["#AE1C28", "#FFFFFF", "#21468B"],
-    sweden: ["#006AA7", "#FECC00", "#006AA7"],
-    greece: ["#0D5EAF", "#FFFFFF", "#0D5EAF"],
-    canada: ["#FF0000", "#FFFFFF", "#FF0000"],
-    "south korea": ["#FFFFFF", "#CD2E3A", "#0F64CD"],
-    russia: ["#FFFFFF", "#0039A6", "#D52B1E"],
-    mexico: ["#006847", "#FFFFFF", "#CE1126"],
-    belgium: ["#000033", "#FDDA24", "#EF3340"],
-    austria: ["#ED2939", "#FFFFFF", "#ED2939"],
-    switzerland: ["#D52B1E", "#FFFFFF", "#D52B1E"],
-    portugal: ["#006600", "#FF0000", "#FFD700"],
-    norway: ["#EF2B2D", "#002868", "#FFFFFF"],
-    denmark: ["#C60C30", "#FFFFFF", "#C60C30"],
-    finland: ["#FFFFFF", "#003580", "#FFFFFF"],
-    turkey: ["#E30A17", "#FFFFFF", "#E30A17"],
-    australia: ["#00008B", "#FFFFFF", "#FF0000"],
-    "new zealand": ["#00008B", "#FFFFFF", "#FF0000"],
-    "south africa": ["#E23D28", "#007A4D", "#002395"],
-    "saudi arabia": ["#006C35", "#FFFFFF", "#006C35"],
-    egypt: ["#C09307", "#FFFFFF", "#000000"],
-    vietnam: ["#DA251D", "#FFFF00", "#DA251D"],
-    thailand: ["#A51931", "#F4F5F8", "#2D2A4A"],
-    philippines: ["#0038A8", "#FFFFFF", "#CE1126"],
-    indonesia: ["#FF0000", "#FFFFFF", "#FF0000"],
-    malaysia: ["#C8102E", "#FFFFFF", "#012169"],
-    singapore: ["#ED2939", "#FFFFFF", "#ED2939"],
-    argentina: ["#75AADB", "#FFFFFF", "#75AADB"],
-    colombia: ["#FCD116", "#003893", "#CE1126"],
-    chile: ["#0039A6", "#FFFFFF", "#D52B1E"],
-    peru: ["#D91414", "#FFFFFF", "#D91414"],
-    venezuela: ["#FCE300", "#0038A8", "#CE1126"],
-    ecuador: ["#FEE11A", "#032A70", "#D61622"],
-    bolivia: ["#F7141A", "#F7DE1A", "#279E47"],
-    saudi: ["#006C35", "#FFFFFF", "#006C35"],
-    uk: ["#012169", "#FFFFFF", "#C8102E"],
-    us: ["#0A3161", "#FFFFFF", "#B31942"],
-    usa: ["#0A3161", "#FFFFFF", "#B31942"],
-  };
-
-  function getHashColors(str) {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      hash = (hash << 5) - hash + str.charCodeAt(i);
-    }
-    const h1 = Math.abs(hash) % 360;
-    const h2 = (h1 + 120) % 360;
-    const h3 = (h1 + 240) % 360;
-    return [
-      `hsl(${h1}, 85%, 55%)`,
-      `hsl(${h2}, 85%, 60%)`,
-      `hsl(${h3}, 85%, 55%)`,
-    ];
-  }
-
   function getFlagColors(code) {
-    const t = translations[code];
-    if (!t || !t.country) return ["#FFFFFF", "#FFFFFF", "#FFFFFF"];
-    const countryLower = t.country.toLowerCase();
-    for (const [key, colors] of Object.entries(flagColorMap)) {
-      if (countryLower.includes(key)) {
-        return colors;
-      }
-    }
-    return getHashColors(t.country);
+    return getFlagColorsUtil(code, translations);
   }
 
   // Active Tab state: 'dashboard' | 'explorer' | 'speakers' | 'dogs' | 'themes'
@@ -135,42 +60,6 @@
     const name = langEnglishName(code);
     const dispName = langDisplayName(code);
 
-    // Parse speakers to numeric
-    let speakersNum = 0;
-    if (t.speakers && t.speakers !== "—") {
-      let clean = t.speakers.replace(/,/g, "").toLowerCase().trim();
-      let mult = 1;
-      if (clean.includes("billion")) {
-        mult = 1_000_000_000;
-        clean = clean.replace("billion", "");
-      } else if (clean.includes("million")) {
-        mult = 1_000_000;
-        clean = clean.replace("million", "");
-      }
-      const val = parseFloat(clean);
-      if (!isNaN(val)) {
-        speakersNum = val * mult;
-      }
-    }
-
-    // Parse dogs count to numeric
-    let dogsNum = 0;
-    if (t.dogs_count && t.dogs_count !== "—") {
-      let clean = t.dogs_count.replace(/,/g, "").toLowerCase().trim();
-      let mult = 1;
-      if (clean.includes("billion")) {
-        mult = 1_000_000_000;
-        clean = clean.replace("billion", "");
-      } else if (clean.includes("million")) {
-        mult = 1_000_000;
-        clean = clean.replace("million", "");
-      }
-      const val = parseFloat(clean);
-      if (!isNaN(val)) {
-        dogsNum = val * mult;
-      }
-    }
-
     return {
       code,
       name,
@@ -178,9 +67,9 @@
       country: t.country || "—",
       dialect: t.dialect || "—",
       speakersText: t.speakers || "—",
-      speakersNum,
+      speakersNum: parseSpeakers(t.speakers),
       dogsText: t.dogs_count || "—",
-      dogsNum,
+      dogsNum: parseDogs(t.dogs_count),
       we: t.we,
       are: t.are,
       dogs: t.dogs,
@@ -895,7 +784,7 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
   }
 
   .close-btn:hover {
@@ -934,7 +823,7 @@
     cursor: pointer;
     font-size: 0.85rem;
     font-weight: 500;
-    transition: all 0.25s ease;
+    transition: background-color 0.25s ease, color 0.25s ease;
     text-align: left;
     width: 100%;
   }
@@ -1090,33 +979,7 @@
     margin-bottom: 20px;
   }
 
-  .quick-tips {
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.04);
-    border-radius: 12px;
-    padding: 16px 20px;
-  }
 
-  .quick-tips h4 {
-    margin: 0 0 8px 0;
-    font-size: 0.8rem;
-    font-weight: 700;
-    color: white;
-  }
-
-  .quick-tips ul {
-    margin: 0;
-    padding-left: 18px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  .quick-tips li {
-    font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.55);
-    line-height: 1.4;
-  }
 
   .showcase-card {
     background: rgba(255, 255, 255, 0.02);
@@ -1196,7 +1059,7 @@
     padding: 10px 36px 10px 38px;
     color: white;
     font-size: 0.85rem;
-    transition: all 0.2s ease;
+    transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
   }
 
   .search-box input:focus {
@@ -1274,11 +1137,11 @@
     border-bottom: 1px solid rgba(255, 255, 255, 0.03);
     color: rgba(255, 255, 255, 0.75);
     vertical-align: middle;
+    transition: background-color 0.15s ease, color 0.15s ease;
   }
 
   .explorer-table tr {
     cursor: pointer;
-    transition: all 0.15s ease;
   }
 
   .explorer-table tr:hover td {
@@ -1347,7 +1210,7 @@
     border: none;
     color: rgba(255, 255, 255, 0.25);
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: color 0.2s ease, background-color 0.2s ease;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1493,7 +1356,7 @@
     border-radius: 12px;
     padding: 10px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
   }
 
   .palette-card:hover {
