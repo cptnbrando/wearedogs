@@ -1202,6 +1202,10 @@
       width: calc(100vw - 1.5rem);
       box-sizing: border-box;
     }
+
+    .live-stats {
+      max-width: 33%;
+    }
   }
 
   .lang-display.faded {
@@ -1256,13 +1260,13 @@
     color: white;
   }
 
-  .utc-clock {
+  /* .utc-clock {
     font-size: 0.55rem;
     font-family: monospace;
     color: rgba(255, 255, 255, 0.3);
     margin-bottom: 6px;
     letter-spacing: 0.01em;
-  }
+  } */
 
   .live-stats {
     display: flex;
@@ -1623,7 +1627,7 @@
   }
 
   /* ── Ambient Background & Textures ── */
-  .ambient-bg {
+  /* .ambient-bg {
     position: fixed;
     top: 0;
     left: 0;
@@ -1644,7 +1648,7 @@
     );
     opacity: 0.18;
     transition: background 1.2s cubic-bezier(0.16, 1, 0.3, 1);
-  }
+  } */
 
   .ambient-texture {
     position: absolute;

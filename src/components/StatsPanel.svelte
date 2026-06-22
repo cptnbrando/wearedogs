@@ -568,12 +568,12 @@
                               >{item.displayName}</span
                             >
                             <span class="lang-code-desc">
-                              <span class="lang-code"
-                                >{item.code.toUpperCase()}</span
-                              >
-                              <span class="mobile-only-meta"
-                                > • {item.country} • {item.dialect}</span
-                              >
+                              <span class="lang-code">
+                                {item.code.toUpperCase()}
+                              </span>
+                              <span class="mobile-only-meta">
+                                • {item.country} • {item.dialect}
+                              </span>
                             </span>
                           </div>
                         </div>
@@ -1090,7 +1090,7 @@
     margin-bottom: 20px;
   }
 
-  .quick-tips {
+  /* .quick-tips {
     background: rgba(255, 255, 255, 0.02);
     border: 1px solid rgba(255, 255, 255, 0.04);
     border-radius: 12px;
@@ -1116,7 +1116,7 @@
     font-size: 0.8rem;
     color: rgba(255, 255, 255, 0.55);
     line-height: 1.4;
-  }
+  } */
 
   .showcase-card {
     background: rgba(255, 255, 255, 0.02);
@@ -1509,7 +1509,7 @@
     display: flex;
     margin-bottom: 8px;
     border: 1px solid rgba(255, 255, 255, 0.15);
-    box-shadow: 0 0 6px rgba(255, 255, 255, 0.10);
+    box-shadow: 0 0 6px rgba(255, 255, 255, 0.1);
   }
 
   .swatch-strip {
@@ -1595,11 +1595,13 @@
       bottom: 0;
       left: 0;
       transform-origin: center bottom;
-      animation: panelSlideUpInMobile 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation: panelSlideUpInMobile 0.38s cubic-bezier(0.16, 1, 0.3, 1)
+        forwards;
     }
 
     .stats-panel-container.closing {
-      animation: panelSlideUpDownMobile 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation: panelSlideUpDownMobile 0.32s cubic-bezier(0.16, 1, 0.3, 1)
+        forwards;
     }
 
     .panel-body {
@@ -1620,7 +1622,7 @@
       flex-shrink: 0;
       scrollbar-width: none;
     }
-    
+
     .panel-sidebar::-webkit-scrollbar {
       display: none;
     }

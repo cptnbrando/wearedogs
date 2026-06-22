@@ -4,8 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build --host",
+    "dev": "vite --host",
+    "build": "vite build",
     "preview": "vite preview",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist"
@@ -23,6 +23,7 @@
     "jsqr": "^1.4.0",
     "lucide-svelte": "^1.0.1",
     "qrcode": "^1.5.4",
-    "svelte-i18n": "^4.0.1"
+    "svelte-i18n": "^3.7.1",
+    "three": "^0.184.0"
   }
 }
