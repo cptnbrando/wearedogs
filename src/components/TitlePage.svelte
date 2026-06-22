@@ -18,6 +18,31 @@
   // History stack depth
   let depth = 0;
 
+  // Track document-level fullscreen state to catch back button events
+  let wasMainFullscreen = $state(false);
+
+  $effect(() => {
+    const handleFSChange = () => {
+      const isMainFS = document.fullscreenElement === document.documentElement;
+      if (isMainFS) {
+        wasMainFullscreen = true;
+      } else if (!document.fullscreenElement) {
+        // Exited fullscreen. If we were previously in main fullscreen and a page is still active,
+        // it means the browser exited fullscreen first due to back gesture.
+        // We close the panel and immediately re-request fullscreen for the main view.
+        if (wasMainFullscreen && activePage !== null) {
+          closePageInternal();
+          document.documentElement.requestFullscreen().catch((err) => {
+            console.warn("Re-entering fullscreen failed:", err);
+          });
+        }
+        wasMainFullscreen = false;
+      }
+    };
+    document.addEventListener("fullscreenchange", handleFSChange);
+    return () => document.removeEventListener("fullscreenchange", handleFSChange);
+  });
+
   // Sync activeApp pushes and pops procedurally/reactively
   $effect(() => {
     const page = activePage;
@@ -49,6 +74,8 @@
       // Update depth to match popped state
       depth = targetDepth;
 
+      const wasFS = !!document.fullscreenElement;
+
       if (activePage === "toolbox" && activeApp && !targetApp) {
         // Go back to app launcher
         activeApp = null;
@@ -58,6 +85,14 @@
       } else {
         activePage = targetView;
         activeApp = targetApp;
+      }
+
+      if (wasFS) {
+        setTimeout(() => {
+          if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(() => {});
+          }
+        }, 50);
       }
     };
 
@@ -76,9 +111,17 @@
   }
 
   function closePage() {
+    const wasFS = !!document.fullscreenElement;
     if (depth > 0) {
       history.go(-depth);
       depth = 0;
+      if (wasFS) {
+        setTimeout(() => {
+          if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(() => {});
+          }
+        }, 50);
+      }
     } else {
       closePageInternal();
     }

@@ -262,6 +262,44 @@
   let activeLangItem = $derived(
     allLangItems.find((item) => item.code === currentLang) || allLangItems[0],
   );
+
+  const tabs = ["explorer", "speakers", "dogs", "themes"];
+  let touchStartX = 0;
+  let touchStartY = 0;
+
+  function handleTouchStart(e) {
+    if (e.touches && e.touches.length > 0) {
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    }
+  }
+
+  function handleTouchEnd(e) {
+    if (!e.changedTouches || e.changedTouches.length === 0) return;
+    const touchEndX = e.changedTouches[0].clientX;
+    const touchEndY = e.changedTouches[0].clientY;
+
+    const diffX = touchEndX - touchStartX;
+    const diffY = touchEndY - touchStartY;
+    const threshold = 50;
+
+    if (Math.abs(diffX) > Math.abs(diffY)) {
+      if (Math.abs(diffX) > threshold) {
+        const currentIndex = tabs.indexOf(activeTab);
+        if (diffX < 0) {
+          // Swipe Left -> Go to next tab
+          if (currentIndex < tabs.length - 1) {
+            activeTab = tabs[currentIndex + 1];
+          }
+        } else {
+          // Swipe Right -> Go to prev tab
+          if (currentIndex > 0) {
+            activeTab = tabs[currentIndex - 1];
+          }
+        }
+      }
+    }
+  }
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -272,23 +310,18 @@
     class="stats-panel-container"
     class:closing={isClosing}
     onclick={(e) => e.stopPropagation()}
+    ontouchstart={handleTouchStart}
+    ontouchend={handleTouchEnd}
   >
     <!-- Header -->
     <header class="panel-header">
       <div class="brand">
-        <svg
-          viewBox="0 0 100 100"
+        <img
+          src="/favicon.svg"
+          alt="DOGS Logo"
           style="width: 24px; height: 24px; filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.4)); flex-shrink: 0;"
-        >
-          <path
-            d="M 50,38 C 42,38 34,26 16,8 C 21,34 18,48 10,56 C 18,66 32,74 50,94 C 68,74 82,66 90,56 C 82,48 79,34 84,8 C 66,26 58,38 50,38 Z"
-            fill="#ffffff"
-          />
-          <path d="M 34,50 L 44,54 L 35,58 Z" fill="#000000" />
-          <path d="M 66,50 L 56,54 L 65,58 Z" fill="#000000" />
-        </svg>
+        />
         <h1>DOGS</h1>
-        <span class="path-indicator">/ {activeTab.toUpperCase()}</span>
       </div>
 
       <button class="close-btn" onclick={onClose} aria-label="Close panel">
@@ -441,8 +474,13 @@
                               <span class="lang-code">
                                 {item.code.toUpperCase()}
                               </span>
-                              <span class="mobile-only-meta">
-                                • {item.country} • {item.dialect}
+                              <span class="meta-tablet">
+                                • {item.country}
+                                {#if item.dialect}• {item.dialect}{/if}
+                              </span>
+                              <span class="meta-mobile">
+                                • {item.speakersText} speakers • {item.dogsText}
+                                dogs
                               </span>
                             </span>
                           </div>
@@ -747,13 +785,6 @@
     font-family: "Outfit", "Inter", sans-serif;
   }
 
-  .path-indicator {
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.3);
-    font-family: monospace;
-  }
-
   .close-btn {
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.06);
@@ -877,6 +908,7 @@
     flex-grow: 1;
     padding: 28px;
     overflow-y: auto;
+    overflow-x: hidden;
     background: rgba(0, 0, 0, 0.05);
   }
 
@@ -971,6 +1003,7 @@
   .table-wrapper {
     flex-grow: 1;
     overflow-y: auto;
+    overflow-x: hidden;
     border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: 12px;
     background: rgba(0, 0, 0, 0.15);
@@ -1061,7 +1094,8 @@
     letter-spacing: 0.05em;
   }
 
-  .mobile-only-meta {
+  .meta-tablet,
+  .meta-mobile {
     display: none;
   }
 
@@ -1321,8 +1355,27 @@
     color: rgba(255, 255, 255, 0.15);
   }
 
+  @media (max-width: 1024px) {
+    /* Hide Country and Dialect columns to prevent horizontal scroll on tablets */
+    .explorer-table th:nth-child(2),
+    .explorer-table td:nth-child(2),
+    .explorer-table th:nth-child(3),
+    .explorer-table td:nth-child(3) {
+      display: none;
+    }
+
+    .meta-tablet {
+      display: inline;
+    }
+  }
+
   /* ── Mobile Layout Bottom Sheet & Tab Bar ── */
   @media (max-width: 768px) {
+    .stats-panel-backdrop {
+      display: block;
+      height: 100dvh;
+    }
+
     .stats-panel-container {
       width: 100vw;
       height: 92vh;
@@ -1337,6 +1390,13 @@
         forwards;
     }
 
+    :global(:fullscreen) .stats-panel-container,
+    :global(:-webkit-full-screen) .stats-panel-container {
+      height: 100dvh !important;
+      max-height: 100dvh !important;
+      border-radius: 0 !important;
+    }
+
     .stats-panel-container.closing {
       animation: panelSlideUpDownMobile 0.32s cubic-bezier(0.16, 1, 0.3, 1)
         forwards;
@@ -1344,7 +1404,9 @@
 
     .panel-body {
       flex-direction: column;
-      height: calc(100% - 64px - 40px);
+      flex-grow: 1;
+      min-height: 0;
+      height: auto;
     }
 
     .panel-sidebar {
@@ -1385,11 +1447,11 @@
       padding: 16px;
     }
 
-    /* Hide separate Country and Dialect columns */
-    .explorer-table th:nth-child(2),
-    .explorer-table td:nth-child(2),
-    .explorer-table th:nth-child(3),
-    .explorer-table td:nth-child(3) {
+    /* Hide Speakers and Local Dogs columns on mobile as well to fit the row */
+    .explorer-table th:nth-child(4),
+    .explorer-table td:nth-child(4),
+    .explorer-table th:nth-child(5),
+    .explorer-table td:nth-child(5) {
       display: none;
     }
 
@@ -1434,10 +1496,17 @@
       flex-wrap: wrap;
     }
 
-    .mobile-only-meta {
+    .meta-mobile {
       display: inline;
       font-size: 0.7rem;
       color: rgba(255, 255, 255, 0.4);
+    }
+
+    .panel-footer {
+      height: auto;
+      min-height: 48px;
+      padding-top: 8px;
+      padding-bottom: max(14px, env(safe-area-inset-bottom, 14px));
     }
   }
 

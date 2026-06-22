@@ -9,37 +9,69 @@
   // Networking statistics
   let latency = $state(12);
   let bandwidth = $state(4.8);
-  let packetLoss = $state(0.00);
+  let packetLoss = $state(0.0);
   let connectedPeers = $derived(langs.length);
   let isPinging = $state(false);
 
   // Log entries state
   let logs = $state([
-    { id: 1, time: "08:12:04", type: "system", msg: "P2P network engine initialized." },
-    { id: 2, time: "08:12:05", type: "connect", msg: "Connected to bootstrap peer [bootstrap.wearedogs.org]." },
-    { id: 3, time: "08:12:05", type: "sync", msg: "Downloading language catalogs (247 locales loaded)." },
-    { id: 4, time: "08:12:06", type: "info", msg: "Primary routing table synced. Status: OK." }
+    {
+      id: 1,
+      time: "08:12:04",
+      type: "system",
+      msg: "P2P network engine initialized.",
+    },
+    {
+      id: 2,
+      time: "08:12:05",
+      type: "connect",
+      msg: "Connected to bootstrap peer [bootstrap.wearedogs.org].",
+    },
+    {
+      id: 3,
+      time: "08:12:05",
+      type: "sync",
+      msg: "Downloading language catalogs (247 locales loaded).",
+    },
+    {
+      id: 4,
+      time: "08:12:06",
+      type: "info",
+      msg: "Primary routing table synced. Status: OK.",
+    },
   ]);
 
   // Generate a random mock log
-  const adjectives = ["Stable", "High-latency", "Encrypted", "Secondary", "Redundant"];
-  const actions = ["synchronized", "validated", "pinged", "handshake completed", "metrics updated"];
+  const adjectives = [
+    "Stable",
+    "High-latency",
+    "Encrypted",
+    "Secondary",
+    "Redundant",
+  ];
+  const actions = [
+    "synchronized",
+    "validated",
+    "pinged",
+    "handshake completed",
+    "metrics updated",
+  ];
 
   function generateRandomLog() {
     const timeStr = new Date().toLocaleTimeString();
     const randomCode = langs[Math.floor(Math.random() * langs.length)];
     const randomAdj = adjectives[Math.floor(Math.random() * adjectives.length)];
     const randomAct = actions[Math.floor(Math.random() * actions.length)];
-    
+
     let type = "info";
     if (randomAct.includes("sync")) type = "sync";
     if (randomAct.includes("handshake")) type = "connect";
-    
+
     return {
       id: Date.now(),
       time: timeStr,
       type,
-      msg: `Node [${randomCode.toUpperCase()}] (${randomAdj}) ${randomAct}.`
+      msg: `Node [${randomCode.toUpperCase()}] (${randomAdj}) ${randomAct}.`,
     };
   }
 
@@ -48,8 +80,11 @@
     const interval = setInterval(() => {
       // Simulate slight telemetry fluctuation
       latency = Math.max(8, Math.min(45, latency + (Math.random() * 4 - 2)));
-      bandwidth = Math.max(2.1, Math.min(9.8, bandwidth + (Math.random() * 0.4 - 0.2)));
-      
+      bandwidth = Math.max(
+        2.1,
+        Math.min(9.8, bandwidth + (Math.random() * 0.4 - 0.2)),
+      );
+
       // Randomly inject logs
       if (Math.random() > 0.4) {
         logs = [...logs.slice(-49), generateRandomLog()]; // Keep last 50
@@ -63,17 +98,27 @@
   function pingNetwork() {
     if (isPinging) return;
     isPinging = true;
-    
+
     // Inject ping logs
     logs = [
       ...logs,
-      { id: Date.now() + 1, time: new Date().toLocaleTimeString(), type: "system", msg: "Broadcasting multicast ping packet to all 247 peers..." }
+      {
+        id: Date.now() + 1,
+        time: new Date().toLocaleTimeString(),
+        type: "system",
+        msg: "Broadcasting multicast ping packet to all 247 peers...",
+      },
     ];
 
     setTimeout(() => {
       logs = [
         ...logs,
-        { id: Date.now() + 2, time: new Date().toLocaleTimeString(), type: "system", msg: `Multicast completed. 247/247 responses. Mean RTT: ${latency.toFixed(1)}ms.` }
+        {
+          id: Date.now() + 2,
+          time: new Date().toLocaleTimeString(),
+          type: "system",
+          msg: `Multicast completed. 247/247 responses. Mean RTT: ${latency.toFixed(1)}ms.`,
+        },
       ];
       isPinging = false;
     }, 1000);
@@ -93,10 +138,10 @@
     <header class="panel-header">
       <div class="brand">
         <span class="pulse-dot"></span>
-        <h1>Global Peer Syncer</h1>
-        <span class="path-indicator">/ NETWORKING</span>
+        <h1>🌐</h1>
+        <span class="path-indicator">/ NETWORK</span>
       </div>
-      
+
       <button class="close-btn" onclick={onClose} aria-label="Close panel">
         <X size={20} />
       </button>
@@ -107,15 +152,17 @@
       <!-- Left side: Telemetry & Actions -->
       <div class="telemetry-col">
         <h2>Network Telemetry</h2>
-        <p class="description">Live stats of local translation data propagation peers.</p>
-        
+        <p class="description">
+          Live stats of local translation data propagation peers.
+        </p>
+
         <div class="metrics-grid">
           <div class="telemetry-card">
             <span class="card-title">LATENCY</span>
             <span class="card-value">{latency.toFixed(0)} ms</span>
             <span class="card-trend text-green">⚡ OPTIMAL</span>
           </div>
-          
+
           <div class="telemetry-card">
             <span class="card-title">BANDWIDTH</span>
             <span class="card-value">{bandwidth.toFixed(1)} MB/s</span>
@@ -141,8 +188,8 @@
             <Radio size={16} class={isPinging ? "anim-pulse" : ""} />
             <span>{isPinging ? "PINGING PEERS..." : "PING ALL PEERS"}</span>
           </button>
-          
-          <button class="action-btn secondary" onclick={() => logs = []}>
+
+          <button class="action-btn secondary" onclick={() => (logs = [])}>
             <RefreshCw size={16} />
             <span>CLEAR TERMINAL LOGS</span>
           </button>
@@ -170,13 +217,15 @@
           <span>Sync Console Logs</span>
           <span class="terminal-indicator">● LIVE STREAMING</span>
         </div>
-        
+
         <div class="terminal-body scroll-container">
           <div class="terminal-content">
             {#each logs as log (log.id)}
               <div class="log-line transition-log">
                 <span class="log-time">[{log.time}]</span>
-                <span class="log-tag tag-{log.type}">{log.type.toUpperCase()}</span>
+                <span class="log-tag tag-{log.type}"
+                  >{log.type.toUpperCase()}</span
+                >
                 <span class="log-msg">{log.msg}</span>
               </div>
             {/each}
@@ -226,8 +275,9 @@
     background: rgba(10, 10, 14, 0.45);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 20px;
-    box-shadow: 0 32px 80px rgba(0, 0, 0, 0.7),
-                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    box-shadow:
+      0 32px 80px rgba(0, 0, 0, 0.7),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -294,8 +344,15 @@
   }
 
   @keyframes pulseDot {
-    0%, 100% { opacity: 0.6; transform: scale(1); }
-    50% { opacity: 1; transform: scale(1.2); }
+    0%,
+    100% {
+      opacity: 0.6;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.2);
+    }
   }
 
   .brand h1 {
@@ -498,8 +555,14 @@
   }
 
   @keyframes blinkNode {
-    0%, 100% { opacity: 0.4; }
-    50% { opacity: 1; transform: scale(1.1); }
+    0%,
+    100% {
+      opacity: 0.4;
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.1);
+    }
   }
 
   .anim-pulse {
@@ -507,9 +570,18 @@
   }
 
   @keyframes rotatePulse {
-    0% { transform: scale(1); opacity: 0.8; }
-    50% { transform: scale(1.2); opacity: 1; }
-    100% { transform: scale(1); opacity: 0.8; }
+    0% {
+      transform: scale(1);
+      opacity: 0.8;
+    }
+    50% {
+      transform: scale(1.2);
+      opacity: 1;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 0.8;
+    }
   }
 
   /* Terminal Column */
@@ -576,10 +648,22 @@
     line-height: 1.4;
   }
 
-  .tag-system { background: rgba(0, 191, 255, 0.2); color: #00bfff; }
-  .tag-connect { background: rgba(0, 255, 102, 0.2); color: #00ff66; }
-  .tag-sync { background: rgba(255, 204, 0, 0.2); color: #ffcc00; }
-  .tag-info { background: rgba(255, 255, 255, 0.1); color: rgba(255, 255, 255, 0.6); }
+  .tag-system {
+    background: rgba(0, 191, 255, 0.2);
+    color: #00bfff;
+  }
+  .tag-connect {
+    background: rgba(0, 255, 102, 0.2);
+    color: #00ff66;
+  }
+  .tag-sync {
+    background: rgba(255, 204, 0, 0.2);
+    color: #ffcc00;
+  }
+  .tag-info {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.6);
+  }
 
   .log-msg {
     color: rgba(255, 255, 255, 0.85);
@@ -590,11 +674,15 @@
   }
 
   @keyframes logFadeIn {
-    0% { transform: translateY(4px); opacity: 0; }
-    100% { transform: translateY(0); opacity: 1; }
+    0% {
+      transform: translateY(4px);
+      opacity: 0;
+    }
+    100% {
+      transform: translateY(0);
+      opacity: 1;
+    }
   }
-
-
 
   /* ── Footer ── */
   .panel-footer {
@@ -609,7 +697,10 @@
     color: rgba(255, 255, 255, 0.35);
     font-weight: 500;
     letter-spacing: 0.05em;
-    font-family: system-ui, -apple-system, sans-serif;
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
   }
 
   .sys-status {
@@ -639,6 +730,11 @@
 
   /* ── Mobile Layout Bottom Sheet & Stacking ── */
   @media (max-width: 768px) {
+    .network-panel-backdrop {
+      display: block;
+      height: 100dvh;
+    }
+
     .network-panel-container {
       width: 100vw;
       height: 92vh;
@@ -649,17 +745,28 @@
       bottom: 0;
       left: 0;
       transform-origin: center bottom;
-      animation: panelSlideUpInMobile 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation: panelSlideUpInMobile 0.38s cubic-bezier(0.16, 1, 0.3, 1)
+        forwards;
+    }
+
+    :global(:fullscreen) .network-panel-container,
+    :global(:-webkit-full-screen) .network-panel-container {
+      height: 100dvh !important;
+      max-height: 100dvh !important;
+      border-radius: 0 !important;
     }
 
     .network-panel-container.closing {
-      animation: panelSlideUpDownMobile 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation: panelSlideUpDownMobile 0.32s cubic-bezier(0.16, 1, 0.3, 1)
+        forwards;
     }
 
     .panel-body {
       display: flex;
       flex-direction: column;
-      height: calc(100% - 64px - 40px);
+      flex-grow: 1;
+      min-height: 0;
+      height: auto;
       overflow-y: auto;
     }
 
@@ -678,6 +785,13 @@
     .metrics-grid {
       grid-template-columns: 1fr;
       gap: 10px;
+    }
+
+    .panel-footer {
+      height: auto;
+      min-height: 48px;
+      padding-top: 8px;
+      padding-bottom: max(14px, env(safe-area-inset-bottom, 14px));
     }
   }
 

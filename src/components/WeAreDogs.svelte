@@ -947,13 +947,6 @@
   <div class="ambient-texture"></div>
 </div>
 
-<!-- Persistent Paused Indicator in Top Right -->
-{#if isPaused && !isFaded && !flashVisible}
-  <div class="paused-indicator">
-    <Pause size={28} />
-  </div>
-{/if}
-
 <!-- Top Right Status Flash Overlay -->
 {#key flashKey}
   {#if flashVisible}
@@ -961,22 +954,22 @@
       {#if flashIcon.length === 1}
         <span class="flash-text">{flashIcon}</span>
       {:else if flashIcon === "pause"}
-        <Pause size={28} />
+        <Pause size={20} />
       {:else if flashIcon === "play"}
-        <Play size={28} />
+        <Play size={20} />
       {:else if flashIcon === "forward"}
-        <ChevronRight size={28} />
+        <ChevronRight size={20} />
       {:else if flashIcon === "backward"}
-        <ChevronLeft size={28} />
+        <ChevronLeft size={20} />
       {:else if flashIcon === "flag_on"}
-        <Flag size={28} style="fill: currentColor;" />
+        <Flag size={20} style="fill: currentColor;" />
       {:else if flashIcon === "flag_off"}
         <div
           style="position: relative; display: flex; align-items: center; justify-content: center;"
         >
-          <Flag size={28} />
+          <Flag size={20} />
           <div
-            style="position: absolute; width: 30px; height: 2px; background: currentColor; transform: rotate(-45deg); opacity: 0.85;"
+            style="position: absolute; width: 22px; height: 1.5px; background: currentColor; transform: rotate(-45deg); opacity: 0.85;"
           ></div>
         </div>
       {/if}
@@ -1010,15 +1003,10 @@
     >
       {langDisplayName(currentLang)}
     </span>
-    <span class="stats-badge">📊 DATA PANEL</span>
   </div>
 
   {#if isPaused && !isFaded}
     <div class="lang-meta">
-      <!-- <div class="utc-clock">
-        <span>UTC START: {utcStartStr}</span>
-      </div> -->
-
       <div class="live-stats">
         <!-- Speakers -->
         <div class="stat-item">
@@ -1217,7 +1205,6 @@
 
 <style>
   /* ── Language Display & Info Panel ── */
-  /* ── Language Display & Info Panel ── */
   .lang-display {
     position: fixed;
     top: 1.25rem;
@@ -1315,15 +1302,16 @@
       sans-serif;
   }
 
-  .lang-name.flash-life {
-    color: #4a6b5a;
-    text-shadow: 0 0 8px rgba(74, 107, 90, 0.5);
+  /* Make language title always flash life/death even when stats widget is open and paused */
+  .lang-display .lang-name.flash-life {
+    color: #5c7a69 !important; /* Muted, earthier sage green */
+    text-shadow: 0 0 6px rgba(92, 122, 105, 0.3) !important; /* Softened glow */
     transition: none;
   }
 
-  .lang-name.flash-death {
-    color: #8c3b4a;
-    text-shadow: 0 0 8px rgba(140, 59, 74, 0.5);
+  .lang-display .lang-name.flash-death {
+    color: #6e464c !important;
+    text-shadow: 0 0 4px rgba(110, 70, 76, 0.4) !important;
     transition: none;
   }
 
@@ -1353,14 +1341,6 @@
     background: rgba(255, 255, 255, 0.15);
     color: white;
   }
-
-  /* .utc-clock {
-    font-size: 0.55rem;
-    font-family: monospace;
-    color: rgba(255, 255, 255, 0.3);
-    margin-bottom: 6px;
-    letter-spacing: 0.01em;
-  } */
 
   .live-stats {
     display: flex;
@@ -1665,11 +1645,11 @@
     cursor: pointer;
   }
 
-  /* ── Top-Right Status Flash Indicator ── */
+  /* ── Top-Right Status Flash Indicator (Bookmark Tab) ── */
   .status-flash {
     position: fixed;
-    top: 1.5rem;
-    right: 1.5rem;
+    top: 1.25rem;
+    right: 1.25rem;
     z-index: 100;
     pointer-events: none;
     color: rgba(255, 255, 255, 0.85);
@@ -1682,12 +1662,20 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-    animation: flashFade 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    box-shadow:
+      0 10px 24px rgba(0, 0, 0, 0.5),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.1);
+    transform-origin: top center;
+    animation: bookmarkFlash 0.8s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+  }
+
+  .status-flash :global(svg),
+  .status-flash .flash-text {
+    animation: bookmarkIconPop 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
   }
 
   .flash-text {
-    font-size: 1.5rem;
+    font-size: 1.1rem;
     font-weight: 800;
     line-height: 1;
     font-family: "Outfit", "Inter", system-ui, sans-serif;
@@ -1695,84 +1683,41 @@
     text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
   }
 
-  /* ── Persistent Paused Indicator ── */
-  .paused-indicator {
-    position: fixed;
-    top: 1.5rem;
-    right: 1.5rem;
-    z-index: 100;
-    pointer-events: none;
-    color: rgba(255, 255, 255, 0.85);
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    width: 3.2rem;
-    height: 3.2rem;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-    animation: pausedIndicatorFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  }
-
-  @keyframes pausedIndicatorFadeIn {
+  @keyframes bookmarkFlash {
     0% {
-      transform: scale(0.8);
+      transform: translateY(-100%);
       opacity: 0;
     }
-    100% {
-      transform: scale(1);
+    15% {
+      transform: translateY(0);
       opacity: 1;
+    }
+    80% {
+      transform: translateY(0);
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(-100%);
+      opacity: 0;
     }
   }
 
-  @keyframes flashFade {
+  @keyframes bookmarkIconPop {
     0% {
       transform: scale(0.6) rotate(-15deg);
       opacity: 0;
     }
     15% {
-      transform: scale(1.1) rotate(5deg);
+      transform: scale(1.15) rotate(5deg);
       opacity: 1;
     }
     30% {
       transform: scale(1) rotate(0deg);
-      opacity: 1;
-    }
-    75% {
-      transform: scale(1) rotate(0deg);
-      opacity: 1;
     }
     100% {
-      transform: scale(0.8) rotate(10deg);
-      opacity: 0;
+      transform: scale(1) rotate(0deg);
     }
   }
-
-  /* ── Ambient Background & Textures ── */
-  /* .ambient-bg {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100dvh;
-    z-index: 0;
-    pointer-events: none;
-    background-color: #000000;
-  }
-  .ambient-bg::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(
-      circle at 50% 50%,
-      var(--dominant-color, transparent) 0%,
-      transparent 70%
-    );
-    opacity: 0.18;
-    transition: background 1.2s cubic-bezier(0.16, 1, 0.3, 1);
-  } */
 
   .ambient-texture {
     position: absolute;

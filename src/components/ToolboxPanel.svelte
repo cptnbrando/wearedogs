@@ -843,29 +843,34 @@
     }
   }
 
-  /* ── Mobile Layout Bottom Sheet & App Grid ── */
+  /* ── Mobile Layout Full Screen & App Grid ── */
   @media (max-width: 768px) {
     .toolbox-panel-container {
       width: 100vw;
-      height: 92vh;
-      max-height: 92vh;
-      border-radius: 20px 20px 0 0;
+      height: 100dvh;
+      max-height: 100dvh;
+      border-radius: 0;
       border-bottom: none;
       position: fixed;
+      top: 0;
       bottom: 0;
       left: 0;
       transform-origin: center bottom;
-      animation: panelSlideUpInMobile 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation: panelSlideUpInMobile 0.38s cubic-bezier(0.16, 1, 0.3, 1)
+        forwards;
     }
 
     .toolbox-panel-container.closing {
-      animation: panelSlideUpDownMobile 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation: panelSlideUpDownMobile 0.32s cubic-bezier(0.16, 1, 0.3, 1)
+        forwards;
     }
 
     .panel-body {
       display: flex;
       flex-direction: column;
-      height: calc(100% - 64px - 40px);
+      flex-grow: 1;
+      min-height: 0;
+      height: auto;
       overflow-y: auto;
     }
 
@@ -877,6 +882,13 @@
     .app-card {
       padding: 12px;
       gap: 12px;
+    }
+
+    .panel-footer {
+      height: auto;
+      min-height: 48px;
+      padding-top: 8px;
+      padding-bottom: max(14px, env(safe-area-inset-bottom, 14px));
     }
   }
 
