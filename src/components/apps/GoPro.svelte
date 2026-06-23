@@ -1257,6 +1257,7 @@
                                 .toString()
                                 .padStart(2, "0")}
                         </span>
+                        <span class="hud-indicator-ep-separator">-</span>
                         <span class="hud-indicator-ep-details">
                             {currentEpisodeDetails.title}
                         </span>
@@ -2405,7 +2406,7 @@
         box-shadow: 0 0 10px #ff3344;
         animation: flashDot 1.2s infinite;
         flex-shrink: 0;
-        margin-top: 1px;
+        margin-top: 4px;
     }
 
     @keyframes flashDot {
@@ -2432,16 +2433,41 @@
 
     .hud-indicator-show-name {
         font-weight: 700;
-        font-size: 0.72rem;
+        font-size: 0.95rem;
         color: #ff3344;
         text-transform: uppercase;
         letter-spacing: 0.05em;
+        line-height: 1;
     }
 
     .hud-indicator-ep-details {
         font-size: 0.65rem;
         color: rgba(255, 255, 255, 0.45);
         text-transform: lowercase;
+    }
+
+    .hud-indicator-ep-separator {
+        display: none;
+    }
+
+    @media (max-width: 1200px) {
+        .rec-indicator {
+            align-items: center;
+        }
+        .rec-dot {
+            margin-top: 0;
+        }
+        .hud-show-info-group {
+            flex-direction: row;
+            align-items: center;
+            gap: 6px;
+            max-width: 80vw;
+        }
+        .hud-indicator-ep-separator {
+            display: inline;
+            color: rgba(255, 255, 255, 0.3);
+            margin: 0 2px;
+        }
     }
 
     .hud-corners .corner {
