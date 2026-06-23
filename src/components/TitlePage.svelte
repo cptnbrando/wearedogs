@@ -1,16 +1,28 @@
 <script>
   import "../lib/i18n.js";
-  import { ChartNoAxesColumn, Component } from "lucide-svelte";
+  import {
+    ChartNoAxesColumn,
+    Component,
+    Music,
+    ShoppingCart,
+    Map,
+    ChevronUp,
+    ChevronDown,
+  } from "lucide-svelte";
   import WeAreDogs from "./WeAreDogs.svelte";
   import StatsPanel from "./StatsPanel.svelte";
   import NetworkingPanel from "./NetworkingPanel.svelte";
   import ToolboxPanel from "./ToolboxPanel.svelte";
+  import MusicPanel from "./MusicPanel.svelte";
+  import StorePanel from "./StorePanel.svelte";
+  import MapPanel from "./MapPanel.svelte";
 
-  // Active view state: 'stats' | 'networking' | 'toolbox' | null
+  // Active view state: 'stats' | 'networking' | 'toolbox' | 'music' | 'store' | 'map' | null
   let activePage = $state(null);
   let isClosing = $state(false);
   let activeLang = $state("en");
   let activeApp = $state(null);
+  let textIsPaused = $state(false);
 
   // Component reference for API calls
   let weAreDogsRef = $state();
@@ -29,7 +41,7 @@
       } else if (!document.fullscreenElement) {
         // Exited fullscreen. If we were previously in main fullscreen and a page is still active,
         // it means the browser exited fullscreen first due to back gesture.
-        // We close the panel and immediately re-request fullscreen for the main view.
+        // We close the Panel and immediately re-request fullscreen for the main view.
         if (wasMainFullscreen && activePage !== null) {
           closePageInternal();
           document.documentElement.requestFullscreen().catch((err) => {
@@ -40,7 +52,8 @@
       }
     };
     document.addEventListener("fullscreenchange", handleFSChange);
-    return () => document.removeEventListener("fullscreenchange", handleFSChange);
+    return () =>
+      document.removeEventListener("fullscreenchange", handleFSChange);
   });
 
   // Sync activeApp pushes and pops procedurally/reactively
@@ -80,7 +93,7 @@
         // Go back to app launcher
         activeApp = null;
       } else if (activePage && !targetView) {
-        // Close overlay panel
+        // Close overlay Panel
         closePageInternal();
       } else {
         activePage = targetView;
@@ -104,7 +117,7 @@
     activePage = page;
     activeApp = null;
     isClosing = false;
-    
+
     // Push the state procedurally
     history.pushState({ view: page, app: null, depth: 1 }, "");
     depth = 1;
@@ -149,40 +162,90 @@
 <WeAreDogs
   bind:this={weAreDogsRef}
   bind:currentLang={activeLang}
+  bind:isPaused={textIsPaused}
   isFaded={activePage !== null}
   onOpenStats={() => openPage("stats")}
-/>
+  onOpenPage={(page) => openPage(page)}
+>
+  {#if textIsPaused && activePage === null}
+    <div class="hieroglyphic-nav">
+      <!-- Button 1: App Launcher -->
+      <button
+        class="runic-btn border-neon-orange"
+        onclick={(e) => {
+          e.stopPropagation();
+          openPage("toolbox");
+        }}
+        title="App Launcher"
+        aria-label="App Launcher"
+      >
+        <Component size={28} />
+      </button>
 
-<!-- Bottom Buttons (Only visible when no overlays are active) -->
-{#if activePage === null}
-  <!-- Bottom Left: Networking Panel -->
-  <button
-    class="fixed bottom-6 left-6 border-2 border-white cursor-pointer p-2 bg-black/60 hover:bg-white hover:text-black transition-colors rounded-lg z-50 flex items-center justify-center"
-    style="bottom: max(1.5rem, calc(1.5rem + env(safe-area-inset-bottom, 0px)))"
-    onclick={() => openPage("networking")}
-    aria-label="Open Networking page"
-  >
-    <ChartNoAxesColumn />
-  </button>
+      <!-- Button 2: Networking -->
+      <button
+        class="runic-btn border-neon-cyan"
+        onclick={(e) => {
+          e.stopPropagation();
+          openPage("networking");
+        }}
+        title="Mesh Network"
+        aria-label="Mesh Network"
+      >
+        <ChartNoAxesColumn size={28} />
+      </button>
 
-  <!-- Bottom Right: Toolbox Panel -->
-  <button
-    class="fixed bottom-6 right-6 border-2 border-white cursor-pointer p-2 bg-black/60 hover:bg-white hover:text-black transition-colors rounded-lg z-50 flex items-center justify-center"
-    style="bottom: max(1.5rem, calc(1.5rem + env(safe-area-inset-bottom, 0px)))"
-    onclick={() => openPage("toolbox")}
-    aria-label="Open Toolbox page"
-  >
-    <Component />
-  </button>
-{/if}
+      <!-- Button 3: Music -->
+      <button
+        class="runic-btn border-neon-purple"
+        onclick={(e) => {
+          e.stopPropagation();
+          openPage("music");
+        }}
+        title="Music Sampler"
+        aria-label="Music Sampler"
+      >
+        <Music size={28} />
+      </button>
 
-<!-- Overlay panels -->
+      <!-- Button 4: Store -->
+      <button
+        class="runic-btn border-neon-pink"
+        onclick={(e) => {
+          e.stopPropagation();
+          openPage("store");
+        }}
+        title="Dog Store"
+        aria-label="Dog Store"
+      >
+        <ShoppingCart size={28} />
+      </button>
+
+      <!-- Button 5: Map -->
+      <button
+        class="runic-btn border-neon-green"
+        onclick={(e) => {
+          e.stopPropagation();
+          openPage("map");
+        }}
+        title="World Map"
+        aria-label="World Map"
+      >
+        <Map size={28} />
+      </button>
+    </div>
+  {/if}
+</WeAreDogs>
+
+<!-- Overlay Panels -->
 {#if activePage === "stats"}
   <StatsPanel
-    isClosing={isClosing}
+    {isClosing}
     currentLang={activeLang}
     onClose={closePage}
-    onHoverLang={(code) => { activeLang = code; }}
+    onHoverLang={(code) => {
+      activeLang = code;
+    }}
     onSelectLang={(code) => {
       activeLang = code;
       if (weAreDogsRef) {
@@ -191,14 +254,117 @@
     }}
   />
 {:else if activePage === "networking"}
-  <NetworkingPanel
-    isClosing={isClosing}
-    onClose={closePage}
-  />
+  <NetworkingPanel {isClosing} onClose={closePage} />
 {:else if activePage === "toolbox"}
-  <ToolboxPanel
-    isClosing={isClosing}
-    onClose={closePage}
-    bind:activeApp={activeApp}
-  />
+  <ToolboxPanel {isClosing} onClose={closePage} bind:activeApp />
+{:else if activePage === "music"}
+  <MusicPanel {isClosing} onClose={closePage} />
+{:else if activePage === "store"}
+  <StorePanel {isClosing} onClose={closePage} />
+{:else if activePage === "map"}
+  <MapPanel {isClosing} onClose={closePage} />
 {/if}
+
+<style>
+  .hieroglyphic-nav {
+    position: absolute;
+    top: calc(100% + 2.5rem);
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 2rem;
+    width: max-content;
+    z-index: 80;
+    animation: slideUpFade 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  @keyframes slideUpFade {
+    from {
+      opacity: 0;
+      transform: translate(-50%, 20px);
+    }
+    to {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+  }
+
+  .runic-btn {
+    width: 72px;
+    height: 72px;
+    border-radius: 16px;
+    background: rgba(10, 10, 15, 0.45);
+    backdrop-filter: blur(12px) saturate(160%);
+    -webkit-backdrop-filter: blur(12px) saturate(160%);
+    border: 2px solid var(--border-color, rgba(255, 255, 255, 0.15));
+    color: var(--icon-color, rgba(255, 255, 255, 0.7));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  .runic-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    transform: translateY(-4px) scale(1.08);
+    border-color: var(--icon-color);
+    box-shadow: 0 0 20px var(--shadow-color);
+  }
+
+  .runic-btn:active {
+    transform: translateY(-1px) scale(0.98);
+  }
+
+  .runic-btn.border-neon-orange {
+    --border-color: rgba(255, 120, 0, 0.4);
+    --icon-color: #ff7800;
+    --shadow-color: rgba(255, 120, 0, 0.35);
+  }
+
+  .runic-btn.border-neon-cyan {
+    --border-color: rgba(0, 240, 255, 0.4);
+    --icon-color: #00f0ff;
+    --shadow-color: rgba(0, 240, 255, 0.35);
+  }
+
+  .runic-btn.border-neon-purple {
+    --border-color: rgba(180, 0, 255, 0.4);
+    --icon-color: #b400ff;
+    --shadow-color: rgba(180, 0, 255, 0.35);
+  }
+
+  .runic-btn.border-neon-pink {
+    --border-color: rgba(255, 0, 180, 0.4);
+    --icon-color: #ff00b4;
+    --shadow-color: rgba(255, 0, 180, 0.35);
+  }
+
+  .runic-btn.border-neon-green {
+    --border-color: rgba(0, 255, 120, 0.4);
+    --icon-color: #00ff78;
+    --shadow-color: rgba(0, 255, 120, 0.35);
+  }
+
+  @media (max-width: 600px) {
+    .hieroglyphic-nav {
+      gap: 0.75rem;
+      top: calc(100% + 1.5rem);
+    }
+
+    .runic-btn {
+      width: 52px;
+      height: 52px;
+      border-radius: 12px;
+    }
+
+    .runic-btn :global(svg) {
+      width: 20px !important;
+      height: 20px !important;
+    }
+  }
+</style>

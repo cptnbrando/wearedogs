@@ -9,7 +9,18 @@
     getFlagColors,
   } from "../lib/langUtils.js";
   import "../lib/i18n.js";
-  import { Pause, Play, ChevronLeft, ChevronRight, Flag } from "lucide-svelte";
+  import {
+    Pause,
+    Play,
+    ChevronLeft,
+    ChevronRight,
+    Flag,
+    Component,
+    ChartNoAxesColumn,
+    Music,
+    ShoppingCart,
+    Map,
+  } from "lucide-svelte";
   import { untrack } from "svelte";
 
   function getRegionIdentity(lang) {
@@ -76,7 +87,10 @@
   let {
     isFaded = false,
     onOpenStats,
+    onOpenPage,
     currentLang = $bindable(initialLang),
+    isPaused = $bindable(false),
+    children,
   } = $props();
 
   let refreshKey = $state(0);
@@ -322,7 +336,6 @@
 
   let hoverTimer = $state(null);
   let isHovering = $state(false);
-  let isPaused = $state(false);
 
   // Navigation history tracking
   let history = $state([initialLang]);
@@ -726,7 +739,7 @@
   }
 
   function handleKeydown(e) {
-    if (isFaded) return; // bypass all navigation keys when details panel is open
+    if (isFaded) return; // bypass all navigation keys when details Panel is open
     if (e.key === "ArrowLeft") {
       handleLeftArrow();
     } else if (e.key === "ArrowRight") {
@@ -807,7 +820,7 @@
   <div class="top-right-trigger" onclick={() => toggleFlagColors()}></div>
 {/if}
 
-<!-- Language indicator — full name + expandable info panel -->
+<!-- Language indicator — full name + expandable info Panel -->
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
@@ -1023,6 +1036,10 @@
 
     <!-- Pronunciation -->
     <p class="pronunciation">({pronWe} {pronAre} {pronDogs})</p>
+
+    {#if children}
+      {@render children()}
+    {/if}
   </div>
 </div>
 
@@ -1264,7 +1281,7 @@
     font-weight: 600;
   }
 
-  /* Fade out background title when stats or other panels are active */
+  /* Fade out background title when stats or other Panels are active */
   .wad-container.faded {
     opacity: 0.15;
     filter: blur(12px) saturate(0.8);
@@ -1280,7 +1297,7 @@
     filter: blur(12px) grayscale(1);
   }
 
-  /* ── Metadata slide-out panel ── */
+  /* ── Metadata slide-out Panel ── */
   .lang-meta {
     margin-top: 8px;
     border-top: 1px solid rgba(255, 255, 255, 0.06);
@@ -1340,9 +1357,9 @@
 
   /* ── Pronunciation ── */
   .pronunciation {
-    margin: 4rem 0 0 0;
+    margin: 3rem 0 0 0;
     padding: 0;
-    font-size: clamp(0.7rem, 2vw, 1rem);
+    font-size: clamp(0.6rem, 1.5vw, 0.8rem);
     font-weight: 400;
     font-style: italic;
     color: rgba(255, 255, 255, 0.35);
@@ -1378,6 +1395,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    position: relative;
   }
 
   .word {
