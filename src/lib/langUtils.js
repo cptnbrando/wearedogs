@@ -42,6 +42,9 @@ const displayNameCaches = {};
 /** Get display name for a language, falling back to 'fullname' then 'dialect' to avoid displaying raw codes */
 export function langDisplayName(code, userLocale = 'en') {
   try {
+    if (typeof Intl === "undefined" || !Intl.DisplayNames) {
+      return translations[code]?.fullname || translations[code]?.dialect || code;
+    }
     if (!displayNameCaches[userLocale]) {
       displayNameCaches[userLocale] = new Intl.DisplayNames([userLocale], { type: "language" });
     }
@@ -55,12 +58,30 @@ export function langDisplayName(code, userLocale = 'en') {
   }
 }
 
-const englishLangNames = new Intl.DisplayNames(["en"], { type: "language" });
+let englishLangNames = null;
+let triedEnglishInit = false;
+
+function getEnglishLangNames() {
+  if (triedEnglishInit) return englishLangNames;
+  triedEnglishInit = true;
+  try {
+    if (typeof Intl !== "undefined" && Intl.DisplayNames) {
+      englishLangNames = new Intl.DisplayNames(["en"], { type: "language" });
+    }
+  } catch (e) {
+    englishLangNames = null;
+  }
+  return englishLangNames;
+}
 
 /** Get the stable English name for keyboard selection and matching */
 export function langEnglishName(code) {
   try {
-    const name = englishLangNames.of(code);
+    const formatter = getEnglishLangNames();
+    if (!formatter) {
+      return translations[code]?.fullname || translations[code]?.dialect || code;
+    }
+    const name = formatter.of(code);
     if (!name || name.toLowerCase() === code.toLowerCase()) {
       return translations[code]?.fullname || translations[code]?.dialect || code;
     }

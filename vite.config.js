@@ -14,12 +14,11 @@ export default defineConfig({
     })
   ],
   build: {
-    target: 'modules', 
-    
-    // Forces the CSS compiler to down-compile oklch(), 
-    // css variables, and container queries into safe fallbacks for the TV.
-    cssTarget: 'chrome55', 
-    
+    target: 'modules',
+
+    // Forces the CSS compiler to down-compile into safe fallbacks
+    cssTarget: 'chrome55',
+
     chunkSizeWarningLimit: 800,
     rollupOptions: {
       output: {
