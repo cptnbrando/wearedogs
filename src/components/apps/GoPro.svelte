@@ -101,6 +101,7 @@
     }
 
     function handleVideoError() {
+        isChangingEpisode = false;
         if (
             streamUrl &&
             (streamUrl.startsWith("http://") ||
@@ -173,6 +174,8 @@
     let controlsVisible = $state(true);
     let playerContainerEl = $state(null);
     let isFullscreen = $state(false);
+    let isMaximized = $state(false);
+    let isChangingEpisode = false;
     let controlsTimeout = null;
 
     // Dot animation indicators state
@@ -439,10 +442,26 @@
         if (audioCtx && audioCtx.state === "suspended") {
             audioCtx.resume();
         }
+
+        if (isChangingEpisode) {
+            isChangingEpisode = false;
+            if (controlsVisible) {
+                resetControlsTimer();
+            }
+        } else {
+            resetControlsTimer();
+        }
     }
 
     function handlePause() {
         isPlaying = false;
+        if (isChangingEpisode) {
+            return;
+        }
+        controlsVisible = true;
+        if (controlsTimeout) {
+            clearTimeout(controlsTimeout);
+        }
     }
 
     function handleTimeUpdate() {
@@ -524,6 +543,7 @@
         } else if (loopMode === "shuffle") {
             const len = activeShow.episodes.length;
             if (len > 0) {
+                isChangingEpisode = true;
                 const randIdx = Math.floor(Math.random() * len);
                 currentEpisodeIndex = randIdx;
             }
@@ -539,19 +559,25 @@
     }
 
     function nextEpisode() {
+        isChangingEpisode = true;
         const len = activeShow.episodes.length;
         if (len > 0) {
             currentEpisodeIndex = (currentEpisodeIndex + 1) % len;
         }
-        resetControlsTimer();
+        if (controlsVisible) {
+            resetControlsTimer();
+        }
     }
 
     function prevEpisode() {
+        isChangingEpisode = true;
         const len = activeShow.episodes.length;
         if (len > 0) {
             currentEpisodeIndex = (currentEpisodeIndex - 1 + len) % len;
         }
-        resetControlsTimer();
+        if (controlsVisible) {
+            resetControlsTimer();
+        }
     }
 
     function switchShow(showKey) {
@@ -672,6 +698,48 @@
         return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}.${ms.toString().padStart(2, "0")}`;
     }
 
+    function getEpisodeDetails(showKey, epIndex) {
+        const show = catalog[showKey];
+        if (!show || !show.episodes)
+            return { season: 1, episode: 1, title: "" };
+        const targetEp = show.episodes[epIndex];
+        if (!targetEp) return { season: 1, episode: 1, title: "" };
+
+        const season = getEpisodeSeason(targetEp);
+        const seasonEps = show.episodes.filter(
+            (ep) => getEpisodeSeason(ep) === season,
+        );
+        const idxInSeason = seasonEps.indexOf(targetEp);
+        const episodeNum = idxInSeason !== -1 ? idxInSeason + 1 : 1;
+
+        return {
+            season,
+            episode: episodeNum,
+            title: targetEp.title,
+        };
+    }
+
+    // Outro configurations specific to shows
+    const showOutroLengths = {
+        "Batman Beyond": 40,
+        "Mr. Bean": 30,
+    };
+
+    let showOutroLength = $derived(showOutroLengths[activeShowKey] || 30);
+    let isInOutroRange = $derived(
+        duration > 0 && currentTime >= duration - showOutroLength,
+    );
+
+    let currentEpisodeDetails = $derived(
+        getEpisodeDetails(activeShowKey, currentEpisodeIndex),
+    );
+
+    function skipOutro() {
+        if (!videoEl) return;
+        videoEl.currentTime = duration;
+        resetControlsTimer();
+    }
+
     // Keyboard Shortcuts Handler
     function handleKeydown(e) {
         if (document.activeElement.tagName === "INPUT") return;
@@ -784,6 +852,8 @@
         if (showKey !== undefined) activeShowKey = showKey;
         if (episodeIndex !== undefined) currentEpisodeIndex = episodeIndex;
         isPlayingEpisode = true;
+        controlsVisible = true;
+        isChangingEpisode = false; // Reset transition flag so player starts fresh
     }
 
     function exitToCatalog() {
@@ -791,22 +861,36 @@
             videoEl.pause();
         }
         isPlayingEpisode = false;
+        isMaximized = false;
         stopRepeating();
-        if (document.fullscreenElement) {
+        if (
+            document.fullscreenElement &&
+            document.fullscreenElement === playerContainerEl
+        ) {
             document.exitFullscreen().catch((err) => console.error(err));
         }
     }
 
     function toggleFullscreen() {
         if (!playerContainerEl) return;
-        if (!document.fullscreenElement) {
-            playerContainerEl.requestFullscreen().catch((err) => {
-                console.error("Fullscreen request failed:", err);
-            });
+
+        // Detect if site/page is already in browser-level fullscreen
+        const isSiteFullscreen =
+            document.fullscreenElement &&
+            document.fullscreenElement !== playerContainerEl;
+
+        if (isSiteFullscreen) {
+            isMaximized = !isMaximized;
         } else {
-            document.exitFullscreen().catch((err) => {
-                console.error("Exit fullscreen failed:", err);
-            });
+            if (!document.fullscreenElement) {
+                playerContainerEl.requestFullscreen().catch((err) => {
+                    console.error("Fullscreen request failed:", err);
+                });
+            } else {
+                document.exitFullscreen().catch((err) => {
+                    console.error("Exit fullscreen failed:", err);
+                });
+            }
         }
     }
 
@@ -825,6 +909,9 @@
 
     function handleFullscreenChange() {
         isFullscreen = document.fullscreenElement === playerContainerEl;
+        if (!document.fullscreenElement) {
+            isMaximized = false;
+        }
     }
 
     function resetControlsTimer() {
@@ -850,16 +937,6 @@
     function handleMouseMove() {
         resetControlsTimer();
     }
-
-    // Reactively start timer if play state changes
-    $effect(() => {
-        if (isPlaying) {
-            resetControlsTimer();
-        } else {
-            controlsVisible = true;
-            if (controlsTimeout) clearTimeout(controlsTimeout);
-        }
-    });
 
     onMount(async () => {
         loadCheckpoints();
@@ -1064,6 +1141,7 @@
         bind:this={playerContainerEl}
         class="player-view-container"
         class:hidden={!isPlayingEpisode}
+        class:maximized={isMaximized}
         onmousemove={handleMouseMove}
     >
         <!-- Slick Bottom Left Indicator Dot -->
@@ -1165,22 +1243,30 @@
             <div class="video-hud">
                 <div class="rec-indicator">
                     <span class="rec-dot"></span>
-                    <span>LIVE SAMPLING FEED</span>
-                </div>
-                <div class="crosshair-center">
-                    <div class="cross x"></div>
-                    <div class="cross y"></div>
+                    <div class="hud-show-info-group">
+                        <span class="hud-indicator-show-name"
+                            >{activeShow.symbol || activeShowKey}</span
+                        >
+                        <span class="hud-indicator-ep-details">
+                            s{currentEpisodeDetails.season
+                                .toString()
+                                .padStart(
+                                    2,
+                                    "0",
+                                )}e{currentEpisodeDetails.episode
+                                .toString()
+                                .padStart(2, "0")}
+                        </span>
+                        <span class="hud-indicator-ep-details">
+                            {currentEpisodeDetails.title}
+                        </span>
+                    </div>
                 </div>
                 <div class="hud-corners">
                     <div class="corner tl"></div>
                     <div class="corner tr"></div>
                     <div class="corner bl"></div>
                     <div class="corner br"></div>
-                </div>
-                <div class="hud-metrics">
-                    <span>RES: 720P</span>
-                    <span>FILTER: {activeVideoFilter.toUpperCase()}</span>
-                    <span>AUDIO: {activeAudioFilter.toUpperCase()}</span>
                 </div>
             </div>
         {/if}
@@ -1239,6 +1325,13 @@
                 {#if isInIntroRange}
                     <button class="skip-intro-hud-btn" onclick={skipIntro}>
                         <SkipForward size={14} /> Skip Theme Intro
+                    </button>
+                {/if}
+
+                <!-- Quick skip outro trigger -->
+                {#if isInOutroRange}
+                    <button class="skip-outro-hud-btn" onclick={skipOutro}>
+                        <SkipForward size={14} /> Skip Outro
                     </button>
                 {/if}
             </div>
@@ -1363,7 +1456,7 @@
                             onclick={toggleFullscreen}
                             title="Toggle Fullscreen"
                         >
-                            {#if isFullscreen}
+                            {#if isFullscreen || isMaximized}
                                 <Minimize size={16} />
                             {:else}
                                 <Maximize size={16} />
@@ -2072,6 +2165,16 @@
         overflow: hidden;
     }
 
+    .player-view-container.maximized {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: 9999;
+        background: black;
+    }
+
     .player-view-container.hidden {
         display: none !important;
     }
@@ -2284,8 +2387,11 @@
     }
 
     .rec-indicator {
+        position: absolute;
+        top: 28px;
+        left: 28px;
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         gap: 8px;
         font-weight: 700;
         color: #ff3344;
@@ -2298,6 +2404,8 @@
         border-radius: 50%;
         box-shadow: 0 0 10px #ff3344;
         animation: flashDot 1.2s infinite;
+        flex-shrink: 0;
+        margin-top: 1px;
     }
 
     @keyframes flashDot {
@@ -2310,33 +2418,30 @@
         }
     }
 
-    .crosshair-center {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 40px;
-        height: 40px;
-        opacity: 0.25;
+    .hud-show-info-group {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        max-width: 10vw;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        white-space: normal;
+        text-align: left;
+        line-height: 1.2;
     }
 
-    .crosshair-center .cross {
-        position: absolute;
-        background: white;
+    .hud-indicator-show-name {
+        font-weight: 700;
+        font-size: 0.72rem;
+        color: #ff3344;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
     }
 
-    .crosshair-center .cross.x {
-        width: 100%;
-        height: 1px;
-        top: 50%;
-        left: 0;
-    }
-
-    .crosshair-center .cross.y {
-        height: 100%;
-        width: 1px;
-        left: 50%;
-        top: 0;
+    .hud-indicator-ep-details {
+        font-size: 0.65rem;
+        color: rgba(255, 255, 255, 0.45);
+        text-transform: lowercase;
     }
 
     .hud-corners .corner {
@@ -2369,13 +2474,6 @@
         right: 20px;
         border-left: none;
         border-top: none;
-    }
-
-    .hud-metrics {
-        align-self: flex-end;
-        display: flex;
-        gap: 16px;
-        font-weight: 700;
     }
 
     /* ── Timeline ── */
@@ -2451,7 +2549,8 @@
         pointer-events: none;
     }
 
-    .skip-intro-hud-btn {
+    .skip-intro-hud-btn,
+    .skip-outro-hud-btn {
         position: absolute;
         right: 20px;
         bottom: 40px;
@@ -3515,6 +3614,10 @@
         }
 
         /* Video Player HUD Layouts */
+        .hud-show-info-group {
+            max-width: 16.666vw;
+        }
+
         .player-overlay-top {
             display: flex;
             flex-direction: column;
