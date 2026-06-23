@@ -90,6 +90,7 @@
     onOpenPage,
     currentLang = $bindable(initialLang),
     isPaused = $bindable(false),
+    isFlagColors = $bindable(false),
     children,
   } = $props();
 
@@ -357,8 +358,6 @@
     }, 800); // 800ms flash duration
   }
 
-  // Flag Colors toggle state and derived colors list
-  let isFlagColors = $state(false);
   let flagColors = $derived(getFlagColors(currentLang));
 
   // Letter navigation memory state
