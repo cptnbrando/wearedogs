@@ -641,21 +641,185 @@
 
   let touchStartX = 0;
   let touchStartY = 0;
+  let touchStartTime = 0;
+  let currentTouchX = 0;
+  let holdAnchorX = 0;
+  let holdTimer = null;
+  let isSwipeHoldActive = $state(false);
+  let scrollOffset = $state(0);
+  let lastTickTime = 0;
+  let tickIntervalId = null;
   let isTouchDevice = $state(false);
+
+  function startScrollLoop() {
+    if (tickIntervalId) clearInterval(tickIntervalId);
+    lastTickTime = Date.now();
+    tickIntervalId = setInterval(tickScroll, 16);
+  }
+
+  function stopScrollLoop() {
+    if (tickIntervalId) {
+      clearInterval(tickIntervalId);
+      tickIntervalId = null;
+    }
+  }
+
+  function tickScroll() {
+    if (!isSwipeHoldActive) {
+      stopScrollLoop();
+      return;
+    }
+
+    const now = Date.now();
+    const dt = now - lastTickTime;
+    lastTickTime = now;
+
+    // Center scrolling relative to the anchor point where swipe-hold was activated
+    const diffX = currentTouchX - holdAnchorX;
+    
+    // Normalize drag offset to a standard 375px viewport reference width
+    const screenWidth = typeof window !== "undefined" ? window.innerWidth : 375;
+    const scaleFactor = 375 / Math.max(280, screenWidth); // clamp screenWidth to avoid division by zero
+    const normDiffX = diffX * scaleFactor;
+    const absNormDiffX = Math.abs(normDiffX);
+    const deadzone = 12;
+
+    if (absNormDiffX > deadzone) {
+      const excess = absNormDiffX - deadzone;
+      // Faster base speed factor: excess * 0.00009
+      const speed = Math.sign(diffX) * -1 * excess * 0.00009;
+      scrollOffset += speed * dt;
+    } else {
+      // Spring snap to nearest integer index
+      const target = Math.round(scrollOffset);
+      const diff = target - scrollOffset;
+      if (Math.abs(diff) < 0.01) {
+        scrollOffset = target;
+      } else {
+        scrollOffset += diff * 0.15;
+      }
+    }
+
+    // Wrap scrollOffset to keep it in valid index range [0, langs.length)
+    if (scrollOffset < 0) {
+      scrollOffset += langs.length;
+    } else if (scrollOffset >= langs.length) {
+      scrollOffset -= langs.length;
+    }
+
+    let roundedOffset = Math.round(scrollOffset);
+    let targetIndex = roundedOffset % langs.length;
+    if (targetIndex < 0) {
+      targetIndex += langs.length;
+    }
+
+    const nextLang = langs[targetIndex];
+    if (currentLang !== nextLang) {
+      currentLang = nextLang;
+    }
+  }
+
+  function getLangAtOffset(offset) {
+    let currentIndex = Math.round(scrollOffset);
+    let targetIndex = (currentIndex + offset) % langs.length;
+    if (targetIndex < 0) targetIndex += langs.length;
+    return langs[targetIndex];
+  }
+
+  $effect(() => {
+    return () => {
+      stopScrollLoop();
+    };
+  });
 
   function handleTouchStart(e) {
     isTouchDevice = true;
     if (e.touches && e.touches.length > 0) {
       touchStartX = e.touches[0].clientX;
       touchStartY = e.touches[0].clientY;
+      currentTouchX = touchStartX;
     }
+    touchStartTime = Date.now();
+
+    if (holdTimer) {
+      clearTimeout(holdTimer);
+      holdTimer = null;
+    }
+
     // Start cycling on first touch if not paused and touch is on words
     if (!isPaused && !hoverTimer && e.target.closest(".words-wrapper")) {
       startCycling();
     }
   }
 
+  function handleTouchMove(e) {
+    if (e.touches && e.touches.length > 0) {
+      currentTouchX = e.touches[0].clientX;
+    }
+
+    const diffX = currentTouchX - touchStartX;
+    const diffY = e.touches[0].clientY - touchStartY;
+
+    if (!isSwipeHoldActive) {
+      // Cancel the holdTimer if clear vertical swipe occurs
+      if (Math.abs(diffY) > Math.abs(diffX) * 1.2 && Math.abs(diffY) > 20) {
+        if (holdTimer) {
+          clearTimeout(holdTimer);
+          holdTimer = null;
+        }
+        return;
+      }
+
+      // Check for swipe horizontal movement to queue scroll dial
+      if (Math.abs(diffX) > 35 && Math.abs(diffX) > Math.abs(diffY) * 1.5) {
+        if (!holdTimer) {
+          holdTimer = setTimeout(() => {
+            isSwipeHoldActive = true;
+            isPaused = true;
+            stopCycling();
+            holdAnchorX = currentTouchX; // Anchor the scroll center at the hold point
+            scrollOffset = langs.indexOf(currentLang);
+            if (scrollOffset === -1) scrollOffset = 0;
+            startScrollLoop();
+          }, 180); // 180ms delay to distinguish swift swipe vs. swipe & hold
+        }
+      }
+    } else {
+      if (e.cancelable) {
+        e.preventDefault();
+      }
+    }
+  }
+
   function handleTouchEnd(e) {
+    if (holdTimer) {
+      clearTimeout(holdTimer);
+      holdTimer = null;
+    }
+    stopScrollLoop();
+
+    if (isSwipeHoldActive) {
+      isSwipeHoldActive = false;
+      // Quick swipe and release -> step once in the swipe direction
+      if (Date.now() - touchStartTime < 250) {
+        const diffX = currentTouchX - touchStartX;
+        if (diffX > 0) {
+          handleLeftArrow(); // swiped right -> backward
+        } else {
+          handleRightArrow(); // swiped left -> forward
+        }
+      } else {
+        // They held and scrubbed: stay on active language, add to history
+        if (history[historyIndex] !== currentLang) {
+          history = history.slice(0, historyIndex + 1);
+          history.push(currentLang);
+          historyIndex = history.length - 1;
+        }
+        triggerFlash("forward");
+      }
+      return;
+    }
+
     if (!e.changedTouches || e.changedTouches.length === 0) return;
     const touchEndX = e.changedTouches[0].clientX;
     const touchEndY = e.changedTouches[0].clientY;
@@ -960,7 +1124,9 @@
   class:colored={isFlagColors}
   onclick={handleBackgroundClick}
   ontouchstart={handleTouchStart}
+  ontouchmove={handleTouchMove}
   ontouchend={handleTouchEnd}
+  ontouchcancel={handleTouchEnd}
   role="presentation"
 >
   <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -1042,6 +1208,33 @@
     {/if}
   </div>
 </div>
+
+{#if isSwipeHoldActive}
+  <div class="language-scroller-ribbon">
+    <div class="scroller-instruction">Drag left/right to scroll past languages</div>
+    <div class="scroller-track">
+      <div class="scroller-track-inner" style="--scroller-shift: {-(scrollOffset - Math.round(scrollOffset)) * 130}">
+        {#each [-4, -3, -2, -1, 0, 1, 2, 3, 4] as offset}
+          {@const langCode = getLangAtOffset(offset)}
+          <div
+            class="scroller-item"
+            class:active={offset === 0}
+            style="--opacity: {1 - Math.abs(offset) * 0.22}; --scale: {1.2 - Math.abs(offset) * 0.15}; --flag-color: {getFlagColors(langCode)[0]};"
+          >
+            <div class="scroller-flag-pill">
+              <span class="flag-stripe" style="background-color: {getFlagColors(langCode)[0]}"></span>
+              <span class="flag-stripe" style="background-color: {getFlagColors(langCode)[1] || getFlagColors(langCode)[0]}"></span>
+              <span class="flag-stripe" style="background-color: {getFlagColors(langCode)[2] || getFlagColors(langCode)[0]}"></span>
+            </div>
+            <div class="scroller-lang-code">{langCode.toUpperCase()}</div>
+            <div class="scroller-lang-name">{langDisplayName(langCode)}</div>
+          </div>
+        {/each}
+      </div>
+    </div>
+    <div class="scroller-indicator">▲</div>
+  </div>
+{/if}
 
 <style>
   /* ── Language Display & Info Panel ── */
@@ -1404,7 +1597,7 @@
     display: flex;
     align-items: baseline;
     justify-content: center;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     margin: 0;
     padding: 0;
     font-size: clamp(3rem, 12vw, 9rem);
@@ -1560,5 +1753,158 @@
   [data-region-type="agricultural"] .ambient-texture {
     background-image: url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 40 Q 20 20, 40 40 T 80 40 M0 20 Q 20 0, 40 20 T 80 20 M0 60 Q 20 40, 40 60 T 80 60' fill='none' stroke='white' stroke-width='1' stroke-opacity='0.25'/%3E%3C/svg%3E");
     background-size: 60px 60px;
+  }
+
+  /* ── Language Scroller Ribbon ── */
+  .language-scroller-ribbon {
+    position: fixed;
+    bottom: 12%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100vw;
+    max-width: 100%;
+    z-index: 90;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    background: rgba(10, 10, 15, 0.7);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 20px 0;
+    box-shadow: 
+      0 -15px 35px rgba(0, 0, 0, 0.6),
+      0 15px 35px rgba(0, 0, 0, 0.6);
+    overflow: hidden;
+    animation: slideUpRibbon 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  @keyframes slideUpRibbon {
+    from {
+      opacity: 0;
+      transform: translate(-50%, 25px);
+    }
+    to {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+  }
+
+  .scroller-instruction {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.45);
+    font-family: monospace;
+  }
+
+  .scroller-track {
+    position: relative;
+    width: 100%;
+    height: 75px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .scroller-track-inner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    left: 50%;
+    transform: translate(-50%, 0) translateX(calc(var(--scroller-shift, 0) * 1px));
+    will-change: transform;
+  }
+
+  .scroller-item {
+    width: 130px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    text-align: center;
+    opacity: var(--opacity, 0.5);
+    transform: scale(var(--scale, 0.9));
+    transition: opacity 0.15s cubic-bezier(0.16, 1, 0.3, 1), transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .scroller-item.active {
+    opacity: 1 !important;
+    transform: scale(1.22) !important;
+  }
+
+  .scroller-flag-pill {
+    display: flex;
+    width: 28px;
+    height: 17px;
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1.5px solid rgba(255, 255, 255, 0.18);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .scroller-item.active .scroller-flag-pill {
+    border-color: rgba(255, 255, 255, 0.7);
+    box-shadow: 0 0 15px var(--flag-color);
+  }
+
+  .flag-stripe {
+    flex: 1;
+    height: 100%;
+  }
+
+  .scroller-lang-code {
+    font-size: 1rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    color: rgba(255, 255, 255, 0.85);
+    font-family: monospace;
+    line-height: 1;
+  }
+
+  .scroller-item.active .scroller-lang-code {
+    color: #ffffff;
+    text-shadow: 0 0 12px rgba(255, 255, 255, 0.4);
+  }
+
+  .scroller-lang-name {
+    font-size: 0.65rem;
+    color: rgba(255, 255, 255, 0.4);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+    width: 110px;
+    font-family: system-ui, -apple-system, sans-serif;
+    font-weight: 500;
+  }
+
+  .scroller-item.active .scroller-lang-name {
+    color: rgba(255, 255, 255, 0.9);
+  }
+
+  .scroller-indicator {
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.75rem;
+    margin-top: 2px;
+    animation: pulseIndicator 1.5s infinite ease-in-out;
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
+  }
+
+  @keyframes pulseIndicator {
+    0%, 100% {
+      transform: scale(1) translateY(0);
+      opacity: 0.7;
+    }
+    50% {
+      transform: scale(1.15) translateY(-3px);
+      opacity: 1;
+    }
   }
 </style>
