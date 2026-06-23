@@ -8,6 +8,8 @@
     Watch,
     Video,
     QrCode,
+    Radio,
+    Smile,
   } from "lucide-svelte";
   import SnakeApp from "./apps/SnakeApp.svelte";
   import SoundboardApp from "./apps/SoundboardApp.svelte";
@@ -15,6 +17,8 @@
   import StopwatchApp from "./apps/StopwatchApp.svelte";
   import GoPro from "./apps/GoPro.svelte";
   import QRFlash from "./apps/QRFlash.svelte";
+  import Rescue from "./apps/Rescue.svelte";
+  import MemesApp from "./apps/MemesApp.svelte";
 
   let { isClosing = false, onClose, activeApp = $bindable(null) } = $props();
 
@@ -211,6 +215,50 @@
                 >
               </div>
             </div>
+
+            <!-- App 7: Rescue -->
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div
+              class="app-card border-neon-cyan"
+              onclick={() => {
+                activeApp = "rescue";
+              }}
+            >
+              <div class="app-visual">
+                <div class="rescue-preview">
+                  <Radio size={32} />
+                </div>
+              </div>
+              <div class="app-meta">
+                <span class="app-title"><Radio size={14} /> Rescue Ops</span>
+                <span class="app-desc"
+                  >Coordinate search-and-rescue beacons and flight paths.</span
+                >
+              </div>
+            </div>
+
+            <!-- App 8: Dog Memes -->
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div
+              class="app-card border-neon-pink"
+              onclick={() => {
+                activeApp = "memes";
+              }}
+            >
+              <div class="app-visual">
+                <div class="memes-preview">
+                  <Smile size={32} />
+                </div>
+              </div>
+              <div class="app-meta">
+                <span class="app-title"><Smile size={14} /> Canine Memes</span>
+                <span class="app-desc"
+                  >Explore and share high-fidelity, hilarious dog memes.</span
+                >
+              </div>
+            </div>
           </div>
         </div>
       {:else if activeApp === "snake"}
@@ -225,6 +273,10 @@
         <GoPro />
       {:else if activeApp === "qrflash"}
         <QRFlash />
+      {:else if activeApp === "rescue"}
+        <Rescue />
+      {:else if activeApp === "memes"}
+        <MemesApp />
       {/if}
     </div>
 
@@ -235,7 +287,7 @@
         <span>UTILITY GRID STABLE</span>
       </div>
       <div class="stats-counter">
-        <span>APPS LOADED: 6</span>
+        <span>APPS LOADED: 8</span>
         <span class="divider">|</span>
         <span>ACTIVE APP: {activeApp ? activeApp.toUpperCase() : "NONE"}</span>
       </div>
@@ -755,6 +807,39 @@
   }
 
   /* Custom App Previews */
+  .rescue-preview {
+    color: #00bfff;
+    animation: signalPing 2s infinite ease-in-out;
+  }
+
+  @keyframes signalPing {
+    0%, 100% {
+      transform: scale(0.9);
+      filter: drop-shadow(0 0 0px rgba(0, 191, 255, 0));
+    }
+    50% {
+      transform: scale(1.15);
+      filter: drop-shadow(0 0 10px rgba(0, 191, 255, 0.7));
+    }
+  }
+
+  .memes-preview {
+    color: #ff55bb;
+    animation: dogLaugh 0.8s infinite ease-in-out;
+  }
+
+  @keyframes dogLaugh {
+    0%, 100% {
+      transform: rotate(0deg) scale(1);
+    }
+    25% {
+      transform: rotate(-8deg) scale(1.08);
+    }
+    75% {
+      transform: rotate(8deg) scale(1.08);
+    }
+  }
+
   .video-preview-mini {
     position: relative;
     width: 24px;
