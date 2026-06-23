@@ -675,7 +675,7 @@
 
     // Center scrolling relative to the anchor point where swipe-hold was activated
     const diffX = currentTouchX - holdAnchorX;
-
+    
     // Normalize drag offset to a standard 375px viewport reference width
     const screenWidth = typeof window !== "undefined" ? window.innerWidth : 375;
     const scaleFactor = 375 / Math.max(280, screenWidth); // clamp screenWidth to avoid division by zero
@@ -1210,40 +1210,20 @@
 
 {#if isSwipeHoldActive}
   <div class="language-scroller-ribbon">
-    <div class="scroller-instruction">
-      Drag left/right to scroll past languages
-    </div>
+    <div class="scroller-instruction">Drag left/right to scroll past languages</div>
     <div class="scroller-track">
-      <div
-        class="scroller-track-inner"
-        style="--scroller-shift: {-(scrollOffset - Math.round(scrollOffset)) *
-          130}"
-      >
+      <div class="scroller-track-inner" style="--scroller-shift: {-(scrollOffset - Math.round(scrollOffset)) * 130}">
         {#each [-4, -3, -2, -1, 0, 1, 2, 3, 4] as offset}
           {@const langCode = getLangAtOffset(offset)}
           <div
             class="scroller-item"
             class:active={offset === 0}
-            style="--opacity: {1 - Math.abs(offset) * 0.22}; --scale: {1.2 -
-              Math.abs(offset) * 0.15}; --flag-color: {getFlagColors(
-              langCode,
-            )[0]};"
+            style="--opacity: {1 - Math.abs(offset) * 0.22}; --scale: {1.2 - Math.abs(offset) * 0.15}; --flag-color: {getFlagColors(langCode)[0]};"
           >
             <div class="scroller-flag-pill">
-              <span
-                class="flag-stripe"
-                style="background-color: {getFlagColors(langCode)[0]}"
-              ></span>
-              <span
-                class="flag-stripe"
-                style="background-color: {getFlagColors(langCode)[1] ||
-                  getFlagColors(langCode)[0]}"
-              ></span>
-              <span
-                class="flag-stripe"
-                style="background-color: {getFlagColors(langCode)[2] ||
-                  getFlagColors(langCode)[0]}"
-              ></span>
+              <span class="flag-stripe" style="background-color: {getFlagColors(langCode)[0]}"></span>
+              <span class="flag-stripe" style="background-color: {getFlagColors(langCode)[1] || getFlagColors(langCode)[0]}"></span>
+              <span class="flag-stripe" style="background-color: {getFlagColors(langCode)[2] || getFlagColors(langCode)[0]}"></span>
             </div>
             <div class="scroller-lang-code">{langCode.toUpperCase()}</div>
             <div class="scroller-lang-name">{langDisplayName(langCode)}</div>
@@ -1793,7 +1773,7 @@
     border-top: 1px solid rgba(255, 255, 255, 0.08);
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     padding: 20px 0;
-    box-shadow:
+    box-shadow: 
       0 -15px 35px rgba(0, 0, 0, 0.6),
       0 15px 35px rgba(0, 0, 0, 0.6);
     overflow: hidden;
@@ -1835,8 +1815,7 @@
     justify-content: center;
     position: absolute;
     left: 50%;
-    transform: translate(-50%, 0)
-      translateX(calc(var(--scroller-shift, 0) * 1px));
+    transform: translate(-50%, 0) translateX(calc(var(--scroller-shift, 0) * 1px));
     will-change: transform;
   }
 
@@ -1851,9 +1830,7 @@
     text-align: center;
     opacity: var(--opacity, 0.5);
     transform: scale(var(--scale, 0.9));
-    transition:
-      opacity 0.15s cubic-bezier(0.16, 1, 0.3, 1),
-      transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: opacity 0.15s cubic-bezier(0.16, 1, 0.3, 1), transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .scroller-item.active {
@@ -1869,9 +1846,7 @@
     overflow: hidden;
     border: 1.5px solid rgba(255, 255, 255, 0.18);
     box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
-    transition:
-      border-color 0.3s ease,
-      box-shadow 0.3s ease;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
   }
 
   .scroller-item.active .scroller-flag-pill {
@@ -1905,10 +1880,7 @@
     white-space: nowrap;
     overflow: hidden;
     width: 110px;
-    font-family:
-      system-ui,
-      -apple-system,
-      sans-serif;
+    font-family: system-ui, -apple-system, sans-serif;
     font-weight: 500;
   }
 
@@ -1925,8 +1897,7 @@
   }
 
   @keyframes pulseIndicator {
-    0%,
-    100% {
+    0%, 100% {
       transform: scale(1) translateY(0);
       opacity: 0.7;
     }
