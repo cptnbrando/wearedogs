@@ -184,7 +184,7 @@ if [ "$option" = "1" ] || [ "$option" = "2" ] || [ "$option" = "3" ]; then
     for ((i=start_ep-1; i<end_ep; i++)); do
         download_file "${files_arr[i]}"
     done
-elif [ "$option" = "5" ]; then
+elif [ "$option" = "4" ]; then
     echo ""
     echo "Select which season to download entirely:"
     echo "1) Season 1"
@@ -222,7 +222,7 @@ elif [ "$option" = "5" ]; then
             exit 1
             ;;
     esac
-elif [ "$option" = "6" ]; then
+elif [ "$option" = "5" ]; then
     echo "Downloading All Seasons and Extras..."
     for file in "${s1_files[@]}" "${s2_files[@]}" "${s3_files[@]}" "${extras_files[@]}"; do
         download_file "$file"
