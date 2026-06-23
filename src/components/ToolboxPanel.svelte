@@ -61,10 +61,8 @@
       {#if activeApp === null}
         <!-- APPS LAUNCHER GRID VIEW -->
         <div class="launcher-view animated-pane">
-          <h2>util</h2>
-          <p class="description">
-            Select a gadget or mini-app hosted inside this panel session.
-          </p>
+          <h2>/util</h2>
+          <p class="description">Select a gadget</p>
 
           <div class="apps-grid">
             <!-- App 1: GoPro Player -->

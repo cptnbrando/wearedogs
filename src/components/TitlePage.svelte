@@ -11,7 +11,6 @@
   } from "lucide-svelte";
   import WeAreDogs from "./WeAreDogs.svelte";
   import StatsPanel from "./StatsPanel.svelte";
-  import NetworkingPanel from "./NetworkingPanel.svelte";
   import ToolboxPanel from "./ToolboxPanel.svelte";
   import MusicPanel from "./MusicPanel.svelte";
   import StorePanel from "./StorePanel.svelte";
@@ -41,7 +40,7 @@
       } else if (!document.fullscreenElement) {
         // Exited fullscreen. If we were previously in main fullscreen and a page is still active,
         // it means the browser exited fullscreen first due to back gesture.
-        // We close the Panel and immediately re-request fullscreen for the main view.
+        // We close the panel and immediately re-request fullscreen for the main view.
         if (wasMainFullscreen && activePage !== null) {
           closePageInternal();
           document.documentElement.requestFullscreen().catch((err) => {
@@ -93,7 +92,7 @@
         // Go back to app launcher
         activeApp = null;
       } else if (activePage && !targetView) {
-        // Close overlay Panel
+        // Close overlay panel
         closePageInternal();
       } else {
         activePage = targetView;
@@ -183,7 +182,7 @@
       </button>
 
       <!-- Button 2: Networking -->
-      <button
+      <!-- <button
         class="runic-btn border-neon-cyan"
         onclick={(e) => {
           e.stopPropagation();
@@ -193,7 +192,7 @@
         aria-label="Mesh Network"
       >
         <ChartNoAxesColumn size={28} />
-      </button>
+      </button> -->
 
       <!-- Button 3: Music -->
       <button
@@ -326,12 +325,6 @@
     --shadow-color: rgba(255, 120, 0, 0.35);
   }
 
-  .runic-btn.border-neon-cyan {
-    --border-color: rgba(0, 240, 255, 0.4);
-    --icon-color: #00f0ff;
-    --shadow-color: rgba(0, 240, 255, 0.35);
-  }
-
   .runic-btn.border-neon-purple {
     --border-color: rgba(180, 0, 255, 0.4);
     --icon-color: #b400ff;
@@ -352,8 +345,8 @@
 
   @media (max-width: 600px) {
     .hieroglyphic-nav {
-      gap: 0.75rem;
-      top: calc(100% + 1.5rem);
+      gap: 1rem;
+      top: calc(100% + 3.5rem);
     }
 
     .runic-btn {

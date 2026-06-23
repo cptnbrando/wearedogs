@@ -1,11 +1,11 @@
 <script>
   import { X } from "lucide-svelte";
 
-  let { 
-    isClosing = false, 
-    title = "Template Panel", 
-    onClose, 
-    children 
+  let {
+    isClosing = false,
+    title = "Template Panel",
+    onClose,
+    children,
   } = $props();
 
   function handleKeydown(e) {
@@ -52,7 +52,8 @@
               <span>WORK IN PROGRESS</span>
             </div>
             <p class="wip-message">
-              This panel is currently under construction. Check back soon for exciting updates!
+              This place is currently under construction. Check back soon for
+              exciting updates!
             </p>
           </div>
         {/if}
@@ -265,7 +266,9 @@
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
     }
     to {
-      box-shadow: 0 10px 30px rgba(255, 215, 0, 0.2), 0 0 15px rgba(255, 215, 0, 0.1);
+      box-shadow:
+        0 10px 30px rgba(255, 215, 0, 0.2),
+        0 0 15px rgba(255, 215, 0, 0.1);
     }
   }
 
@@ -292,7 +295,10 @@
     color: rgba(255, 255, 255, 0.35);
     font-weight: 500;
     letter-spacing: 0.05em;
-    font-family: system-ui, -apple-system, sans-serif;
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
   }
 
   .sys-status {
@@ -328,11 +334,13 @@
       max-height: 100%;
       border-radius: 0;
       border: none;
-      animation: panelSlideUpInMobile 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation: panelSlideUpInMobile 0.38s cubic-bezier(0.16, 1, 0.3, 1)
+        forwards;
     }
 
     .template-panel-container.closing {
-      animation: panelSlideUpDownMobile 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation: panelSlideUpDownMobile 0.32s cubic-bezier(0.16, 1, 0.3, 1)
+        forwards;
     }
 
     .panel-header {
