@@ -936,10 +936,6 @@
         <span class="meta-label">💬 Dialect</span>
         <span class="meta-value">{meta?.dialect || "—"}</span>
       </div>
-      <div class="meta-row" style="animation-delay: 120ms">
-        <span class="meta-label">Version</span>
-        <span class="meta-value">1.0.0</span>
-      </div>
     </div>
   {/if}
 </div>
