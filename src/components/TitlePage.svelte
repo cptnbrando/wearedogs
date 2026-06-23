@@ -22,6 +22,7 @@
   let activeLang = $state("en");
   let activeApp = $state(null);
   let textIsPaused = $state(false);
+  let weAreDogsColored = $state(false);
 
   // Component reference for API calls
   let weAreDogsRef = $state();
@@ -162,12 +163,13 @@
   bind:this={weAreDogsRef}
   bind:currentLang={activeLang}
   bind:isPaused={textIsPaused}
+  bind:isFlagColors={weAreDogsColored}
   isFaded={activePage !== null}
   onOpenStats={() => openPage("stats")}
   onOpenPage={(page) => openPage(page)}
 >
   {#if textIsPaused && activePage === null}
-    <div class="hieroglyphic-nav">
+    <div class="hieroglyphic-nav" class:colored={weAreDogsColored}>
       <!-- Button 1: App Launcher -->
       <button
         class="runic-btn border-neon-orange"
@@ -312,32 +314,32 @@
     color: #ffffff;
     transform: translateY(-4px) scale(1.08);
     border-color: var(--icon-color);
-    box-shadow: 0 0 20px var(--shadow-color);
+    box-shadow: 0 0 20px var(--shadow-color, rgba(255, 255, 255, 0.15));
   }
 
   .runic-btn:active {
     transform: translateY(-1px) scale(0.98);
   }
 
-  .runic-btn.border-neon-orange {
+  .hieroglyphic-nav.colored .runic-btn.border-neon-orange {
     --border-color: rgba(255, 120, 0, 0.4);
     --icon-color: #ff7800;
     --shadow-color: rgba(255, 120, 0, 0.35);
   }
 
-  .runic-btn.border-neon-purple {
+  .hieroglyphic-nav.colored .runic-btn.border-neon-purple {
     --border-color: rgba(180, 0, 255, 0.4);
     --icon-color: #b400ff;
     --shadow-color: rgba(180, 0, 255, 0.35);
   }
 
-  .runic-btn.border-neon-pink {
+  .hieroglyphic-nav.colored .runic-btn.border-neon-pink {
     --border-color: rgba(255, 0, 180, 0.4);
     --icon-color: #ff00b4;
     --shadow-color: rgba(255, 0, 180, 0.35);
   }
 
-  .runic-btn.border-neon-green {
+  .hieroglyphic-nav.colored .runic-btn.border-neon-green {
     --border-color: rgba(0, 255, 120, 0.4);
     --icon-color: #00ff78;
     --shadow-color: rgba(0, 255, 120, 0.35);

@@ -1077,6 +1077,7 @@
       top: 0.75rem;
       left: 0.75rem;
       max-width: 62vw;
+      word-wrap: wrap;
     }
     .lang-display.paused {
       width: 62vw;
@@ -1092,6 +1093,7 @@
     .stat-info {
       flex-wrap: wrap;
       margin-bottom: 2px;
+      font-size: 0.5rem !important;
     }
 
     .stat-item {
@@ -1174,7 +1176,7 @@
     display: flex;
     align-items: center;
     gap: 3px;
-    font-size: 0.5rem;
+    font-size: 0.7rem;
     color: rgba(255, 255, 255, 0.85);
     font-family: monospace;
   }
