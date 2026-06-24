@@ -25,7 +25,18 @@
     "jsqr": "^1.4.0",
     "lucide-svelte": "^1.0.1",
     "qrcode": "^1.5.4",
-    "svelte-i18n": "^3.7.1",
+    "svelte-i18n": "^4.0.1",
     "three": "^0.184.0"
+  },
+  "blahblahblah": {
+    "if you see this shit": "npm warn allow-scripts 4 packages have install scripts not yet covered by allowScripts:",
+    "npm warn allow-scripts Run npm approve-scripts --allow-scripts-pending to review, or npm approve-scripts <pkg> to allow": "npm warn allow-scripts   @parcel/watcher@2.5.6 (install: node-gyp rebuild) npm warn allow-scripts   core-js@3.49.0 (install: (install scripts present)) npm warn allow-scripts   es5-ext@0.10.64 (install: (install scripts present)) npm warn allow-scripts   esbuild@0.19.12 (install: (install scripts present))",
+    "i dont fuck with that shit at all": "that shit annoy me",
+    "needing a script to install shit before using the shit": "what the fuck",
+    "and i dont know what the scripts do": "they could do literally anything. i have not installed the scripts personally.",
+    "i just watch the warning come and go": "all fucking day",
+    "...": "...",
+    "anyway": "",
+    "if you need batman you can run sh ./public/batman/download.sh": "toodle loo"
   }
 }

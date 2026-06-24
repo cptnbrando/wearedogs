@@ -329,6 +329,15 @@
       linkText: "saa-recovery.org",
       color: "#ff33aa",
     },
+    {
+      title: "brando",
+      icon: "🐶",
+      desc: "email me if you need something",
+      email: "brando@wearedogs.net",
+      linkText: "captainbrando.com",
+      website: "https://captainbrando.com",
+      color: "#000000",
+    },
   ];
 </script>
 
@@ -348,12 +357,15 @@
       </div>
 
       <p class="intel-brief">
-        <strong>Intel Note:</strong> The CIA <em>Ghost Murmur</em> project was rumored
-        to detect heartbeats from orbit, tens of thousands of kilometers away. Because
-        of the limits of physical wave attenuation (a heart can't beat hard enough),
-        it is likely a cover story to mask real incognito informational spies and
-        assets. This page serves as a localized, high-gain homing beacon, should
-        you ever need to come down from space.
+        <strong>Intel Note:</strong> The CIA
+        <a
+          href="https://www.scientificamerican.com/article/what-is-the-quantum-ghost-murmur-purportedly-used-in-iran-scientists/"
+          target="_blank"><em>Ghost Murmur</em></a
+        > project was rumored to detect heartbeats from orbit, tens of thousands
+        of kilometers away. Because of the limits of physical wave attenuation (a
+        heart can't beat hard enough), it is likely a cover story to mask real incognito
+        informational spies and assets. This page serves as a localized, high-gain
+        homing beacon, should you ever need to come down from space.
       </p>
 
       <div class="radar-box">
@@ -551,14 +563,25 @@
             </div>
             <p class="card-desc">{item.desc}</p>
             <div class="card-actions">
-              <a
-                href={item.url}
-                class="action-btn dial-btn"
-                title="Call Hotline"
-              >
-                <PhoneCall size={12} />
-                <span>{item.hotline}</span>
-              </a>
+              {#if item.email}
+                <a
+                  href="mailto:{item.email}"
+                  class="action-btn email-btn"
+                  title="Send Email"
+                >
+                  <MessageSquare size={12} />
+                  <span>{item.email}</span>
+                </a>
+              {:else}
+                <a
+                  href={item.url}
+                  class="action-btn dial-btn"
+                  title="Call Hotline"
+                >
+                  <PhoneCall size={12} />
+                  <span>{item.hotline}</span>
+                </a>
+              {/if}
               <a
                 href={item.website}
                 target="_blank"
@@ -1204,6 +1227,19 @@
     background: rgba(0, 255, 102, 0.12);
     border-color: #00ff66;
     box-shadow: 0 0 10px rgba(0, 255, 102, 0.15);
+  }
+
+  .email-btn {
+    border-color: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.7);
+    background: rgba(0, 0, 0, 0.4);
+  }
+
+  .email-btn:hover {
+    background: rgba(0, 0, 0, 0.7);
+    border-color: rgba(255, 255, 255, 0.3);
+    color: #fff;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.06);
   }
 
   .web-btn {

@@ -320,10 +320,6 @@
     gap: 8px;
   }
 
-  .divider {
-    color: rgba(255, 255, 255, 0.15);
-  }
-
   /* ── Responsive ── */
   @media (max-width: 768px) {
     .template-panel-container {

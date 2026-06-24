@@ -377,15 +377,6 @@
     gap: 12px;
   }
 
-  .pulse-dot {
-    width: 8px;
-    height: 8px;
-    background: #ff55bb;
-    border-radius: 50%;
-    box-shadow: 0 0 10px #ff55bb;
-    animation: pulseDot 2s infinite;
-  }
-
   @keyframes pulseDot {
     0%,
     100% {
@@ -406,33 +397,6 @@
     text-transform: uppercase;
     color: rgba(255, 255, 255, 0.95);
     font-family: "Outfit", "Inter", sans-serif;
-  }
-
-  .back-btn {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 6px;
-    color: rgba(255, 255, 255, 0.85);
-    padding: 6px 12px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-
-  .back-btn:hover {
-    background: rgba(255, 255, 255, 0.15);
-    color: white;
-  }
-
-  .path-indicator {
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.3);
-    font-family: monospace;
   }
 
   .close-btn {
