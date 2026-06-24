@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>DOGS</title>
+  <script>
+    // Static-host deep link shim.
+    // When the host serves this 404.html for an unknown path, we stash the
+    // original path in sessionStorage and redirect to the SPA root. The root
+    // HTML restores the path via history.replaceState before the app boots,
+    // so the router sees the correct URL on first mount.
+    sessionStorage.__wad_redirect = location.pathname + location.search;
+    location.replace('/');
+  </script>
+</head>
+<body></body>
+</html>
