@@ -203,6 +203,14 @@
   @media (max-width: 768px) {
     .base-app-layout {
       padding: 16px;
+      height: auto;
+      overflow: visible;
+    }
+    .app-body {
+      height: auto;
+      min-height: auto;
+      justify-content: flex-start;
+      align-items: stretch;
     }
     h2 {
       font-size: 1.25rem;
@@ -210,6 +218,20 @@
     .wip-hazard-tape {
       font-size: 1rem;
       padding: 8px 20px;
+    }
+  }
+
+  @media (max-height: 580px) {
+    .base-app-layout {
+      padding: 12px;
+      height: auto;
+      overflow: visible;
+    }
+    .app-body {
+      height: auto;
+      min-height: auto;
+      justify-content: flex-start;
+      align-items: stretch;
     }
   }
 </style>

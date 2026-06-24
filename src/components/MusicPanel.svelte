@@ -4,4 +4,4 @@
   let { isClosing = false, onClose } = $props();
 </script>
 
-<BasePanel title="Music Sampler" {isClosing} {onClose} />
+<BasePanel title="Music" {isClosing} {onClose} />

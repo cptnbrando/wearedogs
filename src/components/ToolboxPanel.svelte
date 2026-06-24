@@ -20,6 +20,8 @@
   import Rescue from "./apps/Rescue.svelte";
   import MemesApp from "./apps/MemesApp.svelte";
 
+  const title = "Toolbox";
+
   let { isClosing = false, onClose, activeApp = $bindable(null) } = $props();
 
   function handleBack() {
@@ -42,17 +44,12 @@
     <!-- Header -->
     <header class="panel-header">
       <div class="brand">
-        <span class="pulse-dot"></span>
-        {#if activeApp}
-          <button class="back-btn" onclick={handleBack}>
-            <Undo size={14} />
-            <span>App Launcher</span>
-          </button>
-          <span class="path-indicator">/ {activeApp.toUpperCase()}</span>
-        {:else}
-          <h1>Dash</h1>
-          <span class="path-indicator">/ APPS</span>
-        {/if}
+        <img
+          src="/favicon.svg"
+          alt="DOGS Logo"
+          style="width: 24px; height: 24px; filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.4)); flex-shrink: 0;"
+        />
+        <h1>{title}</h1>
       </div>
 
       <button class="close-btn" onclick={onClose} aria-label="Close panel">
@@ -813,7 +810,8 @@
   }
 
   @keyframes signalPing {
-    0%, 100% {
+    0%,
+    100% {
       transform: scale(0.9);
       filter: drop-shadow(0 0 0px rgba(0, 191, 255, 0));
     }
@@ -829,7 +827,8 @@
   }
 
   @keyframes dogLaugh {
-    0%, 100% {
+    0%,
+    100% {
       transform: rotate(0deg) scale(1);
     }
     25% {
@@ -994,6 +993,12 @@
     100% {
       transform: translateY(100%);
       backdrop-filter: blur(0px);
+    }
+  }
+
+  @media (max-height: 580px) {
+    .panel-body {
+      overflow-y: auto;
     }
   }
 </style>

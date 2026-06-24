@@ -203,8 +203,8 @@
           e.stopPropagation();
           openPage("music");
         }}
-        title="Music Sampler"
-        aria-label="Music Sampler"
+        title="Music"
+        aria-label="Music"
       >
         <Music size={28} />
       </button>

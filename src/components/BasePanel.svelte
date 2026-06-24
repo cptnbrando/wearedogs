@@ -67,9 +67,7 @@
         <span>WE ARE DOGS</span>
       </div>
       <div class="stats-counter">
-        <span>TX REGISTERED LLC</span>
-        <span class="divider">|</span>
-        <span>AUTHOR: CAPTAIN BRANDO!</span>
+        <span>DOGS DOGS DOGS</span>
       </div>
     </footer>
   </div>
