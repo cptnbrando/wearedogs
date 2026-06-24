@@ -18,11 +18,12 @@
     Plus,
     ChevronRight,
     X,
+    BoomBox,
   } from "lucide-svelte";
 
   let { isClosing = false, onClose } = $props();
 
-  // Tab: 'songs' | 'samples' | 'playlists'
+  // Tab: 'songs' | 'samples' | 'playlists' | 'radio'
   let activeTab = $state("songs");
 
   // Music library - path: /music/[artist]/[album]/[file]
@@ -32,10 +33,24 @@
       title: "HOLLYWOOD",
       artist: "YG",
       album: "THE GENTLEMEN'S CLUB",
-      cover: "/img/covers/yg.jpg",
+      cover: "/img/covers/yg.webp",
+      altCover: "/img/covers/yg.jpg",
       src: "/music/YG/THE GENTLEMEN'S CLUB/HOLLYWOOD.mp3",
       instrumental: "/music/YG/THE GENTLEMEN'S CLUB/HOLLYWOOD-FREE.mp3",
       hasInstrumental: true,
+      dateAdded: "2026-06-24T03:00:00-05:00",
+    },
+    {
+      id: "chicago",
+      title: "Chicago",
+      artist: "Michael Jackson",
+      album: "Xscape",
+      cover: "/img/covers/mj.webp",
+      altCover: "/img/covers/mj.jpg",
+      src: "/music/Michael Jackson/Xscape/Chicago.mp3",
+      instrumental: "/music/Michael Jackson/Xscape/Chicago-free.mp3",
+      hasInstrumental: true,
+      dateAdded: "2026-06-24T03:00:00-05:00",
     },
   ];
 
@@ -387,6 +402,14 @@
         role="tab"
       >
         <Radio size={15} /><span>Playlists</span>
+      </button>
+      <button
+        class="mp-tab"
+        class:active={activeTab === "radio"}
+        onclick={() => (activeTab = "radio")}
+        role="tab"
+      >
+        <BoomBox size={15} /><span>Radio</span>
       </button>
     </nav>
 
