@@ -170,6 +170,19 @@
 >
   {#if textIsPaused && activePage === null}
     <div class="hieroglyphic-nav" class:colored={weAreDogsColored}>
+      <!-- Button 4: Store -->
+      <button
+        class="runic-btn border-neon-red"
+        onclick={(e) => {
+          e.stopPropagation();
+          openPage("store");
+        }}
+        title="Dog Store"
+        aria-label="Dog Store"
+      >
+        <ShoppingCart size={28} />
+      </button>
+
       <!-- Button 1: App Launcher -->
       <button
         class="runic-btn border-neon-orange"
@@ -207,19 +220,6 @@
         aria-label="Music"
       >
         <Music size={28} />
-      </button>
-
-      <!-- Button 4: Store -->
-      <button
-        class="runic-btn border-neon-pink"
-        onclick={(e) => {
-          e.stopPropagation();
-          openPage("store");
-        }}
-        title="Dog Store"
-        aria-label="Dog Store"
-      >
-        <ShoppingCart size={28} />
       </button>
 
       <!-- Button 5: Map -->
@@ -322,27 +322,27 @@
   }
 
   .hieroglyphic-nav.colored .runic-btn.border-neon-orange {
-    --border-color: rgba(255, 120, 0, 0.4);
-    --icon-color: #ff7800;
-    --shadow-color: rgba(255, 120, 0, 0.35);
+    --border-color: rgba(200, 160, 0, 0.35);
+    --icon-color: #c8a000;
+    --shadow-color: rgba(200, 160, 0, 0.3);
   }
 
   .hieroglyphic-nav.colored .runic-btn.border-neon-purple {
-    --border-color: rgba(180, 0, 255, 0.4);
-    --icon-color: #b400ff;
-    --shadow-color: rgba(180, 0, 255, 0.35);
+    --border-color: rgba(130, 0, 200, 0.35);
+    --icon-color: #8200c8;
+    --shadow-color: rgba(130, 0, 200, 0.3);
   }
 
-  .hieroglyphic-nav.colored .runic-btn.border-neon-pink {
-    --border-color: rgba(255, 0, 180, 0.4);
-    --icon-color: #ff00b4;
-    --shadow-color: rgba(255, 0, 180, 0.35);
+  .hieroglyphic-nav.colored .runic-btn.border-neon-red {
+    --border-color: rgba(180, 0, 0, 0.35);
+    --icon-color: #b40000;
+    --shadow-color: rgba(180, 0, 0, 0.3);
   }
 
   .hieroglyphic-nav.colored .runic-btn.border-neon-green {
-    --border-color: rgba(0, 255, 120, 0.4);
-    --icon-color: #00ff78;
-    --shadow-color: rgba(0, 255, 120, 0.35);
+    --border-color: rgba(0, 180, 80, 0.35);
+    --icon-color: #00b450;
+    --shadow-color: rgba(0, 180, 80, 0.3);
   }
 
   @media (max-width: 600px) {
