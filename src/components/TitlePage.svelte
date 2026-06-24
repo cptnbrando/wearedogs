@@ -170,7 +170,7 @@
 >
   {#if textIsPaused && activePage === null}
     <div class="hieroglyphic-nav" class:colored={weAreDogsColored}>
-      <!-- Button 4: Store -->
+      <!-- Store -->
       <button
         class="runic-btn border-neon-red"
         onclick={(e) => {
@@ -183,33 +183,7 @@
         <ShoppingCart size={28} />
       </button>
 
-      <!-- Button 1: App Launcher -->
-      <button
-        class="runic-btn border-neon-orange"
-        onclick={(e) => {
-          e.stopPropagation();
-          openPage("toolbox");
-        }}
-        title="App Launcher"
-        aria-label="App Launcher"
-      >
-        <Component size={28} />
-      </button>
-
-      <!-- Button 2: Networking -->
-      <!-- <button
-        class="runic-btn border-neon-cyan"
-        onclick={(e) => {
-          e.stopPropagation();
-          openPage("networking");
-        }}
-        title="Mesh Network"
-        aria-label="Mesh Network"
-      >
-        <ChartNoAxesColumn size={28} />
-      </button> -->
-
-      <!-- Button 3: Music -->
+      <!-- Music -->
       <button
         class="runic-btn border-neon-purple"
         onclick={(e) => {
@@ -222,7 +196,33 @@
         <Music size={28} />
       </button>
 
-      <!-- Button 5: Map -->
+      <!-- App Launcher -->
+      <button
+        class="runic-btn border-neon-orange"
+        onclick={(e) => {
+          e.stopPropagation();
+          openPage("toolbox");
+        }}
+        title="App Launcher"
+        aria-label="App Launcher"
+      >
+        <Component size={28} />
+      </button>
+
+      <!-- Networking -->
+      <!-- <button
+        class="runic-btn border-neon-cyan"
+        onclick={(e) => {
+          e.stopPropagation();
+          openPage("networking");
+        }}
+        title="Mesh Network"
+        aria-label="Mesh Network"
+      >
+        <ChartNoAxesColumn size={28} />
+      </button> -->
+
+      <!-- Map -->
       <button
         class="runic-btn border-neon-green"
         onclick={(e) => {
@@ -322,27 +322,27 @@
   }
 
   .hieroglyphic-nav.colored .runic-btn.border-neon-orange {
-    --border-color: rgba(200, 160, 0, 0.35);
-    --icon-color: #c8a000;
-    --shadow-color: rgba(200, 160, 0, 0.3);
+    --border-color: rgba(230, 185, 0, 0.4);
+    --icon-color: #e6b900;
+    --shadow-color: rgba(230, 185, 0, 0.35);
   }
 
   .hieroglyphic-nav.colored .runic-btn.border-neon-purple {
-    --border-color: rgba(130, 0, 200, 0.35);
-    --icon-color: #8200c8;
-    --shadow-color: rgba(130, 0, 200, 0.3);
+    --border-color: rgba(160, 0, 235, 0.4);
+    --icon-color: #a000eb;
+    --shadow-color: rgba(160, 0, 235, 0.35);
   }
 
   .hieroglyphic-nav.colored .runic-btn.border-neon-red {
-    --border-color: rgba(180, 0, 0, 0.35);
-    --icon-color: #b40000;
-    --shadow-color: rgba(180, 0, 0, 0.3);
+    --border-color: rgba(220, 0, 0, 0.4);
+    --icon-color: #dc0000;
+    --shadow-color: rgba(220, 0, 0, 0.35);
   }
 
   .hieroglyphic-nav.colored .runic-btn.border-neon-green {
-    --border-color: rgba(0, 180, 80, 0.35);
-    --icon-color: #00b450;
-    --shadow-color: rgba(0, 180, 80, 0.3);
+    --border-color: rgba(0, 215, 95, 0.4);
+    --icon-color: #00d75f;
+    --shadow-color: rgba(0, 215, 95, 0.35);
   }
 
   @media (max-width: 600px) {

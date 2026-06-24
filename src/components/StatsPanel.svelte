@@ -6,7 +6,7 @@
     parseDogs,
     langDisplayName as getLangDisplayName,
     langEnglishName as getLangEnglishName,
-    getFlagColors
+    getFlagColors,
   } from "../lib/langUtils.js";
   import {
     X,
@@ -628,7 +628,7 @@
         <span>WE ARE DOGS</span>
       </div>
       <div class="stats-counter">
-        <span>TX REGISTERED LLC</span>
+        <span>BARKBARKBARKBARKBARKBBARKBARKBARKBARKBARKBARKBARKBBARKBARK</span>
         <span class="divider">|</span>
         <span>AUTHOR: CAPTAIN BRANDO!</span>
       </div>
