@@ -186,7 +186,9 @@
 
     // BPM and beat repeating configurations
     let bpm = $state(120);
-    let repeatInterval = $derived(bpm > 0 ? 15000 / bpm : 250);
+    let repeatInterval = $derived(bpm > 0 ? 15000 / bpm : BPM_MAX);
+    const BPM_MAX = 180;
+    const BPM_MIN = 24;
 
     // Key repeating timer variables
     let activeRepeatKey = null;
@@ -222,10 +224,10 @@
     }
 
     function handleBpmBlur() {
-        if (bpm === null || bpm === undefined || isNaN(bpm) || bpm < 60) {
-            bpm = 60;
-        } else if (bpm > 240) {
-            bpm = 240;
+        if (bpm === null || bpm === undefined || isNaN(bpm) || bpm < BPM_MIN) {
+            bpm = BPM_MIN;
+        } else if (bpm > BPM_MAX) {
+            bpm = BPM_MAX;
         }
     }
 
@@ -1517,16 +1519,16 @@
                             <span class="bpm-label">BPM</span>
                             <input
                                 type="number"
-                                min="60"
-                                max="240"
+                                min={BPM_MIN}
+                                max={BPM_MAX}
                                 bind:value={bpm}
                                 onblur={handleBpmBlur}
                                 class="bpm-input"
                             />
                             <input
                                 type="range"
-                                min="60"
-                                max="240"
+                                min={BPM_MIN}
+                                max={BPM_MAX}
                                 step="1"
                                 bind:value={bpm}
                                 class="bpm-slider"
@@ -2802,11 +2804,12 @@
     .bpm-control-box {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 10px;
         background: rgba(0, 0, 0, 0.4);
         padding: 4px 10px;
         border-radius: 8px;
         border: 1px solid rgba(255, 85, 187, 0.25);
+        width: 40%;
     }
 
     .bpm-label {
@@ -2846,10 +2849,10 @@
     }
 
     .bpm-slider {
-        width: 80px;
         accent-color: #ff55bb;
         height: 3px;
         cursor: pointer;
+        flex: 1;
     }
 
     .clipper-header-row {
