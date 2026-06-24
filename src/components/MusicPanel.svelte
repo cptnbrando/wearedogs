@@ -39,6 +39,7 @@
     },
   ];
 
+  // --- Svelte Runes State ---
   let currentTrackIndex = $state(0);
   let isPlaying = $state(false);
   let isInstrumental = $state(false);
@@ -53,137 +54,219 @@
   let isSeeking = $state(false);
   let seekPreview = $state(0);
 
-  // Two audio elements: full (leader) + instrumental (follower)
-  let fullEl = $state(null); // drives timeupdate / ended
-  let instEl = $state(null); // kept in sync, muted when inactive
+  // --- Web Audio Graph Pipeline Variables ---
+  let audioCtx = null;
+  let trackBuffer = null;
+  let instBuffer = null;
+
+  let trackSourceNode = null;
+  let instSourceNode = null;
+  let trackGainNode = null;
+  let instGainNode = null;
+
+  let startTime = 0; // Hardware context time when track started playing
+  let pauseTime = 0; // Specific offset in seconds where track was paused
+  let progressInterval; // Polling interval replacement for "timeupdate"
 
   let currentTrack = $derived(library[currentTrackIndex]);
-
-  // Returns [leader, follower] based on which version is active
-  function both() {
-    return [fullEl, instEl].filter(Boolean);
-  }
+  let displayTime = $derived(isSeeking ? seekPreview : currentTime);
+  let progress = $derived(duration > 0 ? (displayTime / duration) * 100 : 0);
 
   onMount(() => {
-    if (fullEl) {
-      fullEl.volume = volume;
-      fullEl.addEventListener("timeupdate", onTimeUpdate);
-      fullEl.addEventListener("loadedmetadata", onMetadata);
-      fullEl.addEventListener("ended", onEnded);
-      fullEl.addEventListener("waiting", () => (isLoading = true));
-      fullEl.addEventListener("canplay", () => (isLoading = false));
-      fullEl.addEventListener("error", () => {
-        isLoading = false;
-        isPlaying = false;
-      });
-    }
-    if (instEl) {
-      instEl.volume = 0; // starts silent
-    }
+    // AudioContext will initialize on first user interaction (play) to respect browser policies.
   });
 
   onDestroy(() => {
-    both().forEach((el) => {
-      el.pause();
-      el.src = "";
-    });
+    stopAudioNodes();
+    clearInterval(progressInterval);
+    if (audioCtx) audioCtx.close();
   });
 
-  function onTimeUpdate() {
-    if (!isSeeking && fullEl) currentTime = fullEl.currentTime;
-  }
-  function onMetadata() {
-    if (fullEl) {
-      duration = fullEl.duration;
-      isLoading = false;
+  // --- Core Web Audio Methods ---
+
+  async function initAudioContext() {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === "suspended") {
+      await audioCtx.resume();
     }
   }
+
+  async function fetchAndDecode(url) {
+    if (!url) return null;
+    const response = await fetch(url);
+    const arrayBuffer = await response.arrayBuffer();
+    return await audioCtx.decodeAudioData(arrayBuffer);
+  }
+
+  function stopAudioNodes() {
+    try {
+      trackSourceNode?.stop();
+    } catch (e) {}
+    try {
+      instSourceNode?.stop();
+    } catch (e) {}
+    trackSourceNode = null;
+    instSourceNode = null;
+  }
+
+  function applyVolumes() {
+    if (!trackGainNode || !instGainNode || !audioCtx) return;
+
+    const currentContextTime = audioCtx.currentTime;
+    const targetVolume = isMuted ? 0 : volume;
+
+    if (isInstrumental) {
+      // Use 0.01s ramp exponential target to completely eliminate crackles or audio pops
+      trackGainNode.gain.setTargetAtTime(0, currentContextTime, 0.01);
+      instGainNode.gain.setTargetAtTime(targetVolume, currentContextTime, 0.01);
+    } else {
+      trackGainNode.gain.setTargetAtTime(
+        targetVolume,
+        currentContextTime,
+        0.01,
+      );
+      instGainNode.gain.setTargetAtTime(0, currentContextTime, 0.01);
+    }
+  }
+
+  function startProgressTimer() {
+    clearInterval(progressInterval);
+    progressInterval = setInterval(() => {
+      if (isPlaying && !isSeeking && audioCtx) {
+        currentTime = audioCtx.currentTime - startTime;
+        if (currentTime >= duration) {
+          clearInterval(progressInterval);
+          onEnded();
+        }
+      }
+    }, 100);
+  }
+
+  // --- Player Pipeline Actions ---
+
   function onEnded() {
     if (repeatMode === 2) {
-      both().forEach((el) => {
-        el.currentTime = 0;
-        el.play().catch(() => {});
-      });
+      pauseTime = 0;
+      isPlaying = false;
+      playAudio();
     } else if (repeatMode === 1 || currentTrackIndex < library.length - 1) {
       nextTrack();
     } else {
       isPlaying = false;
+      stopAudioNodes();
+      pauseTime = 0;
+      currentTime = 0;
     }
   }
 
-  // Apply correct volumes: active = user volume, inactive = 0
-  function applyVolumes() {
-    if (!fullEl || !instEl) return;
-    if (isMuted) {
-      fullEl.volume = volume;
-      instEl.volume = volume;
-    } else if (isInstrumental) {
-      fullEl.volume = 0; // silent
-      instEl.volume = volume; // audible
-    } else {
-      fullEl.volume = volume; // audible
-      instEl.volume = 0; // silent
-    }
-  }
-
-  // Instant volume toggle — no reload, no interruption
-  function toggleInstrumental() {
-    if (!currentTrack.hasInstrumental) return;
-    isInstrumental = !isInstrumental;
-    applyVolumes();
-    // Resync follower time in case of minor drift
-    if (fullEl && instEl) instEl.currentTime = fullEl.currentTime;
-  }
-
-  function togglePlay() {
-    if (!fullEl) return;
-    if (isPlaying) {
-      both().forEach((el) => el.pause());
-      isPlaying = false;
-    } else {
-      // Sync before playing
-      if (instEl) instEl.currentTime = fullEl.currentTime;
-      applyVolumes();
-      Promise.all(both().map((el) => el.play().catch(() => {}))).then(() => {});
-      isPlaying = true;
-    }
-  }
-
-  function loadTrack(index, autoplay = false) {
+  async function loadTrack(index, autoplay = false) {
     currentTrackIndex = index;
     isInstrumental = false;
     currentTime = 0;
+    pauseTime = 0;
+    isLoading = true;
+
+    await initAudioContext();
+    stopAudioNodes();
+
     const track = library[index];
-    if (fullEl) {
-      fullEl.src = track.src;
-      fullEl.load();
+
+    try {
+      // Stream, download, and decode both files asynchronously side-by-side
+      const [tBuf, iBuf] = await Promise.all([
+        fetchAndDecode(track.src),
+        fetchAndDecode(track.instrumental),
+      ]);
+
+      trackBuffer = tBuf;
+      instBuffer = iBuf;
+      duration = trackBuffer ? trackBuffer.duration : 0;
+    } catch (err) {
+      console.error("Error loading track channels:", err);
+      isPlaying = false;
+    } finally {
+      isLoading = false;
     }
-    if (instEl) {
-      instEl.src = track.instrumental || "";
-      instEl.load();
-    }
-    applyVolumes();
-    if (autoplay) {
-      isLoading = true;
-      const ready = () => {
-        if (instEl) instEl.currentTime = fullEl?.currentTime || 0;
-        applyVolumes();
-        Promise.all(both().map((el) => el.play().catch(() => {}))).then(
-          () => {},
-        );
-        isPlaying = true;
-        isLoading = false;
-        fullEl?.removeEventListener("canplay", ready);
-      };
-      fullEl?.addEventListener("canplay", ready);
+
+    if (autoplay && trackBuffer) {
+      playAudio();
     }
   }
 
+  function playAudio() {
+    if (!audioCtx || !trackBuffer) return;
+
+    stopAudioNodes();
+
+    // Source buffers are single-use disposable instances inside Web Audio contexts
+    trackSourceNode = audioCtx.createBufferSource();
+    trackSourceNode.buffer = trackBuffer;
+
+    instSourceNode = audioCtx.createBufferSource();
+    if (instBuffer) {
+      instSourceNode.buffer = instBuffer;
+    }
+
+    // Initialize individual track mixes
+    trackGainNode = audioCtx.createGain();
+    instGainNode = audioCtx.createGain();
+
+    // Connections map: File Source -> Mix Node -> Audio Card Output
+    trackSourceNode.connect(trackGainNode);
+    trackGainNode.connect(audioCtx.destination);
+
+    if (instBuffer) {
+      instSourceNode.connect(instGainNode);
+      instGainNode.connect(audioCtx.destination);
+    }
+
+    applyVolumes();
+
+    // Schedule exact clock launch alignment
+    const now = audioCtx.currentTime;
+    startTime = now - pauseTime;
+
+    trackSourceNode.start(now, pauseTime);
+    if (instBuffer) {
+      instSourceNode.start(now, pauseTime);
+    }
+
+    isPlaying = true;
+    startProgressTimer();
+  }
+
+  async function togglePlay() {
+    await initAudioContext();
+
+    if (!trackBuffer && !isLoading) {
+      await loadTrack(currentTrackIndex, true);
+      return;
+    }
+
+    if (isPlaying) {
+      clearInterval(progressInterval);
+      pauseTime = audioCtx.currentTime - startTime;
+      stopAudioNodes();
+      isPlaying = false;
+    } else {
+      playAudio();
+    }
+  }
+
+  function toggleInstrumental() {
+    if (!currentTrack.hasInstrumental) return;
+    isInstrumental = !isInstrumental;
+    // Flawless change on running audio tracks via graph variables
+    applyVolumes();
+  }
+
   function prevTrack() {
-    if (currentTime > 3 && fullEl) {
-      both().forEach((el) => {
-        el.currentTime = 0;
-      });
+    if (currentTime > 3) {
+      pauseTime = 0;
+      if (isPlaying) playAudio();
+      else currentTime = 0;
       return;
     }
     const idx = isShuffled
@@ -193,6 +276,7 @@
         : library.length - 1;
     loadTrack(idx, isPlaying);
   }
+
   function nextTrack() {
     const idx = isShuffled
       ? Math.floor(Math.random() * library.length)
@@ -201,6 +285,7 @@
         : 0;
     loadTrack(idx, isPlaying);
   }
+
   function selectTrack(i) {
     if (currentTrackIndex === i) {
       togglePlay();
@@ -217,40 +302,45 @@
     isMuted = !isMuted;
     applyVolumes();
   }
+
   function setVolume(v) {
     volume = parseFloat(v);
     if (volume > 0) isMuted = false;
     applyVolumes();
   }
+
   function handleSeekStart(e) {
     isSeeking = true;
     seekPreview = parseFloat(e.target.value);
   }
+
   function handleSeekMove(e) {
     seekPreview = parseFloat(e.target.value);
   }
+
   function handleSeekEnd(e) {
     const t = parseFloat(e.target.value);
-    both().forEach((el) => {
-      el.currentTime = t;
-    });
     currentTime = t;
+    pauseTime = t;
     isSeeking = false;
+
+    if (isPlaying) {
+      playAudio();
+    }
   }
+
   function fmtTime(s) {
     if (!s || isNaN(s)) return "0:00";
     return `${Math.floor(s / 60)}:${Math.floor(s % 60)
       .toString()
       .padStart(2, "0")}`;
   }
-  let displayTime = $derived(isSeeking ? seekPreview : currentTime);
-  let progress = $derived(duration > 0 ? (displayTime / duration) * 100 : 0);
 </script>
 
 <!-- Two audio elements: full (leader) + instrumental (follower, always muted unless active) -->
-<audio bind:this={fullEl} src={currentTrack.src} preload="none"></audio>
+<!-- <audio bind:this={fullEl} src={currentTrack.src} preload="none"></audio>
 <audio bind:this={instEl} src={currentTrack.instrumental ?? ""} preload="none"
-></audio>
+></audio> -->
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
