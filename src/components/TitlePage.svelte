@@ -1,4 +1,5 @@
 <script>
+  import { onMount } from "svelte";
   import "../lib/i18n.js";
   import {
     ChartNoAxesColumn,
@@ -15,6 +16,7 @@
   import MusicPanel from "./MusicPanel.svelte";
   import StorePanel from "./StorePanel.svelte";
   import MapPanel from "./MapPanel.svelte";
+  import { parsePath, panelToUrl, appToUrl } from "../lib/router.svelte.js";
 
   // Active view state: 'stats' | 'networking' | 'toolbox' | 'music' | 'store' | 'map' | null
   let activePage = $state(null);
@@ -32,6 +34,63 @@
 
   // Track document-level fullscreen state to catch back button events
   let wasMainFullscreen = $state(false);
+
+  // Deep-link params set on initial page load, cleared after panel mounts
+  let initialTrackId     = $state(null);
+  let deepLinkApp        = $state(null);
+  let deepLinkGoProShow  = $state(null);
+  let deepLinkGoProEp    = $state(null);
+
+  // ---------------------------------------------------------------------------
+  // URL Routing — parse deep-link on first mount
+  // ---------------------------------------------------------------------------
+  onMount(() => {
+    const path = window.location.pathname;
+    // Normalise the initial history entry so that closePage()'s history.go(-depth)
+    // always returns the browser to '/' rather than the original deep-link URL.
+    history.replaceState({ view: null, app: null, depth: 0 }, '', '/');
+
+    const params = parsePath(path);
+    // null  or 'home' type  → already at home, nothing to open
+    if (!params || params.type === 'home') return;
+
+    if (params.type === 'lang') {
+      // Language is a preference, not a navigation step — set and stay at home.
+      activeLang = params.lang;
+      setTimeout(() => weAreDogsRef?.forceLanguage(params.lang), 0);
+      return;
+    }
+
+    if (params.type === 'panel') {
+      openPage(params.panel);
+      return;
+    }
+
+    if (params.type === 'music-track') {
+      initialTrackId = params.trackId; // passed as prop to MusicPanel
+      openPage('music');
+      // Clear after MusicPanel has mounted and consumed the prop
+      setTimeout(() => { initialTrackId = null; }, 500);
+      return;
+    }
+
+    if (params.type === 'app') {
+      deepLinkApp = params.app;
+      openPage('toolbox');
+      setTimeout(() => { deepLinkApp = null; }, 400);
+      return;
+    }
+
+    if (params.type === 'gopro-episode') {
+      deepLinkApp       = 'gopro';
+      deepLinkGoProShow = params.show;
+      deepLinkGoProEp   = params.episode;
+      openPage('toolbox');
+      setTimeout(() => { deepLinkApp = null; deepLinkGoProShow = null; deepLinkGoProEp = null; }, 400);
+      return;
+    }
+    // Any other parsePath result: home (already set up above)
+  });
 
   $effect(() => {
     const handleFSChange = () => {
@@ -64,7 +123,7 @@
     if (page === "toolbox") {
       if (app) {
         if (depth < 2) {
-          history.pushState({ view: page, app: app, depth: 2 }, "");
+          history.pushState({ view: page, app: app, depth: 2 }, '', appToUrl(app));
           depth = 2;
         }
       } else {
@@ -118,8 +177,8 @@
     activeApp = null;
     isClosing = false;
 
-    // Push the state procedurally
-    history.pushState({ view: page, app: null, depth: 1 }, "");
+    // Push the state procedurally — include the canonical URL for bookmarking
+    history.pushState({ view: page, app: null, depth: 1 }, '', panelToUrl(page));
     depth = 1;
   }
 
@@ -257,9 +316,16 @@
 {:else if activePage === "networking"}
   <NetworkingPanel {isClosing} onClose={closePage} />
 {:else if activePage === "toolbox"}
-  <ToolboxPanel {isClosing} onClose={closePage} bind:activeApp />
+  <ToolboxPanel
+    {isClosing}
+    onClose={closePage}
+    bind:activeApp
+    initialApp={deepLinkApp}
+    goProShow={deepLinkGoProShow}
+    goProEpisode={deepLinkGoProEp}
+  />
 {:else if activePage === "music"}
-  <MusicPanel {isClosing} onClose={closePage} />
+  <MusicPanel {isClosing} onClose={closePage} {initialTrackId} />
 {:else if activePage === "store"}
   <StorePanel {isClosing} onClose={closePage} />
 {:else if activePage === "map"}

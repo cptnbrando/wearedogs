@@ -27,6 +27,15 @@
   <meta property="twitter:title" content="DOGS" />
   <meta property="twitter:description" content="BARKBARKBARKBARKBARKBBARKBARKBARKBARKBARKBARKBARKBBARKBARK" />
   <meta property="twitter:image" content="/favicon.svg" />
+
+  <!-- Deep-link restore: 404.html stashes the original path, we restore it
+       here before the SPA boots so the router reads the correct pathname. -->
+  <script>
+    (function () {
+      var r = sessionStorage.__wad_redirect;
+      if (r) { sessionStorage.removeItem('__wad_redirect'); history.replaceState(null, '', r); }
+    }());
+  </script>
 </head>
 
 <body>

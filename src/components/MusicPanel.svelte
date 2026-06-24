@@ -21,7 +21,7 @@
     BoomBox,
   } from "lucide-svelte";
 
-  let { isClosing = false, onClose } = $props();
+  let { isClosing = false, onClose, initialTrackId = null } = $props();
 
   // Tab: 'songs' | 'samples' | 'playlists' | 'radio'
   let activeTab = $state("songs");
@@ -58,6 +58,7 @@
   let currentTrackIndex = $state(0);
   let isPlaying = $state(false);
   let isInstrumental = $state(false);
+
   let currentTime = $state(0);
   let duration = $state(0);
   let volume = $state(0.8);
