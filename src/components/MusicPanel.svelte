@@ -590,7 +590,7 @@
                   {#if currentTrackIndex === i && isInstrumental}
                     <span class="inst-chip">INST</span>
                   {/if}
-                  {#if currentTrackIndex === 0}
+                  {#if track.artist === "YG"}
                     <span class="inst-chip-link"
                       ><a
                         href="https://the-gentlemens-club.com/"
