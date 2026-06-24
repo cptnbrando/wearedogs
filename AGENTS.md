@@ -11,7 +11,7 @@
 * CONSTANTS HOISTING: Use const variables wherever possible. All constant definitions must be hoisted to the top of the file using clear, descriptive SCREAMING_SNAKE_CASE (e.g., const MAX_BPM_VAL = 200;). Never sprinkle hardcoded magic numbers or raw strings deep within logic blocks.
 
 ### 2. Dependency & Legacy Resiliency ("Built for the Rocks")
-* THE POTATO TARGET: Optimization target: Ensure a potato running Chrome version 40 can load and execute the core application cleanly. Polyfills are an architectural failure if simple, semantic, vanilla implementation could have avoided them in the first place.
+* THE POTATO TARGET: Optimization target: Ensure a potato running Chrome version 40 can load and execute the core application cleanly. Polyfills are an architectural failure if simple, semantic, vanilla implementation could have avoided them in the first place. Polyfills should be used if certain features or packages cut down on bundle size, code, security risks, or long-term maintenance. Polyfills like this should be seamlessly implemented in the build commands. Use the latest features in smart, necessary, and maintainable ways, but always consider the Potato Target at the finish line. The best outcome is for modern laptops to use the latest features with max speed and efficiency, and older devices have a viable fallback for support.
 * DEPENDENCY SKEPTICISM: Native browser APIs and vanilla JS/Svelte features always win over external npm packages. If a package is proposed, it must pass a strict cost-benefit evaluation regarding bundle size, security risks, and long-term maintenance. If it can be written cleanly in 20 lines of vanilla code, do not install a library.
 * ZERO-WARNING COMPILATION: Output must compile and build with absolutely zero errors and zero warnings in the terminal commands or console output. A warning is a future bug waiting to happen.
 
@@ -37,8 +37,8 @@
 - **Allowed Paths**: `/src/**/*.scss`, `/src/**/*.svelte`
 - **Role**: Hardline UI/UX guardian and styling controller. 
 - **Directives**:
-  1. **Strictly NO Tailwind CSS.** Use semantic SCSS exclusively.
-  2. **Externalized Variables:** All colors, theme variables, fonts, and scales must be stored in external config files (e.g., `/src/styles/_variables.scss`). Never hardcode hex values or RGB in component files.
+  1. **Use Tailwind CSS in smart ways.** Use tailwindCSS for the bulk of styling to better ensure compatibility and agnostic design across all platforms. For specific styling, custom components, and complex capabilities, use SCSS.
+  2. **Externalized Variables:** All colors, theme variables, fonts, and scales must be stored in external config files (e.g., `/src/styles/_variables.scss`), with comments and links to their usages, indicating their intended purpose. Avoid direct hardcoded hex values or RGB in component files.
   3. **Visual Stability (Crucial):** Protect the `WEAREDOGS` typographic layout. Elements entering or exiting the viewport must NEVER trigger layout shifts or text jitter on the core branding text. The text layout must remain as static as an oil painting.
   4. **Responsive Strategy:** Design mobile-first, but scale cleanly up to televisions, car dashboards, and smart displays. Optimize for device-native interaction models (e.g., mobile back-swipe gestures, desktop scrollwheels, volume sync).
 
@@ -48,7 +48,7 @@
 - **Role**: Tidy codebase architect, externalizer, and performance auditor.
 - **Directives**:
   1. **String Separation:** Extract all large scale UI strings, text nodes, and labels into external localization or JSON dictionary files to ensure frictionless future translations. Don't separate every single hardcoded variable out into external files, focus on list objects with over 10 elements.
-  2. **Class Extrapolation:** When handling functional components (e.g., audio/music players), isolate logic from presentation. Extrapolate core methods (`play()`, `pause()`, `skip()`) out of Svelte markup files and refactor them into tidy, decoupled JavaScript/TypeScript classes or dedicated utility files.
+  2. **Class Extrapolation:** When handling functional components (e.g., audio/music players), isolate logic from presentation. Extrapolate core methods (`play()`, `pause()`, `skip()`) out of Svelte markup files and refactor them into tidy, decoupled JavaScript/TypeScript classes or dedicated utility files. Specific library outputs should be placed in the same directories as their UI components. They should only live in the /lib folder if they are used by more than 1 component, or they are massive. 
   3. **Zero-Warning Enforcement:** Monitor compilation, build steps, and package scripts. The agent's output must compile with absolutely zero warnings or errors in the terminal commands or console output.
   4. **Performance & Modularity Overhaul:** Continually audit imported modules. Prioritize native JS/Svelte features over heavy external packages. If an npm package is requested by another agent, evaluate its bundle size and alternative native implementations before permitting the installation.
   5. **Innate Accessibility (a11y):** Ensure all UI structures respect accessibility standards natively (semantic markup, explicit aria attributes where required by interactive elements, keyboard traps avoided, and native device focus states optimized).
