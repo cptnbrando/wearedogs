@@ -1,0 +1,3 @@
+Contact: mailto:brando@wearedogs.net
+Expires: 2030-06-24T21:01:00Z
+Canonical: https://wearedogs.net/.well-known/security.txt

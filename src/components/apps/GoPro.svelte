@@ -66,6 +66,11 @@
             return;
         }
         try {
+          if(file.startsWith("https://data.wearedogs.net")) {
+            console.log(file);
+            streamUrl = file;
+            return file;
+          }
             const folder = activeShowKey === "Batman Beyond" ? "/batman/" : "/";
 
             // Check for the standard file name first (e.g. S01 E01 - Rebirth, Part 1 of 2.ia.mp4)
@@ -75,19 +80,6 @@
                 streamUrl = encodeURI(path);
                 return;
             }
-
-            // Fallback check for the old s01e01.mp4 naming
-            // if (
-            //     activeShowKey === "Batman Beyond" &&
-            //     currentEpisodeIndex === 0
-            // ) {
-            //     let fallbackPath = "http://localhost:5174/batman/batman1.mp4";
-            //     let fallbackRes = await fetch(fallbackPath, { method: "HEAD" });
-            //     if (fallbackRes.ok) {
-            //         streamUrl = fallbackPath;
-            //         return;
-            //     }
-            // }
 
             // If local file is not present, use the remote URL directly
             streamUrl = activeShow.baseUrl
