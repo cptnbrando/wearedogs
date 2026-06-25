@@ -8,3 +8,7 @@
   graphicSrc="/memes.png"
   themeColor="#ff55bb"
 />
+
+<!-- A place to hold, store, add, and view memes across all content platforms  -->
+<!-- (youtube, tiktok, instagram, facebook, x) -->
+<!--  -->

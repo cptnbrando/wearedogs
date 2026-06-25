@@ -67,7 +67,6 @@
         }
         try {
           if(file.startsWith("https://data.wearedogs.net")) {
-            console.log(file);
             streamUrl = file;
             return file;
           }
@@ -78,17 +77,12 @@
             let res = await fetch(encodeURI(path), { method: "HEAD" });
             if (res.ok) {
               streamUrl = encodeURI(path);
-              console.log("res.ok");
-              console.log(streamUrl);
               return;
             }
 
-            console.log('res not ok');
             // If local file is not present, use the remote URL directly
             streamUrl = file;
-            console.log(streamUrl);
         } catch {
-            console.log('caught');
             streamUrl = "";
         }
     }
