@@ -373,6 +373,24 @@ export const catalog = {
                 "title": "Hair By Mr Bean Of London",
                 "file": "https://data.wearedogs.net/vid/bean/s01e14.mp4",
                 "description": "Mr. Bean gets mistaken for a barber and gives a series of terrible haircuts before hiding from a dog at a railway station."
+            },
+            {
+                "id": 16,
+                "title": "Library",
+                "file": "https://data.wearedogs.net/vid/bean/s02e01.mp4",
+                "description": "Mr. Bean visits a rare book library where his attempts to use a tracing paper and a razor blade result in the absolute destruction of a priceless manuscript."
+            },
+            {
+                "id": 17,
+                "title": "The Bus Stop",
+                "file": "https://data.wearedogs.net/vid/bean/s02e02.mp4",
+                "description": "Mr. Bean tries everything to cut to the front of a bus queue, only to get left behind when an ambulance takes his spot."
+            },
+            {
+                "id": 18,
+                "title": "The Story of Mr. Bean",
+                "file": "https://data.wearedogs.net/vid/bean/s02e03.mp4",
+                "description": "A comprehensive look back at the origins of the iconic character, featuring exclusive behind-the-scenes insights and classic clips."
             }
         ],
         "introStart": 0,

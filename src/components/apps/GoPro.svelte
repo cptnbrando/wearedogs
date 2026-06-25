@@ -77,18 +77,19 @@
             let path = `${folder}${file}`;
             let res = await fetch(encodeURI(path), { method: "HEAD" });
             if (res.ok) {
-                streamUrl = encodeURI(path);
-                return;
+              streamUrl = encodeURI(path);
+              console.log("res.ok");
+              console.log(streamUrl);
+              return;
             }
 
+            console.log('res not ok');
             // If local file is not present, use the remote URL directly
-            streamUrl = activeShow.baseUrl
-                ? encodeURI(activeShow.baseUrl + file)
-                : "";
+            streamUrl = file;
+            console.log(streamUrl);
         } catch {
-            streamUrl = activeShow.baseUrl
-                ? encodeURI(activeShow.baseUrl + file)
-                : "";
+            console.log('caught');
+            streamUrl = "";
         }
     }
 
