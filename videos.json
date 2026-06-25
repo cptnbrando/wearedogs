@@ -293,72 +293,86 @@
       {
         "id": 1,
         "title": "Mr. Bean",
-        "file": "S01E01 - Mr. Bean (1990) 540p DVD 10bit 50FPS.mp4"
+        "file": "https://data.wearedogs.net/vid/bean/s01e01.mp4",
+        "description": "Mr. Bean takes a mathematics exam, struggles to stay awake at church, and subtly changes into his swimming trunks at the beach."
       },
       {
         "id": 2,
         "title": "The Return Of Mr. Bean",
-        "file": "S01E02 - The Return Of Mr. Bean (1990) 540p DVD 10bit 50FPS.mp4"
+        "file": "https://data.wearedogs.net/vid/bean/s01e02.mp4",
+        "description": "Mr. Bean tests out a new credit card at a department store, accidentally gets a steak tartare hidden in a restaurant, and meets Her Majesty the Queen."
       },
       {
         "id": 3,
         "title": "The Curse Of Mr. Bean",
-        "file": "S01E03 - The Curse Of Mr. Bean (1990) 540p DVD 10bit 50FPS.mp4"
+        "file": "https://data.wearedogs.net/vid/bean/s01e03.mp4",
+        "description": "Mr. Bean loses his swim trunks at a public pool, invents a unique way to eat a sandwich park bench style, and gets terrorized by a horror film."
       },
       {
         "id": 4,
         "title": "Mr. Bean Goes To Town",
-        "file": "S01E04 - Mr. Bean Goes To Town (1991) 540p DVD 10bit 50FPS.mp4"
+        "file": "https://data.wearedogs.net/vid/bean/s01e04.mp4",
+        "description": "Mr. Bean buys a television set that suffers from poor reception, tracks down a thief who stole his camera, and performs an impromptu street dance."
       },
       {
         "id": 5,
         "title": "The Trouble With Mr. Bean",
-        "file": "S01E05 - The Trouble With Mr. Bean (1992) 540p DVD 10bit 50FPS.mp4"
+        "file": "https://data.wearedogs.net/vid/bean/s01e05.mp4",
+        "description": "Mr. Bean oversleeps and attempts to get dressed while driving his Mini to a painful, anesthesia-free dentist appointment."
       },
       {
         "id": 6,
         "title": "Mr. Bean Rides Again",
-        "file": "S01E06 - Mr. Bean Rides Again (1992) 540p DVD 10bit 50FPS.mp4"
+        "file": "https://data.wearedogs.net/vid/bean/s01e06.mp4",
+        "description": "Mr. Bean attempts to save a man having a heart attack with jumper cables, misses his train, and finds himself trapped in a mailbox."
       },
       {
         "id": 7,
         "title": "Merry Christmas Mr. Bean",
-        "file": "S01E07 - Merry Christmas Mr. Bean (1992) 540p DVD 10bit 50FPS.mp4"
+        "file": "https://data.wearedogs.net/vid/bean/s01e07.mp4",
+        "description": "Mr. Bean causes holiday chaos while testing a Nativity display, conducts a brass band, and prepares a Christmas turkey that ends up on his head."
       },
       {
         "id": 8,
         "title": "Mr. Bean In Room 426",
-        "file": "S01E08 - Mr. Bean In Room 426 (1993) 540p DVD 10bit 50FPS.mp4"
+        "file": "https://data.wearedogs.net/vid/bean/s01e08.mp4",
+        "description": "Mr. Bean checks into a hotel room, locks himself out completely naked, and tries to sneak back in disguised as a luggage cart."
       },
       {
         "id": 9,
         "title": "Mind The Baby, Mr. Bean",
-        "file": "S01E09 - Mind The Baby, Mr. Bean (1994) 540p DVD 10bit 50FPS.mp4"
+        "file": "https://data.wearedogs.net/vid/bean/s01e09.mp4",
+        "description": "Mr. Bean accidentally hooks a baby carriage onto his car's bumper and spends the day managing the infant at a seaside amusement park."
       },
       {
         "id": 10,
-        "title": "Do-It -Yourself Mr. Bean",
-        "file": "S01E10 - Do-It -Yourself Mr. Bean (1994) 540p DVD 10bit 50FPS.mp4"
+        "title": "Do-It-Yourself Mr. Bean",
+        "file": "https://data.wearedogs.net/vid/bean/s01e10.mp4",
+        "description": "Mr. Bean hosts a subpar New Year's Eve party, drives home sitting on an armchair tied to his car roof, and paints his apartment using a stick of dynamite."
       },
       {
         "id": 11,
         "title": "Back To School Mr. Bean",
-        "file": "S01E11 - Back To School Mr. Bean (1994) 540p DVD 10bit 50FPS.mp4"
+        "file": "https://data.wearedogs.net/vid/bean/s01e11.mp4",
+        "description": "Mr. Bean visits a school open day where he accidentally swaps his trousers with someone else, causes explosions in chemistry class, and gets his car crushed by a tank."
       },
       {
         "id": 12,
         "title": "Tee Off, Mr. Bean",
-        "file": "S01E12 - Tee Off, Mr. Bean (1995) 540p DVD 10bit 50FPS.mp4"
+        "file": "https://data.wearedogs.net/vid/bean/s01e12.mp4",
+        "description": "Mr. Bean loses his laundromat tokens and embarks on an absurd cross-town mini-golf journey to recover his stray ball without touching it."
       },
       {
         "id": 13,
         "title": "Goodnight Mr. Bean",
-        "file": "S01E13 - Goodnight Mr. Bean (1995) 540p DVD 10bit 50FPS.mp4"
+        "file": "https://data.wearedogs.net/vid/bean/s01e13.mp4",
+        "description": "Mr. Bean attempts to bypass a hospital waiting room queue and struggles to cure his insomnia with complex sheep-counting calculations."
       },
       {
         "id": 14,
         "title": "Hair By Mr Bean Of London",
-        "file": "S01E14 - Hair By Mr Bean Of London (1995) 540p DVD 10bit 50FPS.mp4"
+        "file": "https://data.wearedogs.net/vid/bean/s01e14.mp4",
+        "description": "Mr. Bean gets mistaken for a barber and gives a series of terrible haircuts before hiding from a dog at a railway station."
       }
     ],
     "introStart": 0,
