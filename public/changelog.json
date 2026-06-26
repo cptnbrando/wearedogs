@@ -1,0 +1,572 @@
+{
+  "metrics": {
+    "inceptionTimestamp": 1782015530,
+    "firstCommitTimestamp": 1779943913,
+    "grossAverageDurationSeconds": 32083,
+    "averageInnerDurationSeconds": 992,
+    "averageLinesAltered": 884.48
+  },
+  "entries": [
+    {
+      "version": "1.0.0",
+      "name": "App Changelog",
+      "date": "2026-06-26",
+      "timestamp": 1782448085,
+      "commits": [
+        {
+          "hash": "b7474da",
+          "message": "Refactor: migrate inline styles to Tailwind classes in BasePanel, MusicPanel, StatsPanel, and ToolboxPanel",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/b7474da3339ee36b4ed330b303ed842ddda5c0c7",
+          "timestamp": 1782446381,
+          "linesChanged": 11
+        },
+        {
+          "hash": "746628a",
+          "message": "Revert changes to WeAreDogs.svelte as requested by user",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/746628a3e534ab325dbba779c21816219353f101",
+          "timestamp": 1782446195,
+          "linesChanged": 141
+        },
+        {
+          "hash": "e4003a7",
+          "message": "Refactor: hoist constants, clean up region lookup, and migrate inline styles to tailwind in WeAreDogs",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/e4003a7bf7f74c96fb4e9c983bec4c6b6c80d750",
+          "timestamp": 1782445939,
+          "linesChanged": 141
+        },
+        {
+          "hash": "ef58519",
+          "message": "added backlog",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/ef585199f85a6125bac8d5b9bc8011de3c190903",
+          "timestamp": 1782445150,
+          "linesChanged": 6
+        },
+        {
+          "hash": "7b185d0",
+          "message": "getting ready to SWARM",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/7b185d0e568b5462d48660c05af5c27d5fad80b4",
+          "timestamp": 1782444607,
+          "linesChanged": 112
+        },
+        {
+          "hash": "bbf05f8",
+          "message": "Merge pull request #1 from cptnbrando/swarm/world-cup-bracket",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/bbf05f89b62af9002d270c65382428d7e87146c3",
+          "timestamp": 1782443631,
+          "linesChanged": 0
+        },
+        {
+          "hash": "30368b0",
+          "message": "feat: add ToolboxPanel and integrate World Cup app with supporting components and router logic",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/30368b08958e1fa83f1063a60ba83e00279e25b8",
+          "timestamp": 1782443467,
+          "linesChanged": 816
+        },
+        {
+          "hash": "506ab0a",
+          "message": "feat: Modularize World Cup App into subcomponents and externalize theme styles",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/506ab0a87e5b456da3448b912a40947cc9b2afa5",
+          "timestamp": 1782440282,
+          "linesChanged": 5128
+        },
+        {
+          "hash": "08fc0f5",
+          "message": "happy thursday world",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/08fc0f5123c42643754adc267eaa4f94bfd6c957",
+          "timestamp": 1782429948,
+          "linesChanged": 10
+        },
+        {
+          "hash": "8af8ca4",
+          "message": "uh...",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/8af8ca4997df8d4e73fc407d7df78fb5077b2eed",
+          "timestamp": 1782357269,
+          "linesChanged": 55
+        },
+        {
+          "hash": "c6414e1",
+          "message": "mr bean",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/c6414e1ee80911a89daecf4d0f0a91b8b1552998",
+          "timestamp": 1782355912,
+          "linesChanged": 113
+        },
+        {
+          "hash": "16af8a9",
+          "message": "feat: implement custom web audio player with instrumental switching and navigation routing",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/16af8a9727e668b204d7ae1891ce4dcf572f52aa",
+          "timestamp": 1782329981,
+          "linesChanged": 212
+        },
+        {
+          "hash": "c98f64a",
+          "message": "docs: update AGENTS.md to allow Tailwind CSS, refine polyfill policy, and clarify code modularity guidelines",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/c98f64a20247b46e8e3660d7aef8e4b01e36fa53",
+          "timestamp": 1782329177,
+          "linesChanged": 8
+        },
+        {
+          "hash": "958e63e",
+          "message": "docs: add AGENTS.md to define swarm configuration and development standards",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/958e63e5a19f2844484ecb299f996726d41345d5",
+          "timestamp": 1782328371,
+          "linesChanged": 70
+        },
+        {
+          "hash": "aa14da4",
+          "message": "Update MusicPanel.svelte",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/aa14da4557c63efbb46cae66a74959378e939c8c",
+          "timestamp": 1782289874,
+          "linesChanged": 2
+        },
+        {
+          "hash": "6289b26",
+          "message": "michael jackson",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/6289b26af1f34e6021dbb4ebd46aac39170073f4",
+          "timestamp": 1782288155,
+          "linesChanged": 49
+        },
+        {
+          "hash": "150244d",
+          "message": "bpm updates",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/150244dc931356621c30d462b6f3c05c01d54254",
+          "timestamp": 1782286304,
+          "linesChanged": 25
+        },
+        {
+          "hash": "e15a720",
+          "message": "Syncing audio, Web Audio API integrated",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/e15a720cba052e103c5f02560641cefe2d1a5bc5",
+          "timestamp": 1782283789,
+          "linesChanged": 292
+        },
+        {
+          "hash": "3a91e24",
+          "message": "Music Panel and Rescue App",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/3a91e248bf908d5f9f9f1447aaca73d56bda7e4a",
+          "timestamp": 1782281767,
+          "linesChanged": 2236
+        },
+        {
+          "hash": "826e54d",
+          "message": "woof",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/826e54dc14ccc48b935eb45199ee0299f753d853",
+          "timestamp": 1782272019,
+          "linesChanged": 73
+        },
+        {
+          "hash": "79e9193",
+          "message": "button polish",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/79e9193b5a1697d15ba8e94bbc67ac60bb45bbae",
+          "timestamp": 1782271061,
+          "linesChanged": 52
+        },
+        {
+          "hash": "fec4616",
+          "message": "Styling",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/fec461667b183d4eaeaae11af537821599daa2a6",
+          "timestamp": 1782270674,
+          "linesChanged": 1384
+        },
+        {
+          "hash": "8675b0a",
+          "message": "Rollback: Reverted last 2 commit(s) due to issues",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/8675b0a1b70113a5032da7ea05365c17125223d9",
+          "timestamp": 1782249127,
+          "linesChanged": 322
+        },
+        {
+          "hash": "0ab39e0",
+          "message": "Rollback: Reverted last 2 commit(s) due to issues",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/0ab39e077e882bb86c0b3605fec83a5e1e7b80f6",
+          "timestamp": 1782248978,
+          "linesChanged": 377
+        },
+        {
+          "hash": "2e91826",
+          "message": "formatter",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/2e918264183ccbcb7ce38aeb17e8a9fb4e636cc5",
+          "timestamp": 1782248871,
+          "linesChanged": 55
+        },
+        {
+          "hash": "ce1c1a6",
+          "message": "Wow things fly now",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/ce1c1a6883ba914bae430fe52741602c3a22d8d9",
+          "timestamp": 1782248634,
+          "linesChanged": 322
+        },
+        {
+          "hash": "02a320d",
+          "message": "nav button color",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/02a320d8ee30f1d536961bdd49ce7c752a888d57",
+          "timestamp": 1782248040,
+          "linesChanged": 3
+        },
+        {
+          "hash": "6e34b1f",
+          "message": "Language scroll",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/6e34b1f1390bd27b08dddf9bdcf7f59a9aebd0bc",
+          "timestamp": 1782247854,
+          "linesChanged": 348
+        },
+        {
+          "hash": "66cd1df",
+          "message": "styling",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/66cd1df578f2aec859e395fbb464f3d50b61246e",
+          "timestamp": 1782246935,
+          "linesChanged": 18
+        },
+        {
+          "hash": "aa38cb2",
+          "message": "little touches",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/aa38cb218b49f5c77cb762f40ac35935e93b3872",
+          "timestamp": 1782245880,
+          "linesChanged": 53
+        },
+        {
+          "hash": "b050da6",
+          "message": "wizardry",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/b050da65c888970ce6edd95d32548246f80ec4c4",
+          "timestamp": 1782245483,
+          "linesChanged": 685
+        },
+        {
+          "hash": "a042f20",
+          "message": "styling",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/a042f200e9b18ec13db066a0efc36ce1fd85fa0d",
+          "timestamp": 1782199270,
+          "linesChanged": 30
+        },
+        {
+          "hash": "7f37a09",
+          "message": "batman",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/7f37a09adb2bcc0420a7cd4efaed37395e45bc83",
+          "timestamp": 1782198606,
+          "linesChanged": 311
+        },
+        {
+          "hash": "2921952",
+          "message": "Update WeAreDogs.svelte",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/2921952d078c86f838fd4b2c98f399373b74bb6d",
+          "timestamp": 1782196682,
+          "linesChanged": 4
+        },
+        {
+          "hash": "634a6c3",
+          "message": "polyfills",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/634a6c3566f6780e1f98f3c1069b0b56044c24a6",
+          "timestamp": 1782194691,
+          "linesChanged": 36
+        },
+        {
+          "hash": "b4ba5c7",
+          "message": "polyfills",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/b4ba5c71a0c36ae05451dcc25f913ec34a20a106",
+          "timestamp": 1782192817,
+          "linesChanged": 6
+        },
+        {
+          "hash": "30066e6",
+          "message": "polyfills",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/30066e654cf588bf0a79e54763b2467e41ef37fd",
+          "timestamp": 1782192171,
+          "linesChanged": 2231
+        },
+        {
+          "hash": "cf01834",
+          "message": "feat: implement real-time demographic simulation engine and localized UI components",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/cf018344e1d0e2a59b11ccce2f16a6f85b432f8b",
+          "timestamp": 1782110892,
+          "linesChanged": 6331
+        },
+        {
+          "hash": "7507d86",
+          "message": "feat: add StatsPanel and WeAreDogs components for language and statistics visualization",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/7507d861f41bab9b017021fcad8fc362ccad89a1",
+          "timestamp": 1782108753,
+          "linesChanged": 265
+        },
+        {
+          "hash": "0b99bb1",
+          "message": "resizing",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/0b99bb1943855830d0e91c7bc57e3857a339d32f",
+          "timestamp": 1782107708,
+          "linesChanged": 19
+        },
+        {
+          "hash": "6abe2a1",
+          "message": "feat: implement statistics and visualization dashboard components with language-specific metrics and data exploration tools",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/6abe2a14da25971eef5662fc22250c9ad8dd4088",
+          "timestamp": 1782106660,
+          "linesChanged": 553
+        },
+        {
+          "hash": "ffdf6d7",
+          "message": "feat: implement WeAreDogs and StatsPanel Svelte components with demographic simulation logic",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/ffdf6d7ec6efd261cf3b6078698f5bbca59f106f",
+          "timestamp": 1782098267,
+          "linesChanged": 617
+        },
+        {
+          "hash": "3ad7570",
+          "message": "feat: add WeAreDogs and StatsPanel components with demographic calculation logic",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/3ad757080825a5e729590112ca61abb2590a58d6",
+          "timestamp": 1782095457,
+          "linesChanged": 14
+        },
+        {
+          "hash": "fdd0196",
+          "message": "feat: implement StatsPanel component and update project version to 1.0.0",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/fdd0196e39d58f2d9f1722f0c4471056150a6e86",
+          "timestamp": 1782094868,
+          "linesChanged": 80
+        },
+        {
+          "hash": "f6928f1",
+          "message": "feat: add GitHub Actions workflow to automate deployment to GitHub Pages",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/f6928f1ac1723a5925c5451eadba89ccadf54e47",
+          "timestamp": 1782094026,
+          "linesChanged": 2
+        },
+        {
+          "hash": "c063a7c",
+          "message": "chore: update package-lock.json dependencies",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/c063a7c391a8c968331b3e05065383d52e320dc1",
+          "timestamp": 1782093931,
+          "linesChanged": 20
+        },
+        {
+          "hash": "0a9996c",
+          "message": "feat: add WeAreDogs and StatsPanel components to visualize demographic population data",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/0a9996c80ea675dd4e1e1c855df88e9c89ce647f",
+          "timestamp": 1782093482,
+          "linesChanged": 549
+        },
+        {
+          "hash": "757228e",
+          "message": "chore: update build script with host flag and remove redundant parcel watcher configuration",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/757228e36ba43b461f9bb096a0584450fa0f0f18",
+          "timestamp": 1782092448,
+          "linesChanged": 7
+        },
+        {
+          "hash": "2a8cd8e",
+          "message": "Rollback: Reverted last 1 commit(s) due to issues",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/2a8cd8eeb7c941d9102b391b19d80763112bc734",
+          "timestamp": 1782090416,
+          "linesChanged": 4841
+        },
+        {
+          "hash": "d6e351e",
+          "message": "feat: implement QRFlash data transfer component and infrastructure for multi-panel application architecture",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/d6e351eaaf57eabe731d6a5f54b03ccccacc2a10",
+          "timestamp": 1782089971,
+          "linesChanged": 4841
+        },
+        {
+          "hash": "dc9591c",
+          "message": "Mobile responsiveness",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/dc9591c88be970ba0939bf89edbdc4af381558b2",
+          "timestamp": 1782087259,
+          "linesChanged": 690
+        },
+        {
+          "hash": "af32cbd",
+          "message": "fixing metadata",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/af32cbd1aa87e4527e83810a0ea261d4892cf7c3",
+          "timestamp": 1782070925,
+          "linesChanged": 360
+        },
+        {
+          "hash": "fc30985",
+          "message": "google hates me",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/fc30985f69c4d4f6116221fafc17ebdface6be92",
+          "timestamp": 1782070217,
+          "linesChanged": 273
+        },
+        {
+          "hash": "1f8fc6d",
+          "message": "life and death",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/1f8fc6d322264e39cf5e16523c41a3390317827f",
+          "timestamp": 1782068559,
+          "linesChanged": 634
+        },
+        {
+          "hash": "414e2ec",
+          "message": "feat: implement GoPro video player component with audio filtering and playback controls",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/414e2ecb4c77b4bd17ba49089faae29fc902bc80",
+          "timestamp": 1782066331,
+          "linesChanged": 28
+        },
+        {
+          "hash": "0347616",
+          "message": "Merge branch 'master' of https://github.com/cptnbrando/wearedogs",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/03476161f5d9e8d9d3a728fb3d843c88f9d26452",
+          "timestamp": 1781999578,
+          "linesChanged": 0
+        },
+        {
+          "hash": "26b67a6",
+          "message": "feat: implement initial project structure with global UI layout, responsive styling, and i18n translation foundation",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/26b67a6db0ebc91cf63637c069538ccbfecd8483",
+          "timestamp": 1781999575,
+          "linesChanged": 29
+        },
+        {
+          "hash": "47709a1",
+          "message": "gh-pages",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/47709a1439ff258c2f2af684695953a2e9ce9f4b",
+          "timestamp": 1781997068,
+          "linesChanged": 550
+        },
+        {
+          "hash": "0a37b08",
+          "message": "Create CNAME",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/0a37b08789a20398ba23a378f6f2a5e407f1d1da",
+          "timestamp": 1781997038,
+          "linesChanged": 1
+        },
+        {
+          "hash": "8f9b0ce",
+          "message": "Rearrange apps",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/8f9b0cea53f1b1a2bf73de1a05635d9d0a72999d",
+          "timestamp": 1781996172,
+          "linesChanged": 162
+        },
+        {
+          "hash": "7a2f0b7",
+          "message": "Absolute insanity",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/7a2f0b7e275a673cd58affcc528ab5ca0ad1e456",
+          "timestamp": 1781995866,
+          "linesChanged": 7983
+        },
+        {
+          "hash": "224904c",
+          "message": "Future endeavours",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/224904c797c9fbb91dd024c1f5b6955914798b5c",
+          "timestamp": 1781946470,
+          "linesChanged": 84
+        },
+        {
+          "hash": "befbef0",
+          "message": "Unreal man",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/befbef07a308d4e507560a44f8f5beda0c8177ff",
+          "timestamp": 1781945375,
+          "linesChanged": 3831
+        },
+        {
+          "hash": "22c89a4",
+          "message": "Letters",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/22c89a4473bbae4d4241ce0a0b4324a984a6bc2c",
+          "timestamp": 1781942740,
+          "linesChanged": 214
+        },
+        {
+          "hash": "56366f7",
+          "message": "Colors",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/56366f7c20810c97fcc809341e91c4b448d286e4",
+          "timestamp": 1781942270,
+          "linesChanged": 163
+        },
+        {
+          "hash": "f7b67c7",
+          "message": "feat: add interactive multilingual WeAreDogs component with language cycling and navigation controls",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/f7b67c791148934ed4851140a4670c420e810f71",
+          "timestamp": 1781941482,
+          "linesChanged": 174
+        },
+        {
+          "hash": "6dac2cd",
+          "message": "WE ARE DOGS",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/6dac2cdd444611204576a68d1ff0746e54777ea2",
+          "timestamp": 1781939966,
+          "linesChanged": 2833
+        },
+        {
+          "hash": "e8cda6a",
+          "message": "Leveled the playing field",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/e8cda6aad307d1e5ed2c7525abff672a8252474f",
+          "timestamp": 1781935759,
+          "linesChanged": 3369
+        },
+        {
+          "hash": "ca89cf8",
+          "message": "types",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/ca89cf81fb4c958ec4357ecdba8708c15e3f3cc3",
+          "timestamp": 1780171710,
+          "linesChanged": 34
+        },
+        {
+          "hash": "8ee4bf5",
+          "message": "remove couter",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/8ee4bf51bd404e3c82d7590bc6e15c571fd374bc",
+          "timestamp": 1780171308,
+          "linesChanged": 5
+        },
+        {
+          "hash": "9dbf940",
+          "message": "Add multi-language translations",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/9dbf9402bdbe51a0ed5de43003129484bc68af80",
+          "timestamp": 1780171243,
+          "linesChanged": 73
+        },
+        {
+          "hash": "1a38084",
+          "message": "we are dogs",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/1a38084684755f50de4515c55a54697abf6591ba",
+          "timestamp": 1780171003,
+          "linesChanged": 6
+        },
+        {
+          "hash": "d1aa00e",
+          "message": "Merge branch 'agents/svelte5-app-initialization-fix'",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/d1aa00e0d4761f561fc287f1677a6622a902f33d",
+          "timestamp": 1780170863,
+          "linesChanged": 0
+        },
+        {
+          "hash": "c9af853",
+          "message": "Fix Svelte 5 app initialization and update SCSS syntax",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/c9af853359c50b6a3a6f0d0460d65ea87f950e3d",
+          "timestamp": 1780170844,
+          "linesChanged": 30
+        },
+        {
+          "hash": "1571d04",
+          "message": "update",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/1571d049269efab02b5c90a23693793299080eba",
+          "timestamp": 1780170812,
+          "linesChanged": 26
+        },
+        {
+          "hash": "8218386",
+          "message": "Merge branch 'agents/add-tailwind-scss-paraglide-homepage-message'",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/821838609630d8bac8d0358adac178232ef45a97",
+          "timestamp": 1780169953,
+          "linesChanged": 0
+        },
+        {
+          "hash": "16b4231",
+          "message": "change",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/16b42316c9b9e399e9245dd1732ac8856e3888ca",
+          "timestamp": 1780169230,
+          "linesChanged": 4700
+        },
+        {
+          "hash": "125bc68",
+          "message": "Add TailwindCSS with SCSS and Paraglide i18n to homepage",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/125bc68528499b59aa42605c9d955e797eecd0e1",
+          "timestamp": 1780168544,
+          "linesChanged": 7111
+        },
+        {
+          "hash": "e66f95b",
+          "message": "Initial Commit",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/e66f95b2db0c54b0b89550407accaf44590b1d28",
+          "timestamp": 1779943913,
+          "linesChanged": 2635
+        }
+      ]
+    }
+  ]
+}
