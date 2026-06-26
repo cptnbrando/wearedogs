@@ -40,6 +40,7 @@ Every single UI component generated MUST contain explicit Tailwind breakpoint pr
 - Load the website and look at the styles and functionality, and console errors yourself before completing tasks.
 - Create new branches for tasks, do not push anything to github. Never run git push. Or git reset or git rebase. You may commit your changes locally to your specific branches.
 - Once the change passes styling, modularity, and testing criteria, you may notify me that the task is complete. I will then review the changes and request changes. Do not create any Pull Requests, unless you are absolutely certain that the changes are perfect and you have followed all other instructions.
+- If a script is creating a dynamicly changing file, such as changelog.json for the changelog app, make sure that it is added to .gitignore.
 
 ### ABSOLUTELY CRITICAL: NEVER TOUCH THE GIT MASTER BRANCH OR THE MAIN BRANCH. NEVER EVER EVER.
 
