@@ -185,8 +185,7 @@
   function closePage() {
     const wasFS = !!document.fullscreenElement;
     if (depth > 0) {
-      history.go(-depth);
-      depth = 0;
+      history.back();
       if (wasFS) {
         setTimeout(() => {
           if (!document.fullscreenElement) {

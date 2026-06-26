@@ -21,6 +21,15 @@
     BoomBox,
   } from "lucide-svelte";
 
+  import SwipeTabNav from "./SwipeTabNav.svelte";
+
+  const musicTabs = [
+    { id: "songs", label: "Songs", icon: Disc3 },
+    { id: "samples", label: "Samples", icon: Mic2 },
+    { id: "playlists", label: "Playlists", icon: Radio },
+    { id: "radio", label: "Radio", icon: BoomBox }
+  ];
+
   let { isClosing = false, onClose, initialTrackId = null } = $props();
 
   // Tab: 'songs' | 'samples' | 'playlists' | 'radio'
@@ -378,41 +387,7 @@
       >
     </header>
 
-    <!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
-    <nav class="mp-tabs" role="tablist">
-      <button
-        class="mp-tab"
-        class:active={activeTab === "songs"}
-        onclick={() => (activeTab = "songs")}
-        role="tab"
-      >
-        <Disc3 size={15} /><span>Songs</span>
-      </button>
-      <button
-        class="mp-tab"
-        class:active={activeTab === "samples"}
-        onclick={() => (activeTab = "samples")}
-        role="tab"
-      >
-        <Mic2 size={15} /><span>Samples</span>
-      </button>
-      <button
-        class="mp-tab"
-        class:active={activeTab === "playlists"}
-        onclick={() => (activeTab = "playlists")}
-        role="tab"
-      >
-        <Radio size={15} /><span>Playlists</span>
-      </button>
-      <button
-        class="mp-tab"
-        class:active={activeTab === "radio"}
-        onclick={() => (activeTab = "radio")}
-        role="tab"
-      >
-        <BoomBox size={15} /><span>Radio</span>
-      </button>
-    </nav>
+    <SwipeTabNav tabs={musicTabs} bind:activeTab />
 
     <div class="mp-body">
       {#if activeTab === "songs"}
