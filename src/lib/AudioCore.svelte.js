@@ -9,6 +9,7 @@ export class AudioCore {
   instSourceNode = null;
   trackGainNode = null;
   instGainNode = null;
+  analyser = null;
   
   trackBuffer = null;
   instBuffer = null;
@@ -42,7 +43,13 @@ export class AudioCore {
     if (this.audioCtx) return;
     this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     this.musicGain = this.audioCtx.createGain();
-    this.musicGain.connect(this.audioCtx.destination);
+    
+    this.analyser = this.audioCtx.createAnalyser();
+    this.analyser.fftSize = 256;
+    
+    this.musicGain.connect(this.analyser);
+    this.analyser.connect(this.audioCtx.destination);
+    
     this.applyVolume();
   }
 
