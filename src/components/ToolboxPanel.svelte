@@ -11,6 +11,7 @@
     Radio,
     Smile,
     Trophy,
+    Terminal,
   } from "lucide-svelte";
   import SnakeApp from "./apps/SnakeApp.svelte";
   import SoundboardApp from "./apps/SoundboardApp.svelte";
@@ -21,6 +22,7 @@
   import Rescue from "./apps/Rescue.svelte";
   import MemesApp from "./apps/MemesApp.svelte";
   import WorldCupApp from "./apps/WorldCupApp.svelte";
+  import ChangelogApp from "./apps/ChangelogApp.svelte";
 
   const title = "Toolbox";
 
@@ -281,6 +283,29 @@
                 >
               </div>
             </div>
+
+            <!-- App 10: Changelog -->
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div
+              class="app-card border-neon-green"
+              onclick={() => {
+                activeApp = "changelog";
+              }}
+            >
+              <div class="app-visual">
+                <div class="terminal-preview-mini">
+                  <span class="prompt-symbol">&gt;_</span>
+                  <span class="cursor-blink"></span>
+                </div>
+              </div>
+              <div class="app-meta">
+                <span class="app-title"><Terminal size={14} /> Changelog</span>
+                <span class="app-desc"
+                  >View the system changelog and repository development metrics.</span
+                >
+              </div>
+            </div>
           </div>
         </div>
       {:else if activeApp === "snake"}
@@ -301,6 +326,8 @@
         <MemesApp />
       {:else if activeApp === "worldcup"}
         <WorldCupApp />
+      {:else if activeApp === "changelog"}
+        <ChangelogApp />
       {/if}
     </div>
 
@@ -310,7 +337,7 @@
         <span>/util</span>
       </div>
       <div class="stats-counter">
-        <span>APPS LOADED: 9</span>
+        <span>APPS LOADED: 10</span>
       </div>
     </footer>
   </div>
@@ -478,19 +505,6 @@
     height: 100%;
     display: flex;
     flex-direction: column;
-  }
-
-  .launcher-view h2 {
-    margin: 0;
-    font-size: 1.3rem;
-    font-weight: 700;
-    color: white;
-  }
-
-  .description {
-    font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.4);
-    margin: 4px 0 20px 0;
   }
 
   .apps-grid {
@@ -783,22 +797,10 @@
     font-family: monospace;
   }
 
-  .status-indicator-green {
-    width: 6px;
-    height: 6px;
-    background: #00ff66;
-    border-radius: 50%;
-    display: inline-block;
-  }
-
   .stats-counter {
     display: flex;
     align-items: center;
     gap: 8px;
-  }
-
-  .divider {
-    color: rgba(255, 255, 255, 0.15);
   }
 
   /* Custom App Previews */
@@ -935,6 +937,35 @@
     100% {
       top: 16px;
     }
+  }
+
+  .terminal-preview-mini {
+    position: relative;
+    width: 24px;
+    height: 24px;
+    background: #000;
+    border: 1px solid #00ff66;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: monospace;
+    font-size: 10px;
+    color: #00ff66;
+    overflow: hidden;
+  }
+  .terminal-preview-mini .prompt-symbol {
+    margin-right: 2px;
+  }
+  .terminal-preview-mini .cursor-blink {
+    width: 4px;
+    height: 8px;
+    background: #00ff66;
+    animation: terminalCursorBlink 1s infinite steps(2);
+  }
+  @keyframes terminalCursorBlink {
+    0%, 100% { opacity: 0; }
+    50% { opacity: 1; }
   }
 
   /* ── Mobile Layout Full Screen & App Grid ── */

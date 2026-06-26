@@ -41,8 +41,13 @@ Every single UI component generated MUST contain explicit Tailwind breakpoint pr
 - Load the website and look at the styles and functionality, and console errors yourself before completing tasks.
 - Create new branches for tasks, do not push anything to github. Never run git push. Or git reset or git rebase. You may commit your changes locally to your specific branches.
 - Once the change passes styling, modularity, and testing criteria, you may notify me that the task is complete. I will then review the changes and request changes. Do not create any Pull Requests, unless you are absolutely certain that the changes are perfect and you have followed all other instructions.
+- If a script is creating a dynamicly changing file, such as changelog.json for the changelog app, make sure that it is added to .gitignore.
 
 ### ABSOLUTELY CRITICAL: NEVER TOUCH THE GIT MASTER BRANCH OR THE MAIN BRANCH. NEVER EVER EVER.
+
+### ABSOLUTELY CRITICAL: ALWAYS CREATE STYLES FOR MOBILE LANDSCAPE, MOBILE PORTRAIT, TABLET LANDSCAPE, TABLET PORTRAIT, DESKTOP LANDSCAPE, DESKTOP PORTRAIT, TV, AND ULTRA-WIDE DISPLAYS. FOLLOW THE STYLING GUIDELINES ABOVE TO MINIMIZE CROPPED OUT CONTENT AND INACCESSIBLE ELEMENTS ACROSS ALL DEVICES. THE CHANGE IS INCOMPLETE IF IT DOES NOT ACCOUNT FOR ALL OF THESE VIEWPORTS. TAILWINDCSS IS YOUR BEST FRIEND FOR THIS.
+
+### ABSOLUTELY CRITICAL: FOR ANY TASK, PRODUCE AND LOAD THE SITE TO CHECK FOR ANY LAYOUT ISSUES OR CROPPED OUT CONTENT, AND BE SURE TO INSPECT ACROSS ALL DEVICES AND VIEWPORTS. 
 
 ## Profile: Swarm-Coordinator
 - **Model**: Gemini 3.1 Pro
