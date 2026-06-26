@@ -357,7 +357,7 @@
                 class="w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl border border-white/5 bg-white/[0.02]"
                 class:animate-wiggle={isBouncing}
               >
-                <div class="flex items-center gap-1.5" class:text-purple-400={audioCore.crossfadeValue < 0.5} class:text-white/20={audioCore.crossfadeValue >= 0.5}>
+                <div class="flex items-center gap-1.5 {audioCore.crossfadeValue < 0.5 ? 'text-purple-400' : 'text-white/20'}">
                   <Mic2 size={14} />
                   <span class="text-[10px] font-bold">VOCAL</span>
                 </div>
@@ -373,7 +373,7 @@
                     aria-label="Vocals to Instrumental Crossfader"
                   />
                 </div>
-                <div class="flex items-center gap-1.5" class:text-cyan-400={audioCore.crossfadeValue >= 0.5} class:text-white/20={audioCore.crossfadeValue < 0.5}>
+                <div class="flex items-center gap-1.5 {audioCore.crossfadeValue >= 0.5 ? 'text-cyan-400' : 'text-white/20'}">
                   <Music size={14} />
                   <span class="text-[10px] font-bold">INST</span>
                 </div>
