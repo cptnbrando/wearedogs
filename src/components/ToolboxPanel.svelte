@@ -24,7 +24,7 @@
 
   const title = "Toolbox";
 
-  let { isClosing = false, onClose, activeApp = $bindable(null) } = $props();
+  let { isClosing = false, onClose, activeApp = $bindable(null), isFlagColors = false } = $props();
 
   function handleBack() {
     if (history.state?.app) {
@@ -41,6 +41,7 @@
   <div
     class="toolbox-panel-container"
     class:closing={isClosing}
+    class:colored={isFlagColors}
     onclick={(e) => e.stopPropagation()}
   >
     <!-- Header -->
@@ -351,6 +352,10 @@
     -webkit-backdrop-filter: blur(15px) saturate(160%);
     animation: panelSlideUpIn 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     transform-origin: center bottom;
+  }
+
+  .toolbox-panel-container:not(.colored) {
+    filter: grayscale(100%);
   }
 
   .toolbox-panel-container.closing {

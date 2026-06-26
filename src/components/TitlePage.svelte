@@ -322,6 +322,7 @@
     initialApp={deepLinkApp}
     goProShow={deepLinkGoProShow}
     goProEpisode={deepLinkGoProEp}
+    isFlagColors={weAreDogsColored}
   />
 {:else if activePage === "music"}
   <MusicPanel {isClosing} onClose={closePage} {initialTrackId} />
