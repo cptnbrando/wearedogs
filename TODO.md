@@ -6,6 +6,12 @@
 
 ---
 
+## 0. Global Site-Wide (mild) Refactoring and Modularizing [Branch: `swarm/core-refactor`]
+- [ ] **Global Values**: Ensure constant values are hoisted up to the top of all svelte/js files for easy modification later. Ensure large json arrays are modularized into their own files and imported.
+- [ ] **TailwindCSS and SCSS**: Following the AGENTS.md instructions, incorporate a larger dependence on tailwindCSS styles for better device compatibility, but ensure all styles are EXACTLY as they currently are. Do not add any new styles. Do not remove any existing styles. Just make sure that tailwindCSS is used more often instead of inline styles. Extrapolate color values into .scss files with comments indicating their uses.
+- [ ] **Componentize Common UI Elements**: Following the AGENTS.md instructions, break down recurring UI elements like buttons, navigation bars, and cards into reusable Svelte components, improving maintainability and consistency. Apps, Panels, and headers should all have the same standardized styling, similar data, and same functionality throughout.
+- [ ] **Documentation and Copy**: Documentation is to be as up to date as possible and should match the current state of the codebase.
+
 ## 1. Global & Architectural Adjustments [Branch: `swarm/core-navigation`]
 - [ ] **Architecture**: Ensure entire codebase transpiles/builds down to support Chrome 40+ compatibility (Potato Target optimization for legacy devices/fridges).
 - [ ] **Navigation Flow**: Refactor the "X" close navigation buttons site-wide. Ensure they strictly pop the navigation stack exactly one level up, leading sequentially back to the title page rather than breaking history or jumping randomly.
