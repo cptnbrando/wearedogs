@@ -775,40 +775,6 @@
     transform: rotate(90deg);
   }
 
-  .mp-tabs {
-    display: flex;
-    padding: 0 18px;
-    gap: 2px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    background: rgba(0, 0, 0, 0.14);
-    flex-shrink: 0;
-  }
-  .mp-tab {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    padding: 11px 16px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    letter-spacing: 0.07em;
-    text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.32);
-    background: transparent;
-    border: none;
-    border-bottom: 2px solid transparent;
-    cursor: pointer;
-    transition: all 0.18s;
-    font-family: "Outfit", "Inter", sans-serif;
-    margin-bottom: -1px;
-  }
-  .mp-tab:hover {
-    color: rgba(255, 255, 255, 0.62);
-  }
-  .mp-tab.active {
-    color: rgba(255, 255, 255, 0.92);
-    border-bottom-color: rgba(165, 90, 255, 0.85);
-  }
-
   .mp-body {
     flex: 1;
     overflow: hidden;
@@ -1666,13 +1632,6 @@
       flex: 1;
       min-height: 0;
       max-height: none;
-    }
-    .mp-tab {
-      padding: 9px 11px;
-      font-size: 0.7rem;
-    }
-    .mp-tabs {
-      padding: 0 8px;
     }
     /* Tighten track-info text on small screens */
     .track-title {

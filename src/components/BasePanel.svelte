@@ -9,11 +9,13 @@
   } = $props();
 
   function handleKeydown(e) {
-    if (e.key === "Escape") {
+    if (e.key === "Escape" && typeof onClose === "function") {
       onClose();
     }
   }
 </script>
+
+<svelte:window onkeydown={handleKeydown} />
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->

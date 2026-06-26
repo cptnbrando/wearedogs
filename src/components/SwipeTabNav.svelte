@@ -10,6 +10,11 @@
   let containerRef = $state();
   let tabRefs = $state({});
 
+  // Mouse & Touch drag variables for swipe/scroll gestures
+  let isDown = $state(false);
+  let startX = $state(0);
+  let scrollLeft = $state(0);
+
   // Auto-scroll the active tab to the center of the viewport/container
   $effect(() => {
     const activeId = activeTab;
@@ -42,13 +47,67 @@
     activeTab = id;
     if (onTabChange) onTabChange(id);
   }
+
+  // Mouse drag handlers
+  function handleMouseDown(e) {
+    isDown = true;
+    startX = e.pageX - containerRef.offsetLeft;
+    scrollLeft = containerRef.scrollLeft;
+  }
+
+  function handleMouseLeave() {
+    isDown = false;
+  }
+
+  // Handle global mouse up to ensure drag finishes cleanly
+  function handleMouseUp() {
+    isDown = false;
+  }
+
+  function handleMouseMove(e) {
+    if (!isDown) return;
+    e.preventDefault();
+    const x = e.pageX - containerRef.offsetLeft;
+    const walk = (x - startX) * 1.5; // multiplier for speed
+    containerRef.scrollLeft = scrollLeft - walk;
+  }
+
+  // Touch drag handlers
+  function handleTouchStart(e) {
+    isDown = true;
+    startX = e.touches[0].pageX - containerRef.offsetLeft;
+    scrollLeft = containerRef.scrollLeft;
+  }
+
+  function handleTouchEnd() {
+    isDown = false;
+  }
+
+  function handleTouchMove(e) {
+    if (!isDown) return;
+    const x = e.touches[0].pageX - containerRef.offsetLeft;
+    const walk = (x - startX) * 1.5;
+    containerRef.scrollLeft = scrollLeft - walk;
+  }
 </script>
 
+<!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role a11y_interactive_supports_focus a11y_no_static_element_interactions -->
 <div
   bind:this={containerRef}
   class="swipe-tab-nav scroll-container"
   class:evenly-spaced={tabs.length <= 4}
   class:fluid-scrolling={tabs.length > 4}
+  class:dragging={isDown}
+  role="tablist"
+  tabindex="-1"
+  aria-label="Tab navigation"
+  onmousedown={handleMouseDown}
+  onmouseleave={handleMouseLeave}
+  onmouseup={handleMouseUp}
+  onmousemove={handleMouseMove}
+  ontouchstart={handleTouchStart}
+  ontouchend={handleTouchEnd}
+  ontouchmove={handleTouchMove}
 >
   {#each tabs as tab}
     <button
@@ -79,6 +138,12 @@
     box-sizing: border-box;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    cursor: grab;
+    user-select: none;
+  }
+
+  .swipe-tab-nav.dragging {
+    cursor: grabbing;
   }
 
   /* Hide scrollbars */
