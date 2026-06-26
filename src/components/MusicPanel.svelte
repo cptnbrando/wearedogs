@@ -23,6 +23,8 @@
 
   import SwipeTabNav from "./SwipeTabNav.svelte";
 
+  const title = "MUSIC";
+
   const musicTabs = [
     { id: "songs", label: "Songs", icon: Disc3 },
     { id: "samples", label: "Samples", icon: Mic2 },
@@ -801,50 +803,50 @@
     }
   }
 
-  .mp-header {
-    height: 58px;
-    padding: 0 22px;
-    flex-shrink: 0;
+  /* ── Header ── */
+  .panel-header {
+    height: 64px;
+    padding: 0 24px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    background: rgba(0, 0, 0, 0.22);
+    background: rgba(0, 0, 0, 0.2);
   }
-  .mp-brand {
+
+  .brand {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
   }
-  .mp-logo {
-    width: 21px;
-    height: 21px;
-    filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.25));
-  }
-  .mp-title {
-    font-family: "Outfit", "Inter", sans-serif;
-    font-size: 0.9rem;
+
+  .brand h1 {
+    margin: 0;
+    font-size: 1.1rem;
     font-weight: 700;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.05em;
     text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.88);
+    color: rgba(255, 255, 255, 0.95);
+    font-family: "Outfit", "Inter", sans-serif;
   }
-  .mp-close-btn {
+
+  .close-btn {
     background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 50%;
-    color: rgba(255, 255, 255, 0.42);
+    color: rgba(255, 255, 255, 0.5);
     width: 32px;
     height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
   }
-  .mp-close-btn:hover {
-    background: rgba(255, 255, 255, 0.12);
-    color: #fff;
+
+  .close-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
     transform: translateX(-4px);
   }
 
