@@ -21,8 +21,13 @@
     BoomBox,
     Music,
     Guitar,
+    Waves,
+    Maximize2,
+    Minimize2,
   } from "lucide-svelte";
   import { audioCore } from "../lib/AudioCore.svelte.js";
+  import { VisualizerEngine } from "../lib/visualizer/VisualizerEngine.js";
+  import { PRESETS } from "../lib/visualizer/presets.js";
 
   import SwipeTabNav from "./SwipeTabNav.svelte";
 
@@ -45,6 +50,45 @@
   let vinylLoaded = $state(false);
   let showVolumeSlider = $state(false);
   let volumePopoverEl = $state(null);
+
+  let showVisualizer = $state(false);
+  let activePresetIdx = $state(0);
+  let isFullscreenVisualizer = $state(false);
+  let canvasEl = $state(null);
+  let visualizerEngine = null;
+
+  // Manage Visualizer instantiation and destruction
+  $effect(() => {
+    if (showVisualizer && canvasEl && audioCore.analyser) {
+      visualizerEngine = new VisualizerEngine(canvasEl, audioCore.analyser);
+
+      // Initial preset load
+      const preset = PRESETS[activePresetIdx];
+      if (preset) {
+        visualizerEngine.init(preset.fragmentShader);
+        visualizerEngine.start();
+      }
+    }
+
+    return () => {
+      if (visualizerEngine) {
+        visualizerEngine.destroy();
+        visualizerEngine = null;
+      }
+    };
+  });
+
+  // Manage Preset switches (without destroying WebGL context)
+  $effect(() => {
+    const presetIdx = activePresetIdx; // track dependency
+    if (visualizerEngine && showVisualizer) {
+      const preset = PRESETS[presetIdx];
+      if (preset) {
+        visualizerEngine.setPreset(preset.fragmentShader);
+        visualizerEngine.start();
+      }
+    }
+  });
 
   // Sync tracklist state with browser history (back button closes tracklist)
   $effect(() => {
@@ -73,7 +117,12 @@
   }
 
   function handleWindowClick(e) {
-    if (showVolumeSlider && volumePopoverEl && !volumePopoverEl.contains(e.target) && !e.target.closest(".vol-toggle-btn")) {
+    if (
+      showVolumeSlider &&
+      volumePopoverEl &&
+      !volumePopoverEl.contains(e.target) &&
+      !e.target.closest(".vol-toggle-btn")
+    ) {
       showVolumeSlider = false;
     }
   }
@@ -91,7 +140,7 @@
       hasInstrumental: true,
       dateAdded: "2026-06-24T03:00:00-05:00",
       year: 2026,
-      genre: "Hip-Hop"
+      genre: "Hip-Hop",
     },
     {
       id: "chicago",
@@ -105,8 +154,8 @@
       hasInstrumental: true,
       dateAdded: "2026-06-24T03:00:00-05:00",
       year: 2014,
-      genre: "Pop"
-    }
+      genre: "Pop",
+    },
   ];
 
   // Derive sort values
@@ -135,7 +184,9 @@
     } else if (sortBy === "year") {
       list.sort((a, b) => (a.year || 0) - (b.year || 0));
     } else if (sortBy === "filename") {
-      list.sort((a, b) => getTrackFilename(a).localeCompare(getTrackFilename(b)));
+      list.sort((a, b) =>
+        getTrackFilename(a).localeCompare(getTrackFilename(b)),
+      );
     } else if (sortBy === "genre") {
       list.sort((a, b) => (a.genre || "").localeCompare(b.genre || ""));
     } else if (sortBy === "season") {
@@ -149,7 +200,7 @@
   onMount(() => {
     audioCore.init(library);
     if (initialTrackId) {
-      const idx = library.findIndex(t => t.id === initialTrackId);
+      const idx = library.findIndex((t) => t.id === initialTrackId);
       if (idx !== -1) {
         audioCore.loadTrack(idx, true);
       }
@@ -157,7 +208,7 @@
   });
 
   function selectSortedTrack(track) {
-    const idx = library.findIndex(t => t.id === track.id);
+    const idx = library.findIndex((t) => t.id === track.id);
     if (audioCore.currentTrackIndex === idx) {
       audioCore.togglePlay();
     } else {
@@ -171,7 +222,9 @@
     if (!success) {
       if (!isBouncing) {
         isBouncing = true;
-        setTimeout(() => { isBouncing = false; }, 400);
+        setTimeout(() => {
+          isBouncing = false;
+        }, 400);
       }
     }
   }
@@ -239,7 +292,11 @@
   }
 </script>
 
-<svelte:window onkeydown={handleKeydown} onpopstate={handlePopState} onclick={handleWindowClick} />
+<svelte:window
+  onkeydown={handleKeydown}
+  onpopstate={handlePopState}
+  onclick={handleWindowClick}
+/>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -277,44 +334,104 @@
           <!-- Left side player details -->
           <div class="player-side" class:tracklist-open={showMobileTracklist}>
             <!-- Top block (Vinyl & track info) - disappears on mobile tracklist active -->
-            <div 
-              class="player-top-block transition-all duration-300 ease-in-out" 
-              class:opacity-0={showMobileTracklist} 
+            <div
+              class="player-top-block transition-all duration-300 ease-in-out"
+              class:opacity-0={showMobileTracklist}
               class:scale-95={showMobileTracklist}
               class:pointer-events-none={showMobileTracklist}
             >
-              <!-- Vinyl disc button to toggle tracklist on mobile -->
-              <!-- svelte-ignore a11y_click_events_have_key_events -->
-              <!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
-              <div 
-                class="vinyl-wrapper cursor-pointer" 
-                onclick={() => { showMobileTracklist = true; }}
-                role="button"
-                tabindex="0"
-                aria-label="Open tracklist"
-              >
-                <div class="vinyl-record" class:spinning={audioCore.isPlaying}>
-                  <div class="groove g1"></div>
-                  <div class="groove g2"></div>
-                  <div class="groove g3"></div>
-                  <div class="groove g4"></div>
-                  <div class="record-label">
-                    <img
-                      src={currentTrack.cover}
-                      alt={currentTrack.album}
-                      loading="lazy"
-                      class="record-art"
-                      class:loaded={vinylLoaded}
-                      onload={() => (vinylLoaded = true)}
-                    />
+              <!-- Vinyl disc OR Visualizer (Exactly same dimensions!) -->
+              <div class="vinyl-wrapper relative">
+                {#if showVisualizer}
+                  <!-- Visualizer Container -->
+                  <!-- svelte-ignore a11y_click_events_have_key_events -->
+                  <!-- svelte-ignore a11y_no_static_element_interactions -->
+                  <div 
+                    class="visualizer-container cursor-pointer" 
+                    class:fullscreen={isFullscreenVisualizer}
+                    onclick={() => { if (!isFullscreenVisualizer) isFullscreenVisualizer = true; }}
+                  >
+                    <canvas bind:this={canvasEl} class="visualizer-canvas"></canvas>
+                    
+                    <!-- Floating Overlay controls: Only show when fullscreen or on hover -->
+                    {#if isFullscreenVisualizer}
+                      <div class="visualizer-overlay" onclick={(e) => e.stopPropagation()}>
+                        <div class="flex items-center gap-1 bg-black/60 backdrop-blur-md rounded-lg p-1 border border-white/10">
+                          {#each PRESETS as preset, index}
+                            <button 
+                              class="px-2 py-1 rounded text-[9px] font-bold transition-all uppercase tracking-wider font-mono
+                                {activePresetIdx === index
+                                ? 'bg-purple-600 text-white'
+                                : 'text-white/40 hover:text-white/80'}"
+                              onclick={() => activePresetIdx = index}
+                            >
+                              {preset.name}
+                            </button>
+                          {/each}
+                        </div>
+
+                        <button 
+                          class="ctrl ctrl-xs bg-black/60 backdrop-blur-md border border-white/10 text-white/80 hover:text-white"
+                          onclick={() => isFullscreenVisualizer = false}
+                          aria-label="Exit Fullscreen"
+                        >
+                          <Minimize2 size={12} />
+                        </button>
+                      </div>
+                    {:else}
+                      <!-- Subtle maximize icon on hover -->
+                      <div class="visualizer-hover-overlay">
+                        <Maximize2 size={16} class="text-white/70" />
+                      </div>
+                    {/if}
                   </div>
-                  <div class="spindle"></div>
-                </div>
-                <div class="tonearm" class:playing={audioCore.isPlaying}></div>
+                {:else}
+                  <!-- Vinyl disc button to toggle tracklist on mobile -->
+                  <!-- svelte-ignore a11y_click_events_have_key_events -->
+                  <!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
+                  <div
+                    class="vinyl-record-clicker cursor-pointer w-full h-full"
+                    onclick={() => {
+                      showMobileTracklist = true;
+                    }}
+                    role="button"
+                    tabindex="0"
+                    aria-label="Open tracklist"
+                  >
+                    <div
+                      class="vinyl-record"
+                      class:spinning={audioCore.isPlaying}
+                    >
+                      <div class="groove g1"></div>
+                      <div class="groove g2"></div>
+                      <div class="groove g3"></div>
+                      <div class="groove g4"></div>
+                      <div class="record-label">
+                        <img
+                          src={currentTrack.cover}
+                          alt={currentTrack.album}
+                          loading="lazy"
+                          class="record-art"
+                          class:loaded={vinylLoaded}
+                          onload={() => (vinylLoaded = true)}
+                        />
+                      </div>
+                      <div class="spindle"></div>
+                    </div>
+                    <div
+                      class="tonearm"
+                      class:playing={audioCore.isPlaying}
+                    ></div>
+                  </div>
+                {/if}
               </div>
 
+              <!-- Track info (Always visible!) -->
               <div class="track-info mt-2">
-                <div class="version-badge" class:inst={audioCore.isInstrumental}>
+                <div
+                  class="version-badge"
+                  class:inst={audioCore.isInstrumental}
+                >
                   {audioCore.isInstrumental ? "INSTRUMENTAL" : "ORIGINAL"}
                 </div>
                 <h2 class="track-title">{currentTrack.title}</h2>
@@ -329,7 +446,12 @@
               <div class="progress-row">
                 <span class="ptime">{fmtTime(audioCore.currentTime)}</span>
                 <div class="progress-wrap">
-                  <div class="progress-fill" style="width:{(audioCore.duration > 0 ? (audioCore.currentTime / audioCore.duration) * 100 : 0)}%"></div>
+                  <div
+                    class="progress-fill"
+                    style="width:{audioCore.duration > 0
+                      ? (audioCore.currentTime / audioCore.duration) * 100
+                      : 0}%"
+                  ></div>
                   <input
                     type="range"
                     class="seek-input"
@@ -337,8 +459,12 @@
                     max={audioCore.duration || 100}
                     step="0.1"
                     value={audioCore.currentTime}
-                    oninput={(e) => { audioCore.currentTime = parseFloat(e.target.value); }}
-                    onchange={(e) => { audioCore.play(parseFloat(e.target.value)); }}
+                    oninput={(e) => {
+                      audioCore.currentTime = parseFloat(e.target.value);
+                    }}
+                    onchange={(e) => {
+                      audioCore.play(parseFloat(e.target.value));
+                    }}
                     aria-label="Seek"
                   />
                 </div>
@@ -385,47 +511,73 @@
                 <button
                   class="ctrl ctrl-sm"
                   class:active-ctrl={audioCore.repeatMode > 0}
-                  onclick={() => { audioCore.repeatMode = (audioCore.repeatMode + 1) % 3; }}
+                  onclick={() => {
+                    audioCore.repeatMode = (audioCore.repeatMode + 1) % 3;
+                  }}
                   aria-label="Repeat"
                 >
-                  {#if audioCore.repeatMode === 2}<Repeat1 size={15} />{:else}<Repeat
+                  {#if audioCore.repeatMode === 2}<Repeat1
                       size={15}
-                    />{/if}
+                    />{:else}<Repeat size={15} />{/if}
                 </button>
               </div>
 
               <!-- Custom DJ Crossfader -->
               <div class="w-full flex flex-col items-center gap-1.5 mt-2 px-1">
-                <span class="text-[10px] font-bold tracking-wider text-white/30 uppercase font-sans">Crossfader</span>
+                <span
+                  class="text-[10px] font-bold tracking-wider text-white/30 uppercase font-sans"
+                  >Crossfader</span
+                >
                 <!-- svelte-ignore a11y_click_events_have_key_events -->
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
-                <div 
+                <div
                   class="dj-crossfader"
                   class:animate-wiggle={isBouncing}
                   onclick={toggleCrossfade}
                 >
-                  <span class="fader-label left-label flex items-center gap-1" class:active={!audioCore.isInstrumental}>
+                  <span
+                    class="fader-label left-label flex items-center gap-1"
+                    class:active={!audioCore.isInstrumental}
+                  >
                     <Mic2 size={12} />
                     <span>VOCAL</span>
                   </span>
                   <div class="dj-fader-slot">
-                    <div class="dj-fader-knob" class:right={audioCore.isInstrumental}></div>
+                    <div
+                      class="dj-fader-knob"
+                      class:right={audioCore.isInstrumental}
+                    ></div>
                   </div>
-                  <span class="fader-label right-label flex items-center gap-1" class:active={audioCore.isInstrumental}>
+                  <span
+                    class="fader-label right-label flex items-center gap-1"
+                    class:active={audioCore.isInstrumental}
+                  >
                     <Guitar size={12} />
                     <span>INST</span>
                   </span>
                 </div>
               </div>
 
-              <!-- Volume controls wrapper -->
-              <div class="relative flex justify-center mt-2 w-full">
+              <!-- Volume & Visualizer controls wrapper -->
+              <div
+                class="relative flex justify-center items-center gap-3 mt-2 w-full"
+              >
+                <!-- Visualizer Toggle Button -->
+                <button
+                  class="ctrl ctrl-xs"
+                  class:active-ctrl={showVisualizer}
+                  onclick={() => {
+                    showVisualizer = !showVisualizer;
+                  }}
+                  aria-label="Toggle Visualizer"
+                >
+                  <Waves size={13} />
+                </button>
+
+                <!-- Volume controls wrapper -->
                 <div class="relative">
                   {#if showVolumeSlider}
-                    <div 
-                      class="volume-popover"
-                      bind:this={volumePopoverEl}
-                    >
+                    <div class="volume-popover" bind:this={volumePopoverEl}>
                       <button
                         class="ctrl ctrl-xs mr-2 border border-white/10 rounded-full p-1 hover:bg-white/10"
                         onclick={() => audioCore.toggleMute()}
@@ -444,17 +596,22 @@
                         max="1"
                         step="0.01"
                         value={audioCore.volume}
-                        oninput={(e) => audioCore.setVolume(parseFloat(e.target.value))}
+                        oninput={(e) =>
+                          audioCore.setVolume(parseFloat(e.target.value))}
                         aria-label="Volume"
                       />
-                      <span class="text-[10px] font-bold text-white/60 min-w-[28px] text-right font-mono select-none">
+                      <span
+                        class="text-[10px] font-bold text-white/60 min-w-[28px] text-right font-mono select-none"
+                      >
                         {Math.round(audioCore.volume * 100)}%
                       </span>
                     </div>
                   {/if}
                   <button
                     class="ctrl ctrl-xs vol-toggle-btn"
-                    onclick={() => { showVolumeSlider = !showVolumeSlider; }}
+                    onclick={() => {
+                      showVolumeSlider = !showVolumeSlider;
+                    }}
                     aria-label="Toggle volume slider"
                   >
                     {#if audioCore.isMuted || audioCore.volume === 0}
@@ -471,11 +628,15 @@
           <!-- Right side tracklist -->
           <div class="tracklist-side" class:show-mobile={showMobileTracklist}>
             <!-- Mobile back button to close tracklist drawer -->
-            <div class="mobile-close-bar hidden py-2 px-4 border-b border-white/5 flex items-center justify-between">
+            <div
+              class="mobile-close-bar hidden py-2 px-4 border-b border-white/5 flex items-center justify-between"
+            >
               <span class="text-xs font-bold text-white/50">Track Library</span>
-              <button 
+              <button
                 class="px-3 py-1 bg-white/5 text-white/75 rounded-lg text-xs font-bold"
-                onclick={() => { showMobileTracklist = false; }}
+                onclick={() => {
+                  showMobileTracklist = false;
+                }}
               >
                 Back to player
               </button>
@@ -486,11 +647,13 @@
                 <List size={13} /><span>TRACKS</span>
                 <span class="tl-count">{library.length}</span>
               </div>
-              
+
               <!-- Sorting selector dropdown -->
               <div class="flex items-center gap-1.5 ml-auto">
-                <span class="text-[9px] text-white/30 font-bold font-sans">SORT BY:</span>
-                <select 
+                <span class="text-[9px] text-white/30 font-bold font-sans"
+                  >SORT BY:</span
+                >
+                <select
                   bind:value={sortBy}
                   class="bg-black/40 border border-white/10 rounded px-1.5 py-0.5 text-[10px] font-bold text-white/60 outline-none cursor-pointer hover:border-white/20 transition-all font-sans"
                 >
@@ -511,7 +674,8 @@
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
                 <div
                   class="track-row"
-                  class:active={library[audioCore.currentTrackIndex].id === track.id}
+                  class:active={library[audioCore.currentTrackIndex].id ===
+                    track.id}
                   onclick={() => selectSortedTrack(track)}
                 >
                   <div class="tr-num">
@@ -533,21 +697,30 @@
                   />
                   <div class="tr-info">
                     <span class="tr-title">{track.title}</span>
-                    <span class="tr-meta">{track.artist} · {track.album} ({track.year || ""})</span>
+                    <span class="tr-meta"
+                      >{track.artist} · {track.album} ({track.year || ""})</span
+                    >
                   </div>
                   {#if library[audioCore.currentTrackIndex].id === track.id && audioCore.isInstrumental}
                     <span class="inst-chip">INST</span>
                   {/if}
                   {#if track.artist === "YG"}
                     <span class="inst-chip-link">
-                      <a href="https://the-gentlemens-club.com/" target="_blank" onclick={(e) => e.stopPropagation()}>YG</a>
+                      <a
+                        href="https://the-gentlemens-club.com/"
+                        target="_blank"
+                        onclick={(e) => e.stopPropagation()}>YG</a
+                      >
                     </span>
                   {/if}
                 </div>
               {/each}
               <div class="add-hint">
                 <Plus size={12} />
-                <span>Add tracks to <code>public/music/[artist]/[album]/</code></span>
+                <span
+                  >Add tracks to <code>public/music/[artist]/[album]/</code
+                  ></span
+                >
               </div>
             </div>
           </div>
@@ -630,7 +803,9 @@
         <div class="tab-scroll scroll-y">
           <div class="sec-head">
             <h2 class="sec-title">Radio</h2>
-            <p class="sec-sub">Stream live broadcasts, dog shows, and podcast feeds</p>
+            <p class="sec-sub">
+              Stream live broadcasts, dog shows, and podcast feeds
+            </p>
           </div>
           <div class="empty-state mx-auto max-w-[380px] text-center">
             <div class="wip-tape">COMING SOON</div>
@@ -700,9 +875,16 @@
   }
 
   @keyframes wiggle {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-6px) rotate(-1.5deg); }
-    75% { transform: translateX(6px) rotate(1.5deg); }
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+    25% {
+      transform: translateX(-6px) rotate(-1.5deg);
+    }
+    75% {
+      transform: translateX(6px) rotate(1.5deg);
+    }
   }
   .animate-wiggle {
     animation: wiggle 0.2s ease-in-out 2;
@@ -722,7 +904,7 @@
     justify-content: space-between;
     padding: 0 16px;
     box-sizing: border-box;
-    box-shadow: 
+    box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.05),
       0 8px 24px rgba(0, 0, 0, 0.5);
     gap: 12px;
@@ -767,7 +949,7 @@
     background: linear-gradient(135deg, #666 0%, #333 50%, #222 100%);
     border: 1px solid rgba(255, 255, 255, 0.25);
     border-radius: 3px;
-    box-shadow: 
+    box-shadow:
       0 4px 10px rgba(0, 0, 0, 0.8),
       inset 0 1px 0 rgba(255, 255, 255, 0.15);
     transition: left 0.18s cubic-bezier(0.25, 0.8, 0.25, 1);
@@ -817,5 +999,63 @@
     background: rgba(255, 255, 255, 0.1);
     border-radius: 2px;
     outline: none;
+  }
+
+  /* ── WebGL Audio Visualizer ── */
+  .visualizer-container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    border-radius: 50%; /* Make it match vinyl disk shape initially */
+    overflow: hidden;
+    background: #050508;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    flex-direction: column;
+    transition: border-radius 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  }
+
+  .visualizer-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .visualizer-overlay {
+    position: absolute;
+    bottom: 16px;
+    left: 16px;
+    right: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    z-index: 10;
+  }
+
+  .visualizer-container.fullscreen {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    border-radius: 0 !important; /* Full rectangle in fullscreen */
+    border: none;
+    z-index: 2000;
+  }
+
+  .visualizer-hover-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.22s ease;
+    border-radius: 50%;
+  }
+
+  .visualizer-container:hover .visualizer-hover-overlay {
+    opacity: 1;
   }
 </style>
