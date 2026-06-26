@@ -1,0 +1,59 @@
+// World Cup App Theme Variables & Config
+// Used across Svelte components and app.scss to centralise design tokens.
+
+// ── Color Palette ──
+$color-neon-gold: #e6b900;       // Highlight branding & trophy accents
+$color-neon-red: #ff3344;        // Main primary accent & tab highlights
+$color-neon-green: #00d75f;      // Success, advancing status, and win states
+$color-alert-red: #ef4444;       // Elimination status, offline warnings
+
+// ── Background Gradients & Colors ──
+$bg-app-dark: #050508;
+$bg-radial-overlay: radial-gradient(circle at top, rgba(30, 10, 15, 0.55) 0%, rgba(5, 5, 8, 1) 100%);
+$bg-card-dark: rgba(15, 15, 22, 0.45);
+$bg-input-dark: rgba(255, 255, 255, 0.04);
+$border-light: rgba(255, 255, 255, 0.05);
+
+// ── Typography & Scales ──
+$font-primary: "Inter", "Outfit", sans-serif;
+$transition-speed-fast: 0.15s;
+$transition-speed-normal: 0.25s;
+
+// ── Animation Keyframes ──
+@keyframes trophyFloat {
+  0% {
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    transform: translateY(-3px) scale(1.04);
+  }
+}
+
+@keyframes pulseGlow {
+  from {
+    box-shadow: 0 0 4px rgba(239, 68, 68, 0.1);
+  }
+  to {
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.35);
+  }
+}
+
+@keyframes searchPulse {
+  0% {
+    border-color: rgba($color-neon-gold, 0.4);
+  }
+  100% {
+    border-color: rgba($color-neon-gold, 0.95);
+  }
+}
+
+@keyframes flashGlow {
+  0%, 100% {
+    border-color: $border-light;
+    box-shadow: none;
+  }
+  50% {
+    border-color: rgba($color-neon-red, 0.8);
+    box-shadow: 0 0 20px rgba($color-neon-red, 0.35);
+  }
+}

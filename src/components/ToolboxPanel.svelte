@@ -10,6 +10,7 @@
     QrCode,
     Radio,
     Smile,
+    Trophy,
   } from "lucide-svelte";
   import SnakeApp from "./apps/SnakeApp.svelte";
   import SoundboardApp from "./apps/SoundboardApp.svelte";
@@ -19,6 +20,7 @@
   import QRFlash from "./apps/QRFlash.svelte";
   import Rescue from "./apps/Rescue.svelte";
   import MemesApp from "./apps/MemesApp.svelte";
+  import WorldCupApp from "./apps/WorldCupApp.svelte";
 
   const title = "Toolbox";
 
@@ -256,6 +258,31 @@
                 >
               </div>
             </div>
+
+            <!-- App 9: World Cup Bracket -->
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div
+              class="app-card border-neon-gold-hover"
+              onclick={() => {
+                activeApp = "worldcup";
+              }}
+            >
+              <div class="app-visual">
+                <div class="wc-bracket-preview">
+                  <Trophy size={32} />
+                </div>
+              </div>
+              <div class="app-meta">
+                <span class="app-title"
+                  ><Trophy size={14} /> FIFA World Cup</span
+                >
+                <span class="app-desc"
+                  >Track matches, group stage standings, and the responsive
+                  bracket.</span
+                >
+              </div>
+            </div>
           </div>
         </div>
       {:else if activeApp === "snake"}
@@ -274,6 +301,8 @@
         <Rescue />
       {:else if activeApp === "memes"}
         <MemesApp />
+      {:else if activeApp === "worldcup"}
+        <WorldCupApp />
       {/if}
     </div>
 
@@ -284,7 +313,7 @@
         <span>UTILITY GRID STABLE</span>
       </div>
       <div class="stats-counter">
-        <span>APPS LOADED: 8</span>
+        <span>APPS LOADED: 9</span>
         <span class="divider">|</span>
         <span>ACTIVE APP: {activeApp ? activeApp.toUpperCase() : "NONE"}</span>
       </div>
@@ -369,6 +398,7 @@
     justify-content: space-between;
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     background: rgba(0, 0, 0, 0.2);
+    flex-shrink: 0;
   }
 
   .brand {
@@ -511,6 +541,10 @@
   .border-neon-cyan:hover {
     border-color: rgba(0, 191, 255, 0.6);
     box-shadow: 0 8px 30px rgba(0, 191, 255, 0.1);
+  }
+  .border-neon-gold-hover:hover {
+    border-color: rgba(230, 185, 0, 0.6);
+    box-shadow: 0 8px 30px rgba(230, 185, 0, 0.15);
   }
 
   .app-visual {
@@ -732,6 +766,7 @@
     justify-content: space-between;
     border-top: 1px solid rgba(255, 255, 255, 0.06);
     background: rgba(0, 0, 0, 0.3);
+    flex-shrink: 0;
     font-size: 0.7rem;
     color: rgba(255, 255, 255, 0.35);
     font-weight: 500;
@@ -800,6 +835,20 @@
     }
     75% {
       transform: rotate(8deg) scale(1.08);
+    }
+  }
+
+  .wc-bracket-preview {
+    color: #e6b900;
+    animation: trophyFloat 3s ease-in-out infinite alternate;
+  }
+
+  @keyframes trophyFloat {
+    0% {
+      transform: translateY(0) scale(1);
+    }
+    100% {
+      transform: translateY(-4px) scale(1.08);
     }
   }
 
