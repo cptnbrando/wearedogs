@@ -360,7 +360,27 @@
       .toString()
       .padStart(2, "0")}`;
   }
+
+  function handleKeydown(e) {
+    if (e.code === "Space" || e.key === " ") {
+      const activeEl = document.activeElement;
+      if (
+        activeEl &&
+        (activeEl.tagName === "INPUT" ||
+          activeEl.tagName === "TEXTAREA" ||
+          activeEl.isContentEditable)
+      ) {
+        return;
+      }
+      if (activeTab === "songs") {
+        e.preventDefault();
+        togglePlay();
+      }
+    }
+  }
 </script>
+
+<svelte:window onkeydown={handleKeydown} />
 
 <!-- Two audio elements: full (leader) + instrumental (follower, always muted unless active) -->
 <!-- <audio bind:this={fullEl} src={currentTrack.src} preload="none"></audio>
