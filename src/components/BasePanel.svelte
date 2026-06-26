@@ -1,5 +1,5 @@
 <script>
-  import { X } from "lucide-svelte";
+  import { ArrowLeft } from "lucide-svelte";
 
   let {
     isClosing = false,
@@ -9,11 +9,13 @@
   } = $props();
 
   function handleKeydown(e) {
-    if (e.key === "Escape") {
+    if (e.key === "Escape" && typeof onClose === "function") {
       onClose();
     }
   }
 </script>
+
+<svelte:window onkeydown={handleKeydown} />
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -36,7 +38,7 @@
       </div>
 
       <button class="close-btn" onclick={onClose} aria-label="Close panel">
-        <X size={20} />
+        <ArrowLeft size={20} />
       </button>
     </header>
 
@@ -185,7 +187,7 @@
   .close-btn:hover {
     background: rgba(255, 255, 255, 0.15);
     color: white;
-    transform: rotate(90deg);
+    transform: translateX(-4px);
   }
 
   /* ── Body Layout ── */

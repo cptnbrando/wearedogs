@@ -1,6 +1,6 @@
 <script>
   import {
-    X,
+    ArrowLeft,
     Undo,
     Award,
     Volume2,
@@ -24,7 +24,7 @@
 
   const title = "Toolbox";
 
-  let { isClosing = false, onClose, activeApp = $bindable(null) } = $props();
+  let { isClosing = false, onClose, activeApp = $bindable(null), isFlagColors = false } = $props();
 
   function handleBack() {
     if (history.state?.app) {
@@ -41,6 +41,7 @@
   <div
     class="toolbox-panel-container"
     class:closing={isClosing}
+    class:colored={isFlagColors}
     onclick={(e) => e.stopPropagation()}
   >
     <!-- Header -->
@@ -55,7 +56,7 @@
       </div>
 
       <button class="close-btn" onclick={onClose} aria-label="Close panel">
-        <X size={20} />
+        <ArrowLeft size={20} />
       </button>
     </header>
 
@@ -64,9 +65,6 @@
       {#if activeApp === null}
         <!-- APPS LAUNCHER GRID VIEW -->
         <div class="launcher-view animated-pane">
-          <h2>/util</h2>
-          <p class="description">Select a gadget</p>
-
           <div class="apps-grid">
             <!-- App 1: GoPro Player -->
             <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -309,13 +307,10 @@
     <!-- Footer -->
     <footer class="panel-footer">
       <div class="sys-status">
-        <span class="status-indicator-green"></span>
-        <span>UTILITY GRID STABLE</span>
+        <span>/util</span>
       </div>
       <div class="stats-counter">
         <span>APPS LOADED: 9</span>
-        <span class="divider">|</span>
-        <span>ACTIVE APP: {activeApp ? activeApp.toUpperCase() : "NONE"}</span>
       </div>
     </footer>
   </div>
@@ -357,6 +352,10 @@
     -webkit-backdrop-filter: blur(15px) saturate(160%);
     animation: panelSlideUpIn 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     transform-origin: center bottom;
+  }
+
+  .toolbox-panel-container:not(.colored) {
+    filter: grayscale(100%);
   }
 
   .toolbox-panel-container.closing {
@@ -446,7 +445,7 @@
   .close-btn:hover {
     background: rgba(255, 255, 255, 0.15);
     color: white;
-    transform: rotate(90deg);
+    transform: translateX(-4px);
   }
 
   /* ── Body Layout ── */

@@ -17,9 +17,20 @@
     ExternalLink,
     Plus,
     ChevronRight,
-    X,
+    ArrowLeft,
     BoomBox,
   } from "lucide-svelte";
+
+  import SwipeTabNav from "./SwipeTabNav.svelte";
+
+  const title = "MUSIC";
+
+  const musicTabs = [
+    { id: "songs", label: "Songs", icon: Disc3 },
+    { id: "samples", label: "Samples", icon: Mic2 },
+    { id: "playlists", label: "Playlists", icon: Radio },
+    { id: "radio", label: "Radio", icon: BoomBox },
+  ];
 
   let { isClosing = false, onClose, initialTrackId = null } = $props();
 
@@ -351,7 +362,63 @@
       .toString()
       .padStart(2, "0")}`;
   }
+
+  function handleKeydown(e) {
+    if (e.code === "Space" || e.key === " ") {
+      const activeEl = document.activeElement;
+      if (
+        activeEl &&
+        (activeEl.tagName === "INPUT" ||
+          activeEl.tagName === "TEXTAREA" ||
+          activeEl.isContentEditable)
+      ) {
+        return;
+      }
+      if (activeTab === "songs") {
+        e.preventDefault();
+        togglePlay();
+      }
+    }
+  }
+
+  let touchStartX = 0;
+  let touchStartY = 0;
+
+  function handleBodyTouchStart(e) {
+    if (
+      e.target &&
+      (e.target.tagName === "INPUT" ||
+        e.target.closest("button") ||
+        e.target.closest(".ctrl"))
+    ) {
+      touchStartX = 0;
+      touchStartY = 0;
+      return;
+    }
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+  }
+
+  function handleBodyTouchEnd(e) {
+    if (touchStartX === 0) return;
+    if (!e.changedTouches || e.changedTouches.length === 0) return;
+
+    const diffX = e.changedTouches[0].clientX - touchStartX;
+    const diffY = e.changedTouches[0].clientY - touchStartY;
+    if (Math.abs(diffX) <= Math.abs(diffY) || Math.abs(diffX) <= 60) return;
+
+    const idx = musicTabs.findIndex((t) => t.id === activeTab);
+    if (idx === -1) return;
+
+    if (diffX < 0 && idx < musicTabs.length - 1) {
+      activeTab = musicTabs[idx + 1].id;
+    } else if (diffX > 0 && idx > 0) {
+      activeTab = musicTabs[idx - 1].id;
+    }
+  }
 </script>
+
+<svelte:window onkeydown={handleKeydown} />
 
 <!-- Two audio elements: full (leader) + instrumental (follower, always muted unless active) -->
 <!-- <audio bind:this={fullEl} src={currentTrack.src} preload="none"></audio>
@@ -368,53 +435,38 @@
     class:closing={isClosing}
     onclick={(e) => e.stopPropagation()}
   >
-    <header class="mp-header">
+    <!-- Header -->
+    <header class="panel-header">
+      <div class="brand">
+        <img
+          src="/favicon.svg"
+          alt="DOGS Logo"
+          class="w-6 h-6 shrink-0 drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]"
+        />
+        <h1>{title}</h1>
+      </div>
+
+      <button class="close-btn" onclick={onClose} aria-label="Close panel">
+        <ArrowLeft size={20} />
+      </button>
+    </header>
+    <!-- <header class="mp-header">
       <div class="mp-brand">
         <img src="/favicon.svg" alt="DOGS" loading="lazy" class="mp-logo" />
         <span class="mp-title">MUSIC</span>
       </div>
       <button class="mp-close-btn" onclick={onClose} aria-label="Close"
-        ><X size={18} /></button
+        ><ArrowLeft size={18} /></button
       >
-    </header>
+    </header> -->
 
-    <!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
-    <nav class="mp-tabs" role="tablist">
-      <button
-        class="mp-tab"
-        class:active={activeTab === "songs"}
-        onclick={() => (activeTab = "songs")}
-        role="tab"
-      >
-        <Disc3 size={15} /><span>Songs</span>
-      </button>
-      <button
-        class="mp-tab"
-        class:active={activeTab === "samples"}
-        onclick={() => (activeTab = "samples")}
-        role="tab"
-      >
-        <Mic2 size={15} /><span>Samples</span>
-      </button>
-      <button
-        class="mp-tab"
-        class:active={activeTab === "playlists"}
-        onclick={() => (activeTab = "playlists")}
-        role="tab"
-      >
-        <Radio size={15} /><span>Playlists</span>
-      </button>
-      <button
-        class="mp-tab"
-        class:active={activeTab === "radio"}
-        onclick={() => (activeTab = "radio")}
-        role="tab"
-      >
-        <BoomBox size={15} /><span>Radio</span>
-      </button>
-    </nav>
+    <SwipeTabNav tabs={musicTabs} bind:activeTab />
 
-    <div class="mp-body">
+    <div
+      class="mp-body"
+      ontouchstart={handleBodyTouchStart}
+      ontouchend={handleBodyTouchEnd}
+    >
       {#if activeTab === "songs"}
         <div class="songs-layout">
           <div class="player-side">
@@ -677,9 +729,7 @@
               </div>
             {/each}
           </div>
-          <div
-            class="empty-state mx-auto max-w-[380px] text-center"
-          >
+          <div class="empty-state mx-auto max-w-[380px] text-center">
             <div class="wip-tape">COMING SOON</div>
             <p>
               Connect Spotify to see your playlists, automatically transcribed
@@ -753,85 +803,51 @@
     }
   }
 
-  .mp-header {
-    height: 58px;
-    padding: 0 22px;
-    flex-shrink: 0;
+  /* ── Header ── */
+  .panel-header {
+    height: 64px;
+    padding: 0 24px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    background: rgba(0, 0, 0, 0.22);
+    background: rgba(0, 0, 0, 0.2);
   }
-  .mp-brand {
+
+  .brand {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
   }
-  .mp-logo {
-    width: 21px;
-    height: 21px;
-    filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.25));
-  }
-  .mp-title {
-    font-family: "Outfit", "Inter", sans-serif;
-    font-size: 0.9rem;
+
+  .brand h1 {
+    margin: 0;
+    font-size: 1.1rem;
     font-weight: 700;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.05em;
     text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.88);
+    color: rgba(255, 255, 255, 0.95);
+    font-family: "Outfit", "Inter", sans-serif;
   }
-  .mp-close-btn {
+
+  .close-btn {
     background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 50%;
-    color: rgba(255, 255, 255, 0.42);
+    color: rgba(255, 255, 255, 0.5);
     width: 32px;
     height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: all 0.2s;
-  }
-  .mp-close-btn:hover {
-    background: rgba(255, 255, 255, 0.12);
-    color: #fff;
-    transform: rotate(90deg);
+    transition: all 0.2s ease;
   }
 
-  .mp-tabs {
-    display: flex;
-    padding: 0 18px;
-    gap: 2px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    background: rgba(0, 0, 0, 0.14);
-    flex-shrink: 0;
-  }
-  .mp-tab {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    padding: 11px 16px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    letter-spacing: 0.07em;
-    text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.32);
-    background: transparent;
-    border: none;
-    border-bottom: 2px solid transparent;
-    cursor: pointer;
-    transition: all 0.18s;
-    font-family: "Outfit", "Inter", sans-serif;
-    margin-bottom: -1px;
-  }
-  .mp-tab:hover {
-    color: rgba(255, 255, 255, 0.62);
-  }
-  .mp-tab.active {
-    color: rgba(255, 255, 255, 0.92);
-    border-bottom-color: rgba(165, 90, 255, 0.85);
+  .close-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    transform: translateX(-4px);
   }
 
   .mp-body {
@@ -968,7 +984,7 @@
     height: 96px;
     background: linear-gradient(to bottom, #888 0%, #555 60%, #333 100%);
     transform-origin: top center;
-    transform: rotate(-36deg);
+    transform: rotate(-16deg);
     border-radius: 2px;
     transition: transform 0.9s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
@@ -986,7 +1002,7 @@
     box-shadow: 0 0 8px rgba(170, 90, 255, 0.6);
   }
   .tonearm.playing {
-    transform: rotate(-19deg);
+    transform: rotate(20deg);
   }
 
   .track-info {
@@ -1691,13 +1707,6 @@
       flex: 1;
       min-height: 0;
       max-height: none;
-    }
-    .mp-tab {
-      padding: 9px 11px;
-      font-size: 0.7rem;
-    }
-    .mp-tabs {
-      padding: 0 8px;
     }
     /* Tighten track-info text on small screens */
     .track-title {
