@@ -38,6 +38,10 @@ Every single UI component generated MUST contain explicit Tailwind breakpoint pr
 - All data is being held in a Cloudflare R2 database. This is accessible at https://data.wearedogs.net. Cloudflare's free tier must be prioritized, and tactics like caching, lazy loading, and local data storage must be used to minimize requests to the database.
 - Do not build the project. npm run build does not do what you think it does in this Vite project. When you are running I will typically have npm run dev going in my own terminal. Use expected values to view the site.
 - Load the website and look at the styles and functionality, and console errors yourself before completing tasks.
+- Create new branches for tasks, do not push anything to github. Never run git push. Or git reset or git rebase. You may commit your changes locally to your specific branches.
+- Once the change passes styling, modularity, and testing criteria, you may notify me that the task is complete. I will then review the changes and request changes. Do not create any Pull Requests, unless you are absolutely certain that the changes are perfect and you have followed all other instructions.
+
+### ABSOLUTELY CRITICAL: NEVER TOUCH THE GIT MASTER BRANCH OR THE MAIN BRANCH. NEVER EVER EVER.
 
 ## Profile: Swarm-Coordinator
 - **Model**: Gemini 3.1 Pro
