@@ -678,8 +678,7 @@
             {/each}
           </div>
           <div
-            class="empty-state"
-            style="margin:auto;max-width:380px;text-align:center"
+            class="empty-state mx-auto max-w-[380px] text-center"
           >
             <div class="wip-tape">COMING SOON</div>
             <p>
