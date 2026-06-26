@@ -215,29 +215,35 @@ export const PRESETS = [
           
           vec3 finalColor = mix(sunColor, skyColor, smoothstep(0.0, 0.8, distToHorizon));
           
-          // Add neon audio equalizer bars rising from the horizon
-          float numBars = 16.0;
-          float barIndex = floor(uv.x * numBars);
-          float localBarX = fract(uv.x * numBars);
+          // Add neon audio equalizer bars rising from the horizon (centered skinnier layout)
+          float scaleX = 0.6;
+          float startX = 0.2;
+          float mappedX = (uv.x - startX) / scaleX;
           
-          // Fetch frequency for this bar
-          float barFreq = texture2D(u_audioTexture, vec2(barIndex / numBars, 0.0)).r;
-          
-          // Bar height driven by frequency
-          float barHeight = 0.15 + barFreq * 0.6;
-          
-          // Render glowing bars
-          if (uv.y > 0.2 && uv.y < barHeight && localBarX > 0.15 && localBarX < 0.85) {
-            float barGlow = smoothstep(0.0, 0.4, 1.0 - abs(localBarX - 0.5) * 2.0);
+          if (mappedX >= 0.0 && mappedX <= 1.0) {
+            float numBars = 16.0;
+            float barIndex = floor(mappedX * numBars);
+            float localBarX = fract(mappedX * numBars);
             
-            // Equalizer neon color gradient (from pink to cyan)
-            vec3 barColor = mix(
-              vec3(1.0, 0.0, 0.6), // bottom pink
-              vec3(0.0, 0.8, 1.0), // top cyan
-              (uv.y - 0.2) / 0.6
-            );
+            // Fetch frequency for this bar
+            float barFreq = texture2D(u_audioTexture, vec2(barIndex / numBars, 0.0)).r;
             
-            finalColor += barColor * barGlow * 1.5;
+            // Bar height driven by frequency
+            float barHeight = 0.15 + barFreq * 0.55;
+            
+            // Render glowing bars
+            if (uv.y > 0.2 && uv.y < barHeight && localBarX > 0.15 && localBarX < 0.85) {
+              float barGlow = smoothstep(0.0, 0.4, 1.0 - abs(localBarX - 0.5) * 2.0);
+              
+              // Equalizer neon color gradient (from pink to cyan)
+              vec3 barColor = mix(
+                vec3(1.0, 0.0, 0.6), // bottom pink
+                vec3(0.0, 0.8, 1.0), // top cyan
+                (uv.y - 0.2) / 0.55
+              );
+              
+              finalColor += barColor * barGlow * 1.5;
+            }
           }
           
           // Distant star dots pulsing to treble

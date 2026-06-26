@@ -358,7 +358,7 @@
                   <div 
                     class="visualizer-container cursor-pointer" 
                     class:fullscreen={isFullscreenVisualizer}
-                    onclick={() => { if (!isFullscreenVisualizer) isFullscreenVisualizer = true; }}
+                    onclick={() => { isFullscreenVisualizer = !isFullscreenVisualizer; }}
                   >
                     <canvas bind:this={canvasEl} class="visualizer-canvas"></canvas>
                     
