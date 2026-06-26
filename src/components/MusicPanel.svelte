@@ -378,6 +378,37 @@
       }
     }
   }
+
+  let touchStartX = 0;
+  let touchStartY = 0;
+
+  function handleBodyTouchStart(e) {
+    if (e.target && (e.target.tagName === "INPUT" || e.target.closest("button") || e.target.closest(".ctrl"))) {
+      touchStartX = 0;
+      touchStartY = 0;
+      return;
+    }
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+  }
+
+  function handleBodyTouchEnd(e) {
+    if (touchStartX === 0) return;
+    if (!e.changedTouches || e.changedTouches.length === 0) return;
+
+    const diffX = e.changedTouches[0].clientX - touchStartX;
+    const diffY = e.changedTouches[0].clientY - touchStartY;
+    if (Math.abs(diffX) <= Math.abs(diffY) || Math.abs(diffX) <= 60) return;
+
+    const idx = musicTabs.findIndex((t) => t.id === activeTab);
+    if (idx === -1) return;
+
+    if (diffX < 0 && idx < musicTabs.length - 1) {
+      activeTab = musicTabs[idx + 1].id;
+    } else if (diffX > 0 && idx > 0) {
+      activeTab = musicTabs[idx - 1].id;
+    }
+  }
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -409,7 +440,11 @@
 
     <SwipeTabNav tabs={musicTabs} bind:activeTab />
 
-    <div class="mp-body">
+    <div
+      class="mp-body"
+      ontouchstart={handleBodyTouchStart}
+      ontouchend={handleBodyTouchEnd}
+    >
       {#if activeTab === "songs"}
         <div class="songs-layout">
           <div class="player-side">
@@ -929,7 +964,7 @@
     height: 96px;
     background: linear-gradient(to bottom, #888 0%, #555 60%, #333 100%);
     transform-origin: top center;
-    transform: rotate(-36deg);
+    transform: rotate(-16deg);
     border-radius: 2px;
     transition: transform 0.9s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
@@ -947,7 +982,7 @@
     box-shadow: 0 0 8px rgba(170, 90, 255, 0.6);
   }
   .tonearm.playing {
-    transform: rotate(-19deg);
+    transform: rotate(-33deg);
   }
 
   .track-info {

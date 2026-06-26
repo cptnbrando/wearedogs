@@ -15,6 +15,11 @@
   let startX = $state(0);
   let scrollLeft = $state(0);
 
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let mouseStartX = 0;
+  let mouseStartY = 0;
+
   // Auto-scroll the active tab to the center of the viewport/container
   $effect(() => {
     const activeId = activeTab;
@@ -53,6 +58,8 @@
     isDown = true;
     startX = e.pageX - containerRef.offsetLeft;
     scrollLeft = containerRef.scrollLeft;
+    mouseStartX = e.clientX;
+    mouseStartY = e.clientY;
   }
 
   function handleMouseLeave() {
@@ -60,8 +67,21 @@
   }
 
   // Handle global mouse up to ensure drag finishes cleanly
-  function handleMouseUp() {
+  function handleMouseUp(e) {
+    if (!isDown) return;
     isDown = false;
+    const diffX = e.clientX - mouseStartX;
+    const diffY = e.clientY - mouseStartY;
+    if (Math.abs(diffX) <= Math.abs(diffY) || Math.abs(diffX) <= 60) return;
+
+    const idx = tabs.findIndex(t => t.id === activeTab);
+    if (idx === -1) return;
+
+    if (diffX < 0 && idx < tabs.length - 1) {
+      selectTab(tabs[idx + 1].id);
+    } else if (diffX > 0 && idx > 0) {
+      selectTab(tabs[idx - 1].id);
+    }
   }
 
   function handleMouseMove(e) {
@@ -77,10 +97,27 @@
     isDown = true;
     startX = e.touches[0].pageX - containerRef.offsetLeft;
     scrollLeft = containerRef.scrollLeft;
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
   }
 
-  function handleTouchEnd() {
+  function handleTouchEnd(e) {
+    if (!isDown) return;
     isDown = false;
+    if (!e.changedTouches || e.changedTouches.length === 0) return;
+
+    const diffX = e.changedTouches[0].clientX - touchStartX;
+    const diffY = e.changedTouches[0].clientY - touchStartY;
+    if (Math.abs(diffX) <= Math.abs(diffY) || Math.abs(diffX) <= 60) return;
+
+    const idx = tabs.findIndex(t => t.id === activeTab);
+    if (idx === -1) return;
+
+    if (diffX < 0 && idx < tabs.length - 1) {
+      selectTab(tabs[idx + 1].id);
+    } else if (diffX > 0 && idx > 0) {
+      selectTab(tabs[idx - 1].id);
+    }
   }
 
   function handleTouchMove(e) {
