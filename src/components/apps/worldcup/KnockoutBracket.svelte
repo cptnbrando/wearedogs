@@ -8,8 +8,12 @@
     searchQuery = $bindable(), 
     bracketMatches = { r32: [], r16: [], qf: [], sf: [], third: null, final: null }, 
     teamStatuses = {}, 
-    selectedRoundMobile = $bindable("r32") 
+    selectedRoundMobile = $bindable("r32"),
+    currentMatch = null
   } = $props();
+
+  // Derived properties
+  let currentRoundName = $derived(currentMatch ? currentMatch.type : "group");
 
   // Hoisted constants
   const MATCH_ORDER_LEFT_R32 = ["74", "77", "73", "75", "83", "84", "81", "82"];
@@ -28,33 +32,152 @@
     return new Map(controller.games.map(g => [g.id.toString(), g]));
   });
 
-  // Desktop scroll state
+  // Desktop scroll & interactive zoom-to-fit bracket state
   let scrollContainer = $state(null);
   let canScrollLeft = $state(false);
   let canScrollRight = $state(false);
+  
+  let isZoomedOut = $state(true);
+  let bracketScale = $state(1);
+  let zoomLevel = $state(1.0);
+  let isDragging = $state(false);
+  let startX = 0;
+  let startY = 0;
+  let scrollLeftStart = 0;
+  let scrollTopStart = 0;
+  let dragMoved = false;
+
+  let activeScale = $derived(isZoomedOut ? bracketScale : zoomLevel);
 
   function handleScroll() {
-    if (!scrollContainer) return;
+    if (!scrollContainer || isZoomedOut) return;
     canScrollLeft = scrollContainer.scrollLeft > 5;
     canScrollRight = scrollContainer.scrollLeft + scrollContainer.clientWidth < scrollContainer.scrollWidth - 5;
   }
 
+  function updateScale() {
+    if (!scrollContainer) return;
+    const containerWidth = scrollContainer.clientWidth;
+    const containerHeight = scrollContainer.clientHeight;
+    // Fit the 1480px wide and 620px tall bracket inner area within the container
+    const scaleX = (containerWidth - 48) / 1480;
+    const scaleY = (containerHeight - 48) / 620;
+    bracketScale = Math.min(Math.min(scaleX, scaleY), 1.0);
+  }
+
   $effect(() => {
-    if (scrollContainer) {
-      setTimeout(handleScroll, 300);
-      window.addEventListener("resize", handleScroll);
-      return () => window.removeEventListener("resize", handleScroll);
+    if (isZoomedOut) {
+      zoomLevel = bracketScale;
     }
   });
 
-  function scrollLeftBtn() {
+  $effect(() => {
     if (scrollContainer) {
+      setTimeout(handleScroll, 300);
+      updateScale();
+      window.addEventListener("resize", handleScroll);
+      window.addEventListener("resize", updateScale);
+      
+      const handleWheelListener = (e) => {
+        handleWheel(e);
+      };
+      scrollContainer.addEventListener("wheel", handleWheelListener, { passive: false });
+
+      return () => {
+        window.removeEventListener("resize", handleScroll);
+        window.removeEventListener("resize", updateScale);
+        if (scrollContainer) {
+          scrollContainer.removeEventListener("wheel", handleWheelListener);
+        }
+      };
+    }
+  });
+
+  function handleWheel(e) {
+    e.preventDefault();
+    const zoomStep = 0.04;
+    let newZoom = zoomLevel;
+    
+    if (e.deltaY < 0) {
+      // Scroll Up -> Zoom In
+      if (isZoomedOut) {
+        isZoomedOut = false;
+        newZoom = Math.min(bracketScale + zoomStep, 1.4);
+      } else {
+        newZoom = Math.min(zoomLevel + zoomStep, 1.4);
+      }
+    } else {
+      // Scroll Down -> Zoom Out
+      if (!isZoomedOut) {
+        newZoom = Math.max(zoomLevel - zoomStep, bracketScale);
+        if (newZoom <= bracketScale + 0.02) {
+          isZoomedOut = true;
+          newZoom = bracketScale;
+        }
+      }
+    }
+    zoomLevel = newZoom;
+  }
+
+  function handleMouseDown(e) {
+    if (e.button !== 0) return; // Only left click drag
+    if (isZoomedOut) return; // Clicking zoomed-out bracket will trigger container click zoom-in
+    if (e.target.closest("button") || e.target.closest(".m-card")) return;
+    
+    isDragging = true;
+    dragMoved = false;
+    startX = e.clientX;
+    startY = e.clientY;
+    scrollLeftStart = scrollContainer.scrollLeft;
+    scrollTopStart = scrollContainer.scrollTop;
+  }
+
+  function handleMouseMove(e) {
+    if (!isDragging) return;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+      dragMoved = true;
+    }
+    scrollContainer.scrollLeft = scrollLeftStart - dx;
+    scrollContainer.scrollTop = scrollTopStart - dy;
+  }
+
+  function handleMouseUp() {
+    isDragging = false;
+  }
+
+  function handleMouseLeave() {
+    isDragging = false;
+  }
+
+  function handleDoubleClick(e) {
+    if (e.target.closest("button") || e.target.closest(".m-card")) return;
+    if (isZoomedOut) {
+      isZoomedOut = false;
+      zoomLevel = 1.0;
+    } else {
+      isZoomedOut = true;
+      zoomLevel = bracketScale;
+    }
+  }
+
+  function handleContainerClick(e) {
+    if (isZoomedOut) {
+      if (e.target.closest("button") || e.target.closest(".m-card")) return;
+      isZoomedOut = false;
+      zoomLevel = 1.0;
+    }
+  }
+
+  function scrollLeftBtn() {
+    if (scrollContainer && !isZoomedOut) {
       scrollContainer.scrollBy({ left: -320, behavior: "smooth" });
     }
   }
 
   function scrollRightBtn() {
-    if (scrollContainer) {
+    if (scrollContainer && !isZoomedOut) {
       scrollContainer.scrollBy({ left: 320, behavior: "smooth" });
     }
   }
@@ -141,27 +264,63 @@
 </script>
 
 <!-- Desktop Layout -->
-<div class="hidden md:flex flex-col flex-grow min-height-0 relative w-full h-full">
-  {#if canScrollLeft}
+<div class="hidden lg:flex flex-col flex-grow min-height-0 relative w-full h-full">
+  {#if !isZoomedOut && canScrollLeft}
     <button class="scroll-arrow left" onclick={scrollLeftBtn} aria-label="Scroll Left">
       <ChevronLeft size={24} />
     </button>
   {/if}
-  {#if canScrollRight}
+  {#if !isZoomedOut && canScrollRight}
     <button class="scroll-arrow right" onclick={scrollRightBtn} aria-label="Scroll Right">
       <ChevronRight size={24} />
     </button>
   {/if}
 
+  <!-- Floating Zoom Toggle Control -->
+  <button 
+    class="zoom-toggle-btn flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/60 border border-white/10 hover:border-red-500/30 text-white/70 hover:text-white text-[9px] font-bold tracking-wider uppercase cursor-pointer backdrop-blur-md shadow-lg transition-all duration-200"
+    onclick={() => {
+      if (isZoomedOut) {
+        isZoomedOut = false;
+        zoomLevel = 1.0;
+      } else {
+        isZoomedOut = true;
+        zoomLevel = bracketScale;
+      }
+    }}
+  >
+    {#if isZoomedOut}
+      <span class="w-1.5 h-1.5 rounded-full bg-neon-gold"></span>
+      <span>FIT TO SCREEN</span>
+    {:else}
+      <span class="w-1.5 h-1.5 rounded-full bg-neon-red animate-pulse"></span>
+      <span>FULL SIZE (100%)</span>
+    {/if}
+  </button>
+
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
   <div 
-    class="flex-grow overflow-x-auto overflow-y-auto p-6 scrollbar-none flex"
+    class="flex-grow overflow-x-auto overflow-y-auto p-6 scrollbar-none flex wc-desktop-scroll-container"
+    class:zoomed-out-scroll={isZoomedOut}
+    class:grabbing={isDragging}
     bind:this={scrollContainer}
     onscroll={handleScroll}
+    onmousedown={handleMouseDown}
+    onmousemove={handleMouseMove}
+    onmouseup={handleMouseUp}
+    onmouseleave={handleMouseLeave}
+    ondblclick={handleDoubleClick}
+    onclick={handleContainerClick}
+    style="--bracket-scale: {activeScale};"
   >
-    <div class="flex items-stretch gap-6 min-w-[1480px] m-auto h-[620px]">
+    <div 
+      class="flex items-stretch gap-6 min-w-[1480px] m-auto h-[620px] wc-bracket-inner"
+      class:zoomed-out={isZoomedOut}
+    >
       <!-- LEFT SIDE BRACKET -->
       <!-- Round of 32 -->
-      <div class="flex flex-col w-[170px] h-full shrink-0">
+      <div class="flex flex-col w-[170px] h-full shrink-0 transition-all duration-300 px-1 py-2 rounded-xl" class:current-round-col={currentRoundName === "r32"}>
         <div class="r-title">Round of 32</div>
         <div class="flex flex-col justify-around grow min-h-0">
           {#each MATCH_ORDER_LEFT_R32 as mId}
@@ -172,7 +331,7 @@
       </div>
 
       <!-- Round of 16 -->
-      <div class="flex flex-col w-[170px] h-full shrink-0">
+      <div class="flex flex-col w-[170px] h-full shrink-0 transition-all duration-300 px-1 py-2 rounded-xl" class:current-round-col={currentRoundName === "r16"}>
         <div class="r-title">Round of 16</div>
         <div class="flex flex-col justify-around grow min-h-0">
           {#each MATCH_ORDER_LEFT_R16 as mId}
@@ -183,7 +342,7 @@
       </div>
 
       <!-- Quarterfinals -->
-      <div class="flex flex-col w-[170px] h-full shrink-0">
+      <div class="flex flex-col w-[170px] h-full shrink-0 transition-all duration-300 px-1 py-2 rounded-xl" class:current-round-col={currentRoundName === "qf"}>
         <div class="r-title">Quarterfinals</div>
         <div class="flex flex-col justify-around grow min-h-0">
           {#each MATCH_ORDER_LEFT_QF as mId}
@@ -194,7 +353,7 @@
       </div>
 
       <!-- Semifinals -->
-      <div class="flex flex-col w-[170px] h-full shrink-0">
+      <div class="flex flex-col w-[170px] h-full shrink-0 transition-all duration-300 px-1 py-2 rounded-xl" class:current-round-col={currentRoundName === "sf"}>
         <div class="r-title">Semifinals</div>
         <div class="flex flex-col justify-around grow min-h-0">
           {#each MATCH_ORDER_LEFT_SF as mId}
@@ -205,7 +364,7 @@
       </div>
 
       <!-- CENTER: FINALS -->
-      <div class="flex flex-col w-[210px] h-full shrink-0 justify-center gap-10 items-center">
+      <div class="flex flex-col w-[210px] h-full shrink-0 justify-center gap-10 items-center transition-all duration-300 px-2 py-2 rounded-xl" class:current-round-col={currentRoundName === "final" || currentRoundName === "third"}>
         <!-- CHAMPIONSHIP FINAL -->
         {#if bracketMatches.final}
           <div class="flex flex-col items-center w-full">
@@ -230,7 +389,7 @@
 
       <!-- RIGHT SIDE BRACKET -->
       <!-- Semifinals -->
-      <div class="flex flex-col w-[170px] h-full shrink-0">
+      <div class="flex flex-col w-[170px] h-full shrink-0 transition-all duration-300 px-1 py-2 rounded-xl" class:current-round-col={currentRoundName === "sf"}>
         <div class="r-title text-right">Semifinals</div>
         <div class="flex flex-col justify-around grow min-h-0">
           {#each MATCH_ORDER_RIGHT_SF as mId}
@@ -241,7 +400,7 @@
       </div>
 
       <!-- Quarterfinals -->
-      <div class="flex flex-col w-[170px] h-full shrink-0">
+      <div class="flex flex-col w-[170px] h-full shrink-0 transition-all duration-300 px-1 py-2 rounded-xl" class:current-round-col={currentRoundName === "qf"}>
         <div class="r-title text-right">Quarterfinals</div>
         <div class="flex flex-col justify-around grow min-h-0">
           {#each MATCH_ORDER_RIGHT_QF as mId}
@@ -252,7 +411,7 @@
       </div>
 
       <!-- Round of 16 -->
-      <div class="flex flex-col w-[170px] h-full shrink-0">
+      <div class="flex flex-col w-[170px] h-full shrink-0 transition-all duration-300 px-1 py-2 rounded-xl" class:current-round-col={currentRoundName === "r16"}>
         <div class="r-title text-right">Round of 16</div>
         <div class="flex flex-col justify-around grow min-h-0">
           {#each MATCH_ORDER_RIGHT_R16 as mId}
@@ -263,7 +422,7 @@
       </div>
 
       <!-- Round of 32 -->
-      <div class="flex flex-col w-[170px] h-full shrink-0">
+      <div class="flex flex-col w-[170px] h-full shrink-0 transition-all duration-300 px-1 py-2 rounded-xl" class:current-round-col={currentRoundName === "r32"}>
         <div class="r-title text-right">Round of 32</div>
         <div class="flex flex-col justify-around grow min-h-0">
           {#each MATCH_ORDER_RIGHT_R32 as mId}
@@ -277,9 +436,9 @@
 </div>
 
 <!-- Mobile Layout -->
-<div class="flex md:hidden flex-col grow min-h-0 w-full">
+<div class="wc-mobile-bracket flex lg:hidden flex-col grow min-h-0 w-full">
   <!-- Mobile Round Tab Header -->
-  <div class="flex justify-around p-2 bg-black/25 border-b border-white/5 gap-1 shrink-0 select-none">
+  <div class="wc-mobile-round-tabs flex justify-around p-2 bg-black/25 border-b border-white/5 gap-1 shrink-0 select-none">
     {#each ["r32", "r16", "qf", "sf", "final"] as round}
       <button 
         class="grow bg-transparent border-none text-white/45 py-2 text-[10px] font-bold rounded-lg transition-all duration-150"
@@ -291,7 +450,7 @@
     {/each}
   </div>
 
-  <div class="text-center text-[10px] font-bold uppercase tracking-widest text-neon-gold py-2 border-b border-white/2 shrink-0">
+  <div class="wc-mobile-round-title text-center text-[10px] font-bold uppercase tracking-widest text-neon-gold py-2 border-b border-white/2 shrink-0">
     {#if selectedRoundMobile === "r32"}Round of 32
     {:else if selectedRoundMobile === "r16"}Round of 16
     {:else if selectedRoundMobile === "qf"}Quarterfinals
@@ -301,7 +460,8 @@
 
   <!-- Swipeable Matches List -->
   <div 
-    class="grow overflow-y-auto p-3 flex flex-col gap-3 scrollbar-none"
+    class="wc-mobile-matches-list grow overflow-y-auto p-3 flex flex-col gap-3 scrollbar-none"
+    role="presentation"
     ontouchstart={handleTouchStart}
     ontouchend={handleTouchEnd}
   >
@@ -350,16 +510,26 @@
     class="m-card flex flex-col p-2 rounded-xl border select-none transition-all duration-200" 
     class:searched-glow={isSearched}
     class:finished={match.finished === "TRUE"}
+    class:current-match-glow={currentMatch?.id === match.id}
     class:large={isLarge}
     class:w-full={isMobile}
-    onclick={() => {
+    onclick={(e) => {
+      if (!isMobile && isZoomedOut) {
+        isZoomedOut = false;
+        setTimeout(() => {
+          const cardEl = document.getElementById(`match-card-${match.id}`);
+          if (cardEl) {
+            cardEl.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+          }
+        }, 400);
+      }
       if (homeTeam) handleCardClick(homeTeam);
       else if (awayTeam) handleCardClick(awayTeam);
     }}
   >
     <!-- Card Top Header Info -->
     <div class="flex justify-between items-center text-[9px] text-white/35 mb-1.5 font-semibold">
-      <span class="uppercase tracking-wider">
+      <span class="uppercase tracking-wider flex items-center gap-1">
         {#if match.type === "r32"}R32
         {:else if match.type === "r16"}R16
         {:else if match.type === "qf"}QF
@@ -367,6 +537,11 @@
         {:else if match.type === "third"}Third Place
         {:else}Final{/if}
         &bull; Match {match.id}
+        {#if currentMatch?.id === match.id}
+          <span class="current-badge px-1 py-0.5 rounded bg-neon-red/10 border border-neon-red/25 text-neon-red text-[8px] font-extrabold uppercase tracking-wide">
+            {currentMatch.finished === "TRUE" ? "RECENT" : currentMatch.time_elapsed !== "notstarted" ? "LIVE" : "NEXT"}
+          </span>
+        {/if}
       </span>
       <div class="flex items-center gap-1">
         <Calendar size={8} />
@@ -420,7 +595,7 @@
 {/snippet}
 
 <style lang="scss">
-  @import "../../../styles/variables";
+  @use "../../../styles/variables" as *;
 
   .r-title {
     font-size: 0.65rem;
@@ -497,6 +672,42 @@
     &.searched-glow {
       animation: searchPulse 1.5s infinite alternate;
       box-shadow: 0 0 20px rgba($color-neon-gold, 0.25);
+    }
+
+    &.current-match-glow {
+      border-color: rgba($color-neon-red, 0.65) !important;
+      box-shadow: 0 0 25px rgba($color-neon-red, 0.25), 0 4px 16px rgba(0, 0, 0, 0.5) !important;
+      animation: currentMatchPulse 2s infinite alternate;
+    }
+  }
+
+  .current-round-col {
+    background-color: rgba($color-neon-red, 0.015);
+    border: 1px dashed rgba($color-neon-red, 0.12);
+    box-shadow: inset 0 0 20px rgba($color-neon-red, 0.015);
+    
+    .r-title {
+      color: $color-neon-red;
+      border-bottom-color: rgba($color-neon-red, 0.25);
+      text-shadow: 0 0 10px rgba($color-neon-red, 0.2);
+    }
+  }
+
+  .current-badge {
+    background-color: rgba($color-neon-red, 0.15);
+    border: 1px solid rgba($color-neon-red, 0.3);
+    color: $color-neon-red;
+    text-shadow: 0 0 5px rgba($color-neon-red, 0.2);
+  }
+
+  @keyframes currentMatchPulse {
+    0% {
+      border-color: rgba($color-neon-red, 0.4);
+      box-shadow: 0 0 15px rgba($color-neon-red, 0.15), 0 4px 16px rgba(0, 0, 0, 0.5);
+    }
+    100% {
+      border-color: rgba($color-neon-red, 0.8);
+      box-shadow: 0 0 30px rgba($color-neon-red, 0.35), 0 4px 16px rgba(0, 0, 0, 0.5);
     }
   }
 
@@ -593,5 +804,74 @@
     background-color: rgba($color-neon-red, 0.08) !important;
     border: 1px solid rgba($color-neon-red, 0.2) !important;
     color: $color-neon-red !important;
+  }
+
+  // Zoom layout out for short screens to maximize vertical scrolling space
+  @media (max-height: 520px) {
+    .wc-mobile-bracket {
+      zoom: 0.82;
+    }
+
+    // Hide the redundant text round title header entirely on short landscape displays
+    .wc-mobile-round-title {
+      display: none !important;
+    }
+
+    // Make mobile round tabs much tighter to save vertical pixels
+    .wc-mobile-round-tabs {
+      padding: 3px !important;
+      
+      button {
+        padding: 5px 0 !important;
+        font-size: 8.5px !important;
+      }
+    }
+
+    // Tighten the margins and gap of the matches list
+    .wc-mobile-matches-list {
+      padding: 6px !important;
+      gap: 6px !important;
+    }
+  }
+
+  // Desktop drag-to-scroll grabbing and zoom-to-fit styles
+  .wc-desktop-scroll-container {
+    position: relative;
+    transition: cursor 0.2s ease;
+    
+    &:not(.zoomed-out-scroll) {
+      cursor: grab;
+      
+      &.grabbing {
+        cursor: grabbing !important;
+      }
+    }
+    
+    &.zoomed-out-scroll {
+      cursor: zoom-in;
+      overflow: hidden !important;
+      justify-content: center !important;
+      align-items: center !important;
+    }
+  }
+
+  .wc-bracket-inner {
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    transform-origin: center center;
+    
+    &.zoomed-out {
+      position: absolute !important;
+      top: 50% !important;
+      left: 50% !important;
+      transform: translate(-50%, -50%) scale(var(--bracket-scale, 0.75)) !important;
+      margin: 0 !important;
+    }
+  }
+
+  .zoom-toggle-btn {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 30;
   }
 </style>

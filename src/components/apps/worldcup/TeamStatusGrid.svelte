@@ -83,7 +83,7 @@
 </div>
 
 <style lang="scss">
-  @import "../../../styles/variables";
+  @use "../../../styles/variables" as *;
 
   .filter-btn {
     background-color: rgba(255, 255, 255, 0.02);

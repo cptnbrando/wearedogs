@@ -18,7 +18,7 @@
   <!-- Standings Grid -->
   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
     {#each Object.keys(standings) as groupLetter}
-      <div id="group-card-{groupLetter}" class="group-card p-4 rounded-2xl border transition-all duration-200">
+      <div id="group-card-{groupLetter}" class="group-card p-3 xs:p-4 rounded-2xl border transition-all duration-200">
         <h4 class="m-0 mb-3 text-sm font-extrabold text-neon-red uppercase tracking-wider">
           Group {groupLetter}
         </h4>
@@ -62,14 +62,14 @@
                       class:text-neon-gold={isSearched}
                       class:font-black={isSearched}
                       class:line-through={index === 3 && !isSearched}
-                      class:text-white/30={index === 3 && !isSearched}
+                      class:text-white-30={index === 3 && !isSearched}
                     >
                       {row.name}
                     </span>
                   </div>
                 </td>
                 <td class="text-white/70">{row.mp}</td>
-                <td class="font-semibold" class:text-green-400={row.gd > 0} class:text-red-400={row.gd < 0} class:text-white/30={row.gd === 0}>
+                <td class="font-semibold" class:text-green-400={row.gd > 0} class:text-red-400={row.gd < 0} class:text-white-30={row.gd === 0}>
                   {row.gd > 0 ? `+${row.gd}` : row.gd}
                 </td>
                 <td class="font-extrabold text-white">{row.pts}</td>
@@ -83,7 +83,7 @@
 
   <!-- Best 3rd Place Standings Rules Table -->
   <div class="mt-8 max-w-2xl mx-auto">
-    <div class="group-card p-4 md:p-5 rounded-2xl border">
+    <div class="group-card p-3 xs:p-5 rounded-2xl border">
       <div class="flex items-center gap-2 mb-2">
         <Info size={14} class="text-neon-gold" />
         <h4 class="m-0 text-sm font-extrabold text-white/90 uppercase tracking-wide">
@@ -133,14 +133,14 @@
                     class:text-neon-gold={isSearched}
                     class:font-black={isSearched}
                     class:line-through={index >= 8 && !isSearched}
-                    class:text-white/30={index >= 8 && !isSearched}
+                    class:text-white-30={index >= 8 && !isSearched}
                   >
                     {row.name}
                   </span>
                 </div>
               </td>
               <td class="text-white/70">{row.mp}</td>
-              <td class="font-semibold" class:text-green-400={row.gd > 0} class:text-red-400={row.gd < 0} class:text-white/30={row.gd === 0}>
+              <td class="font-semibold" class:text-green-400={row.gd > 0} class:text-red-400={row.gd < 0} class:text-white-30={row.gd === 0}>
                 {row.gd > 0 ? `+${row.gd}` : row.gd}
               </td>
               <td class="font-extrabold text-white">{row.pts}</td>
@@ -153,7 +153,7 @@
 </div>
 
 <style lang="scss">
-  @import "../../../styles/variables";
+  @use "../../../styles/variables" as *;
 
   .group-card {
     background-color: $bg-card-dark;
@@ -202,5 +202,9 @@
     background-color: rgba($color-alert-red, 0.12);
     border: 1px solid rgba($color-alert-red, 0.25);
     color: $color-alert-red;
+  }
+
+  .text-white-30 {
+    color: rgba(255, 255, 255, 0.3) !important;
   }
 </style>
