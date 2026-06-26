@@ -17,7 +17,7 @@
     ExternalLink,
     Plus,
     ChevronRight,
-    X,
+    ArrowLeft,
     BoomBox,
   } from "lucide-svelte";
 
@@ -27,7 +27,7 @@
     { id: "songs", label: "Songs", icon: Disc3 },
     { id: "samples", label: "Samples", icon: Mic2 },
     { id: "playlists", label: "Playlists", icon: Radio },
-    { id: "radio", label: "Radio", icon: BoomBox }
+    { id: "radio", label: "Radio", icon: BoomBox },
   ];
 
   let { isClosing = false, onClose, initialTrackId = null } = $props();
@@ -383,7 +383,12 @@
   let touchStartY = 0;
 
   function handleBodyTouchStart(e) {
-    if (e.target && (e.target.tagName === "INPUT" || e.target.closest("button") || e.target.closest(".ctrl"))) {
+    if (
+      e.target &&
+      (e.target.tagName === "INPUT" ||
+        e.target.closest("button") ||
+        e.target.closest(".ctrl"))
+    ) {
       touchStartX = 0;
       touchStartY = 0;
       return;
@@ -434,7 +439,7 @@
         <span class="mp-title">MUSIC</span>
       </div>
       <button class="mp-close-btn" onclick={onClose} aria-label="Close"
-        ><X size={18} /></button
+        ><ArrowLeft size={18} /></button
       >
     </header>
 
@@ -707,9 +712,7 @@
               </div>
             {/each}
           </div>
-          <div
-            class="empty-state mx-auto max-w-[380px] text-center"
-          >
+          <div class="empty-state mx-auto max-w-[380px] text-center">
             <div class="wip-tape">COMING SOON</div>
             <p>
               Connect Spotify to see your playlists, automatically transcribed
@@ -827,7 +830,7 @@
   .mp-close-btn:hover {
     background: rgba(255, 255, 255, 0.12);
     color: #fff;
-    transform: rotate(90deg);
+    transform: translateX(-4px);
   }
 
   .mp-body {

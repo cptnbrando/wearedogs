@@ -1,6 +1,6 @@
 <script>
   import {
-    X,
+    ArrowLeft,
     Undo,
     Award,
     Volume2,
@@ -56,7 +56,7 @@
       </div>
 
       <button class="close-btn" onclick={onClose} aria-label="Close panel">
-        <X size={20} />
+        <ArrowLeft size={20} />
       </button>
     </header>
 
@@ -445,7 +445,7 @@
   .close-btn:hover {
     background: rgba(255, 255, 255, 0.15);
     color: white;
-    transform: rotate(90deg);
+    transform: translateX(-4px);
   }
 
   /* ── Body Layout ── */
