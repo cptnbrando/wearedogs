@@ -23,61 +23,51 @@
   } from "lucide-svelte";
   import { untrack } from "svelte";
 
+  // ---------------------------------------------------------------------------
+  // Hoisted Constants
+  // ---------------------------------------------------------------------------
+  const TIME_LOCK = new Date("2026-06-21T18:28:24Z").getTime();
+  const HUMAN_GROWTH_FACTOR_2026 = 1.031; // ~3.1% human population growth
+  const DOG_GROWTH_FACTOR_2026 = 1.052; // ~5.2% canine population growth
+  const SECONDS_IN_YEAR = 31536000;
+  const GLOBAL_HUMAN_POPULATION = 8_300_000_000;
+  const GLOBAL_DOG_POPULATION = 900_000_000;
+
+  const BROWSER_LANG = typeof navigator !== "undefined" ? navigator.language.split("-")[0] : "en";
+  const USER_LOCALE = typeof navigator !== "undefined" ? navigator.language : "en";
+  const INITIAL_LANG = langs.includes(BROWSER_LANG) ? BROWSER_LANG : "en";
+
+  const MOUNTAIN_COUNTRIES = [
+    "switzerland", "nepal", "tibet", "austria", "peru", "bolivia", "greece",
+    "norway", "chile", "ecuador", "georgia", "armenia", "bhutan", "kashmir"
+  ];
+
+  const INDUSTRIAL_COUNTRIES = [
+    "germany", "japan", "china", "united states", "us", "usa", "south korea",
+    "united kingdom", "uk", "belgium", "russia", "singapore", "taiwan"
+  ];
+
+  // Pre-calculate maximum scaled populations once
+  const MAX_SPEAKERS_IN_DATASET = Math.max(
+    ...Object.keys(translations).map((code) => parseSpeakers(translations[code]?.speakers))
+  ) * HUMAN_GROWTH_FACTOR_2026;
+  const MAX_DOGS_IN_DATASET = Math.max(
+    ...Object.keys(translations).map((code) => parseDogs(translations[code]?.dogs_count))
+  ) * DOG_GROWTH_FACTOR_2026;
+
   function getRegionIdentity(lang) {
     const t = translations[lang];
     if (!t || !t.country) return "default";
     const country = t.country.toLowerCase();
 
-    if (
-      country.includes("switzerland") ||
-      country.includes("nepal") ||
-      country.includes("tibet") ||
-      country.includes("austria") ||
-      country.includes("peru") ||
-      country.includes("bolivia") ||
-      country.includes("greece") ||
-      country.includes("norway") ||
-      country.includes("chile") ||
-      country.includes("ecuador") ||
-      country.includes("georgia") ||
-      country.includes("armenia") ||
-      country.includes("bhutan") ||
-      country.includes("kashmir")
-    ) {
-      return "mountain";
-    }
-
-    if (
-      country.includes("germany") ||
-      country.includes("japan") ||
-      country.includes("china") ||
-      country.includes("united states") ||
-      country.includes("us") ||
-      country.includes("usa") ||
-      country.includes("south korea") ||
-      country.includes("united kingdom") ||
-      country.includes("uk") ||
-      country.includes("belgium") ||
-      country.includes("russia") ||
-      country.includes("singapore") ||
-      country.includes("taiwan")
-    ) {
-      return "industrial";
-    }
-
+    if (MOUNTAIN_COUNTRIES.some(c => country.includes(c))) return "mountain";
+    if (INDUSTRIAL_COUNTRIES.some(c => country.includes(c))) return "industrial";
     return "agricultural";
   }
 
-  // Detect initial language from browser
-  const browserLang =
-    typeof navigator !== "undefined" ? navigator.language.split("-")[0] : "en";
-  const userLocale =
-    typeof navigator !== "undefined" ? navigator.language : "en";
-  const initialLang = langs.includes(browserLang) ? browserLang : "en";
-
   /** Get full display name for a language code, falling back to friendly name or dialect */
   function langDisplayName(code) {
-    return getLangDisplayName(code, userLocale);
+    return getLangDisplayName(code, USER_LOCALE);
   }
 
   function langEnglishName(code) {
@@ -88,18 +78,13 @@
     isFaded = false,
     onOpenStats,
     onOpenPage,
-    currentLang = $bindable(initialLang),
+    currentLang = $bindable(INITIAL_LANG),
     isPaused = $bindable(false),
     isFlagColors = $bindable(false),
     children,
   } = $props();
 
   let refreshKey = $state(0);
-
-  // This is the genesis for the death calculation stats
-  // Time elapsed since this will be used to calculate mortality
-  // TODO You oughta change this on every push to the repo
-  const TIME_LOCK = new Date("2026-06-21T18:28:24Z").getTime();
   let utcStartStr = new Date(TIME_LOCK).toUTCString();
   let elapsedSeconds = $state((Date.now() - TIME_LOCK) / 1000);
 
@@ -113,10 +98,6 @@
     return () => cancelAnimationFrame(animFrame);
   });
 
-  // 2026 demographic growth factors from translations baseline to active 2026 counts
-  const HUMAN_GROWTH_FACTOR_2026 = 1.031; // ~3.1% human population growth
-  const DOG_GROWTH_FACTOR_2026 = 1.052; // ~5.2% canine population growth
-
   let baseSpeakers = $derived(
     refreshKey >= 0
       ? parseSpeakers(translations[currentLang]?.speakers) *
@@ -129,22 +110,6 @@
           DOG_GROWTH_FACTOR_2026
       : 0,
   );
-
-  // Find the maximum scaled speaker and dog populations across all languages in translations (calculated once)
-  const maxSpeakersInDataset =
-    Math.max(
-      ...Object.keys(translations).map((code) =>
-        parseSpeakers(translations[code]?.speakers),
-      ),
-    ) * HUMAN_GROWTH_FACTOR_2026;
-  const maxDogsInDataset =
-    Math.max(
-      ...Object.keys(translations).map((code) =>
-        parseDogs(translations[code]?.dogs_count),
-      ),
-    ) * DOG_GROWTH_FACTOR_2026;
-
-  const SECONDS_IN_YEAR = 31536000;
 
   let activeDemographics = $derived(
     translations[currentLang] || {
@@ -196,10 +161,10 @@
   );
 
   let speakerPercentage = $derived(
-    baseSpeakers > 0 ? (liveSpeakers / 8_300_000_000) * 100 : 0,
+    baseSpeakers > 0 ? (liveSpeakers / GLOBAL_HUMAN_POPULATION) * 100 : 0,
   );
   let dogPercentage = $derived(
-    baseDogs > 0 ? (liveDogs / 900_000_000) * 100 : 0,
+    baseDogs > 0 ? (liveDogs / GLOBAL_DOG_POPULATION) * 100 : 0,
   );
 
   let intSpeakers = $derived(Math.floor(liveSpeakers));
@@ -339,7 +304,7 @@
   let isHovering = $state(false);
 
   // Navigation history tracking
-  let history = $state([initialLang]);
+  let history = $state([INITIAL_LANG]);
   let historyIndex = $state(0);
 
   // Flashing indicator in top-right
@@ -423,8 +388,8 @@
     stopCycling();
     if (!isPaused) {
       // Snap back to user locale
-      setLang(initialLang);
-      history = [initialLang];
+      setLang(INITIAL_LANG);
+      history = [INITIAL_LANG];
       historyIndex = 0;
       lastPressedLetter = "";
       lastPressedLetterIndex = -1;
@@ -448,8 +413,8 @@
         startCycling();
       } else {
         // Mouse already left while paused — snap back
-        setLang(initialLang);
-        history = [initialLang];
+        setLang(INITIAL_LANG);
+        history = [INITIAL_LANG];
         historyIndex = 0;
       }
     }
@@ -496,8 +461,8 @@
       isPaused = false;
       isHovering = false;
       stopCycling();
-      setLang(initialLang);
-      history = [initialLang];
+      setLang(INITIAL_LANG);
+      history = [INITIAL_LANG];
       historyIndex = 0;
       lastPressedLetter = "";
       lastPressedLetterIndex = -1;
@@ -551,7 +516,7 @@
               const numValue = parseFloat(clean) * multiplier;
 
               if (isNaN(numValue)) return t.speakers;
-              const percentage = ((numValue / 8_300_000_000) * 100).toFixed(3);
+              const percentage = ((numValue / GLOBAL_HUMAN_POPULATION) * 100).toFixed(3);
               return `${t.speakers} (${percentage}%)`;
             })()
           : "—",
@@ -577,9 +542,9 @@
               // 3. Convert remaining string to a float number
               const numValue = parseFloat(clean) * multiplier;
 
-              // 4. Calculate percentage based on ~900,000,000 global dogs
+              // 4. Calculate percentage based on global dogs constant
               if (isNaN(numValue)) return t.dogs_count;
-              const percentage = ((numValue / 900_000_000) * 100).toFixed(3);
+              const percentage = ((numValue / GLOBAL_DOG_POPULATION) * 100).toFixed(3);
               return `${t.dogs_count} (${percentage}%)`;
             })()
           : "—",
@@ -961,15 +926,11 @@
       {:else if flashIcon === "backward"}
         <ChevronLeft size={20} />
       {:else if flashIcon === "flag_on"}
-        <Flag size={20} style="fill: currentColor;" />
+        <Flag size={20} class="fill-current" />
       {:else if flashIcon === "flag_off"}
-        <div
-          style="position: relative; display: flex; align-items: center; justify-content: center;"
-        >
+        <div class="relative flex items-center justify-center">
           <Flag size={20} />
-          <div
-            style="position: absolute; width: 22px; height: 1.5px; background: currentColor; transform: rotate(-45deg); opacity: 0.85;"
-          ></div>
+          <div class="absolute w-[22px] h-[1.5px] bg-current -rotate-45 opacity-85"></div>
         </div>
       {/if}
     </div>
