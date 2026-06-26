@@ -61,6 +61,18 @@
     return new Date(ts * 1000).toLocaleString();
   }
 
+  // Format commit epoch timestamp to YYYY-MM-DD HH:MM
+  function formatCommitTimestamp(ts) {
+    if (!ts) return "";
+    const date = new Date(ts * 1000);
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    const hr = String(date.getHours()).padStart(2, '0');
+    const min = String(date.getMinutes()).padStart(2, '0');
+    return `${y}-${m}-${d} ${hr}:${min}`;
+  }
+
   // Pagination logic
   let totalPages = $derived(Math.max(1, Math.ceil((changelogData.entries?.length || 0) / itemsPerPage)));
   let paginatedEntries = $derived(() => {
@@ -143,7 +155,7 @@
               <span class="text-white bg-green-900 px-2 py-0.5 rounded text-xs font-bold">v{entry.version}</span>
               <span class="text-green-300 font-bold text-sm">{entry.name}</span>
             </div>
-            <span class="text-xs text-green-600 font-mono">{entry.date}</span>
+            <span class="text-xs text-green-600 font-mono">{formatEpoch(entry.timestamp)}</span>
           </div>
 
           <ul class="flex flex-col gap-2">
@@ -153,6 +165,7 @@
                    class="text-cyan-400 font-bold hover:text-cyan-300 hover:underline shrink-0">
                   [{commit.hash}]
                 </a>
+                <span class="text-green-600 font-mono shrink-0">[{formatCommitTimestamp(commit.timestamp)}]</span>
                 <span class="text-green-500 select-all">{commit.message}</span>
                 {#if commit.linesChanged > 0}
                   <span class="text-[9px] text-green-700 font-sans ml-auto shrink-0 bg-green-950/40 px-1 py-0.5 rounded">
