@@ -216,6 +216,15 @@
     }
   }
 
+  function handleRecordClick() {
+    const isMobile = window.innerWidth <= 640;
+    if (isMobile) {
+      showMobileTracklist = true;
+    } else {
+      showVisualizer = !showVisualizer;
+    }
+  }
+
   function toggleCrossfade() {
     const newVal = !audioCore.isInstrumental;
     const success = audioCore.setCrossfade(newVal);
@@ -355,6 +364,15 @@
                     
                     <!-- Floating Overlay controls: Only show when fullscreen or on hover -->
                     {#if isFullscreenVisualizer}
+                      <!-- Floating Top-Right Exit Fullscreen Button -->
+                      <button 
+                        class="absolute top-6 right-6 z-[2100] ctrl ctrl-md bg-black/60 backdrop-blur-md border border-white/10 text-white/80 hover:text-white hover:scale-105 active:scale-95 transition-all"
+                        onclick={() => isFullscreenVisualizer = false}
+                        aria-label="Exit Fullscreen"
+                      >
+                        <Minimize2 size={16} />
+                      </button>
+
                       <div class="visualizer-overlay" onclick={(e) => e.stopPropagation()}>
                         <div class="flex items-center gap-1 bg-black/60 backdrop-blur-md rounded-lg p-1 border border-white/10">
                           {#each PRESETS as preset, index}
@@ -391,9 +409,7 @@
                   <!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
                   <div
                     class="vinyl-record-clicker cursor-pointer w-full h-full"
-                    onclick={() => {
-                      showMobileTracklist = true;
-                    }}
+                    onclick={handleRecordClick}
                     role="button"
                     tabindex="0"
                     aria-label="Open tracklist"
@@ -1016,9 +1032,12 @@
   }
 
   .visualizer-canvas {
+    position: absolute;
+    inset: 0;
     width: 100%;
     height: 100%;
     display: block;
+    z-index: 1;
   }
 
   .visualizer-overlay {
