@@ -155,7 +155,7 @@
         }, 50);
       }
 
-      if (activePage === "toolbox" && activeApp && !targetApp) {
+      if (activePage === "toolbox" && activeApp && !targetApp && targetView === "toolbox") {
         activeApp = null;
         return;
       }

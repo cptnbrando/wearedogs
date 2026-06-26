@@ -57,7 +57,7 @@
         <h1>{title}</h1>
       </div>
 
-      <button class="close-btn" onclick={onClose} aria-label="Close panel">
+      <button class="close-btn" onclick={activeApp !== null ? handleBack : onClose} aria-label="Close panel">
         <ArrowLeft size={20} />
       </button>
     </header>
@@ -381,7 +381,7 @@
     transform-origin: center bottom;
   }
 
-  .toolbox-panel-container:not(.colored) {
+  .toolbox-panel-container:not(.colored) .launcher-view {
     filter: grayscale(100%);
   }
 
