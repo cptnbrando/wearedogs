@@ -433,7 +433,22 @@
     class:closing={isClosing}
     onclick={(e) => e.stopPropagation()}
   >
-    <header class="mp-header">
+    <!-- Header -->
+    <header class="panel-header">
+      <div class="brand">
+        <img
+          src="/favicon.svg"
+          alt="DOGS Logo"
+          class="w-6 h-6 shrink-0 drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]"
+        />
+        <h1>{title}</h1>
+      </div>
+
+      <button class="close-btn" onclick={onClose} aria-label="Close panel">
+        <ArrowLeft size={20} />
+      </button>
+    </header>
+    <!-- <header class="mp-header">
       <div class="mp-brand">
         <img src="/favicon.svg" alt="DOGS" loading="lazy" class="mp-logo" />
         <span class="mp-title">MUSIC</span>
@@ -441,7 +456,7 @@
       <button class="mp-close-btn" onclick={onClose} aria-label="Close"
         ><ArrowLeft size={18} /></button
       >
-    </header>
+    </header> -->
 
     <SwipeTabNav tabs={musicTabs} bind:activeTab />
 
@@ -985,7 +1000,7 @@
     box-shadow: 0 0 8px rgba(170, 90, 255, 0.6);
   }
   .tonearm.playing {
-    transform: rotate(-33deg);
+    transform: rotate(20deg);
   }
 
   .track-info {
