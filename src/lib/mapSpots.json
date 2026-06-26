@@ -1,0 +1,56 @@
+[
+  {
+    "id": "brandos-espresso",
+    "name": "Brando's Espresso Bar",
+    "category": "restaurants",
+    "subCategory": "Coffee Shops",
+    "rating": 2.5,
+    "mapsUrl": "https://maps.google.com/?q=Brando's+Espresso+Bar",
+    "description": "Premium roasted coffee, dog friendly treats."
+  },
+  {
+    "id": "doggie-pub",
+    "name": "Doggie Pub",
+    "category": "restaurants",
+    "subCategory": "Bars",
+    "rating": 2.5,
+    "mapsUrl": "https://maps.google.com/?q=Doggie+Pub",
+    "description": "Cold barks on tap, outdoor dog runs."
+  },
+  {
+    "id": "bella-doggy-pasta",
+    "name": "Bella Doggy Pasta",
+    "category": "restaurants",
+    "subCategory": "Italian",
+    "rating": 2.5,
+    "mapsUrl": "https://maps.google.com/?q=Bella+Doggy+Pasta",
+    "description": "Famous spaghetti and meatballs for you and your companion."
+  },
+  {
+    "id": "el-barko-taco",
+    "name": "El Barko Taco",
+    "category": "restaurants",
+    "subCategory": "Mexican",
+    "rating": 2.5,
+    "mapsUrl": "https://maps.google.com/?q=El+Barko+Taco",
+    "description": "Crunchy canine tacos and fresh salsas."
+  },
+  {
+    "id": "howl-arena",
+    "name": "The Howl Arena",
+    "category": "concert-halls",
+    "subCategory": null,
+    "rating": 2.5,
+    "mapsUrl": "https://maps.google.com/?q=The+Howl+Arena",
+    "description": "Grand amphitheater hosting seasonal barks and symphonies."
+  },
+  {
+    "id": "pee-hydrant-park",
+    "name": "Pee-On-Fire-Hydrant Park",
+    "category": "free-shit",
+    "subCategory": null,
+    "rating": 2.5,
+    "mapsUrl": "https://maps.google.com/?q=Pee-On-Fire-Hydrant+Park",
+    "description": "Over 50 pristine red hydrants. Zero admission cost."
+  }
+]
