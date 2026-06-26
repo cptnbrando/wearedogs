@@ -10,15 +10,15 @@ export class AudioCore {
   trackGainNode = null;
   instGainNode = null;
   analyser = $state(null);
-  
+
   trackBuffer = null;
   instBuffer = null;
-  
+
   // Reactive Svelte 5 Runes States
   isPlaying = $state(false);
   currentTime = $state(0);
   duration = $state(0);
-  volume = $state(0.8);
+  volume = $state(1);
   isMuted = $state(false);
   isInstrumental = $state(false);
   currentTrackIndex = $state(0);
@@ -32,7 +32,7 @@ export class AudioCore {
   progressInterval = null;
   library = [];
 
-  constructor() {}
+  constructor() { }
 
   init(lib) {
     this.library = lib;
@@ -43,13 +43,13 @@ export class AudioCore {
     if (this.audioCtx) return;
     this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     this.musicGain = this.audioCtx.createGain();
-    
+
     this.analyser = this.audioCtx.createAnalyser();
     this.analyser.fftSize = 256;
-    
+
     this.musicGain.connect(this.analyser);
     this.analyser.connect(this.audioCtx.destination);
-    
+
     this.applyVolume();
   }
 
@@ -63,7 +63,7 @@ export class AudioCore {
 
     this.initContext();
     if (this.audioCtx.state === "suspended") {
-      try { await this.audioCtx.resume(); } catch (e) {}
+      try { await this.audioCtx.resume(); } catch (e) { }
     }
     this.stopNodes();
 
@@ -97,8 +97,8 @@ export class AudioCore {
   }
 
   stopNodes() {
-    try { this.trackSourceNode?.stop(); } catch {}
-    try { this.instSourceNode?.stop(); } catch {}
+    try { this.trackSourceNode?.stop(); } catch { }
+    try { this.instSourceNode?.stop(); } catch { }
     this.trackSourceNode = null;
     this.instSourceNode = null;
     this.trackGainNode = null;
@@ -109,9 +109,9 @@ export class AudioCore {
     if (!this.trackBuffer) return;
     this.initContext();
     this.stopNodes();
-    
+
     this.activeAudioType = "music";
-    
+
     this.trackSourceNode = this.audioCtx.createBufferSource();
     this.trackSourceNode.buffer = this.trackBuffer;
     this.trackGainNode = this.audioCtx.createGain();
@@ -146,7 +146,7 @@ export class AudioCore {
   async togglePlay() {
     this.initContext();
     if (this.audioCtx.state === "suspended") {
-      try { await this.audioCtx.resume(); } catch (e) {}
+      try { await this.audioCtx.resume(); } catch (e) { }
     }
 
     if (!this.trackBuffer && !this.isLoading) {

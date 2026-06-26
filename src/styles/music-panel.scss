@@ -415,19 +415,19 @@
 
 
 
-.vol-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-}
+// .vol-row {
+//   display: flex;
+//   align-items: center;
+//   gap: 8px;
+//   width: 100%;
+// }
 
-.vol-slider {
-  flex: 1;
-  height: 3px;
-  accent-color: rgba(170, 90, 255, 0.9);
-  cursor: pointer;
-}
+// .vol-slider {
+//   flex: 1;
+//   height: 3px;
+//   accent-color: rgba(170, 90, 255, 0.9);
+//   cursor: pointer;
+// }
 
 .tracklist-side {
   flex: 1;
@@ -546,18 +546,18 @@
   font-family: "Inter", sans-serif;
 }
 
-.inst-chip {
-  font-size: 0.56rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  padding: 2px 7px;
-  border-radius: 10px;
-  background: rgba(90, 210, 255, 0.1);
-  border: 1px solid rgba(90, 210, 255, 0.22);
-  color: rgba(90, 210, 255, 0.82);
-  font-family: monospace;
-  flex-shrink: 0;
-}
+// .inst-chip {
+//   font-size: 0.56rem;
+//   font-weight: 700;
+//   letter-spacing: 0.1em;
+//   padding: 2px 7px;
+//   border-radius: 10px;
+//   background: rgba(90, 210, 255, 0.1);
+//   border: 1px solid rgba(90, 210, 255, 0.22);
+//   color: rgba(90, 210, 255, 0.82);
+//   font-family: monospace;
+//   flex-shrink: 0;
+// }
 
 .inst-chip-link {
   font-size: 0.56rem;
@@ -614,22 +614,22 @@
   }
 }
 
-.add-hint {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 13px 22px;
-  color: rgba(255, 255, 255, 0.16);
-  font-size: 0.68rem;
-  font-family: monospace;
-  border-top: 1px dashed rgba(255, 255, 255, 0.06);
-  margin-top: 6px;
-}
+// .add-hint {
+//   display: flex;
+//   align-items: center;
+//   gap: 7px;
+//   padding: 13px 22px;
+//   color: rgba(255, 255, 255, 0.16);
+//   font-size: 0.68rem;
+//   font-family: monospace;
+//   border-top: 1px dashed rgba(255, 255, 255, 0.06);
+//   margin-top: 6px;
+// }
 
-.add-hint code {
-  font-size: 0.65rem;
-  color: rgba(170, 90, 255, 0.38);
-}
+// .add-hint code {
+//   font-size: 0.65rem;
+//   color: rgba(170, 90, 255, 0.38);
+// }
 
 .tab-scroll {
   flex: 1;

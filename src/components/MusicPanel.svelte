@@ -570,6 +570,38 @@
               <div
                 class="relative flex justify-center items-center gap-3 mt-2 w-full"
               >
+                {#if showVolumeSlider}
+                  <div class="volume-popover" bind:this={volumePopoverEl}>
+                    <button
+                      class="ctrl ctrl-xs mr-2 border border-white/10 rounded-full p-1 hover:bg-white/10"
+                      onclick={() => audioCore.toggleMute()}
+                      aria-label="Mute"
+                    >
+                      {#if audioCore.isMuted || audioCore.volume === 0}
+                        <VolumeX size={12} class="text-red-400" />
+                      {:else}
+                        <Volume2 size={12} />
+                      {/if}
+                    </button>
+                    <input
+                      type="range"
+                      class="vol-slider-pop"
+                      min="0"
+                      max="1"
+                      step="0.01"
+                      value={audioCore.volume}
+                      oninput={(e) =>
+                        audioCore.setVolume(parseFloat(e.target.value))}
+                      aria-label="Volume"
+                    />
+                    <span
+                      class="text-[10px] font-bold text-white/60 min-w-[28px] text-right font-mono select-none"
+                    >
+                      {Math.round(audioCore.volume * 100)}%
+                    </span>
+                  </div>
+                {/if}
+
                 <!-- Visualizer Toggle Button & Preset Cycler -->
                 <div class="flex items-center gap-1.5">
                   <button
@@ -605,37 +637,6 @@
 
                 <!-- Volume controls wrapper -->
                 <div class="relative">
-                  {#if showVolumeSlider}
-                    <div class="volume-popover" bind:this={volumePopoverEl}>
-                      <button
-                        class="ctrl ctrl-xs mr-2 border border-white/10 rounded-full p-1 hover:bg-white/10"
-                        onclick={() => audioCore.toggleMute()}
-                        aria-label="Mute"
-                      >
-                        {#if audioCore.isMuted || audioCore.volume === 0}
-                          <VolumeX size={12} class="text-red-400" />
-                        {:else}
-                          <Volume2 size={12} />
-                        {/if}
-                      </button>
-                      <input
-                        type="range"
-                        class="vol-slider-pop"
-                        min="0"
-                        max="1"
-                        step="0.01"
-                        value={audioCore.volume}
-                        oninput={(e) =>
-                          audioCore.setVolume(parseFloat(e.target.value))}
-                        aria-label="Volume"
-                      />
-                      <span
-                        class="text-[10px] font-bold text-white/60 min-w-[28px] text-right font-mono select-none"
-                      >
-                        {Math.round(audioCore.volume * 100)}%
-                      </span>
-                    </div>
-                  {/if}
                   <button
                     class="ctrl ctrl-xs vol-toggle-btn"
                     onclick={() => {
