@@ -30,7 +30,7 @@
         <img
           src="/favicon.svg"
           alt="DOGS Logo"
-          style="width: 24px; height: 24px; filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.4)); flex-shrink: 0;"
+          class="w-6 h-6 shrink-0 drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]"
         />
         <h1>{title}</h1>
       </div>
