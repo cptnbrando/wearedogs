@@ -42,6 +42,40 @@
   let showMobileTracklist = $state(false);
   let isBouncing = $state(false);
   let vinylLoaded = $state(false);
+  let showVolumeSlider = $state(false);
+  let volumePopoverEl = $state(null);
+
+  // Sync tracklist state with browser history (back button closes tracklist)
+  $effect(() => {
+    if (showMobileTracklist) {
+      if (!history.state?.tracklistOpen) {
+        history.pushState({ tracklistOpen: true }, "");
+      }
+    } else {
+      if (history.state?.tracklistOpen) {
+        history.back();
+      }
+    }
+
+    return () => {
+      // Clean up history state if modal closes while tracklist is open
+      if (history.state?.tracklistOpen) {
+        history.back();
+      }
+    };
+  });
+
+  function handlePopState(e) {
+    if (!e.state?.tracklistOpen && showMobileTracklist) {
+      showMobileTracklist = false;
+    }
+  }
+
+  function handleWindowClick(e) {
+    if (showVolumeSlider && volumePopoverEl && !volumePopoverEl.contains(e.target) && !e.target.closest(".vol-toggle-btn")) {
+      showVolumeSlider = false;
+    }
+  }
 
   const library = [
     {
@@ -204,7 +238,7 @@
   }
 </script>
 
-<svelte:window onkeydown={handleKeydown} />
+<svelte:window onkeydown={handleKeydown} onpopstate={handlePopState} onclick={handleWindowClick} />
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -240,156 +274,190 @@
       {#if activeTab === "songs"}
         <div class="songs-layout">
           <!-- Left side player details -->
-          <div class="player-side" class:hidden-mobile={showMobileTracklist}>
-            <!-- Vinyl disc button to toggle tracklist on mobile -->
-            <!-- svelte-ignore a11y_click_events_have_key_events -->
-            <!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
+          <div class="player-side" class:tracklist-open={showMobileTracklist}>
+            <!-- Top block (Vinyl & track info) - disappears on mobile tracklist active -->
             <div 
-              class="vinyl-wrapper cursor-pointer" 
-              onclick={() => { showMobileTracklist = true; }}
-              role="button"
-              tabindex="0"
-              aria-label="Open tracklist"
+              class="player-top-block transition-all duration-300 ease-in-out" 
+              class:opacity-0={showMobileTracklist} 
+              class:scale-95={showMobileTracklist}
+              class:pointer-events-none={showMobileTracklist}
             >
-              <div class="vinyl-record" class:spinning={audioCore.isPlaying}>
-                <div class="groove g1"></div>
-                <div class="groove g2"></div>
-                <div class="groove g3"></div>
-                <div class="groove g4"></div>
-                <div class="record-label">
-                  <img
-                    src={currentTrack.cover}
-                    alt={currentTrack.album}
-                    loading="lazy"
-                    class="record-art"
-                    class:loaded={vinylLoaded}
-                    onload={() => (vinylLoaded = true)}
+              <!-- Vinyl disc button to toggle tracklist on mobile -->
+              <!-- svelte-ignore a11y_click_events_have_key_events -->
+              <!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
+              <div 
+                class="vinyl-wrapper cursor-pointer" 
+                onclick={() => { showMobileTracklist = true; }}
+                role="button"
+                tabindex="0"
+                aria-label="Open tracklist"
+              >
+                <div class="vinyl-record" class:spinning={audioCore.isPlaying}>
+                  <div class="groove g1"></div>
+                  <div class="groove g2"></div>
+                  <div class="groove g3"></div>
+                  <div class="groove g4"></div>
+                  <div class="record-label">
+                    <img
+                      src={currentTrack.cover}
+                      alt={currentTrack.album}
+                      loading="lazy"
+                      class="record-art"
+                      class:loaded={vinylLoaded}
+                      onload={() => (vinylLoaded = true)}
+                    />
+                  </div>
+                  <div class="spindle"></div>
+                </div>
+                <div class="tonearm" class:playing={audioCore.isPlaying}></div>
+              </div>
+
+              <div class="track-info mt-2">
+                <div class="version-badge" class:inst={audioCore.crossfadeValue > 0.5}>
+                  {audioCore.crossfadeValue > 0.5 ? "INSTRUMENTAL" : "ORIGINAL"}
+                </div>
+                <h2 class="track-title">{currentTrack.title}</h2>
+                <p class="track-artist">{currentTrack.artist}</p>
+                <p class="track-album">{currentTrack.album}</p>
+              </div>
+            </div>
+
+            <!-- Bottom block (Controls & Faders) - persistent on mobile -->
+            <div class="player-controls-block">
+              <!-- Seek bar -->
+              <div class="progress-row">
+                <span class="ptime">{fmtTime(audioCore.currentTime)}</span>
+                <div class="progress-wrap">
+                  <div class="progress-fill" style="width:{(audioCore.duration > 0 ? (audioCore.currentTime / audioCore.duration) * 100 : 0)}%"></div>
+                  <input
+                    type="range"
+                    class="seek-input"
+                    min="0"
+                    max={audioCore.duration || 100}
+                    step="0.1"
+                    value={audioCore.currentTime}
+                    oninput={(e) => { audioCore.currentTime = parseFloat(e.target.value); }}
+                    onchange={(e) => { audioCore.play(parseFloat(e.target.value)); }}
+                    aria-label="Seek"
                   />
                 </div>
-                <div class="spindle"></div>
+                <span class="ptime">{fmtTime(audioCore.duration)}</span>
               </div>
-              <div class="tonearm" class:playing={audioCore.isPlaying}></div>
-            </div>
 
-            <div class="track-info mt-2">
-              <div class="version-badge" class:inst={audioCore.crossfadeValue > 0.5}>
-                {audioCore.crossfadeValue > 0.5 ? "INSTRUMENTAL" : "ORIGINAL"}
+              <!-- Player main buttons -->
+              <div class="controls-row">
+                <button
+                  class="ctrl ctrl-sm"
+                  class:active-ctrl={audioCore.isShuffled}
+                  onclick={() => (audioCore.isShuffled = !audioCore.isShuffled)}
+                  aria-label="Shuffle"
+                >
+                  <Shuffle size={15} />
+                </button>
+                <button
+                  class="ctrl ctrl-md"
+                  onclick={() => audioCore.prevTrack()}
+                  aria-label="Previous"
+                >
+                  <SkipBack size={19} />
+                </button>
+                <button
+                  class="ctrl ctrl-play"
+                  onclick={() => audioCore.togglePlay()}
+                  aria-label={audioCore.isPlaying ? "Pause" : "Play"}
+                >
+                  {#if audioCore.isLoading}
+                    <div class="spin-ring"></div>
+                  {:else if audioCore.isPlaying}
+                    <Pause size={22} fill="currentColor" />
+                  {:else}
+                    <Play size={22} fill="currentColor" />
+                  {/if}
+                </button>
+                <button
+                  class="ctrl ctrl-md"
+                  onclick={() => audioCore.nextTrack()}
+                  aria-label="Next"
+                >
+                  <SkipForward size={19} />
+                </button>
+                <button
+                  class="ctrl ctrl-sm"
+                  class:active-ctrl={audioCore.repeatMode > 0}
+                  onclick={() => { audioCore.repeatMode = (audioCore.repeatMode + 1) % 3; }}
+                  aria-label="Repeat"
+                >
+                  {#if audioCore.repeatMode === 2}<Repeat1 size={15} />{:else}<Repeat
+                      size={15}
+                    />{/if}
+                </button>
               </div>
-              <h2 class="track-title">{currentTrack.title}</h2>
-              <p class="track-artist">{currentTrack.artist}</p>
-              <p class="track-album">{currentTrack.album}</p>
-            </div>
 
-            <!-- Seek bar -->
-            <div class="progress-row">
-              <span class="ptime">{fmtTime(audioCore.currentTime)}</span>
-              <div class="progress-wrap">
-                <div class="progress-fill" style="width:{(audioCore.duration > 0 ? (audioCore.currentTime / audioCore.duration) * 100 : 0)}%"></div>
-                <input
-                  type="range"
-                  class="seek-input"
-                  min="0"
-                  max={audioCore.duration || 100}
-                  step="0.1"
-                  value={audioCore.currentTime}
-                  oninput={(e) => { audioCore.currentTime = parseFloat(e.target.value); }}
-                  onchange={(e) => { audioCore.play(parseFloat(e.target.value)); }}
-                  aria-label="Seek"
-                />
-              </div>
-              <span class="ptime">{fmtTime(audioCore.duration)}</span>
-            </div>
-
-            <!-- Player main buttons -->
-            <div class="controls-row">
-              <button
-                class="ctrl ctrl-sm"
-                class:active-ctrl={audioCore.isShuffled}
-                onclick={() => (audioCore.isShuffled = !audioCore.isShuffled)}
-                aria-label="Shuffle"
-              >
-                <Shuffle size={15} />
-              </button>
-              <button
-                class="ctrl ctrl-md"
-                onclick={() => audioCore.prevTrack()}
-                aria-label="Previous"
-              >
-                <SkipBack size={19} />
-              </button>
-              <button
-                class="ctrl ctrl-play"
-                onclick={() => audioCore.togglePlay()}
-                aria-label={audioCore.isPlaying ? "Pause" : "Play"}
-              >
-                {#if audioCore.isLoading}
-                  <div class="spin-ring"></div>
-                {:else if audioCore.isPlaying}
-                  <Pause size={22} fill="currentColor" />
-                {:else}
-                  <Play size={22} fill="currentColor" />
-                {/if}
-              </button>
-              <button
-                class="ctrl ctrl-md"
-                onclick={() => audioCore.nextTrack()}
-                aria-label="Next"
-              >
-                <SkipForward size={19} />
-              </button>
-              <button
-                class="ctrl ctrl-sm"
-                class:active-ctrl={audioCore.repeatMode > 0}
-                onclick={() => { audioCore.repeatMode = (audioCore.repeatMode + 1) % 3; }}
-                aria-label="Repeat"
-              >
-                {#if audioCore.repeatMode === 2}<Repeat1 size={15} />{:else}<Repeat
-                    size={15}
-                  />{/if}
-              </button>
-            </div>
-
-            <!-- Custom DJ Crossfader -->
-            <div class="w-full flex flex-col items-center gap-1.5 mt-2 px-1">
-              <span class="text-[10px] font-bold tracking-wider text-white/30 uppercase font-sans">Crossfader</span>
-              <!-- svelte-ignore a11y_click_events_have_key_events -->
-              <!-- svelte-ignore a11y_no_static_element_interactions -->
-              <div 
-                class="dj-crossfader"
-                class:animate-wiggle={isBouncing}
-                onclick={toggleCrossfade}
-              >
-                <span class="fader-label left-label" class:active={audioCore.crossfadeValue < 0.5}>VOCAL</span>
-                <div class="dj-fader-slot">
-                  <div class="dj-fader-knob" class:right={audioCore.crossfadeValue >= 0.5}></div>
+              <!-- Custom DJ Crossfader -->
+              <div class="w-full flex flex-col items-center gap-1.5 mt-2 px-1">
+                <span class="text-[10px] font-bold tracking-wider text-white/30 uppercase font-sans">Crossfader</span>
+                <!-- svelte-ignore a11y_click_events_have_key_events -->
+                <!-- svelte-ignore a11y_no_static_element_interactions -->
+                <div 
+                  class="dj-crossfader"
+                  class:animate-wiggle={isBouncing}
+                  onclick={toggleCrossfade}
+                >
+                  <span class="fader-label left-label" class:active={audioCore.crossfadeValue < 0.5}>VOCAL</span>
+                  <div class="dj-fader-slot">
+                    <div class="dj-fader-knob" class:right={audioCore.crossfadeValue >= 0.5}></div>
+                  </div>
+                  <span class="fader-label right-label" class:active={audioCore.crossfadeValue >= 0.5}>INST</span>
                 </div>
-                <span class="fader-label right-label" class:active={audioCore.crossfadeValue >= 0.5}>INST</span>
               </div>
-            </div>
 
-            <!-- Volume controls -->
-            <div class="vol-row mt-2">
-              <button
-                class="ctrl ctrl-xs"
-                onclick={() => audioCore.toggleMute()}
-                aria-label="Mute"
-              >
-                {#if audioCore.isMuted || audioCore.volume === 0}
-                  <VolumeX size={13} />
-                {:else}
-                  <Volume2 size={13} />
-                {/if}
-              </button>
-              <input
-                type="range"
-                class="vol-slider"
-                min="0"
-                max="1"
-                step="0.01"
-                value={audioCore.volume}
-                oninput={(e) => audioCore.setVolume(parseFloat(e.target.value))}
-                aria-label="Volume"
-              />
+              <!-- Volume controls wrapper -->
+              <div class="relative flex justify-center mt-2 w-full">
+                <div class="relative">
+                  {#if showVolumeSlider}
+                    <div 
+                      class="volume-popover"
+                      bind:this={volumePopoverEl}
+                    >
+                      <button
+                        class="ctrl ctrl-xs mr-2 border border-white/10 rounded-full p-1 hover:bg-white/10"
+                        onclick={() => audioCore.toggleMute()}
+                        aria-label="Mute"
+                      >
+                        {#if audioCore.isMuted || audioCore.volume === 0}
+                          <VolumeX size={12} class="text-red-400" />
+                        {:else}
+                          <Volume2 size={12} />
+                        {/if}
+                      </button>
+                      <input
+                        type="range"
+                        class="vol-slider-pop"
+                        min="0"
+                        max="1"
+                        step="0.01"
+                        value={audioCore.volume}
+                        oninput={(e) => audioCore.setVolume(parseFloat(e.target.value))}
+                        aria-label="Volume"
+                      />
+                      <span class="text-[10px] font-bold text-white/60 min-w-[28px] text-right font-mono select-none">
+                        {Math.round(audioCore.volume * 100)}%
+                      </span>
+                    </div>
+                  {/if}
+                  <button
+                    class="ctrl ctrl-xs vol-toggle-btn"
+                    onclick={() => { showVolumeSlider = !showVolumeSlider; }}
+                    aria-label="Toggle volume slider"
+                  >
+                    {#if audioCore.isMuted || audioCore.volume === 0}
+                      <VolumeX size={13} class="text-red-400" />
+                    {:else}
+                      <Volume2 size={13} />
+                    {/if}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -575,7 +643,7 @@
 </div>
 
 <style lang="scss">
-  @import "../styles/music-panel.scss";
+  @use "../styles/music-panel.scss";
 
   /* ── Header ── */
   .panel-header {
@@ -637,10 +705,10 @@
   .dj-crossfader {
     position: relative;
     width: 100%;
-    height: 46px;
+    height: 34px;
     background: linear-gradient(180deg, #1e1e24 0%, #121215 100%);
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 12px;
+    border-radius: 8px;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -675,10 +743,10 @@
 
   .dj-fader-slot {
     flex: 1;
-    height: 6px;
+    height: 4px;
     background: #000;
     border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 3px;
+    border-radius: 2px;
     position: relative;
   }
 
@@ -686,12 +754,12 @@
     position: absolute;
     top: 50%;
     left: 0%;
-    width: 32px;
-    height: 24px;
+    width: 24px;
+    height: 18px;
     transform: translate(0, -50%);
     background: linear-gradient(135deg, #666 0%, #333 50%, #222 100%);
     border: 1px solid rgba(255, 255, 255, 0.25);
-    border-radius: 4px;
+    border-radius: 3px;
     box-shadow: 
       0 4px 10px rgba(0, 0, 0, 0.8),
       inset 0 1px 0 rgba(255, 255, 255, 0.15);
@@ -710,6 +778,37 @@
   }
 
   .dj-fader-knob.right {
-    left: calc(100% - 32px);
+    left: calc(100% - 24px);
+  }
+
+  /* ── Volume Popover ── */
+  .volume-popover {
+    position: absolute;
+    bottom: 38px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(15, 15, 20, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 6px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+    z-index: 50;
+    min-width: 150px;
+    pointer-events: auto;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  .vol-slider-pop {
+    flex: 1;
+    height: 3px;
+    accent-color: #a855f7;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+    outline: none;
   }
 </style>
