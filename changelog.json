@@ -1,7 +1,7 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1782500082,
+    "firstCommitTimestamp": 1782500126,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
     "averageLinesAltered": 34853
@@ -11,13 +11,13 @@
       "version": "1.0.0",
       "name": "Master",
       "date": "2026-06-26",
-      "timestamp": 1782500027,
+      "timestamp": 1782500075,
       "commits": [
         {
-          "hash": "8187583",
-          "message": "maybe we need the json",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/8187583031389f26ff9edb95c782c113e93bf3fc",
-          "timestamp": 1782500082,
+          "hash": "5c6b2cb",
+          "message": "node 25",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/5c6b2cbfca0815e6de03717e3218496afd7de4e0",
+          "timestamp": 1782500126,
           "linesChanged": 34853
         }
       ]
