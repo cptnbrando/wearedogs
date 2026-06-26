@@ -130,11 +130,10 @@
     }
   }
 
-  function handleCrossfadeInput(e) {
-    const val = parseFloat(e.target.value);
-    const success = audioCore.setCrossfade(val);
+  function toggleCrossfade() {
+    const newVal = audioCore.crossfadeValue < 0.5 ? 1.0 : 0.0;
+    const success = audioCore.setCrossfade(newVal);
     if (!success) {
-      e.target.value = 0;
       if (!isBouncing) {
         isBouncing = true;
         setTimeout(() => { isBouncing = false; }, 400);
@@ -353,22 +352,24 @@
             <!-- Custom Animated Digital Crossfader slider -->
             <div class="w-full flex flex-col items-center gap-1.5 mt-2 px-1">
               <span class="text-[10px] font-bold tracking-wider text-white/30 uppercase font-sans">Vocals / Inst Crossfader</span>
+              <!-- svelte-ignore a11y_click_events_have_key_events -->
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
               <div 
-                class="w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl border border-white/5 bg-white/[0.02]"
+                class="w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl border border-white/5 bg-white/[0.02] cursor-pointer"
                 class:animate-wiggle={isBouncing}
+                onclick={toggleCrossfade}
               >
                 <div class="flex items-center gap-1.5 {audioCore.crossfadeValue < 0.5 ? 'text-purple-400' : 'text-white/20'}">
                   <Mic2 size={14} />
                   <span class="text-[10px] font-bold">VOCAL</span>
                 </div>
-                <div class="flex-1 relative flex items-center h-4">
+                <div class="flex-1 relative flex items-center h-4 pointer-events-none">
                   <input
                     type="range"
                     min="0"
                     max="1"
-                    step="0.01"
+                    step="1"
                     value={audioCore.crossfadeValue}
-                    oninput={handleCrossfadeInput}
                     class="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-purple-500"
                     aria-label="Vocals to Instrumental Crossfader"
                   />
