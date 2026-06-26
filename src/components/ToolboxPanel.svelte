@@ -64,9 +64,6 @@
       {#if activeApp === null}
         <!-- APPS LAUNCHER GRID VIEW -->
         <div class="launcher-view animated-pane">
-          <h2>/util</h2>
-          <p class="description">Select a gadget</p>
-
           <div class="apps-grid">
             <!-- App 1: GoPro Player -->
             <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -309,13 +306,10 @@
     <!-- Footer -->
     <footer class="panel-footer">
       <div class="sys-status">
-        <span class="status-indicator-green"></span>
-        <span>UTILITY GRID STABLE</span>
+        <span>/util</span>
       </div>
       <div class="stats-counter">
         <span>APPS LOADED: 9</span>
-        <span class="divider">|</span>
-        <span>ACTIVE APP: {activeApp ? activeApp.toUpperCase() : "NONE"}</span>
       </div>
     </footer>
   </div>
