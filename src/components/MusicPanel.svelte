@@ -578,17 +578,26 @@
               <div
                 class="relative flex justify-center items-center gap-3 mt-2 w-full"
               >
-                <!-- Visualizer Toggle Button -->
-                <button
-                  class="ctrl ctrl-xs"
-                  class:active-ctrl={showVisualizer}
-                  onclick={() => {
-                    showVisualizer = !showVisualizer;
-                  }}
-                  aria-label="Toggle Visualizer"
-                >
-                  <Waves size={13} />
-                </button>
+                <!-- Visualizer Toggle Button & Preset Cycler -->
+                <div class="flex items-center gap-1.5">
+                  <button
+                    class="ctrl ctrl-xs"
+                    class:active-ctrl={showVisualizer}
+                    onclick={() => { showVisualizer = !showVisualizer; }}
+                    aria-label="Toggle Visualizer"
+                  >
+                    <Waves size={13} />
+                  </button>
+                  {#if showVisualizer}
+                    <button 
+                      class="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-[9px] font-bold text-white/50 hover:text-white hover:bg-white/10 hover:border-white/25 active:scale-95 transition-all font-mono uppercase tracking-wider select-none cursor-pointer"
+                      onclick={() => { activePresetIdx = (activePresetIdx + 1) % PRESETS.length; }}
+                      title="Click to cycle presets"
+                    >
+                      {PRESETS[activePresetIdx].name}
+                    </button>
+                  {/if}
+                </div>
 
                 <!-- Volume controls wrapper -->
                 <div class="relative">
