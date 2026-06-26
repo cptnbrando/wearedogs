@@ -9,7 +9,7 @@ export class AudioCore {
   instSourceNode = null;
   trackGainNode = null;
   instGainNode = null;
-  analyser = null;
+  analyser = $state(null);
   
   trackBuffer = null;
   instBuffer = null;

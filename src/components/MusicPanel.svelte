@@ -1,5 +1,5 @@
 <script>
-  import { onMount } from "svelte";
+  import { onMount, onDestroy } from "svelte";
   import {
     Play,
     Pause,
@@ -27,7 +27,7 @@
   } from "lucide-svelte";
   import { audioCore } from "../lib/AudioCore.svelte.js";
   import { VisualizerEngine } from "../lib/visualizer/VisualizerEngine.js";
-  import { PRESETS } from "../lib/visualizer/presets.js";
+  import { PRESETS, NO_SIGNAL_PRESET } from "../lib/visualizer/presets.js";
 
   import SwipeTabNav from "./SwipeTabNav.svelte";
 
@@ -56,18 +56,32 @@
   let isFullscreenVisualizer = $state(false);
   let canvasEl = $state(null);
   let visualizerEngine = null;
+  let tracklistHistoryPushed = false;
+  let hasMusicPlayed = $state(false);
+
+  // Track if music starts playing to flip hasMusicPlayed to true
+  $effect(() => {
+    if (audioCore.isPlaying) {
+      hasMusicPlayed = true;
+    }
+  });
+
+  // Dynamically derive current fragment shader to compile
+  let currentShader = $derived.by(() => {
+    if (!audioCore.isPlaying && !hasMusicPlayed) {
+      return NO_SIGNAL_PRESET.fragmentShader;
+    }
+    return PRESETS[activePresetIdx].fragmentShader;
+  });
 
   // Manage Visualizer instantiation and destruction
   $effect(() => {
-    if (showVisualizer && canvasEl && audioCore.analyser) {
-      visualizerEngine = new VisualizerEngine(canvasEl, audioCore.analyser);
-
-      // Initial preset load
-      const preset = PRESETS[activePresetIdx];
-      if (preset) {
-        visualizerEngine.init(preset.fragmentShader);
-        visualizerEngine.start();
-      }
+    const analyser = audioCore.analyser; // track dependency
+    if (showVisualizer && canvasEl) {
+      // Re-instantiate engine when analyser becomes available or changes
+      visualizerEngine = new VisualizerEngine(canvasEl, analyser);
+      visualizerEngine.init(currentShader);
+      visualizerEngine.start();
     }
 
     return () => {
@@ -78,41 +92,42 @@
     };
   });
 
-  // Manage Preset switches (without destroying WebGL context)
+  // Manage Preset switches / shader changes (without destroying WebGL context)
   $effect(() => {
-    const presetIdx = activePresetIdx; // track dependency
+    const shader = currentShader; // track dependency
     if (visualizerEngine && showVisualizer) {
-      const preset = PRESETS[presetIdx];
-      if (preset) {
-        visualizerEngine.setPreset(preset.fragmentShader);
-        visualizerEngine.start();
-      }
+      visualizerEngine.setPreset(shader);
+      visualizerEngine.start();
     }
   });
 
   // Sync tracklist state with browser history (back button closes tracklist)
   $effect(() => {
     if (showMobileTracklist) {
-      if (!history.state?.tracklistOpen) {
+      if (!history.state?.tracklistOpen && !tracklistHistoryPushed) {
         history.pushState({ tracklistOpen: true }, "");
+        tracklistHistoryPushed = true;
       }
     } else {
-      if (history.state?.tracklistOpen) {
+      if (tracklistHistoryPushed) {
         history.back();
+        tracklistHistoryPushed = false;
       }
     }
+  });
 
-    return () => {
-      // Clean up history state if modal closes while tracklist is open
-      if (history.state?.tracklistOpen) {
-        history.back();
-      }
-    };
+  onDestroy(() => {
+    // Clean up history state if modal closes while tracklist is open
+    if (tracklistHistoryPushed) {
+      history.back();
+      tracklistHistoryPushed = false;
+    }
   });
 
   function handlePopState(e) {
     if (!e.state?.tracklistOpen && showMobileTracklist) {
       showMobileTracklist = false;
+      tracklistHistoryPushed = false;
     }
   }
 
@@ -351,57 +366,38 @@
             >
               <!-- Vinyl disc OR Visualizer (Exactly same dimensions!) -->
               <div class="vinyl-wrapper relative">
-                {#if showVisualizer}
-                  <!-- Visualizer Container -->
+                {#if showVisualizer && !isFullscreenVisualizer}
+                  <!-- Compact Visualizer Container -->
                   <!-- svelte-ignore a11y_click_events_have_key_events -->
                   <!-- svelte-ignore a11y_no_static_element_interactions -->
-                  <div 
-                    class="visualizer-container cursor-pointer" 
-                    class:fullscreen={isFullscreenVisualizer}
-                    onclick={() => { isFullscreenVisualizer = !isFullscreenVisualizer; }}
+                  <div
+                    class="visualizer-container cursor-pointer"
+                    onclick={() => {
+                      isFullscreenVisualizer = true;
+                    }}
                   >
-                    <canvas bind:this={canvasEl} class="visualizer-canvas"></canvas>
-                    
-                    <!-- Floating Overlay controls: Only show when fullscreen or on hover -->
-                    {#if isFullscreenVisualizer}
-                      <!-- Floating Top-Right Exit Fullscreen Button -->
-                      <button 
-                        class="absolute top-6 right-6 z-[2100] ctrl ctrl-md bg-black/60 backdrop-blur-md border border-white/10 text-white/80 hover:text-white hover:scale-105 active:scale-95 transition-all"
-                        onclick={() => isFullscreenVisualizer = false}
-                        aria-label="Exit Fullscreen"
-                      >
-                        <Minimize2 size={16} />
-                      </button>
+                    <canvas bind:this={canvasEl} class="visualizer-canvas"
+                    ></canvas>
 
-                      <div class="visualizer-overlay" onclick={(e) => e.stopPropagation()}>
-                        <div class="flex items-center gap-1 bg-black/60 backdrop-blur-md rounded-lg p-1 border border-white/10">
-                          {#each PRESETS as preset, index}
-                            <button 
-                              class="px-2 py-1 rounded text-[9px] font-bold transition-all uppercase tracking-wider font-mono
-                                {activePresetIdx === index
-                                ? 'bg-purple-600 text-white'
-                                : 'text-white/40 hover:text-white/80'}"
-                              onclick={() => activePresetIdx = index}
-                            >
-                              {preset.name}
-                            </button>
-                          {/each}
+                    {#if !audioCore.isPlaying && !hasMusicPlayed}
+                      <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-10 animate-pulse">
+                        <div class="bg-black/75 border border-red-500/30 px-3 py-1.5 rounded text-[10px] font-mono tracking-widest text-red-500 font-bold uppercase shadow-[0_0_15px_rgba(239,68,68,0.25)] select-none">
+                          NO SIGNAL
                         </div>
-
-                        <button 
-                          class="ctrl ctrl-xs bg-black/60 backdrop-blur-md border border-white/10 text-white/80 hover:text-white"
-                          onclick={() => isFullscreenVisualizer = false}
-                          aria-label="Exit Fullscreen"
-                        >
-                          <Minimize2 size={12} />
-                        </button>
-                      </div>
-                    {:else}
-                      <!-- Subtle maximize icon on hover -->
-                      <div class="visualizer-hover-overlay">
-                        <Maximize2 size={16} class="text-white/70" />
                       </div>
                     {/if}
+
+                    <!-- Subtle maximize icon on hover -->
+                    <div class="visualizer-hover-overlay">
+                      <Maximize2 size={16} class="text-white/70" />
+                    </div>
+                  </div>
+                {:else if showVisualizer && isFullscreenVisualizer}
+                  <!-- Placeholder keeping layout static when visualizer is fullscreen -->
+                  <div
+                    class="visualizer-container bg-[#050508]/40 border border-white/5 flex items-center justify-center"
+                  >
+                    <Maximize2 size={16} class="text-white/20" />
                   </div>
                 {:else}
                   <!-- Vinyl disc button to toggle tracklist on mobile -->
@@ -540,10 +536,6 @@
 
               <!-- Custom DJ Crossfader -->
               <div class="w-full flex flex-col items-center gap-1.5 mt-2 px-1">
-                <span
-                  class="text-[10px] font-bold tracking-wider text-white/30 uppercase font-sans"
-                  >Crossfader</span
-                >
                 <!-- svelte-ignore a11y_click_events_have_key_events -->
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
                 <div
@@ -583,20 +575,32 @@
                   <button
                     class="ctrl ctrl-xs"
                     class:active-ctrl={showVisualizer}
-                    onclick={() => { showVisualizer = !showVisualizer; }}
+                    onclick={() => {
+                      showVisualizer = !showVisualizer;
+                    }}
                     aria-label="Toggle Visualizer"
                   >
                     <Waves size={13} />
                   </button>
-                  {#if showVisualizer}
-                    <button 
-                      class="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-[9px] font-bold text-white/50 hover:text-white hover:bg-white/10 hover:border-white/25 active:scale-95 transition-all font-mono uppercase tracking-wider select-none cursor-pointer"
-                      onclick={() => { activePresetIdx = (activePresetIdx + 1) % PRESETS.length; }}
-                      title="Click to cycle presets"
-                    >
-                      {PRESETS[activePresetIdx].name}
-                    </button>
-                  {/if}
+                  <button
+                    class="w-[90px] h-[20px] flex items-center justify-center rounded text-[9px] font-bold transition-all font-mono uppercase tracking-wider select-none cursor-pointer
+                      {showVisualizer
+                      ? 'bg-white/5 border border-white/10 text-white/70 hover:text-white hover:bg-white/10 hover:border-white/25 active:scale-95'
+                      : 'bg-transparent border border-white/5 text-white/20 hover:text-white/40 hover:border-white/10'}"
+                    onclick={() => {
+                      if (!showVisualizer) {
+                        showVisualizer = true;
+                      } else {
+                        activePresetIdx =
+                          (activePresetIdx + 1) % PRESETS.length;
+                      }
+                    }}
+                    title={showVisualizer
+                      ? "Click to cycle presets"
+                      : "Click to enable visualizer"}
+                  >
+                    {PRESETS[activePresetIdx].name}
+                  </button>
                 </div>
 
                 <!-- Volume controls wrapper -->
@@ -726,9 +730,6 @@
                       >{track.artist} · {track.album} ({track.year || ""})</span
                     >
                   </div>
-                  {#if library[audioCore.currentTrackIndex].id === track.id && audioCore.isInstrumental}
-                    <span class="inst-chip">INST</span>
-                  {/if}
                   {#if track.artist === "YG"}
                     <span class="inst-chip-link">
                       <a
@@ -740,13 +741,6 @@
                   {/if}
                 </div>
               {/each}
-              <div class="add-hint">
-                <Plus size={12} />
-                <span
-                  >Add tracks to <code>public/music/[artist]/[album]/</code
-                  ></span
-                >
-              </div>
             </div>
           </div>
         </div>
@@ -847,6 +841,67 @@
       <span>MUSIC</span>
     </footer>
   </div>
+
+  {#if showVisualizer && isFullscreenVisualizer}
+    <!-- Fullscreen Visualizer Container -->
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div
+      class="visualizer-container fullscreen cursor-pointer"
+      onclick={(e) => {
+        e.stopPropagation();
+        isFullscreenVisualizer = false;
+      }}
+    >
+      <canvas bind:this={canvasEl} class="visualizer-canvas"></canvas>
+
+      {#if !audioCore.isPlaying && !hasMusicPlayed}
+        <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-10 animate-pulse">
+          <div class="bg-black/75 border border-red-500/30 px-4 py-2 rounded text-[12px] font-mono tracking-widest text-red-500 font-bold uppercase shadow-[0_0_20px_rgba(239,68,68,0.3)] select-none">
+            NO SIGNAL
+          </div>
+        </div>
+      {/if}
+
+      <!-- Floating Top-Right Exit Fullscreen Button -->
+      <button
+        class="absolute top-6 right-6 z-[2100] ctrl ctrl-md bg-black/60 backdrop-blur-md border border-white/10 text-white/80 hover:text-white hover:scale-105 active:scale-95 transition-all"
+        onclick={(e) => {
+          e.stopPropagation();
+          isFullscreenVisualizer = false;
+        }}
+        aria-label="Exit Fullscreen"
+      >
+        <Minimize2 size={16} />
+      </button>
+
+      <div class="visualizer-overlay" onclick={(e) => e.stopPropagation()}>
+        <div
+          class="flex items-center gap-1 bg-black/60 backdrop-blur-md rounded-lg p-1 border border-white/10"
+        >
+          {#each PRESETS as preset, index}
+            <button
+              class="px-2 py-1 rounded text-[9px] font-bold transition-all uppercase tracking-wider font-mono
+                {activePresetIdx === index
+                ? 'bg-purple-600 text-white'
+                : 'text-white/40 hover:text-white/80'}"
+              onclick={() => (activePresetIdx = index)}
+            >
+              {preset.name}
+            </button>
+          {/each}
+        </div>
+
+        <button
+          class="ctrl ctrl-xs bg-black/60 backdrop-blur-md border border-white/10 text-white/80 hover:text-white"
+          onclick={() => (isFullscreenVisualizer = false)}
+          aria-label="Exit Fullscreen"
+        >
+          <Minimize2 size={12} />
+        </button>
+      </div>
+    </div>
+  {/if}
 </div>
 
 <style lang="scss">

@@ -258,3 +258,46 @@ export const PRESETS = [
     `
   }
 ];
+
+export const NO_SIGNAL_PRESET = {
+  id: "no-signal",
+  name: "No Signal",
+  fragmentShader: `
+    precision mediump float;
+    
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    
+    float hash(vec2 p) {
+      return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+    }
+    
+    void main() {
+      vec2 uv = gl_FragCoord.xy / u_resolution.xy;
+      
+      // High-frequency analog noise
+      float noise = hash(uv + u_time * 15.0);
+      
+      // Horizontal scanlines
+      float scanline = sin(uv.y * 450.0) * 0.12;
+      
+      // Slowly drifting vertical bar
+      float bar = sin(uv.y * 2.5 + u_time * 1.8) * 0.05;
+      
+      // Subtle color chromatic aberration tint (shift screen coordinates per channel)
+      float r = hash(uv + u_time * 15.0 + vec2(0.005, 0.0));
+      float g = hash(uv + u_time * 15.0 + vec2(0.0, 0.005));
+      float b = hash(uv + u_time * 15.0 + vec2(-0.005, -0.005));
+      
+      vec3 color = vec3(r - scanline + bar, g - scanline + bar, b - scanline + bar);
+      
+      // Apply dark retro vignetting
+      float vignette = uv.x * (1.0 - uv.x) * uv.y * (1.0 - uv.y) * 16.0;
+      vignette = clamp(pow(vignette, 0.3), 0.0, 1.0);
+      color *= vignette * 0.85;
+      
+      gl_FragColor = vec4(color, 1.0);
+    }
+  `
+};
+
