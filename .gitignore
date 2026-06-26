@@ -27,4 +27,4 @@ dist-ssr
 public/batman/*.mp4
 # !public/batman/batman1.mp4
 
-public/changelog.json
+# public/changelog.json
