@@ -13,6 +13,16 @@ export default defineConfig({
       modernPolyfills: true,
     })
   ],
+  server: {
+    proxy: {
+      '/api-worldcup': {
+        target: 'https://worldcup26.ir',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/api-worldcup/, '')
+      }
+    }
+  },
   build: {
     target: 'modules',
 
