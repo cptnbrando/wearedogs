@@ -507,19 +507,6 @@
     flex-direction: column;
   }
 
-  .launcher-view h2 {
-    margin: 0;
-    font-size: 1.3rem;
-    font-weight: 700;
-    color: white;
-  }
-
-  .description {
-    font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.4);
-    margin: 4px 0 20px 0;
-  }
-
   .apps-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -810,22 +797,10 @@
     font-family: monospace;
   }
 
-  .status-indicator-green {
-    width: 6px;
-    height: 6px;
-    background: #00ff66;
-    border-radius: 50%;
-    display: inline-block;
-  }
-
   .stats-counter {
     display: flex;
     align-items: center;
     gap: 8px;
-  }
-
-  .divider {
-    color: rgba(255, 255, 255, 0.15);
   }
 
   /* Custom App Previews */

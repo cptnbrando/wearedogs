@@ -102,6 +102,11 @@
     </div>
   </div>
 
+  <!-- Blurb Section -->
+  <div class="blurb-box border border-green-800/40 p-4 bg-green-950/5 rounded text-xs text-green-500/90 leading-relaxed font-mono">
+    This website was created with Antigravity IDE and Gemini Ultra with Google. I have written very little code here. Antigravity and similar agentic AI dev workflows offer very different ways of creating things. It is remarkable, and I am learning and embracing everything I can about these new tools. I am currently focused on swarm development, where Antigravity spins up dozens of AI Agents to accomplish hundreds of tasks simultaneously. I find that the slowest part of the creation process now is writing the notes for all the changes, standardizing UI and ensuring a polished experience, pull request code review, and trying to whip the AIs into the right kinda shape. But wow, is it a beautiful thing to witness the machine create 20 pages in the blink of an eye. We're entering a new era! And this is just the beginning. Insanity. This page offers some metrics to help me stay on top of things, as a man with 2 arms, armed with a goliath that uses one million keyboards.
+  </div>
+
   <!-- Metrics Grid -->
   <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
     <div class="metric-card border border-green-800 p-4 bg-green-950/20 rounded relative overflow-hidden group hover:border-green-500 transition-colors duration-300">
