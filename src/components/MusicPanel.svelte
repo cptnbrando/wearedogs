@@ -20,6 +20,7 @@
     ArrowLeft,
     BoomBox,
     Music,
+    Guitar,
   } from "lucide-svelte";
   import { audioCore } from "../lib/AudioCore.svelte.js";
 
@@ -165,7 +166,7 @@
   }
 
   function toggleCrossfade() {
-    const newVal = audioCore.crossfadeValue < 0.5 ? 1.0 : 0.0;
+    const newVal = !audioCore.isInstrumental;
     const success = audioCore.setCrossfade(newVal);
     if (!success) {
       if (!isBouncing) {
@@ -313,8 +314,8 @@
               </div>
 
               <div class="track-info mt-2">
-                <div class="version-badge" class:inst={audioCore.crossfadeValue > 0.5}>
-                  {audioCore.crossfadeValue > 0.5 ? "INSTRUMENTAL" : "ORIGINAL"}
+                <div class="version-badge" class:inst={audioCore.isInstrumental}>
+                  {audioCore.isInstrumental ? "INSTRUMENTAL" : "ORIGINAL"}
                 </div>
                 <h2 class="track-title">{currentTrack.title}</h2>
                 <p class="track-artist">{currentTrack.artist}</p>
@@ -403,11 +404,17 @@
                   class:animate-wiggle={isBouncing}
                   onclick={toggleCrossfade}
                 >
-                  <span class="fader-label left-label" class:active={audioCore.crossfadeValue < 0.5}>VOCAL</span>
+                  <span class="fader-label left-label flex items-center gap-1" class:active={!audioCore.isInstrumental}>
+                    <Mic2 size={12} />
+                    <span>VOCAL</span>
+                  </span>
                   <div class="dj-fader-slot">
-                    <div class="dj-fader-knob" class:right={audioCore.crossfadeValue >= 0.5}></div>
+                    <div class="dj-fader-knob" class:right={audioCore.isInstrumental}></div>
                   </div>
-                  <span class="fader-label right-label" class:active={audioCore.crossfadeValue >= 0.5}>INST</span>
+                  <span class="fader-label right-label flex items-center gap-1" class:active={audioCore.isInstrumental}>
+                    <Guitar size={12} />
+                    <span>INST</span>
+                  </span>
                 </div>
               </div>
 
@@ -528,7 +535,7 @@
                     <span class="tr-title">{track.title}</span>
                     <span class="tr-meta">{track.artist} · {track.album} ({track.year || ""})</span>
                   </div>
-                  {#if library[audioCore.currentTrackIndex].id === track.id && audioCore.crossfadeValue > 0.5}
+                  {#if library[audioCore.currentTrackIndex].id === track.id && audioCore.isInstrumental}
                     <span class="inst-chip">INST</span>
                   {/if}
                   {#if track.artist === "YG"}

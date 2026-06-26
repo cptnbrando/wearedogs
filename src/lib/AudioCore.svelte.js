@@ -19,7 +19,7 @@ export class AudioCore {
   duration = $state(0);
   volume = $state(0.8);
   isMuted = $state(false);
-  crossfadeValue = $state(0); // 0 = Vocal, 1 = Instrumental
+  isInstrumental = $state(false);
   currentTrackIndex = $state(0);
   isLoading = $state(false);
   isShuffled = $state(false);
@@ -49,7 +49,7 @@ export class AudioCore {
   async loadTrack(index, autoplay = false) {
     if (index < 0 || index >= this.library.length) return;
     this.currentTrackIndex = index;
-    this.crossfadeValue = 0;
+    this.isInstrumental = false;
     this.currentTime = 0;
     this.pauseTime = 0;
     this.isLoading = true;
@@ -214,23 +214,23 @@ export class AudioCore {
   applyCrossfade() {
     if (!this.audioCtx) return;
     const now = this.audioCtx.currentTime;
-    const val = this.crossfadeValue;
+    const isInst = this.isInstrumental;
 
     if (this.trackGainNode) {
-      this.trackGainNode.gain.setValueAtTime(1 - val, now);
+      this.trackGainNode.gain.setValueAtTime(isInst ? 0 : 1, now);
     }
     if (this.instGainNode) {
-      this.instGainNode.gain.setValueAtTime(val, now);
+      this.instGainNode.gain.setValueAtTime(isInst ? 1 : 0, now);
     }
   }
 
-  setCrossfade(val) {
+  setCrossfade(isInst) {
     const track = this.library[this.currentTrackIndex];
     if (track && !track.hasInstrumental) {
-      this.crossfadeValue = 0;
+      this.isInstrumental = false;
       return false; // indicates locked
     }
-    this.crossfadeValue = val;
+    this.isInstrumental = isInst;
     this.applyCrossfade();
     return true;
   }
