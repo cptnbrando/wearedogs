@@ -349,35 +349,21 @@
               </button>
             </div>
 
-            <!-- Custom Animated Digital Crossfader slider -->
+            <!-- Custom DJ Crossfader -->
             <div class="w-full flex flex-col items-center gap-1.5 mt-2 px-1">
-              <span class="text-[10px] font-bold tracking-wider text-white/30 uppercase font-sans">Vocals / Inst Crossfader</span>
+              <span class="text-[10px] font-bold tracking-wider text-white/30 uppercase font-sans">Crossfader</span>
               <!-- svelte-ignore a11y_click_events_have_key_events -->
               <!-- svelte-ignore a11y_no_static_element_interactions -->
               <div 
-                class="w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl border border-white/5 bg-white/[0.02] cursor-pointer"
+                class="dj-crossfader"
                 class:animate-wiggle={isBouncing}
                 onclick={toggleCrossfade}
               >
-                <div class="flex items-center gap-1.5 {audioCore.crossfadeValue < 0.5 ? 'text-purple-400' : 'text-white/20'}">
-                  <Mic2 size={14} />
-                  <span class="text-[10px] font-bold">VOCAL</span>
+                <span class="fader-label left-label" class:active={audioCore.crossfadeValue < 0.5}>VOCAL</span>
+                <div class="dj-fader-slot">
+                  <div class="dj-fader-knob" class:right={audioCore.crossfadeValue >= 0.5}></div>
                 </div>
-                <div class="flex-1 relative flex items-center h-4 pointer-events-none">
-                  <input
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="1"
-                    value={audioCore.crossfadeValue}
-                    class="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-purple-500"
-                    aria-label="Vocals to Instrumental Crossfader"
-                  />
-                </div>
-                <div class="flex items-center gap-1.5 {audioCore.crossfadeValue >= 0.5 ? 'text-cyan-400' : 'text-white/20'}">
-                  <Music size={14} />
-                  <span class="text-[10px] font-bold">INST</span>
-                </div>
+                <span class="fader-label right-label" class:active={audioCore.crossfadeValue >= 0.5}>INST</span>
               </div>
             </div>
 
@@ -645,5 +631,85 @@
   }
   .animate-wiggle {
     animation: wiggle 0.2s ease-in-out 2;
+  }
+
+  /* ── DJ Crossfader ── */
+  .dj-crossfader {
+    position: relative;
+    width: 100%;
+    height: 46px;
+    background: linear-gradient(180deg, #1e1e24 0%, #121215 100%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    box-sizing: border-box;
+    box-shadow: 
+      inset 0 1px 0 rgba(255, 255, 255, 0.05),
+      0 8px 24px rgba(0, 0, 0, 0.5);
+    gap: 12px;
+    user-select: none;
+  }
+
+  .fader-label {
+    font-size: 0.65rem;
+    font-weight: 800;
+    font-family: monospace;
+    letter-spacing: 0.05em;
+    color: rgba(255, 255, 255, 0.2);
+    transition: color 0.2s ease;
+  }
+
+  .fader-label.left-label.active {
+    color: #a855f7; /* Vocal side active */
+    text-shadow: 0 0 8px rgba(168, 85, 247, 0.4);
+  }
+
+  .fader-label.right-label.active {
+    color: #06b6d4; /* Inst side active */
+    text-shadow: 0 0 8px rgba(6, 182, 212, 0.4);
+  }
+
+  .dj-fader-slot {
+    flex: 1;
+    height: 6px;
+    background: #000;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 3px;
+    position: relative;
+  }
+
+  .dj-fader-knob {
+    position: absolute;
+    top: 50%;
+    left: 0%;
+    width: 32px;
+    height: 24px;
+    transform: translate(0, -50%);
+    background: linear-gradient(135deg, #666 0%, #333 50%, #222 100%);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 4px;
+    box-shadow: 
+      0 4px 10px rgba(0, 0, 0, 0.8),
+      inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    transition: left 0.18s cubic-bezier(0.25, 0.8, 0.25, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .dj-fader-knob::after {
+    content: "";
+    width: 2px;
+    height: 100%;
+    background: #fff;
+    box-shadow: 0 0 3px rgba(255, 255, 255, 0.8);
+  }
+
+  .dj-fader-knob.right {
+    left: calc(100% - 32px);
   }
 </style>
