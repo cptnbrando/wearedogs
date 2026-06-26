@@ -230,12 +230,12 @@ export const catalog = {
             },
             {
                 "id": 46,
-                "title": "The Call, Part 1 of 2",
+                "title": "The Call (1/2)",
                 "file": "S03 E07 - The Call, Part 1 of 2.ia.mp4"
             },
             {
                 "id": 47,
-                "title": "The Call, Part 2 of 2",
+                "title": "The Call (2/2)",
                 "file": "S03 E08 - The Call, Part 2 of 2.ia.mp4"
             },
             {
