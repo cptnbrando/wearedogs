@@ -139,6 +139,10 @@
     const page = activePage;
     const app = activeApp;
 
+    if (app !== "blog") {
+      deepLinkBlogPostSlug = null;
+    }
+
     if (page === "toolbox") {
       if (app) {
         if (depth < 2) {
