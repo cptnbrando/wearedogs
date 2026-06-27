@@ -51,8 +51,9 @@ const postsManifest = Object.keys(modules).map((key) => {
     author: metadata.author || "Anonymous",
     coverImage: metadata.coverImage || "/favicon.svg",
     rawContent: rawMd
-  };
-}).sort((a, b) => new Date(b.date) - new Date(a.date));
+})
+.filter((post) => !post.slug.startsWith("_"))
+.sort((a, b) => new Date(b.date) - new Date(a.date));
 
 // Cache storage for parsed markdown body structures
 const apiCache = {};
