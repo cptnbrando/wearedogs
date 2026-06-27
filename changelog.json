@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1782505517,
+    "firstCommitTimestamp": 1782580350,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 40801
+    "averageLinesAltered": 40789
   },
   "entries": [
     {
       "version": "1.0.2",
       "name": "Master",
-      "date": "2026-06-26",
-      "timestamp": 1782505459,
+      "date": "2026-06-27",
+      "timestamp": 1782580298,
       "commits": [
         {
-          "hash": "040510f",
-          "message": "update changelog",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/040510f4f60138c96357f429fdcbec5b2819e687",
-          "timestamp": 1782505517,
-          "linesChanged": 40801
+          "hash": "7fc18f3",
+          "message": "no fullscreen exit buttons",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/7fc18f399dbd0392310326f3613cd99651b382d7",
+          "timestamp": 1782580350,
+          "linesChanged": 40789
         }
       ]
     },
