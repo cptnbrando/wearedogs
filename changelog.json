@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1782580646,
+    "firstCommitTimestamp": 1782580928,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 40789
+    "averageLinesAltered": 40790
   },
   "entries": [
     {
       "version": "1.0.2",
       "name": "Master",
       "date": "2026-06-27",
-      "timestamp": 1782580592,
+      "timestamp": 1782580874,
       "commits": [
         {
-          "hash": "25c01f1",
-          "message": "little higher music controls on mobile",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/25c01f1dd0ab5919f999cc02280ea4da063cd994",
-          "timestamp": 1782580646,
-          "linesChanged": 40789
+          "hash": "18844a8",
+          "message": "docs: add requirement to use @use instead of @import for SCSS in AGENTS.md",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/18844a88eb6db6c9999ffd3e25ae23ed9b0d951d",
+          "timestamp": 1782580928,
+          "linesChanged": 40790
         }
       ]
     },
