@@ -1,7 +1,7 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1782580350,
+    "firstCommitTimestamp": 1782580646,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
     "averageLinesAltered": 40789
@@ -11,13 +11,13 @@
       "version": "1.0.2",
       "name": "Master",
       "date": "2026-06-27",
-      "timestamp": 1782580298,
+      "timestamp": 1782580592,
       "commits": [
         {
-          "hash": "7fc18f3",
-          "message": "no fullscreen exit buttons",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/7fc18f399dbd0392310326f3613cd99651b382d7",
-          "timestamp": 1782580350,
+          "hash": "25c01f1",
+          "message": "little higher music controls on mobile",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/25c01f1dd0ab5919f999cc02280ea4da063cd994",
+          "timestamp": 1782580646,
           "linesChanged": 40789
         }
       ]
