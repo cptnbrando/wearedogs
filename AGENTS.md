@@ -37,6 +37,7 @@ Every single UI component generated MUST contain explicit Tailwind breakpoint pr
 ### 5. Svelte Specifics
 - When adding lines like 'svelte-ignore a11y_click_events_have_key_events' or 'svelte-ignore a11y_no_static_element_interactions', if they are needed for multiple elements, hoist them to the top of the component so they work for the entire component and you're not repeating those lines everywhere.
 - Do not build the project. npm run build does not do what you think it does in this Vite project. When you are running I will typically have npm run dev going in my own terminal. Use expected values to view the site.
+- SCSS requires @use and NOT @import.
 
 ### 6. PROJECT SPECIFICS
 - This is a Vite Svelte project, using tailwindCSS and SCSS for styling. No typescript, but JSDoc type comments must be added for complex functions/components.
