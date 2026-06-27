@@ -32,6 +32,65 @@
   // Copy timeout reference
   let copyTimeout = null;
 
+  // Matrix Glitch & Scramble states
+  let isGlitching = $state(false);
+  let scrambledTitle = $state("");
+  let scrambledDesc = $state("");
+  let scrambledDate = $state("");
+  let scrambledAuthor = $state("");
+
+  /**
+   * Helper to scramble plain text with matrix characters.
+   * @param {string} originalText
+   * @param {(val: string) => void} callback
+   * @param {number} duration
+   */
+  function scrambleText(originalText, callback, duration = 500) {
+    if (!originalText) return;
+    const chars = "01ｦｱｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ";
+    const length = originalText.length;
+    let iterations = 0;
+    const intervalTime = 30;
+    const maxIterations = Math.max(1, duration / intervalTime);
+
+    const timer = setInterval(() => {
+      let scrambled = originalText.split("").map((char, index) => {
+        if (char === " " || char === "\n") return char;
+        const lockThreshold = (iterations / maxIterations) * length;
+        if (index < lockThreshold) {
+          return originalText[index];
+        }
+        return chars[Math.floor(Math.random() * chars.length)];
+      }).join("");
+
+      callback(scrambled);
+      iterations++;
+
+      if (iterations >= maxIterations) {
+        clearInterval(timer);
+        callback(originalText);
+      }
+    }, intervalTime);
+
+    return () => clearInterval(timer);
+  }
+
+  /**
+   * Wrapper to show exit glitch before closing post.
+   */
+  function handleExitPost() {
+    isGlitching = true;
+    if (activePost) {
+      scrambleText(activePost.title, (v) => { scrambledTitle = v; }, 280);
+      scrambleText(activePost.description, (v) => { scrambledDesc = v; }, 280);
+    }
+    
+    setTimeout(() => {
+      deselectPost();
+      isGlitching = false;
+    }, 250);
+  }
+
   /**
    * Helper to format ISO date string into friendly weekday, date, and time.
    * @param {string} dateStr - ISO date string
@@ -108,6 +167,13 @@
     activeContent = null;
     initialSlug = post.slug;
 
+    // Trigger matrix glitch scramble
+    isGlitching = true;
+    scrambleText(post.title, (v) => { scrambledTitle = v; }, 500);
+    scrambleText(post.description, (v) => { scrambledDesc = v; }, 500);
+    scrambleText(post.author, (v) => { scrambledAuthor = v; }, 500);
+    scrambleText(formatBlogDate(post.date), (v) => { scrambledDate = v; }, 500);
+
     try {
       const data = await getPostContent(post.slug);
       if (data) {
@@ -127,6 +193,9 @@
       loadError = "Network error loading post content.";
     } finally {
       isLoadingPost = false;
+      setTimeout(() => {
+        isGlitching = false;
+      }, 300);
     }
   }
 
@@ -207,7 +276,7 @@
     {#if activePost}
       <button
         type="button"
-        onclick={deselectPost}
+        onclick={handleExitPost}
         class="text-xs text-white/70 hover:text-white flex items-center gap-1.5 transition-colors border border-white/10 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 cursor-pointer"
       >
         <ArrowLeft size={12} class="text-[#b455ff]" />
@@ -306,6 +375,7 @@
         {:else if activeContent}
           <article
             class="w-full max-w-3xl mx-auto px-4 py-6 md:px-8 md:py-10 flex flex-col gap-6 relative select-text"
+            class:glitching-pane={isGlitching}
           >
             <!-- Detail Header -->
             <div class="flex flex-col gap-3 border-b border-white/5 pb-5">
@@ -313,23 +383,25 @@
                 class="flex items-center gap-4 text-xs text-white/40 font-mono"
               >
                 <span class="flex items-center gap-1"
-                  ><Calendar size={12} /> {formatBlogDate(activePost.date)}</span
+                  ><Calendar size={12} /> {isGlitching ? scrambledDate : formatBlogDate(activePost.date)}</span
                 >
                 <span class="flex items-center gap-1"
-                  ><User size={12} /> {activePost.author}</span
+                  ><User size={12} /> {isGlitching ? scrambledAuthor : activePost.author}</span
                 >
               </div>
 
               <h1
                 class="text-2xl md:text-3xl font-extrabold text-white tracking-tight leading-tight"
+                class:text-matrix={isGlitching}
               >
-                {activePost.title}
+                {isGlitching ? scrambledTitle : activePost.title}
               </h1>
 
               <p
                 class="text-sm text-white/60 leading-relaxed italic border-l-2 border-[#b455ff]/40 pl-3 py-0.5"
+                class:text-matrix={isGlitching}
               >
-                {activePost.description}
+                {isGlitching ? scrambledDesc : activePost.description}
               </p>
 
               <!-- Actions row -->
@@ -399,5 +471,26 @@
       font-size: 1.8rem !important;
       margin-top: 32px !important;
     }
+  }
+
+  /* ── Cyberpunk Matrix Glitch Effect ── */
+  @keyframes glitchSkew {
+    0%, 100% { transform: none; filter: hue-rotate(0deg); }
+    10% { transform: skewX(-4deg) scaleY(1.02); filter: hue-rotate(45deg); color: #00ff66; text-shadow: 2px 0 #ff3344, -2px 0 #00d75f; }
+    20% { transform: skewX(4deg); filter: hue-rotate(90deg); }
+    30% { transform: none; }
+    40% { transform: skewX(-2deg); }
+    50% { transform: skewY(1deg); filter: hue-rotate(180deg); color: #00ff66; text-shadow: -2px 0 #ff3344, 2px 0 #00d75f; }
+    60% { transform: none; }
+  }
+
+  .glitching-pane {
+    animation: glitchSkew 0.28s steps(2) infinite !important;
+  }
+
+  .text-matrix {
+    color: #00ff66 !important;
+    font-family: monospace !important;
+    text-shadow: 0 0 8px rgba(0, 255, 102, 0.8) !important;
   }
 </style>
