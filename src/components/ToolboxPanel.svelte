@@ -34,7 +34,7 @@
     activeApp = $bindable(null),
     isFlagColors = false,
     initialApp = null,
-    blogPostSlug = $bindable(null)
+    blogPostSlug = $bindable(null),
   } = $props();
 
   let isReadingPost = $state(false);
@@ -77,7 +77,11 @@
         <h1>{title}</h1>
       </div>
 
-      <button class="close-btn" onclick={activeApp !== null ? handleBack : onClose} aria-label="Close panel">
+      <button
+        class="close-btn"
+        onclick={activeApp !== null ? handleBack : onClose}
+        aria-label="Close panel"
+      >
         <ArrowLeft size={20} />
       </button>
     </header>
@@ -344,7 +348,7 @@
                 </div>
               </div>
               <div class="app-meta">
-                <span class="app-title"><BookOpen size={14} /> The Blog</span>
+                <span class="app-title"><BookOpen size={14} /> DOG BLOG</span>
                 <span class="app-desc"
                   >Read articles about punk rock tech, development, and music.</span
                 >
@@ -1010,8 +1014,13 @@
     animation: terminalCursorBlink 1s infinite steps(2);
   }
   @keyframes terminalCursorBlink {
-    0%, 100% { opacity: 0; }
-    50% { opacity: 1; }
+    0%,
+    100% {
+      opacity: 0;
+    }
+    50% {
+      opacity: 1;
+    }
   }
 
   /* ── Mobile Layout Full Screen & App Grid ── */
