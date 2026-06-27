@@ -40,6 +40,7 @@
   let deepLinkApp        = $state(null);
   let deepLinkGoProShow  = $state(null);
   let deepLinkGoProEp    = $state(null);
+  let deepLinkBlogPostSlug = $state(null);
 
   // ---------------------------------------------------------------------------
   // URL Routing — parse deep-link on first mount
@@ -87,6 +88,14 @@
       deepLinkGoProEp   = params.episode;
       openPage('toolbox');
       setTimeout(() => { deepLinkApp = null; deepLinkGoProShow = null; deepLinkGoProEp = null; }, 400);
+      return;
+    }
+
+    if (params.type === 'blog-post') {
+      deepLinkApp          = 'blog';
+      deepLinkBlogPostSlug = params.slug;
+      openPage('toolbox');
+      setTimeout(() => { deepLinkApp = null; }, 400);
       return;
     }
     // Any other parsePath result: home (already set up above)
@@ -163,6 +172,10 @@
       if (activePage && !targetView) {
         closePageInternal();
         return;
+      }
+
+      if (targetView === "toolbox" && targetApp === "blog") {
+        deepLinkBlogPostSlug = state?.slug || null;
       }
 
       activePage = targetView;
@@ -324,6 +337,7 @@
     initialApp={deepLinkApp}
     goProShow={deepLinkGoProShow}
     goProEpisode={deepLinkGoProEp}
+    bind:blogPostSlug={deepLinkBlogPostSlug}
     isFlagColors={weAreDogsColored}
   />
 {:else if activePage === "music"}
