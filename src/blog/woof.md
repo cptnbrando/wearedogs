@@ -8,9 +8,9 @@ coverImage: "/favicon.svg"
 
 # BARK BARK BARK BARK BARK BARK BARK BARK BARK
 
-Start typing your blog post body content here. The custom parser supports basic Markdown syntax.
+I'll write something here when i feel like it
 
-## Sub-heading (h2)
+<!-- ## Sub-heading (h2)
 
 - Use **bold text** for emphasis.
 - Use *italic text* for subtle emphasis.
@@ -23,4 +23,4 @@ You can also embed code blocks for tech notes:
 ```javascript
 const debugMessage = "BARK BARK BARK!";
 console.log(debugMessage);
-```
+``` -->
