@@ -104,9 +104,10 @@
   /**
    * Helper to format ISO date string into friendly weekday, date, and time.
    * @param {string} dateStr - ISO date string
+   * @param {boolean} showTime - Whether to append time part
    * @returns {string}
    */
-  function formatBlogDate(dateStr) {
+  function formatBlogDate(dateStr, showTime = true) {
     if (!dateStr) return "";
     const date = new Date(dateStr);
     if (isNaN(date.getTime())) return dateStr;
@@ -115,7 +116,7 @@
     const optionsDate = { weekday: "long", year: "numeric", month: "long", day: "numeric" };
     const formattedDate = date.toLocaleDateString("en-US", optionsDate);
 
-    if (!hasTime) {
+    if (!hasTime || !showTime) {
       return formattedDate;
     }
 
@@ -303,7 +304,7 @@
     {#if activePost === null}
       <!-- ── Posts List Index Page (Full Width) ── -->
       <div
-        class="posts-list-pane w-full h-full overflow-y-auto p-4 md:p-6 flex flex-col gap-3 md:gap-4 max-w-4xl mx-auto"
+        class="posts-list-pane w-full h-full overflow-y-auto overflow-x-hidden p-4 md:p-6 flex flex-col gap-3 md:gap-4 max-w-4xl mx-auto"
       >
         <h2
           class="text-xs font-bold text-white/40 tracking-widest uppercase mb-1 px-1"
@@ -336,13 +337,13 @@
                 class="post-card text-left p-4 md:p-5 rounded-2xl border transition-all duration-300 flex flex-col gap-3.5 relative group overflow-hidden bg-white/[0.01] border-white/5 hover:border-[#b455ff]/40 hover:bg-white/[0.03] cursor-pointer"
               >
                 <!-- Card Header -->
-                <div class="flex justify-between items-start gap-2 w-full">
+                <div class="flex items-center gap-2 w-full flex-nowrap overflow-hidden">
                   <span
-                    class="text-[10px] font-mono text-[#b455ff] font-semibold"
-                    >{formatBlogDate(post.date)}</span
+                    class="text-[8px] xs:text-[9px] sm:text-[10px] font-mono text-[#b455ff] font-semibold truncate shrink-0"
+                    >{formatBlogDate(post.date, false)}</span
                   >
                   <span
-                    class="text-[9px] font-mono text-white/30 tracking-wider"
+                    class="text-[8px] xs:text-[9px] font-mono text-white/30 tracking-wider truncate shrink ml-auto text-right"
                     >BY: {post.author.toUpperCase()}</span
                   >
                 </div>
@@ -374,7 +375,7 @@
     {:else}
       <!-- ── Post Reader Page (Full Width) ── -->
       <div
-        class="reading-detail-pane w-full h-full overflow-y-auto bg-black/10"
+        class="reading-detail-pane w-full h-full overflow-y-auto overflow-x-hidden bg-black/10"
       >
         {#if isLoadingPost}
           <div
@@ -387,7 +388,7 @@
           </div>
         {:else if activeContent}
           <article
-            class="w-full max-w-3xl mx-auto px-4 py-6 md:px-8 md:py-10 flex flex-col gap-6 relative select-text"
+            class="w-full max-w-3xl mx-auto px-4 py-6 md:px-8 md:py-10 flex flex-col gap-6 relative select-text overflow-x-hidden"
             class:glitching-pane={isGlitching}
             class:colored-glitch={isFlagColors}
           >

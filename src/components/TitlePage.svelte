@@ -94,7 +94,16 @@
     if (params.type === 'blog-post') {
       deepLinkApp          = 'blog';
       deepLinkBlogPostSlug = params.slug;
-      openPage('toolbox');
+      
+      activePage = 'toolbox';
+      activeApp = 'blog';
+      isClosing = false;
+
+      // Seed the history stack sequentially to depth 2 (blog list)
+      history.pushState({ view: 'toolbox', app: null, depth: 1 }, '', '/apps');
+      history.pushState({ view: 'toolbox', app: 'blog', depth: 2 }, '', '/apps/blog');
+      depth = 2; // selectPost in BlogApp will push depth 3 for the slug
+      
       setTimeout(() => { deepLinkApp = null; }, 400);
       return;
     }
