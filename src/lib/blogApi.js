@@ -13,11 +13,11 @@
 // Eager Directory Glob Imports (No manifest.json required)
 // ---------------------------------------------------------------------------
 
-const modules = import.meta.glob("../../public/blog/*.md", { query: "?raw", import: "default", eager: true });
+const modules = import.meta.glob("../../src/blog/*.md", { query: "?raw", import: "default", eager: true });
 
 // Process modules and build sorted blog posts manifest in-memory
 const postsManifest = Object.keys(modules).map((key) => {
-  // Key format: "../../public/blog/hello-world.md"
+  // Key format: "../../src/blog/hello-world.md"
   const rawMd = modules[key] || "";
   const slug = key.split("/").pop().replace(".md", "");
 
@@ -53,8 +53,8 @@ const postsManifest = Object.keys(modules).map((key) => {
     rawContent: rawMd
   };
 })
-.filter((post) => !post.slug.startsWith("_"))
-.sort((a, b) => new Date(b.date) - new Date(a.date));
+  .filter((post) => !post.slug.startsWith("_"))
+  .sort((a, b) => new Date(b.date) - new Date(a.date));
 
 // Cache storage for parsed markdown body structures
 const apiCache = {};
@@ -78,7 +78,7 @@ export function parseMarkdown(rawMd) {
     if (parts.length >= 3) {
       const fmText = parts[1];
       mdContent = parts.slice(2).join("---").trim();
-      
+
       const lines = fmText.split("\n");
       for (const line of lines) {
         const idx = line.indexOf(":");

@@ -91,7 +91,7 @@
         activeContent = data;
         // Dynamically update URL deep link state without triggering browser reload
         const canonicalUrl = `/apps/blog/${post.slug}`;
-        history.pushState({ view: "toolbox", app: "blog", slug: post.slug, depth: 2 }, "", canonicalUrl);
+        history.pushState({ view: "toolbox", app: "blog", slug: post.slug, depth: 3 }, "", canonicalUrl);
       } else {
         loadError = "Article body content was not found.";
       }
@@ -111,8 +111,9 @@
     initialSlug = null;
     isReading = false;
     
-    // Update path if we are currently inside a post path
-    if (window.location.pathname.includes("/apps/blog/")) {
+    if (history.state?.slug) {
+      history.back();
+    } else if (window.location.pathname.includes("/apps/blog/")) {
       history.replaceState({ view: "toolbox", app: "blog", depth: 2 }, "", "/apps/blog");
     }
   }
