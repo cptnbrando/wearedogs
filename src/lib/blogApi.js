@@ -18,7 +18,8 @@ const modules = import.meta.glob("/public/blog/*.md", { query: "?raw", eager: tr
 // Process modules and build sorted blog posts manifest in-memory
 const postsManifest = Object.keys(modules).map((key) => {
   // Key format: "/public/blog/hello-world.md"
-  const rawMd = modules[key].default || modules[key];
+  const mod = modules[key];
+  const rawMd = typeof mod === "string" ? mod : (mod && typeof mod.default === "string" ? mod.default : "");
   const slug = key.split("/").pop().replace(".md", "");
 
   // Extract frontmatter
