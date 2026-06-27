@@ -378,7 +378,7 @@
       {:else if activeApp === "changelog"}
         <ChangelogApp />
       {:else if activeApp === "blog"}
-        <BlogApp initialSlug={blogPostSlug} bind:isReading={isReadingPost} bind:depth={depth} />
+        <BlogApp initialSlug={blogPostSlug} bind:isReading={isReadingPost} bind:depth={depth} isFlagColors={isFlagColors} />
       {/if}
     </div>
 

@@ -18,7 +18,7 @@
   const SHARE_COOLDOWN_MS = 2000;
 
   // Props
-  let { initialSlug = $bindable(null), isReading = $bindable(false), depth = $bindable(0) } = $props();
+  let { initialSlug = $bindable(null), isReading = $bindable(false), depth = $bindable(0), isFlagColors = false } = $props();
 
   // App state
   let posts = $state([]);
@@ -39,15 +39,24 @@
   let scrambledDate = $state("");
   let scrambledAuthor = $state("");
 
+  const SCRAMBLE_LANGUAGES = [
+    "01ｦｱｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ", // Japanese Katakana
+    "010101010189034567",                               // Binary/Numeric
+    "αβγδεζηθικλμνξοπρστυφχψω0123456789",               // Greek
+    "БГДЖИЛПФЦЧШЩЪЫЭЮЯ0123456789",                      // Cyrillic
+    "ᚠᚢᚦᚨᚱᚲᚷᚹᚺᚾᛁᚹᛇᛈᛉᛊᛏᛒᛗᛚᛜᛞᛟ01",                     // Nordic Runes
+    "0123456789ABCDEF$#@%&?"                            // Cyber Hex/Leet
+  ];
+
   /**
    * Helper to scramble plain text with matrix characters.
    * @param {string} originalText
    * @param {(val: string) => void} callback
    * @param {number} duration
+   * @param {string} glyphs
    */
-  function scrambleText(originalText, callback, duration = 500) {
+  function scrambleText(originalText, callback, duration = 500, glyphs = SCRAMBLE_LANGUAGES[0]) {
     if (!originalText) return;
-    const chars = "01ｦｱｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ";
     const length = originalText.length;
     let iterations = 0;
     const intervalTime = 30;
@@ -60,7 +69,7 @@
         if (index < lockThreshold) {
           return originalText[index];
         }
-        return chars[Math.floor(Math.random() * chars.length)];
+        return glyphs[Math.floor(Math.random() * glyphs.length)];
       }).join("");
 
       callback(scrambled);
@@ -79,10 +88,11 @@
    * Wrapper to show exit glitch before closing post.
    */
   function handleExitPost() {
+    const glyphs = SCRAMBLE_LANGUAGES[Math.floor(Math.random() * SCRAMBLE_LANGUAGES.length)];
     isGlitching = true;
     if (activePost) {
-      scrambleText(activePost.title, (v) => { scrambledTitle = v; }, 280);
-      scrambleText(activePost.description, (v) => { scrambledDesc = v; }, 280);
+      scrambleText(activePost.title, (v) => { scrambledTitle = v; }, 280, glyphs);
+      scrambleText(activePost.description, (v) => { scrambledDesc = v; }, 280, glyphs);
     }
     
     setTimeout(() => {
@@ -167,12 +177,15 @@
     activeContent = null;
     initialSlug = post.slug;
 
+    // Pick a random language glyph set for this transition
+    const glyphs = SCRAMBLE_LANGUAGES[Math.floor(Math.random() * SCRAMBLE_LANGUAGES.length)];
+
     // Trigger matrix glitch scramble
     isGlitching = true;
-    scrambleText(post.title, (v) => { scrambledTitle = v; }, 500);
-    scrambleText(post.description, (v) => { scrambledDesc = v; }, 500);
-    scrambleText(post.author, (v) => { scrambledAuthor = v; }, 500);
-    scrambleText(formatBlogDate(post.date), (v) => { scrambledDate = v; }, 500);
+    scrambleText(post.title, (v) => { scrambledTitle = v; }, 500, glyphs);
+    scrambleText(post.description, (v) => { scrambledDesc = v; }, 500, glyphs);
+    scrambleText(post.author, (v) => { scrambledAuthor = v; }, 500, glyphs);
+    scrambleText(formatBlogDate(post.date), (v) => { scrambledDate = v; }, 500, glyphs);
 
     try {
       const data = await getPostContent(post.slug);
@@ -376,6 +389,7 @@
           <article
             class="w-full max-w-3xl mx-auto px-4 py-6 md:px-8 md:py-10 flex flex-col gap-6 relative select-text"
             class:glitching-pane={isGlitching}
+            class:colored-glitch={isFlagColors}
           >
             <!-- Detail Header -->
             <div class="flex flex-col gap-3 border-b border-white/5 pb-5">
@@ -393,6 +407,7 @@
               <h1
                 class="text-2xl md:text-3xl font-extrabold text-white tracking-tight leading-tight"
                 class:text-matrix={isGlitching}
+                class:colored-glitch={isFlagColors}
               >
                 {isGlitching ? scrambledTitle : activePost.title}
               </h1>
@@ -400,6 +415,7 @@
               <p
                 class="text-sm text-white/60 leading-relaxed italic border-l-2 border-[#b455ff]/40 pl-3 py-0.5"
                 class:text-matrix={isGlitching}
+                class:colored-glitch={isFlagColors}
               >
                 {isGlitching ? scrambledDesc : activePost.description}
               </p>
@@ -475,12 +491,12 @@
 
   /* ── Cyberpunk Matrix Glitch Effect ── */
   @keyframes glitchSkew {
-    0%, 100% { transform: none; filter: hue-rotate(0deg); }
-    10% { transform: skewX(-4deg) scaleY(1.02); filter: hue-rotate(45deg); color: #00ff66; text-shadow: 2px 0 #ff3344, -2px 0 #00d75f; }
-    20% { transform: skewX(4deg); filter: hue-rotate(90deg); }
+    0%, 100% { transform: none; filter: none; }
+    10% { transform: skewX(-4deg) scaleY(1.02); filter: var(--glitch-filter); color: var(--glitch-color); text-shadow: var(--glitch-shadow-1), var(--glitch-shadow-2); }
+    20% { transform: skewX(4deg); }
     30% { transform: none; }
     40% { transform: skewX(-2deg); }
-    50% { transform: skewY(1deg); filter: hue-rotate(180deg); color: #00ff66; text-shadow: -2px 0 #ff3344, 2px 0 #00d75f; }
+    50% { transform: skewY(1deg); filter: var(--glitch-filter-alt); color: var(--glitch-color); text-shadow: var(--glitch-shadow-2), var(--glitch-shadow-1); }
     60% { transform: none; }
   }
 
@@ -488,9 +504,33 @@
     animation: glitchSkew 0.28s steps(2) infinite !important;
   }
 
+  .glitching-pane.colored-glitch {
+    --glitch-color: #00ff66;
+    --glitch-shadow-1: 2px 0 #ff3344;
+    --glitch-shadow-2: -2px 0 #00d75f;
+    --glitch-filter: hue-rotate(45deg);
+    --glitch-filter-alt: hue-rotate(180deg);
+  }
+
+  .glitching-pane:not(.colored-glitch) {
+    --glitch-color: #ffffff;
+    --glitch-shadow-1: 2px 0 rgba(255, 255, 255, 0.4);
+    --glitch-shadow-2: -2px 0 rgba(255, 255, 255, 0.4);
+    --glitch-filter: none;
+    --glitch-filter-alt: none;
+  }
+
   .text-matrix {
-    color: #00ff66 !important;
     font-family: monospace !important;
+  }
+
+  .text-matrix.colored-glitch {
+    color: #00ff66 !important;
     text-shadow: 0 0 8px rgba(0, 255, 102, 0.8) !important;
+  }
+
+  .text-matrix:not(.colored-glitch) {
+    color: #ffffff !important;
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.8) !important;
   }
 </style>
