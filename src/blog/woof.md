@@ -1,12 +1,12 @@
 ---
 title: "woof"
-date: "2026-06-27T10:15:00-05:00"
-description: "A compelling summary or subtitle goes here. It is displayed on the logs index card lists."
+date: "2026-06-27T12:50:30-05:00"
+description: "Alexa, play Despacito"
 author: "Captain Brando"
 coverImage: "/favicon.svg"
 ---
 
-# Main Heading (h1)
+# BARK BARK BARK BARK BARK BARK BARK BARK BARK
 
 Start typing your blog post body content here. The custom parser supports basic Markdown syntax.
 
