@@ -13,13 +13,12 @@
 // Eager Directory Glob Imports (No manifest.json required)
 // ---------------------------------------------------------------------------
 
-const modules = import.meta.glob("../../public/blog/*.md", { as: "raw", eager: true });
+const modules = import.meta.glob("../../public/blog/*.md", { query: "?raw", import: "default", eager: true });
 
 // Process modules and build sorted blog posts manifest in-memory
 const postsManifest = Object.keys(modules).map((key) => {
-  // Key format: "/public/blog/hello-world.md"
-  const mod = modules[key];
-  const rawMd = typeof mod === "string" ? mod : (mod && typeof mod.default === "string" ? mod.default : "");
+  // Key format: "../../public/blog/hello-world.md"
+  const rawMd = modules[key] || "";
   const slug = key.split("/").pop().replace(".md", "");
 
   // Extract frontmatter
@@ -52,6 +51,7 @@ const postsManifest = Object.keys(modules).map((key) => {
     author: metadata.author || "Anonymous",
     coverImage: metadata.coverImage || "/favicon.svg",
     rawContent: rawMd
+  };
 })
 .filter((post) => !post.slug.startsWith("_"))
 .sort((a, b) => new Date(b.date) - new Date(a.date));
