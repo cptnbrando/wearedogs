@@ -380,8 +380,12 @@
                     ></canvas>
 
                     {#if !audioCore.isPlaying && !hasMusicPlayed}
-                      <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-10 animate-pulse">
-                        <div class="bg-black/75 border border-red-500/30 px-3 py-1.5 rounded text-[10px] font-mono tracking-widest text-red-500 font-bold uppercase shadow-[0_0_15px_rgba(239,68,68,0.25)] select-none">
+                      <div
+                        class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-10 animate-pulse"
+                      >
+                        <div
+                          class="bg-black/75 border border-red-500/30 px-3 py-1.5 rounded text-[10px] font-mono tracking-widest text-red-500 font-bold uppercase shadow-[0_0_15px_rgba(239,68,68,0.25)] select-none"
+                        >
                           NO SIGNAL
                         </div>
                       </div>
@@ -857,24 +861,16 @@
       <canvas bind:this={canvasEl} class="visualizer-canvas"></canvas>
 
       {#if !audioCore.isPlaying && !hasMusicPlayed}
-        <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-10 animate-pulse">
-          <div class="bg-black/75 border border-red-500/30 px-4 py-2 rounded text-[12px] font-mono tracking-widest text-red-500 font-bold uppercase shadow-[0_0_20px_rgba(239,68,68,0.3)] select-none">
+        <div
+          class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-10 animate-pulse"
+        >
+          <div
+            class="bg-black/75 border border-red-500/30 px-4 py-2 rounded text-[12px] font-mono tracking-widest text-red-500 font-bold uppercase shadow-[0_0_20px_rgba(239,68,68,0.3)] select-none"
+          >
             NO SIGNAL
           </div>
         </div>
       {/if}
-
-      <!-- Floating Top-Right Exit Fullscreen Button -->
-      <button
-        class="absolute top-6 right-6 z-[2100] ctrl ctrl-md bg-black/60 backdrop-blur-md border border-white/10 text-white/80 hover:text-white hover:scale-105 active:scale-95 transition-all"
-        onclick={(e) => {
-          e.stopPropagation();
-          isFullscreenVisualizer = false;
-        }}
-        aria-label="Exit Fullscreen"
-      >
-        <Minimize2 size={16} />
-      </button>
 
       <div class="visualizer-overlay" onclick={(e) => e.stopPropagation()}>
         <div
@@ -892,14 +888,6 @@
             </button>
           {/each}
         </div>
-
-        <button
-          class="ctrl ctrl-xs bg-black/60 backdrop-blur-md border border-white/10 text-white/80 hover:text-white"
-          onclick={() => (isFullscreenVisualizer = false)}
-          aria-label="Exit Fullscreen"
-        >
-          <Minimize2 size={12} />
-        </button>
       </div>
     </div>
   {/if}
