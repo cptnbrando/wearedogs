@@ -1,6 +1,6 @@
 ---
 title: "Article Title Here"
-date: "2026-06-27T15:00:00-05:00"
+date: "2026-06-27T10:15:00-05:00"
 description: "A compelling summary or subtitle goes here. It is displayed on the logs index card lists."
 author: "Captain Brando"
 coverImage: "/favicon.svg"

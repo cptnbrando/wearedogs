@@ -338,6 +338,7 @@
     goProShow={deepLinkGoProShow}
     goProEpisode={deepLinkGoProEp}
     bind:blogPostSlug={deepLinkBlogPostSlug}
+    bind:depth={depth}
     isFlagColors={weAreDogsColored}
   />
 {:else if activePage === "music"}

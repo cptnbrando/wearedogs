@@ -1,6 +1,6 @@
 ---
 title: Hello World: The New Blog
-date: 2026-06-27
+date: "2026-06-27T15:00:00-05:00"
 description: Welcome to the new official blog on wearedogs.net. Powered by markdown and agentic coding workflows.
 author: Captain Brando
 ---

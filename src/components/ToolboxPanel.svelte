@@ -35,6 +35,7 @@
     isFlagColors = false,
     initialApp = null,
     blogPostSlug = $bindable(null),
+    depth = $bindable(0),
   } = $props();
 
   let isReadingPost = $state(false);
@@ -331,7 +332,7 @@
               </div>
             </div>
 
-            <!-- App 11: The Blog -->
+            <!-- App 11: DOG BLOG -->
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div
@@ -377,7 +378,7 @@
       {:else if activeApp === "changelog"}
         <ChangelogApp />
       {:else if activeApp === "blog"}
-        <BlogApp initialSlug={blogPostSlug} bind:isReading={isReadingPost} />
+        <BlogApp initialSlug={blogPostSlug} bind:isReading={isReadingPost} bind:depth={depth} />
       {/if}
     </div>
 

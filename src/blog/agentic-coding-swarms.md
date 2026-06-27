@@ -1,6 +1,6 @@
 ---
 title: Agentic Coding Swarms with Antigravity
-date: 2026-06-25
+date: "2026-06-25T11:30:00-05:00"
 description: Exploring how multiple AI agents coordinate, refactor, style, and build applications in seconds.
 author: Captain Brando
 ---
