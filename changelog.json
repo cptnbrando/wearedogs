@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1782580928,
+    "firstCommitTimestamp": 1782775432,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 40790
+    "averageLinesAltered": 40909
   },
   "entries": [
     {
       "version": "1.0.2",
       "name": "Master",
-      "date": "2026-06-27",
-      "timestamp": 1782580874,
+      "date": "2026-06-29",
+      "timestamp": 1782775372,
       "commits": [
         {
-          "hash": "18844a8",
-          "message": "docs: add requirement to use @use instead of @import for SCSS in AGENTS.md",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/18844a88eb6db6c9999ffd3e25ae23ed9b0d951d",
-          "timestamp": 1782580928,
-          "linesChanged": 40790
+          "hash": "706cf0a",
+          "message": "sanitize worldcup api",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/706cf0a5e7e58287ab657d2f06c12b34dfd1ba23",
+          "timestamp": 1782775432,
+          "linesChanged": 40909
         }
       ]
     },
