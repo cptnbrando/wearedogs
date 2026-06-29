@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1782775432,
+    "firstCommitTimestamp": 1782775556,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 40909
+    "averageLinesAltered": 40915
   },
   "entries": [
     {
       "version": "1.0.2",
       "name": "Master",
       "date": "2026-06-29",
-      "timestamp": 1782775372,
+      "timestamp": 1782775494,
       "commits": [
         {
-          "hash": "706cf0a",
-          "message": "sanitize worldcup api",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/706cf0a5e7e58287ab657d2f06c12b34dfd1ba23",
-          "timestamp": 1782775432,
-          "linesChanged": 40909
+          "hash": "f152f3e",
+          "message": "docs: add network dependencies section to README",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/f152f3e9469db5a0f8ab6ee2b4284095ccfebc35",
+          "timestamp": 1782775556,
+          "linesChanged": 40915
         }
       ]
     },
