@@ -22,6 +22,7 @@
 * LAYOUT IMMUTABILITY: Core branding text and layouts (especially critical typography elements like the WEAREDOGS letters text) must remain as entirely static as an oil painting. Elements entering, animating, or exiting the DOM must never cause layout recalculations, cumulative layout shifts (CLS), or text jitter on surrounding components.
 * DEVICE-AGNOSTIC FLUIDITY: Mobile-first is a baseline, but layouts must gracefully expand and translate to televisions, desktop screens, car dashboards, and ultra-legacy screen factors.
 * NATIVE & INTUITIVE CONTROLS: Interaction design must deeply understand and leverage device-specific ergonomics natively—such as mobile back-swipe gestures, scrollwheel navigation on web, tactile touch/swipe-and-hold dynamics, and volume/hardware button sync where appropriate. Maximize creative UX potential without compromising accessibility (a11y).
+* Scrollbars are bad. Vertical scrollbars are a necessary evil for lists, but for most of the site, the layout must fit on one page across all devices. Horizontal scrollbars are never acceptable. For times content requires horizontal scrolling, remove the scrollbar and use arrows to indicate that the content can be swiped and clicked to move over. It is CRITICAL that the default styling for most pages panels apps everything on this site is entirely visible onload without scroll or overflow.
 # CRITICAL COMPLIANCE: RESPONSIVE LAYOUT ENGINE
 You must explicitly design and implement distinct visual layouts for the following five target displays. Do not emit code that treats mobile landscape and portrait as the same viewport.
 ## Required Viewport Matrix
@@ -33,15 +34,24 @@ You must explicitly design and implement distinct visual layouts for the followi
 ## Implementation Rule
 Every single UI component generated MUST contain explicit Tailwind breakpoint prefixes managing visibility, grid col-spans, or flex directions across ALL five modes. If a component lacks fluid scaling across these targets, it is a failure of the agent style guide.
 
-### 5. PROJECT SPECIFICS
+### 5. Svelte Specifics
+- When adding lines like 'svelte-ignore a11y_click_events_have_key_events' or 'svelte-ignore a11y_no_static_element_interactions', if they are needed for multiple elements, hoist them to the top of the component so they work for the entire component and you're not repeating those lines everywhere.
+- Do not build the project. npm run build does not do what you think it does in this Vite project. When you are running I will typically have npm run dev going in my own terminal. Use expected values to view the site.
+- SCSS requires @use and NOT @import.
+
+### 6. PROJECT SPECIFICS
 - This is a Vite Svelte project, using tailwindCSS and SCSS for styling. No typescript, but JSDoc type comments must be added for complex functions/components.
 - All data is being held in a Cloudflare R2 database. This is accessible at https://data.wearedogs.net. Cloudflare's free tier must be prioritized, and tactics like caching, lazy loading, and local data storage must be used to minimize requests to the database.
-- Do not build the project. npm run build does not do what you think it does in this Vite project. When you are running I will typically have npm run dev going in my own terminal. Use expected values to view the site.
 - Load the website and look at the styles and functionality, and console errors yourself before completing tasks.
 - Create new branches for tasks, do not push anything to github. Never run git push. Or git reset or git rebase. You may commit your changes locally to your specific branches.
 - Once the change passes styling, modularity, and testing criteria, you may notify me that the task is complete. I will then review the changes and request changes. Do not create any Pull Requests, unless you are absolutely certain that the changes are perfect and you have followed all other instructions.
+- If a script is creating a dynamicly changing file, such as changelog.json for the changelog app, make sure that it is added to .gitignore.
 
-### ABSOLUTELY CRITICAL: NEVER TOUCH THE GIT MASTER BRANCH OR THE MAIN BRANCH. NEVER EVER EVER.
+# ABSOLUTELY CRITICAL: NEVER TOUCH THE GIT MASTER BRANCH OR THE MAIN BRANCH. NEVER EVER EVER.
+
+# ABSOLUTELY CRITICAL: ALWAYS CREATE STYLES FOR MOBILE LANDSCAPE, MOBILE PORTRAIT, TABLET LANDSCAPE, TABLET PORTRAIT, DESKTOP LANDSCAPE, DESKTOP PORTRAIT, TV, AND ULTRA-WIDE DISPLAYS. FOLLOW THE STYLING GUIDELINES ABOVE TO MINIMIZE CROPPED OUT CONTENT AND INACCESSIBLE ELEMENTS ACROSS ALL DEVICES. THE CHANGE IS INCOMPLETE IF IT DOES NOT ACCOUNT FOR ALL OF THESE VIEWPORTS. TAILWINDCSS IS YOUR BEST FRIEND FOR THIS.
+
+# ABSOLUTELY CRITICAL: FOR ANY TASK, PRODUCE AND LOAD THE SITE TO CHECK FOR ANY LAYOUT ISSUES OR CROPPED OUT CONTENT, AND BE SURE TO INSPECT ACROSS ALL DEVICES AND VIEWPORTS. 
 
 ## Profile: Swarm-Coordinator
 - **Model**: Gemini 3.1 Pro

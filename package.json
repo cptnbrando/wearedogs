@@ -1,14 +1,15 @@
 {
   "name": "wearedogs",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "scripts": {
     "dev": "vite --host",
-    "build": "vite build",
+    "build": "npm run changelog && vite build",
     "preview": "vite preview",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist"
+    "deploy": "gh-pages -d dist",
+    "changelog": "node scripts/compile-changelog.js"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^7.1.2",

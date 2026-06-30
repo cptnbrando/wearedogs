@@ -117,6 +117,7 @@
 
   // Sync activeApp pushes and pops procedurally/reactively
   $effect(() => {
+    if (isClosing) return;
     const page = activePage;
     const app = activeApp;
 
@@ -143,21 +144,8 @@
       const targetApp = state?.app || null;
       const targetDepth = state?.depth || 0;
 
-      // Update depth to match popped state
       depth = targetDepth;
-
       const wasFS = !!document.fullscreenElement;
-
-      if (activePage === "toolbox" && activeApp && !targetApp) {
-        // Go back to app launcher
-        activeApp = null;
-      } else if (activePage && !targetView) {
-        // Close overlay panel
-        closePageInternal();
-      } else {
-        activePage = targetView;
-        activeApp = targetApp;
-      }
 
       if (wasFS) {
         setTimeout(() => {
@@ -166,6 +154,19 @@
           }
         }, 50);
       }
+
+      if (activePage === "toolbox" && activeApp && !targetApp && targetView === "toolbox") {
+        activeApp = null;
+        return;
+      }
+
+      if (activePage && !targetView) {
+        closePageInternal();
+        return;
+      }
+
+      activePage = targetView;
+      activeApp = targetApp;
     };
 
     window.addEventListener("popstate", handlePop);
@@ -185,8 +186,8 @@
   function closePage() {
     const wasFS = !!document.fullscreenElement;
     if (depth > 0) {
+      isClosing = true;
       history.go(-depth);
-      depth = 0;
       if (wasFS) {
         setTimeout(() => {
           if (!document.fullscreenElement) {
@@ -323,6 +324,7 @@
     initialApp={deepLinkApp}
     goProShow={deepLinkGoProShow}
     goProEpisode={deepLinkGoProEp}
+    isFlagColors={weAreDogsColored}
   />
 {:else if activePage === "music"}
   <MusicPanel {isClosing} onClose={closePage} {initialTrackId} />

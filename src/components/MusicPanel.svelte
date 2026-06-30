@@ -17,16 +17,131 @@
     ExternalLink,
     Plus,
     ChevronRight,
-    X,
+    ArrowLeft,
     BoomBox,
+    Music,
+    Guitar,
+    Waves,
+    Maximize2,
+    Minimize2,
   } from "lucide-svelte";
+  import { audioCore } from "../lib/AudioCore.svelte.js";
+  import { VisualizerEngine } from "../lib/visualizer/VisualizerEngine.js";
+  import { PRESETS, NO_SIGNAL_PRESET } from "../lib/visualizer/presets.js";
+
+  import SwipeTabNav from "./SwipeTabNav.svelte";
+
+  const title = "MUSIC";
+
+  const musicTabs = [
+    { id: "songs", label: "Songs", icon: Disc3 },
+    { id: "samples", label: "Samples", icon: Mic2 },
+    { id: "playlists", label: "Playlists", icon: Radio },
+    { id: "radio", label: "Radio", icon: BoomBox },
+  ];
 
   let { isClosing = false, onClose, initialTrackId = null } = $props();
 
   // Tab: 'songs' | 'samples' | 'playlists' | 'radio'
   let activeTab = $state("songs");
+  let sortBy = $state("default"); // 'default' | 'artist' | 'album' | 'year' | 'filename' | 'genre' | 'season'
+  let showMobileTracklist = $state(false);
+  let isBouncing = $state(false);
+  let vinylLoaded = $state(false);
+  let showVolumeSlider = $state(false);
+  let volumePopoverEl = $state(null);
 
-  // Music library - path: /music/[artist]/[album]/[file]
+  let showVisualizer = $state(false);
+  let activePresetIdx = $state(0);
+  let isFullscreenVisualizer = $state(false);
+  let canvasEl = $state(null);
+  let visualizerEngine = null;
+  let tracklistHistoryPushed = false;
+  let hasMusicPlayed = $state(false);
+
+  // Track if music starts playing to flip hasMusicPlayed to true
+  $effect(() => {
+    if (audioCore.isPlaying) {
+      hasMusicPlayed = true;
+    }
+  });
+
+  // Dynamically derive current fragment shader to compile
+  let currentShader = $derived.by(() => {
+    if (!audioCore.isPlaying && !hasMusicPlayed) {
+      return NO_SIGNAL_PRESET.fragmentShader;
+    }
+    return PRESETS[activePresetIdx].fragmentShader;
+  });
+
+  // Manage Visualizer instantiation and destruction
+  $effect(() => {
+    const analyser = audioCore.analyser; // track dependency
+    if (showVisualizer && canvasEl) {
+      // Re-instantiate engine when analyser becomes available or changes
+      visualizerEngine = new VisualizerEngine(canvasEl, analyser);
+      visualizerEngine.init(currentShader);
+      visualizerEngine.start();
+    }
+
+    return () => {
+      if (visualizerEngine) {
+        visualizerEngine.destroy();
+        visualizerEngine = null;
+      }
+    };
+  });
+
+  // Manage Preset switches / shader changes (without destroying WebGL context)
+  $effect(() => {
+    const shader = currentShader; // track dependency
+    if (visualizerEngine && showVisualizer) {
+      visualizerEngine.setPreset(shader);
+      visualizerEngine.start();
+    }
+  });
+
+  // Sync tracklist state with browser history (back button closes tracklist)
+  $effect(() => {
+    if (showMobileTracklist) {
+      if (!history.state?.tracklistOpen && !tracklistHistoryPushed) {
+        history.pushState({ tracklistOpen: true }, "");
+        tracklistHistoryPushed = true;
+      }
+    } else {
+      if (tracklistHistoryPushed) {
+        history.back();
+        tracklistHistoryPushed = false;
+      }
+    }
+  });
+
+  onDestroy(() => {
+    // Clean up history state if modal closes while tracklist is open
+    if (tracklistHistoryPushed) {
+      history.back();
+      tracklistHistoryPushed = false;
+    }
+  });
+
+  function handlePopState(e) {
+    if (!e.state?.tracklistOpen && showMobileTracklist) {
+      showMobileTracklist = false;
+      tracklistHistoryPushed = false;
+    }
+  }
+
+  function handleWindowClick(e) {
+    if (
+      showVolumeSlider &&
+      volumePopoverEl &&
+      !volumePopoverEl.contains(e.target) &&
+      !e.target.closest(".vol-toggle-btn")
+    ) {
+      showVolumeSlider = false;
+    }
+  }
+
   const library = [
     {
       id: "hollywood",
@@ -39,6 +154,8 @@
       instrumental: "/music/YG/THE GENTLEMEN'S CLUB/HOLLYWOOD-FREE.mp3",
       hasInstrumental: true,
       dateAdded: "2026-06-24T03:00:00-05:00",
+      year: 2026,
+      genre: "Hip-Hop",
     },
     {
       id: "chicago",
@@ -51,297 +168,88 @@
       instrumental: "/music/Michael Jackson/Xscape/Chicago-free.mp3",
       hasInstrumental: true,
       dateAdded: "2026-06-24T03:00:00-05:00",
+      year: 2014,
+      genre: "Pop",
     },
   ];
 
-  // --- Svelte Runes State ---
-  let currentTrackIndex = $state(0);
-  let isPlaying = $state(false);
-  let isInstrumental = $state(false);
+  // Derive sort values
+  function getTrackFilename(track) {
+    if (!track.src) return "";
+    return track.src.split("/").pop();
+  }
 
-  let currentTime = $state(0);
-  let duration = $state(0);
-  let volume = $state(0.8);
-  let isMuted = $state(false);
-  let isShuffled = $state(false);
-  let repeatMode = $state(0);
-  let isLoading = $state(false);
-  let vinylLoaded = $state(false);
-  let isSeeking = $state(false);
-  let seekPreview = $state(0);
+  // Derive sort values by season
+  function getTrackSeason(track) {
+    if (!track.dateAdded) return "Summer";
+    const date = new Date(track.dateAdded);
+    const month = date.getMonth();
+    if (month === 11 || month === 0 || month === 1) return "Winter";
+    if (month >= 2 && month <= 4) return "Spring";
+    if (month >= 5 && month <= 7) return "Summer";
+    return "Fall";
+  }
 
-  // --- Web Audio Graph Pipeline Variables ---
-  let audioCtx = null;
-  let trackBuffer = null;
-  let instBuffer = null;
+  let sortedLibrary = $derived.by(() => {
+    let list = [...library];
+    if (sortBy === "artist") {
+      list.sort((a, b) => a.artist.localeCompare(b.artist));
+    } else if (sortBy === "album") {
+      list.sort((a, b) => a.album.localeCompare(b.album));
+    } else if (sortBy === "year") {
+      list.sort((a, b) => (a.year || 0) - (b.year || 0));
+    } else if (sortBy === "filename") {
+      list.sort((a, b) =>
+        getTrackFilename(a).localeCompare(getTrackFilename(b)),
+      );
+    } else if (sortBy === "genre") {
+      list.sort((a, b) => (a.genre || "").localeCompare(b.genre || ""));
+    } else if (sortBy === "season") {
+      list.sort((a, b) => getTrackSeason(a).localeCompare(getTrackSeason(b)));
+    }
+    return list;
+  });
 
-  let trackSourceNode = null;
-  let instSourceNode = null;
-  let trackGainNode = null;
-  let instGainNode = null;
-
-  let startTime = 0; // Hardware context time when track started playing
-  let pauseTime = 0; // Specific offset in seconds where track was paused
-  let progressInterval; // Polling interval replacement for "timeupdate"
-
-  let currentTrack = $derived(library[currentTrackIndex]);
-  let displayTime = $derived(isSeeking ? seekPreview : currentTime);
-  let progress = $derived(duration > 0 ? (displayTime / duration) * 100 : 0);
+  let currentTrack = $derived(library[audioCore.currentTrackIndex]);
 
   onMount(() => {
-    // AudioContext will initialize on first user interaction (play) to respect browser policies.
-  });
-
-  onDestroy(() => {
-    stopAudioNodes();
-    clearInterval(progressInterval);
-    if (audioCtx) audioCtx.close();
-  });
-
-  // --- Core Web Audio Methods ---
-
-  async function initAudioContext() {
-    if (!audioCtx) {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    if (audioCtx.state === "suspended") {
-      await audioCtx.resume();
-    }
-  }
-
-  async function fetchAndDecode(url) {
-    if (!url) return null;
-    const response = await fetch(url);
-    const arrayBuffer = await response.arrayBuffer();
-    return await audioCtx.decodeAudioData(arrayBuffer);
-  }
-
-  function stopAudioNodes() {
-    try {
-      trackSourceNode?.stop();
-    } catch (e) {}
-    try {
-      instSourceNode?.stop();
-    } catch (e) {}
-    trackSourceNode = null;
-    instSourceNode = null;
-  }
-
-  function applyVolumes() {
-    if (!trackGainNode || !instGainNode || !audioCtx) return;
-
-    const currentContextTime = audioCtx.currentTime;
-    const targetVolume = isMuted ? 0 : volume;
-
-    if (isInstrumental) {
-      // Use 0.01s ramp exponential target to completely eliminate crackles or audio pops
-      trackGainNode.gain.setTargetAtTime(0, currentContextTime, 0.01);
-      instGainNode.gain.setTargetAtTime(targetVolume, currentContextTime, 0.01);
-    } else {
-      trackGainNode.gain.setTargetAtTime(
-        targetVolume,
-        currentContextTime,
-        0.01,
-      );
-      instGainNode.gain.setTargetAtTime(0, currentContextTime, 0.01);
-    }
-  }
-
-  function startProgressTimer() {
-    clearInterval(progressInterval);
-    progressInterval = setInterval(() => {
-      if (isPlaying && !isSeeking && audioCtx) {
-        currentTime = audioCtx.currentTime - startTime;
-        if (currentTime >= duration) {
-          clearInterval(progressInterval);
-          onEnded();
-        }
+    audioCore.init(library);
+    if (initialTrackId) {
+      const idx = library.findIndex((t) => t.id === initialTrackId);
+      if (idx !== -1) {
+        audioCore.loadTrack(idx, true);
       }
-    }, 100);
-  }
+    }
+  });
 
-  // --- Player Pipeline Actions ---
-
-  function onEnded() {
-    if (repeatMode === 2) {
-      pauseTime = 0;
-      isPlaying = false;
-      playAudio();
-    } else if (repeatMode === 1 || currentTrackIndex < library.length - 1) {
-      nextTrack();
+  function selectSortedTrack(track) {
+    const idx = library.findIndex((t) => t.id === track.id);
+    if (audioCore.currentTrackIndex === idx) {
+      audioCore.togglePlay();
     } else {
-      isPlaying = false;
-      stopAudioNodes();
-      pauseTime = 0;
-      currentTime = 0;
+      audioCore.loadTrack(idx, true);
     }
   }
 
-  async function loadTrack(index, autoplay = false) {
-    currentTrackIndex = index;
-    isInstrumental = false;
-    currentTime = 0;
-    pauseTime = 0;
-    isLoading = true;
-
-    await initAudioContext();
-    stopAudioNodes();
-
-    const track = library[index];
-
-    try {
-      // Stream, download, and decode both files asynchronously side-by-side
-      const [tBuf, iBuf] = await Promise.all([
-        fetchAndDecode(track.src),
-        fetchAndDecode(track.instrumental),
-      ]);
-
-      trackBuffer = tBuf;
-      instBuffer = iBuf;
-      duration = trackBuffer ? trackBuffer.duration : 0;
-    } catch (err) {
-      console.error("Error loading track channels:", err);
-      isPlaying = false;
-    } finally {
-      isLoading = false;
-    }
-
-    if (autoplay && trackBuffer) {
-      playAudio();
-    }
-  }
-
-  function playAudio() {
-    if (!audioCtx || !trackBuffer) return;
-
-    stopAudioNodes();
-
-    // Source buffers are single-use disposable instances inside Web Audio contexts
-    trackSourceNode = audioCtx.createBufferSource();
-    trackSourceNode.buffer = trackBuffer;
-
-    instSourceNode = audioCtx.createBufferSource();
-    if (instBuffer) {
-      instSourceNode.buffer = instBuffer;
-    }
-
-    // Initialize individual track mixes
-    trackGainNode = audioCtx.createGain();
-    instGainNode = audioCtx.createGain();
-
-    // Connections map: File Source -> Mix Node -> Audio Card Output
-    trackSourceNode.connect(trackGainNode);
-    trackGainNode.connect(audioCtx.destination);
-
-    if (instBuffer) {
-      instSourceNode.connect(instGainNode);
-      instGainNode.connect(audioCtx.destination);
-    }
-
-    applyVolumes();
-
-    // Schedule exact clock launch alignment
-    const now = audioCtx.currentTime;
-    startTime = now - pauseTime;
-
-    trackSourceNode.start(now, pauseTime);
-    if (instBuffer) {
-      instSourceNode.start(now, pauseTime);
-    }
-
-    isPlaying = true;
-    startProgressTimer();
-  }
-
-  async function togglePlay() {
-    await initAudioContext();
-
-    if (!trackBuffer && !isLoading) {
-      await loadTrack(currentTrackIndex, true);
-      return;
-    }
-
-    if (isPlaying) {
-      clearInterval(progressInterval);
-      pauseTime = audioCtx.currentTime - startTime;
-      stopAudioNodes();
-      isPlaying = false;
+  function handleRecordClick() {
+    const isMobile = window.innerWidth <= 640;
+    if (isMobile) {
+      showMobileTracklist = true;
     } else {
-      playAudio();
+      showVisualizer = !showVisualizer;
     }
   }
 
-  function toggleInstrumental() {
-    if (!currentTrack.hasInstrumental) return;
-    isInstrumental = !isInstrumental;
-    // Flawless change on running audio tracks via graph variables
-    applyVolumes();
-  }
-
-  function prevTrack() {
-    if (currentTime > 3) {
-      pauseTime = 0;
-      if (isPlaying) playAudio();
-      else currentTime = 0;
-      return;
-    }
-    const idx = isShuffled
-      ? Math.floor(Math.random() * library.length)
-      : currentTrackIndex > 0
-        ? currentTrackIndex - 1
-        : library.length - 1;
-    loadTrack(idx, isPlaying);
-  }
-
-  function nextTrack() {
-    const idx = isShuffled
-      ? Math.floor(Math.random() * library.length)
-      : currentTrackIndex < library.length - 1
-        ? currentTrackIndex + 1
-        : 0;
-    loadTrack(idx, isPlaying);
-  }
-
-  function selectTrack(i) {
-    if (currentTrackIndex === i) {
-      togglePlay();
-      return;
-    }
-    loadTrack(i, true);
-  }
-
-  function cycleRepeat() {
-    repeatMode = (repeatMode + 1) % 3;
-  }
-
-  function toggleMute() {
-    isMuted = !isMuted;
-    applyVolumes();
-  }
-
-  function setVolume(v) {
-    volume = parseFloat(v);
-    if (volume > 0) isMuted = false;
-    applyVolumes();
-  }
-
-  function handleSeekStart(e) {
-    isSeeking = true;
-    seekPreview = parseFloat(e.target.value);
-  }
-
-  function handleSeekMove(e) {
-    seekPreview = parseFloat(e.target.value);
-  }
-
-  function handleSeekEnd(e) {
-    const t = parseFloat(e.target.value);
-    currentTime = t;
-    pauseTime = t;
-    isSeeking = false;
-
-    if (isPlaying) {
-      playAudio();
+  function toggleCrossfade() {
+    const newVal = !audioCore.isInstrumental;
+    const success = audioCore.setCrossfade(newVal);
+    if (!success) {
+      if (!isBouncing) {
+        isBouncing = true;
+        setTimeout(() => {
+          isBouncing = false;
+        }, 400);
+      }
     }
   }
 
@@ -351,224 +259,461 @@
       .toString()
       .padStart(2, "0")}`;
   }
+
+  function handleKeydown(e) {
+    if (e.code === "Space" || e.key === " ") {
+      const activeEl = document.activeElement;
+      if (
+        activeEl &&
+        (activeEl.tagName === "INPUT" ||
+          activeEl.tagName === "TEXTAREA" ||
+          activeEl.isContentEditable)
+      ) {
+        return;
+      }
+      if (activeTab === "songs") {
+        e.preventDefault();
+        audioCore.togglePlay();
+      }
+    }
+  }
+
+  let touchStartX = 0;
+  let touchStartY = 0;
+
+  function handleBodyTouchStart(e) {
+    if (
+      e.target &&
+      (e.target.tagName === "INPUT" ||
+        e.target.closest("button") ||
+        e.target.closest(".ctrl"))
+    ) {
+      touchStartX = 0;
+      touchStartY = 0;
+      return;
+    }
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+  }
+
+  // Handle swipe gestures
+  function handleBodyTouchEnd(e) {
+    if (touchStartX === 0) return;
+    if (!e.changedTouches || e.changedTouches.length === 0) return;
+
+    const diffX = e.changedTouches[0].clientX - touchStartX;
+    const diffY = e.changedTouches[0].clientY - touchStartY;
+    if (Math.abs(diffX) <= Math.abs(diffY) || Math.abs(diffX) <= 60) return;
+
+    const idx = musicTabs.findIndex((t) => t.id === activeTab);
+    if (idx === -1) return;
+
+    if (diffX < 0 && idx < musicTabs.length - 1) {
+      activeTab = musicTabs[idx + 1].id;
+    } else if (diffX > 0 && idx > 0) {
+      activeTab = musicTabs[idx - 1].id;
+    }
+  }
 </script>
 
-<!-- Two audio elements: full (leader) + instrumental (follower, always muted unless active) -->
-<!-- <audio bind:this={fullEl} src={currentTrack.src} preload="none"></audio>
-<audio bind:this={instEl} src={currentTrack.instrumental ?? ""} preload="none"
-></audio> -->
+<svelte:window
+  onkeydown={handleKeydown}
+  onpopstate={handlePopState}
+  onclick={handleWindowClick}
+/>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div class="mp-backdrop" onclick={onClose}>
-  <!-- svelte-ignore a11y_click_events_have_key_events -->
-  <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div
     class="mp-container"
     class:closing={isClosing}
     onclick={(e) => e.stopPropagation()}
   >
-    <header class="mp-header">
-      <div class="mp-brand">
-        <img src="/favicon.svg" alt="DOGS" loading="lazy" class="mp-logo" />
-        <span class="mp-title">MUSIC</span>
+    <!-- Header -->
+    <header class="panel-header">
+      <div class="brand">
+        <img
+          src="/favicon.svg"
+          alt="DOGS Logo"
+          class="w-6 h-6 shrink-0 drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]"
+        />
+        <h1>{title}</h1>
       </div>
-      <button class="mp-close-btn" onclick={onClose} aria-label="Close"
-        ><X size={18} /></button
-      >
+
+      <button class="close-btn" onclick={onClose} aria-label="Close panel">
+        <ArrowLeft size={20} />
+      </button>
     </header>
 
-    <!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
-    <nav class="mp-tabs" role="tablist">
-      <button
-        class="mp-tab"
-        class:active={activeTab === "songs"}
-        onclick={() => (activeTab = "songs")}
-        role="tab"
-      >
-        <Disc3 size={15} /><span>Songs</span>
-      </button>
-      <button
-        class="mp-tab"
-        class:active={activeTab === "samples"}
-        onclick={() => (activeTab = "samples")}
-        role="tab"
-      >
-        <Mic2 size={15} /><span>Samples</span>
-      </button>
-      <button
-        class="mp-tab"
-        class:active={activeTab === "playlists"}
-        onclick={() => (activeTab = "playlists")}
-        role="tab"
-      >
-        <Radio size={15} /><span>Playlists</span>
-      </button>
-      <button
-        class="mp-tab"
-        class:active={activeTab === "radio"}
-        onclick={() => (activeTab = "radio")}
-        role="tab"
-      >
-        <BoomBox size={15} /><span>Radio</span>
-      </button>
-    </nav>
+    <SwipeTabNav tabs={musicTabs} bind:activeTab />
 
-    <div class="mp-body">
+    <div
+      class="mp-body"
+      ontouchstart={handleBodyTouchStart}
+      ontouchend={handleBodyTouchEnd}
+    >
       {#if activeTab === "songs"}
         <div class="songs-layout">
-          <div class="player-side">
-            <div class="vinyl-wrapper">
-              <div class="vinyl-record" class:spinning={isPlaying}>
-                <div class="groove g1"></div>
-                <div class="groove g2"></div>
-                <div class="groove g3"></div>
-                <div class="groove g4"></div>
-                <div class="record-label">
-                  <img
-                    src={currentTrack.cover}
-                    alt={currentTrack.album}
-                    loading="lazy"
-                    class="record-art"
-                    class:loaded={vinylLoaded}
-                    onload={() => (vinylLoaded = true)}
+          <!-- Left side player details -->
+          <div class="player-side" class:tracklist-open={showMobileTracklist}>
+            <!-- Top block (Vinyl & track info) - disappears on mobile tracklist active -->
+            <div
+              class="player-top-block transition-all duration-300 ease-in-out"
+              class:opacity-0={showMobileTracklist}
+              class:scale-95={showMobileTracklist}
+              class:pointer-events-none={showMobileTracklist}
+            >
+              <!-- Vinyl disc OR Visualizer (Exactly same dimensions!) -->
+              <div class="vinyl-wrapper relative">
+                {#if showVisualizer && !isFullscreenVisualizer}
+                  <!-- Compact Visualizer Container -->
+                  <!-- svelte-ignore a11y_click_events_have_key_events -->
+                  <!-- svelte-ignore a11y_no_static_element_interactions -->
+                  <div
+                    class="visualizer-container cursor-pointer"
+                    onclick={() => {
+                      isFullscreenVisualizer = true;
+                    }}
+                  >
+                    <canvas bind:this={canvasEl} class="visualizer-canvas"
+                    ></canvas>
+
+                    {#if !audioCore.isPlaying && !hasMusicPlayed}
+                      <div
+                        class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-10 animate-pulse"
+                      >
+                        <div
+                          class="bg-black/75 border border-red-500/30 px-3 py-1.5 rounded text-[10px] font-mono tracking-widest text-red-500 font-bold uppercase shadow-[0_0_15px_rgba(239,68,68,0.25)] select-none"
+                        >
+                          NO SIGNAL
+                        </div>
+                      </div>
+                    {/if}
+
+                    <!-- Subtle maximize icon on hover -->
+                    <div class="visualizer-hover-overlay">
+                      <Maximize2 size={16} class="text-white/70" />
+                    </div>
+                  </div>
+                {:else if showVisualizer && isFullscreenVisualizer}
+                  <!-- Placeholder keeping layout static when visualizer is fullscreen -->
+                  <div
+                    class="visualizer-container bg-[#050508]/40 border border-white/5 flex items-center justify-center"
+                  >
+                    <Maximize2 size={16} class="text-white/20" />
+                  </div>
+                {:else}
+                  <!-- Vinyl disc button to toggle tracklist on mobile -->
+                  <!-- svelte-ignore a11y_click_events_have_key_events -->
+                  <!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
+                  <div
+                    class="vinyl-record-clicker cursor-pointer w-full h-full"
+                    onclick={handleRecordClick}
+                    role="button"
+                    tabindex="0"
+                    aria-label="Open tracklist"
+                  >
+                    <div
+                      class="vinyl-record"
+                      class:spinning={audioCore.isPlaying}
+                    >
+                      <div class="groove g1"></div>
+                      <div class="groove g2"></div>
+                      <div class="groove g3"></div>
+                      <div class="groove g4"></div>
+                      <div class="record-label">
+                        <img
+                          src={currentTrack.cover}
+                          alt={currentTrack.album}
+                          loading="lazy"
+                          class="record-art"
+                          class:loaded={vinylLoaded}
+                          onload={() => (vinylLoaded = true)}
+                        />
+                      </div>
+                      <div class="spindle"></div>
+                    </div>
+                    <div
+                      class="tonearm"
+                      class:playing={audioCore.isPlaying}
+                    ></div>
+                  </div>
+                {/if}
+              </div>
+
+              <!-- Track info (Always visible!) -->
+              <div class="track-info mt-2">
+                <div
+                  class="version-badge"
+                  class:inst={audioCore.isInstrumental}
+                >
+                  {audioCore.isInstrumental ? "INSTRUMENTAL" : "ORIGINAL"}
+                </div>
+                <h2 class="track-title">{currentTrack.title}</h2>
+                <p class="track-artist">{currentTrack.artist}</p>
+                <p class="track-album">{currentTrack.album}</p>
+              </div>
+            </div>
+
+            <!-- Bottom block (Controls & Faders) - persistent on mobile -->
+            <div class="player-controls-block">
+              <!-- Seek bar -->
+              <div class="progress-row">
+                <span class="ptime">{fmtTime(audioCore.currentTime)}</span>
+                <div class="progress-wrap">
+                  <div
+                    class="progress-fill"
+                    style="width:{audioCore.duration > 0
+                      ? (audioCore.currentTime / audioCore.duration) * 100
+                      : 0}%"
+                  ></div>
+                  <input
+                    type="range"
+                    class="seek-input"
+                    min="0"
+                    max={audioCore.duration || 100}
+                    step="0.1"
+                    value={audioCore.currentTime}
+                    oninput={(e) => {
+                      audioCore.currentTime = parseFloat(e.target.value);
+                    }}
+                    onchange={(e) => {
+                      audioCore.play(parseFloat(e.target.value));
+                    }}
+                    aria-label="Seek"
                   />
                 </div>
-                <div class="spindle"></div>
+                <span class="ptime">{fmtTime(audioCore.duration)}</span>
               </div>
-              <div class="tonearm" class:playing={isPlaying}></div>
-            </div>
 
-            <div class="track-info">
-              <div class="version-badge" class:inst={isInstrumental}>
-                {isInstrumental ? "INSTRUMENTAL" : "ORIGINAL"}
-              </div>
-              <h2 class="track-title">{currentTrack.title}</h2>
-              <p class="track-artist">{currentTrack.artist}</p>
-              <p class="track-album">{currentTrack.album}</p>
-            </div>
-
-            <div class="progress-row">
-              <span class="ptime">{fmtTime(displayTime)}</span>
-              <div class="progress-wrap">
-                <div class="progress-fill" style="width:{progress}%"></div>
-                <input
-                  type="range"
-                  class="seek-input"
-                  min="0"
-                  max={duration || 100}
-                  step="0.1"
-                  value={displayTime}
-                  oninput={handleSeekMove}
-                  onmousedown={handleSeekStart}
-                  ontouchstart={handleSeekStart}
-                  onchange={handleSeekEnd}
-                  aria-label="Seek"
-                />
-              </div>
-              <span class="ptime">{fmtTime(duration)}</span>
-            </div>
-
-            <div class="controls-row">
-              <button
-                class="ctrl ctrl-sm"
-                class:active-ctrl={isShuffled}
-                onclick={() => (isShuffled = !isShuffled)}
-                aria-label="Shuffle"
-              >
-                <Shuffle size={15} />
-              </button>
-              <button
-                class="ctrl ctrl-md"
-                onclick={prevTrack}
-                aria-label="Previous"
-              >
-                <SkipBack size={19} />
-              </button>
-              <button
-                class="ctrl ctrl-play"
-                onclick={togglePlay}
-                aria-label={isPlaying ? "Pause" : "Play"}
-              >
-                {#if isLoading}
-                  <div class="spin-ring"></div>
-                {:else if isPlaying}
-                  <Pause size={22} fill="currentColor" />
-                {:else}
-                  <Play size={22} fill="currentColor" />
-                {/if}
-              </button>
-              <button
-                class="ctrl ctrl-md"
-                onclick={nextTrack}
-                aria-label="Next"
-              >
-                <SkipForward size={19} />
-              </button>
-              <button
-                class="ctrl ctrl-sm"
-                class:active-ctrl={repeatMode > 0}
-                onclick={cycleRepeat}
-                aria-label="Repeat"
-              >
-                {#if repeatMode === 2}<Repeat1 size={15} />{:else}<Repeat
-                    size={15}
-                  />{/if}
-              </button>
-            </div>
-
-            {#if currentTrack.hasInstrumental}
-              <button
-                class="inst-toggle"
-                class:on={isInstrumental}
-                onclick={toggleInstrumental}
-              >
-                <Mic2 size={13} />
-                <span
-                  >{isInstrumental ? "← Full Version" : "Instrumental →"}</span
+              <!-- Player main buttons -->
+              <div class="controls-row">
+                <button
+                  class="ctrl ctrl-sm"
+                  class:active-ctrl={audioCore.isShuffled}
+                  onclick={() => (audioCore.isShuffled = !audioCore.isShuffled)}
+                  aria-label="Shuffle"
                 >
-              </button>
-            {/if}
+                  <Shuffle size={15} />
+                </button>
+                <button
+                  class="ctrl ctrl-md"
+                  onclick={() => audioCore.prevTrack()}
+                  aria-label="Previous"
+                >
+                  <SkipBack size={19} />
+                </button>
+                <button
+                  class="ctrl ctrl-play"
+                  onclick={() => audioCore.togglePlay()}
+                  aria-label={audioCore.isPlaying ? "Pause" : "Play"}
+                >
+                  {#if audioCore.isLoading}
+                    <div class="spin-ring"></div>
+                  {:else if audioCore.isPlaying}
+                    <Pause size={22} fill="currentColor" />
+                  {:else}
+                    <Play size={22} fill="currentColor" />
+                  {/if}
+                </button>
+                <button
+                  class="ctrl ctrl-md"
+                  onclick={() => audioCore.nextTrack()}
+                  aria-label="Next"
+                >
+                  <SkipForward size={19} />
+                </button>
+                <button
+                  class="ctrl ctrl-sm"
+                  class:active-ctrl={audioCore.repeatMode > 0}
+                  onclick={() => {
+                    audioCore.repeatMode = (audioCore.repeatMode + 1) % 3;
+                  }}
+                  aria-label="Repeat"
+                >
+                  {#if audioCore.repeatMode === 2}<Repeat1
+                      size={15}
+                    />{:else}<Repeat size={15} />{/if}
+                </button>
+              </div>
 
-            <div class="vol-row">
-              <button
-                class="ctrl ctrl-xs"
-                onclick={toggleMute}
-                aria-label="Mute"
+              <!-- Custom DJ Crossfader -->
+              <div class="w-full flex flex-col items-center gap-1.5 mt-2 px-1">
+                <!-- svelte-ignore a11y_click_events_have_key_events -->
+                <!-- svelte-ignore a11y_no_static_element_interactions -->
+                <div
+                  class="dj-crossfader"
+                  class:animate-wiggle={isBouncing}
+                  onclick={toggleCrossfade}
+                >
+                  <span
+                    class="fader-label left-label flex items-center gap-1"
+                    class:active={!audioCore.isInstrumental}
+                  >
+                    <Mic2 size={12} />
+                    <span>VOCAL</span>
+                  </span>
+                  <div class="dj-fader-slot">
+                    <div
+                      class="dj-fader-knob"
+                      class:right={audioCore.isInstrumental}
+                    ></div>
+                  </div>
+                  <span
+                    class="fader-label right-label flex items-center gap-1"
+                    class:active={audioCore.isInstrumental}
+                  >
+                    <Guitar size={12} />
+                    <span>INST</span>
+                  </span>
+                </div>
+              </div>
+
+              <!-- Volume & Visualizer controls wrapper -->
+              <div
+                class="relative flex justify-center items-center gap-3 mt-2 w-full"
               >
-                {#if isMuted || volume === 0}<VolumeX
-                    size={13}
-                  />{:else}<Volume2 size={13} />{/if}
-              </button>
-              <input
-                type="range"
-                class="vol-slider"
-                min="0"
-                max="1"
-                step="0.01"
-                value={volume}
-                oninput={(e) => setVolume(e.target.value)}
-                aria-label="Volume"
-              />
+                {#if showVolumeSlider}
+                  <div class="volume-popover" bind:this={volumePopoverEl}>
+                    <button
+                      class="ctrl ctrl-xs mr-2 border border-white/10 rounded-full p-1 hover:bg-white/10"
+                      onclick={() => audioCore.toggleMute()}
+                      aria-label="Mute"
+                    >
+                      {#if audioCore.isMuted || audioCore.volume === 0}
+                        <VolumeX size={12} class="text-red-400" />
+                      {:else}
+                        <Volume2 size={12} />
+                      {/if}
+                    </button>
+                    <input
+                      type="range"
+                      class="vol-slider-pop"
+                      min="0"
+                      max="1"
+                      step="0.01"
+                      value={audioCore.volume}
+                      oninput={(e) =>
+                        audioCore.setVolume(parseFloat(e.target.value))}
+                      aria-label="Volume"
+                    />
+                    <span
+                      class="text-[10px] font-bold text-white/60 min-w-[28px] text-right font-mono select-none"
+                    >
+                      {Math.round(audioCore.volume * 100)}%
+                    </span>
+                  </div>
+                {/if}
+
+                <!-- Visualizer Toggle Button & Preset Cycler -->
+                <div class="flex items-center gap-1.5">
+                  <button
+                    class="ctrl ctrl-xs"
+                    class:active-ctrl={showVisualizer}
+                    onclick={() => {
+                      showVisualizer = !showVisualizer;
+                    }}
+                    aria-label="Toggle Visualizer"
+                  >
+                    <Waves size={13} />
+                  </button>
+                  <button
+                    class="w-[90px] h-[20px] flex items-center justify-center rounded text-[9px] font-bold transition-all font-mono uppercase tracking-wider select-none cursor-pointer
+                      {showVisualizer
+                      ? 'bg-white/5 border border-white/10 text-white/70 hover:text-white hover:bg-white/10 hover:border-white/25 active:scale-95'
+                      : 'bg-transparent border border-white/5 text-white/20 hover:text-white/40 hover:border-white/10'}"
+                    onclick={() => {
+                      if (!showVisualizer) {
+                        showVisualizer = true;
+                      } else {
+                        activePresetIdx =
+                          (activePresetIdx + 1) % PRESETS.length;
+                      }
+                    }}
+                    title={showVisualizer
+                      ? "Click to cycle presets"
+                      : "Click to enable visualizer"}
+                  >
+                    {PRESETS[activePresetIdx].name}
+                  </button>
+                </div>
+
+                <!-- Volume controls wrapper -->
+                <div class="relative">
+                  <button
+                    class="ctrl ctrl-xs vol-toggle-btn"
+                    onclick={() => {
+                      showVolumeSlider = !showVolumeSlider;
+                    }}
+                    aria-label="Toggle volume slider"
+                  >
+                    {#if audioCore.isMuted || audioCore.volume === 0}
+                      <VolumeX size={13} class="text-red-400" />
+                    {:else}
+                      <Volume2 size={13} />
+                    {/if}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div class="tracklist-side">
-            <div class="tl-header">
-              <List size={13} /><span>TRACKS</span>
-              <span class="tl-count">{library.length}</span>
+          <!-- Right side tracklist -->
+          <div class="tracklist-side" class:show-mobile={showMobileTracklist}>
+            <!-- Mobile back button to close tracklist drawer -->
+            <div
+              class="mobile-close-bar hidden py-2 px-4 border-b border-white/5 flex items-center justify-between"
+            >
+              <span class="text-xs font-bold text-white/50">Track Library</span>
+              <button
+                class="px-3 py-1 bg-white/5 text-white/75 rounded-lg text-xs font-bold"
+                onclick={() => {
+                  showMobileTracklist = false;
+                }}
+              >
+                Back to player
+              </button>
             </div>
+
+            <div class="tl-header flex justify-between items-center gap-3">
+              <div class="flex items-center gap-2">
+                <List size={13} /><span>TRACKS</span>
+                <span class="tl-count">{library.length}</span>
+              </div>
+
+              <!-- Sorting selector dropdown -->
+              <div class="flex items-center gap-1.5 ml-auto">
+                <span class="text-[9px] text-white/30 font-bold font-sans"
+                  >SORT BY:</span
+                >
+                <select
+                  bind:value={sortBy}
+                  class="bg-black/40 border border-white/10 rounded px-1.5 py-0.5 text-[10px] font-bold text-white/60 outline-none cursor-pointer hover:border-white/20 transition-all font-sans"
+                >
+                  <option value="default">DEFAULT</option>
+                  <option value="artist">ARTIST</option>
+                  <option value="album">ALBUM</option>
+                  <option value="year">YEAR</option>
+                  <option value="filename">FILENAME</option>
+                  <option value="genre">GENRE</option>
+                  <option value="season">SEASON</option>
+                </select>
+              </div>
+            </div>
+
             <div class="tracklist scroll-y">
-              {#each library as track, i}
+              {#each sortedLibrary as track, i}
                 <!-- svelte-ignore a11y_click_events_have_key_events -->
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
                 <div
                   class="track-row"
-                  class:active={currentTrackIndex === i}
-                  onclick={() => selectTrack(i)}
+                  class:active={library[audioCore.currentTrackIndex].id ===
+                    track.id}
+                  onclick={() => selectSortedTrack(track)}
                 >
                   <div class="tr-num">
-                    {#if currentTrackIndex === i && isPlaying}
+                    {#if library[audioCore.currentTrackIndex].id === track.id && audioCore.isPlaying}
                       <div class="eq">
                         <div class="eq-b"></div>
                         <div class="eq-b"></div>
@@ -586,28 +731,21 @@
                   />
                   <div class="tr-info">
                     <span class="tr-title">{track.title}</span>
-                    <span class="tr-meta">{track.artist} · {track.album}</span>
-                  </div>
-                  {#if currentTrackIndex === i && isInstrumental}
-                    <span class="inst-chip">INST</span>
-                  {/if}
-                  {#if track.artist === "YG"}
-                    <span class="inst-chip-link"
-                      ><a
-                        href="https://the-gentlemens-club.com/"
-                        target="_blank">YG</a
-                      ></span
+                    <span class="tr-meta"
+                      >{track.artist} · {track.album} ({track.year || ""})</span
                     >
+                  </div>
+                  {#if track.artist === "YG"}
+                    <span class="inst-chip-link">
+                      <a
+                        href="https://the-gentlemens-club.com/"
+                        target="_blank"
+                        onclick={(e) => e.stopPropagation()}>YG</a
+                      >
+                    </span>
                   {/if}
                 </div>
               {/each}
-              <div class="add-hint">
-                <Plus size={12} />
-                <span
-                  >Add tracks to <code>public/music/[artist]/[album]/</code
-                  ></span
-                >
-              </div>
             </div>
           </div>
         </div>
@@ -677,14 +815,25 @@
               </div>
             {/each}
           </div>
-          <div
-            class="empty-state mx-auto max-w-[380px] text-center"
-          >
+          <div class="empty-state mx-auto max-w-[380px] text-center">
             <div class="wip-tape">COMING SOON</div>
             <p>
               Connect Spotify to see your playlists, automatically transcribed
               across all services.
             </p>
+          </div>
+        </div>
+      {:else if activeTab === "radio"}
+        <div class="tab-scroll scroll-y">
+          <div class="sec-head">
+            <h2 class="sec-title">Radio</h2>
+            <p class="sec-sub">
+              Stream live broadcasts, dog shows, and podcast feeds
+            </p>
+          </div>
+          <div class="empty-state mx-auto max-w-[380px] text-center">
+            <div class="wip-tape">COMING SOON</div>
+            <p>Live radio feeds will appear here once connected.</p>
           </div>
         </div>
       {/if}
@@ -697,1020 +846,288 @@
       <span>MUSIC</span>
     </footer>
   </div>
+
+  {#if showVisualizer && isFullscreenVisualizer}
+    <!-- Fullscreen Visualizer Container -->
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div
+      class="visualizer-container fullscreen cursor-pointer"
+      onclick={(e) => {
+        e.stopPropagation();
+        isFullscreenVisualizer = false;
+      }}
+    >
+      <canvas bind:this={canvasEl} class="visualizer-canvas"></canvas>
+
+      {#if !audioCore.isPlaying && !hasMusicPlayed}
+        <div
+          class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-10 animate-pulse"
+        >
+          <div
+            class="bg-black/75 border border-red-500/30 px-4 py-2 rounded text-[12px] font-mono tracking-widest text-red-500 font-bold uppercase shadow-[0_0_20px_rgba(239,68,68,0.3)] select-none"
+          >
+            NO SIGNAL
+          </div>
+        </div>
+      {/if}
+
+      <div class="visualizer-overlay" onclick={(e) => e.stopPropagation()}>
+        <div
+          class="flex items-center gap-1 bg-black/60 backdrop-blur-md rounded-lg p-1 border border-white/10"
+        >
+          {#each PRESETS as preset, index}
+            <button
+              class="px-2 py-1 rounded text-[9px] font-bold transition-all uppercase tracking-wider font-mono
+                {activePresetIdx === index
+                ? 'bg-purple-600 text-white'
+                : 'text-white/40 hover:text-white/80'}"
+              onclick={() => (activePresetIdx = index)}
+            >
+              {preset.name}
+            </button>
+          {/each}
+        </div>
+      </div>
+    </div>
+  {/if}
 </div>
 
-<style>
-  .mp-backdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.55);
-    z-index: 1000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-  }
-  .mp-container {
-    width: 94vw;
-    height: 90vh;
-    max-width: 1080px;
-    max-height: 820px;
-    background: rgba(7, 7, 11, 0.94);
-    border: 1px solid rgba(255, 255, 255, 0.07);
-    border-radius: 22px;
-    box-shadow:
-      0 40px 100px rgba(0, 0, 0, 0.9),
-      inset 0 1px 0 rgba(255, 255, 255, 0.06);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    backdrop-filter: blur(24px) saturate(180%);
-    -webkit-backdrop-filter: blur(24px) saturate(180%);
-    animation: mpIn 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  }
-  .mp-container.closing {
-    animation: mpOut 0.3s cubic-bezier(0.4, 0, 1, 1) forwards;
-  }
-  @keyframes mpIn {
-    from {
-      opacity: 0;
-      transform: translateY(28px) scale(0.97);
-    }
-    to {
-      opacity: 1;
-      transform: none;
-    }
-  }
-  @keyframes mpOut {
-    from {
-      opacity: 1;
-      transform: none;
-    }
-    to {
-      opacity: 0;
-      transform: translateY(18px) scale(0.97);
-    }
-  }
+<style lang="scss">
+  @use "../styles/music-panel.scss";
 
-  .mp-header {
-    height: 58px;
-    padding: 0 22px;
-    flex-shrink: 0;
+  /* ── Header ── */
+  .panel-header {
+    height: 64px;
+    padding: 0 24px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    background: rgba(0, 0, 0, 0.22);
+    background: rgba(0, 0, 0, 0.2);
   }
-  .mp-brand {
+
+  .brand {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
   }
-  .mp-logo {
-    width: 21px;
-    height: 21px;
-    filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.25));
-  }
-  .mp-title {
-    font-family: "Outfit", "Inter", sans-serif;
-    font-size: 0.9rem;
+
+  .brand h1 {
+    margin: 0;
+    font-size: 1.1rem;
     font-weight: 700;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.05em;
     text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.88);
+    color: rgba(255, 255, 255, 0.95);
+    font-family: "Outfit", "Inter", sans-serif;
   }
-  .mp-close-btn {
+
+  .close-btn {
     background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 50%;
-    color: rgba(255, 255, 255, 0.42);
+    color: rgba(255, 255, 255, 0.5);
     width: 32px;
     height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: all 0.2s;
-  }
-  .mp-close-btn:hover {
-    background: rgba(255, 255, 255, 0.12);
-    color: #fff;
-    transform: rotate(90deg);
+    transition: all 0.2s ease;
   }
 
-  .mp-tabs {
-    display: flex;
-    padding: 0 18px;
-    gap: 2px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    background: rgba(0, 0, 0, 0.14);
-    flex-shrink: 0;
-  }
-  .mp-tab {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    padding: 11px 16px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    letter-spacing: 0.07em;
-    text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.32);
-    background: transparent;
-    border: none;
-    border-bottom: 2px solid transparent;
-    cursor: pointer;
-    transition: all 0.18s;
-    font-family: "Outfit", "Inter", sans-serif;
-    margin-bottom: -1px;
-  }
-  .mp-tab:hover {
-    color: rgba(255, 255, 255, 0.62);
-  }
-  .mp-tab.active {
-    color: rgba(255, 255, 255, 0.92);
-    border-bottom-color: rgba(165, 90, 255, 0.85);
+  .close-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    transform: translateX(-4px);
   }
 
-  .mp-body {
-    flex: 1;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .songs-layout {
-    display: flex;
-    height: 100%;
-    overflow: hidden;
-  }
-
-  .player-side {
-    width: 320px;
-    min-width: 260px;
-    flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 22px 18px 16px;
-    gap: 13px;
-    overflow-y: auto;
-    border-right: 1px solid rgba(255, 255, 255, 0.05);
-    background: rgba(0, 0, 0, 0.12);
-    overflow-x: hidden;
-  }
-
-  .vinyl-wrapper {
-    position: relative;
-    width: 210px;
-    height: 210px;
-    flex-shrink: 0;
-  }
-  .vinyl-record {
-    width: 210px;
-    height: 210px;
-    border-radius: 50%;
-    background: radial-gradient(
-      circle at 50%,
-      #1a1a1a 0%,
-      #111 17%,
-      #0d0d0d 18.5%,
-      #1a1a1a 20%,
-      #0d0d0d 22%,
-      #1c1c1c 38%,
-      #0d0d0d 39%,
-      #1c1c1c 55%,
-      #0d0d0d 56%,
-      #1c1c1c 70%,
-      #0a0a0a 100%
-    );
-    box-shadow:
-      0 0 0 1.5px rgba(255, 255, 255, 0.03),
-      0 8px 40px rgba(0, 0, 0, 0.85),
-      inset 0 0 24px rgba(0, 0, 0, 0.5);
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .vinyl-record.spinning {
-    animation: vspin 2.6s linear infinite;
-  }
-  @keyframes vspin {
-    to {
-      transform: rotate(360deg);
+  @keyframes wiggle {
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+    25% {
+      transform: translateX(-6px) rotate(-1.5deg);
+    }
+    75% {
+      transform: translateX(6px) rotate(1.5deg);
     }
   }
-
-  .groove {
-    position: absolute;
-    border-radius: 50%;
-    border: 1px solid rgba(255, 255, 255, 0.032);
-    pointer-events: none;
-  }
-  .g1 {
-    width: 72%;
-    height: 72%;
-  }
-  .g2 {
-    width: 56%;
-    height: 56%;
-  }
-  .g3 {
-    width: 40%;
-    height: 40%;
-    border-color: rgba(255, 255, 255, 0.022);
-  }
-  .g4 {
-    width: 86%;
-    height: 86%;
-    border-color: rgba(255, 255, 255, 0.018);
+  .animate-wiggle {
+    animation: wiggle 0.2s ease-in-out 2;
   }
 
-  .record-label {
-    width: 88px;
-    height: 88px;
-    border-radius: 50%;
-    overflow: hidden;
-    background: #111;
-    border: 2px solid rgba(255, 255, 255, 0.1);
+  /* ── DJ Crossfader ── */
+  .dj-crossfader {
     position: relative;
-    z-index: 2;
-    box-shadow: 0 2px 14px rgba(0, 0, 0, 0.65);
-  }
-  .record-art {
     width: 100%;
-    height: 100%;
-    object-fit: cover;
-    opacity: 0;
-    transition: opacity 0.4s;
-  }
-  .record-art.loaded {
-    opacity: 1;
-  }
-  .spindle {
-    position: absolute;
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: radial-gradient(circle, #777 0%, #333 100%);
-    z-index: 3;
-    box-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
-  }
-
-  .tonearm {
-    position: absolute;
-    top: 6px;
-    right: -6px;
-    width: 4px;
-    height: 96px;
-    background: linear-gradient(to bottom, #888 0%, #555 60%, #333 100%);
-    transform-origin: top center;
-    transform: rotate(-36deg);
-    border-radius: 2px;
-    transition: transform 0.9s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
-    z-index: 5;
-  }
-  .tonearm::after {
-    content: "";
-    position: absolute;
-    bottom: -4px;
-    left: -2px;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: rgba(170, 90, 255, 0.85);
-    box-shadow: 0 0 8px rgba(170, 90, 255, 0.6);
-  }
-  .tonearm.playing {
-    transform: rotate(-19deg);
-  }
-
-  .track-info {
-    text-align: center;
-    width: 100%;
-  }
-  .version-badge {
-    display: inline-block;
-    font-size: 0.6rem;
-    font-weight: 700;
-    letter-spacing: 0.13em;
-    text-transform: uppercase;
-    padding: 3px 10px;
-    border-radius: 20px;
-    margin-bottom: 7px;
-    background: rgba(170, 90, 255, 0.13);
-    border: 1px solid rgba(170, 90, 255, 0.28);
-    color: rgba(180, 110, 255, 0.9);
-    font-family: "Outfit", monospace;
-    transition: all 0.3s;
-  }
-  .version-badge.inst {
-    background: rgba(90, 210, 255, 0.1);
-    border-color: rgba(90, 210, 255, 0.28);
-    color: rgba(90, 210, 255, 0.9);
-  }
-  .track-title {
-    margin: 0 0 4px;
-    font-size: 1.2rem;
-    font-weight: 800;
-    letter-spacing: 0.06em;
-    color: rgba(255, 255, 255, 0.94);
-    font-family: "Outfit", "Inter", sans-serif;
-  }
-  .track-artist {
-    margin: 0 0 2px;
-    font-size: 0.82rem;
-    color: rgba(255, 255, 255, 0.55);
-    font-family: "Inter", sans-serif;
-  }
-  .track-album {
-    margin: 0;
-    font-size: 0.68rem;
-    color: rgba(255, 255, 255, 0.28);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    font-family: "Outfit", monospace;
-  }
-
-  .progress-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    width: 100%;
-  }
-  .ptime {
-    font-size: 0.65rem;
-    color: rgba(255, 255, 255, 0.3);
-    font-family: monospace;
-    min-width: 28px;
-    text-align: center;
-  }
-  .progress-wrap {
-    flex: 1;
-    height: 3px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 3px;
-    position: relative;
-    cursor: pointer;
-  }
-  .progress-fill {
-    height: 100%;
-    background: linear-gradient(
-      90deg,
-      rgba(170, 90, 255, 0.9) 0%,
-      rgba(90, 180, 255, 0.8) 100%
-    );
-    border-radius: 3px;
-    transition: width 0.1s linear;
-    pointer-events: none;
-  }
-  .seek-input {
-    position: absolute;
-    inset: -10px 0;
-    width: 100%;
-    height: 24px;
-    opacity: 0;
-    cursor: pointer;
-    margin: 0;
-  }
-
-  .controls-row {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    width: 100%;
-  }
-  .ctrl {
-    background: transparent;
-    border: none;
-    color: rgba(255, 255, 255, 0.5);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    transition: all 0.15s;
-    padding: 0;
-  }
-  .ctrl:hover {
-    color: rgba(255, 255, 255, 0.9);
-    transform: scale(1.1);
-  }
-  .ctrl:active {
-    transform: scale(0.95);
-  }
-  .ctrl-xs {
-    width: 26px;
-    height: 26px;
-  }
-  .ctrl-sm {
-    width: 30px;
-    height: 30px;
-  }
-  .ctrl-md {
-    width: 38px;
-    height: 38px;
-    color: rgba(255, 255, 255, 0.72);
-  }
-  .ctrl-md:hover {
-    color: #fff;
-  }
-  .ctrl-play {
-    width: 54px;
-    height: 54px;
-    border-radius: 50%;
-    color: #fff;
-    background: linear-gradient(
-      135deg,
-      rgba(170, 90, 255, 0.92) 0%,
-      rgba(90, 130, 255, 0.92) 100%
-    );
-    box-shadow: 0 4px 22px rgba(140, 80, 255, 0.5);
-    transition: all 0.2s;
-  }
-  .ctrl-play:hover {
-    transform: scale(1.07);
-    box-shadow: 0 6px 30px rgba(140, 80, 255, 0.7);
-  }
-  .ctrl-play:active {
-    transform: scale(0.97);
-  }
-  .active-ctrl {
-    color: rgba(170, 90, 255, 0.9) !important;
-  }
-  .spin-ring {
-    width: 18px;
-    height: 18px;
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    border-top-color: #fff;
-    border-radius: 50%;
-    animation: sr 0.7s linear infinite;
-  }
-  @keyframes sr {
-    to {
-      transform: rotate(360deg);
-    }
-  }
-
-  .inst-toggle {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    padding: 7px 16px;
-    background: rgba(255, 255, 255, 0.04);
+    height: 34px;
+    background: linear-gradient(180deg, #1e1e24 0%, #121215 100%);
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 20px;
-    color: rgba(255, 255, 255, 0.48);
-    font-size: 0.7rem;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    border-radius: 8px;
     cursor: pointer;
-    transition: all 0.22s;
-    font-family: "Outfit", sans-serif;
-  }
-  .inst-toggle:hover {
-    background: rgba(170, 90, 255, 0.1);
-    border-color: rgba(170, 90, 255, 0.32);
-    color: rgba(170, 90, 255, 0.9);
-    transform: translateY(-1px);
-  }
-  .inst-toggle.on {
-    background: rgba(90, 210, 255, 0.1);
-    border-color: rgba(90, 210, 255, 0.3);
-    color: rgba(90, 210, 255, 0.88);
-  }
-
-  .vol-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    width: 100%;
-  }
-  .vol-slider {
-    flex: 1;
-    height: 3px;
-    accent-color: rgba(170, 90, 255, 0.9);
-    cursor: pointer;
-  }
-
-  .tracklist-side {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    min-width: 0;
-  }
-  .tl-header {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    padding: 14px 22px 10px;
-    font-size: 0.68rem;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.28);
-    font-family: "Outfit", monospace;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    flex-shrink: 0;
-  }
-  .tl-count {
-    margin-left: auto;
-    background: rgba(255, 255, 255, 0.07);
-    padding: 2px 8px;
-    border-radius: 10px;
-    font-size: 0.62rem;
-  }
-  .tracklist {
-    flex: 1;
-    overflow-y: auto;
-    padding: 6px 0;
-  }
-
-  .track-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 22px;
-    cursor: pointer;
-    transition: background 0.14s;
-    position: relative;
-  }
-  .track-row:hover {
-    background: rgba(255, 255, 255, 0.04);
-  }
-  .track-row.active {
-    background: rgba(170, 90, 255, 0.07);
-  }
-  .track-row.active::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 3px;
-    background: linear-gradient(
-      to bottom,
-      rgba(170, 90, 255, 0.9),
-      rgba(90, 150, 255, 0.7)
-    );
-    border-radius: 0 2px 2px 0;
-  }
-  .tr-num {
-    width: 18px;
-    text-align: center;
-    font-size: 0.72rem;
-    color: rgba(255, 255, 255, 0.28);
-    font-family: monospace;
-    flex-shrink: 0;
-  }
-  .tr-art {
-    width: 42px;
-    height: 42px;
-    border-radius: 6px;
-    object-fit: cover;
-    flex-shrink: 0;
-    background: rgba(255, 255, 255, 0.05);
-  }
-  .tr-info {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-  .tr-title {
-    font-size: 0.86rem;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.86);
-    font-family: "Outfit", "Inter", sans-serif;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .track-row.active .tr-title {
-    color: rgba(200, 155, 255, 0.95);
-  }
-  .tr-meta {
-    font-size: 0.7rem;
-    color: rgba(255, 255, 255, 0.33);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    font-family: "Inter", sans-serif;
-  }
-  .inst-chip {
-    font-size: 0.56rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    padding: 2px 7px;
-    border-radius: 10px;
-    background: rgba(90, 210, 255, 0.1);
-    border: 1px solid rgba(90, 210, 255, 0.22);
-    color: rgba(90, 210, 255, 0.82);
-    font-family: monospace;
-    flex-shrink: 0;
-  }
-
-  .inst-chip-link {
-    font-size: 0.56rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    padding: 2px 2px; /* Reduced side padding since it's no longer a badge */
-    flex-shrink: 0;
-
-    /* Hyperlink Styles */
-    color: #22c55e; /* A clean, vibrant green (Tailwind green-500) */
-    text-decoration: underline;
-    cursor: pointer;
-    transition: color 0.2s ease;
-  }
-
-  /* Optional: Make it slightly darker/brighter when hovered */
-  .inst-chip-link:hover {
-    color: #16a34a; /* Slightly darker green on hover */
-  }
-
-  .eq {
-    display: flex;
-    align-items: flex-end;
-    gap: 2px;
-    height: 15px;
-  }
-  .eq-b {
-    width: 3px;
-    background: rgba(170, 90, 255, 0.85);
-    border-radius: 1px;
-    animation: eq 0.55s ease infinite alternate;
-  }
-  .eq-b:nth-child(1) {
-    height: 60%;
-    animation-delay: 0s;
-  }
-  .eq-b:nth-child(2) {
-    height: 100%;
-    animation-delay: 0.15s;
-  }
-  .eq-b:nth-child(3) {
-    height: 45%;
-    animation-delay: 0.3s;
-  }
-  @keyframes eq {
-    from {
-      transform: scaleY(0.35);
-    }
-    to {
-      transform: scaleY(1);
-    }
-  }
-
-  .add-hint {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    padding: 13px 22px;
-    color: rgba(255, 255, 255, 0.16);
-    font-size: 0.68rem;
-    font-family: monospace;
-    border-top: 1px dashed rgba(255, 255, 255, 0.06);
-    margin-top: 6px;
-  }
-  .add-hint code {
-    font-size: 0.65rem;
-    color: rgba(170, 90, 255, 0.38);
-  }
-
-  .tab-scroll {
-    flex: 1;
-    overflow-y: auto;
-    padding: 26px;
-    display: flex;
-    flex-direction: column;
-    gap: 22px;
-  }
-  .sec-head {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-  .sec-title {
-    font-size: 1.3rem;
-    font-weight: 800;
-    color: rgba(255, 255, 255, 0.9);
-    margin: 0;
-    font-family: "Outfit", "Inter", sans-serif;
-  }
-  .sec-sub {
-    font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.35);
-    margin: 0;
-    font-family: "Inter", sans-serif;
-  }
-
-  .drop-zone {
-    background: rgba(255, 255, 255, 0.02);
-    border: 2px dashed rgba(255, 255, 255, 0.09);
-    border-radius: 14px;
-    padding: 36px 22px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 9px;
-    transition: all 0.2s;
-  }
-  .drop-zone:hover {
-    border-color: rgba(170, 90, 255, 0.28);
-    background: rgba(170, 90, 255, 0.03);
-  }
-  .drop-zone :global(svg) {
-    color: rgba(255, 255, 255, 0.18);
-  }
-  .drop-title {
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.5);
-    font-family: "Outfit", sans-serif;
-    margin: 4px 0 0;
-  }
-  .drop-sub {
-    font-size: 0.72rem;
-    color: rgba(255, 255, 255, 0.22);
-    font-family: monospace;
-    letter-spacing: 0.04em;
-    margin: 0;
-  }
-  .link-row {
-    display: flex;
-    gap: 8px;
-    width: 100%;
-    max-width: 460px;
-    margin-top: 7px;
-  }
-  .link-input {
-    flex: 1;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.09);
-    border-radius: 10px;
-    padding: 9px 13px;
-    font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.78);
-    outline: none;
-    font-family: "Inter", sans-serif;
-    transition: border-color 0.18s;
-  }
-  .link-input::placeholder {
-    color: rgba(255, 255, 255, 0.18);
-  }
-  .link-input:focus {
-    border-color: rgba(170, 90, 255, 0.38);
-  }
-  .add-btn {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 9px 16px;
-    white-space: nowrap;
-    background: linear-gradient(
-      135deg,
-      rgba(170, 90, 255, 0.85) 0%,
-      rgba(90, 130, 255, 0.85) 100%
-    );
-    border: none;
-    border-radius: 10px;
-    color: #fff;
-    font-size: 0.8rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.18s;
-    font-family: "Outfit", sans-serif;
-  }
-  .add-btn:hover {
-    opacity: 0.88;
-    transform: translateY(-1px);
-  }
-
-  .spotify-card {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    padding: 18px 22px;
-    background: rgba(30, 215, 96, 0.05);
-    border: 1px solid rgba(30, 215, 96, 0.16);
-    border-radius: 13px;
-  }
-  .sp-icon {
-    color: #1db954;
-    flex-shrink: 0;
-  }
-  .sp-info {
-    flex: 1;
-  }
-  .sp-info h3 {
-    margin: 0 0 3px;
-    font-size: 0.92rem;
-    font-weight: 700;
-    color: rgba(255, 255, 255, 0.86);
-    font-family: "Outfit", sans-serif;
-  }
-  .sp-info p {
-    margin: 0;
-    font-size: 0.76rem;
-    color: rgba(255, 255, 255, 0.38);
-    font-family: "Inter", sans-serif;
-  }
-  .sp-btn {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    padding: 9px 18px;
-    background: #1db954;
-    border: none;
-    border-radius: 22px;
-    color: #000;
-    font-size: 0.8rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.18s;
-    font-family: "Outfit", sans-serif;
-    white-space: nowrap;
-    flex-shrink: 0;
-  }
-  .sp-btn:hover {
-    background: #1ed760;
-    transform: translateY(-1px);
-  }
-
-  .svc-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 9px;
-  }
-  .svc-chip {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    padding: 7px 14px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.07);
-    border-radius: 22px;
-    font-size: 0.76rem;
-    color: rgba(255, 255, 255, 0.46);
-    cursor: pointer;
-    transition: all 0.18s;
-    font-family: "Inter", sans-serif;
-  }
-  .svc-chip:hover {
-    border-color: var(--sc, rgba(255, 255, 255, 0.3));
-    color: var(--sc, rgba(255, 255, 255, 0.85));
-    background: rgba(255, 255, 255, 0.05);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-  }
-
-  .empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 14px;
-    padding: 36px 20px;
-    color: rgba(255, 255, 255, 0.32);
-    font-size: 0.8rem;
-    font-family: "Inter", sans-serif;
-  }
-  .wip-tape {
-    background: repeating-linear-gradient(
-      -45deg,
-      #ffd700,
-      #ffd700 11px,
-      #111 11px,
-      #111 22px
-    );
-    color: #111;
-    font-size: 0.78rem;
-    font-weight: 900;
-    letter-spacing: 0.2em;
-    padding: 7px 28px;
-    border-radius: 4px;
-    font-family: "Outfit", monospace;
-    user-select: none;
-  }
-
-  .mp-footer {
-    height: 36px;
-    padding: 0 22px;
-    flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
-    background: rgba(0, 0, 0, 0.22);
-    font-size: 0.62rem;
-    color: rgba(255, 255, 255, 0.22);
-    letter-spacing: 0.06em;
-    font-family: monospace;
+    padding: 0 16px;
+    box-sizing: border-box;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.05),
+      0 8px 24px rgba(0, 0, 0, 0.5);
+    gap: 12px;
+    user-select: none;
   }
-  .mp-status {
+
+  .fader-label {
+    font-size: 0.65rem;
+    font-weight: 800;
+    font-family: monospace;
+    letter-spacing: 0.05em;
+    color: rgba(255, 255, 255, 0.2);
+    transition: color 0.2s ease;
+  }
+
+  .fader-label.left-label.active {
+    color: #a855f7; /* Vocal side active */
+    text-shadow: 0 0 8px rgba(168, 85, 247, 0.4);
+  }
+
+  .fader-label.right-label.active {
+    color: #06b6d4; /* Inst side active */
+    text-shadow: 0 0 8px rgba(6, 182, 212, 0.4);
+  }
+
+  .dj-fader-slot {
+    flex: 1;
+    height: 4px;
+    background: #000;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 2px;
+    position: relative;
+  }
+
+  .dj-fader-knob {
+    position: absolute;
+    top: 50%;
+    left: 0%;
+    width: 24px;
+    height: 18px;
+    transform: translate(0, -50%);
+    background: linear-gradient(135deg, #666 0%, #333 50%, #222 100%);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 3px;
+    box-shadow:
+      0 4px 10px rgba(0, 0, 0, 0.8),
+      inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    transition: left 0.18s cubic-bezier(0.25, 0.8, 0.25, 1);
     display: flex;
     align-items: center;
-    gap: 7px;
-  }
-  .mp-dot {
-    width: 5px;
-    height: 5px;
-    background: #00ff66;
-    border-radius: 50%;
-    box-shadow: 0 0 5px rgba(0, 255, 102, 0.55);
+    justify-content: center;
   }
 
-  .scroll-y {
-    overflow-y: auto;
-    overflow-x: hidden;
+  .dj-fader-knob::after {
+    content: "";
+    width: 2px;
+    height: 100%;
+    background: #fff;
+    box-shadow: 0 0 3px rgba(255, 255, 255, 0.8);
   }
-  .scroll-y::-webkit-scrollbar {
-    width: 4px;
+
+  .dj-fader-knob.right {
+    left: calc(100% - 24px);
   }
-  .scroll-y::-webkit-scrollbar-track {
-    background: transparent;
+
+  /* ── Volume Popover ── */
+  .volume-popover {
+    position: absolute;
+    bottom: 38px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(15, 15, 20, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 6px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+    z-index: 50;
+    min-width: 150px;
+    pointer-events: auto;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
   }
-  .scroll-y::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.07);
+
+  .vol-slider-pop {
+    flex: 1;
+    height: 3px;
+    accent-color: #a855f7;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.1);
     border-radius: 2px;
-  }
-  .scroll-y::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.16);
+    outline: none;
   }
 
-  @media (max-width: 640px) {
-    .mp-container {
-      width: 100vw;
-      height: 100%;
-      max-height: 100%;
-      border-radius: 0;
-    }
-    /* Stack vertically, player on top, tracklist fills rest */
-    .songs-layout {
-      flex-direction: column;
-      overflow: hidden;
-    }
-    /* Player scrolls internally so controls are never clipped */
-    .player-side {
-      width: 100%;
-      min-width: unset;
-      border-right: none;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-      padding: 10px 14px 12px;
-      max-height: none;
-      flex-shrink: 0;
-      overflow-y: auto;
-      gap: 8px;
-    }
-    /* Smaller vinyl so controls fit without scrolling */
-    .vinyl-wrapper {
-      width: 120px;
-      height: 120px;
-    }
-    .vinyl-record {
-      width: 120px;
-      height: 120px;
-    }
-    .record-label {
-      width: 48px;
-      height: 48px;
-    }
-    .tonearm {
-      height: 64px;
-    }
-    /* Tracklist takes remaining space */
-    .tracklist-side {
-      flex: 1;
-      min-height: 0;
-      max-height: none;
-    }
-    .mp-tab {
-      padding: 9px 11px;
-      font-size: 0.7rem;
-    }
-    .mp-tabs {
-      padding: 0 8px;
-    }
-    /* Tighten track-info text on small screens */
-    .track-title {
-      font-size: 1rem;
-    }
-    .track-artist,
-    .track-album {
-      font-size: 0.72rem;
-    }
-    /* Slightly smaller play button */
-    .ctrl-play {
-      width: 46px;
-      height: 46px;
-    }
+  /* ── WebGL Audio Visualizer ── */
+  .visualizer-container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    border-radius: 50%; /* Make it match vinyl disk shape initially */
+    overflow: hidden;
+    background: #050508;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    flex-direction: column;
+    transition: border-radius 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  }
+
+  .visualizer-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    z-index: 1;
+  }
+
+  .visualizer-overlay {
+    position: absolute;
+    bottom: 16px;
+    left: 16px;
+    right: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    z-index: 10;
+  }
+
+  .visualizer-container.fullscreen {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    border-radius: 0 !important; /* Full rectangle in fullscreen */
+    border: none;
+    z-index: 2000;
+  }
+
+  .visualizer-hover-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.22s ease;
+    border-radius: 50%;
+  }
+
+  .visualizer-container:hover .visualizer-hover-overlay {
+    opacity: 1;
   }
 </style>
