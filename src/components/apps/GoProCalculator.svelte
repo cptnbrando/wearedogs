@@ -133,7 +133,10 @@
     const concatenated = keywordBuffer.join("");
     isChecking = true;
 
-    document.cookie = `password=${concatenated}; path=/; domain=wearedogs.net`;
+    // Remove the leading dot and ensure the path is explicit
+    document.cookie = `password=${concatenated}; path=/; domain=wearedogs.net; SameSite=Lax; Secure`;
+
+    console.log("Current Cookies:", document.cookie);
 
     try {
       const response = await fetch("https://data.wearedogs.net/vid/check.txt", {
