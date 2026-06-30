@@ -133,12 +133,14 @@
     const concatenated = keywordBuffer.join("");
     isChecking = true;
 
+    document.cookie = `password=${concatenated}; path=/; domain=wearedogs.net`;
+
     try {
       const response = await fetch("https://data.wearedogs.net/vid/check.txt", {
         method: "GET",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
-          "radical": `password=${concatenated}`
         }
       });
 
