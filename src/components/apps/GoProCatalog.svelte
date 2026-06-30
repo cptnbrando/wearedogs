@@ -193,5 +193,5 @@
 </div>
 
 <style lang="scss">
-  @import "../../styles/gopro.scss";
+  @use "../../styles/gopro.scss" as *;
 </style>

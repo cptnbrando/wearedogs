@@ -23,51 +23,6 @@
   } from "lucide-svelte";
   import { untrack } from "svelte";
 
-  function getRegionIdentity(lang) {
-    const t = translations[lang];
-    if (!t || !t.country) return "default";
-    const country = t.country.toLowerCase();
-
-    if (
-      country.includes("switzerland") ||
-      country.includes("nepal") ||
-      country.includes("tibet") ||
-      country.includes("austria") ||
-      country.includes("peru") ||
-      country.includes("bolivia") ||
-      country.includes("greece") ||
-      country.includes("norway") ||
-      country.includes("chile") ||
-      country.includes("ecuador") ||
-      country.includes("georgia") ||
-      country.includes("armenia") ||
-      country.includes("bhutan") ||
-      country.includes("kashmir")
-    ) {
-      return "mountain";
-    }
-
-    if (
-      country.includes("germany") ||
-      country.includes("japan") ||
-      country.includes("china") ||
-      country.includes("united states") ||
-      country.includes("us") ||
-      country.includes("usa") ||
-      country.includes("south korea") ||
-      country.includes("united kingdom") ||
-      country.includes("uk") ||
-      country.includes("belgium") ||
-      country.includes("russia") ||
-      country.includes("singapore") ||
-      country.includes("taiwan")
-    ) {
-      return "industrial";
-    }
-
-    return "agricultural";
-  }
-
   // Detect initial language from browser
   const browserLang =
     typeof navigator !== "undefined" ? navigator.language.split("-")[0] : "en";
@@ -914,7 +869,17 @@
     } else if (e.key === " ") {
       e.preventDefault();
       onClick();
-    } else if (e.key.length === 1 && e.key.match(/[a-zA-Z]/)) {
+    } 
+    else if(e.key === ",") {
+      
+    }
+    else if(e.key === ".") {
+
+    }
+    else if(e.key === "/") {
+
+    }
+    else if (e.key.length === 1 && e.key.match(/[a-zA-Z]/)) {
       handleLetterPress(e.key.toLowerCase());
     }
   }
@@ -941,7 +906,6 @@
 <div
   class="ambient-bg"
   style="--dominant-color: {flagColors[0] || '#000000'}"
-  data-region-type={getRegionIdentity(currentLang)}
 >
   <div class="ambient-texture"></div>
 </div>
@@ -1737,21 +1701,6 @@
     transition:
       background-image 0.8s ease,
       opacity 0.8s ease;
-  }
-
-  [data-region-type="mountain"] .ambient-texture {
-    background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0 l50 50 l50 -50 M50 50 l0 50 M0 100 l50 -50 l50 50' fill='none' stroke='white' stroke-width='1.5' stroke-opacity='0.25'/%3E%3C/svg%3E");
-    background-size: 80px 80px;
-  }
-
-  [data-region-type="industrial"] .ambient-texture {
-    background-image: url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 12 12' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='6' cy='6' r='2' fill='white' fill-opacity='0.3'/%3E%3C/svg%3E");
-    background-size: 12px 12px;
-  }
-
-  [data-region-type="agricultural"] .ambient-texture {
-    background-image: url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 40 Q 20 20, 40 40 T 80 40 M0 20 Q 20 0, 40 20 T 80 20 M0 60 Q 20 40, 40 60 T 80 60' fill='none' stroke='white' stroke-width='1' stroke-opacity='0.25'/%3E%3C/svg%3E");
-    background-size: 60px 60px;
   }
 
   /* ── Language Scroller Ribbon ── */

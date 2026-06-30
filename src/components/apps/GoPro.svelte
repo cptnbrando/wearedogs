@@ -24,10 +24,14 @@
     import { catalog as cachedCatalog } from "./videos.js";
     import GoProRemapper from "./GoProRemapper.svelte";
     import GoProCatalog from "./GoProCatalog.svelte";
+    import GoProCalculator from "./GoProCalculator.svelte";
 
     // State Management (Runes)
     let catalog = $state(cachedCatalog);
     let activeShowKey = $state("Batman Beyond");
+    let isUnlocked = $state(false);
+    let currentPassword = $state("");
+    let showMobileTools = $state(false);
     let currentEpisodeIndex = $state(0);
     let activeShow = $derived(
         catalog[activeShowKey] || {
@@ -59,8 +63,20 @@
         }
         try {
           if(file.startsWith("https://data.wearedogs.net")) {
-            streamUrl = file;
-            return file;
+            const password = currentPassword || localStorage.getItem("gopro_password") || "";
+            const res = await fetch(file, {
+              headers: {
+                "Radical": `password=${password}`
+              }
+            });
+            if (res.ok) {
+              const blob = await res.blob();
+              streamUrl = URL.createObjectURL(blob);
+            } else {
+              streamUrl = "";
+              showDownloadPrompt = true;
+            }
+            return;
           }
             const folder = activeShowKey === "Batman Beyond" ? "/batman/" : "/";
 
@@ -767,6 +783,7 @@
 
     // Keyboard Shortcuts Handler
     function handleKeydown(e) {
+        if (!isUnlocked) return;
         if (document.activeElement.tagName === "INPUT") return;
 
         // Context-dependent: when selector view is active
@@ -853,6 +870,7 @@
     }
 
     function handleKeyup(e) {
+        if (!isUnlocked) return;
         if (document.activeElement.tagName === "INPUT") return;
         if (e.key >= "0" && e.key <= "9") {
             if (activeRepeatKey === e.key) {
@@ -982,6 +1000,11 @@
     }
 
     onMount(async () => {
+        const savedPassword = localStorage.getItem("gopro_password");
+        if (savedPassword) {
+            currentPassword = savedPassword;
+            isUnlocked = true;
+        }
         loadCheckpoints();
         document.addEventListener("fullscreenchange", handleFullscreenChange);
 
@@ -1022,15 +1045,21 @@
 />
 
 <div class="gopro-layout animated-pane">
-    {#if !isPlayingEpisode}
-        <GoProCatalog
-            bind:catalog
-            bind:activeShowKey
-            bind:currentEpisodeIndex
-            bind:selectedSeasons
-            {playEpisode}
-        />
-    {/if}
+    {#if !isUnlocked}
+        <GoProCalculator onUnlock={(pass) => {
+            currentPassword = pass;
+            isUnlocked = true;
+        }} />
+    {:else}
+        {#if !isPlayingEpisode}
+            <GoProCatalog
+                bind:catalog
+                bind:activeShowKey
+                bind:currentEpisodeIndex
+                bind:selectedSeasons
+                {playEpisode}
+            />
+        {/if}
 
     <!-- PERSISTENT PLAYER CONTAINER -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -1263,8 +1292,8 @@
                 onmouseleave={resetControlsTimer}
             >
                 <!-- Media row controls -->
-                <div class="controls-row">
-                    <div class="play-btn-group">
+                <div class="controls-row flex-wrap justify-center gap-3">
+                    <div class="play-btn-group flex items-center gap-2">
                         <button
                             class="btn-circular"
                             onclick={prevEpisode}
@@ -1306,7 +1335,7 @@
                         </button>
                     </div>
 
-                    <div class="speed-group">
+                    <div class="speed-group md:flex" class:hidden={!showMobileTools}>
                         {#each [1, 2, 3, 4] as rate}
                             <button
                                 class="speed-btn"
@@ -1318,7 +1347,7 @@
                         {/each}
                     </div>
 
-                    <div class="loop-group flex items-center gap-3 font-sans">
+                    <div class="loop-group md:flex items-center gap-3 font-sans" class:hidden={!showMobileTools}>
                         <label class="flex items-center gap-1.5 cursor-pointer text-[10px] font-bold text-white/50 select-none">
                             <input type="checkbox" bind:checked={autoSkipIntro} class="accent-cyan-500 rounded cursor-pointer w-3.5 h-3.5" />
                             <span>Auto Skip Intro</span>
@@ -1329,7 +1358,7 @@
                         </label>
                     </div>
 
-                    <div class="loop-group">
+                    <div class="loop-group md:flex" class:hidden={!showMobileTools}>
                         <button
                             class="loop-btn"
                             class:active={loopMode === "episode"}
@@ -1366,17 +1395,28 @@
                         </button>
                     </div>
 
-                    <div class="volume-slider-box">
-                        <Volume2 size={16} class="vol-icon" />
-                        <input
-                            type="range"
-                            min="0"
-                            max="1"
-                            step="0.05"
-                            value={volume}
-                            oninput={handleVolumeChange}
-                            class="volume-slider"
-                        />
+                    <div class="volume-slider-box flex items-center gap-2">
+                        <div class="md:flex items-center gap-2" class:hidden={!showMobileTools}>
+                            <Volume2 size={16} class="vol-icon" />
+                            <input
+                                type="range"
+                                min="0"
+                                max="1"
+                                step="0.05"
+                                value={volume}
+                                oninput={handleVolumeChange}
+                                class="volume-slider"
+                            />
+                        </div>
+
+                        <!-- Settings Toggle for Mobile -->
+                        <button 
+                            class="btn-circular md:hidden text-white/70 hover:text-white"
+                            onclick={() => showMobileTools = !showMobileTools}
+                            title="Settings & Tools"
+                        >
+                            ⚙️
+                        </button>
 
                         <button
                             class="btn-circular fullscreen-toggle"
@@ -1393,7 +1433,7 @@
                 </div>
 
                 <!-- Filters & Tech HUD Controls -->
-                <div class="controls-row grid-filters">
+                <div class="controls-row grid-filters md:grid" class:hidden={!showMobileTools}>
                     <div class="filter-panel-box">
                         <span class="box-tag"
                             ><Tv size={12} /> VIDEO FILTERS</span
@@ -1434,7 +1474,7 @@
                 </div>
 
                 <!-- Precision Sampling & Clipping Area -->
-                <div class="sampler-clipper-box">
+                <div class="sampler-clipper-box md:flex" class:hidden={!showMobileTools}>
                     <div class="clipper-header-row">
                         <span class="clipper-tag"
                             ><Music size={12} /> SAMPLER WORKBENCH</span
@@ -1677,6 +1717,7 @@
         episodeTitle={currentEpisode.title} 
         duration={duration} 
     />
+    {/if}
 </div>
 
 <style lang="scss">

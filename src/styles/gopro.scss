@@ -292,6 +292,11 @@
         padding: 4px 4px 16px 4px;
         margin: 0 -4px;
         scroll-behavior: smooth;
+        -ms-overflow-style: none;  /* IE and Edge */
+        scrollbar-width: none;  /* Firefox */
+        &::-webkit-scrollbar {
+            display: none; /* Chrome, Safari and Opera */
+        }
     }
 
     .episode-card {
