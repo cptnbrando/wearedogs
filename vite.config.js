@@ -13,6 +13,10 @@ export default defineConfig({
       modernPolyfills: true,
     })
   ],
+  test: {
+    environment: 'jsdom',
+    setupFiles: ['./vitest.setup.js'],
+  },
   server: {
     proxy: {
       '/api-worldcup': {
