@@ -10,7 +10,7 @@ const VALID_PANELS = new Set(['music', 'stats', 'map', 'store', 'networking']);
 /** App slugs recognized by ToolboxPanel. */
 export const VALID_APPS = new Set([
   'gopro', 'soundboard', 'snake', 'paint', 'stopwatch', 'qrflash', 'rescue', 'memes',
-  'worldcup', 'blog',
+  'worldcup', 'blog', 'settings',
 ]);
 
 /**

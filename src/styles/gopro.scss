@@ -1990,3 +1990,80 @@
             text-align: center;
         }
     }
+
+    /* ── Mobile Landscape Layout Adjustments for GoPro ── */
+    @media (max-height: 480px) and (orientation: landscape) {
+        .catalog-container {
+            padding: 8px 12px !important;
+            gap: 12px !important;
+        }
+
+        .hero-spotlight {
+            display: none !important; /* Hide massive hero spotlight to save vertical space */
+        }
+
+        .shelf-container {
+            margin-bottom: 12px !important;
+        }
+
+        .shelf-header {
+            margin-bottom: 6px !important;
+        }
+
+        .shelf-title {
+            font-size: 0.9rem !important;
+        }
+
+        .cards-row {
+            gap: 8px !important;
+            padding-bottom: 6px !important;
+        }
+
+        .episode-card {
+            flex: 0 0 130px !important;
+        }
+
+        .card-thumbnail {
+            height: 70px !important;
+        }
+
+        .card-info {
+            padding: 6px !important;
+        }
+
+        .card-title-text {
+            font-size: 0.65rem !important;
+        }
+
+        /* Compact Player Layout for Mobile Landscape */
+        .player-overlay-top {
+            padding: 6px 12px !important;
+            flex-direction: row !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+        }
+
+        .player-episode-info-hud {
+            display: none !important; /* Hide title info to avoid overlap */
+        }
+
+        .player-controls-panel {
+            padding: 6px 12px !important;
+            gap: 4px !important;
+        }
+
+        .controls-row {
+            flex-direction: row !important; /* Keep controls side-by-side */
+            justify-content: space-between !important;
+            align-items: center !important;
+            gap: 8px !important;
+        }
+
+        .volume-slider-box {
+            display: none !important; /* Hide volume controls to save width */
+        }
+
+        .speed-group {
+            display: none !important; /* Hide speed selector to save width */
+        }
+    }

@@ -175,32 +175,32 @@
 
   // Row status highlights
   .bg-searched {
-    background-color: rgba($color-neon-gold, 0.1) !important;
+    background-color: rgba(var(--color-neon-gold-rgb, 230, 185, 0), 0.1) !important;
   }
   .bg-advancing {
-    background-color: rgba($color-neon-green, 0.015);
+    background-color: rgba(var(--color-neon-green-rgb, 0, 215, 95), 0.015);
   }
   .bg-third {
-    background-color: rgba($color-neon-gold, 0.01);
+    background-color: rgba(var(--color-neon-gold-rgb, 230, 185, 0), 0.01);
   }
   .bg-eliminated {
-    background-color: rgba($color-alert-red, 0.015);
+    background-color: rgba(var(--color-alert-red-rgb, 239, 68, 68), 0.015);
   }
 
   // Badge stylings
   .badge-adv {
-    background-color: rgba($color-neon-green, 0.12);
-    border: 1px solid rgba($color-neon-green, 0.25);
+    background-color: rgba(var(--color-neon-green-rgb, 0, 215, 95), 0.12);
+    border: 1px solid rgba(var(--color-neon-green-rgb, 0, 215, 95), 0.25);
     color: $color-neon-green;
   }
   .badge-third {
-    background-color: rgba($color-neon-gold, 0.12);
-    border: 1px solid rgba($color-neon-gold, 0.25);
+    background-color: rgba(var(--color-neon-gold-rgb, 230, 185, 0), 0.12);
+    border: 1px solid rgba(var(--color-neon-gold-rgb, 230, 185, 0), 0.25);
     color: $color-neon-gold;
   }
   .badge-elim {
-    background-color: rgba($color-alert-red, 0.12);
-    border: 1px solid rgba($color-alert-red, 0.25);
+    background-color: rgba(var(--color-alert-red-rgb, 239, 68, 68), 0.12);
+    border: 1px solid rgba(var(--color-alert-red-rgb, 239, 68, 68), 0.25);
     color: $color-alert-red;
   }
 

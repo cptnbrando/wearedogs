@@ -1,6 +1,7 @@
 <script>
   import { onMount } from "svelte";
-  import "../lib/i18n.js";
+  import { initialLocale } from "../lib/i18n.js";
+  import { locale } from "svelte-i18n";
   import {
     ChartNoAxesColumn,
     Component,
@@ -16,15 +17,31 @@
   import MusicPanel from "./MusicPanel.svelte";
   import StorePanel from "./StorePanel.svelte";
   import MapPanel from "./MapPanel.svelte";
+  import InfoPanel from "./InfoPanel.svelte";
   import { parsePath, panelToUrl, appToUrl } from "../lib/router.svelte.js";
 
   // Active view state: 'stats' | 'networking' | 'toolbox' | 'music' | 'store' | 'map' | null
   let activePage = $state(null);
   let isClosing = $state(false);
-  let activeLang = $state("en");
+  let activeLang = $state(initialLocale);
   let activeApp = $state(null);
   let textIsPaused = $state(false);
   let weAreDogsColored = $state(false);
+  let showInfo = $state(false);
+
+  $effect(() => {
+    locale.set(activeLang);
+  });
+
+  $effect(() => {
+    const handleOpenInfo = () => {
+      showInfo = true;
+      const currentState = history.state || {};
+      history.pushState({ ...currentState, showInfo: true }, "");
+    };
+    window.addEventListener("open-info-panel", handleOpenInfo);
+    return () => window.removeEventListener("open-info-panel", handleOpenInfo);
+  });
 
   // Component reference for API calls
   let weAreDogsRef = $state();
@@ -161,6 +178,10 @@
   // Listen to popstate event for browser/device back key navigation
   $effect(() => {
     const handlePop = (e) => {
+      if (showInfo) {
+        showInfo = false;
+        return;
+      }
       const state = e.state;
       const targetView = state?.view || null;
       const targetApp = state?.app || null;
@@ -360,6 +381,10 @@
   <StorePanel {isClosing} onClose={closePage} />
 {:else if activePage === "map"}
   <MapPanel {isClosing} onClose={closePage} />
+{/if}
+
+{#if showInfo}
+  <InfoPanel onClose={() => { if (showInfo) history.back(); }} />
 {/if}
 
 <style>

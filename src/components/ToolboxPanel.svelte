@@ -13,6 +13,7 @@
     Trophy,
     Terminal,
     BookOpen,
+    Settings,
   } from "lucide-svelte";
   import SnakeApp from "./apps/SnakeApp.svelte";
   import SoundboardApp from "./apps/SoundboardApp.svelte";
@@ -25,6 +26,7 @@
   import WorldCupApp from "./apps/WorldCupApp.svelte";
   import ChangelogApp from "./apps/ChangelogApp.svelte";
   import BlogApp from "./apps/BlogApp.svelte";
+  import SettingsApp from "./apps/SettingsApp.svelte";
 
   const title = "Toolbox";
 
@@ -70,11 +72,17 @@
     <!-- Header -->
     <header class="panel-header">
       <div class="brand">
-        <img
-          src="/favicon.svg"
-          alt="DOGS Logo"
-          class="w-6 h-6 shrink-0 drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]"
-        />
+        <button
+          class="logo-btn"
+          onclick={() => window.dispatchEvent(new CustomEvent("open-info-panel"))}
+          aria-label="Open DOGS Info"
+        >
+          <img
+            src="/favicon.svg"
+            alt="DOGS Logo"
+            class="w-6 h-6 shrink-0 drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]"
+          />
+        </button>
         <h1>{title}</h1>
       </div>
 
@@ -355,6 +363,28 @@
                 >
               </div>
             </div>
+
+            <!-- App 12: Settings -->
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div
+              class="app-card border-neon-red"
+              onclick={() => {
+                activeApp = "settings";
+              }}
+            >
+              <div class="app-visual">
+                <div class="settings-preview-mini">
+                  <Settings size={28} class="animate-spin-slow text-white/50" />
+                </div>
+              </div>
+              <div class="app-meta">
+                <span class="app-title"><Settings size={14} /> Settings</span>
+                <span class="app-desc"
+                  >Customize site-wide themes and UI profiles.</span
+                >
+              </div>
+            </div>
           </div>
         </div>
       {:else if activeApp === "snake"}
@@ -379,6 +409,8 @@
         <ChangelogApp />
       {:else if activeApp === "blog"}
         <BlogApp bind:initialSlug={blogPostSlug} bind:isReading={isReadingPost} bind:depth={depth} isFlagColors={isFlagColors} />
+      {:else if activeApp === "settings"}
+        <SettingsApp />
       {/if}
     </div>
 
@@ -388,7 +420,7 @@
         <span>/util</span>
       </div>
       <div class="stats-counter">
-        <span>APPS LOADED: 10</span>
+        <span>APPS LOADED: 12</span>
       </div>
     </footer>
   </div>
@@ -1129,5 +1161,19 @@
   .app-card:hover .blog-preview-mini .line {
     background: #b455ff;
     box-shadow: 0 0 8px rgba(180, 85, 255, 0.8);
+  }
+
+  /* ── Settings Preview Mini ── */
+  .settings-preview-mini {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    transition: all 0.3s ease;
+  }
+  .app-card:hover .settings-preview-mini :global(svg) {
+    color: var(--color-neon-red, #ff3344);
+    filter: drop-shadow(0 0 8px rgba(var(--color-neon-red-rgb, 255, 51, 68), 0.8));
   }
 </style>

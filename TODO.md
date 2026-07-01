@@ -17,3 +17,10 @@
 - - The user swipes left on the landing page -> Nothing happens
 - - The user swipes right, then swipes left on the landing page -> The language moves forward once, then returns to the default language
 - Currently, if I'm in Poland, the website displays the default English language "We Are Dogs". It should use the i18n library to autoswap to the Polish translation of We Are Dogs, and this should become the default. Same for all the languages in the world. Use the i18n library to change the translation dynamically according to what the browser demands
+
+
+- Snake app must be restyled and resized for mobile and tablet viewports
+- must add ai mode to snake app, where it runs infinitely, automatically. When on this mode, progressively, the controls fade to the background, and then the border fades to the background, and then it's just a snake chasing a dot around a black space
+
+- Sketch canvas app must be restyled and resized for mobile and tablet viewports
+- must add ai mode to sketch app, where it runs infinitely, automatically. When on this mode, progressively, the controls fade to the background, and then the border fades to the background, and then it's just brushes swiping and erasing and swiping and painting and changing their size and changing their color and changing their style and just painting inside the canvas forever

@@ -108,13 +108,13 @@
     color: $color-neon-gold;
   }
   .bg-neon-gold\/5 {
-    background-color: rgba($color-neon-gold, 0.05);
+    background-color: rgba(var(--color-neon-gold-rgb, 230, 185, 0), 0.05);
   }
   .border-neon-gold\/20 {
-    border-color: rgba($color-neon-gold, 0.2);
+    border-color: rgba(var(--color-neon-gold-rgb, 230, 185, 0), 0.2);
   }
   .shadow-red-glow {
-    box-shadow: 0 0 8px rgba($color-neon-red, 0.6);
+    box-shadow: 0 0 8px rgba(var(--color-neon-red-rgb, 255, 51, 68), 0.6);
   }
   .shadow-md {
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);

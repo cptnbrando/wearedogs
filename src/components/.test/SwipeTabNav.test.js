@@ -1,5 +1,5 @@
 import { render, fireEvent, screen } from '@testing-library/svelte';
-import SwipeTabNav from './SwipeTabNav.svelte';
+import SwipeTabNav from '../SwipeTabNav.svelte';
 import { describe, it, expect, vi } from 'vitest';
 
 describe('SwipeTabNav viewport centering tests', () => {
