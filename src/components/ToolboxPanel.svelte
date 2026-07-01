@@ -437,15 +437,7 @@
   }
 
   .toolbox-panel-container.closing {
-    animation: 
-      panelSlideUpDown 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards,
-      glitchClose 0.32s steps(2) infinite;
-  }
-
-  @keyframes glitchClose {
-    0%, 100% { transform: none; filter: hue-rotate(0deg) contrast(1); }
-    30% { transform: skewX(-6deg) scale(0.98); filter: hue-rotate(60deg) contrast(1.2); }
-    70% { transform: skewX(6deg) scale(1.02); filter: hue-rotate(120deg) brightness(1.3); }
+    animation: panelSlideUpDown 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
   @keyframes panelSlideUpIn {

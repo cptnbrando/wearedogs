@@ -30,7 +30,7 @@
   let weAreDogsRef = $state();
 
   // History stack depth
-  let depth = 0;
+  let depth = $state(0);
 
   // Track document-level fullscreen state to catch back button events
   let wasMainFullscreen = $state(false);
