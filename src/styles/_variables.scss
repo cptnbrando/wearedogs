@@ -2,17 +2,17 @@
 // Used across Svelte components and app.scss to centralise design tokens.
 
 // ── Color Palette ──
-$color-neon-gold: #e6b900;       // Highlight branding & trophy accents
-$color-neon-red: #ff3344;        // Main primary accent & tab highlights
-$color-neon-green: #00d75f;      // Success, advancing status, and win states
-$color-alert-red: #ef4444;       // Elimination status, offline warnings
+$color-neon-gold: var(--color-neon-gold, #e6b900);       // Highlight branding & trophy accents
+$color-neon-red: var(--color-neon-red, #ff3344);        // Main primary accent & tab highlights
+$color-neon-green: var(--color-neon-green, #00d75f);      // Success, advancing status, and win states
+$color-alert-red: var(--color-alert-red, #ef4444);       // Elimination status, offline warnings
 
 // ── Background Gradients & Colors ──
-$bg-app-dark: #050508;
-$bg-radial-overlay: radial-gradient(circle at top, rgba(30, 10, 15, 0.55) 0%, rgba(5, 5, 8, 1) 100%);
-$bg-card-dark: rgba(15, 15, 22, 0.45);
-$bg-input-dark: rgba(255, 255, 255, 0.04);
-$border-light: rgba(255, 255, 255, 0.05);
+$bg-app-dark: var(--bg-app-dark, #050508);
+$bg-radial-overlay: var(--bg-radial-overlay, radial-gradient(circle at top, rgba(30, 10, 15, 0.55) 0%, rgba(5, 5, 8, 1) 100%));
+$bg-card-dark: var(--bg-card-dark, rgba(15, 15, 22, 0.45));
+$bg-input-dark: var(--bg-input-dark, rgba(255, 255, 255, 0.04));
+$border-light: var(--border-light, rgba(255, 255, 255, 0.05));
 
 // ── Typography & Scales ──
 $font-primary: "Inter", "Outfit", sans-serif;

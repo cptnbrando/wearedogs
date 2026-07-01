@@ -58,4 +58,40 @@ describe('TitlePage UI & UX Landing Page Interaction', () => {
     // Restore Date.now spy
     dateSpy.mockRestore();
   });
+
+  it('should change language forward on swipe right, and do nothing on swipe left when at default', async () => {
+    const { container } = render(TitlePage);
+    const wordsWrapper = container.querySelector('.words-wrapper');
+
+    // Get current language element text
+    const initialLangEl = container.querySelector('.lang-name');
+    const initialLangText = initialLangEl ? initialLangEl.textContent.trim() : '';
+
+    // Scenario: User swipes left on default landing page -> nothing happens
+    await fireEvent.touchStart(wordsWrapper, { touches: [{ clientX: 200, clientY: 100 }] });
+    await fireEvent.touchEnd(wordsWrapper, { changedTouches: [{ clientX: 50, clientY: 100 }] });
+    await tick();
+
+    let currentLangEl = container.querySelector('.lang-name');
+    let currentText = currentLangEl ? currentLangEl.textContent.trim() : '';
+    expect(currentText).toBe(initialLangText);
+
+    // Scenario: User swipes right on landing page -> language changes forward
+    await fireEvent.touchStart(wordsWrapper, { touches: [{ clientX: 50, clientY: 100 }] });
+    await fireEvent.touchEnd(wordsWrapper, { changedTouches: [{ clientX: 250, clientY: 100 }] });
+    await tick();
+
+    currentLangEl = container.querySelector('.lang-name');
+    currentText = currentLangEl ? currentLangEl.textContent.trim() : '';
+    expect(currentText).not.toBe(initialLangText);
+
+    // Scenario: User swipes right then swipes left -> returns to default language
+    await fireEvent.touchStart(wordsWrapper, { touches: [{ clientX: 200, clientY: 100 }] });
+    await fireEvent.touchEnd(wordsWrapper, { changedTouches: [{ clientX: 50, clientY: 100 }] });
+    await tick();
+
+    currentLangEl = container.querySelector('.lang-name');
+    currentText = currentLangEl ? currentLangEl.textContent.trim() : '';
+    expect(currentText).toBe(initialLangText);
+  });
 });
