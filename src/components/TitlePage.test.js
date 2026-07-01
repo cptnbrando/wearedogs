@@ -9,6 +9,10 @@ describe('TitlePage UI & UX Landing Page Interaction', () => {
   });
 
   it('should toggle the stats widget and runic navigation buttons when clicking the center text', async () => {
+    // Mock Date.now to control elapsed time between clicks
+    let mockTime = 1000;
+    const dateSpy = vi.spyOn(Date, 'now').mockImplementation(() => mockTime);
+
     // Render TitlePage
     const { container } = render(TitlePage);
 
@@ -36,6 +40,9 @@ describe('TitlePage UI & UX Landing Page Interaction', () => {
     runicNav = container.querySelector('.hieroglyphic-nav');
     expect(runicNav).toBeInTheDocument();
 
+    // Increment mocked time beyond the 300ms double-click window
+    mockTime += 500;
+
     // Click the center text (words-wrapper) again to toggle pause state off
     await fireEvent.click(wordsWrapper);
     await tick();
@@ -47,5 +54,8 @@ describe('TitlePage UI & UX Landing Page Interaction', () => {
     // Verify hieroglyphic runic nav buttons are hidden again
     runicNav = container.querySelector('.hieroglyphic-nav');
     expect(runicNav).toBeNull();
+
+    // Restore Date.now spy
+    dateSpy.mockRestore();
   });
 });
