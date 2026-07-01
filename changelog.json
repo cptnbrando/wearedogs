@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1782881149,
+    "firstCommitTimestamp": 1782884262,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 42554
+    "averageLinesAltered": 47145
   },
   "entries": [
     {
       "version": "1.0.2",
       "name": "Master",
       "date": "2026-07-01",
-      "timestamp": 1782881089,
+      "timestamp": 1782884206,
       "commits": [
         {
-          "hash": "e1cfac4",
-          "message": "feat: add StatsPanel component, implement blog template, and update site metadata",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/e1cfac4dacb3fc117ac8061f9c0159ca3f633ffd",
-          "timestamp": 1782881149,
-          "linesChanged": 42554
+          "hash": "a580302",
+          "message": "chore: update project documentation and refresh package-lock.json dependencies",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/a580302f5c8e97372641bd9a7b91ec65d7e2b3d7",
+          "timestamp": 1782884262,
+          "linesChanged": 47145
         }
       ]
     },
