@@ -32,6 +32,8 @@
     onSelectLang,
   } = $props();
 
+  let activeTab = $state("explorer");
+
   const userLocale =
     typeof navigator !== "undefined" ? navigator.language : "en";
 
