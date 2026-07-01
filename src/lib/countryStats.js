@@ -417,15 +417,76 @@ const overrides = {
   }
 };
 
+const countryPopulations = {
+  // Developed
+  us: 340.0, gb: 67.0, ca: 39.0, au: 26.0, nz: 5.2, ie: 5.1,
+  de: 84.0, at: 9.0, ch: 8.9, jp: 124.0, kr: 51.7, es: 48.0,
+  fr: 68.0, it: 59.0, nl: 17.8, be: 11.7, se: 10.5, no: 5.5,
+  dk: 5.9, fi: 5.6, is: 0.38, pl: 38.0, gr: 10.4, cy: 1.25,
+  sg: 6.0, il: 9.8, lu: 0.66, mt: 0.53, pt: 10.4, gl: 0.056,
+  ae: 9.8, sa: 36.9, kw: 4.3, qa: 2.7, bh: 1.5, om: 4.6,
+
+  // Latin America
+  mx: 128.0, ar: 46.2, co: 52.0, pe: 34.0, ve: 29.0, cl: 19.6,
+  ec: 18.0, bo: 12.3, py: 6.8, uy: 3.4, gt: 18.0, hn: 10.4,
+  sv: 6.3, ni: 7.0, cr: 5.2, pa: 4.4, do: 11.3, cu: 11.0,
+  gq: 1.7, pr: 3.2, br: 215.0, gy: 0.8, sr: 0.6, gf: 0.3,
+  ht: 11.7, bs: 0.4, fk: 0.003,
+
+  // Sub-Saharan Africa
+  za: 60.0, ke: 55.0, ug: 48.5, tz: 67.0, ng: 224.0, gh: 34.0,
+  lr: 5.4, sl: 8.8, zw: 16.7, zm: 20.5, mw: 21.0, na: 2.6,
+  ls: 2.3, sz: 1.2, bw: 2.6, mz: 33.0, gw: 2.1, st: 0.23,
+  ss: 11.0, gn: 14.2, cd: 102.0, cm: 28.6, mg: 30.0, ne: 27.0,
+  ml: 23.3, bf: 23.2, tg: 9.0, bj: 13.7, ga: 2.4, dj: 1.1,
+  cf: 5.7, km: 0.85, bi: 13.0, rw: 14.0, ao: 36.0, cv: 0.6,
+  td: 18.0, mr: 4.9, sn: 17.9, ci: 29.0, cg: 6.1, so: 18.0,
+
+  // East Asia
+  cn: 1410.0, tw: 23.9, kp: 26.0, mn: 3.4,
+
+  // South Asia
+  in: 1430.0, bd: 173.0, pk: 245.0, np: 30.9, lk: 22.0, bt: 0.78,
+
+  // Southeast Asia
+  id: 277.0, my: 34.0, bn: 0.45, vn: 98.0, th: 71.0, mm: 54.0,
+  kh: 16.9, la: 7.6, ph: 117.0, tl: 1.35, pg: 10.3, fj: 0.93,
+  vu: 0.33, sb: 0.75, fm: 0.11,
+
+  // Middle East & North Africa (including Central Asia / post-Soviet)
+  eg: 112.0, dz: 45.6, ma: 37.8, sd: 48.0, iq: 45.5, ye: 34.0,
+  sy: 23.0, tn: 12.4, ly: 6.9, jo: 11.3, er: 3.7, lb: 5.3,
+  ps: 5.4, eh: 0.6, ir: 89.0, tr: 85.0, ru: 144.0, ua: 38.0,
+  by: 9.2, kz: 20.0, uz: 36.0, tm: 6.5, tj: 10.1, kg: 7.0,
+  ge: 3.7, am: 2.8, az: 10.4, md: 2.5, lt: 2.8, lv: 1.9,
+  ee: 1.3, ro: 19.0, bg: 6.4, hu: 9.6, cz: 10.8, sk: 5.4,
+  hr: 3.8, ba: 3.2, rs: 6.6, si: 2.1, mk: 2.0, al: 2.8,
+  me: 0.62
+};
+
+const regionBirthRates = {
+  developed: 10.5,
+  latin_america: 16.5,
+  sub_saharan_africa: 34.5,
+  east_asia: 8.5,
+  south_asia: 17.5,
+  southeast_asia: 15.5,
+  middle_east: 19.5
+};
+
 const fullStats = {};
 
 // Programmatically build full 150+ country database using templates and overrides.
 for (const [code, meta] of Object.entries(countryRegions)) {
   const base = regionTemplates[meta.region];
   const override = overrides[code] || {};
-  
+  const pop = countryPopulations[code] || 10.0;
+  const br = regionBirthRates[meta.region] || 15.0;
+
   fullStats[code] = {
     name: meta.name,
+    population: pop,
+    birth_rate: br,
     ...base,
     ...override
   };

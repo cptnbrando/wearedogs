@@ -598,6 +598,53 @@
   // ---------------------------------------------------------------------------
   // Mobile Comparative Table explanation text and selection state
   // ---------------------------------------------------------------------------
+  // View mode toggling: "rate" (per 100k), "year" (annual total), "second" (frequency per second/hour/day)
+  let compareMode = $state("rate");
+
+  function formatMetricValue(value, key, population, mode) {
+    if (mode === "rate") {
+      if (key === "ac_adoption" || key === "vaccines") return `${value}%`;
+      if (key === "gov_healthcare") return `${value}/100`;
+      if (key === "lifeExpectancy") return `${value} yrs`;
+      return typeof value === "number" ? value.toFixed(1) : value;
+    }
+    
+    // Ratios, percentages, and life expectation values do not scale by population
+    if (key === "ac_adoption" || key === "vaccines") return `${value}%`;
+    if (key === "gov_healthcare") return `${value}/100`;
+    if (key === "lifeExpectancy") return `${value} yrs`;
+    
+    const popVal = (population || 10.0) * 1000000;
+    let annualCount = 0;
+    
+    if (key === "birth_rate") {
+      // Birth rate is per 1,000 residents per year
+      annualCount = (value / 1000) * popVal;
+    } else {
+      // Mortality rates are per 100,000 residents per year
+      annualCount = (value / 100000) * popVal;
+    }
+    
+    if (mode === "year") {
+      return Math.round(annualCount).toLocaleString();
+    }
+    
+    if (mode === "second") {
+      const perSec = annualCount / (365.25 * 24 * 3600);
+      if (perSec >= 0.1) {
+        return `${perSec.toFixed(2)}/s`;
+      } else {
+        const perHour = annualCount / (365.25 * 24);
+        if (perHour >= 0.1) {
+          return `${perHour.toFixed(1)}/hr`;
+        }
+        const perDay = annualCount / 365.25;
+        return `${perDay.toFixed(1)}/day`;
+      }
+    }
+    return value;
+  }
+
   let selectedMobileMetric = $state(null);
 
   const metricDescriptions = {
@@ -608,6 +655,10 @@
     totalMortality: {
       label: "Total CDR (Crude Death Rate)",
       desc: "Aggregated annual deaths from all tracked causes per 100,000 residents."
+    },
+    birth_rate: {
+      label: "Births Rate",
+      desc: "Estimated annual crude birth rate (CBR) per 1,000 residents."
     },
     cancer: {
       label: "Cancer Rate",
@@ -959,6 +1010,31 @@
               </p>
             </div>
 
+            <!-- Stats Mode Selector -->
+            <div class="flex items-center justify-between bg-white/[0.02] border border-white/5 p-3 rounded-xl gap-4">
+              <span class="text-xs font-bold text-white/50 uppercase tracking-wider pl-1">Display Format</span>
+              <div class="flex bg-black/40 p-1 border border-white/5 rounded-lg">
+                <button
+                  class="px-3 py-1 rounded text-xs font-semibold transition-all cursor-pointer {compareMode === 'rate' ? 'bg-white/10 text-white shadow-sm' : 'text-white/40 hover:text-white/80'}"
+                  onclick={() => compareMode = 'rate'}
+                >
+                  Rate (per 100k)
+                </button>
+                <button
+                  class="px-3 py-1 rounded text-xs font-semibold transition-all cursor-pointer {compareMode === 'year' ? 'bg-white/10 text-white shadow-sm' : 'text-white/40 hover:text-white/80'}"
+                  onclick={() => compareMode = 'year'}
+                >
+                  Per Year
+                </button>
+                <button
+                  class="px-3 py-1 rounded text-xs font-semibold transition-all cursor-pointer {compareMode === 'second' ? 'bg-white/10 text-white shadow-sm' : 'text-white/40 hover:text-white/80'}"
+                  onclick={() => compareMode = 'second'}
+                >
+                  Per Second
+                </button>
+              </div>
+            </div>
+
             <!-- Quick Compare Links -->
             <div
               class="quick-comparisons bg-white/[0.02] border border-white/5 p-4 rounded-xl"
@@ -1048,12 +1124,12 @@
                     <div class="flex flex-col text-right">
                       <span
                         class="text-[9px] uppercase tracking-wider text-white/30 font-bold"
-                        >Total Deaths (per 100k)</span
+                        >Total Deaths ({compareMode === 'rate' ? 'per 100k' : compareMode === 'year' ? 'per year' : 'per second'})</span
                       >
                       <span
                         class="text-xl font-bold font-mono"
                         class:highlighted-stat-red={deathsA > deathsB}
-                        >{deathsA}</span
+                        >{formatMetricValue(deathsA, 'totalMortality', statsA.population, compareMode)}</span
                       >
                     </div>
                   </div>
@@ -1064,10 +1140,19 @@
                     <div
                       class="flex justify-between py-1.5 border-b border-white/[0.02]"
                     >
+                      <span class="text-white/40">Births</span><span
+                        class="font-mono font-medium"
+                        class:highlighted-stat={statsA.birth_rate > statsB.birth_rate}
+                        >{formatMetricValue(statsA.birth_rate, 'birth_rate', statsA.population, compareMode)}</span
+                      >
+                    </div>
+                    <div
+                      class="flex justify-between py-1.5 border-b border-white/[0.02]"
+                    >
                       <span class="text-white/40">Cancer Rate</span><span
                         class="font-mono font-medium"
                         class:highlighted-stat={statsA.cancer > statsB.cancer}
-                        >{statsA.cancer}</span
+                        >{formatMetricValue(statsA.cancer, 'cancer', statsA.population, compareMode)}</span
                       >
                     </div>
                     <div
@@ -1077,7 +1162,7 @@
                       ><span
                         class="font-mono font-medium"
                         class:highlighted-stat={statsA.old_age > statsB.old_age}
-                        >{statsA.old_age}</span
+                        >{formatMetricValue(statsA.old_age, 'old_age', statsA.population, compareMode)}</span
                       >
                     </div>
                     <div
@@ -1087,7 +1172,7 @@
                       ><span
                         class="font-mono font-medium"
                         class:highlighted-stat={statsA.auto > statsB.auto}
-                        >{statsA.auto}</span
+                        >{formatMetricValue(statsA.auto, 'auto', statsA.population, compareMode)}</span
                       >
                     </div>
                     <div
@@ -1096,7 +1181,7 @@
                       <span class="text-white/40">Suicide Rate</span><span
                         class="font-mono font-medium"
                         class:highlighted-stat={statsA.suicide > statsB.suicide}
-                        >{statsA.suicide}</span
+                        >{formatMetricValue(statsA.suicide, 'suicide', statsA.population, compareMode)}</span
                       >
                     </div>
                     <div
@@ -1105,7 +1190,7 @@
                       <span class="text-white/40">Gun Violence</span><span
                         class="font-mono font-medium"
                         class:highlighted-stat={statsA.gun_violence >
-                          statsB.gun_violence}>{statsA.gun_violence}</span
+                          statsB.gun_violence}>{formatMetricValue(statsA.gun_violence, 'gun_violence', statsA.population, compareMode)}</span
                       >
                     </div>
                     <div
@@ -1114,7 +1199,7 @@
                       <span class="text-white/40">Knife Violence</span><span
                         class="font-mono font-medium"
                         class:highlighted-stat={statsA.knife_violence >
-                          statsB.knife_violence}>{statsA.knife_violence}</span
+                          statsB.knife_violence}>{formatMetricValue(statsA.knife_violence, 'knife_violence', statsA.population, compareMode)}</span
                       >
                     </div>
                     <div
@@ -1124,7 +1209,7 @@
                         class="font-mono font-medium"
                         class:highlighted-stat={statsA.police_brutality >
                           statsB.police_brutality}
-                        >{statsA.police_brutality}</span
+                        >{formatMetricValue(statsA.police_brutality, 'police_brutality', statsA.population, compareMode)}</span
                       >
                     </div>
                     <div
@@ -1133,7 +1218,7 @@
                       <span class="text-white/40">Food Poisoning</span><span
                         class="font-mono font-medium"
                         class:highlighted-stat={statsA.food_poisoning >
-                          statsB.food_poisoning}>{statsA.food_poisoning}</span
+                          statsB.food_poisoning}>{formatMetricValue(statsA.food_poisoning, 'food_poisoning', statsA.population, compareMode)}</span
                       >
                     </div>
 
@@ -1142,7 +1227,7 @@
                     >
                       <span
                         class="text-[9px] uppercase tracking-wider text-white/30 font-bold"
-                        >Drug Overdoses Detail (per 100k)</span
+                        >Drug Overdoses Detail ({compareMode === 'rate' ? 'per 100k' : compareMode === 'year' ? 'per year' : 'per second'})</span
                       >
                       <div class="grid grid-cols-2 gap-2 text-[11px]">
                         <div>
@@ -1151,7 +1236,7 @@
                             class="font-mono"
                             class:highlighted-stat={statsA.overdose_heroin >
                               statsB.overdose_heroin}
-                            >{statsA.overdose_heroin}</strong
+                            >{formatMetricValue(statsA.overdose_heroin, 'overdose_heroin', statsA.population, compareMode)}</strong
                           >
                         </div>
                         <div>
@@ -1160,7 +1245,7 @@
                             class="font-mono"
                             class:highlighted-stat={statsA.overdose_meth >
                               statsB.overdose_meth}
-                            >{statsA.overdose_meth}</strong
+                            >{formatMetricValue(statsA.overdose_meth, 'overdose_meth', statsA.population, compareMode)}</strong
                           >
                         </div>
                         <div>
@@ -1169,7 +1254,7 @@
                             class="font-mono"
                             class:highlighted-stat={statsA.overdose_cocaine >
                               statsB.overdose_cocaine}
-                            >{statsA.overdose_cocaine}</strong
+                            >{formatMetricValue(statsA.overdose_cocaine, 'overdose_cocaine', statsA.population, compareMode)}</strong
                           >
                         </div>
                         <div>
@@ -1178,7 +1263,7 @@
                             class="font-mono"
                             class:highlighted-stat={statsA.overdose_alcohol >
                               statsB.overdose_alcohol}
-                            >{statsA.overdose_alcohol}</strong
+                            >{formatMetricValue(statsA.overdose_alcohol, 'overdose_alcohol', statsA.population, compareMode)}</strong
                           >
                         </div>
                       </div>
@@ -1272,12 +1357,12 @@
                     <div class="flex flex-col text-right">
                       <span
                         class="text-[9px] uppercase tracking-wider text-white/30 font-bold"
-                        >Total Deaths (per 100k)</span
+                        >Total Deaths ({compareMode === 'rate' ? 'per 100k' : compareMode === 'year' ? 'per year' : 'per second'})</span
                       >
                       <span
                         class="text-xl font-bold font-mono"
                         class:highlighted-stat-red={deathsB > deathsA}
-                        >{deathsB}</span
+                        >{formatMetricValue(deathsB, 'totalMortality', statsB.population, compareMode)}</span
                       >
                     </div>
                   </div>
@@ -1288,10 +1373,19 @@
                     <div
                       class="flex justify-between py-1.5 border-b border-white/[0.02]"
                     >
+                      <span class="text-white/40">Births</span><span
+                        class="font-mono font-medium"
+                        class:highlighted-stat={statsB.birth_rate > statsA.birth_rate}
+                        >{formatMetricValue(statsB.birth_rate, 'birth_rate', statsB.population, compareMode)}</span
+                      >
+                    </div>
+                    <div
+                      class="flex justify-between py-1.5 border-b border-white/[0.02]"
+                    >
                       <span class="text-white/40">Cancer Rate</span><span
                         class="font-mono font-medium"
                         class:highlighted-stat={statsB.cancer > statsA.cancer}
-                        >{statsB.cancer}</span
+                        >{formatMetricValue(statsB.cancer, 'cancer', statsB.population, compareMode)}</span
                       >
                     </div>
                     <div
@@ -1301,7 +1395,7 @@
                       ><span
                         class="font-mono font-medium"
                         class:highlighted-stat={statsB.old_age > statsA.old_age}
-                        >{statsB.old_age}</span
+                        >{formatMetricValue(statsB.old_age, 'old_age', statsB.population, compareMode)}</span
                       >
                     </div>
                     <div
@@ -1311,7 +1405,7 @@
                       ><span
                         class="font-mono font-medium"
                         class:highlighted-stat={statsB.auto > statsA.auto}
-                        >{statsB.auto}</span
+                        >{formatMetricValue(statsB.auto, 'auto', statsB.population, compareMode)}</span
                       >
                     </div>
                     <div
@@ -1320,7 +1414,7 @@
                       <span class="text-white/40">Suicide Rate</span><span
                         class="font-mono font-medium"
                         class:highlighted-stat={statsB.suicide > statsA.suicide}
-                        >{statsB.suicide}</span
+                        >{formatMetricValue(statsB.suicide, 'suicide', statsB.population, compareMode)}</span
                       >
                     </div>
                     <div
@@ -1329,7 +1423,7 @@
                       <span class="text-white/40">Gun Violence</span><span
                         class="font-mono font-medium"
                         class:highlighted-stat={statsB.gun_violence >
-                          statsA.gun_violence}>{statsB.gun_violence}</span
+                          statsA.gun_violence}>{formatMetricValue(statsB.gun_violence, 'gun_violence', statsB.population, compareMode)}</span
                       >
                     </div>
                     <div
@@ -1338,7 +1432,7 @@
                       <span class="text-white/40">Knife Violence</span><span
                         class="font-mono font-medium"
                         class:highlighted-stat={statsB.knife_violence >
-                          statsA.knife_violence}>{statsB.knife_violence}</span
+                          statsA.knife_violence}>{formatMetricValue(statsB.knife_violence, 'knife_violence', statsB.population, compareMode)}</span
                       >
                     </div>
                     <div
@@ -1348,7 +1442,7 @@
                         class="font-mono font-medium"
                         class:highlighted-stat={statsB.police_brutality >
                           statsA.police_brutality}
-                        >{statsB.police_brutality}</span
+                        >{formatMetricValue(statsB.police_brutality, 'police_brutality', statsB.population, compareMode)}</span
                       >
                     </div>
                     <div
@@ -1357,7 +1451,7 @@
                       <span class="text-white/40">Food Poisoning</span><span
                         class="font-mono font-medium"
                         class:highlighted-stat={statsB.food_poisoning >
-                          statsA.food_poisoning}>{statsB.food_poisoning}</span
+                          statsA.food_poisoning}>{formatMetricValue(statsB.food_poisoning, 'food_poisoning', statsB.population, compareMode)}</span
                       >
                     </div>
 
@@ -1366,7 +1460,7 @@
                     >
                       <span
                         class="text-[9px] uppercase tracking-wider text-white/30 font-bold"
-                        >Drug Overdoses Detail (per 100k)</span
+                        >Drug Overdoses Detail ({compareMode === 'rate' ? 'per 100k' : compareMode === 'year' ? 'per year' : 'per second'})</span
                       >
                       <div class="grid grid-cols-2 gap-2 text-[11px]">
                         <div>
@@ -1375,7 +1469,7 @@
                             class="font-mono"
                             class:highlighted-stat={statsB.overdose_heroin >
                               statsA.overdose_heroin}
-                            >{statsB.overdose_heroin}</strong
+                            >{formatMetricValue(statsB.overdose_heroin, 'overdose_heroin', statsB.population, compareMode)}</strong
                           >
                         </div>
                         <div>
@@ -1384,7 +1478,7 @@
                             class="font-mono"
                             class:highlighted-stat={statsB.overdose_meth >
                               statsA.overdose_meth}
-                            >{statsB.overdose_meth}</strong
+                            >{formatMetricValue(statsB.overdose_meth, 'overdose_meth', statsB.population, compareMode)}</strong
                           >
                         </div>
                         <div>
@@ -1393,7 +1487,7 @@
                             class="font-mono"
                             class:highlighted-stat={statsB.overdose_cocaine >
                               statsA.overdose_cocaine}
-                            >{statsB.overdose_cocaine}</strong
+                            >{formatMetricValue(statsB.overdose_cocaine, 'overdose_cocaine', statsB.population, compareMode)}</strong
                           >
                         </div>
                         <div>
@@ -1402,7 +1496,7 @@
                             class="font-mono"
                             class:highlighted-stat={statsB.overdose_alcohol >
                               statsA.overdose_alcohol}
-                            >{statsB.overdose_alcohol}</strong
+                            >{formatMetricValue(statsB.overdose_alcohol, 'overdose_alcohol', statsB.population, compareMode)}</strong
                           >
                         </div>
                       </div>
@@ -1492,12 +1586,35 @@
                     class="grid grid-cols-[1fr_auto_1fr] items-center py-3 border-b border-white/5 hover:bg-white/[0.02] rounded-lg transition-all cursor-pointer {selectedMobileMetric === 'lifeExpectancy' ? 'bg-white/[0.03]' : ''}"
                     onclick={() => selectedMobileMetric = (selectedMobileMetric === 'lifeExpectancy' ? null : 'lifeExpectancy')}
                   >
-                    <div class="text-left font-mono text-sm font-bold pl-3" class:highlighted-stat-green={lifeA > lifeB}>{lifeA} yrs</div>
+                    <div class="text-left font-mono text-sm font-bold pl-3" class:highlighted-stat-green={lifeA > lifeB}>
+                      {formatMetricValue(lifeA, 'lifeExpectancy', statsA.population, compareMode)}
+                    </div>
                     <div class="flex flex-col items-center justify-center min-w-[120px] px-2 text-center">
                       <span class="text-sm mb-0.5">❤️</span>
                       <span class="text-[9px] uppercase tracking-wider text-white/40 font-extrabold">Life Expectancy</span>
                     </div>
-                    <div class="text-right font-mono text-sm font-bold pr-3" class:highlighted-stat-green={lifeB > lifeA}>{lifeB} yrs</div>
+                    <div class="text-right font-mono text-sm font-bold pr-3" class:highlighted-stat-green={lifeB > lifeA}>
+                      {formatMetricValue(lifeB, 'lifeExpectancy', statsB.population, compareMode)}
+                    </div>
+                  </div>
+
+                  <!-- Row 1.5: Births -->
+                  <!-- svelte-ignore a11y_click_events_have_key_events -->
+                  <!-- svelte-ignore a11y_no_static_element_interactions -->
+                  <div 
+                    class="grid grid-cols-[1fr_auto_1fr] items-center py-3 border-b border-white/5 hover:bg-white/[0.02] rounded-lg transition-all cursor-pointer {selectedMobileMetric === 'birth_rate' ? 'bg-white/[0.03]' : ''}"
+                    onclick={() => selectedMobileMetric = (selectedMobileMetric === 'birth_rate' ? null : 'birth_rate')}
+                  >
+                    <div class="text-left font-mono text-sm font-bold pl-3" class:highlighted-stat={statsA.birth_rate > statsB.birth_rate}>
+                      {formatMetricValue(statsA.birth_rate, 'birth_rate', statsA.population, compareMode)}
+                    </div>
+                    <div class="flex flex-col items-center justify-center min-w-[120px] px-2 text-center">
+                      <span class="text-sm mb-0.5">🤰</span>
+                      <span class="text-[9px] uppercase tracking-wider text-white/40 font-extrabold">Births</span>
+                    </div>
+                    <div class="text-right font-mono text-sm font-bold pr-3" class:highlighted-stat={statsB.birth_rate > statsA.birth_rate}>
+                      {formatMetricValue(statsB.birth_rate, 'birth_rate', statsB.population, compareMode)}
+                    </div>
                   </div>
 
                   <!-- Row 2: Total Deaths -->
@@ -1507,31 +1624,35 @@
                     class="grid grid-cols-[1fr_auto_1fr] items-center py-3 border-b border-white/5 hover:bg-white/[0.02] rounded-lg transition-all cursor-pointer {selectedMobileMetric === 'totalMortality' ? 'bg-white/[0.03]' : ''}"
                     onclick={() => selectedMobileMetric = (selectedMobileMetric === 'totalMortality' ? null : 'totalMortality')}
                   >
-                    <div class="text-left font-mono text-sm font-bold pl-3" class:highlighted-stat-red={deathsA > deathsB}>{deathsA}</div>
+                    <div class="text-left font-mono text-sm font-bold pl-3" class:highlighted-stat-red={deathsA > deathsB}>
+                      {formatMetricValue(deathsA, 'totalMortality', statsA.population, compareMode)}
+                    </div>
                     <div class="flex flex-col items-center justify-center min-w-[120px] px-2 text-center">
                       <span class="text-sm mb-0.5">⚰️</span>
                       <span class="text-[9px] uppercase tracking-wider text-white/40 font-extrabold">Total Deaths</span>
                     </div>
-                    <div class="text-right font-mono text-sm font-bold pr-3" class:highlighted-stat-red={deathsB > deathsA}>{deathsB}</div>
+                    <div class="text-right font-mono text-sm font-bold pr-3" class:highlighted-stat-red={deathsB > deathsA}>
+                      {formatMetricValue(deathsB, 'totalMortality', statsB.population, compareMode)}
+                    </div>
                   </div>
 
                   <!-- Loop through rest of metrics -->
                   {#each [
-                    { key: 'cancer', icon: '🎗️', label: 'Cancer Rate', raw: true },
-                    { key: 'old_age', icon: '👵', label: 'Old Age', raw: true },
-                    { key: 'auto', icon: '🚗', label: 'Auto Accidents', raw: true },
-                    { key: 'suicide', icon: '🧠', label: 'Suicide Rate', raw: true },
-                    { key: 'gun_violence', icon: '🔫', label: 'Gun Violence', raw: true },
-                    { key: 'knife_violence', icon: '🔪', label: 'Knife Violence', raw: true },
-                    { key: 'police_brutality', icon: '👮', label: 'Police Brutality', raw: true },
-                    { key: 'food_poisoning', icon: '🤢', label: 'Food Poisoning', raw: true },
-                    { key: 'overdose_heroin', icon: '💉', label: 'Heroin OD', raw: true },
-                    { key: 'overdose_meth', icon: '💎', label: 'Meth OD', raw: true },
-                    { key: 'overdose_cocaine', icon: '❄️', label: 'Cocaine OD', raw: true },
-                    { key: 'overdose_alcohol', icon: '🍺', label: 'Alcohol OD', raw: true },
-                    { key: 'ac_adoption', icon: '💨', label: 'A/C Adoption', suffix: '%' },
-                    { key: 'vaccines', icon: '🛡️', label: 'Vaccination', suffix: '%' },
-                    { key: 'gov_healthcare', icon: '🏥', label: 'Gov Healthcare', suffix: '/100' }
+                    { key: 'cancer', icon: '🎗️', label: 'Cancer Rate' },
+                    { key: 'old_age', icon: '👵', label: 'Old Age' },
+                    { key: 'auto', icon: '🚗', label: 'Auto Accidents' },
+                    { key: 'suicide', icon: '🧠', label: 'Suicide Rate' },
+                    { key: 'gun_violence', icon: '🔫', label: 'Gun Violence' },
+                    { key: 'knife_violence', icon: '🔪', label: 'Knife Violence' },
+                    { key: 'police_brutality', icon: '👮', label: 'Police Brutality' },
+                    { key: 'food_poisoning', icon: '🤢', label: 'Food Poisoning' },
+                    { key: 'overdose_heroin', icon: '💉', label: 'Heroin OD' },
+                    { key: 'overdose_meth', icon: '💎', label: 'Meth OD' },
+                    { key: 'overdose_cocaine', icon: '❄️', label: 'Cocaine OD' },
+                    { key: 'overdose_alcohol', icon: '🍺', label: 'Alcohol OD' },
+                    { key: 'ac_adoption', icon: '💨', label: 'A/C Adoption' },
+                    { key: 'vaccines', icon: '🛡️', label: 'Vaccination' },
+                    { key: 'gov_healthcare', icon: '🏥', label: 'Gov Healthcare' }
                   ] as m}
                     <!-- svelte-ignore a11y_click_events_have_key_events -->
                     <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -1540,14 +1661,14 @@
                       onclick={() => selectedMobileMetric = (selectedMobileMetric === m.key ? null : m.key)}
                     >
                       <div class="text-left font-mono text-sm font-semibold pl-3" class:highlighted-stat={statsA[m.key] > statsB[m.key]}>
-                        {statsA[m.key]}{m.suffix || ''}
+                        {formatMetricValue(statsA[m.key], m.key, statsA.population, compareMode)}
                       </div>
                       <div class="flex flex-col items-center justify-center min-w-[120px] px-2 text-center">
                         <span class="text-sm mb-0.5">{m.icon}</span>
                         <span class="text-[9px] uppercase tracking-wider text-white/40 font-extrabold">{m.label}</span>
                       </div>
                       <div class="text-right font-mono text-sm font-semibold pr-3" class:highlighted-stat={statsB[m.key] > statsA[m.key]}>
-                        {statsB[m.key]}{m.suffix || ''}
+                        {formatMetricValue(statsB[m.key], m.key, statsB.population, compareMode)}
                       </div>
                     </div>
                   {/each}
@@ -1589,7 +1710,7 @@
                 <table class="w-full text-left border-collapse text-xs">
                   <thead>
                     <tr
-                      class="bg-white/[0.02] border-b border-white/5 sticky top-0 backdrop-blur"
+                      class="bg-[#12121a] border-b border-white/5 sticky top-0 z-10"
                     >
                       <th class="p-3 pl-4 font-bold text-white/40 uppercase"
                         >Country</th
@@ -1646,32 +1767,34 @@
                         >
                         <td
                           class="p-3 text-center text-green-400 font-mono font-semibold"
-                          >{c.lifeExpectancy}</td
+                          >{formatMetricValue(c.lifeExpectancy, 'lifeExpectancy', c.population, compareMode)}</td
                         >
                         <td class="p-3 text-center text-red-400 font-mono"
-                          >{c.totalMortality}</td
+                          >{formatMetricValue(c.totalMortality, 'totalMortality', c.population, compareMode)}</td
                         >
                         <td class="p-3 text-center font-mono"
-                          >{c.overdose_heroin}</td
+                          >{formatMetricValue(c.overdose_heroin, 'overdose_heroin', c.population, compareMode)}</td
                         >
                         <td class="p-3 text-center font-mono"
-                          >{c.overdose_meth}</td
+                          >{formatMetricValue(c.overdose_meth, 'overdose_meth', c.population, compareMode)}</td
                         >
                         <td class="p-3 text-center font-mono"
-                          >{c.overdose_cocaine}</td
+                          >{formatMetricValue(c.overdose_cocaine, 'overdose_cocaine', c.population, compareMode)}</td
                         >
                         <td class="p-3 text-center font-mono"
-                          >{c.overdose_alcohol}</td
-                        >
-                        <td class="p-3 text-center font-mono">{c.auto}</td>
-                        <td class="p-3 text-center font-mono"
-                          >{c.gun_violence}</td
+                          >{formatMetricValue(c.overdose_alcohol, 'overdose_alcohol', c.population, compareMode)}</td
                         >
                         <td class="p-3 text-center font-mono"
-                          >{c.police_brutality}</td
+                          >{formatMetricValue(c.auto, 'auto', c.population, compareMode)}</td
+                        >
+                        <td class="p-3 text-center font-mono"
+                          >{formatMetricValue(c.gun_violence, 'gun_violence', c.population, compareMode)}</td
+                        >
+                        <td class="p-3 text-center font-mono"
+                          >{formatMetricValue(c.police_brutality, 'police_brutality', c.population, compareMode)}</td
                         >
                         <td class="p-3 text-center font-mono text-green-400/80"
-                          >{c.ac_adoption}%</td
+                          >{formatMetricValue(c.ac_adoption, 'ac_adoption', c.population, compareMode)}</td
                         >
                       </tr>
                     {/each}
