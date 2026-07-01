@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1782880969,
+    "firstCommitTimestamp": 1782881149,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 42560
+    "averageLinesAltered": 42554
   },
   "entries": [
     {
       "version": "1.0.2",
       "name": "Master",
       "date": "2026-07-01",
-      "timestamp": 1782880907,
+      "timestamp": 1782881089,
       "commits": [
         {
-          "hash": "641682f",
-          "message": "feat: implement routing, deep-linking, and fullscreen persistence for application panels in TitlePage and ToolboxPanel",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/641682fc2a80312a26f7ef2c3450e35c5de5b2b8",
-          "timestamp": 1782880969,
-          "linesChanged": 42560
+          "hash": "e1cfac4",
+          "message": "feat: add StatsPanel component, implement blog template, and update site metadata",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/e1cfac4dacb3fc117ac8061f9c0159ca3f633ffd",
+          "timestamp": 1782881149,
+          "linesChanged": 42554
         }
       ]
     },
