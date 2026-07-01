@@ -152,8 +152,7 @@
     { id: "explorer", label: "Explorer", icon: Search },
     { id: "map", label: "World Map", icon: Globe },
     { id: "comparison", label: "Life & Death", icon: Scale },
-    { id: "speakers", label: "Speakers", icon: TrendingUp },
-    { id: "dogs", label: "Local Dogs", icon: null },
+    { id: "animals", label: "Animals", icon: TrendingUp },
     { id: "themes", label: "Palettes", icon: Palette },
   ];
 
@@ -595,6 +594,82 @@
 
     return list;
   });
+
+  // ---------------------------------------------------------------------------
+  // Mobile Comparative Table explanation text and selection state
+  // ---------------------------------------------------------------------------
+  let selectedMobileMetric = $state(null);
+
+  const metricDescriptions = {
+    lifeExpectancy: {
+      label: "Life Expectancy",
+      desc: "Average lifespan of a newborn baby, calculated based on health boosts (A/C adoption, vaccines, healthcare) minus the combined mortality penalty."
+    },
+    totalMortality: {
+      label: "Total CDR (Crude Death Rate)",
+      desc: "Aggregated annual deaths from all tracked causes per 100,000 residents."
+    },
+    cancer: {
+      label: "Cancer Rate",
+      desc: "Annual cancer and tumor-related deaths per 100,000 residents."
+    },
+    old_age: {
+      label: "Old Age & Cardio",
+      desc: "Annual deaths from age-related degeneration and cardiovascular failure per 100,000 residents."
+    },
+    auto: {
+      label: "Auto Accidents",
+      desc: "Annual fatalities from motor vehicles, roads, and driving accidents per 100,000 residents."
+    },
+    suicide: {
+      label: "Suicide Rate",
+      desc: "Annual suicide deaths per 100,000 residents, reflecting mental health support index."
+    },
+    gun_violence: {
+      label: "Gun Violence",
+      desc: "Annual homicides and accidental deaths caused by firearms per 100,000 residents."
+    },
+    knife_violence: {
+      label: "Knife Violence",
+      desc: "Annual homicides and assaults involving blade weapons per 100,000 residents."
+    },
+    police_brutality: {
+      label: "Police Brutality",
+      desc: "Fatal incidents involving law enforcement intervention per 100,000 residents."
+    },
+    food_poisoning: {
+      label: "Food Poisoning",
+      desc: "Deaths due to foodborne illnesses, toxic ingestions, and poor sanitization per 100,000 residents."
+    },
+    overdose_heroin: {
+      label: "Heroin Overdoses",
+      desc: "Annual fatal overdoses specifically related to heroin and primary opioids per 100,000 residents."
+    },
+    overdose_meth: {
+      label: "Meth Overdoses",
+      desc: "Annual fatal overdoses related to methamphetamine and amphetamine stimulants per 100,000 residents."
+    },
+    overdose_cocaine: {
+      label: "Cocaine Overdoses",
+      desc: "Annual fatal overdoses related to cocaine and crack derivatives per 100,000 residents."
+    },
+    overdose_alcohol: {
+      label: "Alcohol Overdoses",
+      desc: "Annual fatal incidents directly caused by acute alcohol poisoning and toxicity per 100,000 residents."
+    },
+    ac_adoption: {
+      label: "A/C Adoption",
+      desc: "Percentage of homes equipped with air conditioning, heavily reducing heat-stroke mortality rates."
+    },
+    vaccines: {
+      label: "Vaccination Rate",
+      desc: "Percentage of children receiving primary federal vaccination requirements, preventing infectious outbreaks."
+    },
+    gov_healthcare: {
+      label: "Gov Healthcare",
+      desc: "Quality, funding, and scope of public health mandates and government-provided healthcare, scored out of 100."
+    }
+  };
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -602,29 +677,23 @@
 <div class="stats-panel-backdrop" onclick={onClose}>
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <div
-    class="stats-panel-container flex flex-col h-[90vh] w-[94vw] max-w-[1280px] max-h-[850px] bg-black/45 border border-white/5 rounded-[20px] overflow-hidden backdrop-blur-xl transition-all duration-300"
+    class="stats-panel-container"
     class:closing={isClosing}
     onclick={(e) => e.stopPropagation()}
   >
     <!-- Header -->
-    <header
-      class="panel-header px-6 py-4 flex items-center justify-between border-b border-white/5 bg-black/20 shrink-0"
-    >
-      <div class="brand flex items-center gap-3">
+    <header class="panel-header">
+      <div class="brand">
         <img
           src="/favicon.svg"
           alt="DOGS Logo"
           class="w-6 h-6 shrink-0 drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]"
         />
-        <h1
-          class="text-lg font-bold tracking-widest text-white/95 uppercase font-sans"
-        >
-          DEMOGRAPHICS
-        </h1>
+        <h1>Demographics</h1>
       </div>
 
       <button
-        class="close-btn p-2 rounded-full bg-white/5 hover:bg-white/10 text-white/50 hover:text-white transition-all"
+        class="close-btn"
         onclick={onClose}
         aria-label="Close panel"
       >
@@ -927,10 +996,10 @@
               </div>
             </div>
 
-            <!-- Side by Side Comparative Widget -->
+            <!-- Side by Side Comparative Widget (Desktop/Tablet) -->
             <div
               id="comparison-results"
-              class="comparison-grid grid grid-cols-1 lg:grid-cols-2 gap-6 mt-2"
+              class="comparison-grid hidden lg:grid grid-cols-2 gap-6 mt-2"
             >
               <!-- Left selection card -->
               {#if enrichedCountryStats[compareA]}
@@ -1381,6 +1450,124 @@
               {/if}
             </div>
 
+            <!-- Mobile-Optimized Unified Comparison Table (Visible on mobile viewports) -->
+            {#if enrichedCountryStats[compareA]}
+              {@const statsA = enrichedCountryStats[compareA]}
+              {@const statsB = enrichedCountryStats[compareB] || statsA}
+              {@const lifeA = calculateLifeExpectancy(statsA)}
+              {@const lifeB = calculateLifeExpectancy(statsB)}
+              {@const deathsA = calculateTotalMortality(statsA)}
+              {@const deathsB = calculateTotalMortality(statsB)}
+
+              <div class="comparison-mobile-container block lg:hidden w-full mt-2 bg-white/[0.02] border border-white/5 rounded-2xl p-4 flex flex-col gap-4">
+                <!-- Mobile Select Row -->
+                <div class="flex items-center justify-between border-b border-white/5 pb-4 mb-2 gap-4">
+                  <div class="flex-1 flex flex-col gap-1">
+                    <span class="text-[9px] font-bold text-white/30 tracking-widest uppercase">Country A</span>
+                    <select bind:value={compareA} class="w-full bg-black/80 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs font-bold text-white outline-none cursor-pointer">
+                      {#each Object.entries(enrichedCountryStats) as [code, data]}
+                        <option value={code}>{data.name}</option>
+                      {/each}
+                    </select>
+                  </div>
+                  
+                  <div class="flex-none text-center font-bold text-white/30 text-xs self-end pb-2">VS</div>
+                  
+                  <div class="flex-1 flex flex-col gap-1 text-right">
+                    <span class="text-[9px] font-bold text-white/30 tracking-widest uppercase">Country B</span>
+                    <select bind:value={compareB} class="w-full bg-black/80 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs font-bold text-white outline-none cursor-pointer">
+                      {#each Object.entries(enrichedCountryStats) as [code, data]}
+                        <option value={code}>{data.name}</option>
+                      {/each}
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Unified Table Rows -->
+                <div class="flex flex-col">
+                  <!-- Row 1: Life Expectancy -->
+                  <!-- svelte-ignore a11y_click_events_have_key_events -->
+                  <!-- svelte-ignore a11y_no_static_element_interactions -->
+                  <div 
+                    class="grid grid-cols-[1fr_auto_1fr] items-center py-3 border-b border-white/5 hover:bg-white/[0.02] rounded-lg transition-all cursor-pointer {selectedMobileMetric === 'lifeExpectancy' ? 'bg-white/[0.03]' : ''}"
+                    onclick={() => selectedMobileMetric = (selectedMobileMetric === 'lifeExpectancy' ? null : 'lifeExpectancy')}
+                  >
+                    <div class="text-left font-mono text-sm font-bold pl-3" class:highlighted-stat-green={lifeA > lifeB}>{lifeA} yrs</div>
+                    <div class="flex flex-col items-center justify-center min-w-[120px] px-2 text-center">
+                      <span class="text-sm mb-0.5">❤️</span>
+                      <span class="text-[9px] uppercase tracking-wider text-white/40 font-extrabold">Life Expectancy</span>
+                    </div>
+                    <div class="text-right font-mono text-sm font-bold pr-3" class:highlighted-stat-green={lifeB > lifeA}>{lifeB} yrs</div>
+                  </div>
+
+                  <!-- Row 2: Total Deaths -->
+                  <!-- svelte-ignore a11y_click_events_have_key_events -->
+                  <!-- svelte-ignore a11y_no_static_element_interactions -->
+                  <div 
+                    class="grid grid-cols-[1fr_auto_1fr] items-center py-3 border-b border-white/5 hover:bg-white/[0.02] rounded-lg transition-all cursor-pointer {selectedMobileMetric === 'totalMortality' ? 'bg-white/[0.03]' : ''}"
+                    onclick={() => selectedMobileMetric = (selectedMobileMetric === 'totalMortality' ? null : 'totalMortality')}
+                  >
+                    <div class="text-left font-mono text-sm font-bold pl-3" class:highlighted-stat-red={deathsA > deathsB}>{deathsA}</div>
+                    <div class="flex flex-col items-center justify-center min-w-[120px] px-2 text-center">
+                      <span class="text-sm mb-0.5">⚰️</span>
+                      <span class="text-[9px] uppercase tracking-wider text-white/40 font-extrabold">Total Deaths</span>
+                    </div>
+                    <div class="text-right font-mono text-sm font-bold pr-3" class:highlighted-stat-red={deathsB > deathsA}>{deathsB}</div>
+                  </div>
+
+                  <!-- Loop through rest of metrics -->
+                  {#each [
+                    { key: 'cancer', icon: '🎗️', label: 'Cancer Rate', raw: true },
+                    { key: 'old_age', icon: '👵', label: 'Old Age', raw: true },
+                    { key: 'auto', icon: '🚗', label: 'Auto Accidents', raw: true },
+                    { key: 'suicide', icon: '🧠', label: 'Suicide Rate', raw: true },
+                    { key: 'gun_violence', icon: '🔫', label: 'Gun Violence', raw: true },
+                    { key: 'knife_violence', icon: '🔪', label: 'Knife Violence', raw: true },
+                    { key: 'police_brutality', icon: '👮', label: 'Police Brutality', raw: true },
+                    { key: 'food_poisoning', icon: '🤢', label: 'Food Poisoning', raw: true },
+                    { key: 'overdose_heroin', icon: '💉', label: 'Heroin OD', raw: true },
+                    { key: 'overdose_meth', icon: '💎', label: 'Meth OD', raw: true },
+                    { key: 'overdose_cocaine', icon: '❄️', label: 'Cocaine OD', raw: true },
+                    { key: 'overdose_alcohol', icon: '🍺', label: 'Alcohol OD', raw: true },
+                    { key: 'ac_adoption', icon: '💨', label: 'A/C Adoption', suffix: '%' },
+                    { key: 'vaccines', icon: '🛡️', label: 'Vaccination', suffix: '%' },
+                    { key: 'gov_healthcare', icon: '🏥', label: 'Gov Healthcare', suffix: '/100' }
+                  ] as m}
+                    <!-- svelte-ignore a11y_click_events_have_key_events -->
+                    <!-- svelte-ignore a11y_no_static_element_interactions -->
+                    <div 
+                      class="grid grid-cols-[1fr_auto_1fr] items-center py-3 border-b border-white/5 hover:bg-white/[0.02] rounded-lg transition-all cursor-pointer {selectedMobileMetric === m.key ? 'bg-white/[0.03]' : ''}"
+                      onclick={() => selectedMobileMetric = (selectedMobileMetric === m.key ? null : m.key)}
+                    >
+                      <div class="text-left font-mono text-sm font-semibold pl-3" class:highlighted-stat={statsA[m.key] > statsB[m.key]}>
+                        {statsA[m.key]}{m.suffix || ''}
+                      </div>
+                      <div class="flex flex-col items-center justify-center min-w-[120px] px-2 text-center">
+                        <span class="text-sm mb-0.5">{m.icon}</span>
+                        <span class="text-[9px] uppercase tracking-wider text-white/40 font-extrabold">{m.label}</span>
+                      </div>
+                      <div class="text-right font-mono text-sm font-semibold pr-3" class:highlighted-stat={statsB[m.key] > statsA[m.key]}>
+                        {statsB[m.key]}{m.suffix || ''}
+                      </div>
+                    </div>
+                  {/each}
+                </div>
+
+                <!-- Active Metric Details Block -->
+                {#if selectedMobileMetric && metricDescriptions[selectedMobileMetric]}
+                  <div class="mt-2 p-4 bg-white/[0.02] border border-white/5 rounded-xl flex flex-col gap-1 transition-all duration-300">
+                    <span class="text-xs font-bold text-white flex items-center gap-2">
+                      <span>{metricDescriptions[selectedMobileMetric].label}</span>
+                      <span class="text-[9px] px-1.5 py-0.5 rounded bg-white/5 text-white/40 uppercase tracking-widest font-mono">Info</span>
+                    </span>
+                    <p class="text-[11px] text-white/60 leading-relaxed mt-1">
+                      {metricDescriptions[selectedMobileMetric].desc}
+                    </p>
+                  </div>
+                {/if}
+              </div>
+            {/if}
+
             <!-- Full index lookup table -->
             <div class="country-search mt-4">
               <div class="flex justify-between items-center gap-4 mb-4">
@@ -1495,85 +1682,67 @@
           </div>
         {/if}
 
-        <!-- Speakers, Local Dogs, Palettes and methodologies sections -->
-        {#if activeTab === "speakers"}
-          <div class="tab-pane animated-pane">
-            <h2 class="text-base font-bold text-white uppercase tracking-wider">
-              Speakers Distribution
-            </h2>
-            <p class="description text-xs text-white/50 mt-1 mb-6">
-              A breakdown of the top cataloged languages by approximate speaker
-              counts worldwide.
-            </p>
-
-            <div class="speakers-chart-container flex flex-col gap-4 mb-8">
-              {#each topSpeakers as item}
-                <div class="chart-row flex flex-col gap-1.5">
-                  <div
-                    class="chart-row-lbl flex justify-between text-xs font-semibold"
-                  >
-                    <span class="chart-lang-name text-white/90"
-                      >{item.displayName}</span
-                    >
-                    <span class="chart-lang-val font-mono text-white/40"
-                      >{item.speakersText}</span
-                    >
-                  </div>
-                  <div
-                    class="chart-bar-outer h-2 w-full bg-white/[0.02] rounded-full overflow-hidden"
-                  >
-                    <div
-                      class="chart-bar-inner h-full rounded-full transition-all duration-1000 ease-out"
-                      style="width: {(item.speakersNum /
-                        topSpeakers[0].speakersNum) *
-                        100}%; background: linear-gradient(90deg, {item
-                        .colors[0]}, {item.colors[1] || item.colors[0]})"
-                    ></div>
-                  </div>
+        <!-- Combined Animals Tab (Speakers and Dog Populations) -->
+        {#if activeTab === "animals"}
+          <div class="tab-pane animated-pane flex flex-col gap-8">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <!-- Section 1: Speakers (Humans) -->
+              <div class="flex flex-col gap-4">
+                <div>
+                  <h2 class="text-base font-bold text-white uppercase tracking-wider">
+                    Speakers Distribution
+                  </h2>
+                  <p class="description text-xs text-white/50 mt-1 mb-4">
+                    A breakdown of the top cataloged languages by approximate L1 speaker counts worldwide.
+                  </p>
                 </div>
-              {/each}
-            </div>
-          </div>
-        {/if}
 
-        {#if activeTab === "dogs"}
-          <div class="tab-pane animated-pane">
-            <h2 class="text-base font-bold text-white uppercase tracking-wider">
-              Dog Populations by Region
-            </h2>
-            <p class="description text-xs text-white/50 mt-1 mb-6">
-              Analysis of domestic dog populations estimated within the primary
-              geographic regions of each language.
-            </p>
-
-            <div class="speakers-chart-container flex flex-col gap-4 mb-8">
-              {#each topDogs as item}
-                <div class="chart-row flex flex-col gap-1.5">
-                  <div
-                    class="chart-row-lbl flex justify-between text-xs font-semibold"
-                  >
-                    <span class="chart-lang-name text-white/90"
-                      >{item.displayName} ({item.country
-                        .split("&")[0]
-                        .trim()})</span
-                    >
-                    <span class="chart-lang-val font-mono text-white/40"
-                      >{item.dogsText}</span
-                    >
-                  </div>
-                  <div
-                    class="chart-bar-outer h-2 w-full bg-white/[0.02] rounded-full overflow-hidden"
-                  >
-                    <div
-                      class="chart-bar-inner h-full rounded-full transition-all duration-1000 ease-out"
-                      style="width: {(item.dogsNum / topDogs[0].dogsNum) *
-                        100}%; background: linear-gradient(90deg, {item
-                        .colors[1] || item.colors[0]}, {item.colors[2] ||
-                        item.colors[0]})"
-                    ></div>
-                  </div>
+                <div class="speakers-chart-container flex flex-col gap-4 bg-white/[0.01] border border-white/5 p-5 rounded-2xl">
+                  {#each topSpeakers as item}
+                    <div class="chart-row flex flex-col gap-1.5">
+                      <div class="chart-row-lbl flex justify-between text-xs font-semibold">
+                        <span class="chart-lang-name text-white/90">{item.displayName}</span>
+                        <span class="chart-lang-val font-mono text-white/40">{item.speakersText}</span>
+                      </div>
+                      <div class="chart-bar-outer h-2 w-full bg-white/[0.02] rounded-full overflow-hidden">
+                        <div
+                          class="chart-bar-inner h-full rounded-full transition-all duration-1000 ease-out"
+                          style="width: {(item.speakersNum / topSpeakers[0].speakersNum) * 100}%; background: linear-gradient(90deg, {item.colors[0]}, {item.colors[1] || item.colors[0]})"
+                        ></div>
+                      </div>
+                    </div>
+                  {/each}
                 </div>
-              {/each}
+              </div>
+
+              <!-- Section 2: Dog Populations -->
+              <div class="flex flex-col gap-4">
+                <div>
+                  <h2 class="text-base font-bold text-white uppercase tracking-wider">
+                    Dog Populations by Region
+                  </h2>
+                  <p class="description text-xs text-white/50 mt-1 mb-4">
+                    Analysis of domestic dog populations estimated within the primary geographic regions of each language.
+                  </p>
+                </div>
+
+                <div class="speakers-chart-container flex flex-col gap-4 bg-white/[0.01] border border-white/5 p-5 rounded-2xl">
+                  {#each topDogs as item}
+                    <div class="chart-row flex flex-col gap-1.5">
+                      <div class="chart-row-lbl flex justify-between text-xs font-semibold">
+                        <span class="chart-lang-name text-white/90">{item.displayName} ({item.country.split("&")[0].trim()})</span>
+                        <span class="chart-lang-val font-mono text-white/40">{item.dogsText}</span>
+                      </div>
+                      <div class="chart-bar-outer h-2 w-full bg-white/[0.02] rounded-full overflow-hidden">
+                        <div
+                          class="chart-bar-inner h-full rounded-full transition-all duration-1000 ease-out"
+                          style="width: {(item.dogsNum / topDogs[0].dogsNum) * 100}%; background: linear-gradient(90deg, {item.colors[1] || item.colors[0]}, {item.colors[2] || item.colors[0]})"
+                        ></div>
+                      </div>
+                    </div>
+                  {/each}
+                </div>
+              </div>
             </div>
           </div>
         {/if}
@@ -1629,19 +1798,6 @@
             </div>
           </div>
         {/if}
-
-        <!-- <div class="expandable-explanation-card bg-white/[0.02] border border-white/5 p-4 rounded-xl flex gap-3 text-xs text-white/60 leading-relaxed mt-6">
-          <HelpCircle size={18} class="shrink-0 text-white/40 mt-0.5" />
-          <div class="flex flex-col gap-1.5">
-            <span class="font-bold text-white">L1 Linguistic Demographics Data Methodologies</span>
-            <p>
-              All statistics correspond to native birth L1 language speaker distributions (learning native tongue first in home environments) and represent a 1-to-1 reflection of current physical residents within that country.
-            </p>
-            <p class="font-bold text-white/90">
-              "Population is people and this is a people world worldwide dogs."
-            </p>
-          </div>
-        </div> -->
       </main>
 
       <!-- Sidebar selection overlay display (Visible on desktop only) -->
@@ -1682,14 +1838,12 @@
     </div>
 
     <!-- Footer / Status Bar -->
-    <footer
-      class="panel-footer px-6 h-10 border-t border-white/5 bg-black/30 flex items-center justify-between shrink-0 text-[10px] text-white/30 tracking-wider"
-    >
-      <div class="sys-status flex items-center gap-2 font-mono">
-        <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+    <footer class="panel-footer">
+      <div class="sys-status">
+        <span class="status-indicator-green"></span>
         <span>WE ARE DOGS STATUS: NOMINAL</span>
       </div>
-      <div class="stats-counter flex items-center gap-3 font-mono">
+      <div class="stats-counter">
         <span>AUTHOR: CAPTAIN BRANDO!</span>
       </div>
     </footer>
@@ -1713,14 +1867,115 @@
     -webkit-backdrop-filter: blur(8px);
   }
 
-  /* ── Container slide-up entry animations ── */
+  /* ── Container ── */
   .stats-panel-container {
+    width: 94vw;
+    height: 90vh;
+    max-width: 1280px;
+    max-height: 850px;
+    background: rgba(10, 10, 14, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    box-shadow:
+      0 32px 80px rgba(0, 0, 0, 0.7),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    backdrop-filter: blur(15px) saturate(160%);
+    -webkit-backdrop-filter: blur(15px) saturate(160%);
     animation: panelSlideUpIn 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     transform-origin: center bottom;
   }
 
   .stats-panel-container.closing {
     animation: panelSlideUpDown 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  /* ── Header ── */
+  .panel-header {
+    height: 64px;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(0, 0, 0, 0.2);
+    flex-shrink: 0;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .brand h1 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.95);
+    font-family: "Outfit", "Inter", sans-serif;
+  }
+
+  .close-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 50%;
+    color: rgba(255, 255, 255, 0.5);
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .close-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    transform: translateX(-4px);
+  }
+
+  /* ── Footer ── */
+  .panel-footer {
+    height: 40px;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(0, 0, 0, 0.3);
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.35);
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    font-family: system-ui, -apple-system, sans-serif;
+    flex-shrink: 0;
+  }
+
+  .sys-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: monospace;
+  }
+
+  .status-indicator-green {
+    width: 6px;
+    height: 6px;
+    background: #00ff66;
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  .stats-counter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
 
   @keyframes panelSlideUpIn {
@@ -1788,5 +2043,54 @@
     color: #ff3344 !important;
     font-weight: 700 !important;
     text-shadow: 0 0 10px rgba(255, 51, 68, 0.45);
+  }
+
+  /* ── Responsive Mobile Overrides matching BasePanel ── */
+  @media (max-width: 768px) {
+    .stats-panel-container {
+      width: 100vw;
+      height: 100%;
+      max-height: 100%;
+      border-radius: 0;
+      border: none;
+      animation: panelSlideUpInMobile 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .stats-panel-container.closing {
+      animation: panelSlideUpDownMobile 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .panel-header {
+      padding: 0 16px;
+    }
+
+    .panel-footer {
+      height: auto;
+      min-height: 48px;
+      padding-top: 8px;
+      padding-bottom: max(14px, env(safe-area-inset-bottom, 14px));
+    }
+  }
+
+  @keyframes panelSlideUpInMobile {
+    0% {
+      transform: translateY(100%);
+      backdrop-filter: blur(0px);
+    }
+    100% {
+      transform: translateY(0);
+      backdrop-filter: blur(15px) saturate(160%);
+    }
+  }
+
+  @keyframes panelSlideUpDownMobile {
+    0% {
+      transform: translateY(0);
+      backdrop-filter: blur(15px) saturate(160%);
+    }
+    100% {
+      transform: translateY(100%);
+      backdrop-filter: blur(0px);
+    }
   }
 </style>
