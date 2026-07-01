@@ -163,16 +163,16 @@
   const langToCountries = {
     en: [
       "us", "gb", "ca", "au", "nz", "ie", "za", "ke", "ug", "tz", "ng", "gh", "lr", "sl", "jm", "bs", "fk", "pr", 
-      "zw", "zm", "mw", "na", "ls", "sz", "bw", "gy", "pg", "fj", "vu", "sb", "fm", "mt", "cy", "ss"
+      "zw", "zm", "mw", "na", "ls", "sz", "bw", "gy", "pg", "fj", "vu", "sb", "fm", "mt", "cy", "ss", "sg", "my", "cm", "ph", "il", "sr"
     ],
     es: ["es", "mx", "ar", "co", "pe", "ve", "cl", "ec", "bo", "py", "uy", "gt", "hn", "sv", "ni", "cr", "pa", "do", "cu", "gq", "pr"],
     fr: [
       "fr", "ca", "be", "ch", "sn", "ci", "cg", "cd", "cm", "mg", "ne", "ml", "bf", "tg", "bj", "ga", "dj", "gq", "cf", 
-      "km", "bi", "rw", "gf", "ht", "gn", "td", "mr"
+      "km", "bi", "rw", "gf", "ht", "gn", "td", "mr", "cm"
     ],
-    de: ["de", "at", "ch", "lu"],
+    de: ["de", "at", "ch", "lu", "be"],
     ja: ["jp"],
-    zh: ["cn", "tw", "sg"],
+    zh: ["cn", "tw", "sg", "my"],
     pt: ["pt", "br", "ao", "cv", "tl", "mz", "gw", "st"],
     it: ["it", "ch"],
     ru: ["ru"],
@@ -180,7 +180,7 @@
     hi: ["in"],
     ar: [
       "eg", "sa", "ae", "dz", "ma", "sd", "iq", "ye", "sy", "td", "tn", "ly", "jo", "er", "lb", "mr", "kw", "om", "qa", 
-      "bh", "so", "ps", "dj", "km", "eh"
+      "bh", "so", "ps", "dj", "km", "eh", "il"
     ],
     bn: ["bd", "in"],
     pa: ["in", "pk"],
@@ -191,7 +191,7 @@
     th: ["th"],
     te: ["in"],
     mr: ["in"],
-    ta: ["in", "lk", "sg"],
+    ta: ["in", "lk", "sg", "my"],
     gu: ["in"],
     kn: ["in"],
     ml: ["in"],
@@ -213,7 +213,7 @@
     fi: ["fi"],
     is: ["is"],
     pl: ["pl"],
-    nl: ["nl", "sr"],
+    nl: ["nl", "sr", "be"],
     ga: ["ie"],
     dz: ["bt"],
     uk: ["ua"],
@@ -233,7 +233,7 @@
     tr: ["tr"],
     fa: ["ir", "af"],
     he: ["il"],
-    ur: ["pk"],
+    ur: ["pk", "in"],
     kk: ["kz"],
     uz: ["uz"],
     tk: ["tk"],
@@ -242,7 +242,8 @@
     mn: ["mn"],
     ka: ["ge"],
     hy: ["am"],
-    az: ["az"]
+    az: ["az"],
+    ps: ["af", "pk"]
   };
 
   const customColors = {
@@ -293,7 +294,10 @@
     for (const [lang, countries] of Object.entries(langToCountries)) {
       const color = getLanguageColor(lang);
       countries.forEach((c) => {
-        map[c] = color;
+        // Dominant language (first listed in langToCountries) sets the default color
+        if (!map[c]) {
+          map[c] = color;
+        }
       });
     }
     return map;
@@ -305,7 +309,14 @@
     for (const [lang, countries] of Object.entries(langToCountries)) {
       const name = getLangEnglishName(lang) || lang;
       countries.forEach((c) => {
-        map[c] = name;
+        if (map[c]) {
+          // If the country speaks multiple languages in our database, aggregate them
+          if (!map[c].includes(name)) {
+            map[c] += " / " + name;
+          }
+        } else {
+          map[c] = name;
+        }
       });
     }
     return map;
