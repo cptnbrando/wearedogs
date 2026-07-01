@@ -20,15 +20,15 @@
     <p class="text-xs text-white/50 mt-1">
       Currently highlighting target countries for: <span
         class="font-bold text-white"
-        style="color: {activeColor}"
-      >{activeLangItem.displayName}</span>. Hover over the map to view statistics overlay, or click any
-      country to inspect stats dynamically.
+        style="color: {activeColor}">{activeLangItem.displayName}</span
+      >. Hover over the map to view statistics overlay, or click any country to
+      inspect stats dynamically.
     </p>
   </div>
 
   <div class="flex-1 min-h-[380px] w-full">
     <WorldMap
-      activeCountries={activeCountries}
+      {activeCountries}
       countryStats={enrichedCountryStats}
       countryColors={countryColorsMap}
       countryLanguages={countryLanguagesMap}

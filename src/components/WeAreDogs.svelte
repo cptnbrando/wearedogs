@@ -758,11 +758,9 @@
       if (Date.now() - touchStartTime < 250) {
         const diffX = currentTouchX - touchStartX;
         if (diffX > 0) {
-          handleRightArrow(); // swiped right -> forward
+          handleLeftArrow(); // swiped right -> backward
         } else {
-          if (historyIndex > 0) {
-            handleLeftArrow(); // swiped left -> backward
-          }
+          handleRightArrow(); // swiped left -> forward
         }
       } else {
         // They held and scrubbed: stay on active language, add to history
@@ -788,14 +786,12 @@
     if (Math.abs(diffX) > Math.abs(diffY)) {
       // Horizontal swipe
       if (Math.abs(diffX) > threshold) {
-        if (diffX > 0) {
-          // Swipe Right -> Next (Forward)
+        if (diffX < 0) {
+          // Swipe Left -> Next
           handleRightArrow();
         } else {
-          // Swipe Left -> Prev (Backward)
-          if (historyIndex > 0) {
-            handleLeftArrow();
-          }
+          // Swipe Right -> Prev
+          handleLeftArrow();
         }
       }
     } else {

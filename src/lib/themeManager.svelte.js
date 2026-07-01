@@ -4,14 +4,23 @@ import themesData from './themes.json';
  * Manage dynamic site-wide theme switching with LocalStorage persistence and random support.
  */
 class ThemeManager {
+  // Initialize directly to ensure it's never undefined
   currentThemeId = $state('default');
 
   constructor() {
+    this.init();
+  }
+
+  init() {
+    // Only run if we are in the browser
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('wearedogs-theme');
-      if (saved && (themesData[saved] || saved === 'random')) {
-        this.currentThemeId = saved;
-      }
+
+      // Use logical OR to guarantee 'default' if saved is null/invalid
+      this.currentThemeId = (saved && (themesData[saved] || saved === 'random'))
+        ? saved
+        : 'default';
+
       this.applyTheme();
     }
   }
@@ -48,7 +57,7 @@ class ThemeManager {
    */
   applyTheme() {
     if (typeof document === 'undefined') return;
-    
+
     let activeId = this.currentThemeId;
     if (activeId === 'random') {
       const keys = Object.keys(themesData).filter(k => k !== 'random');
