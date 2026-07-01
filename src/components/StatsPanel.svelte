@@ -175,15 +175,12 @@
     zh: ["cn", "tw", "sg"],
     pt: ["pt", "br", "ao", "cv", "tl", "mz", "gw", "st"],
     it: ["it", "ch"],
-    ru: [
-      "ru", "ua", "by", "kz", "uz", "tm", "tj", "kg", "ge", "am", "az", "md", "mn", "lt", "lv", "ee",
-      "ro", "bg", "hu", "cz", "sk", "hr", "ba", "rs", "si", "mk", "al", "me", "pl"
-    ],
+    ru: ["ru"],
     ko: ["kr", "kp"],
     hi: ["in"],
     ar: [
       "eg", "sa", "ae", "dz", "ma", "sd", "iq", "ye", "sy", "td", "tn", "ly", "jo", "er", "lb", "mr", "kw", "om", "qa", 
-      "bh", "so", "ps", "dj", "km", "eh", "ir", "af", "tr"
+      "bh", "so", "ps", "dj", "km", "eh"
     ],
     bn: ["bd", "in"],
     pa: ["in", "pk"],
@@ -218,20 +215,97 @@
     pl: ["pl"],
     nl: ["nl", "sr"],
     ga: ["ie"],
-    dz: ["bt"]
+    dz: ["bt"],
+    uk: ["ua"],
+    be: ["by"],
+    cs: ["cz"],
+    sk: ["sk"],
+    hu: ["hu"],
+    ro: ["ro", "md"],
+    bg: ["bg"],
+    hr: ["hr"],
+    sr: ["rs", "me"],
+    sl: ["si"],
+    bs: ["ba"],
+    sq: ["al"],
+    mk: ["mk"],
+    el: ["gr", "cy"],
+    tr: ["tr"],
+    fa: ["ir", "af"],
+    he: ["il"],
+    ur: ["pk"],
+    kk: ["kz"],
+    uz: ["uz"],
+    tk: ["tk"],
+    tg: ["tj"],
+    ky: ["kg"],
+    mn: ["mn"],
+    ka: ["ge"],
+    hy: ["am"],
+    az: ["az"]
   };
 
+  const customColors = {
+    en: "#3B82F6",
+    es: "#FABD00", // Weld-yellow for Spanish Spanish & Latin America
+    fr: "#2563EB",
+    de: "#EF4444",
+    ja: "#BC002D", // Japanese Crimson Circle Red
+    zh: "#DE2910",
+    pt: "#009739",
+    it: "#009246",
+    ru: "#8B5CF6", // Purple/Violet for Russia (highly distinct)
+    ko: "#EC4899",
+    hi: "#FF9933",
+    ar: "#06B6D4",
+    bn: "#047857",
+    tr: "#DC2626",
+    se: "#0284C7",
+    no: "#E11D48",
+    da: "#C60C30", // Danish Red (used for Greenland)
+    fi: "#1E3A8A",
+    is: "#1E40AF",
+    pl: "#E11D48",
+    nl: "#F59E0B",
+    ga: "#10B981"
+  };
+
+  function getLanguageColor(code) {
+    if (customColors[code]) return customColors[code];
+    const colors = getFlagColors(code);
+    if (!colors || colors.length === 0) return "#3B82F6";
+    let color = colors[0];
+    if (color.toLowerCase() === "#ffffff" || color.toLowerCase() === "#fff") {
+      color = colors[1] || color;
+      if (color.toLowerCase() === "#ffffff" || color.toLowerCase() === "#fff") {
+        color = colors[2] || color;
+      }
+    }
+    return color;
+  }
+
   let activeCountries = $derived(langToCountries[currentLang] || []);
-  let activeColor = $derived(getFlagColors(currentLang)[0]);
+  let activeColor = $derived(getLanguageColor(currentLang));
 
   // Construct a reactive map of country -> signature language color
   let countryColorsMap = $derived.by(() => {
     const map = {};
     for (const [lang, countries] of Object.entries(langToCountries)) {
-      const colors = getFlagColors(lang);
-      const color = colors && colors[0] ? colors[0] : "#ffffff";
+      const color = getLanguageColor(lang);
       countries.forEach((c) => {
         map[c] = color;
+      });
+    }
+    return map;
+  });
+
+  // Construct a reactive map of country -> language name for tooltip display
+  let countryLanguagesMap = $derived.by(() => {
+    const map = {};
+    for (const [lang, countries] of Object.entries(langToCountries)) {
+      const name = getLangEnglishName(lang) || lang;
+      countries.forEach((c) => {
+        map[c] = name;
       });
     }
     return map;
@@ -484,6 +558,7 @@
                 activeCountries={activeCountries}
                 countryStats={enrichedCountryStats}
                 countryColors={countryColorsMap}
+                countryLanguages={countryLanguagesMap}
                 highlightColor={activeColor}
                 onCountrySelect={handleCountrySelect}
               />

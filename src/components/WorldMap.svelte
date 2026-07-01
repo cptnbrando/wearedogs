@@ -9,6 +9,7 @@
     highlightColor = "#EF4444",
     countryStats = {},
     countryColors = {},
+    countryLanguages = {},
     onCountrySelect,
   } = $props();
 
@@ -19,6 +20,7 @@
   let hoveredCountry = $state(null);
   let mouseX = $state(0);
   let mouseY = $state(0);
+  let tooltipOnLeft = $state(false);
 
   // Helper calculations for tooltip
   function calculateTotalMortality(stats) {
@@ -91,12 +93,12 @@
     g.setAttribute("class", "map-labels");
 
     const labels = [
-      { text: "NORTH AMERICA", x: 190, y: 350, type: "continent" },
-      { text: "SOUTH AMERICA", x: 280, y: 570, type: "continent" },
-      { text: "EUROPE", x: 435, y: 365, type: "continent" },
-      { text: "AFRICA", x: 450, y: 510, type: "continent" },
-      { text: "ASIA", x: 610, y: 360, type: "continent" },
-      { text: "AUSTRALIA", x: 720, y: 610, type: "continent" },
+      { text: "NORTH AMERICA", x: 180, y: 395, type: "continent" },
+      { text: "SOUTH AMERICA", x: 295, y: 590, type: "continent" },
+      { text: "EUROPE", x: 440, y: 375, type: "continent" },
+      { text: "AFRICA", x: 460, y: 535, type: "continent" },
+      { text: "ASIA", x: 620, y: 385, type: "continent" },
+      { text: "AUSTRALIA", x: 720, y: 620, type: "continent" },
       { text: "PACIFIC OCEAN", x: 90, y: 460, type: "ocean" },
       { text: "ATLANTIC OCEAN", x: 330, y: 450, type: "ocean" },
       { text: "INDIAN OCEAN", x: 580, y: 550, type: "ocean" },
@@ -129,6 +131,9 @@
     const rect = e.currentTarget.getBoundingClientRect();
     mouseX = e.clientX - rect.left;
     mouseY = e.clientY - rect.top;
+
+    // Shift tooltip to the left if the mouse is on the right half of the map
+    tooltipOnLeft = mouseX > rect.width / 2;
 
     const el = e.target.closest("path[id], g[id]");
     if (el && el.id) {
@@ -188,10 +193,10 @@
       {@const stats = countryStats[hoveredCountry]}
       {@const life = calculateLifeExpectancy(stats)}
       {@const deaths = calculateTotalMortality(stats)}
-      <div class="map-tooltip" style="left: {mouseX + 16}px; top: {mouseY + 16}px;">
+      <div class="map-tooltip" style="left: {tooltipOnLeft ? mouseX : mouseX + 16}px; top: {mouseY + 16}px; transform: {tooltipOnLeft ? 'translateX(-105%)' : 'none'};">
         <div class="tooltip-header font-bold text-white mb-1 flex items-center gap-1.5">
           <span class="w-1.5 h-3 rounded-sm bg-orange-400"></span>
-          <span>{stats.name}</span>
+          <span>{stats.name} {#if countryLanguages[hoveredCountry]}<span class="text-white/50 font-normal">({countryLanguages[hoveredCountry]})</span>{/if}</span>
         </div>
         <div class="tooltip-row flex justify-between gap-4 text-[10px] text-white/70">
           <span>Life Expectancy:</span>
@@ -386,20 +391,27 @@
   /* map labels positioning */
   .world-map-wrapper :global(.map-label) {
     font-family: "Outfit", "Inter", sans-serif;
-    font-weight: 700;
-    letter-spacing: 0.15em;
     pointer-events: none;
     user-select: none;
+    paint-order: stroke fill;
   }
 
   .world-map-wrapper :global(.map-label.continent) {
-    fill: rgba(255, 255, 255, 0.28);
-    font-size: 8px;
+    fill: #ffffff;
+    stroke: rgba(10, 10, 15, 0.85);
+    stroke-width: 3.5px;
+    font-weight: 900;
+    font-size: 11px;
+    letter-spacing: 0.25em;
   }
 
   .world-map-wrapper :global(.map-label.ocean) {
-    fill: rgba(255, 255, 255, 0.12);
-    font-size: 6px;
+    fill: rgba(255, 255, 255, 0.55);
+    stroke: rgba(10, 10, 15, 0.7);
+    stroke-width: 2.5px;
+    font-weight: 700;
+    font-size: 9px;
+    letter-spacing: 0.2em;
     font-style: italic;
   }
 </style>
