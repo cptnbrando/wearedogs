@@ -1,0 +1,26 @@
+---
+title: "Article Title Here"
+date: "2026-06-27T15:00:00-05:00"
+description: "A compelling summary or subtitle goes here. It is displayed on the logs index card lists."
+author: "Captain Brando"
+coverImage: "/favicon.svg"
+---
+
+# Main Heading (h1)
+
+Start typing your blog post body content here. The custom parser supports basic Markdown syntax.
+
+## Sub-heading (h2)
+
+- Use **bold text** for emphasis.
+- Use *italic text* for subtle emphasis.
+- Link to external sites like [DOGS](https://wearedogs.net).
+
+### Minor Heading (h3)
+
+You can also embed code blocks for tech notes:
+
+```javascript
+const debugMessage = "BARK BARK BARK!";
+console.log(debugMessage);
+```

@@ -12,6 +12,7 @@
     Smile,
     Trophy,
     Terminal,
+    BookOpen,
   } from "lucide-svelte";
   import SnakeApp from "./apps/SnakeApp.svelte";
   import SoundboardApp from "./apps/SoundboardApp.svelte";
@@ -23,13 +24,33 @@
   import MemesApp from "./apps/MemesApp.svelte";
   import WorldCupApp from "./apps/WorldCupApp.svelte";
   import ChangelogApp from "./apps/ChangelogApp.svelte";
+  import BlogApp from "./apps/BlogApp.svelte";
 
   const title = "Toolbox";
 
-  let { isClosing = false, onClose, activeApp = $bindable(null), isFlagColors = false } = $props();
+  let {
+    isClosing = false,
+    onClose,
+    activeApp = $bindable(null),
+    isFlagColors = false,
+    initialApp = null,
+    blogPostSlug = $bindable(null),
+    depth = $bindable(0),
+  } = $props();
+
+  let isReadingPost = $state(false);
+
+  // Sync initial deep-linked app on mount
+  $effect(() => {
+    if (initialApp && activeApp === null) {
+      activeApp = initialApp;
+    }
+  });
 
   function handleBack() {
-    if (history.state?.app) {
+    if (activeApp === "blog" && isReadingPost) {
+      isReadingPost = false;
+    } else if (history.state?.app) {
       history.back();
     } else {
       activeApp = null;
@@ -57,7 +78,11 @@
         <h1>{title}</h1>
       </div>
 
-      <button class="close-btn" onclick={activeApp !== null ? handleBack : onClose} aria-label="Close panel">
+      <button
+        class="close-btn"
+        onclick={activeApp !== null ? handleBack : onClose}
+        aria-label="Close panel"
+      >
         <ArrowLeft size={20} />
       </button>
     </header>
@@ -306,6 +331,30 @@
                 >
               </div>
             </div>
+
+            <!-- App 11: DOG BLOG -->
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div
+              class="app-card border-neon-purple"
+              onclick={() => {
+                activeApp = "blog";
+              }}
+            >
+              <div class="app-visual">
+                <div class="blog-preview-mini">
+                  <span class="line l1"></span>
+                  <span class="line l2"></span>
+                  <span class="line l3"></span>
+                </div>
+              </div>
+              <div class="app-meta">
+                <span class="app-title"><BookOpen size={14} /> DOG BLOG</span>
+                <span class="app-desc"
+                  >Read articles about punk rock tech, development, and music.</span
+                >
+              </div>
+            </div>
           </div>
         </div>
       {:else if activeApp === "snake"}
@@ -328,6 +377,8 @@
         <WorldCupApp />
       {:else if activeApp === "changelog"}
         <ChangelogApp />
+      {:else if activeApp === "blog"}
+        <BlogApp bind:initialSlug={blogPostSlug} bind:isReading={isReadingPost} bind:depth={depth} isFlagColors={isFlagColors} />
       {/if}
     </div>
 
@@ -386,7 +437,15 @@
   }
 
   .toolbox-panel-container.closing {
-    animation: panelSlideUpDown 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation: 
+      panelSlideUpDown 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards,
+      glitchClose 0.32s steps(2) infinite;
+  }
+
+  @keyframes glitchClose {
+    0%, 100% { transform: none; filter: hue-rotate(0deg) contrast(1); }
+    30% { transform: skewX(-6deg) scale(0.98); filter: hue-rotate(60deg) contrast(1.2); }
+    70% { transform: skewX(6deg) scale(1.02); filter: hue-rotate(120deg) brightness(1.3); }
   }
 
   @keyframes panelSlideUpIn {
@@ -964,8 +1023,13 @@
     animation: terminalCursorBlink 1s infinite steps(2);
   }
   @keyframes terminalCursorBlink {
-    0%, 100% { opacity: 0; }
-    50% { opacity: 1; }
+    0%,
+    100% {
+      opacity: 0;
+    }
+    50% {
+      opacity: 1;
+    }
   }
 
   /* ── Mobile Layout Full Screen & App Grid ── */
@@ -1043,5 +1107,35 @@
     .panel-body {
       overflow-y: auto;
     }
+  }
+
+  /* ── Blog Preview Mini ── */
+  .blog-preview-mini {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 28px;
+    height: 28px;
+    justify-content: center;
+  }
+  .blog-preview-mini .line {
+    height: 2px;
+    background: rgba(180, 85, 255, 0.4);
+    border-radius: 1px;
+    transition: all 0.3s ease;
+  }
+  .blog-preview-mini .line.l1 {
+    width: 24px;
+    background: rgba(180, 85, 255, 0.9);
+  }
+  .blog-preview-mini .line.l2 {
+    width: 18px;
+  }
+  .blog-preview-mini .line.l3 {
+    width: 22px;
+  }
+  .app-card:hover .blog-preview-mini .line {
+    background: #b455ff;
+    box-shadow: 0 0 8px rgba(180, 85, 255, 0.8);
   }
 </style>

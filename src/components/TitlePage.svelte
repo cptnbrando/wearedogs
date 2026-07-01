@@ -40,6 +40,7 @@
   let deepLinkApp        = $state(null);
   let deepLinkGoProShow  = $state(null);
   let deepLinkGoProEp    = $state(null);
+  let deepLinkBlogPostSlug = $state(null);
 
   // ---------------------------------------------------------------------------
   // URL Routing — parse deep-link on first mount
@@ -89,6 +90,23 @@
       setTimeout(() => { deepLinkApp = null; deepLinkGoProShow = null; deepLinkGoProEp = null; }, 400);
       return;
     }
+
+    if (params.type === 'blog-post') {
+      deepLinkApp          = 'blog';
+      deepLinkBlogPostSlug = params.slug;
+      
+      activePage = 'toolbox';
+      activeApp = 'blog';
+      isClosing = false;
+
+      // Seed the history stack sequentially to depth 2 (blog list)
+      history.pushState({ view: 'toolbox', app: null, depth: 1 }, '', '/apps');
+      history.pushState({ view: 'toolbox', app: 'blog', depth: 2 }, '', '/apps/blog');
+      depth = 2; // selectPost in BlogApp will push depth 3 for the slug
+      
+      setTimeout(() => { deepLinkApp = null; }, 400);
+      return;
+    }
     // Any other parsePath result: home (already set up above)
   });
 
@@ -120,6 +138,10 @@
     if (isClosing) return;
     const page = activePage;
     const app = activeApp;
+
+    if (app !== "blog") {
+      deepLinkBlogPostSlug = null;
+    }
 
     if (page === "toolbox") {
       if (app) {
@@ -163,6 +185,10 @@
       if (activePage && !targetView) {
         closePageInternal();
         return;
+      }
+
+      if (targetView === "toolbox" && targetApp === "blog") {
+        deepLinkBlogPostSlug = state?.slug || null;
       }
 
       activePage = targetView;
@@ -324,6 +350,8 @@
     initialApp={deepLinkApp}
     goProShow={deepLinkGoProShow}
     goProEpisode={deepLinkGoProEp}
+    bind:blogPostSlug={deepLinkBlogPostSlug}
+    bind:depth={depth}
     isFlagColors={weAreDogsColored}
   />
 {:else if activePage === "music"}
