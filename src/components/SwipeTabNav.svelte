@@ -20,7 +20,7 @@
   let mouseStartX = 0;
   let mouseStartY = 0;
 
-  // Auto-scroll the active tab to the center of the viewport/container
+  // Auto-scroll the active tab to the center of the viewport/container locally
   $effect(() => {
     const activeId = activeTab;
     if (!activeId) return;
@@ -31,19 +31,19 @@
       const containerEl = containerRef;
       if (!activeEl || !containerEl) return;
 
-      // Compatibility check for smooth centering
-      if (typeof activeEl.scrollIntoView === "function") {
-        activeEl.scrollIntoView({
+      const containerWidth = containerEl.clientWidth;
+      const activeWidth = activeEl.clientWidth;
+      const activeLeft = activeEl.offsetLeft;
+      const targetScrollLeft = activeLeft - containerWidth / 2 + activeWidth / 2;
+
+      // Use local container scrolling instead of global scrollIntoView to avoid parent window shifting
+      if (typeof containerEl.scrollTo === "function") {
+        containerEl.scrollTo({
+          left: targetScrollLeft,
           behavior: "smooth",
-          block: "nearest",
-          inline: "center",
         });
       } else {
-        // Fallback calculation for older browsers (Potato Target)
-        const containerWidth = containerEl.clientWidth;
-        const activeWidth = activeEl.clientWidth;
-        const activeLeft = activeEl.offsetLeft;
-        containerEl.scrollLeft = activeLeft - containerWidth / 2 + activeWidth / 2;
+        containerEl.scrollLeft = targetScrollLeft;
       }
     }, 50);
   });

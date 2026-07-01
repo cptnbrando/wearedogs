@@ -2193,7 +2193,7 @@
                         class="chart-bar-outer h-2 w-full bg-white/[0.02] rounded-full overflow-hidden"
                       >
                         <div
-                          class="chart-bar-inner h-full rounded-full transition-all duration-1000 ease-out"
+                          class="chart-bar-inner h-full rounded-full transition-[width] duration-1000 ease-out"
                           style="width: {(item.speakersNum /
                             topSpeakers[0].speakersNum) *
                             100}%; background: linear-gradient(90deg, {item
@@ -2240,7 +2240,7 @@
                         class="chart-bar-outer h-2 w-full bg-white/[0.02] rounded-full overflow-hidden"
                       >
                         <div
-                          class="chart-bar-inner h-full rounded-full transition-all duration-1000 ease-out"
+                          class="chart-bar-inner h-full rounded-full transition-[width] duration-1000 ease-out"
                           style="width: {(item.dogsNum / topDogs[0].dogsNum) *
                             100}%; background: linear-gradient(90deg, {item
                             .colors[1] || item.colors[0]}, {item.colors[2] ||
@@ -2536,6 +2536,9 @@
   /* ── Animated Tab Fade-In ── */
   .animated-pane {
     animation: paneFadeIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
   }
 
   @keyframes paneFadeIn {

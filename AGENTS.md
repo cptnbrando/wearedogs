@@ -4,6 +4,11 @@
 # UNIVERSAL GOLDEN CODE RULES (WEAREDOGS AI Swarm Constraints)
 # ==============================================================================
 
+## Core Orchestration Instructions
+- **Target Engine**: For every top-level category or task, the `Swarm-Coordinator` must execute `git checkout -b [agy-currentmonth-currentweek]/[task-name]` from a clean master branch.
+- **Transpilation Guard**: Every file edited must adhere to the Potato Target (Chrome 40+ compatibility via transpile steps).
+- **Nobody is allowed to merge branches, or any code, or anything into master, ever. Never git push anything anywhere, no code changes you make can touch a network without my explicit command.**
+
 ### 1. Structure & Control Flow
 * SINGLE-LINE FUNCTIONS: If a function can be written in one line, it should not be isolated as a function. Inline it or refactor.
 * CONTROL FLOW (GUARD CLAUSES FIRST): Prioritize early return statements and guard clauses over nested if statements. Maximize scannability; minimize indentation depth. Code must read top-to-bottom, handling failures immediately and leaving the main path unindented.
