@@ -1,4 +1,5 @@
 <script>
+  import { onMount } from "svelte";
   import {
     translations,
     langs,
@@ -12,10 +13,16 @@
     ArrowLeft,
     Search,
     Globe,
+    Scale,
     TrendingUp,
     Palette,
     ChevronRight,
+    Info,
+    HelpCircle,
   } from "lucide-svelte";
+  import SwipeTabNav from "./SwipeTabNav.svelte";
+  import WorldMap from "./WorldMap.svelte";
+  import countryStats from "../lib/countryStats.js";
 
   let {
     isClosing = false,
@@ -25,6 +32,8 @@
     onSelectLang,
   } = $props();
 
+  let activeTab = $state("explorer");
+
   const userLocale =
     typeof navigator !== "undefined" ? navigator.language : "en";
 
@@ -32,24 +41,10 @@
     return getLangDisplayName(code, userLocale);
   }
 
-  function langEnglishName(code) {
-    return getLangEnglishName(code);
-  }
-
-  // Active Tab state: 'explorer' | 'speakers' | 'dogs' | 'themes'
-  let activeTab = $state("explorer");
-
-  // Search state for Language Explorer
-  let searchQuery = $state("");
-
-  // Sorting state for Language Explorer table
-  let sortField = $state("name"); // 'name', 'country', 'speakersNum', 'dogsNum'
-  let sortAscending = $state(true);
-
   // Pre-calculate language item objects once for efficiency
   const allLangItems = langs.map((code) => {
     const t = translations[code];
-    const name = langEnglishName(code);
+    const name = getLangEnglishName(code);
     const dispName = langDisplayName(code);
 
     return {
@@ -66,15 +61,17 @@
       are: t.are,
       dogs: t.dogs,
       colors: getFlagColors(code),
+      humanCBR: t.humanCBR || 0,
+      humanCDR: t.humanCDR || 0,
+      dogCBR: t.dogCBR || 0,
+      dogCDR: t.dogCDR || 0,
     };
   });
 
-  // Total global metrics calculation
-  const totalSpeakers = allLangItems.reduce(
-    (acc, curr) => acc + curr.speakersNum,
-    0,
-  );
-  const totalDogs = allLangItems.reduce((acc, curr) => acc + curr.dogsNum, 0);
+  // ---------------------------------------------------------------------------
+  // Demographics Database Access
+  // ---------------------------------------------------------------------------
+  let enrichedCountryStats = countryStats;
 
   // Derived filtered languages for Language Explorer
   let filteredLangs = $derived.by(() => {
@@ -123,11 +120,15 @@
     .slice(0, 8);
 
   function handleSelect(code) {
-    onSelectLang(code);
+    if (onSelectLang) {
+      onSelectLang(code);
+    }
   }
 
   function handleHover(code) {
-    onHoverLang(code);
+    if (onHoverLang) {
+      onHoverLang(code);
+    }
   }
 
   function toggleSort(field) {
@@ -144,43 +145,582 @@
     allLangItems.find((item) => item.code === currentLang) || allLangItems[0],
   );
 
-  const tabs = ["explorer", "speakers", "dogs", "themes"];
+  // ---------------------------------------------------------------------------
+  // Tab configuration
+  // ---------------------------------------------------------------------------
+  const statsTabs = [
+    { id: "explorer", label: "Explorer", icon: Search },
+    { id: "map", label: "World Map", icon: Globe },
+    { id: "comparison", label: "Life & Death", icon: Scale },
+    { id: "animals", label: "Animals", icon: TrendingUp },
+    { id: "themes", label: "Palettes", icon: Palette },
+  ];
+
+  // ---------------------------------------------------------------------------
+  // Map country selection mapping
+  // ---------------------------------------------------------------------------
+  const langToCountries = {
+    en: [
+      "us",
+      "gb",
+      "ca",
+      "au",
+      "nz",
+      "ie",
+      "za",
+      "ke",
+      "ug",
+      "tz",
+      "ng",
+      "gh",
+      "lr",
+      "sl",
+      "jm",
+      "bs",
+      "fk",
+      "pr",
+      "zw",
+      "zm",
+      "mw",
+      "na",
+      "ls",
+      "sz",
+      "bw",
+      "gy",
+      "pg",
+      "fj",
+      "vu",
+      "sb",
+      "fm",
+      "mt",
+      "cy",
+      "ss",
+      "sg",
+      "my",
+      "cm",
+      "ph",
+      "il",
+      "sr",
+    ],
+    es: [
+      "es",
+      "mx",
+      "ar",
+      "co",
+      "pe",
+      "ve",
+      "cl",
+      "ec",
+      "bo",
+      "py",
+      "uy",
+      "gt",
+      "hn",
+      "sv",
+      "ni",
+      "cr",
+      "pa",
+      "do",
+      "cu",
+      "gq",
+      "pr",
+    ],
+    fr: [
+      "fr",
+      "ca",
+      "be",
+      "ch",
+      "sn",
+      "ci",
+      "cg",
+      "cd",
+      "cm",
+      "mg",
+      "ne",
+      "ml",
+      "bf",
+      "tg",
+      "bj",
+      "ga",
+      "dj",
+      "gq",
+      "cf",
+      "km",
+      "bi",
+      "rw",
+      "gf",
+      "ht",
+      "gn",
+      "td",
+      "mr",
+      "cm",
+    ],
+    de: ["de", "at", "ch", "lu", "be"],
+    ja: ["jp"],
+    zh: ["cn", "tw", "sg", "my"],
+    pt: ["pt", "br", "ao", "cv", "tl", "mz", "gw", "st"],
+    it: ["it", "ch"],
+    ru: ["ru"],
+    ko: ["kr", "kp"],
+    hi: ["in"],
+    ar: [
+      "eg",
+      "sa",
+      "ae",
+      "dz",
+      "ma",
+      "sd",
+      "iq",
+      "ye",
+      "sy",
+      "td",
+      "tn",
+      "ly",
+      "jo",
+      "er",
+      "lb",
+      "mr",
+      "kw",
+      "om",
+      "qa",
+      "bh",
+      "so",
+      "ps",
+      "dj",
+      "km",
+      "eh",
+      "il",
+    ],
+    bn: ["bd", "in"],
+    pa: ["in", "pk"],
+    jv: ["id"],
+    ms: ["my", "bn", "sg"],
+    id: ["id"],
+    vi: ["vn"],
+    th: ["th"],
+    te: ["in"],
+    mr: ["in"],
+    ta: ["in", "lk", "sg", "my"],
+    gu: ["in"],
+    kn: ["in"],
+    ml: ["in"],
+    or: ["in"],
+    as: ["in"],
+    ne: ["np", "in"],
+    si: ["lk"],
+    sd: ["pk", "in"],
+    my: ["mm"],
+    km: ["kh"],
+    lo: ["la"],
+    su: ["id"],
+    ceb: ["ph"],
+    tl: ["ph"],
+    hmn: ["la", "vn", "cn", "th"],
+    sv: ["se"],
+    no: ["no"],
+    da: ["dk", "gl"],
+    fi: ["fi"],
+    is: ["is"],
+    pl: ["pl"],
+    nl: ["nl", "sr", "be"],
+    ga: ["ie"],
+    dz: ["bt"],
+    uk: ["ua"],
+    be: ["by"],
+    cs: ["cz"],
+    sk: ["sk"],
+    hu: ["hu"],
+    ro: ["ro", "md"],
+    bg: ["bg"],
+    hr: ["hr"],
+    sr: ["rs", "me"],
+    sl: ["si"],
+    bs: ["ba"],
+    sq: ["al"],
+    mk: ["mk"],
+    el: ["gr", "cy"],
+    tr: ["tr"],
+    fa: ["ir", "af"],
+    he: ["il"],
+    ur: ["pk", "in"],
+    kk: ["kz"],
+    uz: ["uz"],
+    tk: ["tk"],
+    tg: ["tj"],
+    ky: ["kg"],
+    mn: ["mn"],
+    ka: ["ge"],
+    hy: ["am"],
+    az: ["az"],
+    ps: ["af", "pk"],
+  };
+
+  const customColors = {
+    en: "#3B82F6",
+    es: "#FABD00", // Weld-yellow for Spanish Spanish & Latin America
+    fr: "#2563EB",
+    de: "#EF4444",
+    ja: "#BC002D", // Japanese Crimson Circle Red
+    zh: "#DE2910",
+    pt: "#009739",
+    it: "#009246",
+    ru: "#8B5CF6", // Purple/Violet for Russia (highly distinct)
+    ko: "#EC4899",
+    hi: "#FF9933",
+    ar: "#06B6D4",
+    bn: "#047857",
+    tr: "#DC2626",
+    se: "#0284C7",
+    no: "#E11D48",
+    da: "#C60C30", // Danish Red (used for Greenland)
+    fi: "#1E3A8A",
+    is: "#1E40AF",
+    pl: "#E11D48",
+    nl: "#F59E0B",
+    ga: "#10B981",
+  };
+
+  function getLanguageColor(code) {
+    if (customColors[code]) return customColors[code];
+    const colors = getFlagColors(code);
+    if (!colors || colors.length === 0) return "#3B82F6";
+    let color = colors[0];
+    if (color.toLowerCase() === "#ffffff" || color.toLowerCase() === "#fff") {
+      color = colors[1] || color;
+      if (color.toLowerCase() === "#ffffff" || color.toLowerCase() === "#fff") {
+        color = colors[2] || color;
+      }
+    }
+    return color;
+  }
+
+  let activeCountries = $derived(langToCountries[currentLang] || []);
+  let activeColor = $derived(getLanguageColor(currentLang));
+
+  // Construct a reactive map of country -> signature language color
+  let countryColorsMap = $derived.by(() => {
+    const map = {};
+    for (const [lang, countries] of Object.entries(langToCountries)) {
+      const color = getLanguageColor(lang);
+      countries.forEach((c) => {
+        // Dominant language (first listed in langToCountries) sets the default color
+        if (!map[c]) {
+          map[c] = color;
+        }
+      });
+    }
+    return map;
+  });
+
+  // Construct a reactive map of country -> language name for tooltip display
+  let countryLanguagesMap = $derived.by(() => {
+    const map = {};
+    for (const [lang, countries] of Object.entries(langToCountries)) {
+      const name = getLangEnglishName(lang) || lang;
+      countries.forEach((c) => {
+        if (map[c]) {
+          // If the country speaks multiple languages in our database, aggregate them
+          if (!map[c].includes(name)) {
+            map[c] += " / " + name;
+          }
+        } else {
+          map[c] = name;
+        }
+      });
+    }
+    return map;
+  });
+
+  function findLangByCountry(countryId) {
+    const code = countryId.toLowerCase();
+    for (const [lang, countries] of Object.entries(langToCountries)) {
+      if (countries.includes(code)) {
+        return lang;
+      }
+    }
+    return null;
+  }
+
+  function handleCountrySelect(countryId) {
+    const lang = findLangByCountry(countryId);
+    if (lang) {
+      currentLang = lang;
+      handleHover(lang);
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Mobile swipe gesture navigation
+  // ---------------------------------------------------------------------------
   let touchStartX = 0;
   let touchStartY = 0;
+  let shouldIgnoreSwipe = false;
+
+  function isHorizontallyScrollable(el, root) {
+    let current = el;
+    while (current && current !== root) {
+      if (
+        current.tagName === "SVG" ||
+        current.tagName === "path" ||
+        current.tagName === "g"
+      ) {
+        current = current.parentElement;
+        continue;
+      }
+      const style = window.getComputedStyle(current);
+      const overflowX = style.overflowX;
+      if (
+        (overflowX === "auto" || overflowX === "scroll") &&
+        current.scrollWidth > current.clientWidth
+      ) {
+        return true;
+      }
+      if (
+        current.tagName === "TABLE" ||
+        current.tagName === "INPUT" ||
+        current.tagName === "BUTTON" ||
+        current.classList.contains("table-wrapper") ||
+        current.classList.contains("quick-comparisons") ||
+        current.classList.contains("comparison-matrix")
+      ) {
+        return true;
+      }
+      current = current.parentElement;
+    }
+    return false;
+  }
 
   function handleTouchStart(e) {
     if (e.touches && e.touches.length > 0) {
+      shouldIgnoreSwipe = isHorizontallyScrollable(e.target, e.currentTarget);
       touchStartX = e.touches[0].clientX;
       touchStartY = e.touches[0].clientY;
     }
   }
 
   function handleTouchEnd(e) {
+    if (shouldIgnoreSwipe) {
+      shouldIgnoreSwipe = false;
+      return;
+    }
     if (!e.changedTouches || e.changedTouches.length === 0) return;
     const touchEndX = e.changedTouches[0].clientX;
     const touchEndY = e.changedTouches[0].clientY;
 
     const diffX = touchEndX - touchStartX;
     const diffY = touchEndY - touchStartY;
-    const threshold = 50;
 
-    if (Math.abs(diffX) > Math.abs(diffY)) {
-      if (Math.abs(diffX) > threshold) {
-        const currentIndex = tabs.indexOf(activeTab);
+    // Horizontal swipe threshold: 75px, vertical max deviation: 50px
+    if (Math.abs(diffX) > 75 && Math.abs(diffY) < 50) {
+      const currentIndex = statsTabs.findIndex((t) => t.id === activeTab);
+      if (currentIndex !== -1) {
         if (diffX < 0) {
-          // Swipe Left -> Go to next tab
-          if (currentIndex < tabs.length - 1) {
-            activeTab = tabs[currentIndex + 1];
+          // Swipe left (finger moves left, show next content tab)
+          if (currentIndex < statsTabs.length - 1) {
+            activeTab = statsTabs[currentIndex + 1].id;
           }
         } else {
-          // Swipe Right -> Go to prev tab
+          // Swipe right (finger moves right, show previous content tab)
           if (currentIndex > 0) {
-            activeTab = tabs[currentIndex - 1];
+            activeTab = statsTabs[currentIndex - 1].id;
           }
         }
       }
     }
   }
+  // Comparison Tab Calculations and Logic
+  // ---------------------------------------------------------------------------
+  let compareSearchQuery = $state("");
+  let compareA = $state("us");
+  let compareB = $state("ca");
+
+  let searchQuery = $state("");
+  let sortField = $state("name");
+  let sortAscending = $state(true);
+
+  function calculateTotalMortality(stats) {
+    if (!stats) return 0;
+    return (
+      Math.round(
+        (stats.cancer +
+          stats.old_age +
+          stats.auto +
+          stats.suicide +
+          stats.gun_violence +
+          stats.knife_violence +
+          stats.police_brutality +
+          stats.food_poisoning +
+          stats.overdose_heroin +
+          stats.overdose_meth +
+          stats.overdose_cocaine +
+          stats.overdose_alcohol) *
+          10,
+      ) / 10
+    );
+  }
+
+  function calculateLifeExpectancy(stats) {
+    if (!stats) return 75;
+    const base = 75;
+    const acBonus = (stats.ac_adoption / 100) * 3.5;
+    const vacBonus = (stats.vaccines / 100) * 4.2;
+    const hcBonus = (stats.gov_healthcare / 100) * 5.0;
+    const totalMortality = calculateTotalMortality(stats);
+    const mortalityPenalty = totalMortality / 75;
+    return (
+      Math.round(
+        (base + acBonus + vacBonus + hcBonus - mortalityPenalty) * 10,
+      ) / 10
+    );
+  }
+
+  function triggerQuickCompare(a, b) {
+    compareA = a;
+    compareB = b;
+  }
+
+  let compareFilteredCountries = $derived.by(() => {
+    let list = Object.entries(enrichedCountryStats).map(([code, stats]) => ({
+      code,
+      ...stats,
+      totalMortality: calculateTotalMortality(stats),
+      lifeExpectancy: calculateLifeExpectancy(stats),
+    }));
+
+    if (compareSearchQuery.trim() !== "") {
+      const q = compareSearchQuery.toLowerCase().trim();
+      list = list.filter((c) => c.name.toLowerCase().includes(q));
+    }
+
+    return list;
+  });
+
+  // ---------------------------------------------------------------------------
+  // Mobile Comparative Table explanation text and selection state
+  // ---------------------------------------------------------------------------
+  // View mode toggling: "rate" (per 100k), "year" (annual total), "second" (frequency per second/hour/day)
+  let compareMode = $state("rate");
+
+  function formatMetricValue(value, key, population, mode) {
+    if (mode === "rate") {
+      if (key === "ac_adoption" || key === "vaccines") return `${value}%`;
+      if (key === "gov_healthcare") return `${value}/100`;
+      if (key === "lifeExpectancy") return `${value} yrs`;
+      return typeof value === "number" ? value.toFixed(1) : value;
+    }
+
+    // Ratios, percentages, and life expectation values do not scale by population
+    if (key === "ac_adoption" || key === "vaccines") return `${value}%`;
+    if (key === "gov_healthcare") return `${value}/100`;
+    if (key === "lifeExpectancy") return `${value} yrs`;
+
+    const popVal = (population || 10.0) * 1000000;
+    let annualCount = 0;
+
+    if (key === "birth_rate") {
+      // Birth rate is per 1,000 residents per year
+      annualCount = (value / 1000) * popVal;
+    } else {
+      // Mortality rates are per 100,000 residents per year
+      annualCount = (value / 100000) * popVal;
+    }
+
+    if (mode === "year") {
+      return Math.round(annualCount).toLocaleString();
+    }
+
+    if (mode === "second") {
+      const perSec = annualCount / (365.25 * 24 * 3600);
+      if (perSec >= 0.1) {
+        return `${perSec.toFixed(2)}/s`;
+      } else {
+        const perHour = annualCount / (365.25 * 24);
+        if (perHour >= 0.1) {
+          return `${perHour.toFixed(1)}/hr`;
+        }
+        const perDay = annualCount / 365.25;
+        return `${perDay.toFixed(1)}/day`;
+      }
+    }
+    return value;
+  }
+
+  let selectedMobileMetric = $state(null);
+
+  const metricDescriptions = {
+    lifeExpectancy: {
+      label: "Life Expectancy",
+      desc: "Average lifespan of a newborn baby, calculated based on health boosts (A/C adoption, vaccines, healthcare) minus the combined mortality penalty.",
+    },
+    totalMortality: {
+      label: "Total CDR (Crude Death Rate)",
+      desc: "Aggregated annual deaths from all tracked causes per 100,000 residents.",
+    },
+    birth_rate: {
+      label: "Births Rate",
+      desc: "Estimated annual crude birth rate (CBR) per 1,000 residents.",
+    },
+    cancer: {
+      label: "Cancer Rate",
+      desc: "Annual cancer and tumor-related deaths per 100,000 residents.",
+    },
+    old_age: {
+      label: "Old Age & Cardio",
+      desc: "Annual deaths from age-related degeneration and cardiovascular failure per 100,000 residents.",
+    },
+    auto: {
+      label: "Auto Accidents",
+      desc: "Annual fatalities from motor vehicles, roads, and driving accidents per 100,000 residents.",
+    },
+    suicide: {
+      label: "Suicide Rate",
+      desc: "Annual suicide deaths per 100,000 residents, reflecting mental health support index.",
+    },
+    gun_violence: {
+      label: "Gun Violence",
+      desc: "Annual homicides and accidental deaths caused by firearms per 100,000 residents.",
+    },
+    knife_violence: {
+      label: "Knife Violence",
+      desc: "Annual homicides and assaults involving blade weapons per 100,000 residents.",
+    },
+    police_brutality: {
+      label: "Police Brutality",
+      desc: "Fatal incidents involving law enforcement intervention per 100,000 residents.",
+    },
+    food_poisoning: {
+      label: "Food Poisoning",
+      desc: "Deaths due to foodborne illnesses, toxic ingestions, and poor sanitization per 100,000 residents.",
+    },
+    overdose_heroin: {
+      label: "Heroin Overdoses",
+      desc: "Annual fatal overdoses specifically related to heroin and primary opioids per 100,000 residents.",
+    },
+    overdose_meth: {
+      label: "Meth Overdoses",
+      desc: "Annual fatal overdoses related to methamphetamine and amphetamine stimulants per 100,000 residents.",
+    },
+    overdose_cocaine: {
+      label: "Cocaine Overdoses",
+      desc: "Annual fatal overdoses related to cocaine and crack derivatives per 100,000 residents.",
+    },
+    overdose_alcohol: {
+      label: "Alcohol Overdoses",
+      desc: "Annual fatal incidents directly caused by acute alcohol poisoning and toxicity per 100,000 residents.",
+    },
+    ac_adoption: {
+      label: "A/C Adoption",
+      desc: "Percentage of homes equipped with air conditioning, heavily reducing heat-stroke mortality rates.",
+    },
+    vaccines: {
+      label: "Vaccination Rate",
+      desc: "Percentage of children receiving primary federal vaccination requirements, preventing infectious outbreaks.",
+    },
+    gov_healthcare: {
+      label: "Gov Healthcare",
+      desc: "Quality, funding, and scope of public health mandates and government-provided healthcare, scored out of 100.",
+    },
+  };
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -191,8 +731,6 @@
     class="stats-panel-container"
     class:closing={isClosing}
     onclick={(e) => e.stopPropagation()}
-    ontouchstart={handleTouchStart}
-    ontouchend={handleTouchEnd}
   >
     <!-- Header -->
     <header class="panel-header">
@@ -202,7 +740,7 @@
           alt="DOGS Logo"
           class="w-6 h-6 shrink-0 drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]"
         />
-        <h1>DOGS</h1>
+        <h1>Demographics</h1>
       </div>
 
       <button class="close-btn" onclick={onClose} aria-label="Close panel">
@@ -210,109 +748,82 @@
       </button>
     </header>
 
-    <!-- Inner Grid -->
-    <div class="panel-body">
-      <!-- Sidebar Navigation -->
-      <nav class="panel-sidebar">
-        <button
-          class="nav-item"
-          class:active={activeTab === "explorer"}
-          onclick={() => (activeTab = "explorer")}
-        >
-          <Search size={16} />
-          <span>Languages Explorer</span>
-        </button>
-        <button
-          class="nav-item"
-          class:active={activeTab === "speakers"}
-          onclick={() => (activeTab = "speakers")}
-        >
-          <TrendingUp size={16} />
-          <span>Speakers Analytics</span>
-        </button>
-        <button
-          class="nav-item"
-          class:active={activeTab === "dogs"}
-          onclick={() => (activeTab = "dogs")}
-        >
-          <span class="text-[1.1rem] leading-none">🐕</span>
-          <span>Dog Populations</span>
-        </button>
-        <button
-          class="nav-item"
-          class:active={activeTab === "themes"}
-          onclick={() => (activeTab = "themes")}
-        >
-          <Palette size={16} />
-          <span>Color Palettes</span>
-        </button>
+    <!-- Unified top swipeable tab nav component -->
+    <SwipeTabNav tabs={statsTabs} bind:activeTab />
 
-        <!-- Current selection overlay in sidebar -->
-        <div class="current-selection-card">
-          <div class="card-head">
-            <span class="card-tag">ACTIVE VIEW</span>
-            <h3>{activeLangItem.displayName}</h3>
-          </div>
-          <div class="color-track">
-            <span style="background: {activeLangItem.colors[0]}"></span>
-            <span style="background: {activeLangItem.colors[1]}"></span>
-            <span style="background: {activeLangItem.colors[2]}"></span>
-          </div>
-          <div class="translation-preview">
-            "{activeLangItem.we}
-            {activeLangItem.are}
-            {activeLangItem.dogs}"
-          </div>
-        </div>
-      </nav>
-
+    <!-- Inner Window Body (Full width, scroll container) -->
+    <div class="panel-body flex-1 min-h-0 flex flex-col md:flex-row relative">
       <!-- Content Area -->
-      <main class="panel-content-pane scroll-container">
-        <!-- 2. EXPLORER VIEW -->
+      <main
+        class="panel-content-pane flex-1 p-6 md:p-8 overflow-y-auto scroll-container bg-black/10"
+        ontouchstart={handleTouchStart}
+        ontouchend={handleTouchEnd}
+      >
+        <!-- 1. EXPLORER VIEW -->
         {#if activeTab === "explorer"}
-          <div class="tab-pane animated-pane explorer-pane">
-            <div class="explorer-toolbar">
-              <div class="search-box">
-                <Search size={16} />
+          <div class="tab-pane animated-pane flex flex-col gap-6">
+            <div
+              class="explorer-toolbar flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4"
+            >
+              <div class="search-box relative flex-1 max-w-[400px]">
+                <Search
+                  size={16}
+                  class="absolute left-3 top-1/2 -translate-y-1/2 text-white/30"
+                />
                 <input
                   type="text"
-                  placeholder="Search languages by name, region, dialect, code..."
+                  placeholder="Search languages, countries, codes..."
                   bind:value={searchQuery}
+                  class="w-full pl-10 pr-10 py-2.5 bg-black/40 border border-white/5 rounded-xl text-white text-sm outline-none focus:border-white/20 focus:bg-black/60 transition-all"
                 />
                 {#if searchQuery}
                   <button
-                    class="clear-search"
+                    class="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white text-lg font-bold"
                     onclick={() => (searchQuery = "")}>&times;</button
                   >
                 {/if}
               </div>
-              <div class="results-count">
+              <div class="results-count text-xs font-semibold text-white/40">
                 Showing {filteredLangs.length} of {langs.length} locales
               </div>
             </div>
 
-            <div class="table-wrapper scroll-container">
-              <table class="explorer-table">
+            <!-- Table Wrapper (Desktop/Tablet) -->
+            <div
+              class="table-wrapper hidden md:block border border-white/5 rounded-xl overflow-hidden bg-black/25"
+            >
+              <table
+                class="explorer-table w-full text-left border-collapse text-sm"
+              >
                 <thead>
-                  <tr>
-                    <th onclick={() => toggleSort("name")} class="sortable">
+                  <tr class="bg-white/[0.02] border-b border-white/5">
+                    <th
+                      onclick={() => toggleSort("name")}
+                      class="p-3.5 pl-5 font-semibold text-xs text-white/40 uppercase tracking-wider cursor-pointer hover:bg-white/5 hover:text-white transition-all select-none"
+                    >
                       Language {sortField === "name"
                         ? sortAscending
                           ? "▲"
                           : "▼"
                         : ""}
                     </th>
-                    <th onclick={() => toggleSort("country")} class="sortable">
+                    <th
+                      onclick={() => toggleSort("country")}
+                      class="p-3.5 font-semibold text-xs text-white/40 uppercase tracking-wider cursor-pointer hover:bg-white/5 hover:text-white transition-all select-none"
+                    >
                       Primary Country / Region {sortField === "country"
                         ? sortAscending
                           ? "▲"
                           : "▼"
                         : ""}
                     </th>
-                    <th>Dialect Info</th>
+                    <th
+                      class="p-3.5 font-semibold text-xs text-white/40 uppercase tracking-wider select-none"
+                      >Dialect</th
+                    >
                     <th
                       onclick={() => toggleSort("speakersNum")}
-                      class="sortable text-right"
+                      class="p-3.5 font-semibold text-xs text-white/40 uppercase tracking-wider cursor-pointer hover:bg-white/5 hover:text-white transition-all select-none text-right"
                     >
                       Speakers {sortField === "speakersNum"
                         ? sortAscending
@@ -322,296 +833,1473 @@
                     </th>
                     <th
                       onclick={() => toggleSort("dogsNum")}
-                      class="sortable text-right"
+                      class="p-3.5 font-semibold text-xs text-white/40 uppercase tracking-wider cursor-pointer hover:bg-white/5 hover:text-white transition-all select-none text-right pr-5"
                     >
-                      Local Dogs {sortField === "dogsNum"
+                      Dogs {sortField === "dogsNum"
                         ? sortAscending
                           ? "▲"
                           : "▼"
                         : ""}
                     </th>
-                    <th>Action</th>
                   </tr>
                 </thead>
                 <tbody>
                   {#each filteredLangs as item}
                     <!-- svelte-ignore a11y_mouse_events_have_key_events -->
                     <tr
-                      class:active={item.code === currentLang}
+                      class="cursor-pointer border-b border-white/[0.02] hover:bg-white/[0.03] transition-all"
+                      class:active-row={item.code === currentLang}
                       onmouseover={() => handleHover(item.code)}
                       onclick={() => handleSelect(item.code)}
                     >
-                      <td>
-                        <div class="lang-cell">
+                      <td class="p-3.5 pl-5">
+                        <div class="flex items-center gap-3">
                           <span
-                            class="lang-flag-indicator"
+                            class="w-2 h-6 rounded border border-white/10 shrink-0"
                             style="background: {item.colors[0]}"
                           ></span>
-                          <div class="lang-text-grp">
-                            <span class="lang-disp-name"
+                          <div class="flex flex-col">
+                            <span class="font-semibold text-white/95"
                               >{item.displayName}</span
                             >
-                            <span class="lang-code-desc">
-                              <span class="lang-code">
-                                {item.code.toUpperCase()}
-                              </span>
-                              <span class="meta-tablet">
-                                • {item.country}
-                                {#if item.dialect}• {item.dialect}{/if}
-                              </span>
-                              <span class="meta-mobile">
-                                • {item.speakersText} speakers • {item.dogsText}
-                                dogs
-                              </span>
-                            </span>
+                            <span
+                              class="text-[10px] text-white/30 uppercase tracking-widest"
+                              >{item.code}</span
+                            >
                           </div>
                         </div>
                       </td>
-                      <td><span class="country-cell">{item.country}</span></td>
-                      <td><span class="dialect-cell">{item.dialect}</span></td>
-                      <td class="text-right"
-                        ><span class="speakers-cell">{item.speakersText}</span
-                        ></td
+                      <td class="p-3.5 text-white/70">{item.country}</td>
+                      <td class="p-3.5 text-white/50">{item.dialect}</td>
+                      <td class="p-3.5 text-right font-mono text-white/70"
+                        >{item.speakersText}</td
                       >
-                      <td class="text-right"
-                        ><span class="dogs-cell">{item.dogsText}</span></td
+                      <td class="p-3.5 text-right font-mono text-white/70 pr-5"
+                        >{item.dogsText}</td
                       >
-                      <td>
-                        <button
-                          class="row-select-btn"
-                          onclick={(e) => {
-                            e.stopPropagation();
-                            handleSelect(item.code);
-                          }}
-                        >
-                          <ChevronRight size={14} />
-                        </button>
-                      </td>
                     </tr>
                   {/each}
-                  {#if filteredLangs.length === 0}
-                    <tr>
-                      <td colspan="6" class="empty-table-cell">
-                        No languages found matching "{searchQuery}"
-                      </td>
-                    </tr>
-                  {/if}
                 </tbody>
               </table>
             </div>
 
-            <div class="explorer-cards-mobile scroll-container">
+            <!-- Mobile cards -->
+            <div class="explorer-cards-mobile flex md:hidden flex-col gap-3">
               {#each filteredLangs as item}
                 <!-- svelte-ignore a11y_click_events_have_key_events -->
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
                 <div
-                  class="lang-mobile-card"
-                  class:active={item.code === currentLang}
+                  class="p-4 bg-white/[0.02] border border-white/5 rounded-xl flex flex-col gap-3 transition-all"
+                  class:active-mobile={item.code === currentLang}
                   onclick={() => handleSelect(item.code)}
-                  style="--brand-color: {item.colors[0]}"
                 >
-                  <div class="card-header">
-                    <div class="lang-title">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
                       <span
-                        class="flag-indicator"
+                        class="w-2.5 h-6 rounded border border-white/10"
                         style="background: {item.colors[0]}"
                       ></span>
-                      <div class="lang-meta-text">
-                        <span class="lang-disp-name">{item.displayName}</span>
-                        <span class="lang-code-val"
-                          >{item.code.toUpperCase()}</span
+                      <div class="flex flex-col">
+                        <span class="font-bold text-white"
+                          >{item.displayName}</span
+                        >
+                        <span
+                          class="text-[9px] text-white/40 tracking-wider uppercase font-mono"
+                          >{item.code}</span
                         >
                       </div>
                     </div>
-                    <button
-                      class="select-btn"
-                      onclick={(e) => {
-                        e.stopPropagation();
-                        handleSelect(item.code);
-                      }}
-                    >
-                      <ChevronRight size={16} />
-                    </button>
                   </div>
-
-                  <div class="card-body-grid">
-                    <div class="grid-item">
-                      <span class="label">🌐 Country</span>
-                      <span class="value" title={item.country}
+                  <div
+                    class="grid grid-cols-2 gap-3 text-xs border-t border-white/5 pt-3"
+                  >
+                    <div class="flex flex-col gap-0.5">
+                      <span
+                        class="text-[9px] uppercase tracking-wider text-white/30 font-bold"
+                        >Region</span
+                      >
+                      <span class="text-white/70 font-medium truncate"
                         >{item.country}</span
                       >
                     </div>
-                    <div class="grid-item">
-                      <span class="label">💬 Dialect</span>
-                      <span class="value" title={item.dialect}
+                    <div class="flex flex-col gap-0.5">
+                      <span
+                        class="text-[9px] uppercase tracking-wider text-white/30 font-bold"
+                        >Dialect</span
+                      >
+                      <span class="text-white/70 font-medium truncate"
                         >{item.dialect || "—"}</span
                       >
                     </div>
-                    <div class="grid-item">
-                      <span class="label">🗣️ Speakers</span>
-                      <span class="value">{item.speakersText}</span>
+                    <div class="flex flex-col gap-0.5">
+                      <span
+                        class="text-[9px] uppercase tracking-wider text-white/30 font-bold"
+                        >Speakers</span
+                      >
+                      <span class="text-white/70 font-mono"
+                        >{item.speakersText}</span
+                      >
                     </div>
-                    <div class="grid-item">
-                      <span class="label">🐕 Local Dogs</span>
-                      <span class="value">{item.dogsText}</span>
+                    <div class="flex flex-col gap-0.5">
+                      <span
+                        class="text-[9px] uppercase tracking-wider text-white/30 font-bold"
+                        >Local Dogs</span
+                      >
+                      <span class="text-white/70 font-mono"
+                        >{item.dogsText}</span
+                      >
                     </div>
                   </div>
                 </div>
               {/each}
-              {#if filteredLangs.length === 0}
-                <div class="empty-cards-cell">
-                  No languages found matching "{searchQuery}"
+            </div>
+          </div>
+        {/if}
+
+        <!-- 2. WORLD MAP VIEW -->
+        {#if activeTab === "map"}
+          <div class="tab-pane animated-pane flex flex-col gap-5 h-full">
+            <div class="map-view-header">
+              <h2
+                class="text-base font-bold text-white uppercase tracking-wider"
+              >
+                Interactive Vector World Map
+              </h2>
+              <p class="text-xs text-white/50 mt-1">
+                Currently highlighting target countries for: <span
+                  class="font-bold text-white"
+                  style="color: {activeColor}"
+                  >{activeLangItem.displayName}</span
+                >. Hover over the map to view statistics overlay, or click any
+                country to inspect demographics dynamically.
+              </p>
+            </div>
+
+            <div class="flex-1 min-h-[380px] w-full">
+              <WorldMap
+                {activeCountries}
+                countryStats={enrichedCountryStats}
+                countryColors={countryColorsMap}
+                countryLanguages={countryLanguagesMap}
+                highlightColor={activeColor}
+                onCountrySelect={handleCountrySelect}
+              />
+            </div>
+          </div>
+        {/if}
+
+        <!-- 3. LIFE & DEATH ANALYTICS AND COMPARISON -->
+        {#if activeTab === "comparison"}
+          <div class="tab-pane animated-pane flex flex-col gap-6">
+            <!-- Intro comparison section -->
+            <div class="comparison-header">
+              <h2
+                class="text-base font-bold text-white uppercase tracking-wider"
+              >
+                Life & Death Demographics Comparative Matrix
+              </h2>
+              <p class="text-xs text-white/50 mt-1">
+                Compare health metrics, violence coefficients, drug overdoses,
+                and calculations that derive final life expectancies between
+                nations. Gold highlighted values represent the greater stat
+                between the two countries.
+              </p>
+            </div>
+
+            <!-- Stats Mode Selector -->
+            <div
+              class="flex items-center justify-between bg-white/[0.02] border border-white/5 p-3 rounded-xl gap-4"
+            >
+              <span
+                class="text-xs font-bold text-white/50 uppercase tracking-wider pl-1"
+                >Display Format</span
+              >
+              <div
+                class="flex bg-black/40 p-1 border border-white/5 rounded-lg"
+              >
+                <button
+                  class="px-3 py-1 rounded text-xs font-semibold transition-all cursor-pointer {compareMode ===
+                  'rate'
+                    ? 'bg-white/10 text-white shadow-sm'
+                    : 'text-white/40 hover:text-white/80'}"
+                  onclick={() => (compareMode = "rate")}
+                >
+                  Rate (per 100k)
+                </button>
+                <button
+                  class="px-3 py-1 rounded text-xs font-semibold transition-all cursor-pointer {compareMode ===
+                  'year'
+                    ? 'bg-white/10 text-white shadow-sm'
+                    : 'text-white/40 hover:text-white/80'}"
+                  onclick={() => (compareMode = "year")}
+                >
+                  Per Year
+                </button>
+                <button
+                  class="px-3 py-1 rounded text-xs font-semibold transition-all cursor-pointer {compareMode ===
+                  'second'
+                    ? 'bg-white/10 text-white shadow-sm'
+                    : 'text-white/40 hover:text-white/80'}"
+                  onclick={() => (compareMode = "second")}
+                >
+                  Per Second
+                </button>
+              </div>
+            </div>
+
+            <!-- Quick Compare Links -->
+            <div
+              class="quick-comparisons bg-white/[0.02] border border-white/5 p-4 rounded-xl"
+            >
+              <h4
+                class="text-xs font-bold text-white/40 uppercase tracking-widest mb-3"
+              >
+                Quick Compare Shortcuts
+              </h4>
+              <div class="flex flex-wrap gap-2.5">
+                <button
+                  class="px-3 py-1.5 bg-black/40 border border-white/5 hover:border-white/25 rounded-lg text-xs font-semibold text-white/80 hover:text-white transition-all cursor-pointer"
+                  onclick={() => triggerQuickCompare("ca", "au")}
+                >
+                  🔫 Gun Violence: Canada vs Australia
+                </button>
+                <button
+                  class="px-3 py-1.5 bg-black/40 border border-white/5 hover:border-white/25 rounded-lg text-xs font-semibold text-white/80 hover:text-white transition-all cursor-pointer"
+                  onclick={() => triggerQuickCompare("mx", "nz")}
+                >
+                  👮 Police Brutality: Mexico vs New Zealand
+                </button>
+                <button
+                  class="px-3 py-1.5 bg-black/40 border border-white/5 hover:border-white/25 rounded-lg text-xs font-semibold text-white/80 hover:text-white transition-all cursor-pointer"
+                  onclick={() => triggerQuickCompare("us", "jp")}
+                >
+                  💊 Heroin & Overdoses: USA vs Japan
+                </button>
+                <button
+                  class="px-3 py-1.5 bg-black/40 border border-white/5 hover:border-white/25 rounded-lg text-xs font-semibold text-white/80 hover:text-white transition-all cursor-pointer"
+                  onclick={() => triggerQuickCompare("th", "gb")}
+                >
+                  🚗 Road Safety: Thailand vs UK
+                </button>
+              </div>
+            </div>
+
+            <!-- Side by Side Comparative Widget (Desktop/Tablet) -->
+            <div
+              id="comparison-results"
+              class="comparison-grid hidden lg:grid grid-cols-2 gap-6 mt-2"
+            >
+              <!-- Left selection card -->
+              {#if enrichedCountryStats[compareA]}
+                {@const statsA = enrichedCountryStats[compareA]}
+                {@const statsB = enrichedCountryStats[compareB] || statsA}
+                {@const lifeA = calculateLifeExpectancy(statsA)}
+                {@const lifeB = calculateLifeExpectancy(statsB)}
+                {@const deathsA = calculateTotalMortality(statsA)}
+                {@const deathsB = calculateTotalMortality(statsB)}
+
+                <div
+                  class="compare-card p-5 bg-white/[0.02] border border-white/5 rounded-xl flex flex-col gap-4 relative"
+                >
+                  <div
+                    class="flex items-center justify-between border-b border-white/5 pb-3"
+                  >
+                    <h3
+                      class="text-sm font-bold text-white/40 uppercase tracking-wider"
+                    >
+                      Country A
+                    </h3>
+                    <select
+                      bind:value={compareA}
+                      class="bg-black/80 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs font-bold text-white outline-none cursor-pointer"
+                    >
+                      {#each Object.entries(enrichedCountryStats) as [code, data]}
+                        <option value={code}>{data.name}</option>
+                      {/each}
+                    </select>
+                  </div>
+
+                  <div
+                    class="stats-overview flex justify-between items-center bg-black/30 p-4 rounded-lg"
+                  >
+                    <div class="flex flex-col">
+                      <span
+                        class="text-[9px] uppercase tracking-wider text-white/30 font-bold"
+                        >Life Expectancy</span
+                      >
+                      <span
+                        class="text-xl font-bold font-mono"
+                        class:highlighted-stat-green={lifeA > lifeB}
+                        >{lifeA} years</span
+                      >
+                    </div>
+                    <div class="flex flex-col text-right">
+                      <span
+                        class="text-[9px] uppercase tracking-wider text-white/30 font-bold"
+                        >Total Deaths ({compareMode === "rate"
+                          ? "per 100k"
+                          : compareMode === "year"
+                            ? "per year"
+                            : "per second"})</span
+                      >
+                      <span
+                        class="text-xl font-bold font-mono"
+                        class:highlighted-stat-red={deathsA > deathsB}
+                        >{formatMetricValue(
+                          deathsA,
+                          "totalMortality",
+                          statsA.population,
+                          compareMode,
+                        )}</span
+                      >
+                    </div>
+                  </div>
+
+                  <div
+                    class="metrics-list flex flex-col gap-2.5 text-xs text-white/70"
+                  >
+                    <div
+                      class="flex justify-between py-1.5 border-b border-white/[0.02]"
+                    >
+                      <span class="text-white/40">Births</span><span
+                        class="font-mono font-medium"
+                        class:highlighted-stat={statsA.birth_rate >
+                          statsB.birth_rate}
+                        >{formatMetricValue(
+                          statsA.birth_rate,
+                          "birth_rate",
+                          statsA.population,
+                          compareMode,
+                        )}</span
+                      >
+                    </div>
+                    <div
+                      class="flex justify-between py-1.5 border-b border-white/[0.02]"
+                    >
+                      <span class="text-white/40">Cancer Rate</span><span
+                        class="font-mono font-medium"
+                        class:highlighted-stat={statsA.cancer > statsB.cancer}
+                        >{formatMetricValue(
+                          statsA.cancer,
+                          "cancer",
+                          statsA.population,
+                          compareMode,
+                        )}</span
+                      >
+                    </div>
+                    <div
+                      class="flex justify-between py-1.5 border-b border-white/[0.02]"
+                    >
+                      <span class="text-white/40">Old Age / Cardiovascular</span
+                      ><span
+                        class="font-mono font-medium"
+                        class:highlighted-stat={statsA.old_age > statsB.old_age}
+                        >{formatMetricValue(
+                          statsA.old_age,
+                          "old_age",
+                          statsA.population,
+                          compareMode,
+                        )}</span
+                      >
+                    </div>
+                    <div
+                      class="flex justify-between py-1.5 border-b border-white/[0.02]"
+                    >
+                      <span class="text-white/40">Automobile Accidents</span
+                      ><span
+                        class="font-mono font-medium"
+                        class:highlighted-stat={statsA.auto > statsB.auto}
+                        >{formatMetricValue(
+                          statsA.auto,
+                          "auto",
+                          statsA.population,
+                          compareMode,
+                        )}</span
+                      >
+                    </div>
+                    <div
+                      class="flex justify-between py-1.5 border-b border-white/[0.02]"
+                    >
+                      <span class="text-white/40">Suicide Rate</span><span
+                        class="font-mono font-medium"
+                        class:highlighted-stat={statsA.suicide > statsB.suicide}
+                        >{formatMetricValue(
+                          statsA.suicide,
+                          "suicide",
+                          statsA.population,
+                          compareMode,
+                        )}</span
+                      >
+                    </div>
+                    <div
+                      class="flex justify-between py-1.5 border-b border-white/[0.02]"
+                    >
+                      <span class="text-white/40">Gun Violence</span><span
+                        class="font-mono font-medium"
+                        class:highlighted-stat={statsA.gun_violence >
+                          statsB.gun_violence}
+                        >{formatMetricValue(
+                          statsA.gun_violence,
+                          "gun_violence",
+                          statsA.population,
+                          compareMode,
+                        )}</span
+                      >
+                    </div>
+                    <div
+                      class="flex justify-between py-1.5 border-b border-white/[0.02]"
+                    >
+                      <span class="text-white/40">Knife Violence</span><span
+                        class="font-mono font-medium"
+                        class:highlighted-stat={statsA.knife_violence >
+                          statsB.knife_violence}
+                        >{formatMetricValue(
+                          statsA.knife_violence,
+                          "knife_violence",
+                          statsA.population,
+                          compareMode,
+                        )}</span
+                      >
+                    </div>
+                    <div
+                      class="flex justify-between py-1.5 border-b border-white/[0.02]"
+                    >
+                      <span class="text-white/40">Police Brutality</span><span
+                        class="font-mono font-medium"
+                        class:highlighted-stat={statsA.police_brutality >
+                          statsB.police_brutality}
+                        >{formatMetricValue(
+                          statsA.police_brutality,
+                          "police_brutality",
+                          statsA.population,
+                          compareMode,
+                        )}</span
+                      >
+                    </div>
+                    <div
+                      class="flex justify-between py-1.5 border-b border-white/[0.02]"
+                    >
+                      <span class="text-white/40">Food Poisoning</span><span
+                        class="font-mono font-medium"
+                        class:highlighted-stat={statsA.food_poisoning >
+                          statsB.food_poisoning}
+                        >{formatMetricValue(
+                          statsA.food_poisoning,
+                          "food_poisoning",
+                          statsA.population,
+                          compareMode,
+                        )}</span
+                      >
+                    </div>
+
+                    <div
+                      class="p-3 bg-black/20 rounded-lg flex flex-col gap-1.5"
+                    >
+                      <span
+                        class="text-[9px] uppercase tracking-wider text-white/30 font-bold"
+                        >Drug Overdoses Detail ({compareMode === "rate"
+                          ? "per 100k"
+                          : compareMode === "year"
+                            ? "per year"
+                            : "per second"})</span
+                      >
+                      <div class="grid grid-cols-2 gap-2 text-[11px]">
+                        <div>
+                          <span class="text-white/40 mr-1">Heroin:</span>
+                          <strong
+                            class="font-mono"
+                            class:highlighted-stat={statsA.overdose_heroin >
+                              statsB.overdose_heroin}
+                            >{formatMetricValue(
+                              statsA.overdose_heroin,
+                              "overdose_heroin",
+                              statsA.population,
+                              compareMode,
+                            )}</strong
+                          >
+                        </div>
+                        <div>
+                          <span class="text-white/40 mr-1">Meth:</span>
+                          <strong
+                            class="font-mono"
+                            class:highlighted-stat={statsA.overdose_meth >
+                              statsB.overdose_meth}
+                            >{formatMetricValue(
+                              statsA.overdose_meth,
+                              "overdose_meth",
+                              statsA.population,
+                              compareMode,
+                            )}</strong
+                          >
+                        </div>
+                        <div>
+                          <span class="text-white/40 mr-1">Cocaine:</span>
+                          <strong
+                            class="font-mono"
+                            class:highlighted-stat={statsA.overdose_cocaine >
+                              statsB.overdose_cocaine}
+                            >{formatMetricValue(
+                              statsA.overdose_cocaine,
+                              "overdose_cocaine",
+                              statsA.population,
+                              compareMode,
+                            )}</strong
+                          >
+                        </div>
+                        <div>
+                          <span class="text-white/40 mr-1">Alcohol:</span>
+                          <strong
+                            class="font-mono"
+                            class:highlighted-stat={statsA.overdose_alcohol >
+                              statsB.overdose_alcohol}
+                            >{formatMetricValue(
+                              statsA.overdose_alcohol,
+                              "overdose_alcohol",
+                              statsA.population,
+                              compareMode,
+                            )}</strong
+                          >
+                        </div>
+                      </div>
+                    </div>
+
+                    <div
+                      class="p-3 bg-black/20 rounded-lg flex flex-col gap-1.5"
+                    >
+                      <span
+                        class="text-[9px] uppercase tracking-wider text-white/30 font-bold"
+                        >Life Expectancy Drivers</span
+                      >
+                      <div
+                        class="grid grid-cols-3 gap-2 text-[10px] text-center"
+                      >
+                        <div class="bg-black/30 p-1.5 rounded">
+                          <span class="block text-white/30">A/C Adoption</span
+                          ><strong
+                            class="font-mono"
+                            class:highlighted-stat={statsA.ac_adoption >
+                              statsB.ac_adoption}>{statsA.ac_adoption}%</strong
+                          >
+                        </div>
+                        <div class="bg-black/30 p-1.5 rounded">
+                          <span class="block text-white/30">Vaccination</span
+                          ><strong
+                            class="font-mono"
+                            class:highlighted-stat={statsA.vaccines >
+                              statsB.vaccines}>{statsA.vaccines}%</strong
+                          >
+                        </div>
+                        <div class="bg-black/30 p-1.5 rounded">
+                          <span class="block text-white/30">Gov Healthcare</span
+                          ><strong
+                            class="font-mono"
+                            class:highlighted-stat={statsA.gov_healthcare >
+                              statsB.gov_healthcare}
+                            >{statsA.gov_healthcare}/100</strong
+                          >
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              {/if}
+
+              <!-- Right selection card -->
+              {#if enrichedCountryStats[compareB]}
+                {@const statsB = enrichedCountryStats[compareB]}
+                {@const statsA = enrichedCountryStats[compareA] || statsB}
+                {@const lifeB = calculateLifeExpectancy(statsB)}
+                {@const lifeA = calculateLifeExpectancy(statsA)}
+                {@const deathsB = calculateTotalMortality(statsB)}
+                {@const deathsA = calculateTotalMortality(statsA)}
+
+                <div
+                  class="compare-card p-5 bg-white/[0.02] border border-white/5 rounded-xl flex flex-col gap-4 relative"
+                >
+                  <div
+                    class="flex items-center justify-between border-b border-white/5 pb-3"
+                  >
+                    <h3
+                      class="text-sm font-bold text-white/40 uppercase tracking-wider"
+                    >
+                      Country B
+                    </h3>
+                    <select
+                      bind:value={compareB}
+                      class="bg-black/80 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs font-bold text-white outline-none cursor-pointer"
+                    >
+                      {#each Object.entries(enrichedCountryStats) as [code, data]}
+                        <option value={code}>{data.name}</option>
+                      {/each}
+                    </select>
+                  </div>
+
+                  <div
+                    class="stats-overview flex justify-between items-center bg-black/30 p-4 rounded-lg"
+                  >
+                    <div class="flex flex-col">
+                      <span
+                        class="text-[9px] uppercase tracking-wider text-white/30 font-bold"
+                        >Life Expectancy</span
+                      >
+                      <span
+                        class="text-xl font-bold font-mono"
+                        class:highlighted-stat-green={lifeB > lifeA}
+                        >{lifeB} years</span
+                      >
+                    </div>
+                    <div class="flex flex-col text-right">
+                      <span
+                        class="text-[9px] uppercase tracking-wider text-white/30 font-bold"
+                        >Total Deaths ({compareMode === "rate"
+                          ? "per 100k"
+                          : compareMode === "year"
+                            ? "per year"
+                            : "per second"})</span
+                      >
+                      <span
+                        class="text-xl font-bold font-mono"
+                        class:highlighted-stat-red={deathsB > deathsA}
+                        >{formatMetricValue(
+                          deathsB,
+                          "totalMortality",
+                          statsB.population,
+                          compareMode,
+                        )}</span
+                      >
+                    </div>
+                  </div>
+
+                  <div
+                    class="metrics-list flex flex-col gap-2.5 text-xs text-white/70"
+                  >
+                    <div
+                      class="flex justify-between py-1.5 border-b border-white/[0.02]"
+                    >
+                      <span class="text-white/40">Births</span><span
+                        class="font-mono font-medium"
+                        class:highlighted-stat={statsB.birth_rate >
+                          statsA.birth_rate}
+                        >{formatMetricValue(
+                          statsB.birth_rate,
+                          "birth_rate",
+                          statsB.population,
+                          compareMode,
+                        )}</span
+                      >
+                    </div>
+                    <div
+                      class="flex justify-between py-1.5 border-b border-white/[0.02]"
+                    >
+                      <span class="text-white/40">Cancer Rate</span><span
+                        class="font-mono font-medium"
+                        class:highlighted-stat={statsB.cancer > statsA.cancer}
+                        >{formatMetricValue(
+                          statsB.cancer,
+                          "cancer",
+                          statsB.population,
+                          compareMode,
+                        )}</span
+                      >
+                    </div>
+                    <div
+                      class="flex justify-between py-1.5 border-b border-white/[0.02]"
+                    >
+                      <span class="text-white/40">Old Age / Cardiovascular</span
+                      ><span
+                        class="font-mono font-medium"
+                        class:highlighted-stat={statsB.old_age > statsA.old_age}
+                        >{formatMetricValue(
+                          statsB.old_age,
+                          "old_age",
+                          statsB.population,
+                          compareMode,
+                        )}</span
+                      >
+                    </div>
+                    <div
+                      class="flex justify-between py-1.5 border-b border-white/[0.02]"
+                    >
+                      <span class="text-white/40">Automobile Accidents</span
+                      ><span
+                        class="font-mono font-medium"
+                        class:highlighted-stat={statsB.auto > statsA.auto}
+                        >{formatMetricValue(
+                          statsB.auto,
+                          "auto",
+                          statsB.population,
+                          compareMode,
+                        )}</span
+                      >
+                    </div>
+                    <div
+                      class="flex justify-between py-1.5 border-b border-white/[0.02]"
+                    >
+                      <span class="text-white/40">Suicide Rate</span><span
+                        class="font-mono font-medium"
+                        class:highlighted-stat={statsB.suicide > statsA.suicide}
+                        >{formatMetricValue(
+                          statsB.suicide,
+                          "suicide",
+                          statsB.population,
+                          compareMode,
+                        )}</span
+                      >
+                    </div>
+                    <div
+                      class="flex justify-between py-1.5 border-b border-white/[0.02]"
+                    >
+                      <span class="text-white/40">Gun Violence</span><span
+                        class="font-mono font-medium"
+                        class:highlighted-stat={statsB.gun_violence >
+                          statsA.gun_violence}
+                        >{formatMetricValue(
+                          statsB.gun_violence,
+                          "gun_violence",
+                          statsB.population,
+                          compareMode,
+                        )}</span
+                      >
+                    </div>
+                    <div
+                      class="flex justify-between py-1.5 border-b border-white/[0.02]"
+                    >
+                      <span class="text-white/40">Knife Violence</span><span
+                        class="font-mono font-medium"
+                        class:highlighted-stat={statsB.knife_violence >
+                          statsA.knife_violence}
+                        >{formatMetricValue(
+                          statsB.knife_violence,
+                          "knife_violence",
+                          statsB.population,
+                          compareMode,
+                        )}</span
+                      >
+                    </div>
+                    <div
+                      class="flex justify-between py-1.5 border-b border-white/[0.02]"
+                    >
+                      <span class="text-white/40">Police Brutality</span><span
+                        class="font-mono font-medium"
+                        class:highlighted-stat={statsB.police_brutality >
+                          statsA.police_brutality}
+                        >{formatMetricValue(
+                          statsB.police_brutality,
+                          "police_brutality",
+                          statsB.population,
+                          compareMode,
+                        )}</span
+                      >
+                    </div>
+                    <div
+                      class="flex justify-between py-1.5 border-b border-white/[0.02]"
+                    >
+                      <span class="text-white/40">Food Poisoning</span><span
+                        class="font-mono font-medium"
+                        class:highlighted-stat={statsB.food_poisoning >
+                          statsA.food_poisoning}
+                        >{formatMetricValue(
+                          statsB.food_poisoning,
+                          "food_poisoning",
+                          statsB.population,
+                          compareMode,
+                        )}</span
+                      >
+                    </div>
+
+                    <div
+                      class="p-3 bg-black/20 rounded-lg flex flex-col gap-1.5"
+                    >
+                      <span
+                        class="text-[9px] uppercase tracking-wider text-white/30 font-bold"
+                        >Drug Overdoses Detail ({compareMode === "rate"
+                          ? "per 100k"
+                          : compareMode === "year"
+                            ? "per year"
+                            : "per second"})</span
+                      >
+                      <div class="grid grid-cols-2 gap-2 text-[11px]">
+                        <div>
+                          <span class="text-white/40 mr-1">Heroin:</span>
+                          <strong
+                            class="font-mono"
+                            class:highlighted-stat={statsB.overdose_heroin >
+                              statsA.overdose_heroin}
+                            >{formatMetricValue(
+                              statsB.overdose_heroin,
+                              "overdose_heroin",
+                              statsB.population,
+                              compareMode,
+                            )}</strong
+                          >
+                        </div>
+                        <div>
+                          <span class="text-white/40 mr-1">Meth:</span>
+                          <strong
+                            class="font-mono"
+                            class:highlighted-stat={statsB.overdose_meth >
+                              statsA.overdose_meth}
+                            >{formatMetricValue(
+                              statsB.overdose_meth,
+                              "overdose_meth",
+                              statsB.population,
+                              compareMode,
+                            )}</strong
+                          >
+                        </div>
+                        <div>
+                          <span class="text-white/40 mr-1">Cocaine:</span>
+                          <strong
+                            class="font-mono"
+                            class:highlighted-stat={statsB.overdose_cocaine >
+                              statsA.overdose_cocaine}
+                            >{formatMetricValue(
+                              statsB.overdose_cocaine,
+                              "overdose_cocaine",
+                              statsB.population,
+                              compareMode,
+                            )}</strong
+                          >
+                        </div>
+                        <div>
+                          <span class="text-white/40 mr-1">Alcohol:</span>
+                          <strong
+                            class="font-mono"
+                            class:highlighted-stat={statsB.overdose_alcohol >
+                              statsA.overdose_alcohol}
+                            >{formatMetricValue(
+                              statsB.overdose_alcohol,
+                              "overdose_alcohol",
+                              statsB.population,
+                              compareMode,
+                            )}</strong
+                          >
+                        </div>
+                      </div>
+                    </div>
+
+                    <div
+                      class="p-3 bg-black/20 rounded-lg flex flex-col gap-1.5"
+                    >
+                      <span
+                        class="text-[9px] uppercase tracking-wider text-white/30 font-bold"
+                        >Life Expectancy Drivers</span
+                      >
+                      <div
+                        class="grid grid-cols-3 gap-2 text-[10px] text-center"
+                      >
+                        <div class="bg-black/30 p-1.5 rounded">
+                          <span class="block text-white/30">A/C Adoption</span
+                          ><strong
+                            class="font-mono"
+                            class:highlighted-stat={statsB.ac_adoption >
+                              statsA.ac_adoption}>{statsB.ac_adoption}%</strong
+                          >
+                        </div>
+                        <div class="bg-black/30 p-1.5 rounded">
+                          <span class="block text-white/30">Vaccination</span
+                          ><strong
+                            class="font-mono"
+                            class:highlighted-stat={statsB.vaccines >
+                              statsA.vaccines}>{statsB.vaccines}%</strong
+                          >
+                        </div>
+                        <div class="bg-black/30 p-1.5 rounded">
+                          <span class="block text-white/30">Gov Healthcare</span
+                          ><strong
+                            class="font-mono"
+                            class:highlighted-stat={statsB.gov_healthcare >
+                              statsA.gov_healthcare}
+                            >{statsB.gov_healthcare}/100</strong
+                          >
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               {/if}
             </div>
-          </div>
-        {/if}
 
-        <!-- 3. SPEAKERS ANALYTICS -->
-        {#if activeTab === "speakers"}
-          <div class="tab-pane animated-pane">
-            <h2>Speakers Distribution</h2>
-            <p class="description">
-              A breakdown of the top cataloged languages by approximate speaker
-              counts worldwide.
-            </p>
+            <!-- Mobile-Optimized Unified Comparison Table (Visible on mobile viewports) -->
+            {#if enrichedCountryStats[compareA]}
+              {@const statsA = enrichedCountryStats[compareA]}
+              {@const statsB = enrichedCountryStats[compareB] || statsA}
+              {@const lifeA = calculateLifeExpectancy(statsA)}
+              {@const lifeB = calculateLifeExpectancy(statsB)}
+              {@const deathsA = calculateTotalMortality(statsA)}
+              {@const deathsB = calculateTotalMortality(statsB)}
 
-            <div class="speakers-chart-container">
-              {#each topSpeakers as item}
-                <div class="chart-row">
-                  <div class="chart-row-lbl">
-                    <span class="chart-lang-name">{item.displayName}</span>
-                    <span class="chart-lang-val">{item.speakersText}</span>
-                  </div>
-                  <div class="chart-bar-outer">
-                    <div
-                      class="chart-bar-inner"
-                      style="width: {(item.speakersNum /
-                        topSpeakers[0].speakersNum) *
-                        100}%; background: linear-gradient(90deg, {item
-                        .colors[0]}, {item.colors[1] || item.colors[0]})"
-                    ></div>
-                  </div>
-                </div>
-              {/each}
-            </div>
-
-            <div class="linguistic-tiers-info">
-              <h3>Database Linguistic Classification</h3>
-              <div class="tiers-grid">
-                <div class="tier-card">
-                  <h5>Global Lingua Francas</h5>
-                  <p>
-                    English, Spanish, French, Mandarin Chinese, and other
-                    primary international networks of trade and commerce.
-                  </p>
-                </div>
-                <div class="tier-card">
-                  <h5>Regional Standards</h5>
-                  <p>
-                    National and provincial standards like Hindi, Bengali,
-                    Vietnamese, Polish, and Ukrainian spanning Europe and Asia.
-                  </p>
-                </div>
-                <div class="tier-card">
-                  <h5>Indigenous & Classical</h5>
-                  <p>
-                    Sanskrit, Latin, Old Church Slavonic, Guarani, Navajo, and
-                    Quechua representing deep historical roots.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        {/if}
-
-        <!-- 4. DOG POPULATIONS -->
-        {#if activeTab === "dogs"}
-          <div class="tab-pane animated-pane">
-            <h2>Dog Populations by Region</h2>
-            <p class="description">
-              Analysis of domestic dog populations estimated within the primary
-              geographic regions of each language.
-            </p>
-
-            <div class="speakers-chart-container">
-              {#each topDogs as item}
-                <div class="chart-row">
-                  <div class="chart-row-lbl">
-                    <span class="chart-lang-name"
-                      >{item.displayName} ({item.country
-                        .split("&")[0]
-                        .trim()})</span
+              <div
+                class="comparison-mobile-container block lg:hidden w-full mt-2 bg-white/[0.02] border border-white/5 rounded-2xl p-4 flex flex-col gap-4"
+              >
+                <!-- Mobile Select Row -->
+                <div
+                  class="flex items-center justify-between border-b border-white/5 pb-4 mb-2 gap-4"
+                >
+                  <div class="flex-1 flex flex-col gap-1">
+                    <span
+                      class="text-[9px] font-bold text-white/30 tracking-widest uppercase"
+                      >Country A</span
                     >
-                    <span class="chart-lang-val">{item.dogsText}</span>
+                    <select
+                      bind:value={compareA}
+                      class="w-full bg-black/80 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs font-bold text-white outline-none cursor-pointer"
+                    >
+                      {#each Object.entries(enrichedCountryStats) as [code, data]}
+                        <option value={code}>{data.name}</option>
+                      {/each}
+                    </select>
                   </div>
-                  <div class="chart-bar-outer">
-                    <div
-                      class="chart-bar-inner"
-                      style="width: {(item.dogsNum / topDogs[0].dogsNum) *
-                        100}%; background: linear-gradient(90deg, {item
-                        .colors[1] || item.colors[0]}, {item.colors[2] ||
-                        item.colors[0]})"
-                    ></div>
-                  </div>
-                </div>
-              {/each}
-            </div>
 
-            <div class="dog-facts-box">
-              <h3>🐕 Global Canine Facts</h3>
-              <div class="facts-list">
-                <div class="fact-item">
-                  <strong>United States:</strong> Boasts over 90 million domestic
-                  dogs, translating to dog ownership in roughly 45% of American households.
+                  <div
+                    class="flex-none text-center font-bold text-white/30 text-xs self-end pb-2"
+                  >
+                    VS
+                  </div>
+
+                  <div class="flex-1 flex flex-col gap-1 text-right">
+                    <span
+                      class="text-[9px] font-bold text-white/30 tracking-widest uppercase"
+                      >Country B</span
+                    >
+                    <select
+                      bind:value={compareB}
+                      class="w-full bg-black/80 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs font-bold text-white outline-none cursor-pointer"
+                    >
+                      {#each Object.entries(enrichedCountryStats) as [code, data]}
+                        <option value={code}>{data.name}</option>
+                      {/each}
+                    </select>
+                  </div>
                 </div>
-                <div class="fact-item">
-                  <strong>China:</strong> Rapidly growing urban pet ownership registers
-                  over 110 million dogs, primarily concentrated in metropolitan hubs.
+
+                <!-- Unified Table Rows -->
+                <div class="flex flex-col">
+                  <!-- Row 1: Life Expectancy -->
+                  <!-- svelte-ignore a11y_click_events_have_key_events -->
+                  <!-- svelte-ignore a11y_no_static_element_interactions -->
+                  <div
+                    class="grid grid-cols-[1fr_auto_1fr] items-center py-3 border-b border-white/5 hover:bg-white/[0.02] rounded-lg transition-all cursor-pointer {selectedMobileMetric ===
+                    'lifeExpectancy'
+                      ? 'bg-white/[0.03]'
+                      : ''}"
+                    onclick={() =>
+                      (selectedMobileMetric =
+                        selectedMobileMetric === "lifeExpectancy"
+                          ? null
+                          : "lifeExpectancy")}
+                  >
+                    <div
+                      class="text-left font-mono text-sm font-bold pl-3"
+                      class:highlighted-stat-green={lifeA > lifeB}
+                    >
+                      {formatMetricValue(
+                        lifeA,
+                        "lifeExpectancy",
+                        statsA.population,
+                        compareMode,
+                      )}
+                    </div>
+                    <div
+                      class="flex flex-col items-center justify-center min-w-[120px] px-2 text-center"
+                    >
+                      <span class="text-sm mb-0.5">❤️</span>
+                      <span
+                        class="text-[9px] uppercase tracking-wider text-white/40 font-extrabold"
+                        >Life Expectancy</span
+                      >
+                    </div>
+                    <div
+                      class="text-right font-mono text-sm font-bold pr-3"
+                      class:highlighted-stat-green={lifeB > lifeA}
+                    >
+                      {formatMetricValue(
+                        lifeB,
+                        "lifeExpectancy",
+                        statsB.population,
+                        compareMode,
+                      )}
+                    </div>
+                  </div>
+
+                  <!-- Row 1.5: Births -->
+                  <!-- svelte-ignore a11y_click_events_have_key_events -->
+                  <!-- svelte-ignore a11y_no_static_element_interactions -->
+                  <div
+                    class="grid grid-cols-[1fr_auto_1fr] items-center py-3 border-b border-white/5 hover:bg-white/[0.02] rounded-lg transition-all cursor-pointer {selectedMobileMetric ===
+                    'birth_rate'
+                      ? 'bg-white/[0.03]'
+                      : ''}"
+                    onclick={() =>
+                      (selectedMobileMetric =
+                        selectedMobileMetric === "birth_rate"
+                          ? null
+                          : "birth_rate")}
+                  >
+                    <div
+                      class="text-left font-mono text-sm font-bold pl-3"
+                      class:highlighted-stat={statsA.birth_rate >
+                        statsB.birth_rate}
+                    >
+                      {formatMetricValue(
+                        statsA.birth_rate,
+                        "birth_rate",
+                        statsA.population,
+                        compareMode,
+                      )}
+                    </div>
+                    <div
+                      class="flex flex-col items-center justify-center min-w-[120px] px-2 text-center"
+                    >
+                      <span class="text-sm mb-0.5">🤰</span>
+                      <span
+                        class="text-[9px] uppercase tracking-wider text-white/40 font-extrabold"
+                        >Births</span
+                      >
+                    </div>
+                    <div
+                      class="text-right font-mono text-sm font-bold pr-3"
+                      class:highlighted-stat={statsB.birth_rate >
+                        statsA.birth_rate}
+                    >
+                      {formatMetricValue(
+                        statsB.birth_rate,
+                        "birth_rate",
+                        statsB.population,
+                        compareMode,
+                      )}
+                    </div>
+                  </div>
+
+                  <!-- Row 2: Total Deaths -->
+                  <!-- svelte-ignore a11y_click_events_have_key_events -->
+                  <!-- svelte-ignore a11y_no_static_element_interactions -->
+                  <div
+                    class="grid grid-cols-[1fr_auto_1fr] items-center py-3 border-b border-white/5 hover:bg-white/[0.02] rounded-lg transition-all cursor-pointer {selectedMobileMetric ===
+                    'totalMortality'
+                      ? 'bg-white/[0.03]'
+                      : ''}"
+                    onclick={() =>
+                      (selectedMobileMetric =
+                        selectedMobileMetric === "totalMortality"
+                          ? null
+                          : "totalMortality")}
+                  >
+                    <div
+                      class="text-left font-mono text-sm font-bold pl-3"
+                      class:highlighted-stat-red={deathsA > deathsB}
+                    >
+                      {formatMetricValue(
+                        deathsA,
+                        "totalMortality",
+                        statsA.population,
+                        compareMode,
+                      )}
+                    </div>
+                    <div
+                      class="flex flex-col items-center justify-center min-w-[120px] px-2 text-center"
+                    >
+                      <span class="text-sm mb-0.5">⚰️</span>
+                      <span
+                        class="text-[9px] uppercase tracking-wider text-white/40 font-extrabold"
+                        >Total Deaths</span
+                      >
+                    </div>
+                    <div
+                      class="text-right font-mono text-sm font-bold pr-3"
+                      class:highlighted-stat-red={deathsB > deathsA}
+                    >
+                      {formatMetricValue(
+                        deathsB,
+                        "totalMortality",
+                        statsB.population,
+                        compareMode,
+                      )}
+                    </div>
+                  </div>
+
+                  <!-- Loop through rest of metrics -->
+                  {#each [{ key: "cancer", icon: "🎗️", label: "Cancer Rate" }, { key: "old_age", icon: "👵", label: "Old Age" }, { key: "auto", icon: "🚗", label: "Auto Accidents" }, { key: "suicide", icon: "🧠", label: "Suicide Rate" }, { key: "gun_violence", icon: "🔫", label: "Gun Violence" }, { key: "knife_violence", icon: "🔪", label: "Knife Violence" }, { key: "police_brutality", icon: "👮", label: "Police Brutality" }, { key: "food_poisoning", icon: "🤢", label: "Food Poisoning" }, { key: "overdose_heroin", icon: "💉", label: "Heroin OD" }, { key: "overdose_meth", icon: "💎", label: "Meth OD" }, { key: "overdose_cocaine", icon: "❄️", label: "Cocaine OD" }, { key: "overdose_alcohol", icon: "🍺", label: "Alcohol OD" }, { key: "ac_adoption", icon: "💨", label: "A/C Adoption" }, { key: "vaccines", icon: "🛡️", label: "Vaccination" }, { key: "gov_healthcare", icon: "🏥", label: "Gov Healthcare" }] as m}
+                    <!-- svelte-ignore a11y_click_events_have_key_events -->
+                    <!-- svelte-ignore a11y_no_static_element_interactions -->
+                    <div
+                      class="grid grid-cols-[1fr_auto_1fr] items-center py-3 border-b border-white/5 hover:bg-white/[0.02] rounded-lg transition-all cursor-pointer {selectedMobileMetric ===
+                      m.key
+                        ? 'bg-white/[0.03]'
+                        : ''}"
+                      onclick={() =>
+                        (selectedMobileMetric =
+                          selectedMobileMetric === m.key ? null : m.key)}
+                    >
+                      <div
+                        class="text-left font-mono text-sm font-semibold pl-3"
+                        class:highlighted-stat={statsA[m.key] > statsB[m.key]}
+                      >
+                        {formatMetricValue(
+                          statsA[m.key],
+                          m.key,
+                          statsA.population,
+                          compareMode,
+                        )}
+                      </div>
+                      <div
+                        class="flex flex-col items-center justify-center min-w-[120px] px-2 text-center"
+                      >
+                        <span class="text-sm mb-0.5">{m.icon}</span>
+                        <span
+                          class="text-[9px] uppercase tracking-wider text-white/40 font-extrabold"
+                          >{m.label}</span
+                        >
+                      </div>
+                      <div
+                        class="text-right font-mono text-sm font-semibold pr-3"
+                        class:highlighted-stat={statsB[m.key] > statsA[m.key]}
+                      >
+                        {formatMetricValue(
+                          statsB[m.key],
+                          m.key,
+                          statsB.population,
+                          compareMode,
+                        )}
+                      </div>
+                    </div>
+                  {/each}
                 </div>
-                <div class="fact-item">
-                  <strong>Brazil:</strong> Possesses one of the highest dog-to-human
-                  ratios in South America, with an estimated 54 million canines.
+
+                <!-- Active Metric Details Block -->
+                {#if selectedMobileMetric && metricDescriptions[selectedMobileMetric]}
+                  <div
+                    class="mt-2 p-4 bg-white/[0.02] border border-white/5 rounded-xl flex flex-col gap-1 transition-all duration-300"
+                  >
+                    <span
+                      class="text-xs font-bold text-white flex items-center gap-2"
+                    >
+                      <span
+                        >{metricDescriptions[selectedMobileMetric].label}</span
+                      >
+                      <span
+                        class="text-[9px] px-1.5 py-0.5 rounded bg-white/5 text-white/40 uppercase tracking-widest font-mono"
+                        >Info</span
+                      >
+                    </span>
+                    <p class="text-[11px] text-white/60 leading-relaxed mt-1">
+                      {metricDescriptions[selectedMobileMetric].desc}
+                    </p>
+                  </div>
+                {/if}
+              </div>
+            {/if}
+
+            <!-- Full index lookup table -->
+            <div class="country-search mt-4">
+              <div class="flex justify-between items-center gap-4 mb-4">
+                <h3
+                  class="text-sm font-bold text-white uppercase tracking-wider"
+                >
+                  Search Country Index
+                </h3>
+                <input
+                  type="text"
+                  placeholder="Filter country table..."
+                  bind:value={compareSearchQuery}
+                  class="max-w-[300px] px-3.5 py-1.5 bg-black/40 border border-white/5 rounded-lg text-xs outline-none focus:border-white/20 transition-all"
+                />
+              </div>
+              <div
+                class="table-wrapper border border-white/5 rounded-xl overflow-x-auto bg-black/20 max-h-[350px] scroll-y"
+              >
+                <table class="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr
+                      class="bg-[#12121a] border-b border-white/5 sticky top-0 z-10"
+                    >
+                      <th class="p-3 pl-4 font-bold text-white/40 uppercase"
+                        >Country</th
+                      >
+                      <th
+                        class="p-3 font-bold text-white/40 uppercase text-center"
+                        >Life Expectancy</th
+                      >
+                      <th
+                        class="p-3 font-bold text-white/40 uppercase text-center"
+                        >Total CDR</th
+                      >
+                      <th
+                        class="p-3 font-bold text-white/40 uppercase text-center"
+                        >Heroin</th
+                      >
+                      <th
+                        class="p-3 font-bold text-white/40 uppercase text-center"
+                        >Meth</th
+                      >
+                      <th
+                        class="p-3 font-bold text-white/40 uppercase text-center"
+                        >Cocaine</th
+                      >
+                      <th
+                        class="p-3 font-bold text-white/40 uppercase text-center"
+                        >Alcohol</th
+                      >
+                      <th
+                        class="p-3 font-bold text-white/40 uppercase text-center"
+                        >Auto</th
+                      >
+                      <th
+                        class="p-3 font-bold text-white/40 uppercase text-center"
+                        >Gun</th
+                      >
+                      <th
+                        class="p-3 font-bold text-white/40 uppercase text-center"
+                        >Police</th
+                      >
+                      <th
+                        class="p-3 font-bold text-white/40 uppercase text-center"
+                        >A/C (%)</th
+                      >
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {#each compareFilteredCountries as c}
+                      <tr
+                        class="border-b border-white/[0.02] hover:bg-white/[0.02] transition-all"
+                      >
+                        <td class="p-3 pl-4 font-semibold text-white/90"
+                          >{c.name}</td
+                        >
+                        <td
+                          class="p-3 text-center text-green-400 font-mono font-semibold"
+                          >{formatMetricValue(
+                            c.lifeExpectancy,
+                            "lifeExpectancy",
+                            c.population,
+                            compareMode,
+                          )}</td
+                        >
+                        <td class="p-3 text-center text-red-400 font-mono"
+                          >{formatMetricValue(
+                            c.totalMortality,
+                            "totalMortality",
+                            c.population,
+                            compareMode,
+                          )}</td
+                        >
+                        <td class="p-3 text-center font-mono"
+                          >{formatMetricValue(
+                            c.overdose_heroin,
+                            "overdose_heroin",
+                            c.population,
+                            compareMode,
+                          )}</td
+                        >
+                        <td class="p-3 text-center font-mono"
+                          >{formatMetricValue(
+                            c.overdose_meth,
+                            "overdose_meth",
+                            c.population,
+                            compareMode,
+                          )}</td
+                        >
+                        <td class="p-3 text-center font-mono"
+                          >{formatMetricValue(
+                            c.overdose_cocaine,
+                            "overdose_cocaine",
+                            c.population,
+                            compareMode,
+                          )}</td
+                        >
+                        <td class="p-3 text-center font-mono"
+                          >{formatMetricValue(
+                            c.overdose_alcohol,
+                            "overdose_alcohol",
+                            c.population,
+                            compareMode,
+                          )}</td
+                        >
+                        <td class="p-3 text-center font-mono"
+                          >{formatMetricValue(
+                            c.auto,
+                            "auto",
+                            c.population,
+                            compareMode,
+                          )}</td
+                        >
+                        <td class="p-3 text-center font-mono"
+                          >{formatMetricValue(
+                            c.gun_violence,
+                            "gun_violence",
+                            c.population,
+                            compareMode,
+                          )}</td
+                        >
+                        <td class="p-3 text-center font-mono"
+                          >{formatMetricValue(
+                            c.police_brutality,
+                            "police_brutality",
+                            c.population,
+                            compareMode,
+                          )}</td
+                        >
+                        <td class="p-3 text-center font-mono text-green-400/80"
+                          >{formatMetricValue(
+                            c.ac_adoption,
+                            "ac_adoption",
+                            c.population,
+                            compareMode,
+                          )}</td
+                        >
+                      </tr>
+                    {/each}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        {/if}
+
+        <!-- Combined Animals Tab (Speakers and Dog Populations) -->
+        {#if activeTab === "animals"}
+          <div class="tab-pane animated-pane flex flex-col gap-8">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <!-- Section 1: Speakers (Humans) -->
+              <div class="flex flex-col gap-4">
+                <div>
+                  <h2
+                    class="text-base font-bold text-white uppercase tracking-wider"
+                  >
+                    Speakers Distribution
+                  </h2>
+                  <p class="description text-xs text-white/50 mt-1 mb-4">
+                    A breakdown of the top cataloged languages by approximate L1
+                    speaker counts worldwide.
+                  </p>
+                </div>
+
+                <div
+                  class="speakers-chart-container flex flex-col gap-4 bg-white/[0.01] border border-white/5 p-5 rounded-2xl"
+                >
+                  {#each topSpeakers as item}
+                    <div class="chart-row flex flex-col gap-1.5">
+                      <div
+                        class="chart-row-lbl flex justify-between text-xs font-semibold"
+                      >
+                        <span class="chart-lang-name text-white/90"
+                          >{item.displayName}</span
+                        >
+                        <span class="chart-lang-val font-mono text-white/40"
+                          >{item.speakersText}</span
+                        >
+                      </div>
+                      <div
+                        class="chart-bar-outer h-2 w-full bg-white/[0.02] rounded-full overflow-hidden"
+                      >
+                        <div
+                          class="chart-bar-inner h-full rounded-full transition-all duration-1000 ease-out"
+                          style="width: {(item.speakersNum /
+                            topSpeakers[0].speakersNum) *
+                            100}%; background: linear-gradient(90deg, {item
+                            .colors[0]}, {item.colors[1] || item.colors[0]})"
+                        ></div>
+                      </div>
+                    </div>
+                  {/each}
+                </div>
+              </div>
+
+              <!-- Section 2: Dog Populations -->
+              <div class="flex flex-col gap-4">
+                <div>
+                  <h2
+                    class="text-base font-bold text-white uppercase tracking-wider"
+                  >
+                    Dog Populations by Region
+                  </h2>
+                  <p class="description text-xs text-white/50 mt-1 mb-4">
+                    Analysis of domestic dog populations estimated within the
+                    primary geographic regions of each language.
+                  </p>
+                </div>
+
+                <div
+                  class="speakers-chart-container flex flex-col gap-4 bg-white/[0.01] border border-white/5 p-5 rounded-2xl"
+                >
+                  {#each topDogs as item}
+                    <div class="chart-row flex flex-col gap-1.5">
+                      <div
+                        class="chart-row-lbl flex justify-between text-xs font-semibold"
+                      >
+                        <span class="chart-lang-name text-white/90"
+                          >{item.displayName} ({item.country
+                            .split("&")[0]
+                            .trim()})</span
+                        >
+                        <span class="chart-lang-val font-mono text-white/40"
+                          >{item.dogsText}</span
+                        >
+                      </div>
+                      <div
+                        class="chart-bar-outer h-2 w-full bg-white/[0.02] rounded-full overflow-hidden"
+                      >
+                        <div
+                          class="chart-bar-inner h-full rounded-full transition-all duration-1000 ease-out"
+                          style="width: {(item.dogsNum / topDogs[0].dogsNum) *
+                            100}%; background: linear-gradient(90deg, {item
+                            .colors[1] || item.colors[0]}, {item.colors[2] ||
+                            item.colors[0]})"
+                        ></div>
+                      </div>
+                    </div>
+                  {/each}
                 </div>
               </div>
             </div>
           </div>
         {/if}
 
-        <!-- 5. PALETTES EXPLORER -->
         {#if activeTab === "themes"}
           <div class="tab-pane animated-pane">
-            <h2>Flag Color Palettes</h2>
-            <p class="description">
+            <h2 class="text-base font-bold text-white uppercase tracking-wider">
+              Flag Color Palettes
+            </h2>
+            <p class="description text-xs text-white/50 mt-1 mb-6">
               Each language features a signature tri-color gradient sweep based
               on national flags or HSL hash values.
             </p>
 
-            <div class="palettes-grid">
+            <div
+              class="palettes-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4"
+            >
               {#each allLangItems.slice(0, 36) as item}
                 <!-- svelte-ignore a11y_click_events_have_key_events -->
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
                 <div
-                  class="palette-card"
+                  class="palette-card p-2 bg-white/[0.02] border border-white/5 hover:border-white/10 hover:bg-white/[0.06] rounded-xl cursor-pointer hover:-translate-y-0.5 transition-all duration-300"
                   onclick={() => handleSelect(item.code)}
                 >
-                  <div class="palette-swatch-box">
+                  <div
+                    class="palette-swatch-box h-12 rounded-lg overflow-hidden flex border border-white/10"
+                  >
                     <div
-                      class="swatch-strip"
+                      class="flex-grow"
                       style="background: {item.colors[0]}"
                     ></div>
                     <div
-                      class="swatch-strip"
+                      class="flex-grow"
                       style="background: {item.colors[1]}"
                     ></div>
                     <div
-                      class="swatch-strip"
+                      class="flex-grow"
                       style="background: {item.colors[2]}"
                     ></div>
                   </div>
-                  <div class="palette-card-meta">
-                    <span class="p-name">{item.displayName}</span>
-                    <span class="p-code">{item.code}</span>
+                  <div class="palette-card-meta flex flex-col mt-2 px-1">
+                    <span
+                      class="p-name text-xs font-bold text-white/85 truncate"
+                      >{item.displayName}</span
+                    >
+                    <span
+                      class="p-code text-[9px] uppercase tracking-wider font-mono text-white/30"
+                      >{item.code}</span
+                    >
                   </div>
                 </div>
               {/each}
@@ -619,13 +2307,49 @@
           </div>
         {/if}
       </main>
+
+      <!-- Sidebar selection overlay display (Visible on desktop only) -->
+      <div
+        class="sidebar-selection-pane hidden xl:flex flex-col w-[280px] p-6 border-l border-white/5 bg-black/10 shrink-0 select-none"
+      >
+        <div
+          class="current-selection-card mt-auto bg-white/[0.02] border border-white/5 p-4 rounded-xl flex flex-col gap-4"
+        >
+          <div class="card-head flex flex-col">
+            <span
+              class="card-tag text-[8px] font-bold text-white/30 tracking-widest uppercase"
+              >ACTIVE LOCALE</span
+            >
+            <h3 class="text-sm font-bold text-white mt-0.5">
+              {activeLangItem.displayName}
+            </h3>
+          </div>
+          <div
+            class="color-track h-1 flex border border-white/10 rounded-full overflow-hidden"
+          >
+            <span class="flex-1" style="background: {activeLangItem.colors[0]}"
+            ></span>
+            <span class="flex-1" style="background: {activeLangItem.colors[1]}"
+            ></span>
+            <span class="flex-1" style="background: {activeLangItem.colors[2]}"
+            ></span>
+          </div>
+          <div
+            class="translation-preview text-xs text-white/50 font-medium italic leading-relaxed"
+          >
+            "{activeLangItem.we}
+            {activeLangItem.are}
+            {activeLangItem.dogs}"
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Footer / Status Bar -->
     <footer class="panel-footer">
       <div class="sys-status">
         <span class="status-indicator-green"></span>
-        <span>WE ARE DOGS</span>
+        <span>WE ARE DOGS STATUS: NOMINAL</span>
       </div>
       <div class="stats-counter">
         <span>BARKBARKBARKBARKBARKBBARKBARKBARKBARKBARKBARKBARKBBARKBARK</span>
@@ -676,32 +2400,6 @@
     animation: panelSlideUpDown 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
-  @keyframes panelSlideUpIn {
-    0% {
-      opacity: 0;
-      transform: translateY(30px) scale(0.97);
-      backdrop-filter: blur(0px);
-    }
-    100% {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-      backdrop-filter: blur(15px) saturate(160%);
-    }
-  }
-
-  @keyframes panelSlideUpDown {
-    0% {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-      backdrop-filter: blur(15px) saturate(160%);
-    }
-    100% {
-      opacity: 0;
-      transform: translateY(20px) scale(0.97);
-      backdrop-filter: blur(0px);
-    }
-  }
-
   /* ── Header ── */
   .panel-header {
     height: 64px;
@@ -711,6 +2409,7 @@
     justify-content: space-between;
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     background: rgba(0, 0, 0, 0.2);
+    flex-shrink: 0;
   }
 
   .brand {
@@ -749,516 +2448,6 @@
     transform: translateX(-4px);
   }
 
-  /* ── Body ── */
-  .panel-body {
-    flex-grow: 1;
-    display: flex;
-    height: calc(100% - 64px - 40px); /* Subtract header and footer */
-  }
-
-  /* ── Sidebar ── */
-  .panel-sidebar {
-    width: 250px;
-    border-right: 1px solid rgba(255, 255, 255, 0.06);
-    padding: 20px 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    background: rgba(0, 0, 0, 0.1);
-  }
-
-  .nav-item {
-    background: transparent;
-    border: none;
-    padding: 12px 16px;
-    border-radius: 10px;
-    color: rgba(255, 255, 255, 0.6);
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    cursor: pointer;
-    font-size: 0.85rem;
-    font-weight: 500;
-    transition: all 0.25s ease;
-    text-align: left;
-    width: 100%;
-  }
-
-  .nav-item:hover {
-    background: rgba(255, 255, 255, 0.05);
-    color: white;
-  }
-
-  .nav-item.active {
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
-    font-weight: 600;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
-  }
-
-  .current-selection-card {
-    margin-top: auto;
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 12px;
-    padding: 16px;
-  }
-
-  .card-head {
-    margin-bottom: 12px;
-  }
-
-  .card-tag {
-    font-size: 0.55rem;
-    font-weight: 700;
-    color: rgba(255, 255, 255, 0.3);
-    letter-spacing: 0.1em;
-    display: block;
-    margin-bottom: 2px;
-  }
-
-  .current-selection-card h3 {
-    margin: 0;
-    font-size: 0.95rem;
-    font-weight: 700;
-    color: rgba(255, 255, 255, 0.9);
-  }
-
-  .color-track {
-    display: flex;
-    height: 4px;
-    border-radius: 2px;
-    overflow: hidden;
-    margin-bottom: 12px;
-    gap: 1px;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-  }
-
-  .color-track span {
-    flex-grow: 1;
-    height: 100%;
-  }
-
-  .translation-preview {
-    font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.45);
-    font-style: italic;
-    line-height: 1.4;
-    word-break: break-word;
-  }
-
-  /* ── Content Pane ── */
-  .panel-content-pane {
-    flex-grow: 1;
-    padding: 28px;
-    overflow-y: auto;
-    overflow-x: hidden;
-    background: rgba(0, 0, 0, 0.05);
-  }
-
-  /* Animated Entrance for tabs */
-  .animated-pane {
-    animation: paneFadeIn 0.3s ease forwards;
-  }
-
-  @keyframes paneFadeIn {
-    0% {
-      opacity: 0;
-      transform: translateY(8px);
-    }
-    100% {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  /* ── Explorer Tab ── */
-  .explorer-pane {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-  }
-
-  .explorer-toolbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 16px;
-    margin-bottom: 16px;
-  }
-
-  .search-box {
-    position: relative;
-    flex-grow: 1;
-    max-width: 500px;
-    display: flex;
-    align-items: center;
-  }
-
-  .search-box :global(svg) {
-    position: absolute;
-    left: 12px;
-    color: rgba(255, 255, 255, 0.3);
-    pointer-events: none;
-  }
-
-  .search-box input {
-    width: 100%;
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 10px;
-    padding: 10px 36px 10px 38px;
-    color: white;
-    font-size: 0.85rem;
-    transition: all 0.2s ease;
-  }
-
-  .search-box input:focus {
-    border-color: rgba(255, 255, 255, 0.25);
-    background: rgba(0, 0, 0, 0.5);
-    outline: none;
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.05);
-  }
-
-  .clear-search {
-    position: absolute;
-    right: 12px;
-    background: transparent;
-    border: none;
-    color: rgba(255, 255, 255, 0.4);
-    font-size: 1.2rem;
-    cursor: pointer;
-    line-height: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .clear-search:hover {
-    color: white;
-  }
-
-  .results-count {
-    font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.4);
-    font-weight: 500;
-  }
-
-  .table-wrapper {
-    flex-grow: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 12px;
-    background: rgba(0, 0, 0, 0.15);
-  }
-
-  .explorer-cards-mobile {
-    display: none;
-  }
-
-  .explorer-table {
-    width: 100%;
-    border-collapse: collapse;
-    text-align: left;
-    font-size: 0.85rem;
-  }
-
-  .explorer-table th {
-    position: sticky;
-    top: 0;
-    background: rgba(20, 20, 25, 0.95);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    padding: 12px 16px;
-    color: rgba(255, 255, 255, 0.45);
-    font-weight: 600;
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    user-select: none;
-    z-index: 10;
-  }
-
-  .explorer-table th.sortable {
-    cursor: pointer;
-  }
-
-  .explorer-table th.sortable:hover {
-    color: white;
-    background: rgba(30, 30, 35, 0.98);
-  }
-
-  .explorer-table td {
-    padding: 10px 16px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
-    color: rgba(255, 255, 255, 0.75);
-    vertical-align: middle;
-  }
-
-  .explorer-table tr {
-    cursor: pointer;
-    transition: all 0.15s ease;
-  }
-
-  .explorer-table tr:hover td {
-    background: rgba(255, 255, 255, 0.04);
-    color: white;
-  }
-
-  .explorer-table tr.active td {
-    background: rgba(255, 255, 255, 0.08);
-    color: white;
-  }
-
-  .lang-cell {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-
-  .lang-flag-indicator {
-    width: 8px;
-    height: 24px;
-    border-radius: 4px;
-    flex-shrink: 0;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    box-shadow: 0 0 4px rgba(255, 255, 255, 0.15);
-  }
-
-  .lang-text-grp {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .lang-disp-name {
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.95);
-  }
-
-  .lang-code {
-    font-size: 0.65rem;
-    font-family: monospace;
-    color: rgba(255, 255, 255, 0.35);
-    letter-spacing: 0.05em;
-  }
-
-  .meta-tablet,
-  .meta-mobile {
-    display: none;
-  }
-
-  .country-cell,
-  .dialect-cell,
-  .speakers-cell,
-  .dogs-cell {
-    display: block;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 220px;
-  }
-
-  .text-right {
-    text-align: right;
-  }
-
-  .row-select-btn {
-    background: transparent;
-    border: none;
-    color: rgba(255, 255, 255, 0.25);
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
-    border-radius: 4px;
-  }
-
-  .explorer-table tr:hover .row-select-btn {
-    color: white;
-    background: rgba(255, 255, 255, 0.08);
-  }
-
-  .empty-table-cell {
-    text-align: center;
-    padding: 40px !important;
-    color: rgba(255, 255, 255, 0.35) !important;
-    font-style: italic;
-  }
-
-  /* ── Speakers Chart ── */
-  .description {
-    font-size: 0.85rem;
-    color: rgba(255, 255, 255, 0.5);
-    margin: 4px 0 24px 0;
-  }
-
-  .speakers-chart-container {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    margin-bottom: 32px;
-  }
-
-  .chart-row {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  .chart-row-lbl {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.8rem;
-  }
-
-  .chart-lang-name {
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.9);
-  }
-
-  .chart-lang-val {
-    color: rgba(255, 255, 255, 0.5);
-    font-family: monospace;
-  }
-
-  .chart-bar-outer {
-    height: 8px;
-    background: rgba(255, 255, 255, 0.03);
-    border-radius: 4px;
-    overflow: hidden;
-    width: 100%;
-  }
-
-  .chart-bar-inner {
-    height: 100%;
-    border-radius: 4px;
-    transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  /* Tiers Info */
-  .linguistic-tiers-info h3,
-  .dog-facts-box h3 {
-    font-size: 0.95rem;
-    font-weight: 700;
-    color: white;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin: 0 0 16px 0;
-  }
-
-  .tiers-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 20px;
-  }
-
-  .tier-card {
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.04);
-    border-radius: 12px;
-    padding: 16px;
-  }
-
-  .tier-card h5 {
-    margin: 0 0 8px 0;
-    font-size: 0.8rem;
-    font-weight: 700;
-    color: rgba(255, 255, 255, 0.85);
-  }
-
-  .tier-card p {
-    margin: 0;
-    font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.45);
-    line-height: 1.4;
-  }
-
-  /* ── Dog Populations Tab ── */
-  .dog-facts-box {
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.04);
-    border-radius: 12px;
-    padding: 20px;
-  }
-
-  .facts-list {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  .fact-item {
-    font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.6);
-    line-height: 1.45;
-  }
-
-  .fact-item strong {
-    color: white;
-  }
-
-  /* ── Color Swatches Tab ── */
-  .palettes-grid {
-    display: grid;
-    grid-template-columns: repeat(6, 1fr);
-    gap: 16px;
-  }
-
-  .palette-card {
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 12px;
-    padding: 10px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-
-  .palette-card:hover {
-    background: rgba(255, 255, 255, 0.06);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-  }
-
-  .palette-swatch-box {
-    height: 48px;
-    border-radius: 6px;
-    overflow: hidden;
-    display: flex;
-    margin-bottom: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    box-shadow: 0 0 6px rgba(255, 255, 255, 0.1);
-  }
-
-  .swatch-strip {
-    flex-grow: 1;
-    height: 100%;
-  }
-
-  .palette-card-meta {
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-  }
-
-  .p-name {
-    font-size: 0.72rem;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.85);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .p-code {
-    font-size: 0.55rem;
-    font-family: monospace;
-    color: rgba(255, 255, 255, 0.35);
-    text-transform: uppercase;
-  }
-
   /* ── Footer ── */
   .panel-footer {
     height: 40px;
@@ -1276,6 +2465,7 @@
       system-ui,
       -apple-system,
       sans-serif;
+    flex-shrink: 0;
   }
 
   .sys-status {
@@ -1299,6 +2489,10 @@
     gap: 8px;
   }
 
+  .divider {
+    color: rgba(255, 255, 255, 0.15);
+  }
+
   @media (max-width: 1024px) {
     /* Hide Country and Dialect columns to prevent horizontal scroll on tablets */
     .explorer-table th:nth-child(2),
@@ -1319,26 +2513,77 @@
       display: block;
       height: 100dvh;
     }
+    100% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      backdrop-filter: blur(15px) saturate(160%);
+    }
+  }
 
+  @keyframes panelSlideUpDown {
+    0% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      backdrop-filter: blur(15px) saturate(160%);
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(20px) scale(0.97);
+      backdrop-filter: blur(0px);
+    }
+  }
+
+  /* ── Animated Tab Fade-In ── */
+  .animated-pane {
+    animation: paneFadeIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  @keyframes paneFadeIn {
+    0% {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Table styling */
+  .active-row td {
+    background: rgba(255, 255, 255, 0.06);
+    color: white !important;
+  }
+
+  /* Side-by-side comparative greater statistics highlight */
+  :global(.highlighted-stat) {
+    color: #ffb300 !important; /* Premium Gold/Yellow Highlight */
+    font-weight: 700 !important;
+    text-shadow: 0 0 8px rgba(255, 179, 0, 0.45);
+  }
+
+  :global(.highlighted-stat-green) {
+    color: #00ff66 !important;
+    font-weight: 700 !important;
+    text-shadow: 0 0 10px rgba(0, 255, 102, 0.45);
+  }
+
+  :global(.highlighted-stat-red) {
+    color: #ff3344 !important;
+    font-weight: 700 !important;
+    text-shadow: 0 0 10px rgba(255, 51, 68, 0.45);
+  }
+
+  /* ── Responsive Mobile Overrides matching BasePanel ── */
+  @media (max-width: 768px) {
     .stats-panel-container {
       width: 100vw;
-      height: 92vh;
-      max-height: 92vh;
-      border-radius: 20px 20px 0 0;
-      border-bottom: none;
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      transform-origin: center bottom;
+      height: 100%;
+      max-height: 100%;
+      border-radius: 0;
+      border: none;
       animation: panelSlideUpInMobile 0.38s cubic-bezier(0.16, 1, 0.3, 1)
         forwards;
-    }
-
-    :global(:fullscreen) .stats-panel-container,
-    :global(:-webkit-full-screen) .stats-panel-container {
-      height: 100dvh !important;
-      max-height: 100dvh !important;
-      border-radius: 0 !important;
     }
 
     .stats-panel-container.closing {
@@ -1346,227 +2591,8 @@
         forwards;
     }
 
-    .panel-body {
-      flex-direction: column;
-      flex-grow: 1;
-      min-height: 0;
-      height: auto;
-    }
-
-    .panel-sidebar {
-      width: 100%;
-      height: auto;
-      flex-direction: row;
-      overflow-x: auto;
-      border-right: none;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-      padding: 8px;
-      gap: 8px;
-      background: rgba(0, 0, 0, 0.2);
-      flex-shrink: 0;
-      scrollbar-width: none;
-    }
-
-    .panel-sidebar::-webkit-scrollbar {
-      display: none;
-    }
-
-    .nav-item {
-      padding: 8px 14px;
-      border-radius: 8px;
-      font-size: 0.8rem;
-      white-space: nowrap;
-      width: auto;
-      flex-shrink: 0;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .current-selection-card {
-      display: none;
-    }
-
-    .panel-content-pane {
-      padding: 16px;
-    }
-
-    .table-wrapper {
-      display: none;
-    }
-
-    .explorer-cards-mobile {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      overflow-y: auto;
-      flex-grow: 1;
-      padding-bottom: 20px;
-    }
-
-    .lang-mobile-card {
-      background: rgba(255, 255, 255, 0.02);
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      border-radius: 12px;
-      padding: 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      cursor: pointer;
-      transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-      box-sizing: border-box;
-      width: 100%;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    .lang-mobile-card:active {
-      transform: scale(0.98);
-      background: rgba(255, 255, 255, 0.06);
-    }
-
-    .lang-mobile-card.active {
-      border-color: var(--brand-color);
-      background: rgba(255, 255, 255, 0.06);
-      box-shadow:
-        0 8px 24px rgba(0, 0, 0, 0.3),
-        inset 0 1px 0 rgba(255, 255, 255, 0.05);
-    }
-
-    .card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      width: 100%;
-    }
-
-    .lang-title {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .flag-indicator {
-      width: 8px;
-      height: 24px;
-      border-radius: 4px;
-      flex-shrink: 0;
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      box-shadow: 0 0 4px rgba(255, 255, 255, 0.15);
-    }
-
-    .lang-meta-text {
-      display: flex;
-      flex-direction: column;
-      gap: 1px;
-    }
-
-    .lang-disp-name {
-      font-size: 0.9rem;
-      font-weight: 600;
-      color: rgba(255, 255, 255, 0.95);
-    }
-
-    .lang-code-val {
-      font-size: 0.65rem;
-      font-family: monospace;
-      color: rgba(255, 255, 255, 0.4);
-    }
-
-    .select-btn {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      border-radius: 50%;
-      color: rgba(255, 255, 255, 0.5);
-      width: 28px;
-      height: 28px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .lang-mobile-card.active .select-btn {
-      background: var(--brand-color);
-      color: white;
-      border-color: transparent;
-      box-shadow: 0 0 8px var(--brand-color);
-    }
-
-    .card-body-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      padding-top: 8px;
-      border-top: 1px solid rgba(255, 255, 255, 0.05);
-    }
-
-    .grid-item {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      min-width: 0;
-    }
-
-    .grid-item .label {
-      font-size: 0.55rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: rgba(255, 255, 255, 0.3);
-    }
-
-    .grid-item .value {
-      font-size: 0.72rem;
-      color: rgba(255, 255, 255, 0.7);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .empty-cards-cell {
-      text-align: center;
-      padding: 30px;
-      color: rgba(255, 255, 255, 0.35);
-      font-style: italic;
-      font-size: 0.8rem;
-    }
-
-    .explorer-toolbar {
-      flex-direction: column;
-      align-items: stretch;
-      gap: 8px;
-    }
-
-    .search-box {
-      max-width: 100%;
-    }
-
-    .results-count {
-      text-align: right;
-    }
-
-    .tiers-grid {
-      grid-template-columns: 1fr;
-      gap: 12px;
-    }
-
-    .palettes-grid {
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
-    }
-
-    .lang-code-desc {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      flex-wrap: wrap;
-    }
-
-    .meta-mobile {
-      display: inline;
-      font-size: 0.7rem;
-      color: rgba(255, 255, 255, 0.4);
+    .panel-header {
+      padding: 0 16px;
     }
 
     .panel-footer {
