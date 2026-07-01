@@ -70,9 +70,6 @@
       if (el) {
         el.classList.add("covered");
         el.style.setProperty("--c-color", color);
-        el.style.setProperty("--c-fill", color + "1a"); // 10% opacity base fill
-        el.style.setProperty("--c-hover", color + "3b"); // 23% opacity hover fill
-        el.style.setProperty("--c-active", color + "99"); // 60% opacity clicked/active fill
 
         const isActive = activeCountries.includes(code);
         if (isActive) {
@@ -370,20 +367,20 @@
   .world-map-wrapper :global(g.covered path) {
     stroke: var(--c-color) !important;
     stroke-width: 0.8px !important;
-    fill: var(--c-fill) !important;
+    fill: color-mix(in srgb, var(--c-color) 10%, transparent) !important;
     transition: fill 0.2s ease, stroke 0.2s ease;
   }
 
   .world-map-wrapper :global(path.covered:hover),
   .world-map-wrapper :global(g.covered path:hover) {
-    fill: var(--c-hover) !important;
+    fill: color-mix(in srgb, var(--c-color) 23%, transparent) !important;
     stroke-width: 1.1px !important;
   }
 
   /* Active highlight overrides covered styles */
   .world-map-wrapper :global(path.highlighted),
   .world-map-wrapper :global(g.highlighted path) {
-    fill: var(--c-active) !important;
+    fill: color-mix(in srgb, var(--c-color) 60%, transparent) !important;
     stroke: var(--c-color) !important;
     stroke-width: 1.4px !important;
   }

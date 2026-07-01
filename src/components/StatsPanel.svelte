@@ -162,13 +162,99 @@
   // ---------------------------------------------------------------------------
   const langToCountries = {
     en: [
-      "us", "gb", "ca", "au", "nz", "ie", "za", "ke", "ug", "tz", "ng", "gh", "lr", "sl", "jm", "bs", "fk", "pr", 
-      "zw", "zm", "mw", "na", "ls", "sz", "bw", "gy", "pg", "fj", "vu", "sb", "fm", "mt", "cy", "ss", "sg", "my", "cm", "ph", "il", "sr"
+      "us",
+      "gb",
+      "ca",
+      "au",
+      "nz",
+      "ie",
+      "za",
+      "ke",
+      "ug",
+      "tz",
+      "ng",
+      "gh",
+      "lr",
+      "sl",
+      "jm",
+      "bs",
+      "fk",
+      "pr",
+      "zw",
+      "zm",
+      "mw",
+      "na",
+      "ls",
+      "sz",
+      "bw",
+      "gy",
+      "pg",
+      "fj",
+      "vu",
+      "sb",
+      "fm",
+      "mt",
+      "cy",
+      "ss",
+      "sg",
+      "my",
+      "cm",
+      "ph",
+      "il",
+      "sr",
     ],
-    es: ["es", "mx", "ar", "co", "pe", "ve", "cl", "ec", "bo", "py", "uy", "gt", "hn", "sv", "ni", "cr", "pa", "do", "cu", "gq", "pr"],
+    es: [
+      "es",
+      "mx",
+      "ar",
+      "co",
+      "pe",
+      "ve",
+      "cl",
+      "ec",
+      "bo",
+      "py",
+      "uy",
+      "gt",
+      "hn",
+      "sv",
+      "ni",
+      "cr",
+      "pa",
+      "do",
+      "cu",
+      "gq",
+      "pr",
+    ],
     fr: [
-      "fr", "ca", "be", "ch", "sn", "ci", "cg", "cd", "cm", "mg", "ne", "ml", "bf", "tg", "bj", "ga", "dj", "gq", "cf", 
-      "km", "bi", "rw", "gf", "ht", "gn", "td", "mr", "cm"
+      "fr",
+      "ca",
+      "be",
+      "ch",
+      "sn",
+      "ci",
+      "cg",
+      "cd",
+      "cm",
+      "mg",
+      "ne",
+      "ml",
+      "bf",
+      "tg",
+      "bj",
+      "ga",
+      "dj",
+      "gq",
+      "cf",
+      "km",
+      "bi",
+      "rw",
+      "gf",
+      "ht",
+      "gn",
+      "td",
+      "mr",
+      "cm",
     ],
     de: ["de", "at", "ch", "lu", "be"],
     ja: ["jp"],
@@ -179,8 +265,32 @@
     ko: ["kr", "kp"],
     hi: ["in"],
     ar: [
-      "eg", "sa", "ae", "dz", "ma", "sd", "iq", "ye", "sy", "td", "tn", "ly", "jo", "er", "lb", "mr", "kw", "om", "qa", 
-      "bh", "so", "ps", "dj", "km", "eh", "il"
+      "eg",
+      "sa",
+      "ae",
+      "dz",
+      "ma",
+      "sd",
+      "iq",
+      "ye",
+      "sy",
+      "td",
+      "tn",
+      "ly",
+      "jo",
+      "er",
+      "lb",
+      "mr",
+      "kw",
+      "om",
+      "qa",
+      "bh",
+      "so",
+      "ps",
+      "dj",
+      "km",
+      "eh",
+      "il",
     ],
     bn: ["bd", "in"],
     pa: ["in", "pk"],
@@ -243,7 +353,7 @@
     ka: ["ge"],
     hy: ["am"],
     az: ["az"],
-    ps: ["af", "pk"]
+    ps: ["af", "pk"],
   };
 
   const customColors = {
@@ -268,7 +378,7 @@
     is: "#1E40AF",
     pl: "#E11D48",
     nl: "#F59E0B",
-    ga: "#10B981"
+    ga: "#10B981",
   };
 
   function getLanguageColor(code) {
@@ -341,6 +451,84 @@
   }
 
   // ---------------------------------------------------------------------------
+  // Mobile swipe gesture navigation
+  // ---------------------------------------------------------------------------
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let shouldIgnoreSwipe = false;
+
+  function isHorizontallyScrollable(el, root) {
+    let current = el;
+    while (current && current !== root) {
+      if (
+        current.tagName === "SVG" ||
+        current.tagName === "path" ||
+        current.tagName === "g"
+      ) {
+        current = current.parentElement;
+        continue;
+      }
+      const style = window.getComputedStyle(current);
+      const overflowX = style.overflowX;
+      if (
+        (overflowX === "auto" || overflowX === "scroll") &&
+        current.scrollWidth > current.clientWidth
+      ) {
+        return true;
+      }
+      if (
+        current.tagName === "TABLE" ||
+        current.tagName === "INPUT" ||
+        current.tagName === "BUTTON" ||
+        current.classList.contains("table-wrapper") ||
+        current.classList.contains("quick-comparisons") ||
+        current.classList.contains("comparison-matrix")
+      ) {
+        return true;
+      }
+      current = current.parentElement;
+    }
+    return false;
+  }
+
+  function handleTouchStart(e) {
+    if (e.touches && e.touches.length > 0) {
+      shouldIgnoreSwipe = isHorizontallyScrollable(e.target, e.currentTarget);
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    }
+  }
+
+  function handleTouchEnd(e) {
+    if (shouldIgnoreSwipe) {
+      shouldIgnoreSwipe = false;
+      return;
+    }
+    if (!e.changedTouches || e.changedTouches.length === 0) return;
+    const touchEndX = e.changedTouches[0].clientX;
+    const touchEndY = e.changedTouches[0].clientY;
+
+    const diffX = touchEndX - touchStartX;
+    const diffY = touchEndY - touchStartY;
+
+    // Horizontal swipe threshold: 75px, vertical max deviation: 50px
+    if (Math.abs(diffX) > 75 && Math.abs(diffY) < 50) {
+      const currentIndex = statsTabs.findIndex((t) => t.id === activeTab);
+      if (currentIndex !== -1) {
+        if (diffX < 0) {
+          // Swipe left (finger moves left, show next content tab)
+          if (currentIndex < statsTabs.length - 1) {
+            activeTab = statsTabs[currentIndex + 1].id;
+          }
+        } else {
+          // Swipe right (finger moves right, show previous content tab)
+          if (currentIndex > 0) {
+            activeTab = statsTabs[currentIndex - 1].id;
+          }
+        }
+      }
+    }
+  }
   // Comparison Tab Calculations and Logic
   // ---------------------------------------------------------------------------
   let compareSearchQuery = $state("");
@@ -353,20 +541,23 @@
 
   function calculateTotalMortality(stats) {
     if (!stats) return 0;
-    return Math.round(
-      (stats.cancer +
-        stats.old_age +
-        stats.auto +
-        stats.suicide +
-        stats.gun_violence +
-        stats.knife_violence +
-        stats.police_brutality +
-        stats.food_poisoning +
-        stats.overdose_heroin +
-        stats.overdose_meth +
-        stats.overdose_cocaine +
-        stats.overdose_alcohol) * 10
-    ) / 10;
+    return (
+      Math.round(
+        (stats.cancer +
+          stats.old_age +
+          stats.auto +
+          stats.suicide +
+          stats.gun_violence +
+          stats.knife_violence +
+          stats.police_brutality +
+          stats.food_poisoning +
+          stats.overdose_heroin +
+          stats.overdose_meth +
+          stats.overdose_cocaine +
+          stats.overdose_alcohol) *
+          10,
+      ) / 10
+    );
   }
 
   function calculateLifeExpectancy(stats) {
@@ -377,7 +568,11 @@
     const hcBonus = (stats.gov_healthcare / 100) * 5.0;
     const totalMortality = calculateTotalMortality(stats);
     const mortalityPenalty = totalMortality / 75;
-    return Math.round((base + acBonus + vacBonus + hcBonus - mortalityPenalty) * 10) / 10;
+    return (
+      Math.round(
+        (base + acBonus + vacBonus + hcBonus - mortalityPenalty) * 10,
+      ) / 10
+    );
   }
 
   function triggerQuickCompare(a, b) {
@@ -390,12 +585,12 @@
       code,
       ...stats,
       totalMortality: calculateTotalMortality(stats),
-      lifeExpectancy: calculateLifeExpectancy(stats)
+      lifeExpectancy: calculateLifeExpectancy(stats),
     }));
 
     if (compareSearchQuery.trim() !== "") {
       const q = compareSearchQuery.toLowerCase().trim();
-      list = list.filter(c => c.name.toLowerCase().includes(q));
+      list = list.filter((c) => c.name.toLowerCase().includes(q));
     }
 
     return list;
@@ -412,35 +607,53 @@
     onclick={(e) => e.stopPropagation()}
   >
     <!-- Header -->
-    <header class="panel-header px-6 py-4 flex items-center justify-between border-b border-white/5 bg-black/20 shrink-0">
+    <header
+      class="panel-header px-6 py-4 flex items-center justify-between border-b border-white/5 bg-black/20 shrink-0"
+    >
       <div class="brand flex items-center gap-3">
         <img
           src="/favicon.svg"
           alt="DOGS Logo"
           class="w-6 h-6 shrink-0 drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]"
         />
-        <h1 class="text-lg font-bold tracking-widest text-white/95 uppercase font-sans">DEMOGRAPHICS</h1>
+        <h1
+          class="text-lg font-bold tracking-widest text-white/95 uppercase font-sans"
+        >
+          DEMOGRAPHICS
+        </h1>
       </div>
 
-      <button class="close-btn p-2 rounded-full bg-white/5 hover:bg-white/10 text-white/50 hover:text-white transition-all" onclick={onClose} aria-label="Close panel">
+      <button
+        class="close-btn p-2 rounded-full bg-white/5 hover:bg-white/10 text-white/50 hover:text-white transition-all"
+        onclick={onClose}
+        aria-label="Close panel"
+      >
         <ArrowLeft size={20} />
       </button>
     </header>
 
     <!-- Unified top swipeable tab nav component -->
-    <SwipeTabNav tabs={statsTabs} bind:activeTab={activeTab} />
+    <SwipeTabNav tabs={statsTabs} bind:activeTab />
 
     <!-- Inner Window Body (Full width, scroll container) -->
     <div class="panel-body flex-1 min-h-0 flex flex-col md:flex-row relative">
       <!-- Content Area -->
-      <main class="panel-content-pane flex-1 p-6 md:p-8 overflow-y-auto scroll-container bg-black/10">
-        
+      <main
+        class="panel-content-pane flex-1 p-6 md:p-8 overflow-y-auto scroll-container bg-black/10"
+        ontouchstart={handleTouchStart}
+        ontouchend={handleTouchEnd}
+      >
         <!-- 1. EXPLORER VIEW -->
         {#if activeTab === "explorer"}
           <div class="tab-pane animated-pane flex flex-col gap-6">
-            <div class="explorer-toolbar flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4">
+            <div
+              class="explorer-toolbar flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4"
+            >
               <div class="search-box relative flex-1 max-w-[400px]">
-                <Search size={16} class="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
+                <Search
+                  size={16}
+                  class="absolute left-3 top-1/2 -translate-y-1/2 text-white/30"
+                />
                 <input
                   type="text"
                   placeholder="Search languages, countries, codes..."
@@ -460,22 +673,57 @@
             </div>
 
             <!-- Table Wrapper (Desktop/Tablet) -->
-            <div class="table-wrapper hidden md:block border border-white/5 rounded-xl overflow-hidden bg-black/25">
-              <table class="explorer-table w-full text-left border-collapse text-sm">
+            <div
+              class="table-wrapper hidden md:block border border-white/5 rounded-xl overflow-hidden bg-black/25"
+            >
+              <table
+                class="explorer-table w-full text-left border-collapse text-sm"
+              >
                 <thead>
                   <tr class="bg-white/[0.02] border-b border-white/5">
-                    <th onclick={() => toggleSort("name")} class="p-3.5 pl-5 font-semibold text-xs text-white/40 uppercase tracking-wider cursor-pointer hover:bg-white/5 hover:text-white transition-all select-none">
-                      Language {sortField === "name" ? (sortAscending ? "▲" : "▼") : ""}
+                    <th
+                      onclick={() => toggleSort("name")}
+                      class="p-3.5 pl-5 font-semibold text-xs text-white/40 uppercase tracking-wider cursor-pointer hover:bg-white/5 hover:text-white transition-all select-none"
+                    >
+                      Language {sortField === "name"
+                        ? sortAscending
+                          ? "▲"
+                          : "▼"
+                        : ""}
                     </th>
-                    <th onclick={() => toggleSort("country")} class="p-3.5 font-semibold text-xs text-white/40 uppercase tracking-wider cursor-pointer hover:bg-white/5 hover:text-white transition-all select-none">
-                      Primary Country / Region {sortField === "country" ? (sortAscending ? "▲" : "▼") : ""}
+                    <th
+                      onclick={() => toggleSort("country")}
+                      class="p-3.5 font-semibold text-xs text-white/40 uppercase tracking-wider cursor-pointer hover:bg-white/5 hover:text-white transition-all select-none"
+                    >
+                      Primary Country / Region {sortField === "country"
+                        ? sortAscending
+                          ? "▲"
+                          : "▼"
+                        : ""}
                     </th>
-                    <th class="p-3.5 font-semibold text-xs text-white/40 uppercase tracking-wider select-none">Dialect</th>
-                    <th onclick={() => toggleSort("speakersNum")} class="p-3.5 font-semibold text-xs text-white/40 uppercase tracking-wider cursor-pointer hover:bg-white/5 hover:text-white transition-all select-none text-right">
-                      Speakers {sortField === "speakersNum" ? (sortAscending ? "▲" : "▼") : ""}
+                    <th
+                      class="p-3.5 font-semibold text-xs text-white/40 uppercase tracking-wider select-none"
+                      >Dialect</th
+                    >
+                    <th
+                      onclick={() => toggleSort("speakersNum")}
+                      class="p-3.5 font-semibold text-xs text-white/40 uppercase tracking-wider cursor-pointer hover:bg-white/5 hover:text-white transition-all select-none text-right"
+                    >
+                      Speakers {sortField === "speakersNum"
+                        ? sortAscending
+                          ? "▲"
+                          : "▼"
+                        : ""}
                     </th>
-                    <th onclick={() => toggleSort("dogsNum")} class="p-3.5 font-semibold text-xs text-white/40 uppercase tracking-wider cursor-pointer hover:bg-white/5 hover:text-white transition-all select-none text-right pr-5">
-                      Dogs {sortField === "dogsNum" ? (sortAscending ? "▲" : "▼") : ""}
+                    <th
+                      onclick={() => toggleSort("dogsNum")}
+                      class="p-3.5 font-semibold text-xs text-white/40 uppercase tracking-wider cursor-pointer hover:bg-white/5 hover:text-white transition-all select-none text-right pr-5"
+                    >
+                      Dogs {sortField === "dogsNum"
+                        ? sortAscending
+                          ? "▲"
+                          : "▼"
+                        : ""}
                     </th>
                   </tr>
                 </thead>
@@ -495,15 +743,24 @@
                             style="background: {item.colors[0]}"
                           ></span>
                           <div class="flex flex-col">
-                            <span class="font-semibold text-white/95">{item.displayName}</span>
-                            <span class="text-[10px] text-white/30 uppercase tracking-widest">{item.code}</span>
+                            <span class="font-semibold text-white/95"
+                              >{item.displayName}</span
+                            >
+                            <span
+                              class="text-[10px] text-white/30 uppercase tracking-widest"
+                              >{item.code}</span
+                            >
                           </div>
                         </div>
                       </td>
                       <td class="p-3.5 text-white/70">{item.country}</td>
                       <td class="p-3.5 text-white/50">{item.dialect}</td>
-                      <td class="p-3.5 text-right font-mono text-white/70">{item.speakersText}</td>
-                      <td class="p-3.5 text-right font-mono text-white/70 pr-5">{item.dogsText}</td>
+                      <td class="p-3.5 text-right font-mono text-white/70"
+                        >{item.speakersText}</td
+                      >
+                      <td class="p-3.5 text-right font-mono text-white/70 pr-5"
+                        >{item.dogsText}</td
+                      >
                     </tr>
                   {/each}
                 </tbody>
@@ -522,29 +779,59 @@
                 >
                   <div class="flex items-center justify-between">
                     <div class="flex items-center gap-3">
-                      <span class="w-2.5 h-6 rounded border border-white/10" style="background: {item.colors[0]}"></span>
+                      <span
+                        class="w-2.5 h-6 rounded border border-white/10"
+                        style="background: {item.colors[0]}"
+                      ></span>
                       <div class="flex flex-col">
-                        <span class="font-bold text-white">{item.displayName}</span>
-                        <span class="text-[9px] text-white/40 tracking-wider uppercase font-mono">{item.code}</span>
+                        <span class="font-bold text-white"
+                          >{item.displayName}</span
+                        >
+                        <span
+                          class="text-[9px] text-white/40 tracking-wider uppercase font-mono"
+                          >{item.code}</span
+                        >
                       </div>
                     </div>
                   </div>
-                  <div class="grid grid-cols-2 gap-3 text-xs border-t border-white/5 pt-3">
+                  <div
+                    class="grid grid-cols-2 gap-3 text-xs border-t border-white/5 pt-3"
+                  >
                     <div class="flex flex-col gap-0.5">
-                      <span class="text-[9px] uppercase tracking-wider text-white/30 font-bold">Region</span>
-                      <span class="text-white/70 font-medium truncate">{item.country}</span>
+                      <span
+                        class="text-[9px] uppercase tracking-wider text-white/30 font-bold"
+                        >Region</span
+                      >
+                      <span class="text-white/70 font-medium truncate"
+                        >{item.country}</span
+                      >
                     </div>
                     <div class="flex flex-col gap-0.5">
-                      <span class="text-[9px] uppercase tracking-wider text-white/30 font-bold">Dialect</span>
-                      <span class="text-white/70 font-medium truncate">{item.dialect || "—"}</span>
+                      <span
+                        class="text-[9px] uppercase tracking-wider text-white/30 font-bold"
+                        >Dialect</span
+                      >
+                      <span class="text-white/70 font-medium truncate"
+                        >{item.dialect || "—"}</span
+                      >
                     </div>
                     <div class="flex flex-col gap-0.5">
-                      <span class="text-[9px] uppercase tracking-wider text-white/30 font-bold">Speakers</span>
-                      <span class="text-white/70 font-mono">{item.speakersText}</span>
+                      <span
+                        class="text-[9px] uppercase tracking-wider text-white/30 font-bold"
+                        >Speakers</span
+                      >
+                      <span class="text-white/70 font-mono"
+                        >{item.speakersText}</span
+                      >
                     </div>
                     <div class="flex flex-col gap-0.5">
-                      <span class="text-[9px] uppercase tracking-wider text-white/30 font-bold">Local Dogs</span>
-                      <span class="text-white/70 font-mono">{item.dogsText}</span>
+                      <span
+                        class="text-[9px] uppercase tracking-wider text-white/30 font-bold"
+                        >Local Dogs</span
+                      >
+                      <span class="text-white/70 font-mono"
+                        >{item.dogsText}</span
+                      >
                     </div>
                   </div>
                 </div>
@@ -557,16 +844,24 @@
         {#if activeTab === "map"}
           <div class="tab-pane animated-pane flex flex-col gap-5 h-full">
             <div class="map-view-header">
-              <h2 class="text-base font-bold text-white uppercase tracking-wider">Interactive Vector World Map</h2>
+              <h2
+                class="text-base font-bold text-white uppercase tracking-wider"
+              >
+                Interactive Vector World Map
+              </h2>
               <p class="text-xs text-white/50 mt-1">
-                Currently highlighting target countries for: <span class="font-bold text-white" style="color: {activeColor}">{activeLangItem.displayName}</span>. 
-                Hover over the map to view statistics overlay, or click any country to inspect demographics dynamically.
+                Currently highlighting target countries for: <span
+                  class="font-bold text-white"
+                  style="color: {activeColor}"
+                  >{activeLangItem.displayName}</span
+                >. Hover over the map to view statistics overlay, or click any
+                country to inspect demographics dynamically.
               </p>
             </div>
-            
+
             <div class="flex-1 min-h-[380px] w-full">
               <WorldMap
-                activeCountries={activeCountries}
+                {activeCountries}
                 countryStats={enrichedCountryStats}
                 countryColors={countryColorsMap}
                 countryLanguages={countryLanguagesMap}
@@ -580,37 +875,63 @@
         <!-- 3. LIFE & DEATH ANALYTICS AND COMPARISON -->
         {#if activeTab === "comparison"}
           <div class="tab-pane animated-pane flex flex-col gap-6">
-            
             <!-- Intro comparison section -->
             <div class="comparison-header">
-              <h2 class="text-base font-bold text-white uppercase tracking-wider">Life & Death Demographics Comparative Matrix</h2>
+              <h2
+                class="text-base font-bold text-white uppercase tracking-wider"
+              >
+                Life & Death Demographics Comparative Matrix
+              </h2>
               <p class="text-xs text-white/50 mt-1">
-                Compare health metrics, violence coefficients, drug overdoses, and calculations that derive final life expectancies between nations. Gold highlighted values represent the greater stat between the two countries.
+                Compare health metrics, violence coefficients, drug overdoses,
+                and calculations that derive final life expectancies between
+                nations. Gold highlighted values represent the greater stat
+                between the two countries.
               </p>
             </div>
 
             <!-- Quick Compare Links -->
-            <div class="quick-comparisons bg-white/[0.02] border border-white/5 p-4 rounded-xl">
-              <h4 class="text-xs font-bold text-white/40 uppercase tracking-widest mb-3">Quick Compare Shortcuts</h4>
+            <div
+              class="quick-comparisons bg-white/[0.02] border border-white/5 p-4 rounded-xl"
+            >
+              <h4
+                class="text-xs font-bold text-white/40 uppercase tracking-widest mb-3"
+              >
+                Quick Compare Shortcuts
+              </h4>
               <div class="flex flex-wrap gap-2.5">
-                <button class="px-3 py-1.5 bg-black/40 border border-white/5 hover:border-white/25 rounded-lg text-xs font-semibold text-white/80 hover:text-white transition-all cursor-pointer" onclick={() => triggerQuickCompare("ca", "au")}>
+                <button
+                  class="px-3 py-1.5 bg-black/40 border border-white/5 hover:border-white/25 rounded-lg text-xs font-semibold text-white/80 hover:text-white transition-all cursor-pointer"
+                  onclick={() => triggerQuickCompare("ca", "au")}
+                >
                   🔫 Gun Violence: Canada vs Australia
                 </button>
-                <button class="px-3 py-1.5 bg-black/40 border border-white/5 hover:border-white/25 rounded-lg text-xs font-semibold text-white/80 hover:text-white transition-all cursor-pointer" onclick={() => triggerQuickCompare("mx", "nz")}>
+                <button
+                  class="px-3 py-1.5 bg-black/40 border border-white/5 hover:border-white/25 rounded-lg text-xs font-semibold text-white/80 hover:text-white transition-all cursor-pointer"
+                  onclick={() => triggerQuickCompare("mx", "nz")}
+                >
                   👮 Police Brutality: Mexico vs New Zealand
                 </button>
-                <button class="px-3 py-1.5 bg-black/40 border border-white/5 hover:border-white/25 rounded-lg text-xs font-semibold text-white/80 hover:text-white transition-all cursor-pointer" onclick={() => triggerQuickCompare("us", "jp")}>
+                <button
+                  class="px-3 py-1.5 bg-black/40 border border-white/5 hover:border-white/25 rounded-lg text-xs font-semibold text-white/80 hover:text-white transition-all cursor-pointer"
+                  onclick={() => triggerQuickCompare("us", "jp")}
+                >
                   💊 Heroin & Overdoses: USA vs Japan
                 </button>
-                <button class="px-3 py-1.5 bg-black/40 border border-white/5 hover:border-white/25 rounded-lg text-xs font-semibold text-white/80 hover:text-white transition-all cursor-pointer" onclick={() => triggerQuickCompare("th", "gb")}>
+                <button
+                  class="px-3 py-1.5 bg-black/40 border border-white/5 hover:border-white/25 rounded-lg text-xs font-semibold text-white/80 hover:text-white transition-all cursor-pointer"
+                  onclick={() => triggerQuickCompare("th", "gb")}
+                >
                   🚗 Road Safety: Thailand vs UK
                 </button>
               </div>
             </div>
 
             <!-- Side by Side Comparative Widget -->
-            <div id="comparison-results" class="comparison-grid grid grid-cols-1 lg:grid-cols-2 gap-6 mt-2">
-              
+            <div
+              id="comparison-results"
+              class="comparison-grid grid grid-cols-1 lg:grid-cols-2 gap-6 mt-2"
+            >
               <!-- Left selection card -->
               {#if enrichedCountryStats[compareA]}
                 {@const statsA = enrichedCountryStats[compareA]}
@@ -619,54 +940,216 @@
                 {@const lifeB = calculateLifeExpectancy(statsB)}
                 {@const deathsA = calculateTotalMortality(statsA)}
                 {@const deathsB = calculateTotalMortality(statsB)}
-                
-                <div class="compare-card p-5 bg-white/[0.02] border border-white/5 rounded-xl flex flex-col gap-4 relative">
-                  <div class="flex items-center justify-between border-b border-white/5 pb-3">
-                    <h3 class="text-sm font-bold text-white/40 uppercase tracking-wider">Country A</h3>
-                    <select bind:value={compareA} class="bg-black/80 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs font-bold text-white outline-none cursor-pointer">
+
+                <div
+                  class="compare-card p-5 bg-white/[0.02] border border-white/5 rounded-xl flex flex-col gap-4 relative"
+                >
+                  <div
+                    class="flex items-center justify-between border-b border-white/5 pb-3"
+                  >
+                    <h3
+                      class="text-sm font-bold text-white/40 uppercase tracking-wider"
+                    >
+                      Country A
+                    </h3>
+                    <select
+                      bind:value={compareA}
+                      class="bg-black/80 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs font-bold text-white outline-none cursor-pointer"
+                    >
                       {#each Object.entries(enrichedCountryStats) as [code, data]}
                         <option value={code}>{data.name}</option>
                       {/each}
                     </select>
                   </div>
-                  
-                  <div class="stats-overview flex justify-between items-center bg-black/30 p-4 rounded-lg">
+
+                  <div
+                    class="stats-overview flex justify-between items-center bg-black/30 p-4 rounded-lg"
+                  >
                     <div class="flex flex-col">
-                      <span class="text-[9px] uppercase tracking-wider text-white/30 font-bold">Life Expectancy</span>
-                      <span class="text-xl font-bold font-mono" class:highlighted-stat-green={lifeA > lifeB}>{lifeA} years</span>
+                      <span
+                        class="text-[9px] uppercase tracking-wider text-white/30 font-bold"
+                        >Life Expectancy</span
+                      >
+                      <span
+                        class="text-xl font-bold font-mono"
+                        class:highlighted-stat-green={lifeA > lifeB}
+                        >{lifeA} years</span
+                      >
                     </div>
                     <div class="flex flex-col text-right">
-                      <span class="text-[9px] uppercase tracking-wider text-white/30 font-bold">Total Deaths (per 100k)</span>
-                      <span class="text-xl font-bold font-mono" class:highlighted-stat-red={deathsA > deathsB}>{deathsA}</span>
+                      <span
+                        class="text-[9px] uppercase tracking-wider text-white/30 font-bold"
+                        >Total Deaths (per 100k)</span
+                      >
+                      <span
+                        class="text-xl font-bold font-mono"
+                        class:highlighted-stat-red={deathsA > deathsB}
+                        >{deathsA}</span
+                      >
                     </div>
                   </div>
 
-                  <div class="metrics-list flex flex-col gap-2.5 text-xs text-white/70">
-                    <div class="flex justify-between py-1.5 border-b border-white/[0.02]"><span class="text-white/40">Cancer Rate</span><span class="font-mono font-medium" class:highlighted-stat={statsA.cancer > statsB.cancer}>{statsA.cancer}</span></div>
-                    <div class="flex justify-between py-1.5 border-b border-white/[0.02]"><span class="text-white/40">Old Age / Cardiovascular</span><span class="font-mono font-medium" class:highlighted-stat={statsA.old_age > statsB.old_age}>{statsA.old_age}</span></div>
-                    <div class="flex justify-between py-1.5 border-b border-white/[0.02]"><span class="text-white/40">Automobile Accidents</span><span class="font-mono font-medium" class:highlighted-stat={statsA.auto > statsB.auto}>{statsA.auto}</span></div>
-                    <div class="flex justify-between py-1.5 border-b border-white/[0.02]"><span class="text-white/40">Suicide Rate</span><span class="font-mono font-medium" class:highlighted-stat={statsA.suicide > statsB.suicide}>{statsA.suicide}</span></div>
-                    <div class="flex justify-between py-1.5 border-b border-white/[0.02]"><span class="text-white/40">Gun Violence</span><span class="font-mono font-medium" class:highlighted-stat={statsA.gun_violence > statsB.gun_violence}>{statsA.gun_violence}</span></div>
-                    <div class="flex justify-between py-1.5 border-b border-white/[0.02]"><span class="text-white/40">Knife Violence</span><span class="font-mono font-medium" class:highlighted-stat={statsA.knife_violence > statsB.knife_violence}>{statsA.knife_violence}</span></div>
-                    <div class="flex justify-between py-1.5 border-b border-white/[0.02]"><span class="text-white/40">Police Brutality</span><span class="font-mono font-medium" class:highlighted-stat={statsA.police_brutality > statsB.police_brutality}>{statsA.police_brutality}</span></div>
-                    <div class="flex justify-between py-1.5 border-b border-white/[0.02]"><span class="text-white/40">Food Poisoning</span><span class="font-mono font-medium" class:highlighted-stat={statsA.food_poisoning > statsB.food_poisoning}>{statsA.food_poisoning}</span></div>
-                    
-                    <div class="p-3 bg-black/20 rounded-lg flex flex-col gap-1.5">
-                      <span class="text-[9px] uppercase tracking-wider text-white/30 font-bold">Drug Overdoses Detail (per 100k)</span>
+                  <div
+                    class="metrics-list flex flex-col gap-2.5 text-xs text-white/70"
+                  >
+                    <div
+                      class="flex justify-between py-1.5 border-b border-white/[0.02]"
+                    >
+                      <span class="text-white/40">Cancer Rate</span><span
+                        class="font-mono font-medium"
+                        class:highlighted-stat={statsA.cancer > statsB.cancer}
+                        >{statsA.cancer}</span
+                      >
+                    </div>
+                    <div
+                      class="flex justify-between py-1.5 border-b border-white/[0.02]"
+                    >
+                      <span class="text-white/40">Old Age / Cardiovascular</span
+                      ><span
+                        class="font-mono font-medium"
+                        class:highlighted-stat={statsA.old_age > statsB.old_age}
+                        >{statsA.old_age}</span
+                      >
+                    </div>
+                    <div
+                      class="flex justify-between py-1.5 border-b border-white/[0.02]"
+                    >
+                      <span class="text-white/40">Automobile Accidents</span
+                      ><span
+                        class="font-mono font-medium"
+                        class:highlighted-stat={statsA.auto > statsB.auto}
+                        >{statsA.auto}</span
+                      >
+                    </div>
+                    <div
+                      class="flex justify-between py-1.5 border-b border-white/[0.02]"
+                    >
+                      <span class="text-white/40">Suicide Rate</span><span
+                        class="font-mono font-medium"
+                        class:highlighted-stat={statsA.suicide > statsB.suicide}
+                        >{statsA.suicide}</span
+                      >
+                    </div>
+                    <div
+                      class="flex justify-between py-1.5 border-b border-white/[0.02]"
+                    >
+                      <span class="text-white/40">Gun Violence</span><span
+                        class="font-mono font-medium"
+                        class:highlighted-stat={statsA.gun_violence >
+                          statsB.gun_violence}>{statsA.gun_violence}</span
+                      >
+                    </div>
+                    <div
+                      class="flex justify-between py-1.5 border-b border-white/[0.02]"
+                    >
+                      <span class="text-white/40">Knife Violence</span><span
+                        class="font-mono font-medium"
+                        class:highlighted-stat={statsA.knife_violence >
+                          statsB.knife_violence}>{statsA.knife_violence}</span
+                      >
+                    </div>
+                    <div
+                      class="flex justify-between py-1.5 border-b border-white/[0.02]"
+                    >
+                      <span class="text-white/40">Police Brutality</span><span
+                        class="font-mono font-medium"
+                        class:highlighted-stat={statsA.police_brutality >
+                          statsB.police_brutality}
+                        >{statsA.police_brutality}</span
+                      >
+                    </div>
+                    <div
+                      class="flex justify-between py-1.5 border-b border-white/[0.02]"
+                    >
+                      <span class="text-white/40">Food Poisoning</span><span
+                        class="font-mono font-medium"
+                        class:highlighted-stat={statsA.food_poisoning >
+                          statsB.food_poisoning}>{statsA.food_poisoning}</span
+                      >
+                    </div>
+
+                    <div
+                      class="p-3 bg-black/20 rounded-lg flex flex-col gap-1.5"
+                    >
+                      <span
+                        class="text-[9px] uppercase tracking-wider text-white/30 font-bold"
+                        >Drug Overdoses Detail (per 100k)</span
+                      >
                       <div class="grid grid-cols-2 gap-2 text-[11px]">
-                        <div><span class="text-white/40 mr-1">Heroin:</span> <strong class="font-mono" class:highlighted-stat={statsA.overdose_heroin > statsB.overdose_heroin}>{statsA.overdose_heroin}</strong></div>
-                        <div><span class="text-white/40 mr-1">Meth:</span> <strong class="font-mono" class:highlighted-stat={statsA.overdose_meth > statsB.overdose_meth}>{statsA.overdose_meth}</strong></div>
-                        <div><span class="text-white/40 mr-1">Cocaine:</span> <strong class="font-mono" class:highlighted-stat={statsA.overdose_cocaine > statsB.overdose_cocaine}>{statsA.overdose_cocaine}</strong></div>
-                        <div><span class="text-white/40 mr-1">Alcohol:</span> <strong class="font-mono" class:highlighted-stat={statsA.overdose_alcohol > statsB.overdose_alcohol}>{statsA.overdose_alcohol}</strong></div>
+                        <div>
+                          <span class="text-white/40 mr-1">Heroin:</span>
+                          <strong
+                            class="font-mono"
+                            class:highlighted-stat={statsA.overdose_heroin >
+                              statsB.overdose_heroin}
+                            >{statsA.overdose_heroin}</strong
+                          >
+                        </div>
+                        <div>
+                          <span class="text-white/40 mr-1">Meth:</span>
+                          <strong
+                            class="font-mono"
+                            class:highlighted-stat={statsA.overdose_meth >
+                              statsB.overdose_meth}
+                            >{statsA.overdose_meth}</strong
+                          >
+                        </div>
+                        <div>
+                          <span class="text-white/40 mr-1">Cocaine:</span>
+                          <strong
+                            class="font-mono"
+                            class:highlighted-stat={statsA.overdose_cocaine >
+                              statsB.overdose_cocaine}
+                            >{statsA.overdose_cocaine}</strong
+                          >
+                        </div>
+                        <div>
+                          <span class="text-white/40 mr-1">Alcohol:</span>
+                          <strong
+                            class="font-mono"
+                            class:highlighted-stat={statsA.overdose_alcohol >
+                              statsB.overdose_alcohol}
+                            >{statsA.overdose_alcohol}</strong
+                          >
+                        </div>
                       </div>
                     </div>
-                    
-                    <div class="p-3 bg-black/20 rounded-lg flex flex-col gap-1.5">
-                      <span class="text-[9px] uppercase tracking-wider text-white/30 font-bold">Life Expectancy Drivers</span>
-                      <div class="grid grid-cols-3 gap-2 text-[10px] text-center">
-                        <div class="bg-black/30 p-1.5 rounded"><span class="block text-white/30">A/C Adoption</span><strong class="font-mono" class:highlighted-stat={statsA.ac_adoption > statsB.ac_adoption}>{statsA.ac_adoption}%</strong></div>
-                        <div class="bg-black/30 p-1.5 rounded"><span class="block text-white/30">Vaccination</span><strong class="font-mono" class:highlighted-stat={statsA.vaccines > statsB.vaccines}>{statsA.vaccines}%</strong></div>
-                        <div class="bg-black/30 p-1.5 rounded"><span class="block text-white/30">Gov Healthcare</span><strong class="font-mono" class:highlighted-stat={statsA.gov_healthcare > statsB.gov_healthcare}>{statsA.gov_healthcare}/100</strong></div>
+
+                    <div
+                      class="p-3 bg-black/20 rounded-lg flex flex-col gap-1.5"
+                    >
+                      <span
+                        class="text-[9px] uppercase tracking-wider text-white/30 font-bold"
+                        >Life Expectancy Drivers</span
+                      >
+                      <div
+                        class="grid grid-cols-3 gap-2 text-[10px] text-center"
+                      >
+                        <div class="bg-black/30 p-1.5 rounded">
+                          <span class="block text-white/30">A/C Adoption</span
+                          ><strong
+                            class="font-mono"
+                            class:highlighted-stat={statsA.ac_adoption >
+                              statsB.ac_adoption}>{statsA.ac_adoption}%</strong
+                          >
+                        </div>
+                        <div class="bg-black/30 p-1.5 rounded">
+                          <span class="block text-white/30">Vaccination</span
+                          ><strong
+                            class="font-mono"
+                            class:highlighted-stat={statsA.vaccines >
+                              statsB.vaccines}>{statsA.vaccines}%</strong
+                          >
+                        </div>
+                        <div class="bg-black/30 p-1.5 rounded">
+                          <span class="block text-white/30">Gov Healthcare</span
+                          ><strong
+                            class="font-mono"
+                            class:highlighted-stat={statsA.gov_healthcare >
+                              statsB.gov_healthcare}
+                            >{statsA.gov_healthcare}/100</strong
+                          >
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -681,54 +1164,216 @@
                 {@const lifeA = calculateLifeExpectancy(statsA)}
                 {@const deathsB = calculateTotalMortality(statsB)}
                 {@const deathsA = calculateTotalMortality(statsA)}
-                
-                <div class="compare-card p-5 bg-white/[0.02] border border-white/5 rounded-xl flex flex-col gap-4 relative">
-                  <div class="flex items-center justify-between border-b border-white/5 pb-3">
-                    <h3 class="text-sm font-bold text-white/40 uppercase tracking-wider">Country B</h3>
-                    <select bind:value={compareB} class="bg-black/80 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs font-bold text-white outline-none cursor-pointer">
+
+                <div
+                  class="compare-card p-5 bg-white/[0.02] border border-white/5 rounded-xl flex flex-col gap-4 relative"
+                >
+                  <div
+                    class="flex items-center justify-between border-b border-white/5 pb-3"
+                  >
+                    <h3
+                      class="text-sm font-bold text-white/40 uppercase tracking-wider"
+                    >
+                      Country B
+                    </h3>
+                    <select
+                      bind:value={compareB}
+                      class="bg-black/80 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs font-bold text-white outline-none cursor-pointer"
+                    >
                       {#each Object.entries(enrichedCountryStats) as [code, data]}
                         <option value={code}>{data.name}</option>
                       {/each}
                     </select>
                   </div>
-                  
-                  <div class="stats-overview flex justify-between items-center bg-black/30 p-4 rounded-lg">
+
+                  <div
+                    class="stats-overview flex justify-between items-center bg-black/30 p-4 rounded-lg"
+                  >
                     <div class="flex flex-col">
-                      <span class="text-[9px] uppercase tracking-wider text-white/30 font-bold">Life Expectancy</span>
-                      <span class="text-xl font-bold font-mono" class:highlighted-stat-green={lifeB > lifeA}>{lifeB} years</span>
+                      <span
+                        class="text-[9px] uppercase tracking-wider text-white/30 font-bold"
+                        >Life Expectancy</span
+                      >
+                      <span
+                        class="text-xl font-bold font-mono"
+                        class:highlighted-stat-green={lifeB > lifeA}
+                        >{lifeB} years</span
+                      >
                     </div>
                     <div class="flex flex-col text-right">
-                      <span class="text-[9px] uppercase tracking-wider text-white/30 font-bold">Total Deaths (per 100k)</span>
-                      <span class="text-xl font-bold font-mono" class:highlighted-stat-red={deathsB > deathsA}>{deathsB}</span>
+                      <span
+                        class="text-[9px] uppercase tracking-wider text-white/30 font-bold"
+                        >Total Deaths (per 100k)</span
+                      >
+                      <span
+                        class="text-xl font-bold font-mono"
+                        class:highlighted-stat-red={deathsB > deathsA}
+                        >{deathsB}</span
+                      >
                     </div>
                   </div>
 
-                  <div class="metrics-list flex flex-col gap-2.5 text-xs text-white/70">
-                    <div class="flex justify-between py-1.5 border-b border-white/[0.02]"><span class="text-white/40">Cancer Rate</span><span class="font-mono font-medium" class:highlighted-stat={statsB.cancer > statsA.cancer}>{statsB.cancer}</span></div>
-                    <div class="flex justify-between py-1.5 border-b border-white/[0.02]"><span class="text-white/40">Old Age / Cardiovascular</span><span class="font-mono font-medium" class:highlighted-stat={statsB.old_age > statsA.old_age}>{statsB.old_age}</span></div>
-                    <div class="flex justify-between py-1.5 border-b border-white/[0.02]"><span class="text-white/40">Automobile Accidents</span><span class="font-mono font-medium" class:highlighted-stat={statsB.auto > statsA.auto}>{statsB.auto}</span></div>
-                    <div class="flex justify-between py-1.5 border-b border-white/[0.02]"><span class="text-white/40">Suicide Rate</span><span class="font-mono font-medium" class:highlighted-stat={statsB.suicide > statsA.suicide}>{statsB.suicide}</span></div>
-                    <div class="flex justify-between py-1.5 border-b border-white/[0.02]"><span class="text-white/40">Gun Violence</span><span class="font-mono font-medium" class:highlighted-stat={statsB.gun_violence > statsA.gun_violence}>{statsB.gun_violence}</span></div>
-                    <div class="flex justify-between py-1.5 border-b border-white/[0.02]"><span class="text-white/40">Knife Violence</span><span class="font-mono font-medium" class:highlighted-stat={statsB.knife_violence > statsA.knife_violence}>{statsB.knife_violence}</span></div>
-                    <div class="flex justify-between py-1.5 border-b border-white/[0.02]"><span class="text-white/40">Police Brutality</span><span class="font-mono font-medium" class:highlighted-stat={statsB.police_brutality > statsA.police_brutality}>{statsB.police_brutality}</span></div>
-                    <div class="flex justify-between py-1.5 border-b border-white/[0.02]"><span class="text-white/40">Food Poisoning</span><span class="font-mono font-medium" class:highlighted-stat={statsB.food_poisoning > statsA.food_poisoning}>{statsB.food_poisoning}</span></div>
-                    
-                    <div class="p-3 bg-black/20 rounded-lg flex flex-col gap-1.5">
-                      <span class="text-[9px] uppercase tracking-wider text-white/30 font-bold">Drug Overdoses Detail (per 100k)</span>
+                  <div
+                    class="metrics-list flex flex-col gap-2.5 text-xs text-white/70"
+                  >
+                    <div
+                      class="flex justify-between py-1.5 border-b border-white/[0.02]"
+                    >
+                      <span class="text-white/40">Cancer Rate</span><span
+                        class="font-mono font-medium"
+                        class:highlighted-stat={statsB.cancer > statsA.cancer}
+                        >{statsB.cancer}</span
+                      >
+                    </div>
+                    <div
+                      class="flex justify-between py-1.5 border-b border-white/[0.02]"
+                    >
+                      <span class="text-white/40">Old Age / Cardiovascular</span
+                      ><span
+                        class="font-mono font-medium"
+                        class:highlighted-stat={statsB.old_age > statsA.old_age}
+                        >{statsB.old_age}</span
+                      >
+                    </div>
+                    <div
+                      class="flex justify-between py-1.5 border-b border-white/[0.02]"
+                    >
+                      <span class="text-white/40">Automobile Accidents</span
+                      ><span
+                        class="font-mono font-medium"
+                        class:highlighted-stat={statsB.auto > statsA.auto}
+                        >{statsB.auto}</span
+                      >
+                    </div>
+                    <div
+                      class="flex justify-between py-1.5 border-b border-white/[0.02]"
+                    >
+                      <span class="text-white/40">Suicide Rate</span><span
+                        class="font-mono font-medium"
+                        class:highlighted-stat={statsB.suicide > statsA.suicide}
+                        >{statsB.suicide}</span
+                      >
+                    </div>
+                    <div
+                      class="flex justify-between py-1.5 border-b border-white/[0.02]"
+                    >
+                      <span class="text-white/40">Gun Violence</span><span
+                        class="font-mono font-medium"
+                        class:highlighted-stat={statsB.gun_violence >
+                          statsA.gun_violence}>{statsB.gun_violence}</span
+                      >
+                    </div>
+                    <div
+                      class="flex justify-between py-1.5 border-b border-white/[0.02]"
+                    >
+                      <span class="text-white/40">Knife Violence</span><span
+                        class="font-mono font-medium"
+                        class:highlighted-stat={statsB.knife_violence >
+                          statsA.knife_violence}>{statsB.knife_violence}</span
+                      >
+                    </div>
+                    <div
+                      class="flex justify-between py-1.5 border-b border-white/[0.02]"
+                    >
+                      <span class="text-white/40">Police Brutality</span><span
+                        class="font-mono font-medium"
+                        class:highlighted-stat={statsB.police_brutality >
+                          statsA.police_brutality}
+                        >{statsB.police_brutality}</span
+                      >
+                    </div>
+                    <div
+                      class="flex justify-between py-1.5 border-b border-white/[0.02]"
+                    >
+                      <span class="text-white/40">Food Poisoning</span><span
+                        class="font-mono font-medium"
+                        class:highlighted-stat={statsB.food_poisoning >
+                          statsA.food_poisoning}>{statsB.food_poisoning}</span
+                      >
+                    </div>
+
+                    <div
+                      class="p-3 bg-black/20 rounded-lg flex flex-col gap-1.5"
+                    >
+                      <span
+                        class="text-[9px] uppercase tracking-wider text-white/30 font-bold"
+                        >Drug Overdoses Detail (per 100k)</span
+                      >
                       <div class="grid grid-cols-2 gap-2 text-[11px]">
-                        <div><span class="text-white/40 mr-1">Heroin:</span> <strong class="font-mono" class:highlighted-stat={statsB.overdose_heroin > statsA.overdose_heroin}>{statsB.overdose_heroin}</strong></div>
-                        <div><span class="text-white/40 mr-1">Meth:</span> <strong class="font-mono" class:highlighted-stat={statsB.overdose_meth > statsA.overdose_meth}>{statsB.overdose_meth}</strong></div>
-                        <div><span class="text-white/40 mr-1">Cocaine:</span> <strong class="font-mono" class:highlighted-stat={statsB.overdose_cocaine > statsA.overdose_cocaine}>{statsB.overdose_cocaine}</strong></div>
-                        <div><span class="text-white/40 mr-1">Alcohol:</span> <strong class="font-mono" class:highlighted-stat={statsB.overdose_alcohol > statsA.overdose_alcohol}>{statsB.overdose_alcohol}</strong></div>
+                        <div>
+                          <span class="text-white/40 mr-1">Heroin:</span>
+                          <strong
+                            class="font-mono"
+                            class:highlighted-stat={statsB.overdose_heroin >
+                              statsA.overdose_heroin}
+                            >{statsB.overdose_heroin}</strong
+                          >
+                        </div>
+                        <div>
+                          <span class="text-white/40 mr-1">Meth:</span>
+                          <strong
+                            class="font-mono"
+                            class:highlighted-stat={statsB.overdose_meth >
+                              statsA.overdose_meth}
+                            >{statsB.overdose_meth}</strong
+                          >
+                        </div>
+                        <div>
+                          <span class="text-white/40 mr-1">Cocaine:</span>
+                          <strong
+                            class="font-mono"
+                            class:highlighted-stat={statsB.overdose_cocaine >
+                              statsA.overdose_cocaine}
+                            >{statsB.overdose_cocaine}</strong
+                          >
+                        </div>
+                        <div>
+                          <span class="text-white/40 mr-1">Alcohol:</span>
+                          <strong
+                            class="font-mono"
+                            class:highlighted-stat={statsB.overdose_alcohol >
+                              statsA.overdose_alcohol}
+                            >{statsB.overdose_alcohol}</strong
+                          >
+                        </div>
                       </div>
                     </div>
-                    
-                    <div class="p-3 bg-black/20 rounded-lg flex flex-col gap-1.5">
-                      <span class="text-[9px] uppercase tracking-wider text-white/30 font-bold">Life Expectancy Drivers</span>
-                      <div class="grid grid-cols-3 gap-2 text-[10px] text-center">
-                        <div class="bg-black/30 p-1.5 rounded"><span class="block text-white/30">A/C Adoption</span><strong class="font-mono" class:highlighted-stat={statsB.ac_adoption > statsA.ac_adoption}>{statsB.ac_adoption}%</strong></div>
-                        <div class="bg-black/30 p-1.5 rounded"><span class="block text-white/30">Vaccination</span><strong class="font-mono" class:highlighted-stat={statsB.vaccines > statsA.vaccines}>{statsB.vaccines}%</strong></div>
-                        <div class="bg-black/30 p-1.5 rounded"><span class="block text-white/30">Gov Healthcare</span><strong class="font-mono" class:highlighted-stat={statsB.gov_healthcare > statsA.gov_healthcare}>{statsB.gov_healthcare}/100</strong></div>
+
+                    <div
+                      class="p-3 bg-black/20 rounded-lg flex flex-col gap-1.5"
+                    >
+                      <span
+                        class="text-[9px] uppercase tracking-wider text-white/30 font-bold"
+                        >Life Expectancy Drivers</span
+                      >
+                      <div
+                        class="grid grid-cols-3 gap-2 text-[10px] text-center"
+                      >
+                        <div class="bg-black/30 p-1.5 rounded">
+                          <span class="block text-white/30">A/C Adoption</span
+                          ><strong
+                            class="font-mono"
+                            class:highlighted-stat={statsB.ac_adoption >
+                              statsA.ac_adoption}>{statsB.ac_adoption}%</strong
+                          >
+                        </div>
+                        <div class="bg-black/30 p-1.5 rounded">
+                          <span class="block text-white/30">Vaccination</span
+                          ><strong
+                            class="font-mono"
+                            class:highlighted-stat={statsB.vaccines >
+                              statsA.vaccines}>{statsB.vaccines}%</strong
+                          >
+                        </div>
+                        <div class="bg-black/30 p-1.5 rounded">
+                          <span class="block text-white/30">Gov Healthcare</span
+                          ><strong
+                            class="font-mono"
+                            class:highlighted-stat={statsB.gov_healthcare >
+                              statsA.gov_healthcare}
+                            >{statsB.gov_healthcare}/100</strong
+                          >
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -739,7 +1384,11 @@
             <!-- Full index lookup table -->
             <div class="country-search mt-4">
               <div class="flex justify-between items-center gap-4 mb-4">
-                <h3 class="text-sm font-bold text-white uppercase tracking-wider">Search Country Index</h3>
+                <h3
+                  class="text-sm font-bold text-white uppercase tracking-wider"
+                >
+                  Search Country Index
+                </h3>
                 <input
                   type="text"
                   placeholder="Filter country table..."
@@ -747,37 +1396,96 @@
                   class="max-w-[300px] px-3.5 py-1.5 bg-black/40 border border-white/5 rounded-lg text-xs outline-none focus:border-white/20 transition-all"
                 />
               </div>
-              <div class="table-wrapper border border-white/5 rounded-xl overflow-x-auto bg-black/20 max-h-[350px] scroll-y">
+              <div
+                class="table-wrapper border border-white/5 rounded-xl overflow-x-auto bg-black/20 max-h-[350px] scroll-y"
+              >
                 <table class="w-full text-left border-collapse text-xs">
                   <thead>
-                    <tr class="bg-white/[0.02] border-b border-white/5 sticky top-0 backdrop-blur">
-                      <th class="p-3 pl-4 font-bold text-white/40 uppercase">Country</th>
-                      <th class="p-3 font-bold text-white/40 uppercase text-center">Life Expectancy</th>
-                      <th class="p-3 font-bold text-white/40 uppercase text-center">Total CDR</th>
-                      <th class="p-3 font-bold text-white/40 uppercase text-center">Heroin</th>
-                      <th class="p-3 font-bold text-white/40 uppercase text-center">Meth</th>
-                      <th class="p-3 font-bold text-white/40 uppercase text-center">Cocaine</th>
-                      <th class="p-3 font-bold text-white/40 uppercase text-center">Alcohol</th>
-                      <th class="p-3 font-bold text-white/40 uppercase text-center">Auto</th>
-                      <th class="p-3 font-bold text-white/40 uppercase text-center">Gun</th>
-                      <th class="p-3 font-bold text-white/40 uppercase text-center">Police</th>
-                      <th class="p-3 font-bold text-white/40 uppercase text-center">A/C (%)</th>
+                    <tr
+                      class="bg-white/[0.02] border-b border-white/5 sticky top-0 backdrop-blur"
+                    >
+                      <th class="p-3 pl-4 font-bold text-white/40 uppercase"
+                        >Country</th
+                      >
+                      <th
+                        class="p-3 font-bold text-white/40 uppercase text-center"
+                        >Life Expectancy</th
+                      >
+                      <th
+                        class="p-3 font-bold text-white/40 uppercase text-center"
+                        >Total CDR</th
+                      >
+                      <th
+                        class="p-3 font-bold text-white/40 uppercase text-center"
+                        >Heroin</th
+                      >
+                      <th
+                        class="p-3 font-bold text-white/40 uppercase text-center"
+                        >Meth</th
+                      >
+                      <th
+                        class="p-3 font-bold text-white/40 uppercase text-center"
+                        >Cocaine</th
+                      >
+                      <th
+                        class="p-3 font-bold text-white/40 uppercase text-center"
+                        >Alcohol</th
+                      >
+                      <th
+                        class="p-3 font-bold text-white/40 uppercase text-center"
+                        >Auto</th
+                      >
+                      <th
+                        class="p-3 font-bold text-white/40 uppercase text-center"
+                        >Gun</th
+                      >
+                      <th
+                        class="p-3 font-bold text-white/40 uppercase text-center"
+                        >Police</th
+                      >
+                      <th
+                        class="p-3 font-bold text-white/40 uppercase text-center"
+                        >A/C (%)</th
+                      >
                     </tr>
                   </thead>
                   <tbody>
                     {#each compareFilteredCountries as c}
-                      <tr class="border-b border-white/[0.02] hover:bg-white/[0.02] transition-all">
-                        <td class="p-3 pl-4 font-semibold text-white/90">{c.name}</td>
-                        <td class="p-3 text-center text-green-400 font-mono font-semibold">{c.lifeExpectancy}</td>
-                        <td class="p-3 text-center text-red-400 font-mono">{c.totalMortality}</td>
-                        <td class="p-3 text-center font-mono">{c.overdose_heroin}</td>
-                        <td class="p-3 text-center font-mono">{c.overdose_meth}</td>
-                        <td class="p-3 text-center font-mono">{c.overdose_cocaine}</td>
-                        <td class="p-3 text-center font-mono">{c.overdose_alcohol}</td>
+                      <tr
+                        class="border-b border-white/[0.02] hover:bg-white/[0.02] transition-all"
+                      >
+                        <td class="p-3 pl-4 font-semibold text-white/90"
+                          >{c.name}</td
+                        >
+                        <td
+                          class="p-3 text-center text-green-400 font-mono font-semibold"
+                          >{c.lifeExpectancy}</td
+                        >
+                        <td class="p-3 text-center text-red-400 font-mono"
+                          >{c.totalMortality}</td
+                        >
+                        <td class="p-3 text-center font-mono"
+                          >{c.overdose_heroin}</td
+                        >
+                        <td class="p-3 text-center font-mono"
+                          >{c.overdose_meth}</td
+                        >
+                        <td class="p-3 text-center font-mono"
+                          >{c.overdose_cocaine}</td
+                        >
+                        <td class="p-3 text-center font-mono"
+                          >{c.overdose_alcohol}</td
+                        >
                         <td class="p-3 text-center font-mono">{c.auto}</td>
-                        <td class="p-3 text-center font-mono">{c.gun_violence}</td>
-                        <td class="p-3 text-center font-mono">{c.police_brutality}</td>
-                        <td class="p-3 text-center font-mono text-green-400/80">{c.ac_adoption}%</td>
+                        <td class="p-3 text-center font-mono"
+                          >{c.gun_violence}</td
+                        >
+                        <td class="p-3 text-center font-mono"
+                          >{c.police_brutality}</td
+                        >
+                        <td class="p-3 text-center font-mono text-green-400/80"
+                          >{c.ac_adoption}%</td
+                        >
                       </tr>
                     {/each}
                   </tbody>
@@ -790,22 +1498,36 @@
         <!-- Speakers, Local Dogs, Palettes and methodologies sections -->
         {#if activeTab === "speakers"}
           <div class="tab-pane animated-pane">
-            <h2 class="text-base font-bold text-white uppercase tracking-wider">Speakers Distribution</h2>
+            <h2 class="text-base font-bold text-white uppercase tracking-wider">
+              Speakers Distribution
+            </h2>
             <p class="description text-xs text-white/50 mt-1 mb-6">
-              A breakdown of the top cataloged languages by approximate speaker counts worldwide.
+              A breakdown of the top cataloged languages by approximate speaker
+              counts worldwide.
             </p>
 
             <div class="speakers-chart-container flex flex-col gap-4 mb-8">
               {#each topSpeakers as item}
                 <div class="chart-row flex flex-col gap-1.5">
-                  <div class="chart-row-lbl flex justify-between text-xs font-semibold">
-                    <span class="chart-lang-name text-white/90">{item.displayName}</span>
-                    <span class="chart-lang-val font-mono text-white/40">{item.speakersText}</span>
+                  <div
+                    class="chart-row-lbl flex justify-between text-xs font-semibold"
+                  >
+                    <span class="chart-lang-name text-white/90"
+                      >{item.displayName}</span
+                    >
+                    <span class="chart-lang-val font-mono text-white/40"
+                      >{item.speakersText}</span
+                    >
                   </div>
-                  <div class="chart-bar-outer h-2 w-full bg-white/[0.02] rounded-full overflow-hidden">
+                  <div
+                    class="chart-bar-outer h-2 w-full bg-white/[0.02] rounded-full overflow-hidden"
+                  >
                     <div
                       class="chart-bar-inner h-full rounded-full transition-all duration-1000 ease-out"
-                      style="width: {(item.speakersNum / topSpeakers[0].speakersNum) * 100}%; background: linear-gradient(90deg, {item.colors[0]}, {item.colors[1] || item.colors[0]})"
+                      style="width: {(item.speakersNum /
+                        topSpeakers[0].speakersNum) *
+                        100}%; background: linear-gradient(90deg, {item
+                        .colors[0]}, {item.colors[1] || item.colors[0]})"
                     ></div>
                   </div>
                 </div>
@@ -816,22 +1538,38 @@
 
         {#if activeTab === "dogs"}
           <div class="tab-pane animated-pane">
-            <h2 class="text-base font-bold text-white uppercase tracking-wider">Dog Populations by Region</h2>
+            <h2 class="text-base font-bold text-white uppercase tracking-wider">
+              Dog Populations by Region
+            </h2>
             <p class="description text-xs text-white/50 mt-1 mb-6">
-              Analysis of domestic dog populations estimated within the primary geographic regions of each language.
+              Analysis of domestic dog populations estimated within the primary
+              geographic regions of each language.
             </p>
 
             <div class="speakers-chart-container flex flex-col gap-4 mb-8">
               {#each topDogs as item}
                 <div class="chart-row flex flex-col gap-1.5">
-                  <div class="chart-row-lbl flex justify-between text-xs font-semibold">
-                    <span class="chart-lang-name text-white/90">{item.displayName} ({item.country.split("&")[0].trim()})</span>
-                    <span class="chart-lang-val font-mono text-white/40">{item.dogsText}</span>
+                  <div
+                    class="chart-row-lbl flex justify-between text-xs font-semibold"
+                  >
+                    <span class="chart-lang-name text-white/90"
+                      >{item.displayName} ({item.country
+                        .split("&")[0]
+                        .trim()})</span
+                    >
+                    <span class="chart-lang-val font-mono text-white/40"
+                      >{item.dogsText}</span
+                    >
                   </div>
-                  <div class="chart-bar-outer h-2 w-full bg-white/[0.02] rounded-full overflow-hidden">
+                  <div
+                    class="chart-bar-outer h-2 w-full bg-white/[0.02] rounded-full overflow-hidden"
+                  >
                     <div
                       class="chart-bar-inner h-full rounded-full transition-all duration-1000 ease-out"
-                      style="width: {(item.dogsNum / topDogs[0].dogsNum) * 100}%; background: linear-gradient(90deg, {item.colors[1] || item.colors[0]}, {item.colors[2] || item.colors[0]})"
+                      style="width: {(item.dogsNum / topDogs[0].dogsNum) *
+                        100}%; background: linear-gradient(90deg, {item
+                        .colors[1] || item.colors[0]}, {item.colors[2] ||
+                        item.colors[0]})"
                     ></div>
                   </div>
                 </div>
@@ -842,12 +1580,17 @@
 
         {#if activeTab === "themes"}
           <div class="tab-pane animated-pane">
-            <h2 class="text-base font-bold text-white uppercase tracking-wider">Flag Color Palettes</h2>
+            <h2 class="text-base font-bold text-white uppercase tracking-wider">
+              Flag Color Palettes
+            </h2>
             <p class="description text-xs text-white/50 mt-1 mb-6">
-              Each language features a signature tri-color gradient sweep based on national flags or HSL hash values.
+              Each language features a signature tri-color gradient sweep based
+              on national flags or HSL hash values.
             </p>
 
-            <div class="palettes-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            <div
+              class="palettes-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4"
+            >
               {#each allLangItems.slice(0, 36) as item}
                 <!-- svelte-ignore a11y_click_events_have_key_events -->
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -855,14 +1598,31 @@
                   class="palette-card p-2 bg-white/[0.02] border border-white/5 hover:border-white/10 hover:bg-white/[0.06] rounded-xl cursor-pointer hover:-translate-y-0.5 transition-all duration-300"
                   onclick={() => handleSelect(item.code)}
                 >
-                  <div class="palette-swatch-box h-12 rounded-lg overflow-hidden flex border border-white/10">
-                    <div class="flex-grow" style="background: {item.colors[0]}"></div>
-                    <div class="flex-grow" style="background: {item.colors[1]}"></div>
-                    <div class="flex-grow" style="background: {item.colors[2]}"></div>
+                  <div
+                    class="palette-swatch-box h-12 rounded-lg overflow-hidden flex border border-white/10"
+                  >
+                    <div
+                      class="flex-grow"
+                      style="background: {item.colors[0]}"
+                    ></div>
+                    <div
+                      class="flex-grow"
+                      style="background: {item.colors[1]}"
+                    ></div>
+                    <div
+                      class="flex-grow"
+                      style="background: {item.colors[2]}"
+                    ></div>
                   </div>
                   <div class="palette-card-meta flex flex-col mt-2 px-1">
-                    <span class="p-name text-xs font-bold text-white/85 truncate">{item.displayName}</span>
-                    <span class="p-code text-[9px] uppercase tracking-wider font-mono text-white/30">{item.code}</span>
+                    <span
+                      class="p-name text-xs font-bold text-white/85 truncate"
+                      >{item.displayName}</span
+                    >
+                    <span
+                      class="p-code text-[9px] uppercase tracking-wider font-mono text-white/30"
+                      >{item.code}</span
+                    >
                   </div>
                 </div>
               {/each}
@@ -870,7 +1630,7 @@
           </div>
         {/if}
 
-        <div class="expandable-explanation-card bg-white/[0.02] border border-white/5 p-4 rounded-xl flex gap-3 text-xs text-white/60 leading-relaxed mt-6">
+        <!-- <div class="expandable-explanation-card bg-white/[0.02] border border-white/5 p-4 rounded-xl flex gap-3 text-xs text-white/60 leading-relaxed mt-6">
           <HelpCircle size={18} class="shrink-0 text-white/40 mt-0.5" />
           <div class="flex flex-col gap-1.5">
             <span class="font-bold text-white">L1 Linguistic Demographics Data Methodologies</span>
@@ -881,30 +1641,50 @@
               "Population is people and this is a people world worldwide dogs."
             </p>
           </div>
-        </div>
+        </div> -->
       </main>
 
       <!-- Sidebar selection overlay display (Visible on desktop only) -->
-      <div class="sidebar-selection-pane hidden xl:flex flex-col w-[280px] p-6 border-l border-white/5 bg-black/10 shrink-0 select-none">
-        <div class="current-selection-card mt-auto bg-white/[0.02] border border-white/5 p-4 rounded-xl flex flex-col gap-4">
+      <div
+        class="sidebar-selection-pane hidden xl:flex flex-col w-[280px] p-6 border-l border-white/5 bg-black/10 shrink-0 select-none"
+      >
+        <div
+          class="current-selection-card mt-auto bg-white/[0.02] border border-white/5 p-4 rounded-xl flex flex-col gap-4"
+        >
           <div class="card-head flex flex-col">
-            <span class="card-tag text-[8px] font-bold text-white/30 tracking-widest uppercase">ACTIVE LOCALE</span>
-            <h3 class="text-sm font-bold text-white mt-0.5">{activeLangItem.displayName}</h3>
+            <span
+              class="card-tag text-[8px] font-bold text-white/30 tracking-widest uppercase"
+              >ACTIVE LOCALE</span
+            >
+            <h3 class="text-sm font-bold text-white mt-0.5">
+              {activeLangItem.displayName}
+            </h3>
           </div>
-          <div class="color-track h-1 flex border border-white/10 rounded-full overflow-hidden">
-            <span class="flex-1" style="background: {activeLangItem.colors[0]}"></span>
-            <span class="flex-1" style="background: {activeLangItem.colors[1]}"></span>
-            <span class="flex-1" style="background: {activeLangItem.colors[2]}"></span>
+          <div
+            class="color-track h-1 flex border border-white/10 rounded-full overflow-hidden"
+          >
+            <span class="flex-1" style="background: {activeLangItem.colors[0]}"
+            ></span>
+            <span class="flex-1" style="background: {activeLangItem.colors[1]}"
+            ></span>
+            <span class="flex-1" style="background: {activeLangItem.colors[2]}"
+            ></span>
           </div>
-          <div class="translation-preview text-xs text-white/50 font-medium italic leading-relaxed">
-            "{activeLangItem.we} {activeLangItem.are} {activeLangItem.dogs}"
+          <div
+            class="translation-preview text-xs text-white/50 font-medium italic leading-relaxed"
+          >
+            "{activeLangItem.we}
+            {activeLangItem.are}
+            {activeLangItem.dogs}"
           </div>
         </div>
       </div>
     </div>
 
     <!-- Footer / Status Bar -->
-    <footer class="panel-footer px-6 h-10 border-t border-white/5 bg-black/30 flex items-center justify-between shrink-0 text-[10px] text-white/30 tracking-wider">
+    <footer
+      class="panel-footer px-6 h-10 border-t border-white/5 bg-black/30 flex items-center justify-between shrink-0 text-[10px] text-white/30 tracking-wider"
+    >
       <div class="sys-status flex items-center gap-2 font-mono">
         <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
         <span>WE ARE DOGS STATUS: NOMINAL</span>
@@ -993,19 +1773,19 @@
 
   /* Side-by-side comparative greater statistics highlight */
   :global(.highlighted-stat) {
-    color: #FFB300 !important; /* Premium Gold/Yellow Highlight */
+    color: #ffb300 !important; /* Premium Gold/Yellow Highlight */
     font-weight: 700 !important;
     text-shadow: 0 0 8px rgba(255, 179, 0, 0.45);
   }
 
   :global(.highlighted-stat-green) {
-    color: #00FF66 !important;
+    color: #00ff66 !important;
     font-weight: 700 !important;
     text-shadow: 0 0 10px rgba(0, 255, 102, 0.45);
   }
 
   :global(.highlighted-stat-red) {
-    color: #FF3344 !important;
+    color: #ff3344 !important;
     font-weight: 700 !important;
     text-shadow: 0 0 10px rgba(255, 51, 68, 0.45);
   }
