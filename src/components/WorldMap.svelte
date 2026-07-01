@@ -1,22 +1,79 @@
 <script>
   import { onMount } from "svelte";
   import worldMapSvg from "../assets/world-map.svg?raw";
+  import countryStats from "../lib/countryStats.json" with { type: "json" };
 
   let {
     activeCountries = [],
     highlightColor = "#EF4444",
     onCountrySelect,
-    onHoverCountry
   } = $props();
 
   let containerEl = $state();
   let showMapKey = $state(false);
 
-  // Default world viewBox bounds
-  const defaultVB = { x: 30.767, y: 241.591, w: 784.077, h: 458.627 };
-  let currentVB = $state({ ...defaultVB });
-  let targetVB = { ...defaultVB };
-  let animating = false;
+  // Tooltip & Mouse state
+  let hoveredCountry = $state(null);
+  let mouseX = $state(0);
+  let mouseY = $state(0);
+
+  // Set of all countries covered by at least one language
+  const coveredCountries = new Set([
+    "us", "gb", "ca", "au", "nz",
+    "es", "mx", "ar", "co", "pe", "ve", "cl", "ec", "bo", "py", "uy", "gt", "hn", "sv", "ni", "cr", "pa", "do", "cu",
+    "fr", "be", "ch", "sn", "ci", "cg", "cd", "cm", "mg", "ne", "ml", "bf", "tg", "bj", "ga", "dj", "gq", "cf", "km", "bi", "rw",
+    "de", "at", "li", "lu",
+    "jp",
+    "cn", "tw", "hk", "mo", "sg",
+    "pt", "br", "ao", "mz", "gw", "tl", "cv", "st",
+    "it", "sm", "va",
+    "ru", "by", "kz", "kg",
+    "kr", "kp",
+    "in",
+    "eg", "sa", "ae", "dz", "ma", "sd", "iq", "ye", "sy", "td", "tn", "ly", "jo", "er", "lb", "mr", "kw", "om", "qa", "bh", "so", "ps",
+    "bd",
+    "pk",
+    "id",
+    "my", "bn",
+    "vn",
+    "th",
+    "lk",
+    "np",
+    "mm",
+    "kh",
+    "la",
+    "ph"
+  ]);
+
+  // Helper calculations for tooltip
+  function calculateTotalMortality(stats) {
+    if (!stats) return 0;
+    return Math.round(
+      (stats.cancer +
+        stats.old_age +
+        stats.auto +
+        stats.suicide +
+        stats.gun_violence +
+        stats.knife_violence +
+        stats.police_brutality +
+        stats.food_poisoning +
+        stats.overdose_heroin +
+        stats.overdose_meth +
+        stats.overdose_cocaine +
+        stats.overdose_alcohol) * 10
+    ) / 10;
+  }
+
+  function calculateLifeExpectancy(stats) {
+    if (!stats) return 75;
+    const base = 75;
+    const acBonus = (stats.ac_adoption / 100) * 3.5;
+    const vacBonus = (stats.vaccines / 100) * 4.2;
+    const hcBonus = (stats.gov_healthcare / 100) * 5.0;
+    const totalMortality = calculateTotalMortality(stats);
+    const mortalityPenalty = totalMortality / 75;
+    return Math.round((base + acBonus + vacBonus + hcBonus - mortalityPenalty) * 10) / 10;
+  }
 
   // Track map labels and highlights in effect
   $effect(() => {
@@ -25,7 +82,15 @@
     // Append labels if not present
     addLabels();
 
-    // Clear previous highlights
+    // Mark covered countries
+    containerEl.querySelectorAll("path").forEach((el) => {
+      const id = el.id ? el.id.toLowerCase() : "";
+      if (id && coveredCountries.has(id)) {
+        el.classList.add("covered");
+      }
+    });
+
+    // Clear previous active highlights
     containerEl.querySelectorAll(".highlighted").forEach((el) => {
       el.classList.remove("highlighted");
       el.style.removeProperty("--country-fill");
@@ -41,13 +106,6 @@
         el.style.setProperty("--country-stroke", highlightColor);
       }
     });
-
-    // Zoom to fit active countries
-    if (activeCountries.length > 0) {
-      zoomToCountries(activeCountries);
-    } else {
-      resetZoom();
-    }
   });
 
   function addLabels() {
@@ -84,111 +142,6 @@
     svg.appendChild(g);
   }
 
-  function zoomToCountries(codes) {
-    if (!containerEl) return;
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    let found = false;
-
-    codes.forEach((code) => {
-      const el = containerEl.querySelector(`#${code.toLowerCase()}`);
-      if (el && typeof el.getBBox === "function") {
-        try {
-          const bbox = el.getBBox();
-          if (bbox.width > 0 && bbox.height > 0) {
-            minX = Math.min(minX, bbox.x);
-            minY = Math.min(minY, bbox.y);
-            maxX = Math.max(maxX, bbox.x + bbox.width);
-            maxY = Math.max(maxY, bbox.y + bbox.height);
-            found = true;
-          }
-        } catch (e) {
-          console.warn("BBox calculation failed", e);
-        }
-      }
-    });
-
-    if (found) {
-      let w = maxX - minX;
-      let h = maxY - minY;
-
-      // Apply padding (25%)
-      const padX = w * 0.25;
-      const padY = h * 0.25;
-      let targetX = minX - padX;
-      let targetY = minY - padY;
-      let targetW = w + padX * 2;
-      let targetH = h + padY * 2;
-
-      // Prevent zooming in too deep (for tiny nations)
-      const minDimension = 90;
-      if (targetW < minDimension) {
-        targetX -= (minDimension - targetW) / 2;
-        targetW = minDimension;
-      }
-      if (targetH < minDimension * 0.6) {
-        targetY -= (minDimension * 0.6 - targetH) / 2;
-        targetH = minDimension * 0.6;
-      }
-
-      // Constrain within bounds
-      targetVB = { x: targetX, y: targetY, w: targetW, h: targetH };
-      startViewBoxAnimation();
-    } else {
-      resetZoom();
-    }
-  }
-
-  function resetZoom() {
-    targetVB = { ...defaultVB };
-    startViewBoxAnimation();
-  }
-
-  function startViewBoxAnimation() {
-    if (!animating) {
-      animating = true;
-      requestAnimationFrame(animateViewBox);
-    }
-  }
-
-  function animateViewBox() {
-    if (!containerEl) return;
-    const ease = 0.09;
-    const dx = targetVB.x - currentVB.x;
-    const dy = targetVB.y - currentVB.y;
-    const dw = targetVB.w - currentVB.w;
-    const dh = targetVB.h - currentVB.h;
-
-    if (
-      Math.abs(dx) < 0.05 &&
-      Math.abs(dy) < 0.05 &&
-      Math.abs(dw) < 0.05 &&
-      Math.abs(dh) < 0.05
-    ) {
-      currentVB = { ...targetVB };
-      animating = false;
-      updateSVGViewBox();
-      return;
-    }
-
-    currentVB.x += dx * ease;
-    currentVB.y += dy * ease;
-    currentVB.w += dw * ease;
-    currentVB.h += dh * ease;
-
-    updateSVGViewBox();
-    requestAnimationFrame(animateViewBox);
-  }
-
-  function updateSVGViewBox() {
-    const svg = containerEl.querySelector("svg");
-    if (svg) {
-      svg.setAttribute(
-        "viewBox",
-        `${currentVB.x} ${currentVB.y} ${currentVB.w} ${currentVB.h}`
-      );
-    }
-  }
-
   function handleClick(e) {
     const path = e.target.closest("path");
     if (!path) return;
@@ -199,20 +152,30 @@
   }
 
   function handleMouseMove(e) {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+
     const path = e.target.closest("path");
-    if (!path) return;
-    const countryId = path.id;
-    if (countryId && onHoverCountry) {
-      onHoverCountry(countryId.toLowerCase());
+    if (path && path.id) {
+      const countryId = path.id.toLowerCase();
+      // Only set hoveredCountry if statistics exist for it
+      if (countryStats[countryId]) {
+        hoveredCountry = countryId;
+        return;
+      }
     }
+    hoveredCountry = null;
+  }
+
+  function handleMouseLeave() {
+    hoveredCountry = null;
   }
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="world-map-container">
+<div class="world-map-container" onmouseleave={handleMouseLeave}>
   <div class="map-controls">
-    <button class="map-btn" onclick={resetZoom}>Reset Zoom</button>
     <button class="map-btn" onclick={() => (showMapKey = !showMapKey)}>
       {showMapKey ? "Hide Map Key" : "Show Map Key"}
     </button>
@@ -224,12 +187,41 @@
       <div class="key-items">
         <div class="key-item">
           <span class="color-box highlighted-box" style="background: {highlightColor}"></span>
-          <span>Active / Selected Language Countries</span>
+          <span>Selected Language Countries</span>
+        </div>
+        <div class="key-item">
+          <span class="color-box covered-box"></span>
+          <span>Represented Locales (Click to inspect)</span>
         </div>
         <div class="key-item">
           <span class="color-box default-box"></span>
-          <span>Other Countries (Click to Explore)</span>
+          <span>Other Countries / Regions</span>
         </div>
+      </div>
+    </div>
+  {/if}
+
+  {#if hoveredCountry && countryStats[hoveredCountry]}
+    {@const stats = countryStats[hoveredCountry]}
+    {@const life = calculateLifeExpectancy(stats)}
+    {@const deaths = calculateTotalMortality(stats)}
+    <div class="map-tooltip" style="left: {mouseX + 16}px; top: {mouseY + 16}px;">
+      <div class="tooltip-header font-bold text-white mb-1 flex items-center gap-1.5">
+        <span class="w-1.5 h-3 rounded-sm bg-orange-400"></span>
+        <span>{stats.name}</span>
+      </div>
+      <div class="tooltip-row flex justify-between gap-4 text-[10px] text-white/70">
+        <span>Life Expectancy:</span>
+        <strong class="text-green-400 font-mono">{life} yrs</strong>
+      </div>
+      <div class="tooltip-row flex justify-between gap-4 text-[10px] text-white/70">
+        <span>Mortality Index:</span>
+        <strong class="text-red-400 font-mono">{deaths}</strong>
+      </div>
+      <div class="tooltip-details mt-1 pt-1 border-t border-white/5 flex gap-2 text-[9px] text-white/40">
+        <span>🚗 Auto: {stats.auto}</span>
+        <span>🔫 Gun: {stats.gun_violence}</span>
+        <span>❄️ A/C: {stats.ac_adoption}%</span>
       </div>
     </div>
   {/if}
@@ -334,8 +326,31 @@
     box-shadow: 0 0 6px var(--country-stroke);
   }
 
+  .covered-box {
+    border-color: rgba(255, 255, 255, 0.4);
+    background: rgba(255, 255, 255, 0.12);
+  }
+
   .default-box {
     background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+
+  /* Floating hover stats tooltip */
+  .map-tooltip {
+    position: fixed;
+    background: rgba(10, 10, 15, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    padding: 8px 12px;
+    pointer-events: none;
+    z-index: 1000;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+    display: flex;
+    flex-direction: column;
+    gap: 2.5px;
+    min-width: 170px;
   }
 
   .world-map-wrapper {
@@ -353,25 +368,37 @@
     max-height: 500px;
   }
 
-  /* Stylize country paths */
+  /* Default base country paths */
   .world-map-wrapper :global(path) {
-    fill: rgba(255, 255, 255, 0.06);
-    stroke: rgba(255, 255, 255, 0.12);
-    stroke-width: 0.6px;
-    transition: fill 0.3s cubic-bezier(0.16, 1, 0.3, 1), stroke 0.3s ease;
+    fill: rgba(255, 255, 255, 0.04);
+    stroke: rgba(255, 255, 255, 0.1);
+    stroke-width: 0.5px;
+    transition: fill 0.25s ease, stroke 0.25s ease;
     cursor: pointer;
   }
 
   .world-map-wrapper :global(path:hover) {
-    fill: rgba(255, 255, 255, 0.16);
-    stroke: rgba(255, 255, 255, 0.3);
+    fill: rgba(255, 255, 255, 0.08);
+    stroke: rgba(255, 255, 255, 0.15);
   }
 
-  /* highlighted colors */
+  /* Mild dim border & fill for covered languages/represented locales */
+  .world-map-wrapper :global(path.covered) {
+    stroke: rgba(255, 255, 255, 0.4) !important;
+    stroke-width: 0.9px !important;
+    fill: rgba(255, 255, 255, 0.12) !important;
+  }
+
+  .world-map-wrapper :global(path.covered:hover) {
+    fill: rgba(255, 255, 255, 0.22) !important;
+    stroke: rgba(255, 255, 255, 0.65) !important;
+  }
+
+  /* Active highlight overrides covered styles */
   .world-map-wrapper :global(path.highlighted) {
     fill: var(--country-fill) !important;
     stroke: var(--country-stroke) !important;
-    stroke-width: 1px !important;
+    stroke-width: 1.1px !important;
   }
 
   /* map labels positioning */
@@ -384,7 +411,7 @@
   }
 
   .world-map-wrapper :global(.map-label.continent) {
-    fill: rgba(255, 255, 255, 0.3);
+    fill: rgba(255, 255, 255, 0.28);
     font-size: 8px;
   }
 

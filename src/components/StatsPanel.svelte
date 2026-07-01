@@ -14,7 +14,6 @@
     Search,
     Globe,
     Scale,
-    Timer,
     TrendingUp,
     Palette,
     ChevronRight,
@@ -40,24 +39,10 @@
     return getLangDisplayName(code, userLocale);
   }
 
-  function langEnglishName(code) {
-    return getLangEnglishName(code);
-  }
-
-  // Active Tab state: 'explorer' | 'map' | 'comparison' | 'countdown' | 'speakers' | 'dogs' | 'themes'
-  let activeTab = $state("explorer");
-
-  // Search state for Language Explorer
-  let searchQuery = $state("");
-
-  // Sorting state for Language Explorer table
-  let sortField = $state("name"); // 'name', 'country', 'speakersNum', 'dogsNum'
-  let sortAscending = $state(true);
-
   // Pre-calculate language item objects once for efficiency
   const allLangItems = langs.map((code) => {
     const t = translations[code];
-    const name = langEnglishName(code);
+    const name = getLangEnglishName(code);
     const dispName = langDisplayName(code);
 
     return {
@@ -80,13 +65,6 @@
       dogCDR: t.dogCDR || 0,
     };
   });
-
-  // Total global metrics calculation
-  const totalSpeakers = allLangItems.reduce(
-    (acc, curr) => acc + curr.speakersNum,
-    0,
-  );
-  const totalDogs = allLangItems.reduce((acc, curr) => acc + curr.dogsNum, 0);
 
   // Derived filtered languages for Language Explorer
   let filteredLangs = $derived.by(() => {
@@ -167,14 +145,13 @@
     { id: "explorer", label: "Explorer", icon: Search },
     { id: "map", label: "World Map", icon: Globe },
     { id: "comparison", label: "Life & Death", icon: Scale },
-    { id: "countdown", label: "69 Ticker", icon: Timer },
     { id: "speakers", label: "Speakers", icon: TrendingUp },
     { id: "dogs", label: "Local Dogs", icon: null },
     { id: "themes", label: "Palettes", icon: Palette },
   ];
 
   // ---------------------------------------------------------------------------
-  // Map zoom and country highlighting mapping
+  // Map country selection mapping
   // ---------------------------------------------------------------------------
   const langToCountries = {
     en: ["us", "gb", "ca", "au", "nz"],
@@ -244,6 +221,11 @@
   let compareA = $state("us");
   let compareB = $state("ca");
 
+  // State variables for Active Tab search queries
+  let searchQuery = $state("");
+  let sortField = $state("name");
+  let sortAscending = $state(true);
+
   function calculateTotalMortality(stats) {
     if (!stats) return 0;
     return Math.round(
@@ -269,18 +251,15 @@
     const vacBonus = (stats.vaccines / 100) * 4.2;
     const hcBonus = (stats.gov_healthcare / 100) * 5.0;
     const totalMortality = calculateTotalMortality(stats);
-    // Subtraction multiplier representing standard mortality index penalty
     const mortalityPenalty = totalMortality / 75;
     return Math.round((base + acBonus + vacBonus + hcBonus - mortalityPenalty) * 10) / 10;
   }
 
-  // Quick comparison shortcuts
   function triggerQuickCompare(a, b) {
     compareA = a;
     compareB = b;
   }
 
-  // Derived filtered country list for search/sort
   let compareFilteredCountries = $derived.by(() => {
     let list = Object.entries(countryStats).map(([code, stats]) => ({
       code,
@@ -296,94 +275,6 @@
 
     return list;
   });
-
-  // ---------------------------------------------------------------------------
-  // Live ticking 69 countdown ticker logic
-  // ---------------------------------------------------------------------------
-  const TIME_LOCK = new Date("2026-06-21T18:28:24Z").getTime();
-  const HUMAN_GROWTH_FACTOR_2026 = 1.031;
-  const DOG_GROWTH_FACTOR_2026 = 1.052;
-  let elapsedSeconds = $state((Date.now() - TIME_LOCK) / 1000);
-
-  $effect(() => {
-    let animFrame;
-    const update = () => {
-      elapsedSeconds = (Date.now() - TIME_LOCK) / 1000;
-      animFrame = requestAnimationFrame(update);
-    };
-    animFrame = requestAnimationFrame(update);
-    return () => cancelAnimationFrame(animFrame);
-  });
-
-  // Calculate live values for a country
-  function getLivePopulation(code, type = "human") {
-    // Map country code back to a primary language entry in translations
-    let lang = "en";
-    for (const [l, countries] of Object.entries(langToCountries)) {
-      if (countries.includes(code)) {
-        lang = l;
-        break;
-      }
-    }
-
-    const t = translations[lang] || translations.en;
-    const basePop = type === "human"
-      ? parseSpeakers(t.speakers) * HUMAN_GROWTH_FACTOR_2026
-      : parseDogs(t.dogs_count) * DOG_GROWTH_FACTOR_2026;
-
-    const cbr = type === "human" ? (t.humanCBR || 11) : (t.dogCBR || 93);
-    const cdr = type === "human" ? (t.humanCDR || 8.8) : (t.dogCDR || 91);
-    const netRatePerYear = (cbr - cdr) / 1000; // net growth rate
-    // Calculate growth rate per second
-    const ratePerSecond = (basePop * netRatePerYear) / (365.25 * 24 * 3600);
-
-    const liveVal = Math.max(10, basePop + elapsedSeconds * ratePerSecond);
-    return {
-      value: Math.floor(liveVal),
-      rate: ratePerSecond
-    };
-  }
-
-  function getCountdown(liveVal, ratePerSec) {
-    if (Math.abs(ratePerSec) < 0.000001) {
-      return { target: "—", minutes: 0, seconds: 0, rawSeconds: Infinity };
-    }
-
-    let target;
-    if (ratePerSec > 0) {
-      target = Math.ceil((liveVal - 69) / 100) * 100 + 69;
-      if (target <= liveVal) target += 100;
-    } else {
-      target = Math.floor((liveVal - 69) / 100) * 100 + 69;
-      if (target >= liveVal) target -= 100;
-    }
-
-    const diff = target - liveVal;
-    const rawSeconds = diff / ratePerSec;
-    const mins = Math.floor(rawSeconds / 60);
-    const secs = rawSeconds % 60;
-
-    return {
-      target,
-      minutes: mins,
-      seconds: secs,
-      rawSeconds
-    };
-  }
-
-  // Active country for ticker
-  let tickerCountryCode = $state("us");
-  let liveHuman = $derived(getLivePopulation(tickerCountryCode, "human"));
-  let liveDog = $derived(getLivePopulation(tickerCountryCode, "dog"));
-
-  let humanCountdown = $derived(getCountdown(liveHuman.value, liveHuman.rate));
-  let dogCountdown = $derived(getCountdown(liveDog.value, liveDog.rate));
-
-  // Ticker countries options (only those in countryStats)
-  const tickerOptions = Object.entries(countryStats).map(([code, data]) => ({
-    code,
-    name: data.name
-  }));
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -544,7 +435,7 @@
               <h2 class="text-base font-bold text-white uppercase tracking-wider">Interactive Vector World Map</h2>
               <p class="text-xs text-white/50 mt-1">
                 Currently highlighting target countries for: <span class="font-bold text-white" style="color: {activeColor}">{activeLangItem.displayName}</span>. 
-                Hover over the map or click any country to inspect demographics dynamically.
+                Hover over the map to view statistics overlay, or click any country to inspect demographics dynamically.
               </p>
             </div>
             
@@ -566,7 +457,7 @@
             <div class="comparison-header">
               <h2 class="text-base font-bold text-white uppercase tracking-wider">Life & Death Demographics Comparative Matrix</h2>
               <p class="text-xs text-white/50 mt-1">
-                Compare health metrics, violence coefficients, drug overdoses, and calculations that derive final life expectancies between nations.
+                Compare health metrics, violence coefficients, drug overdoses, and calculations that derive final life expectancies between nations. Gold highlighted values represent the greater stat between the two countries.
               </p>
             </div>
 
@@ -591,117 +482,130 @@
 
             <!-- Side by Side Comparative Widget -->
             <div id="comparison-results" class="comparison-grid grid grid-cols-1 lg:grid-cols-2 gap-6 mt-2">
+              
               <!-- Left selection card -->
-              <div class="compare-card p-5 bg-white/[0.02] border border-white/5 rounded-xl flex flex-col gap-4 relative">
-                <div class="flex items-center justify-between border-b border-white/5 pb-3">
-                  <h3 class="text-sm font-bold text-white/40 uppercase tracking-wider">Country A</h3>
-                  <select bind:value={compareA} class="bg-black/80 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs font-bold text-white outline-none cursor-pointer">
-                    {#each Object.entries(countryStats) as [code, data]}
-                      <option value={code}>{data.name}</option>
-                    {/each}
-                  </select>
-                </div>
+              {#if countryStats[compareA]}
+                {@const statsA = countryStats[compareA]}
+                {@const statsB = countryStats[compareB] || statsA}
+                {@const lifeA = calculateLifeExpectancy(statsA)}
+                {@const lifeB = calculateLifeExpectancy(statsB)}
+                {@const deathsA = calculateTotalMortality(statsA)}
+                {@const deathsB = calculateTotalMortality(statsB)}
                 
-                {#if countryStats[compareA]}
-                  {@const stats = countryStats[compareA]}
-                  {@const life = calculateLifeExpectancy(stats)}
-                  {@const deaths = calculateTotalMortality(stats)}
+                <div class="compare-card p-5 bg-white/[0.02] border border-white/5 rounded-xl flex flex-col gap-4 relative">
+                  <div class="flex items-center justify-between border-b border-white/5 pb-3">
+                    <h3 class="text-sm font-bold text-white/40 uppercase tracking-wider">Country A</h3>
+                    <select bind:value={compareA} class="bg-black/80 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs font-bold text-white outline-none cursor-pointer">
+                      {#each Object.entries(countryStats) as [code, data]}
+                        <option value={code}>{data.name}</option>
+                      {/each}
+                    </select>
+                  </div>
+                  
                   <div class="stats-overview flex justify-between items-center bg-black/30 p-4 rounded-lg">
                     <div class="flex flex-col">
                       <span class="text-[9px] uppercase tracking-wider text-white/30 font-bold">Life Expectancy</span>
-                      <span class="text-xl font-bold text-green-400 font-mono">{life} years</span>
+                      <span class="text-xl font-bold font-mono" class:highlighted-stat-green={lifeA > lifeB}>{lifeA} years</span>
                     </div>
                     <div class="flex flex-col text-right">
                       <span class="text-[9px] uppercase tracking-wider text-white/30 font-bold">Total Deaths (per 100k)</span>
-                      <span class="text-xl font-bold text-red-400 font-mono">{deaths}</span>
+                      <span class="text-xl font-bold font-mono" class:highlighted-stat-red={deathsA > deathsB}>{deathsA}</span>
                     </div>
                   </div>
 
                   <div class="metrics-list flex flex-col gap-2.5 text-xs text-white/70">
-                    <div class="flex justify-between py-1.5 border-b border-white/[0.02]"><span class="text-white/40">Cancer Rate</span><span class="font-mono font-medium">{stats.cancer}</span></div>
-                    <div class="flex justify-between py-1.5 border-b border-white/[0.02]"><span class="text-white/40">Old Age / Cardiovascular</span><span class="font-mono font-medium">{stats.old_age}</span></div>
-                    <div class="flex justify-between py-1.5 border-b border-white/[0.02]"><span class="text-white/40">Automobile Accidents</span><span class="font-mono font-medium" class:text-orange-400={stats.auto > 15}>{stats.auto}</span></div>
-                    <div class="flex justify-between py-1.5 border-b border-white/[0.02]"><span class="text-white/40">Suicide Rate</span><span class="font-mono font-medium">{stats.suicide}</span></div>
-                    <div class="flex justify-between py-1.5 border-b border-white/[0.02]"><span class="text-white/40">Gun Violence</span><span class="font-mono font-medium" class:text-red-400={stats.gun_violence > 5}>{stats.gun_violence}</span></div>
-                    <div class="flex justify-between py-1.5 border-b border-white/[0.02]"><span class="text-white/40">Knife Violence</span><span class="font-mono font-medium">{stats.knife_violence}</span></div>
-                    <div class="flex justify-between py-1.5 border-b border-white/[0.02]"><span class="text-white/40">Police Brutality</span><span class="font-mono font-medium" class:text-red-400={stats.police_brutality > 1}>{stats.police_brutality}</span></div>
-                    <div class="flex justify-between py-1.5 border-b border-white/[0.02]"><span class="text-white/40">Food Poisoning</span><span class="font-mono font-medium">{stats.food_poisoning}</span></div>
+                    <div class="flex justify-between py-1.5 border-b border-white/[0.02]"><span class="text-white/40">Cancer Rate</span><span class="font-mono font-medium" class:highlighted-stat={statsA.cancer > statsB.cancer}>{statsA.cancer}</span></div>
+                    <div class="flex justify-between py-1.5 border-b border-white/[0.02]"><span class="text-white/40">Old Age / Cardiovascular</span><span class="font-mono font-medium" class:highlighted-stat={statsA.old_age > statsB.old_age}>{statsA.old_age}</span></div>
+                    <div class="flex justify-between py-1.5 border-b border-white/[0.02]"><span class="text-white/40">Automobile Accidents</span><span class="font-mono font-medium" class:highlighted-stat={statsA.auto > statsB.auto}>{statsA.auto}</span></div>
+                    <div class="flex justify-between py-1.5 border-b border-white/[0.02]"><span class="text-white/40">Suicide Rate</span><span class="font-mono font-medium" class:highlighted-stat={statsA.suicide > statsB.suicide}>{statsA.suicide}</span></div>
+                    <div class="flex justify-between py-1.5 border-b border-white/[0.02]"><span class="text-white/40">Gun Violence</span><span class="font-mono font-medium" class:highlighted-stat={statsA.gun_violence > statsB.gun_violence}>{statsA.gun_violence}</span></div>
+                    <div class="flex justify-between py-1.5 border-b border-white/[0.02]"><span class="text-white/40">Knife Violence</span><span class="font-mono font-medium" class:highlighted-stat={statsA.knife_violence > statsB.knife_violence}>{statsA.knife_violence}</span></div>
+                    <div class="flex justify-between py-1.5 border-b border-white/[0.02]"><span class="text-white/40">Police Brutality</span><span class="font-mono font-medium" class:highlighted-stat={statsA.police_brutality > statsB.police_brutality}>{statsA.police_brutality}</span></div>
+                    <div class="flex justify-between py-1.5 border-b border-white/[0.02]"><span class="text-white/40">Food Poisoning</span><span class="font-mono font-medium" class:highlighted-stat={statsA.food_poisoning > statsB.food_poisoning}>{statsA.food_poisoning}</span></div>
+                    
                     <div class="p-3 bg-black/20 rounded-lg flex flex-col gap-1.5">
                       <span class="text-[9px] uppercase tracking-wider text-white/30 font-bold">Drug Overdoses Detail (per 100k)</span>
                       <div class="grid grid-cols-2 gap-2 text-[11px]">
-                        <div><span class="text-white/40 mr-1">Heroin:</span> <strong class="font-mono text-white/90">{stats.overdose_heroin}</strong></div>
-                        <div><span class="text-white/40 mr-1">Meth:</span> <strong class="font-mono text-white/90">{stats.overdose_meth}</strong></div>
-                        <div><span class="text-white/40 mr-1">Cocaine:</span> <strong class="font-mono text-white/90">{stats.overdose_cocaine}</strong></div>
-                        <div><span class="text-white/40 mr-1">Alcohol:</span> <strong class="font-mono text-white/90">{stats.overdose_alcohol}</strong></div>
+                        <div><span class="text-white/40 mr-1">Heroin:</span> <strong class="font-mono" class:highlighted-stat={statsA.overdose_heroin > statsB.overdose_heroin}>{statsA.overdose_heroin}</strong></div>
+                        <div><span class="text-white/40 mr-1">Meth:</span> <strong class="font-mono" class:highlighted-stat={statsA.overdose_meth > statsB.overdose_meth}>{statsA.overdose_meth}</strong></div>
+                        <div><span class="text-white/40 mr-1">Cocaine:</span> <strong class="font-mono" class:highlighted-stat={statsA.overdose_cocaine > statsB.overdose_cocaine}>{statsA.overdose_cocaine}</strong></div>
+                        <div><span class="text-white/40 mr-1">Alcohol:</span> <strong class="font-mono" class:highlighted-stat={statsA.overdose_alcohol > statsB.overdose_alcohol}>{statsA.overdose_alcohol}</strong></div>
                       </div>
                     </div>
+                    
                     <div class="p-3 bg-black/20 rounded-lg flex flex-col gap-1.5">
                       <span class="text-[9px] uppercase tracking-wider text-white/30 font-bold">Life Expectancy Drivers</span>
                       <div class="grid grid-cols-3 gap-2 text-[10px] text-center">
-                        <div class="bg-black/30 p-1.5 rounded"><span class="block text-white/30">A/C Adoption</span><strong class="font-mono text-green-400">{stats.ac_adoption}%</strong></div>
-                        <div class="bg-black/30 p-1.5 rounded"><span class="block text-white/30">Vaccination</span><strong class="font-mono text-green-400">{stats.vaccines}%</strong></div>
-                        <div class="bg-black/30 p-1.5 rounded"><span class="block text-white/30">Gov Healthcare</span><strong class="font-mono text-green-400">{stats.gov_healthcare}/100</strong></div>
+                        <div class="bg-black/30 p-1.5 rounded"><span class="block text-white/30">A/C Adoption</span><strong class="font-mono" class:highlighted-stat={statsA.ac_adoption > statsB.ac_adoption}>{statsA.ac_adoption}%</strong></div>
+                        <div class="bg-black/30 p-1.5 rounded"><span class="block text-white/30">Vaccination</span><strong class="font-mono" class:highlighted-stat={statsA.vaccines > statsB.vaccines}>{statsA.vaccines}%</strong></div>
+                        <div class="bg-black/30 p-1.5 rounded"><span class="block text-white/30">Gov Healthcare</span><strong class="font-mono" class:highlighted-stat={statsA.gov_healthcare > statsB.gov_healthcare}>{statsA.gov_healthcare}/100</strong></div>
                       </div>
                     </div>
                   </div>
-                {/if}
-              </div>
+                </div>
+              {/if}
 
               <!-- Right selection card -->
-              <div class="compare-card p-5 bg-white/[0.02] border border-white/5 rounded-xl flex flex-col gap-4 relative">
-                <div class="flex items-center justify-between border-b border-white/5 pb-3">
-                  <h3 class="text-sm font-bold text-white/40 uppercase tracking-wider">Country B</h3>
-                  <select bind:value={compareB} class="bg-black/80 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs font-bold text-white outline-none cursor-pointer">
-                    {#each Object.entries(countryStats) as [code, data]}
-                      <option value={code}>{data.name}</option>
-                    {/each}
-                  </select>
-                </div>
+              {#if countryStats[compareB]}
+                {@const statsB = countryStats[compareB]}
+                {@const statsA = countryStats[compareA] || statsB}
+                {@const lifeB = calculateLifeExpectancy(statsB)}
+                {@const lifeA = calculateLifeExpectancy(statsA)}
+                {@const deathsB = calculateTotalMortality(statsB)}
+                {@const deathsA = calculateTotalMortality(statsA)}
                 
-                {#if countryStats[compareB]}
-                  {@const stats = countryStats[compareB]}
-                  {@const life = calculateLifeExpectancy(stats)}
-                  {@const deaths = calculateTotalMortality(stats)}
+                <div class="compare-card p-5 bg-white/[0.02] border border-white/5 rounded-xl flex flex-col gap-4 relative">
+                  <div class="flex items-center justify-between border-b border-white/5 pb-3">
+                    <h3 class="text-sm font-bold text-white/40 uppercase tracking-wider">Country B</h3>
+                    <select bind:value={compareB} class="bg-black/80 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs font-bold text-white outline-none cursor-pointer">
+                      {#each Object.entries(countryStats) as [code, data]}
+                        <option value={code}>{data.name}</option>
+                      {/each}
+                    </select>
+                  </div>
+                  
                   <div class="stats-overview flex justify-between items-center bg-black/30 p-4 rounded-lg">
                     <div class="flex flex-col">
                       <span class="text-[9px] uppercase tracking-wider text-white/30 font-bold">Life Expectancy</span>
-                      <span class="text-xl font-bold text-green-400 font-mono">{life} years</span>
+                      <span class="text-xl font-bold font-mono" class:highlighted-stat-green={lifeB > lifeA}>{lifeB} years</span>
                     </div>
                     <div class="flex flex-col text-right">
                       <span class="text-[9px] uppercase tracking-wider text-white/30 font-bold">Total Deaths (per 100k)</span>
-                      <span class="text-xl font-bold text-red-400 font-mono">{deaths}</span>
+                      <span class="text-xl font-bold font-mono" class:highlighted-stat-red={deathsB > deathsA}>{deathsB}</span>
                     </div>
                   </div>
 
                   <div class="metrics-list flex flex-col gap-2.5 text-xs text-white/70">
-                    <div class="flex justify-between py-1.5 border-b border-white/[0.02]"><span class="text-white/40">Cancer Rate</span><span class="font-mono font-medium">{stats.cancer}</span></div>
-                    <div class="flex justify-between py-1.5 border-b border-white/[0.02]"><span class="text-white/40">Old Age / Cardiovascular</span><span class="font-mono font-medium">{stats.old_age}</span></div>
-                    <div class="flex justify-between py-1.5 border-b border-white/[0.02]"><span class="text-white/40">Automobile Accidents</span><span class="font-mono font-medium" class:text-orange-400={stats.auto > 15}>{stats.auto}</span></div>
-                    <div class="flex justify-between py-1.5 border-b border-white/[0.02]"><span class="text-white/40">Suicide Rate</span><span class="font-mono font-medium">{stats.suicide}</span></div>
-                    <div class="flex justify-between py-1.5 border-b border-white/[0.02]"><span class="text-white/40">Gun Violence</span><span class="font-mono font-medium" class:text-red-400={stats.gun_violence > 5}>{stats.gun_violence}</span></div>
-                    <div class="flex justify-between py-1.5 border-b border-white/[0.02]"><span class="text-white/40">Knife Violence</span><span class="font-mono font-medium">{stats.knife_violence}</span></div>
-                    <div class="flex justify-between py-1.5 border-b border-white/[0.02]"><span class="text-white/40">Police Brutality</span><span class="font-mono font-medium" class:text-red-400={stats.police_brutality > 1}>{stats.police_brutality}</span></div>
-                    <div class="flex justify-between py-1.5 border-b border-white/[0.02]"><span class="text-white/40">Food Poisoning</span><span class="font-mono font-medium">{stats.food_poisoning}</span></div>
+                    <div class="flex justify-between py-1.5 border-b border-white/[0.02]"><span class="text-white/40">Cancer Rate</span><span class="font-mono font-medium" class:highlighted-stat={statsB.cancer > statsA.cancer}>{statsB.cancer}</span></div>
+                    <div class="flex justify-between py-1.5 border-b border-white/[0.02]"><span class="text-white/40">Old Age / Cardiovascular</span><span class="font-mono font-medium" class:highlighted-stat={statsB.old_age > statsA.old_age}>{statsB.old_age}</span></div>
+                    <div class="flex justify-between py-1.5 border-b border-white/[0.02]"><span class="text-white/40">Automobile Accidents</span><span class="font-mono font-medium" class:highlighted-stat={statsB.auto > statsA.auto}>{statsB.auto}</span></div>
+                    <div class="flex justify-between py-1.5 border-b border-white/[0.02]"><span class="text-white/40">Suicide Rate</span><span class="font-mono font-medium" class:highlighted-stat={statsB.suicide > statsA.suicide}>{statsB.suicide}</span></div>
+                    <div class="flex justify-between py-1.5 border-b border-white/[0.02]"><span class="text-white/40">Gun Violence</span><span class="font-mono font-medium" class:highlighted-stat={statsB.gun_violence > statsA.gun_violence}>{statsB.gun_violence}</span></div>
+                    <div class="flex justify-between py-1.5 border-b border-white/[0.02]"><span class="text-white/40">Knife Violence</span><span class="font-mono font-medium" class:highlighted-stat={statsB.knife_violence > statsA.knife_violence}>{statsB.knife_violence}</span></div>
+                    <div class="flex justify-between py-1.5 border-b border-white/[0.02]"><span class="text-white/40">Police Brutality</span><span class="font-mono font-medium" class:highlighted-stat={statsB.police_brutality > statsA.police_brutality}>{statsB.police_brutality}</span></div>
+                    <div class="flex justify-between py-1.5 border-b border-white/[0.02]"><span class="text-white/40">Food Poisoning</span><span class="font-mono font-medium" class:highlighted-stat={statsB.food_poisoning > statsA.food_poisoning}>{statsB.food_poisoning}</span></div>
+                    
                     <div class="p-3 bg-black/20 rounded-lg flex flex-col gap-1.5">
                       <span class="text-[9px] uppercase tracking-wider text-white/30 font-bold">Drug Overdoses Detail (per 100k)</span>
                       <div class="grid grid-cols-2 gap-2 text-[11px]">
-                        <div><span class="text-white/40 mr-1">Heroin:</span> <strong class="font-mono text-white/90">{stats.overdose_heroin}</strong></div>
-                        <div><span class="text-white/40 mr-1">Meth:</span> <strong class="font-mono text-white/90">{stats.overdose_meth}</strong></div>
-                        <div><span class="text-white/40 mr-1">Cocaine:</span> <strong class="font-mono text-white/90">{stats.overdose_cocaine}</strong></div>
-                        <div><span class="text-white/40 mr-1">Alcohol:</span> <strong class="font-mono text-white/90">{stats.overdose_alcohol}</strong></div>
+                        <div><span class="text-white/40 mr-1">Heroin:</span> <strong class="font-mono" class:highlighted-stat={statsB.overdose_heroin > statsA.overdose_heroin}>{statsB.overdose_heroin}</strong></div>
+                        <div><span class="text-white/40 mr-1">Meth:</span> <strong class="font-mono" class:highlighted-stat={statsB.overdose_meth > statsA.overdose_meth}>{statsB.overdose_meth}</strong></div>
+                        <div><span class="text-white/40 mr-1">Cocaine:</span> <strong class="font-mono" class:highlighted-stat={statsB.overdose_cocaine > statsA.overdose_cocaine}>{statsB.overdose_cocaine}</strong></div>
+                        <div><span class="text-white/40 mr-1">Alcohol:</span> <strong class="font-mono" class:highlighted-stat={statsB.overdose_alcohol > statsA.overdose_alcohol}>{statsB.overdose_alcohol}</strong></div>
                       </div>
                     </div>
+                    
                     <div class="p-3 bg-black/20 rounded-lg flex flex-col gap-1.5">
                       <span class="text-[9px] uppercase tracking-wider text-white/30 font-bold">Life Expectancy Drivers</span>
                       <div class="grid grid-cols-3 gap-2 text-[10px] text-center">
-                        <div class="bg-black/30 p-1.5 rounded"><span class="block text-white/30">A/C Adoption</span><strong class="font-mono text-green-400">{stats.ac_adoption}%</strong></div>
-                        <div class="bg-black/30 p-1.5 rounded"><span class="block text-white/30">Vaccination</span><strong class="font-mono text-green-400">{stats.vaccines}%</strong></div>
-                        <div class="bg-black/30 p-1.5 rounded"><span class="block text-white/30">Gov Healthcare</span><strong class="font-mono text-green-400">{stats.gov_healthcare}/100</strong></div>
+                        <div class="bg-black/30 p-1.5 rounded"><span class="block text-white/30">A/C Adoption</span><strong class="font-mono" class:highlighted-stat={statsB.ac_adoption > statsA.ac_adoption}>{statsB.ac_adoption}%</strong></div>
+                        <div class="bg-black/30 p-1.5 rounded"><span class="block text-white/30">Vaccination</span><strong class="font-mono" class:highlighted-stat={statsB.vaccines > statsA.vaccines}>{statsB.vaccines}%</strong></div>
+                        <div class="bg-black/30 p-1.5 rounded"><span class="block text-white/30">Gov Healthcare</span><strong class="font-mono" class:highlighted-stat={statsB.gov_healthcare > statsA.gov_healthcare}>{statsB.gov_healthcare}/100</strong></div>
                       </div>
                     </div>
                   </div>
-                {/if}
-              </div>
+                </div>
+              {/if}
             </div>
 
             <!-- Full index lookup table -->
@@ -755,90 +659,7 @@
           </div>
         {/if}
 
-        <!-- 4. LIVE 69 TICKING COUNTDOWN TICKER -->
-        {#if activeTab === "countdown"}
-          <div class="tab-pane animated-pane flex flex-col gap-6">
-            <div class="countdown-header">
-              <h2 class="text-base font-bold text-white uppercase tracking-wider">Ticking Population Countdown Ticker (ends in 69)</h2>
-              <p class="text-xs text-white/50 mt-1">
-                Real-time mathematical prediction of when human and canine populations will hit coordinates ending exactly in the string "69".
-              </p>
-            </div>
-
-            <!-- Target selection -->
-            <div class="flex items-center gap-3 bg-white/[0.02] border border-white/5 p-4 rounded-xl">
-              <span class="text-xs font-semibold text-white/40 uppercase tracking-wider">Selected Country:</span>
-              <select bind:value={tickerCountryCode} class="bg-black/60 border border-white/10 rounded-lg px-3 py-2 text-xs font-bold text-white outline-none cursor-pointer">
-                {#each tickerOptions as opt}
-                  <option value={opt.code}>{opt.name}</option>
-                {/each}
-              </select>
-            </div>
-
-            <!-- Countdown Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <!-- Human Counter Card -->
-              <div class="p-5 bg-white/[0.02] border border-white/5 rounded-xl flex flex-col gap-4">
-                <div class="flex justify-between items-center">
-                  <h3 class="text-xs font-bold text-white/40 uppercase tracking-wider">Human Population Ticker</h3>
-                  <span class="px-2 py-0.5 bg-white/5 text-[9px] font-bold text-white/60 rounded">TICKING LIVE</span>
-                </div>
-                <div class="flex flex-col gap-1">
-                  <span class="text-2xl font-bold font-mono tracking-wider text-white select-all">
-                    {liveHuman.value.toLocaleString()}
-                  </span>
-                  <span class="text-[10px] text-white/30 font-semibold uppercase">
-                    Growth: {liveHuman.rate >= 0 ? "+" : ""}{liveHuman.rate.toFixed(4)} / sec
-                  </span>
-                </div>
-                <div class="p-4 bg-black/30 rounded-lg border border-white/5 flex flex-col gap-2">
-                  <span class="text-[9px] font-bold uppercase tracking-widest text-orange-400">Countdown to Next 69 Target</span>
-                  <div class="text-sm font-semibold text-white">
-                    Target: <span class="font-mono text-orange-400 font-bold">{humanCountdown.target}</span>
-                  </div>
-                  <div class="text-xs text-white/70">
-                    Remaining: <span class="font-mono text-orange-400 font-bold">{humanCountdown.minutes} mins {humanCountdown.seconds.toFixed(2)} secs</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Dog Counter Card -->
-              <div class="p-5 bg-white/[0.02] border border-white/5 rounded-xl flex flex-col gap-4">
-                <div class="flex justify-between items-center">
-                  <h3 class="text-xs font-bold text-white/40 uppercase tracking-wider">Dog Population Ticker</h3>
-                  <span class="px-2 py-0.5 bg-white/5 text-[9px] font-bold text-white/60 rounded">TICKING LIVE</span>
-                </div>
-                <div class="flex flex-col gap-1">
-                  <span class="text-2xl font-bold font-mono tracking-wider text-white select-all">
-                    {liveDog.value.toLocaleString()}
-                  </span>
-                  <span class="text-[10px] text-white/30 font-semibold uppercase">
-                    Growth: {liveDog.rate >= 0 ? "+" : ""}{liveDog.rate.toFixed(4)} / sec
-                  </span>
-                </div>
-                <div class="p-4 bg-black/30 rounded-lg border border-white/5 flex flex-col gap-2">
-                  <span class="text-[9px] font-bold uppercase tracking-widest text-orange-400">Countdown to Next 69 Target</span>
-                  <div class="text-sm font-semibold text-white">
-                    Target: <span class="font-mono text-orange-400 font-bold">{dogCountdown.target}</span>
-                  </div>
-                  <div class="text-xs text-white/70">
-                    Remaining: <span class="font-mono text-orange-400 font-bold">{dogCountdown.minutes} mins {dogCountdown.seconds.toFixed(2)} secs</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Mathematical explainer box -->
-            <div class="p-4 bg-white/[0.02] border border-white/5 rounded-xl flex gap-3 text-xs text-white/60 leading-relaxed mt-2">
-              <Info size={18} class="shrink-0 text-white/40 mt-0.5" />
-              <div>
-                <strong class="text-white">Algorithmic Countdown Details:</strong> Calculating using CBR/CDR ratios mapped directly to standard birth rates per country. Shrinking populations (like Japan) anticipate target bounds decreasing sequentially to reach values ending in 69.
-              </div>
-            </div>
-          </div>
-        {/if}
-
-        <!-- 5. SPEAKERS ANALYTICS -->
+        <!-- Speakers, Local Dogs, Palettes and methodologies sections -->
         {#if activeTab === "speakers"}
           <div class="tab-pane animated-pane">
             <h2 class="text-base font-bold text-white uppercase tracking-wider">Speakers Distribution</h2>
@@ -865,7 +686,6 @@
           </div>
         {/if}
 
-        <!-- 6. DOG POPULATIONS -->
         {#if activeTab === "dogs"}
           <div class="tab-pane animated-pane">
             <h2 class="text-base font-bold text-white uppercase tracking-wider">Dog Populations by Region</h2>
@@ -892,7 +712,6 @@
           </div>
         {/if}
 
-        <!-- 7. PALETTES EXPLORER -->
         {#if activeTab === "themes"}
           <div class="tab-pane animated-pane">
             <h2 class="text-base font-bold text-white uppercase tracking-wider">Flag Color Palettes</h2>
@@ -923,7 +742,6 @@
           </div>
         {/if}
 
-        <!-- Mandatory Explanation and Copy for Demographics tab/explorer section -->
         <div class="expandable-explanation-card bg-white/[0.02] border border-white/5 p-4 rounded-xl flex gap-3 text-xs text-white/60 leading-relaxed mt-6">
           <HelpCircle size={18} class="shrink-0 text-white/40 mt-0.5" />
           <div class="flex flex-col gap-1.5">
@@ -1045,9 +863,22 @@
     color: white !important;
   }
 
-  /* 69 ticker specific card scaling */
-  .active-mobile {
-    border-color: var(--brand-color);
-    background: rgba(255, 255, 255, 0.05);
+  /* Side-by-side comparative greater statistics highlight */
+  :global(.highlighted-stat) {
+    color: #FFB300 !important; /* Premium Gold/Yellow Highlight */
+    font-weight: 700 !important;
+    text-shadow: 0 0 8px rgba(255, 179, 0, 0.45);
+  }
+
+  :global(.highlighted-stat-green) {
+    color: #00FF66 !important;
+    font-weight: 700 !important;
+    text-shadow: 0 0 10px rgba(0, 255, 102, 0.45);
+  }
+
+  :global(.highlighted-stat-red) {
+    color: #FF3344 !important;
+    font-weight: 700 !important;
+    text-shadow: 0 0 10px rgba(255, 51, 68, 0.45);
   }
 </style>
