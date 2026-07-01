@@ -2349,7 +2349,7 @@
     <footer class="panel-footer">
       <div class="sys-status">
         <span class="status-indicator-green"></span>
-        <span>WE ARE DOGS STATUS: NOMINAL</span>
+        <span>WE ARE DOGS STATUS: YEAH</span>
       </div>
       <div class="stats-counter">
         <span>BARKBARKBARKBARKBARKBBARKBARKBARKBARKBARKBARKBARKBBARKBARK</span>
@@ -2358,7 +2358,7 @@
   </div>
 </div>
 
-<style>
+<style lang="scss">
   /* ── Backdrop ── */
   .stats-panel-backdrop {
     position: fixed;
@@ -2489,10 +2489,6 @@
     gap: 8px;
   }
 
-  .divider {
-    color: rgba(255, 255, 255, 0.15);
-  }
-
   @media (max-width: 1024px) {
     /* Hide Country and Dialect columns to prevent horizontal scroll on tablets */
     .explorer-table th:nth-child(2),
@@ -2501,10 +2497,6 @@
     .explorer-table td:nth-child(3) {
       display: none;
     }
-
-    .meta-tablet {
-      display: inline;
-    }
   }
 
   /* ── Mobile Layout Bottom Sheet & Tab Bar ── */
@@ -2512,6 +2504,14 @@
     .stats-panel-backdrop {
       display: block;
       height: 100dvh;
+    }
+  }
+
+  @keyframes panelSlideUpIn {
+    0% {
+      opacity: 0;
+      transform: translateY(30px) scale(0.97);
+      backdrop-filter: blur(0px);
     }
     100% {
       opacity: 1;
