@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1782886044,
+    "firstCommitTimestamp": 1782892790,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 48497
+    "averageLinesAltered": 49065
   },
   "entries": [
     {
       "version": "1.0.2",
       "name": "Master",
       "date": "2026-07-01",
-      "timestamp": 1782885987,
+      "timestamp": 1782892816,
       "commits": [
         {
-          "hash": "472f30f",
-          "message": "feat: add global country statistics database and StatsPanel component",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/472f30fcc4a33a8217fe7f5e18f447f46945e91b",
-          "timestamp": 1782886044,
-          "linesChanged": 48497
+          "hash": "31681d4",
+          "message": "Merge pull request #8 from cptnbrando/swarm/theme-system",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/31681d4cf1428fba02bed45705655b68cc08381c",
+          "timestamp": 1782892790,
+          "linesChanged": 49065
         }
       ]
     },
