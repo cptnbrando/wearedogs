@@ -10,6 +10,9 @@
 * FILE LIMITS: No file may exceed 1000 lines of code. If a file crosses this threshold, it must be flagged for refactoring and modularization immediately.
 * CONSTANTS HOISTING: Use const variables wherever possible. All constant definitions must be hoisted to the top of the file using clear, descriptive SCREAMING_SNAKE_CASE (e.g., const MAX_BPM_VAL = 200;). Never sprinkle hardcoded magic numbers or raw strings deep within logic blocks.
 
+# CRITICAL COMPLIANCE
+Never put my name, pseudonym, alias, or any of my personal private information anywhere here. I am the only thing that will ever sign my name, machine. 
+
 ### 2. Dependency & Legacy Resiliency ("Built for the Rocks")
 * THE POTATO TARGET: Optimization target: Ensure a potato running Chrome version 40 can load and execute the core application cleanly. Polyfills are an architectural failure if simple, semantic, vanilla implementation could have avoided them in the first place. Polyfills should be used if certain features or packages cut down on bundle size, code, security risks, or long-term maintenance. Polyfills like this should be seamlessly implemented in the build commands. Use the latest features in smart, necessary, and maintainable ways, but always consider the Potato Target at the finish line. The best outcome is for modern laptops to use the latest features with max speed and efficiency, and older devices have a viable fallback for support.
 * DEPENDENCY SKEPTICISM: Native browser APIs and vanilla JS/Svelte features always win over external npm packages. If a package is proposed, it must pass a strict cost-benefit evaluation regarding bundle size, security risks, and long-term maintenance. If it can be written cleanly in 20 lines of vanilla code, do not install a library.
