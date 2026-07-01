@@ -2,7 +2,7 @@
 title: "woof"
 date: "2026-06-27T12:50:30-05:00"
 description: "Alexa, play Despacito"
-author: "Captain Brando"
+author: "Captain Brando!"
 coverImage: "/favicon.svg"
 ---
 

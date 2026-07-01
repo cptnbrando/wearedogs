@@ -629,8 +629,6 @@
       </div>
       <div class="stats-counter">
         <span>BARKBARKBARKBARKBARKBBARKBARKBARKBARKBARKBARKBARKBBARKBARK</span>
-        <span class="divider">|</span>
-        <span>AUTHOR: CAPTAIN BRANDO!</span>
       </div>
     </footer>
   </div>
@@ -1299,10 +1297,6 @@
     display: flex;
     align-items: center;
     gap: 8px;
-  }
-
-  .divider {
-    color: rgba(255, 255, 255, 0.15);
   }
 
   @media (max-width: 1024px) {
