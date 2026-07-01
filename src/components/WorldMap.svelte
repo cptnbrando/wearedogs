@@ -21,24 +21,28 @@
   let mouseX = $state(0);
   let mouseY = $state(0);
   let tooltipOnLeft = $state(false);
+  let tooltipOnTop = $state(false);
 
   // Helper calculations for tooltip
   function calculateTotalMortality(stats) {
     if (!stats) return 0;
-    return Math.round(
-      (stats.cancer +
-        stats.old_age +
-        stats.auto +
-        stats.suicide +
-        stats.gun_violence +
-        stats.knife_violence +
-        stats.police_brutality +
-        stats.food_poisoning +
-        stats.overdose_heroin +
-        stats.overdose_meth +
-        stats.overdose_cocaine +
-        stats.overdose_alcohol) * 10
-    ) / 10;
+    return (
+      Math.round(
+        (stats.cancer +
+          stats.old_age +
+          stats.auto +
+          stats.suicide +
+          stats.gun_violence +
+          stats.knife_violence +
+          stats.police_brutality +
+          stats.food_poisoning +
+          stats.overdose_heroin +
+          stats.overdose_meth +
+          stats.overdose_cocaine +
+          stats.overdose_alcohol) *
+          10,
+      ) / 10
+    );
   }
 
   function calculateLifeExpectancy(stats) {
@@ -49,7 +53,11 @@
     const hcBonus = (stats.gov_healthcare / 100) * 5.0;
     const totalMortality = calculateTotalMortality(stats);
     const mortalityPenalty = totalMortality / 75;
-    return Math.round((base + acBonus + vacBonus + hcBonus - mortalityPenalty) * 10) / 10;
+    return (
+      Math.round(
+        (base + acBonus + vacBonus + hcBonus - mortalityPenalty) * 10,
+      ) / 10
+    );
   }
 
   // Track map labels and highlights in effect
@@ -103,7 +111,10 @@
     ];
 
     labels.forEach((l) => {
-      const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      const text = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "text",
+      );
       text.setAttribute("x", l.x);
       text.setAttribute("y", l.y);
       text.setAttribute("text-anchor", "middle");
@@ -131,6 +142,8 @@
 
     // Shift tooltip to the left if the mouse is on the right half of the map
     tooltipOnLeft = mouseX > rect.width / 2;
+    // Shift tooltip to top if the mouse is on the bottom half of the map
+    tooltipOnTop = mouseY > rect.height / 2;
 
     const el = e.target.closest("path[id], g[id]");
     if (el && el.id) {
@@ -163,7 +176,10 @@
       <h4>NATION OVERLAY KEY</h4>
       <div class="key-items">
         <div class="key-item">
-          <span class="color-box highlighted-box" style="background: {highlightColor}"></span>
+          <span
+            class="color-box highlighted-box"
+            style="background: {highlightColor}"
+          ></span>
           <span>Selected Language Countries</span>
         </div>
         <div class="key-item">
@@ -190,20 +206,39 @@
       {@const stats = countryStats[hoveredCountry]}
       {@const life = calculateLifeExpectancy(stats)}
       {@const deaths = calculateTotalMortality(stats)}
-      <div class="map-tooltip" style="left: {tooltipOnLeft ? mouseX : mouseX + 16}px; top: {mouseY + 16}px; transform: {tooltipOnLeft ? 'translateX(-105%)' : 'none'};">
-        <div class="tooltip-header font-bold text-white mb-1 flex items-center gap-1.5">
+      <div
+        class="map-tooltip"
+        style="left: {tooltipOnLeft ? mouseX : mouseX + 16}px;
+          top: {tooltipOnTop ? mouseY : mouseY + 16}px;
+          transform: translate({tooltipOnLeft ? '-105%' : '0px'}, {tooltipOnTop ? '-105%' : '0px'});"
+      >
+        <div
+          class="tooltip-header font-bold text-white mb-1 flex items-center gap-1.5"
+        >
           <span class="w-1.5 h-3 rounded-sm bg-orange-400"></span>
-          <span>{stats.name} {#if countryLanguages[hoveredCountry]}<span class="text-white/50 font-normal">({countryLanguages[hoveredCountry]})</span>{/if}</span>
+          <span
+            >{stats.name}
+            {#if countryLanguages[hoveredCountry]}<span
+                class="text-white/50 font-normal"
+                >({countryLanguages[hoveredCountry]})</span
+              >{/if}</span
+          >
         </div>
-        <div class="tooltip-row flex justify-between gap-4 text-[10px] text-white/70">
+        <div
+          class="tooltip-row flex justify-between gap-4 text-[10px] text-white/70"
+        >
           <span>Life Expectancy:</span>
           <strong class="text-green-400 font-mono">{life} yrs</strong>
         </div>
-        <div class="tooltip-row flex justify-between gap-4 text-[10px] text-white/70">
+        <div
+          class="tooltip-row flex justify-between gap-4 text-[10px] text-white/70"
+        >
           <span>Mortality Index:</span>
           <strong class="text-red-400 font-mono">{deaths}</strong>
         </div>
-        <div class="tooltip-details mt-1 pt-1 border-t border-white/5 flex gap-2 text-[9px] text-white/40">
+        <div
+          class="tooltip-details mt-1 pt-1 border-t border-white/5 flex gap-2 text-[9px] text-white/40"
+        >
           <span>🚗 Auto: {stats.auto}</span>
           <span>🔫 Gun: {stats.gun_violence}</span>
           <span>❄️ A/C: {stats.ac_adoption}%</span>
@@ -353,7 +388,9 @@
     fill: rgba(255, 255, 255, 0.04);
     stroke: rgba(255, 255, 255, 0.1);
     stroke-width: 0.5px;
-    transition: fill 0.25s ease, stroke 0.25s ease;
+    transition:
+      fill 0.25s ease,
+      stroke 0.25s ease;
     cursor: pointer;
   }
 
@@ -368,7 +405,9 @@
     stroke: var(--c-color) !important;
     stroke-width: 0.8px !important;
     fill: color-mix(in srgb, var(--c-color) 10%, transparent) !important;
-    transition: fill 0.2s ease, stroke 0.2s ease;
+    transition:
+      fill 0.2s ease,
+      stroke 0.2s ease;
   }
 
   .world-map-wrapper :global(path.covered:hover),
