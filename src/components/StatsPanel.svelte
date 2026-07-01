@@ -2349,10 +2349,10 @@
     <footer class="panel-footer">
       <div class="sys-status">
         <span class="status-indicator-green"></span>
-        <span>WE ARE DOGS STATUS: YEAH</span>
+        <span>WE ARE DOGS</span>
       </div>
       <div class="stats-counter">
-        <span>BARKBARKBARKBARKBARKBBARKBARKBARKBARKBARKBARKBARKBBARKBARK</span>
+        <span>BARKBARKBARKBARK</span>
       </div>
     </footer>
   </div>

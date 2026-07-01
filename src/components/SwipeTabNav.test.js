@@ -3,6 +3,10 @@ import SwipeTabNav from './SwipeTabNav.svelte';
 import { describe, it, expect, vi } from 'vitest';
 
 describe('SwipeTabNav viewport centering tests', () => {
+  it('SwipeTabNav Test Suite test works!', () => {
+    expect(true).toBe(true);
+  });
+
   it('centers active tab using container local scroll and does not trigger scrollIntoView', async () => {
     const tabs = [
       { id: 'tab1', label: 'Tab 1' },

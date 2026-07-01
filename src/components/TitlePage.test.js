@@ -4,6 +4,10 @@ import TitlePage from './TitlePage.svelte';
 import { describe, it, expect, vi } from 'vitest';
 
 describe('TitlePage UI & UX Landing Page Interaction', () => {
+  it('TitlePage Test Suite test works!', () => {
+    expect(true).toBe(true);
+  });
+
   it('should toggle the stats widget and runic navigation buttons when clicking the center text', async () => {
     // Render TitlePage
     const { container } = render(TitlePage);

@@ -13,6 +13,9 @@ export default defineConfig({
       modernPolyfills: true,
     })
   ],
+  resolve: {
+    conditions: ['browser'],
+  },
   test: {
     globals: true,
     environment: 'jsdom',

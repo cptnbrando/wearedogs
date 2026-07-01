@@ -35,3 +35,16 @@ if (typeof document !== 'undefined') {
     return Promise.resolve();
   };
 }
+
+// Mock localStorage for jsdom environment
+if (typeof globalThis.localStorage === 'undefined' || !globalThis.localStorage || typeof globalThis.localStorage.getItem !== 'function') {
+  const store = {};
+  globalThis.localStorage = {
+    getItem: (key) => store[key] || null,
+    setItem: (key, value) => { store[key] = String(value); },
+    removeItem: (key) => { delete store[key]; },
+    clear: () => { for (const key in store) delete store[key]; },
+    length: 0,
+    key: (index) => Object.keys(store)[index] || null
+  };
+}
