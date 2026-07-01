@@ -22,7 +22,7 @@
   } from "lucide-svelte";
   import SwipeTabNav from "./SwipeTabNav.svelte";
   import WorldMap from "./WorldMap.svelte";
-  import countryStats from "../lib/countryStats.json" with { type: "json" };
+  import countryStats from "../lib/countryStats.js";
 
   let {
     isClosing = false,
@@ -67,6 +67,11 @@
       dogCDR: t.dogCDR || 0,
     };
   });
+
+  // ---------------------------------------------------------------------------
+  // Demographics Database Access
+  // ---------------------------------------------------------------------------
+  let enrichedCountryStats = countryStats;
 
   // Derived filtered languages for Language Explorer
   let filteredLangs = $derived.by(() => {
@@ -156,18 +161,30 @@
   // Map country selection mapping
   // ---------------------------------------------------------------------------
   const langToCountries = {
-    en: ["us", "gb", "ca", "au", "nz"],
-    es: ["es", "mx", "ar", "co", "pe", "ve", "cl", "ec", "bo", "py", "uy", "gt", "hn", "sv", "ni", "cr", "pa", "do", "cu"],
-    fr: ["fr", "ca", "be", "ch", "sn", "ci", "cg", "cd", "cm", "mg", "ne", "ml", "bf", "tg", "bj", "ga", "dj", "gq", "cf", "km", "bi", "rw"],
+    en: [
+      "us", "gb", "ca", "au", "nz", "ie", "za", "ke", "ug", "tz", "ng", "gh", "lr", "sl", "jm", "bs", "fk", "pr", 
+      "zw", "zm", "mw", "na", "ls", "sz", "bw", "gy", "pg", "fj", "vu", "sb", "fm", "mt", "cy", "ss"
+    ],
+    es: ["es", "mx", "ar", "co", "pe", "ve", "cl", "ec", "bo", "py", "uy", "gt", "hn", "sv", "ni", "cr", "pa", "do", "cu", "gq", "pr"],
+    fr: [
+      "fr", "ca", "be", "ch", "sn", "ci", "cg", "cd", "cm", "mg", "ne", "ml", "bf", "tg", "bj", "ga", "dj", "gq", "cf", 
+      "km", "bi", "rw", "gf", "ht", "gn", "td", "mr"
+    ],
     de: ["de", "at", "ch", "lu"],
     ja: ["jp"],
     zh: ["cn", "tw", "sg"],
-    pt: ["pt", "br", "ao", "cv", "tl"],
+    pt: ["pt", "br", "ao", "cv", "tl", "mz", "gw", "st"],
     it: ["it", "ch"],
-    ru: ["ru"],
+    ru: [
+      "ru", "ua", "by", "kz", "uz", "tm", "tj", "kg", "ge", "am", "az", "md", "mn", "lt", "lv", "ee",
+      "ro", "bg", "hu", "cz", "sk", "hr", "ba", "rs", "si", "mk", "al", "me", "pl"
+    ],
     ko: ["kr", "kp"],
     hi: ["in"],
-    ar: ["eg", "sa", "ae", "dz", "ma", "sd", "iq", "ye", "sy", "td", "tn", "ly", "jo", "er", "lb", "mr", "kw", "om", "qa", "bh", "dj", "km", "so", "ps"],
+    ar: [
+      "eg", "sa", "ae", "dz", "ma", "sd", "iq", "ye", "sy", "td", "tn", "ly", "jo", "er", "lb", "mr", "kw", "om", "qa", 
+      "bh", "so", "ps", "dj", "km", "eh", "ir", "af", "tr"
+    ],
     bn: ["bd", "in"],
     pa: ["in", "pk"],
     jv: ["id"],
@@ -192,11 +209,33 @@
     su: ["id"],
     ceb: ["ph"],
     tl: ["ph"],
-    hmn: ["la", "vn", "cn", "th"]
+    hmn: ["la", "vn", "cn", "th"],
+    sv: ["se"],
+    no: ["no"],
+    da: ["dk", "gl"],
+    fi: ["fi"],
+    is: ["is"],
+    pl: ["pl"],
+    nl: ["nl", "sr"],
+    ga: ["ie"],
+    dz: ["bt"]
   };
 
   let activeCountries = $derived(langToCountries[currentLang] || []);
   let activeColor = $derived(getFlagColors(currentLang)[0]);
+
+  // Construct a reactive map of country -> signature language color
+  let countryColorsMap = $derived.by(() => {
+    const map = {};
+    for (const [lang, countries] of Object.entries(langToCountries)) {
+      const colors = getFlagColors(lang);
+      const color = colors && colors[0] ? colors[0] : "#ffffff";
+      countries.forEach((c) => {
+        map[c] = color;
+      });
+    }
+    return map;
+  });
 
   function findLangByCountry(countryId) {
     const code = countryId.toLowerCase();
@@ -223,7 +262,6 @@
   let compareA = $state("us");
   let compareB = $state("ca");
 
-  // State variables for Active Tab search queries
   let searchQuery = $state("");
   let sortField = $state("name");
   let sortAscending = $state(true);
@@ -263,7 +301,7 @@
   }
 
   let compareFilteredCountries = $derived.by(() => {
-    let list = Object.entries(countryStats).map(([code, stats]) => ({
+    let list = Object.entries(enrichedCountryStats).map(([code, stats]) => ({
       code,
       ...stats,
       totalMortality: calculateTotalMortality(stats),
@@ -444,6 +482,8 @@
             <div class="flex-1 min-h-[380px] w-full">
               <WorldMap
                 activeCountries={activeCountries}
+                countryStats={enrichedCountryStats}
+                countryColors={countryColorsMap}
                 highlightColor={activeColor}
                 onCountrySelect={handleCountrySelect}
               />
@@ -486,9 +526,9 @@
             <div id="comparison-results" class="comparison-grid grid grid-cols-1 lg:grid-cols-2 gap-6 mt-2">
               
               <!-- Left selection card -->
-              {#if countryStats[compareA]}
-                {@const statsA = countryStats[compareA]}
-                {@const statsB = countryStats[compareB] || statsA}
+              {#if enrichedCountryStats[compareA]}
+                {@const statsA = enrichedCountryStats[compareA]}
+                {@const statsB = enrichedCountryStats[compareB] || statsA}
                 {@const lifeA = calculateLifeExpectancy(statsA)}
                 {@const lifeB = calculateLifeExpectancy(statsB)}
                 {@const deathsA = calculateTotalMortality(statsA)}
@@ -498,7 +538,7 @@
                   <div class="flex items-center justify-between border-b border-white/5 pb-3">
                     <h3 class="text-sm font-bold text-white/40 uppercase tracking-wider">Country A</h3>
                     <select bind:value={compareA} class="bg-black/80 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs font-bold text-white outline-none cursor-pointer">
-                      {#each Object.entries(countryStats) as [code, data]}
+                      {#each Object.entries(enrichedCountryStats) as [code, data]}
                         <option value={code}>{data.name}</option>
                       {/each}
                     </select>
@@ -548,9 +588,9 @@
               {/if}
 
               <!-- Right selection card -->
-              {#if countryStats[compareB]}
-                {@const statsB = countryStats[compareB]}
-                {@const statsA = countryStats[compareA] || statsB}
+              {#if enrichedCountryStats[compareB]}
+                {@const statsB = enrichedCountryStats[compareB]}
+                {@const statsA = enrichedCountryStats[compareA] || statsB}
                 {@const lifeB = calculateLifeExpectancy(statsB)}
                 {@const lifeA = calculateLifeExpectancy(statsA)}
                 {@const deathsB = calculateTotalMortality(statsB)}
@@ -560,7 +600,7 @@
                   <div class="flex items-center justify-between border-b border-white/5 pb-3">
                     <h3 class="text-sm font-bold text-white/40 uppercase tracking-wider">Country B</h3>
                     <select bind:value={compareB} class="bg-black/80 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs font-bold text-white outline-none cursor-pointer">
-                      {#each Object.entries(countryStats) as [code, data]}
+                      {#each Object.entries(enrichedCountryStats) as [code, data]}
                         <option value={code}>{data.name}</option>
                       {/each}
                     </select>

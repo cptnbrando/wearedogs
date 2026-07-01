@@ -1,11 +1,14 @@
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
 <script>
   import { onMount } from "svelte";
   import worldMapSvg from "../assets/world-map.svg?raw";
-  import countryStats from "../lib/countryStats.json" with { type: "json" };
 
   let {
     activeCountries = [],
     highlightColor = "#EF4444",
+    countryStats = {},
+    countryColors = {},
     onCountrySelect,
   } = $props();
 
@@ -16,34 +19,6 @@
   let hoveredCountry = $state(null);
   let mouseX = $state(0);
   let mouseY = $state(0);
-
-  // Set of all countries covered by at least one language
-  const coveredCountries = new Set([
-    "us", "gb", "ca", "au", "nz",
-    "es", "mx", "ar", "co", "pe", "ve", "cl", "ec", "bo", "py", "uy", "gt", "hn", "sv", "ni", "cr", "pa", "do", "cu",
-    "fr", "be", "ch", "sn", "ci", "cg", "cd", "cm", "mg", "ne", "ml", "bf", "tg", "bj", "ga", "dj", "gq", "cf", "km", "bi", "rw",
-    "de", "at", "li", "lu",
-    "jp",
-    "cn", "tw", "hk", "mo", "sg",
-    "pt", "br", "ao", "mz", "gw", "tl", "cv", "st",
-    "it", "sm", "va",
-    "ru", "by", "kz", "kg",
-    "kr", "kp",
-    "in",
-    "eg", "sa", "ae", "dz", "ma", "sd", "iq", "ye", "sy", "td", "tn", "ly", "jo", "er", "lb", "mr", "kw", "om", "qa", "bh", "so", "ps",
-    "bd",
-    "pk",
-    "id",
-    "my", "bn",
-    "vn",
-    "th",
-    "lk",
-    "np",
-    "mm",
-    "kh",
-    "la",
-    "ph"
-  ]);
 
   // Helper calculations for tooltip
   function calculateTotalMortality(stats) {
@@ -82,30 +57,29 @@
     // Append labels if not present
     addLabels();
 
-    // Mark covered countries
-    containerEl.querySelectorAll("path").forEach((el) => {
-      const id = el.id ? el.id.toLowerCase() : "";
-      if (id && coveredCountries.has(id)) {
-        el.classList.add("covered");
-      }
-    });
-
     // Clear previous active highlights
     containerEl.querySelectorAll(".highlighted").forEach((el) => {
       el.classList.remove("highlighted");
-      el.style.removeProperty("--country-fill");
-      el.style.removeProperty("--country-stroke");
     });
 
-    // Apply active highlights
-    activeCountries.forEach((code) => {
+    // Set styles on each covered country dynamically using color variables
+    for (const [code, color] of Object.entries(countryColors)) {
       const el = containerEl.querySelector(`#${code.toLowerCase()}`);
       if (el) {
-        el.classList.add("highlighted");
-        el.style.setProperty("--country-fill", highlightColor + "55");
-        el.style.setProperty("--country-stroke", highlightColor);
+        el.classList.add("covered");
+        el.style.setProperty("--c-color", color);
+        el.style.setProperty("--c-fill", color + "1a"); // 10% opacity base fill
+        el.style.setProperty("--c-hover", color + "3b"); // 23% opacity hover fill
+        el.style.setProperty("--c-active", color + "99"); // 60% opacity clicked/active fill
+
+        const isActive = activeCountries.includes(code);
+        if (isActive) {
+          el.classList.add("highlighted");
+        } else {
+          el.classList.remove("highlighted");
+        }
       }
-    });
+    }
   });
 
   function addLabels() {
@@ -143,21 +117,22 @@
   }
 
   function handleClick(e) {
-    const path = e.target.closest("path");
-    if (!path) return;
-    const countryId = path.id;
+    const el = e.target.closest("path[id], g[id]");
+    if (!el) return;
+    const countryId = el.id;
     if (countryId && onCountrySelect) {
       onCountrySelect(countryId.toLowerCase());
     }
   }
 
   function handleMouseMove(e) {
-    mouseX = e.clientX;
-    mouseY = e.clientY;
+    const rect = e.currentTarget.getBoundingClientRect();
+    mouseX = e.clientX - rect.left;
+    mouseY = e.clientY - rect.top;
 
-    const path = e.target.closest("path");
-    if (path && path.id) {
-      const countryId = path.id.toLowerCase();
+    const el = e.target.closest("path[id], g[id]");
+    if (el && el.id) {
+      const countryId = el.id.toLowerCase();
       // Only set hoveredCountry if statistics exist for it
       if (countryStats[countryId]) {
         hoveredCountry = countryId;
@@ -201,31 +176,6 @@
     </div>
   {/if}
 
-  {#if hoveredCountry && countryStats[hoveredCountry]}
-    {@const stats = countryStats[hoveredCountry]}
-    {@const life = calculateLifeExpectancy(stats)}
-    {@const deaths = calculateTotalMortality(stats)}
-    <div class="map-tooltip" style="left: {mouseX + 16}px; top: {mouseY + 16}px;">
-      <div class="tooltip-header font-bold text-white mb-1 flex items-center gap-1.5">
-        <span class="w-1.5 h-3 rounded-sm bg-orange-400"></span>
-        <span>{stats.name}</span>
-      </div>
-      <div class="tooltip-row flex justify-between gap-4 text-[10px] text-white/70">
-        <span>Life Expectancy:</span>
-        <strong class="text-green-400 font-mono">{life} yrs</strong>
-      </div>
-      <div class="tooltip-row flex justify-between gap-4 text-[10px] text-white/70">
-        <span>Mortality Index:</span>
-        <strong class="text-red-400 font-mono">{deaths}</strong>
-      </div>
-      <div class="tooltip-details mt-1 pt-1 border-t border-white/5 flex gap-2 text-[9px] text-white/40">
-        <span>🚗 Auto: {stats.auto}</span>
-        <span>🔫 Gun: {stats.gun_violence}</span>
-        <span>❄️ A/C: {stats.ac_adoption}%</span>
-      </div>
-    </div>
-  {/if}
-
   <div
     bind:this={containerEl}
     class="world-map-wrapper"
@@ -233,6 +183,31 @@
     onmousemove={handleMouseMove}
   >
     {@html worldMapSvg}
+
+    {#if hoveredCountry && countryStats[hoveredCountry]}
+      {@const stats = countryStats[hoveredCountry]}
+      {@const life = calculateLifeExpectancy(stats)}
+      {@const deaths = calculateTotalMortality(stats)}
+      <div class="map-tooltip" style="left: {mouseX + 16}px; top: {mouseY + 16}px;">
+        <div class="tooltip-header font-bold text-white mb-1 flex items-center gap-1.5">
+          <span class="w-1.5 h-3 rounded-sm bg-orange-400"></span>
+          <span>{stats.name}</span>
+        </div>
+        <div class="tooltip-row flex justify-between gap-4 text-[10px] text-white/70">
+          <span>Life Expectancy:</span>
+          <strong class="text-green-400 font-mono">{life} yrs</strong>
+        </div>
+        <div class="tooltip-row flex justify-between gap-4 text-[10px] text-white/70">
+          <span>Mortality Index:</span>
+          <strong class="text-red-400 font-mono">{deaths}</strong>
+        </div>
+        <div class="tooltip-details mt-1 pt-1 border-t border-white/5 flex gap-2 text-[9px] text-white/40">
+          <span>🚗 Auto: {stats.auto}</span>
+          <span>🔫 Gun: {stats.gun_violence}</span>
+          <span>❄️ A/C: {stats.ac_adoption}%</span>
+        </div>
+      </div>
+    {/if}
   </div>
 </div>
 
@@ -338,7 +313,7 @@
 
   /* Floating hover stats tooltip */
   .map-tooltip {
-    position: fixed;
+    position: absolute;
     background: rgba(10, 10, 15, 0.95);
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 8px;
@@ -354,18 +329,21 @@
   }
 
   .world-map-wrapper {
+    position: relative;
     flex-grow: 1;
     width: 100%;
     height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
+    overflow: hidden;
   }
 
   .world-map-wrapper :global(svg) {
     width: 100%;
     height: 100%;
     max-height: 500px;
+    overflow: hidden;
   }
 
   /* Default base country paths */
@@ -383,22 +361,26 @@
   }
 
   /* Mild dim border & fill for covered languages/represented locales */
-  .world-map-wrapper :global(path.covered) {
-    stroke: rgba(255, 255, 255, 0.4) !important;
-    stroke-width: 0.9px !important;
-    fill: rgba(255, 255, 255, 0.12) !important;
+  .world-map-wrapper :global(path.covered),
+  .world-map-wrapper :global(g.covered path) {
+    stroke: var(--c-color) !important;
+    stroke-width: 0.8px !important;
+    fill: var(--c-fill) !important;
+    transition: fill 0.2s ease, stroke 0.2s ease;
   }
 
-  .world-map-wrapper :global(path.covered:hover) {
-    fill: rgba(255, 255, 255, 0.22) !important;
-    stroke: rgba(255, 255, 255, 0.65) !important;
+  .world-map-wrapper :global(path.covered:hover),
+  .world-map-wrapper :global(g.covered path:hover) {
+    fill: var(--c-hover) !important;
+    stroke-width: 1.1px !important;
   }
 
   /* Active highlight overrides covered styles */
-  .world-map-wrapper :global(path.highlighted) {
-    fill: var(--country-fill) !important;
-    stroke: var(--country-stroke) !important;
-    stroke-width: 1.1px !important;
+  .world-map-wrapper :global(path.highlighted),
+  .world-map-wrapper :global(g.highlighted path) {
+    fill: var(--c-active) !important;
+    stroke: var(--c-color) !important;
+    stroke-width: 1.4px !important;
   }
 
   /* map labels positioning */
