@@ -69,7 +69,7 @@
   });
 
   // ---------------------------------------------------------------------------
-  // Demographics Database Access
+  // FUCK DEMOGRAPHICS Database Access
   // ---------------------------------------------------------------------------
   let enrichedCountryStats = countryStats;
 
@@ -740,7 +740,7 @@
           alt="DOGS Logo"
           class="w-6 h-6 shrink-0 drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]"
         />
-        <h1>Demographics</h1>
+        <h1>stats</h1>
       </div>
 
       <button class="close-btn" onclick={onClose} aria-label="Close panel">
@@ -963,7 +963,7 @@
               <h2
                 class="text-base font-bold text-white uppercase tracking-wider"
               >
-                Interactive Vector World Map
+                Planet Earth
               </h2>
               <p class="text-xs text-white/50 mt-1">
                 Currently highlighting target countries for: <span
@@ -971,7 +971,7 @@
                   style="color: {activeColor}"
                   >{activeLangItem.displayName}</span
                 >. Hover over the map to view statistics overlay, or click any
-                country to inspect demographics dynamically.
+                country to inspect stats dynamically.
               </p>
             </div>
 
@@ -996,7 +996,7 @@
               <h2
                 class="text-base font-bold text-white uppercase tracking-wider"
               >
-                Life & Death Demographics Comparative Matrix
+                Life & Death Stats
               </h2>
               <p class="text-xs text-white/50 mt-1">
                 Compare health metrics, violence coefficients, drug overdoses,

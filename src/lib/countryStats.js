@@ -1,4 +1,4 @@
-// Complete statically researched global country demographics database (WHO/UN/World Bank values)
+// Complete statically researched global country stats database (WHO/UN/World Bank values)
 // Covers all 150+ countries represented on our global language maps with 58 distinct attributes.
 
 const regionTemplates = {
