@@ -34,18 +34,22 @@
     <header class="info-header">
       <div class="info-brand">
         <Info class="text-neon-gold" size={20} />
-        <h2>DOGS Corp</h2>
+        <h2>DOGS</h2>
       </div>
-      <button class="info-close" onclick={handleClose} aria-label="Close Info Panel">
+      <button
+        class="info-close"
+        onclick={handleClose}
+        aria-label="Close Info Panel"
+      >
         <X size={18} />
       </button>
     </header>
 
     <main class="info-content">
       <p class="company-intro">
-        DOGS is a high-velocity, punk-rock technology company building resilient software,
-        built for the rocks. We design lightweight, semantic, and highly optimized platforms
-        operating at the edge.
+        DOGS is a high-velocity, punk-rock technology company building resilient
+        software, built for the rocks. We design lightweight, semantic, and
+        highly optimized platforms operating at the edge.
       </p>
 
       <h3 class="section-title">Core Projects</h3>
@@ -57,7 +61,11 @@
           </div>
           <div class="project-meta">
             <h4>castle</h4>
-            <p>Our secure, decentralized sandbox engine designed to run isolated modules and runtimes cleanly.</p>
+            <p>
+              Our secure, decentralized sandbox engine designed to host modules,
+              manage infrastructure, control security, host storage, and manage
+              a network with AI.
+            </p>
           </div>
         </div>
 
@@ -67,7 +75,7 @@
           </div>
           <div class="project-meta">
             <h4>wax</h4>
-            <p>An ultra-low latency native audio processing & synthesizer pipeline driving high-fidelity acoustics.</p>
+            <p>A social media site for Vinyl collectors.</p>
           </div>
         </div>
 
@@ -77,14 +85,14 @@
           </div>
           <div class="project-meta">
             <h4>forty (40)</h4>
-            <p>The high-performance responsive layout rendering matrix, adapting viewports dynamically across all devices.</p>
+            <p>A social media site that deletes itself every 40 days.</p>
           </div>
         </div>
       </div>
     </main>
 
     <footer class="info-footer">
-      <span>© 2026 DOGS Corp. All rights reserved.</span>
+      <span>© 2026 DOGS. All rights reserved.</span>
     </footer>
   </div>
 </div>
@@ -228,9 +236,15 @@
     }
   }
 
-  .text-castle { color: var(--color-neon-cyan, #00d7ff); }
-  .text-wax { color: var(--color-neon-purple, #a000eb); }
-  .text-forty { color: var(--color-neon-green, #00d75f); }
+  .text-castle {
+    color: var(--color-neon-cyan, #00d7ff);
+  }
+  .text-wax {
+    color: var(--color-neon-purple, #a000eb);
+  }
+  .text-forty {
+    color: var(--color-neon-green, #00d75f);
+  }
 
   .project-meta {
     display: flex;

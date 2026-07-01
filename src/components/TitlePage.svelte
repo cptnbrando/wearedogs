@@ -36,6 +36,8 @@
   $effect(() => {
     const handleOpenInfo = () => {
       showInfo = true;
+      const currentState = history.state || {};
+      history.pushState({ ...currentState, showInfo: true }, "");
     };
     window.addEventListener("open-info-panel", handleOpenInfo);
     return () => window.removeEventListener("open-info-panel", handleOpenInfo);
@@ -176,6 +178,10 @@
   // Listen to popstate event for browser/device back key navigation
   $effect(() => {
     const handlePop = (e) => {
+      if (showInfo) {
+        showInfo = false;
+        return;
+      }
       const state = e.state;
       const targetView = state?.view || null;
       const targetApp = state?.app || null;
@@ -378,7 +384,7 @@
 {/if}
 
 {#if showInfo}
-  <InfoPanel onClose={() => { showInfo = false; }} />
+  <InfoPanel onClose={() => { if (showInfo) history.back(); }} />
 {/if}
 
 <style>
