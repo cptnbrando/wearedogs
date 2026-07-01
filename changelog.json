@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1782885239,
+    "firstCommitTimestamp": 1782885477,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 47208
+    "averageLinesAltered": 47232
   },
   "entries": [
     {
       "version": "1.0.2",
       "name": "Master",
       "date": "2026-07-01",
-      "timestamp": 1782885184,
+      "timestamp": 1782885421,
       "commits": [
         {
-          "hash": "4cd5f04",
-          "message": "feat: add StatsPanel and SwipeTabNav components with associated tests and config updates",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/4cd5f047af8070a6cedaaebbd9e44715a549b73b",
-          "timestamp": 1782885239,
-          "linesChanged": 47208
+          "hash": "30050b4",
+          "message": "feat: add StatsPanel component and update environment config for browser compatibility",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/30050b4edd3d98ae7fdadb8813ff769b4e7096d0",
+          "timestamp": 1782885477,
+          "linesChanged": 47232
         }
       ]
     },
