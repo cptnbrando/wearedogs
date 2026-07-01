@@ -5,7 +5,7 @@
 
 <main
   class="relative flex items-center justify-center w-screen h-dvh overflow-hidden"
-  style="background: var(--bg-radial-overlay, #050508); color: var(--color-text, #ffffff); font-family: var(--font-primary, inherit);"
+  style="background: var(--bg-main, #000000); color: var(--color-text, #ffffff); font-family: var(--font-primary, inherit);"
 >
   <TitlePage />
 </main>

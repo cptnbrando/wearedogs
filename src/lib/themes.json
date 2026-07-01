@@ -1,8 +1,9 @@
 {
   "default": {
-    "name": "Default (Dark Red/Purple)",
+    "name": "Default",
     "variables": {
       "--bg-app": "#050508",
+      "--bg-main": "#000000",
       "--bg-radial-overlay": "radial-gradient(circle at top, rgba(30, 10, 15, 0.55) 0%, rgba(5, 5, 8, 1) 100%)",
       "--bg-card": "rgba(15, 15, 22, 0.45)",
       "--bg-input": "rgba(255, 255, 255, 0.04)",
@@ -31,6 +32,7 @@
     "name": "iOS 'Liquid Glass'",
     "variables": {
       "--bg-app": "#f0f4f8",
+      "--bg-main": "linear-gradient(135deg, #e0e8f5 0%, #f5f7fa 100%)",
       "--bg-radial-overlay": "linear-gradient(135deg, #e0e8f5 0%, #f5f7fa 100%)",
       "--bg-card": "rgba(255, 255, 255, 0.4)",
       "--bg-input": "rgba(0, 0, 0, 0.03)",
@@ -52,13 +54,14 @@
       "--color-alert-red-rgb": "255, 59, 48",
       "--color-text": "#1c1c1e",
       "--color-text-muted": "rgba(28, 28, 30, 0.6)",
-      "--font-primary": "-apple-system, BlinkMacSystemFont, \"SF Pro Display\", \"SF Pro Text\", \"Helvetica Neue\", Helvetica, Arial, sans-serif"
+      "--font-primary": "-apple-system, BlinkMacSystemFont, \"SF Pro Display\", \"SF Pro Display\", \"SF Pro Text\", \"Helvetica Neue\", Helvetica, Arial, sans-serif"
     }
   },
   "batman-beyond": {
     "name": "Batman Beyond",
     "variables": {
       "--bg-app": "#000000",
+      "--bg-main": "radial-gradient(circle at top, #1a0000 0%, #000000 100%)",
       "--bg-radial-overlay": "radial-gradient(circle at top, #1a0000 0%, #000000 100%)",
       "--bg-card": "rgba(15, 0, 0, 0.8)",
       "--bg-input": "rgba(255, 0, 0, 0.05)",
@@ -87,6 +90,7 @@
     "name": "Matrix",
     "variables": {
       "--bg-app": "#000000",
+      "--bg-main": "radial-gradient(circle, #021a02 0%, #000000 100%)",
       "--bg-radial-overlay": "radial-gradient(circle, #021a02 0%, #000000 100%)",
       "--bg-card": "rgba(0, 15, 0, 0.85)",
       "--bg-input": "rgba(0, 255, 0, 0.05)",
@@ -115,6 +119,7 @@
     "name": "Windows XP",
     "variables": {
       "--bg-app": "#3a6ea5",
+      "--bg-main": "linear-gradient(to bottom, #245edb 0%, #3a6ea5 100%)",
       "--bg-radial-overlay": "linear-gradient(to bottom, #245edb 0%, #3a6ea5 100%)",
       "--bg-card": "#ece9d8",
       "--bg-input": "#ffffff",
@@ -143,6 +148,7 @@
     "name": "Cyberpunk 2077",
     "variables": {
       "--bg-app": "#00030a",
+      "--bg-main": "radial-gradient(circle at center, #1b1233 0%, #00030a 100%)",
       "--bg-radial-overlay": "radial-gradient(circle at center, #1b1233 0%, #00030a 100%)",
       "--bg-card": "rgba(10, 14, 23, 0.9)",
       "--bg-input": "rgba(252, 238, 10, 0.05)",
@@ -171,6 +177,7 @@
     "name": "Scooby Doo",
     "variables": {
       "--bg-app": "#2e114d",
+      "--bg-main": "radial-gradient(circle at center, #4b0082 0%, #15002b 100%)",
       "--bg-radial-overlay": "radial-gradient(circle at center, #4b0082 0%, #15002b 100%)",
       "--bg-card": "rgba(0, 229, 238, 0.15)",
       "--bg-input": "rgba(255, 127, 0, 0.1)",
