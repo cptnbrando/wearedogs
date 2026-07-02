@@ -1,5 +1,4 @@
 <script>
-
   // Svelte 5 props
   let { onUnlock } = $props();
 
@@ -30,7 +29,7 @@
     ".": { word: "Radical", type: "special" },
     "√": { word: "Exotic", type: "special" },
     "^": { word: "Apex", type: "operator" },
-    "!": { word: "Wild", type: "special" }
+    "!": { word: "Wild", type: "special" },
   };
 
   function factorial(n) {
@@ -156,8 +155,8 @@
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          "X-Sec": `password=${concatenated}`
-        }
+          Authorization: `password=${concatenated}`,
+        },
       });
 
       if (response.ok) {
@@ -205,25 +204,40 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<div class="calculator-screen-wrapper flex items-center justify-center w-full h-full p-4 font-sans select-none">
-  <div class="calculator-card relative w-full max-w-sm rounded-3xl p-6 flex flex-col gap-5 border border-white/10 shadow-2xl backdrop-blur-xl">
+<div
+  class="calculator-screen-wrapper flex items-center justify-center w-full h-full p-4 font-sans select-none"
+>
+  <div
+    class="calculator-card relative w-full max-w-sm rounded-3xl p-6 flex flex-col gap-5 border border-white/10 shadow-2xl backdrop-blur-xl"
+  >
     <!-- Calculator Header -->
     <div class="flex items-center justify-between border-b border-white/5 pb-3">
       <div class="flex items-center gap-1.5">
         <span class="w-3 h-3 rounded-full bg-red-500/80 animate-pulse"></span>
-        <span class="text-[9px] uppercase tracking-widest text-white/40 font-bold font-mono">SECURE CALC TI-75</span>
+        <span
+          class="text-[9px] uppercase tracking-widest text-white/40 font-bold font-mono"
+          >SECURE CALC TI-75</span
+        >
       </div>
-      <span class="text-[9px] uppercase tracking-widest text-cyan-400 font-bold font-mono">RADICAL INTERFACE</span>
+      <span
+        class="text-[9px] uppercase tracking-widest text-cyan-400 font-bold font-mono"
+        >RADICAL INTERFACE</span
+      >
     </div>
 
     <!-- LCD Display -->
-    <div class="lcd-display relative w-full h-28 rounded-2xl p-4 flex flex-col justify-between overflow-hidden border border-black/40">
+    <div
+      class="lcd-display relative w-full h-28 rounded-2xl p-4 flex flex-col justify-between overflow-hidden border border-black/40"
+    >
       <div class="lcd-overlay pointer-events-none"></div>
-      
+
       <!-- Top Row: Equation display (fixed h-4) -->
       <div class="w-full h-4 flex items-center justify-end overflow-hidden">
         {#if equationDisplay}
-          <span class="equation-text text-xs font-mono text-cyan-300/40 select-none">{equationDisplay}</span>
+          <span
+            class="equation-text text-xs font-mono text-cyan-300/40 select-none"
+            >{equationDisplay}</span
+          >
         {:else}
           <span class="text-xs font-mono select-none opacity-0">&nbsp;</span>
         {/if}
@@ -231,19 +245,29 @@
 
       <!-- Middle Row: Display value (fixed h-8) -->
       <div class="w-full h-8 flex items-center justify-end overflow-hidden">
-        <span class="display-text text-2xl font-bold font-mono text-cyan-400 tracking-tight leading-none overflow-x-auto w-full text-right whitespace-nowrap">
+        <span
+          class="display-text text-2xl font-bold font-mono text-cyan-400 tracking-tight leading-none overflow-x-auto w-full text-right whitespace-nowrap"
+        >
           {displayValue}
         </span>
       </div>
 
       <!-- Bottom Row: Passcode helpers (fixed h-5) -->
-      <div class="w-full h-5 flex flex-nowrap gap-1 justify-start items-center mt-1 pt-1.5 border-t border-cyan-400/5 overflow-hidden whitespace-nowrap">
+      <div
+        class="w-full h-5 flex flex-nowrap gap-1 justify-start items-center mt-1 pt-1.5 border-t border-cyan-400/5 overflow-hidden whitespace-nowrap"
+      >
         {#if keywordBuffer.length > 0}
           {#each keywordBuffer.slice(-4) as word}
-            <span class="text-[7px] font-mono bg-cyan-950/40 text-cyan-400/60 border border-cyan-400/10 px-1 py-0.5 rounded uppercase tracking-wider">{word}</span>
+            <span
+              class="text-[7px] font-mono bg-cyan-950/40 text-cyan-400/60 border border-cyan-400/10 px-1 py-0.5 rounded uppercase tracking-wider"
+              >{word}</span
+            >
           {/each}
           {#if keywordBuffer.length > 4}
-            <span class="text-[7px] font-mono text-cyan-400/40 px-1 py-0.5 font-bold">+{keywordBuffer.length - 4}</span>
+            <span
+              class="text-[7px] font-mono text-cyan-400/40 px-1 py-0.5 font-bold"
+              >+{keywordBuffer.length - 4}</span
+            >
           {/if}
         {:else}
           <span class="text-[7px] font-mono opacity-0 select-none">&nbsp;</span>
@@ -254,91 +278,151 @@
     <!-- Keyboard Grid -->
     <div class="grid grid-cols-4 gap-3">
       <!-- Row 1 -->
-      <button onclick={() => handleKeyPress("C")} class="calc-btn clear-btn flex flex-col items-center justify-center p-3 rounded-2xl font-bold font-mono transition-all duration-150">
+      <button
+        onclick={() => handleKeyPress("C")}
+        class="calc-btn clear-btn flex flex-col items-center justify-center p-3 rounded-2xl font-bold font-mono transition-all duration-150"
+      >
         <span class="text-sm">C</span>
         <span class="btn-sub">RESET</span>
       </button>
-      <button onclick={() => handleKeyPress("√")} class="calc-btn func-btn flex flex-col items-center justify-center p-3 rounded-2xl font-bold font-mono transition-all duration-150">
+      <button
+        onclick={() => handleKeyPress("√")}
+        class="calc-btn func-btn flex flex-col items-center justify-center p-3 rounded-2xl font-bold font-mono transition-all duration-150"
+      >
         <span class="text-sm">√</span>
         <span class="btn-sub">{keyMappings["√"].word}</span>
       </button>
-      <button onclick={() => handleKeyPress("^")} class="calc-btn func-btn flex flex-col items-center justify-center p-3 rounded-2xl font-bold font-mono transition-all duration-150">
+      <button
+        onclick={() => handleKeyPress("^")}
+        class="calc-btn func-btn flex flex-col items-center justify-center p-3 rounded-2xl font-bold font-mono transition-all duration-150"
+      >
         <span class="text-sm">^</span>
         <span class="btn-sub">{keyMappings["^"].word}</span>
       </button>
-      <button onclick={() => handleKeyPress("!")} class="calc-btn func-btn flex flex-col items-center justify-center p-3 rounded-2xl font-bold font-mono transition-all duration-150">
+      <button
+        onclick={() => handleKeyPress("!")}
+        class="calc-btn func-btn flex flex-col items-center justify-center p-3 rounded-2xl font-bold font-mono transition-all duration-150"
+      >
         <span class="text-sm">!</span>
         <span class="btn-sub">{keyMappings["!"].word}</span>
       </button>
 
       <!-- Row 2 -->
-      <button onclick={() => handleKeyPress("7")} class="calc-btn num-btn flex flex-col items-center justify-center p-3 rounded-2xl font-bold font-mono transition-all duration-150">
+      <button
+        onclick={() => handleKeyPress("7")}
+        class="calc-btn num-btn flex flex-col items-center justify-center p-3 rounded-2xl font-bold font-mono transition-all duration-150"
+      >
         <span class="text-sm">7</span>
         <span class="btn-sub">{keyMappings["7"].word}</span>
       </button>
-      <button onclick={() => handleKeyPress("8")} class="calc-btn num-btn flex flex-col items-center justify-center p-3 rounded-2xl font-bold font-mono transition-all duration-150">
+      <button
+        onclick={() => handleKeyPress("8")}
+        class="calc-btn num-btn flex flex-col items-center justify-center p-3 rounded-2xl font-bold font-mono transition-all duration-150"
+      >
         <span class="text-sm">8</span>
         <span class="btn-sub">{keyMappings["8"].word}</span>
       </button>
-      <button onclick={() => handleKeyPress("9")} class="calc-btn num-btn flex flex-col items-center justify-center p-3 rounded-2xl font-bold font-mono transition-all duration-150">
+      <button
+        onclick={() => handleKeyPress("9")}
+        class="calc-btn num-btn flex flex-col items-center justify-center p-3 rounded-2xl font-bold font-mono transition-all duration-150"
+      >
         <span class="text-sm">9</span>
         <span class="btn-sub">{keyMappings["9"].word}</span>
       </button>
-      <button onclick={() => handleKeyPress("/")} class="calc-btn op-btn flex flex-col items-center justify-center p-3 rounded-2xl font-bold font-mono transition-all duration-150">
+      <button
+        onclick={() => handleKeyPress("/")}
+        class="calc-btn op-btn flex flex-col items-center justify-center p-3 rounded-2xl font-bold font-mono transition-all duration-150"
+      >
         <span class="text-sm">/</span>
         <span class="btn-sub">{keyMappings["/"].word}</span>
       </button>
 
       <!-- Row 3 -->
-      <button onclick={() => handleKeyPress("4")} class="calc-btn num-btn flex flex-col items-center justify-center p-3 rounded-2xl font-bold font-mono transition-all duration-150">
+      <button
+        onclick={() => handleKeyPress("4")}
+        class="calc-btn num-btn flex flex-col items-center justify-center p-3 rounded-2xl font-bold font-mono transition-all duration-150"
+      >
         <span class="text-sm">4</span>
         <span class="btn-sub">{keyMappings["4"].word}</span>
       </button>
-      <button onclick={() => handleKeyPress("5")} class="calc-btn num-btn flex flex-col items-center justify-center p-3 rounded-2xl font-bold font-mono transition-all duration-150">
+      <button
+        onclick={() => handleKeyPress("5")}
+        class="calc-btn num-btn flex flex-col items-center justify-center p-3 rounded-2xl font-bold font-mono transition-all duration-150"
+      >
         <span class="text-sm">5</span>
         <span class="btn-sub">{keyMappings["5"].word}</span>
       </button>
-      <button onclick={() => handleKeyPress("6")} class="calc-btn num-btn flex flex-col items-center justify-center p-3 rounded-2xl font-bold font-mono transition-all duration-150">
+      <button
+        onclick={() => handleKeyPress("6")}
+        class="calc-btn num-btn flex flex-col items-center justify-center p-3 rounded-2xl font-bold font-mono transition-all duration-150"
+      >
         <span class="text-sm">6</span>
         <span class="btn-sub">{keyMappings["6"].word}</span>
       </button>
-      <button onclick={() => handleKeyPress("*")} class="calc-btn op-btn flex flex-col items-center justify-center p-3 rounded-2xl font-bold font-mono transition-all duration-150">
+      <button
+        onclick={() => handleKeyPress("*")}
+        class="calc-btn op-btn flex flex-col items-center justify-center p-3 rounded-2xl font-bold font-mono transition-all duration-150"
+      >
         <span class="text-sm">*</span>
         <span class="btn-sub">{keyMappings["*"].word}</span>
       </button>
 
       <!-- Row 4 -->
-      <button onclick={() => handleKeyPress("1")} class="calc-btn num-btn flex flex-col items-center justify-center p-3 rounded-2xl font-bold font-mono transition-all duration-150">
+      <button
+        onclick={() => handleKeyPress("1")}
+        class="calc-btn num-btn flex flex-col items-center justify-center p-3 rounded-2xl font-bold font-mono transition-all duration-150"
+      >
         <span class="text-sm">1</span>
         <span class="btn-sub">{keyMappings["1"].word}</span>
       </button>
-      <button onclick={() => handleKeyPress("2")} class="calc-btn num-btn flex flex-col items-center justify-center p-3 rounded-2xl font-bold font-mono transition-all duration-150">
+      <button
+        onclick={() => handleKeyPress("2")}
+        class="calc-btn num-btn flex flex-col items-center justify-center p-3 rounded-2xl font-bold font-mono transition-all duration-150"
+      >
         <span class="text-sm">2</span>
         <span class="btn-sub">{keyMappings["2"].word}</span>
       </button>
-      <button onclick={() => handleKeyPress("3")} class="calc-btn num-btn flex flex-col items-center justify-center p-3 rounded-2xl font-bold font-mono transition-all duration-150">
+      <button
+        onclick={() => handleKeyPress("3")}
+        class="calc-btn num-btn flex flex-col items-center justify-center p-3 rounded-2xl font-bold font-mono transition-all duration-150"
+      >
         <span class="text-sm">3</span>
         <span class="btn-sub">{keyMappings["3"].word}</span>
       </button>
-      <button onclick={() => handleKeyPress("-")} class="calc-btn op-btn flex flex-col items-center justify-center p-3 rounded-2xl font-bold font-mono transition-all duration-150">
+      <button
+        onclick={() => handleKeyPress("-")}
+        class="calc-btn op-btn flex flex-col items-center justify-center p-3 rounded-2xl font-bold font-mono transition-all duration-150"
+      >
         <span class="text-sm">-</span>
         <span class="btn-sub">{keyMappings["-"].word}</span>
       </button>
 
       <!-- Row 5 -->
-      <button onclick={() => handleKeyPress("0")} class="calc-btn num-btn flex flex-col items-center justify-center p-3 rounded-2xl font-bold font-mono transition-all duration-150">
+      <button
+        onclick={() => handleKeyPress("0")}
+        class="calc-btn num-btn flex flex-col items-center justify-center p-3 rounded-2xl font-bold font-mono transition-all duration-150"
+      >
         <span class="text-sm">0</span>
         <span class="btn-sub">{keyMappings["0"].word}</span>
       </button>
-      <button onclick={() => handleKeyPress(".")} class="calc-btn num-btn flex flex-col items-center justify-center p-3 rounded-2xl font-bold font-mono transition-all duration-150">
+      <button
+        onclick={() => handleKeyPress(".")}
+        class="calc-btn num-btn flex flex-col items-center justify-center p-3 rounded-2xl font-bold font-mono transition-all duration-150"
+      >
         <span class="text-sm">.</span>
         <span class="btn-sub">{keyMappings["."].word}</span>
       </button>
-      <button onclick={() => handleKeyPress("=")} class="calc-btn equal-btn flex flex-col items-center justify-center p-3 rounded-2xl font-bold font-mono transition-all duration-150">
+      <button
+        onclick={() => handleKeyPress("=")}
+        class="calc-btn equal-btn flex flex-col items-center justify-center p-3 rounded-2xl font-bold font-mono transition-all duration-150"
+      >
         <span class="text-sm">{isChecking ? "..." : "="}</span>
         <span class="btn-sub">CHECK</span>
       </button>
-      <button onclick={() => handleKeyPress("+")} class="calc-btn op-btn flex flex-col items-center justify-center p-3 rounded-2xl font-bold font-mono transition-all duration-150">
+      <button
+        onclick={() => handleKeyPress("+")}
+        class="calc-btn op-btn flex flex-col items-center justify-center p-3 rounded-2xl font-bold font-mono transition-all duration-150"
+      >
         <span class="text-sm">+</span>
         <span class="btn-sub">{keyMappings["+"].word}</span>
       </button>
@@ -349,7 +433,7 @@
 <style lang="scss">
   .calculator-card {
     background: rgba(10, 12, 18, 0.7);
-    box-shadow: 
+    box-shadow:
       0 20px 40px rgba(0, 0, 0, 0.4),
       inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
@@ -386,7 +470,7 @@
     cursor: pointer;
     overflow: hidden;
     user-select: none;
-    box-shadow: 
+    box-shadow:
       0 4px 6px rgba(0, 0, 0, 0.2),
       inset 0 1px 0 rgba(255, 255, 255, 0.05);
 
@@ -449,7 +533,7 @@
     background: linear-gradient(135deg, #00b4d8 0%, #0077b6 100%);
     color: white;
     border: none;
-    box-shadow: 
+    box-shadow:
       0 4px 15px rgba(0, 180, 216, 0.3),
       inset 0 1px 0 rgba(255, 255, 255, 0.2);
 
