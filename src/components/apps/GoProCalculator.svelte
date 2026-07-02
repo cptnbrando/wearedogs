@@ -154,7 +154,6 @@
       const response = await fetch(`https://data.wearedogs.net/vid/check.txt`, {
         method: "GET",
         headers: {
-          "Content-Type": "application/json",
           Authorization: `password=${concatenated}`,
         },
       });
