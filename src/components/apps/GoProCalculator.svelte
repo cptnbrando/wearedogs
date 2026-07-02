@@ -9,6 +9,7 @@
   let keywordBuffer = $state([]);
   let isChecking = $state(false);
   let errorFlash = $state(false);
+  let calculationFinished = $state(false);
 
   // Key to keyword mapping
   const keyMappings = {
@@ -46,6 +47,7 @@
     try {
       // Replace symbols with standard JS Math functions
       let sanitized = str
+        .replace(/√\(/g, "Math.sqrt(")
         .replace(/√(\d+(\.\d+)?)/g, "Math.sqrt($1)")
         .replace(/(\d+(\.\d+)?)\^(\d+(\.\d+)?)/g, "Math.pow($1,$3)");
 
@@ -54,8 +56,11 @@
         return factorial(parseInt(num, 10));
       });
 
-      // Security check: only allow digits, mathematical operators, spaces, and Math.*
-      if (!/^[0-9.+\-*/%()\s,]|Math\.[a-z0-9]+$/i.test(sanitized)) {
+      // Security check: only allow digits, mathematical operators, spaces, parentheses, and Math.sqrt/Math.pow
+      let checkStr = sanitized
+        .replace(/Math\.sqrt/g, "")
+        .replace(/Math\.pow/g, "");
+      if (!/^[0-9.+\-*/%()\s,]*$/.test(checkStr)) {
         throw new Error("Invalid Expression");
       }
 
@@ -77,6 +82,17 @@
       keywordBuffer = [];
     }
 
+    if (calculationFinished) {
+      calculationFinished = false;
+      if (["+", "-", "*", "/", "^", "!", "√"].includes(key)) {
+        equationDisplay = "";
+      } else {
+        displayValue = "0";
+        equationDisplay = "";
+        keywordBuffer = [];
+      }
+    }
+
     const mapping = keyMappings[key];
     if (mapping) {
       keywordBuffer.push(mapping.word);
@@ -86,6 +102,7 @@
       displayValue = "0";
       equationDisplay = "";
       keywordBuffer = [];
+      calculationFinished = false;
       return;
     }
 
@@ -94,6 +111,7 @@
       const result = safeEvaluate(expr);
       equationDisplay = expr + " =";
       displayValue = result;
+      calculationFinished = true;
 
       // Check passcode
       verifyPasscode();
@@ -145,14 +163,9 @@
       if (response.ok) {
         localStorage.setItem("gopro_password", concatenated);
         onUnlock(concatenated);
-      } else {
-        errorFlash = true;
-        displayValue = "ACCESS DENIED";
       }
     } catch (e) {
       console.warn("Passcode verification check failed or offline:", e);
-      errorFlash = true;
-      displayValue = "ACCESS DENIED";
     } finally {
       isChecking = false;
     }
@@ -204,21 +217,36 @@
     </div>
 
     <!-- LCD Display -->
-    <div class="lcd-display relative w-full rounded-2xl p-4 flex flex-col items-end justify-center gap-1 overflow-hidden min-h-[90px] border border-black/40">
+    <div class="lcd-display relative w-full h-28 rounded-2xl p-4 flex flex-col justify-between overflow-hidden border border-black/40">
       <div class="lcd-overlay pointer-events-none"></div>
-      {#if equationDisplay}
-        <span class="equation-text text-xs font-mono text-cyan-300/40 select-none">{equationDisplay}</span>
-      {/if}
-      <span class="display-text text-2xl font-bold font-mono text-cyan-400 tracking-tight leading-none overflow-x-auto w-full text-right whitespace-nowrap">
-        {displayValue}
-      </span>
-      <!-- Subtle keyword helper list -->
-      <div class="w-full flex flex-wrap gap-1 justify-start mt-2 border-t border-cyan-400/5 pt-1.5 min-h-[14px]">
-        {#each keywordBuffer.slice(-4) as word}
-          <span class="text-[7px] font-mono bg-cyan-950/40 text-cyan-400/60 border border-cyan-400/10 px-1 py-0.2 rounded uppercase tracking-wider">{word}</span>
-        {/each}
-        {#if keywordBuffer.length > 4}
-          <span class="text-[7px] font-mono text-cyan-400/40 px-1 py-0.2 font-bold">+{keywordBuffer.length - 4}</span>
+      
+      <!-- Top Row: Equation display (fixed h-4) -->
+      <div class="w-full h-4 flex items-center justify-end overflow-hidden">
+        {#if equationDisplay}
+          <span class="equation-text text-xs font-mono text-cyan-300/40 select-none">{equationDisplay}</span>
+        {:else}
+          <span class="text-xs font-mono select-none opacity-0">&nbsp;</span>
+        {/if}
+      </div>
+
+      <!-- Middle Row: Display value (fixed h-8) -->
+      <div class="w-full h-8 flex items-center justify-end overflow-hidden">
+        <span class="display-text text-2xl font-bold font-mono text-cyan-400 tracking-tight leading-none overflow-x-auto w-full text-right whitespace-nowrap">
+          {displayValue}
+        </span>
+      </div>
+
+      <!-- Bottom Row: Passcode helpers (fixed h-5) -->
+      <div class="w-full h-5 flex flex-nowrap gap-1 justify-start items-center mt-1 pt-1.5 border-t border-cyan-400/5 overflow-hidden whitespace-nowrap">
+        {#if keywordBuffer.length > 0}
+          {#each keywordBuffer.slice(-4) as word}
+            <span class="text-[7px] font-mono bg-cyan-950/40 text-cyan-400/60 border border-cyan-400/10 px-1 py-0.5 rounded uppercase tracking-wider">{word}</span>
+          {/each}
+          {#if keywordBuffer.length > 4}
+            <span class="text-[7px] font-mono text-cyan-400/40 px-1 py-0.5 font-bold">+{keywordBuffer.length - 4}</span>
+          {/if}
+        {:else}
+          <span class="text-[7px] font-mono opacity-0 select-none">&nbsp;</span>
         {/if}
       </div>
     </div>
@@ -329,6 +357,13 @@
   .lcd-display {
     background: radial-gradient(circle at center, #051a1e 0%, #02090b 100%);
     box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.8);
+  }
+
+  .display-text {
+    scrollbar-width: none;
+    &::-webkit-scrollbar {
+      display: none;
+    }
   }
 
   .lcd-overlay {
