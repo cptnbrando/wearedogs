@@ -1,7 +1,7 @@
 <script>
-    import { Play } from "lucide-svelte";
+    import { Play, Film, Users } from "lucide-svelte";
 
-    // Destructure runes props
+    // Props
     let {
         catalog = $bindable(),
         activeShowKey = $bindable(),
@@ -17,8 +17,18 @@
             meta: { actors: [], facts: "" },
         },
     );
+    
+    let seasons = $derived(getSeasonsForShow(activeShowKey));
+    let activeSeason = $derived(selectedSeasons[activeShowKey] || seasons[0] || 1);
+    
+    // Active season episodes
+    let activeSeasonEpisodes = $derived(
+        activeShow.episodes.filter((ep) => getEpisodeSeason(ep) === activeSeason)
+    );
+
+    // Selected episode details
     let currentEpisode = $derived(
-        activeShow.episodes[currentEpisodeIndex] || { title: "", file: "" },
+        activeShow.episodes[currentEpisodeIndex] || { title: "", file: "" }
     );
 
     function getEpisodeSeason(ep) {
@@ -30,165 +40,154 @@
     function getSeasonsForShow(showKey) {
         const show = catalog[showKey];
         if (!show || !show.episodes) return [1];
-        const seasons = new Set();
+        const seasonsSet = new Set();
         show.episodes.forEach((ep) => {
-            seasons.add(getEpisodeSeason(ep));
+            seasonsSet.add(getEpisodeSeason(ep));
         });
-        return Array.from(seasons).sort((a, b) => a - b);
+        return Array.from(seasonsSet).sort((a, b) => a - b);
+    }
+
+    function switchShow(showKey) {
+        activeShowKey = showKey;
+        currentEpisodeIndex = 0;
+    }
+
+    // Season Swipe Support
+    let touchStartX = 0;
+    let touchEndX = 0;
+
+    function handleTouchStart(e) {
+        touchStartX = e.changedTouches[0].screenX;
+    }
+
+    function handleTouchEnd(e) {
+        touchEndX = e.changedTouches[0].screenX;
+        handleSeasonSwipe();
+    }
+
+    function handleSeasonSwipe() {
+        const threshold = 50;
+        const currentIdx = seasons.indexOf(activeSeason);
+        if (currentIdx === -1) return;
+
+        if (touchStartX - touchEndX > threshold) {
+            // Swiped Left -> Next season
+            if (currentIdx < seasons.length - 1) {
+                selectedSeasons[activeShowKey] = seasons[currentIdx + 1];
+            }
+        } else if (touchEndX - touchStartX > threshold) {
+            // Swiped Right -> Previous season
+            if (currentIdx > 0) {
+                selectedSeasons[activeShowKey] = seasons[currentIdx - 1];
+            }
+        }
     }
 </script>
 
 <div class="catalog-container">
-    <!-- Cinematic Hero Spotlight Banner -->
-    <div
-        class="hero-spotlight {activeShowKey
-            .replace(/\s+/g, '-')
-            .toLowerCase()}"
-    >
-        <div class="hero-content">
-            <span class="hero-show-tag">{activeShowKey}</span>
-            <h1 class="hero-title">
-                S01E{(currentEpisodeIndex + 1)
-                    .toString()
-                    .padStart(2, "0")}: {currentEpisode.title}
-            </h1>
-
-            <p class="hero-fact">
-                <strong>Trivia:</strong>
-                {activeShow.meta.facts}
-            </p>
-
-            <!-- Meta details grid -->
-            <div class="hero-meta-badges">
-                <span class="badge score">{activeShow.meta.score}</span>
-                <span class="badge rating"
-                    >{activeShow.meta.rating}</span
-                >
-                <span class="badge runtime"
-                    >{activeShow.meta.runtime}</span
-                >
-                <span class="badge release"
-                    >{activeShow.meta.release}</span
-                >
-                <span class="badge viewers"
-                    >{activeShow.meta.viewers} Viewers</span
-                >
-                <span class="badge budget"
-                    >{activeShow.meta.budget} Budget</span
-                >
+    <!-- Show & Episode Info Panel at the Top -->
+    <div class="info-panel-billboard">
+        <div class="show-info-section">
+            <span class="info-tag"><Film size={12} /> Active Show</span>
+            <h1 class="info-show-title">{activeShowKey}</h1>
+            <p class="info-show-desc">{activeShow.meta.facts}</p>
+            <div class="info-cast">
+                <span class="cast-label"><Users size={12} /> Cast:</span>
+                <span class="cast-text-list">{activeShow.meta.actors.join(", ")}</span>
             </div>
-
-            <!-- Cast List -->
-            <div class="hero-cast">
-                <span class="meta-label">Cast:</span>
-                <div class="cast-tags">
-                    {#each activeShow.meta.actors as actor}
-                        <span class="hero-cast-tag">{actor}</span>
-                    {/each}
-                </div>
-            </div>
-
-            <div class="hero-actions">
-                <button
-                    class="hero-play-btn"
-                    onclick={() =>
-                        playEpisode(activeShowKey, currentEpisodeIndex)}
-                >
-                    <Play size={18} fill="currentColor" /> Play Episode
-                </button>
-
-                <div class="hero-external-links">
-                    <a
-                        href={activeShow.meta.wiki}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="hero-link-btn">Wikipedia</a
-                    >
-                    <a
-                        href={activeShow.meta.imdb}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="hero-link-btn">IMDb</a
-                    >
-                    <a
-                        href={activeShow.meta.tomatoes}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="hero-link-btn">Rotten Tomatoes</a
-                    >
-                </div>
+        </div>
+        
+        <div class="episode-info-section">
+            <span class="info-tag"><Play size={12} /> Selected Episode</span>
+            <span class="info-ep-number">Season {getEpisodeSeason(currentEpisode)} - Episode {activeShow.episodes.indexOf(currentEpisode) + 1}</span>
+            <h2 class="info-ep-title">{currentEpisode.title}</h2>
+            <div class="info-ep-stats">
+                <span class="stat-pill">★ {activeShow.meta.score}</span>
+                <span class="stat-pill">{activeShow.meta.rating}</span>
+                <span class="stat-pill">{activeShow.meta.runtime}</span>
             </div>
         </div>
     </div>
 
-    <!-- Show Shelves / Rows -->
-    <div class="catalog-shelves">
-        {#each Object.keys(catalog) as showKey}
-            {@const seasons = getSeasonsForShow(showKey)}
-            {@const activeSeason =
-                selectedSeasons[showKey] || seasons[0] || 1}
-            <div class="shelf-container">
-                <div class="shelf-header">
-                    <h2 class="shelf-title">
-                        {showKey}
-                    </h2>
-                    {#if seasons.length > 1}
-                        <div class="season-selector-tabs">
+    <!-- Main Selector Deck: Split columns on desktop, stacked on mobile -->
+    <div class="selector-columns-deck">
+        <!-- Shows Sidebar -->
+        <div class="shows-sidebar-container">
+            <span class="sidebar-header-title">Browse Shows</span>
+            <div class="shows-list-flow">
+                {#each Object.keys(catalog) as showKey}
+                    <button
+                        class="show-card-item"
+                        class:active={activeShowKey === showKey}
+                        class:batman={showKey === "Batman Beyond"}
+                        class:bean={showKey === "Mr. Bean"}
+                        onclick={() => switchShow(showKey)}
+                    >
+                        <span class="show-card-icon">{catalog[showKey].symbol || "📺"}</span>
+                        <div class="show-card-info">
+                            <span class="show-card-name">{showKey}</span>
+                            <span class="show-card-count">{catalog[showKey].episodes.length} Episodes</span>
+                        </div>
+                    </button>
+                {/each}
+            </div>
+        </div>
+
+        <!-- Episodes Selector -->
+        <div class="episodes-main-container">
+            <div class="episodes-selector-header">
+                <span class="sidebar-header-title">Episodes List</span>
+                
+                {#if seasons.length > 1}
+                    <div class="season-swiper-indicator">
+                        <span class="swipe-hint">Swipe to change season</span>
+                        <div class="season-pills">
                             {#each seasons as s}
                                 <button
-                                    class="season-tab-btn"
+                                    class="season-pill-btn"
                                     class:active={activeSeason === s}
-                                    onclick={() =>
-                                        (selectedSeasons[showKey] = s)}
+                                    onclick={() => (selectedSeasons[activeShowKey] = s)}
                                 >
-                                    Season {s}
+                                    S{s}
                                 </button>
                             {/each}
                         </div>
-                    {/if}
-                </div>
+                    </div>
+                {/if}
+            </div>
 
-                <div class="cards-row">
-                    {#each catalog[showKey].episodes.filter((ep) => getEpisodeSeason(ep) === activeSeason) as ep, seasonIdx}
-                        {@const actualIndex =
-                            catalog[showKey].episodes.indexOf(ep)}
+            <!-- Episodes scrollable grid container with Swipe listener -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div
+                class="episodes-swipe-wrapper"
+                ontouchstart={handleTouchStart}
+                ontouchend={handleTouchEnd}
+            >
+                <div class="episodes-grid">
+                    {#each activeSeasonEpisodes as ep, seasonIdx}
+                        {@const actualIndex = activeShow.episodes.indexOf(ep)}
                         <!-- svelte-ignore a11y_click_events_have_key_events -->
                         <!-- svelte-ignore a11y_no_static_element_interactions -->
                         <div
-                            class="episode-card"
-                            class:active={activeShowKey === showKey &&
-                                currentEpisodeIndex === actualIndex}
-                            onclick={() =>
-                                playEpisode(showKey, actualIndex)}
+                            class="episode-grid-card"
+                            class:active={currentEpisodeIndex === actualIndex}
+                            onclick={() => playEpisode(activeShowKey, actualIndex)}
                         >
-                            <div class="card-thumbnail">
-                                <span class="thumbnail-number"
-                                    >{(seasonIdx + 1)
-                                        .toString()
-                                        .padStart(2, "0")}</span
-                                >
-                                <div class="thumbnail-overlay">
-                                    <div class="play-icon-glow">
-                                        <Play
-                                            size={16}
-                                            fill="currentColor"
-                                        />
-                                    </div>
+                            <div class="card-thumbnail-box">
+                                <span class="card-number">{(seasonIdx + 1).toString().padStart(2, "0")}</span>
+                                <div class="card-play-overlay">
+                                    <Play size={20} fill="currentColor" />
                                 </div>
                             </div>
-                            <div class="card-info">
-                                <span class="card-episode-num"
-                                    >Episode {seasonIdx + 1}</span
-                                >
-                                <span class="card-title-text"
-                                    >{ep.title}</span
-                                >
+                            <div class="card-details">
+                                <span class="card-ep-label">Episode {seasonIdx + 1}</span>
+                                <h3 class="card-title">{ep.title}</h3>
                             </div>
                         </div>
                     {/each}
                 </div>
             </div>
-        {/each}
+        </div>
     </div>
 </div>
 

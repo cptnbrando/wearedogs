@@ -2067,3 +2067,1497 @@
             display: none !important; /* Hide speed selector to save width */
         }
     }
+
+/* ── Overhauled Episode Selector & Card Layouts ── */
+.shelf-row-wrapper {
+    position: relative;
+    width: 100%;
+    display: flex;
+    align-items: center;
+}
+
+.shelf-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 40px;
+    height: 40px;
+    background: rgba(0, 0, 0, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    color: white;
+    font-size: 1.8rem;
+    line-height: 1;
+    cursor: pointer;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.25s ease;
+    opacity: 0;
+    visibility: hidden;
+    backdrop-filter: blur(5px);
+}
+
+.shelf-row-wrapper:hover .shelf-arrow {
+    opacity: 1;
+    visibility: visible;
+}
+
+.shelf-arrow:hover {
+    background: #ff55bb;
+    border-color: #ff55bb;
+    box-shadow: 0 0 15px rgba(255, 85, 187, 0.5);
+    transform: translateY(-50%) scale(1.1);
+}
+
+.shelf-arrow.left-arrow {
+    left: -15px;
+}
+
+.shelf-arrow.right-arrow {
+    right: -15px;
+}
+
+/* Modern Card Glow Overrides */
+.episode-card {
+    position: relative;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.episode-card:hover {
+    border-color: rgba(255, 85, 187, 0.5) !important;
+    box-shadow: 0 10px 25px rgba(255, 85, 187, 0.2) !important;
+}
+
+.episode-card.active {
+    border-color: #ff55bb !important;
+    background: rgba(255, 85, 187, 0.1) !important;
+    box-shadow: 0 0 20px rgba(255, 85, 187, 0.3) !important;
+}
+
+/* ── Paginated Controls Styles ── */
+.player-controls-panel {
+    display: flex !important;
+    flex-direction: column !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    
+    /* Default desktop sizing (under 1/3 height) */
+    height: 180px !important;
+    padding: 12px 20px !important;
+    gap: 8px !important;
+    background: rgba(10, 10, 15, 0.85) !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+    backdrop-filter: blur(20px) !important;
+}
+
+.controls-navigation-tabs {
+    display: flex;
+    gap: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 4px;
+    height: 32px;
+    box-sizing: border-box;
+}
+
+.control-tab-btn {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    padding: 4px 12px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.control-tab-btn:hover {
+    color: white;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.control-tab-btn.active {
+    color: #ff55bb;
+    background: rgba(255, 85, 187, 0.1);
+    box-shadow: inset 0 -2px 0 #ff55bb;
+}
+
+.control-page-content-wrapper {
+    flex-grow: 1;
+    width: 100%;
+    height: 110px; /* Locked height */
+    box-sizing: border-box;
+    overflow: hidden;
+    position: relative;
+}
+
+.control-page-pane {
+    height: 100%;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 8px;
+    box-sizing: border-box;
+    animation: paneFadeIn 0.25s ease forwards;
+}
+
+/* Playback Page styles */
+.page-playback {
+    justify-content: space-around;
+}
+
+.playback-main-row,
+.playback-sub-row {
+    width: 100%;
+    display: flex;
+    align-items: center;
+}
+
+/* Filters Page Layout */
+.grid-filters {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 16px !important;
+    height: 100% !important;
+}
+
+.filter-panel-box {
+    height: 100% !important;
+    box-sizing: border-box !important;
+    padding: 8px 12px !important;
+}
+
+/* Sampler Page overrides */
+.sampler-clipper-box {
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100% !important;
+    padding: 8px 12px !important;
+    box-sizing: border-box !important;
+    border-style: solid !important;
+}
+
+.clipper-main-controls {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 8px !important;
+    align-items: center !important;
+}
+
+/* Responsive Overrides */
+@media (max-width: 767px) and (orientation: portrait) {
+    .player-controls-panel {
+        height: 170px !important;
+        padding: 8px 12px !important;
+    }
+    
+    .controls-navigation-tabs {
+        height: 28px !important;
+        gap: 4px !important;
+    }
+    
+    .control-tab-btn {
+        font-size: 0.65rem !important;
+        padding: 2px 8px !important;
+    }
+    
+    .control-page-content-wrapper {
+        height: 100px !important;
+    }
+    
+    .playback-main-row {
+        flex-direction: row !important;
+        justify-content: space-between !important;
+    }
+    
+    .playback-sub-row {
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto;
+        justify-content: start !important;
+        gap: 12px !important;
+        padding-bottom: 2px;
+    }
+    
+    .playback-sub-row::-webkit-scrollbar {
+        display: none;
+    }
+    
+    .grid-filters {
+        grid-template-columns: 1fr !important;
+        gap: 6px !important;
+        overflow-y: auto;
+    }
+    
+    .filter-selector-row {
+        flex-wrap: nowrap !important;
+        overflow-x: auto;
+    }
+    
+    .filter-selector-row::-webkit-scrollbar {
+        display: none;
+    }
+    
+    .clipper-main-controls {
+        grid-template-columns: 1fr !important;
+        gap: 6px !important;
+        overflow-y: auto;
+    }
+    
+    .bpm-control-box {
+        width: 100% !important;
+    }
+}
+
+@media (max-width: 767px) and (orientation: landscape) {
+    .player-controls-panel {
+        height: 80px !important;
+        padding: 4px 10px !important;
+        gap: 2px !important;
+    }
+    
+    .controls-navigation-tabs {
+        height: 22px !important;
+        padding-bottom: 2px !important;
+    }
+    
+    .control-tab-btn {
+        font-size: 0.58rem !important;
+        padding: 1px 6px !important;
+    }
+    
+    .control-page-content-wrapper {
+        height: 48px !important;
+    }
+    
+    .control-page-pane {
+        gap: 2px !important;
+    }
+    
+    .btn-circular {
+        width: 24px !important;
+        height: 24px !important;
+        font-size: 0.6rem !important;
+    }
+    
+    .btn-circular.play-toggle {
+        width: 28px !important;
+        height: 28px !important;
+    }
+    
+    .playback-main-row {
+        gap: 4px !important;
+    }
+    
+    .playback-sub-row {
+        gap: 4px !important;
+        font-size: 0.58rem !important;
+    }
+    
+    .speed-btn {
+        padding: 2px 6px !important;
+        font-size: 0.6rem !important;
+    }
+    
+    .loop-btn {
+        padding: 2px 6px !important;
+        font-size: 0.6rem !important;
+    }
+    
+    .grid-filters {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 8px !important;
+    }
+    
+    .filter-panel-box {
+        padding: 4px 8px !important;
+        gap: 4px !important;
+    }
+    
+    .filter-select-btn {
+        font-size: 0.58rem !important;
+        padding: 2px 6px !important;
+    }
+    
+    .clipper-main-controls {
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 6px !important;
+    }
+    
+    .clip-action-btn {
+        padding: 2px !important;
+        font-size: 0.58rem !important;
+    }
+    
+    .nudge-btn {
+        padding: 1px !important;
+        font-size: 0.55rem !important;
+    }
+    
+    .clip-name-input {
+        padding: 2px 6px !important;
+        font-size: 0.58rem !important;
+    }
+    
+    .send-sampler-btn {
+        padding: 4px !important;
+        font-size: 0.58rem !important;
+    }
+    
+    .bpm-control-box {
+        padding: 2px 6px !important;
+    }
+    
+        .volume-slider-box {
+            display: none !important; /* Hide volume controls to save width */
+        }
+
+        .speed-group {
+            display: none !important; /* Hide speed selector to save width */
+        }
+    }
+
+/* ── Unified Theater Layout ── */
+.theater-layout {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    padding: 16px;
+    box-sizing: border-box;
+    gap: 16px;
+}
+
+.theater-layout::-webkit-scrollbar {
+    width: 6px;
+}
+.theater-layout::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+}
+
+/* Persistent Player container sizing */
+.player-view-container {
+    width: 100%;
+    max-width: 1000px;
+    aspect-ratio: 16 / 9;
+    margin: 0 auto;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    position: relative;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    background: #000;
+}
+
+.player-video-core {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+/* Lower deck layout: controls and selector */
+.theater-lower-deck {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+/* Desktop Split-Screen Column layout */
+@media (min-width: 900px) {
+    .theater-lower-deck {
+        flex-direction: column !important;
+        align-items: center;
+    }
+}
+
+/* Show Switcher: horizontal scroll list of pills */
+.shows-scroll-list {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+}
+
+.shows-scroll-list::-webkit-scrollbar {
+    display: none;
+}
+
+.show-pill-btn {
+    flex-shrink: 0;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    color: rgba(255, 255, 255, 0.6);
+    padding: 8px 18px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.show-pill-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: white;
+    transform: translateY(-1px);
+}
+
+.show-pill-btn.active.batman {
+    background: rgba(255, 51, 68, 0.15) !important;
+    border-color: #ff3344 !important;
+    color: white !important;
+    box-shadow: 0 0 15px rgba(255, 51, 68, 0.3) !important;
+}
+
+.show-pill-btn.active.bean {
+    background: rgba(255, 204, 0, 0.15) !important;
+    border-color: #ffcc00 !important;
+    color: white !important;
+    box-shadow: 0 0 15px rgba(255, 204, 0, 0.3) !important;
+}
+
+/* Modern Card Glow Overrides */
+.episode-grid-card {
+    background: rgba(255, 255, 255, 0.01);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 14px;
+    overflow: hidden;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    gap: 12px;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    user-select: none;
+    box-sizing: border-box;
+}
+
+.episode-grid-card:hover {
+    transform: translateY(-2px) scale(1.02);
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 85, 187, 0.4);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+}
+
+.episode-grid-card.active {
+    border-color: #ff55bb;
+    background: rgba(255, 85, 187, 0.08);
+    box-shadow: 0 0 15px rgba(255, 85, 187, 0.2);
+}
+
+.card-thumbnail-box {
+    position: relative;
+    width: 90px;
+    height: 56px;
+    background: linear-gradient(135deg, #13131c 0%, #08080c 100%);
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.card-number {
+    font-size: 1.4rem;
+    font-weight: 800;
+    font-family: monospace;
+    color: rgba(255, 255, 255, 0.1);
+    transition: color 0.2s;
+}
+
+.episode-grid-card:hover .card-number {
+    color: rgba(255, 85, 187, 0.2);
+}
+
+.card-play-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    color: white;
+    transition: opacity 0.2s ease;
+}
+
+.episode-grid-card:hover .card-play-overlay {
+    opacity: 1;
+}
+
+.card-details {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+
+.card-ep-label {
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: #ff55bb;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.card-title {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.95);
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ── Paginated Controls Styles ── */
+.player-controls-panel {
+    display: flex !important;
+    flex-direction: column !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    height: 48px !important; /* Default collapsed height */
+    padding: 8px 16px !important;
+    gap: 0 !important;
+    background: rgba(10, 10, 15, 0.85) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    backdrop-filter: blur(20px) !important;
+    overflow: hidden !important;
+    transition: height 0.3s cubic-bezier(0.16, 1, 0.3, 1), padding 0.3s ease, gap 0.3s ease !important;
+}
+
+.player-controls-panel.expanded {
+    height: 190px !important;
+    padding: 12px 20px !important;
+    gap: 8px !important;
+}
+
+.minimal-controls-row {
+    height: 32px;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    box-sizing: border-box;
+}
+
+.minimal-seekbar-container {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+    outline: none;
+}
+
+.minimal-seekbar-container:hover .minimal-seekbar-track {
+    background: rgba(255, 255, 255, 0.2) !important;
+}
+
+
+.controls-navigation-tabs {
+    display: flex;
+    gap: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 4px;
+    height: 32px;
+    box-sizing: border-box;
+}
+
+.control-tab-btn {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    padding: 4px 12px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.control-tab-btn:hover {
+    color: white;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.control-tab-btn.active {
+    color: #ff55bb;
+    background: rgba(255, 85, 187, 0.1);
+    box-shadow: inset 0 -2px 0 #ff55bb;
+}
+
+.control-page-content-wrapper {
+    flex-grow: 1;
+    width: 100%;
+    height: 110px;
+    box-sizing: border-box;
+    overflow: hidden;
+    position: relative;
+}
+
+.control-page-pane {
+    height: 100%;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 8px;
+    box-sizing: border-box;
+}
+
+/* Playback Page styles */
+.page-playback {
+    justify-content: space-around;
+}
+
+.playback-main-row,
+.playback-sub-row {
+    width: 100%;
+    display: flex;
+    align-items: center;
+}
+
+/* Filters Page Layout */
+.grid-filters {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 16px !important;
+    height: 100% !important;
+}
+
+.filter-panel-box {
+    height: 100% !important;
+    box-sizing: border-box !important;
+    padding: 8px 12px !important;
+}
+
+/* Sampler Page overrides */
+.sampler-clipper-box {
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100% !important;
+    padding: 8px 12px !important;
+    box-sizing: border-box !important;
+    border-style: solid !important;
+}
+
+.clipper-main-controls {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 8px !important;
+    align-items: center;
+}
+
+/* Selection header & seasons navigation */
+/* ── Redesigned Catalog Selector Layout ── */
+.catalog-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    gap: 16px;
+    box-sizing: border-box;
+}
+
+/* Info Panel Billboard */
+.info-panel-billboard {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    background: rgba(15, 15, 25, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(16px);
+    padding: 16px 20px;
+    border-radius: 12px;
+    box-sizing: border-box;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    height: 125px !important;
+    min-height: 125px !important;
+    max-height: 125px !important;
+    overflow: hidden !important;
+}
+
+.show-info-section, .episode-info-section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.show-info-section {
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+    padding-right: 20px;
+}
+
+.info-tag {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.55rem;
+    font-weight: 800;
+    color: #ff55bb;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+}
+
+.info-show-title {
+    font-size: 1.4rem;
+    font-weight: 900;
+    color: white;
+    margin: 0;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+}
+
+.info-show-desc {
+    font-size: 0.72rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin: 4px 0 0 0;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.info-cast {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+.cast-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.cast-text-list {
+    font-size: 0.62rem;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.7);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.info-ep-number {
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: #00f0ff;
+}
+
+.info-ep-title {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: white;
+    margin: 0;
+    line-height: 1.2;
+}
+
+.info-ep-stats {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.stat-pill {
+    font-size: 0.6rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* Split columns deck */
+.selector-columns-deck {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    gap: 20px;
+    width: 100%;
+    flex-grow: 1;
+    min-height: 0;
+}
+
+/* Shows sidebar */
+.shows-sidebar-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    height: 100%;
+    overflow: hidden;
+}
+
+.sidebar-header-title {
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    color: rgba(255, 255, 255, 0.4);
+    text-transform: uppercase;
+}
+
+.shows-list-flow {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+    flex-grow: 1;
+    padding-right: 4px;
+}
+
+.show-card-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    color: white;
+    width: 100%;
+}
+
+.show-card-item:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+.show-card-item.active {
+    background: rgba(255, 85, 187, 0.08);
+    border-color: #ff55bb;
+    box-shadow: 0 0 16px rgba(255, 85, 187, 0.12);
+}
+
+/* Specific theme highlights on shows */
+.show-card-item.batman.active {
+    background: rgba(240, 200, 20, 0.06);
+    border-color: #f0c814;
+    box-shadow: 0 0 16px rgba(240, 200, 20, 0.12);
+}
+.show-card-item.batman.active .show-card-name {
+    color: #f0c814;
+}
+
+.show-card-icon {
+    font-size: 1.5rem;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+}
+
+.show-card-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.show-card-name {
+    font-size: 0.82rem;
+    font-weight: 800;
+}
+
+.show-card-count {
+    font-size: 0.65rem;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+/* Episodes Panel */
+.episodes-main-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    height: 100%;
+    overflow: hidden;
+}
+
+.episodes-selector-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding-bottom: 8px;
+}
+
+.season-swiper-indicator {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.swipe-hint {
+    font-size: 0.58rem;
+    color: rgba(255, 255, 255, 0.3);
+    font-style: italic;
+}
+
+.season-pills {
+    display: flex;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 20px;
+    padding: 2px;
+}
+
+.season-pill-btn {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.4);
+    padding: 4px 12px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    border-radius: 18px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.season-pill-btn:hover {
+    color: white;
+}
+
+.season-pill-btn.active {
+    background: rgba(255, 255, 255, 0.08);
+    color: #ff55bb;
+}
+
+/* Episodes Grid */
+.episodes-swipe-wrapper {
+    flex-grow: 1;
+    overflow-y: auto;
+    width: 100%;
+    padding-right: 4px;
+}
+
+.episodes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+    width: 100%;
+}
+
+.episode-grid-card {
+    display: flex;
+    flex-direction: column;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    box-sizing: border-box;
+}
+
+.episode-grid-card:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.12);
+    transform: translateY(-2px);
+}
+
+.episode-grid-card.active {
+    background: rgba(0, 240, 255, 0.04);
+    border-color: #00f0ff;
+    box-shadow: 0 4px 16px rgba(0, 240, 255, 0.1);
+}
+
+.card-thumbnail-box {
+    position: relative;
+    width: 100%;
+    height: 100px;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.card-number {
+    font-size: 2rem;
+    font-weight: 900;
+    color: rgba(255, 255, 255, 0.08);
+    letter-spacing: -0.05em;
+    user-select: none;
+    transition: color 0.2s;
+}
+
+.episode-grid-card:hover .card-number {
+    color: rgba(255, 255, 255, 0.12);
+}
+
+.card-play-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    transition: opacity 0.2s;
+    color: white;
+}
+
+.episode-grid-card:hover .card-play-overlay {
+    opacity: 1;
+}
+
+.card-details {
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.card-ep-label {
+    font-size: 0.58rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.4);
+    text-transform: uppercase;
+}
+
+.card-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: white;
+    margin: 0;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Responsive Overrides (Mobile Portrait) */
+@media (max-width: 767px) and (orientation: portrait) {
+    .player-controls-panel {
+        height: 44px !important;
+        padding: 6px 12px !important;
+        gap: 0 !important;
+    }
+    
+    .player-controls-panel.expanded {
+        height: 170px !important;
+        padding: 8px 12px !important;
+        gap: 6px !important;
+    }
+    
+    .controls-navigation-tabs {
+        height: 28px !important;
+        gap: 4px !important;
+    }
+    
+    .control-tab-btn {
+        font-size: 0.65rem !important;
+        padding: 2px 8px !important;
+    }
+    
+    .control-page-content-wrapper {
+        height: 100px !important;
+    }
+    
+    .playback-main-row {
+        flex-direction: row !important;
+        justify-content: space-between !important;
+    }
+    
+    .playback-sub-row {
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto;
+        justify-content: start !important;
+        gap: 12px !important;
+        padding-bottom: 2px;
+    }
+    
+    .playback-sub-row::-webkit-scrollbar {
+        display: none;
+    }
+    
+    .grid-filters {
+        grid-template-columns: 1fr !important;
+        gap: 6px !important;
+        overflow-y: auto;
+    }
+    
+    .filter-selector-row {
+        flex-wrap: nowrap !important;
+        overflow-x: auto;
+    }
+    
+    .filter-selector-row::-webkit-scrollbar {
+        display: none;
+    }
+    
+    .clipper-main-controls {
+        grid-template-columns: 1fr !important;
+        gap: 6px !important;
+        overflow-y: auto;
+    }
+    
+    .bpm-control-box {
+        width: 100% !important;
+    }
+    
+    .info-panel-billboard {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+        padding: 10px 12px !important;
+        height: 160px !important;
+        min-height: 160px !important;
+        max-height: 160px !important;
+    }
+    
+    .show-info-section {
+        border-right: none !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        padding-right: 0 !important;
+        padding-bottom: 10px;
+    }
+    
+    .info-show-title {
+        font-size: 1.1rem !important;
+    }
+    
+    .info-show-desc {
+        font-size: 0.65rem !important;
+        -webkit-line-clamp: 2 !important;
+    }
+    
+    .info-ep-title {
+        font-size: 0.95rem !important;
+    }
+    
+    .selector-columns-deck {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+    
+    .shows-sidebar-container {
+        height: auto !important;
+    }
+    
+    .shows-list-flow {
+        flex-direction: row !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        width: 100% !important;
+        height: auto !important;
+        gap: 6px !important;
+        padding-bottom: 4px;
+    }
+    
+    .shows-list-flow::-webkit-scrollbar {
+        display: none !important;
+    }
+    
+    .show-card-item {
+        flex-shrink: 0 !important;
+        width: auto !important;
+        max-width: 160px !important;
+        padding: 6px 10px !important;
+        gap: 8px !important;
+        border-radius: 8px !important;
+    }
+    
+    .show-card-icon {
+        font-size: 1.1rem !important;
+    }
+    
+    .show-card-name {
+        font-size: 0.72rem !important;
+    }
+    
+    .show-card-count {
+        font-size: 0.58rem !important;
+    }
+    
+    .episodes-grid {
+        grid-template-columns: 1fr !important;
+        gap: 8px !important;
+    }
+}
+
+/* Responsive Overrides (Mobile Landscape) */
+@media (max-width: 767px) and (orientation: landscape) {
+    .theater-layout {
+        flex-direction: row !important;
+        padding: 8px !important;
+        gap: 8px !important;
+        overflow-y: hidden !important;
+    }
+    
+    .player-view-container {
+        flex: 1.2;
+        height: 100% !important;
+        margin: 0 !important;
+        border-radius: 8px !important;
+    }
+    
+    .theater-lower-deck {
+        flex: 1;
+        flex-direction: column !important;
+        overflow-y: auto !important;
+        height: 100% !important;
+        margin: 0 !important;
+        gap: 8px !important;
+    }
+    
+    .theater-lower-deck::-webkit-scrollbar {
+        width: 4px;
+    }
+    
+    .player-controls-panel {
+        width: 100% !important;
+        height: 36px !important;
+        padding: 4px 8px !important;
+        gap: 0 !important;
+        border-radius: 8px !important;
+    }
+    
+    .player-controls-panel.expanded {
+        height: 80px !important;
+        padding: 4px 10px !important;
+        gap: 2px !important;
+    }
+    
+    .controls-navigation-tabs {
+        height: 22px !important;
+        padding-bottom: 2px !important;
+    }
+    
+    .control-tab-btn {
+        font-size: 0.58rem !important;
+        padding: 1px 6px !important;
+    }
+    
+    .control-page-content-wrapper {
+        height: 48px !important;
+    }
+    
+    .control-page-pane {
+        gap: 2px !important;
+    }
+    
+    .btn-circular {
+        width: 24px !important;
+        height: 24px !important;
+        font-size: 0.6rem !important;
+    }
+    
+    .btn-circular.play-toggle {
+        width: 28px !important;
+        height: 28px !important;
+    }
+    
+    .playback-main-row {
+        gap: 4px !important;
+    }
+    
+    .playback-sub-row {
+        gap: 4px !important;
+        font-size: 0.58rem !important;
+    }
+    
+    .speed-btn {
+        padding: 2px 6px !important;
+        font-size: 0.6rem !important;
+    }
+    
+    .loop-btn {
+        padding: 2px 6px !important;
+        font-size: 0.6rem !important;
+    }
+    
+    .grid-filters {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 8px !important;
+    }
+    
+    .filter-panel-box {
+        padding: 4px 8px !important;
+        gap: 4px !important;
+    }
+    
+    .filter-select-btn {
+        font-size: 0.58rem !important;
+        padding: 2px 6px !important;
+    }
+    
+    .clipper-main-controls {
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 6px !important;
+    }
+    
+    .clip-action-btn {
+        padding: 2px !important;
+        font-size: 0.58rem !important;
+    }
+    
+    .nudge-btn {
+        padding: 1px !important;
+        font-size: 0.55rem !important;
+    }
+    
+    .clip-name-input {
+        padding: 2px 6px !important;
+        font-size: 0.58rem !important;
+    }
+    
+    .send-sampler-btn {
+        padding: 4px !important;
+        font-size: 0.58rem !important;
+    }
+    
+    .bpm-control-box {
+        padding: 2px 6px !important;
+    }
+    
+    .cinema-footer {
+        display: none !important;
+    }
+    
+    .info-panel-billboard {
+        grid-template-columns: 1fr !important;
+        gap: 8px !important;
+        padding: 6px 10px !important;
+        height: 60px !important;
+        min-height: 60px !important;
+        max-height: 60px !important;
+    }
+    
+    .show-info-section {
+        border-right: none !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        padding-right: 0 !important;
+        padding-bottom: 6px;
+    }
+    
+    .info-show-desc,
+    .info-cast {
+        display: none !important; /* Hide description/cast to save vertical screen space in landscape */
+    }
+    
+    .info-show-title {
+        font-size: 0.95rem !important;
+    }
+    
+    .info-ep-title {
+        font-size: 0.85rem !important;
+    }
+    
+    .selector-columns-deck {
+        grid-template-columns: 1fr !important;
+        gap: 8px !important;
+    }
+    
+    .shows-sidebar-container {
+        height: auto !important;
+    }
+    
+    .shows-list-flow {
+        flex-direction: row !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        width: 100% !important;
+        height: auto !important;
+        gap: 6px !important;
+        padding-bottom: 2px;
+    }
+    
+    .shows-list-flow::-webkit-scrollbar {
+        display: none !important;
+    }
+    
+    .show-card-item {
+        flex-shrink: 0 !important;
+        width: auto !important;
+        max-width: 140px !important;
+        padding: 4px 8px !important;
+        gap: 6px !important;
+        border-radius: 6px !important;
+    }
+    
+    .show-card-icon {
+        font-size: 1rem !important;
+    }
+    
+    .show-card-name {
+        font-size: 0.65rem !important;
+    }
+    
+    .show-card-count {
+        font-size: 0.52rem !important;
+    }
+    
+    .episodes-grid {
+        grid-template-columns: 1fr !important;
+        gap: 8px !important;
+    }
+}
+
+/* ── Lower Deck Toggle Bar ── */
+.deck-toggle-bar {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    width: 100%;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    padding-bottom: 10px;
+    box-sizing: border-box;
+}
+
+.deck-toggle-btn {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.8rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    padding: 6px 20px;
+    border-radius: 20px;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    text-transform: uppercase;
+}
+
+.deck-toggle-btn:hover {
+    color: white;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.deck-toggle-btn.active {
+    color: #ff55bb;
+    background: rgba(255, 85, 187, 0.1);
+    box-shadow: 0 0 10px rgba(255, 85, 187, 0.2), inset 0 -2px 0 #ff55bb;
+}
+
+
+
