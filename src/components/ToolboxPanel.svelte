@@ -74,7 +74,8 @@
       <div class="brand">
         <button
           class="logo-btn"
-          onclick={() => window.dispatchEvent(new CustomEvent("open-info-panel"))}
+          onclick={() =>
+            window.dispatchEvent(new CustomEvent("open-info-panel"))}
           aria-label="Open DOGS Info"
         >
           <img
@@ -193,8 +194,7 @@
                 </div>
               </div>
               <div class="app-meta">
-                <span class="app-title"><Award size={14} /> Playable Snake</span
-                >
+                <span class="app-title"><Award size={14} /> Snake</span>
                 <span class="app-desc"
                   >Retro snake game, runs inside grid. Use Arrow Keys.</span
                 >
@@ -408,7 +408,12 @@
       {:else if activeApp === "changelog"}
         <ChangelogApp />
       {:else if activeApp === "blog"}
-        <BlogApp bind:initialSlug={blogPostSlug} bind:isReading={isReadingPost} bind:depth={depth} isFlagColors={isFlagColors} />
+        <BlogApp
+          bind:initialSlug={blogPostSlug}
+          bind:isReading={isReadingPost}
+          bind:depth
+          {isFlagColors}
+        />
       {:else if activeApp === "settings"}
         <SettingsApp />
       {/if}
@@ -1174,6 +1179,8 @@
   }
   .app-card:hover .settings-preview-mini :global(svg) {
     color: var(--color-neon-red, #ff3344);
-    filter: drop-shadow(0 0 8px rgba(var(--color-neon-red-rgb, 255, 51, 68), 0.8));
+    filter: drop-shadow(
+      0 0 8px rgba(var(--color-neon-red-rgb, 255, 51, 68), 0.8)
+    );
   }
 </style>
