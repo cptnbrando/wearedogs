@@ -472,12 +472,20 @@
     }
   }
 
+  let isWheelActive = false;
+  let wheelTimeout = null;
+
   function handleWheel(e) {
     if (isFaded) return;
-    if (e.deltaY > 0) {
-      toggleFlagColors(false); // Scroll down -> Flag Colors OFF
-    } else if (e.deltaY < 0) {
-      toggleFlagColors(true); // Scroll up -> Flag Colors ON
+    if (e.deltaY < 0) {
+      if (!isWheelActive) {
+        isWheelActive = true;
+        toggleFlagColors();
+      }
+      if (wheelTimeout) clearTimeout(wheelTimeout);
+      wheelTimeout = setTimeout(() => {
+        isWheelActive = false;
+      }, 400);
     }
   }
 
@@ -683,6 +691,7 @@
   $effect(() => {
     return () => {
       stopScrollLoop();
+      if (wheelTimeout) clearTimeout(wheelTimeout);
     };
   });
 
@@ -797,12 +806,9 @@
     } else {
       // Vertical swipe
       if (Math.abs(diffY) > threshold) {
-        if (diffY < 0) {
-          // Swipe Up -> Flag Colors ON
-          toggleFlagColors(true);
-        } else {
-          // Swipe Down -> Flag Colors OFF
-          toggleFlagColors(false);
+        if (diffY > 0) {
+          // Swipe Down -> Toggle colors
+          toggleFlagColors();
         }
       }
     }
