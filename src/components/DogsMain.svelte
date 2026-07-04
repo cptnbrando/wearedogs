@@ -43,9 +43,7 @@
     <div
       class="company-section max-w-4xl w-full flex flex-col gap-6 md:gap-8 mt-12 md:mt-0"
     >
-      <div
-        class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mt-4 w-full"
-      >
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mt-4 w-full">
         <!-- Headquarters -->
         <div
           class="info-card flex flex-col p-4 md:p-6 rounded-xl md:rounded-2xl bg-[#f8f9fa] border border-black/5 hover:border-black/10 hover:shadow-lg transition-all duration-300"
@@ -112,6 +110,13 @@
   }
   .dict-def.colored .dict-word {
     color: var(--color-neon-purple, var(--color-neon-red, #ff3344)) !important;
+  }
+
+  /* Override to keep text white in default theme */
+  :global(html[data-theme="default"]) .dict-def.colored,
+  :global(html[data-theme="default"]) .dict-def.colored .dict-word {
+    color: #ffffff !important;
+    text-shadow: none !important;
   }
 
   /* Dripping Droplet Animation on the Right */

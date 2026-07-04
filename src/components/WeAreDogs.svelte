@@ -476,6 +476,7 @@
   let wheelTimeout = null;
 
   function handleWheel(e) {
+    if (window.location.pathname !== '/') return;
     if (isFaded) return;
     if (e.deltaY < 0) {
       const scrollContainer = document.querySelector('main');
@@ -880,6 +881,7 @@
   }
 
   function handleKeydown(e) {
+    if (window.location.pathname !== '/') return;
     if (isFaded) return; // bypass all navigation keys when details Panel is open
     if (e.key === "ArrowLeft") {
       handleLeftArrow();

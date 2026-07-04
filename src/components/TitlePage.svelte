@@ -259,6 +259,7 @@
   }
 
   function handleKeydown(e) {
+    if (window.location.pathname !== '/') return;
     if (e.key === "Escape" && activePage !== null) {
       closePage();
     }
