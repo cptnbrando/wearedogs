@@ -29,10 +29,10 @@
 
   <!-- Left UI Layer (High z-index to remain interactable) -->
   <div
-    class="w-full lg:w-[60%] h-full flex flex-col landscape:flex-row lg:flex-col justify-between landscape:justify-between lg:justify-between landscape:items-stretch lg:items-stretch p-6 md:p-12 lg:p-24 relative z-10 pointer-events-none gap-4 landscape:gap-8 lg:gap-0"
+    class="w-full lg:w-[60%] h-full flex flex-col max-lg:landscape:flex-row lg:flex-col justify-between max-lg:landscape:justify-between lg:justify-between max-lg:landscape:items-stretch lg:items-stretch p-6 md:p-12 lg:p-24 relative z-10 pointer-events-none gap-4 max-lg:landscape:gap-8 lg:gap-0"
   >
     <!-- Top Section: Dictionary entry -->
-    <div class="dict-container w-full landscape:w-[46%] lg:w-full max-w-[650px] mt-4 landscape:mt-0 lg:mt-0 pointer-events-auto landscape:my-auto">
+    <div class="dict-container w-full max-lg:landscape:w-[46%] lg:w-full max-w-[650px] mt-4 max-lg:landscape:mt-0 lg:mt-0 pointer-events-auto max-lg:landscape:my-auto">
       <div class="flex items-baseline gap-2.5 md:gap-3.5">
         <h2
           class="dict-word font-black text-white tracking-tight uppercase text-3xl md:text-4xl lg:text-5xl transition-colors duration-500"
@@ -55,33 +55,31 @@
         class="dict-def text-white/80 text-sm md:text-lg lg:text-xl font-light tracking-wide leading-relaxed mt-2 transition-all duration-500"
         class:colored={isFlagColors}
       >
-        a carnivorous mammal (<em>Canis familiaris</em>) that has long been
-        domesticated as a pet.
+        a carnivorous mammal (<span class="italic">Canis familiaris</span>)
+        that has long been domesticated as a dog.
       </p>
-    </div>
 
-    <!-- 3D Canvas Flow Element (Mobile Portrait Only: displayed between dictionary and cards) -->
-    <div
-      class="w-full h-[34vh] my-2 relative pointer-events-auto block landscape:hidden lg:hidden"
-    >
-      {#if ThreeDCanvas}
-        <ThreeDCanvas {isFlagColors} />
-      {:else}
-        <div class="w-full h-full flex items-center justify-center bg-transparent pointer-events-none">
-          <div class="text-white/20 text-xs font-mono tracking-widest uppercase animate-pulse">
-            Initializing 3D Visualizer...
+      <!-- Inline 3D Canvas for mobile portrait viewports -->
+      <div class="block landscape:hidden lg:hidden w-full h-[34vh] relative z-0">
+        {#if ThreeDCanvas}
+          <ThreeDCanvas {isFlagColors} />
+        {:else}
+          <div class="w-full h-full flex items-center justify-center bg-transparent pointer-events-none">
+            <div class="text-white/20 text-xs font-mono tracking-widest uppercase animate-pulse">
+              Initializing 3D Visualizer...
+            </div>
           </div>
-        </div>
-      {/if}
+        {/if}
+      </div>
     </div>
 
     <!-- Bottom Section: Info Cards & Mailto button -->
     <div
-      class="company-section w-full landscape:w-[48%] lg:w-full flex flex-col justify-between landscape:h-full gap-3 landscape:gap-0 md:gap-6 mb-4 landscape:mb-0 lg:mb-0 pointer-events-none"
+      class="company-section w-full max-lg:landscape:w-[48%] lg:w-full flex flex-col justify-between max-lg:landscape:h-full gap-3 max-lg:landscape:gap-0 md:gap-6 mb-4 landscape:mb-0 lg:mb-0 pointer-events-none"
     >
       <!-- Info content wrapper: hidden when skeleton is active on mobile landscape -->
       <div
-        class="flex flex-col gap-3 landscape:gap-1.5 md:gap-6 w-full landscape:my-auto pointer-events-auto"
+        class="flex flex-col gap-3 max-lg:landscape:gap-1.5 md:gap-6 w-full max-lg:landscape:my-auto pointer-events-auto"
         class:landscape:max-lg:hidden={activeLandscapeTab === 'skeleton'}
       >
         <div
@@ -181,7 +179,7 @@
 
   <!-- Right Side 3D Canvas Layer -->
   <div
-    class="hidden landscape:block lg:block w-full landscape:w-[50%] lg:w-[45%] h-[35vh] landscape:h-full lg:h-full absolute bottom-0 landscape:top-0 lg:top-0 right-0 z-0"
+    class="hidden landscape:block lg:block w-full max-lg:landscape:w-[50%] lg:w-[45%] h-[35vh] max-lg:landscape:h-full lg:h-full absolute bottom-0 max-lg:landscape:top-0 lg:top-0 right-0 z-0"
     class:landscape:max-lg:hidden={activeLandscapeTab === 'cards'}
   >
     {#if ThreeDCanvas}
@@ -200,13 +198,6 @@
     {/if}
   </div>
 
-  <!-- Continuous Ink Drop & Ripple Animation (Maintains visual continuity) -->
-  <div
-    class="ink-dripper absolute top-0 left-0 w-full h-full pointer-events-none z-[5] landscape:max-lg:hidden"
-  >
-    <div class="droplet"></div>
-    <div class="ripple ripple-2"></div>
-  </div>
 </div>
 
 <style>

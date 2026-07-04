@@ -61,7 +61,7 @@
     opacity: 0.9,
   });
 
-  let activeMaterial = $derived(isFlagColors ? neonMaterial : skeletonMaterial);
+  let activeMaterial = skeletonMaterial;
 </script>
 
 <!-- Camera setup -->
@@ -82,7 +82,7 @@
     enablePan={false}
     minPolarAngle={1.23}
     maxPolarAngle={1.23}
-    target={isMobile ? (isLandscape ? [0, -1.0, 0] : [0, 0.1, 0]) : [0, 0.3, 0]}
+    target={isMobile ? (isLandscape ? [0, -1.0, 0] : [0, 0.1, 0]) : [0, -0.6, 0]}
   />
 </T.PerspectiveCamera>
 
