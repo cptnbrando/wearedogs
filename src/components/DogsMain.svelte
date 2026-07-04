@@ -1,4 +1,5 @@
 <script>
+  import { Mail } from "lucide-svelte";
   // Props mapping the flag colors toggle state
   let { isFlagColors = false } = $props();
 </script>
@@ -111,11 +112,81 @@
           </div>
         </div>
       </div>
+      <div class="flex justify-start">
+        <a
+          href="mailto:brando@wearedogs.net?subject=Hello%20There!&body=BARK%20BARK%20BARK%20BARK%20BARK%20BARK%20BARK"
+          class="contact-btn"
+        >
+          <Mail size={16} />
+          Contact Us Today
+        </a>
+      </div>
     </div>
   </div>
 </div>
 
 <style>
+  /* Contact Button */
+  .contact-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: #000000;
+    color: #ffffff;
+    font-weight: 700;
+    border-radius: 0.75rem;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    box-shadow:
+      0 4px 6px -1px rgba(0, 0, 0, 0.1),
+      0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 0.75rem;
+    cursor: pointer;
+    text-decoration: none;
+  }
+  @media (min-width: 768px) {
+    .contact-btn {
+      font-size: 0.875rem;
+    }
+  }
+  .contact-btn:hover {
+    transform: scale(1.02);
+    background: #111111;
+    box-shadow:
+      0 10px 15px -3px rgba(0, 0, 0, 0.1),
+      0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  }
+
+  /* Color highlights for active color mode */
+  :global(.wad-colored) .contact-btn {
+    background: var(
+      --color-neon-purple,
+      var(--color-neon-red, #ff3344)
+    ) !important;
+    border-color: transparent !important;
+    box-shadow: 0 0 15px rgba(var(--color-neon-purple-rgb, 255, 51, 68), 0.35) !important;
+  }
+  :global(.wad-colored) .contact-btn:hover {
+    background: var(
+      --color-neon-purple,
+      var(--color-neon-red, #ff3344)
+    ) !important;
+    opacity: 0.9;
+    box-shadow: 0 0 25px rgba(var(--color-neon-purple-rgb, 255, 51, 68), 0.5) !important;
+  }
+
+  /* Default theme keeps it black/white */
+  :global(html[data-theme="default"]) :global(.wad-colored) .contact-btn {
+    background: #000000 !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+  }
+  :global(html[data-theme="default"]) :global(.wad-colored) .contact-btn:hover {
+    background: #111111 !important;
+  }
+
   /* Dictionary Highlight & Theme transitions */
   .dict-def.colored,
   .dict-word.colored {
