@@ -478,6 +478,10 @@
   function handleWheel(e) {
     if (isFaded) return;
     if (e.deltaY < 0) {
+      const scrollContainer = document.querySelector('main');
+      if (scrollContainer && scrollContainer.scrollTop > 0) {
+        return;
+      }
       if (!isWheelActive) {
         isWheelActive = true;
         toggleFlagColors();
@@ -730,6 +734,15 @@
           clearTimeout(holdTimer);
           holdTimer = null;
         }
+        // Prevent pull-to-refresh on mobile when swiping down at the top of the landing page
+        if (diffY > 0) {
+          const scrollContainer = document.querySelector('main');
+          if (scrollContainer && scrollContainer.scrollTop === 0) {
+            if (e.cancelable) {
+              e.preventDefault();
+            }
+          }
+        }
         return;
       }
 
@@ -808,6 +821,10 @@
       if (Math.abs(diffY) > threshold) {
         if (diffY > 0) {
           // Swipe Down -> Toggle colors
+          const scrollContainer = document.querySelector('main');
+          if (scrollContainer && scrollContainer.scrollTop > 0) {
+            return;
+          }
           toggleFlagColors();
         }
       }

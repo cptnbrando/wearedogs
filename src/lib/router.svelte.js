@@ -51,6 +51,11 @@ export function parsePath(path) {
     return { type: 'lang', lang: s0 };
   }
 
+  // /info
+  if (parts.length === 1 && s0 === 'info') {
+    return { type: 'info' };
+  }
+
   // /music  (panel, no track)
   if (s0 === 'music' && parts.length === 1) {
     return { type: 'panel', panel: 'music' };

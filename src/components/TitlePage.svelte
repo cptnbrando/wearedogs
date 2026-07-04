@@ -21,13 +21,11 @@
   import { parsePath, panelToUrl, appToUrl } from "../lib/router.svelte.js";
 
   // Active view state: 'stats' | 'networking' | 'toolbox' | 'music' | 'store' | 'map' | null
-  let activePage = $state(null);
+  let { activePage = $bindable(null), showInfo = $bindable(false), weAreDogsColored = $bindable(false) } = $props();
   let isClosing = $state(false);
   let activeLang = $state(initialLocale);
   let activeApp = $state(null);
   let textIsPaused = $state(false);
-  let weAreDogsColored = $state(false);
-  let showInfo = $state(false);
 
   $effect(() => {
     locale.set(activeLang);
@@ -66,11 +64,15 @@
     const path = window.location.pathname;
     // Normalise the initial history entry so that closePage()'s history.go(-depth)
     // always returns the browser to '/' rather than the original deep-link URL.
-    history.replaceState({ view: null, app: null, depth: 0 }, '', '/');
+    if (path !== '/info') {
+      history.replaceState({ view: null, app: null, depth: 0 }, '', '/');
+    } else {
+      history.replaceState({ view: null, app: null, depth: 0 }, '', '/info');
+    }
 
     const params = parsePath(path);
     // null  or 'home' type  → already at home, nothing to open
-    if (!params || params.type === 'home') return;
+    if (!params || params.type === 'home' || params.type === 'info') return;
 
     if (params.type === 'lang') {
       // Language is a preference, not a navigation step — set and stay at home.
