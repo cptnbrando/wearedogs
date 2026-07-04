@@ -6,6 +6,8 @@
   // Props mapping the flag colors toggle state
   let { isFlagColors = false } = $props();
 
+  let activeLandscapeTab = $state('cards'); // 'cards' or 'skeleton'
+
   // Lazy load the 3D canvas component to maintain initial speed
   let ThreeDCanvas = $state(null);
   onMount(async () => {
@@ -19,19 +21,18 @@
 </script>
 
 <div
-  class="w-full h-full relative flex flex-col lg:flex-row justify-between overflow-hidden select-none"
+  class="w-full h-full relative flex flex-col lg:flex-row justify-between overflow-hidden select-none bg-[linear-gradient(180deg,_var(--bg-main,_#000000)_0%,_var(--bg-main,_#000000)_45%,_#f5f5f7_70%,_#f5f5f7_100%)] landscape:bg-[linear-gradient(90deg,_var(--bg-main,_#000000)_0%,_var(--bg-main,_#000000)_45%,_#f5f5f7_55%,_#f5f5f7_100%)] lg:bg-[conic-gradient(from_0deg_at_90%_33.3%,_var(--bg-main,_#000000)_35deg,_#f5f5f7_145deg,_#f5f5f7_262deg,_var(--bg-main,_#000000)_277deg)]"
   class:wad-colored={isFlagColors}
-  style="background: conic-gradient(from 0deg at 90% 33.3%, var(--bg-main, #000000) 35deg, #f5f5f7 145deg, #f5f5f7 262deg, var(--bg-main, #000000) 277deg);"
 >
   <!-- Background Animated Matrix Binary Rain -->
   <BinaryBackground {isFlagColors} />
 
   <!-- Left UI Layer (High z-index to remain interactable) -->
   <div
-    class="w-full lg:w-[60%] h-full flex flex-col justify-between p-6 md:p-12 lg:p-24 relative z-10 pointer-events-none"
+    class="w-full lg:w-[60%] h-full flex flex-col landscape:flex-row lg:flex-col justify-between landscape:justify-between lg:justify-between landscape:items-stretch lg:items-stretch p-6 md:p-12 lg:p-24 relative z-10 pointer-events-none gap-4 landscape:gap-8 lg:gap-0"
   >
     <!-- Top Section: Dictionary entry -->
-    <div class="dict-container max-w-[650px] mt-8 lg:mt-0 pointer-events-auto">
+    <div class="dict-container w-full landscape:w-[46%] lg:w-full max-w-[650px] mt-4 landscape:mt-0 lg:mt-0 pointer-events-auto landscape:my-auto">
       <div class="flex items-baseline gap-2.5 md:gap-3.5">
         <h2
           class="dict-word font-black text-white tracking-tight uppercase text-3xl md:text-4xl lg:text-5xl transition-colors duration-500"
@@ -59,81 +60,129 @@
       </p>
     </div>
 
+    <!-- 3D Canvas Flow Element (Mobile Portrait Only: displayed between dictionary and cards) -->
+    <div
+      class="w-full h-[34vh] my-2 relative pointer-events-auto block landscape:hidden lg:hidden"
+    >
+      {#if ThreeDCanvas}
+        <ThreeDCanvas {isFlagColors} />
+      {:else}
+        <div class="w-full h-full flex items-center justify-center bg-transparent pointer-events-none">
+          <div class="text-white/20 text-xs font-mono tracking-widest uppercase animate-pulse">
+            Initializing 3D Visualizer...
+          </div>
+        </div>
+      {/if}
+    </div>
+
     <!-- Bottom Section: Info Cards & Mailto button -->
     <div
-      class="company-section w-full flex flex-col gap-4 md:gap-6 mb-8 lg:mb-0 pointer-events-auto"
+      class="company-section w-full landscape:w-[48%] lg:w-full flex flex-col justify-between landscape:h-full gap-3 landscape:gap-0 md:gap-6 mb-4 landscape:mb-0 lg:mb-0 pointer-events-none"
     >
+      <!-- Info content wrapper: hidden when skeleton is active on mobile landscape -->
       <div
-        class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 w-full"
+        class="flex flex-col gap-3 landscape:gap-1.5 md:gap-6 w-full landscape:my-auto pointer-events-auto"
+        class:landscape:max-lg:hidden={activeLandscapeTab === 'skeleton'}
       >
-        <!-- Headquarters -->
         <div
-          class="info-card flex flex-col p-4 md:p-6 rounded-xl md:rounded-2xl bg-[#f8f9fa] border border-black/5 hover:border-black/10 hover:shadow-lg transition-all duration-300"
+          class="cards-grid"
         >
-          <span
-            class="card-title text-[10px] md:text-xs uppercase tracking-wider text-black/40 font-bold mb-1 md:mb-2"
-            >Headquarters</span
+          <!-- Headquarters -->
+          <div
+            class="info-card flex flex-col rounded-xl md:rounded-2xl bg-[#f8f9fa] border border-black/5 hover:border-black/10 hover:shadow-lg transition-all duration-300"
           >
-          <span
-            class="card-value text-base md:text-lg lg:text-xl font-bold text-black"
-            >Dallas, TX</span
-          >
-        </div>
-
-        <!-- Established -->
-        <div
-          class="info-card flex flex-col p-4 md:p-6 rounded-xl md:rounded-2xl bg-[#f8f9fa] border border-black/5 hover:border-black/10 hover:shadow-lg transition-all duration-300"
-        >
-          <span
-            class="card-title text-[10px] md:text-xs uppercase tracking-wider text-black/40 font-bold mb-1 md:mb-2"
-            >Established</span
-          >
-          <span
-            class="card-value text-base md:text-lg lg:text-xl font-bold text-black"
-            >Formed in 2026</span
-          >
-        </div>
-
-        <!-- Expertise -->
-        <div
-          class="info-card col-span-2 flex flex-col p-4 md:p-5 rounded-xl md:rounded-2xl bg-[#f8f9fa] border border-black/5 hover:border-black/10 hover:shadow-lg transition-all duration-300 md:col-span-1 lg:col-span-2"
-        >
-          <span
-            class="card-title text-[10px] md:text-xs uppercase tracking-wider text-black/40 font-bold mb-1 md:mb-2"
-            >Specializing In</span
-          >
-          <div class="flex flex-wrap gap-1 md:gap-1.5">
             <span
-              class="badge px-2 py-0.5 bg-black text-white text-[9px] md:text-[10px] font-semibold rounded-full uppercase tracking-wider"
-              >Web Design</span
+              class="card-title text-[10px] md:text-xs uppercase tracking-wider text-black/40 font-bold mb-1 md:mb-2"
+              >Headquarters</span
             >
             <span
-              class="badge px-2 py-0.5 bg-black text-white text-[9px] md:text-[10px] font-semibold rounded-full uppercase tracking-wider"
-              >App Dev</span
-            >
-            <span
-              class="badge px-2 py-0.5 bg-black text-white text-[9px] md:text-[10px] font-semibold rounded-full uppercase tracking-wider"
-              >AI Consultation</span
+              class="card-value text-base md:text-lg lg:text-xl font-bold text-black"
+              >Dallas, TX</span
             >
           </div>
+
+          <!-- Established -->
+          <div
+            class="info-card flex flex-col rounded-xl md:rounded-2xl bg-[#f8f9fa] border border-black/5 hover:border-black/10 hover:shadow-lg transition-all duration-300"
+          >
+            <span
+              class="card-title text-[10px] md:text-xs uppercase tracking-wider text-black/40 font-bold mb-1 md:mb-2"
+              >Established</span
+            >
+            <span
+              class="card-value text-base md:text-lg lg:text-xl font-bold text-black"
+              >Formed in 2026</span
+            >
+          </div>
+
+          <!-- Expertise -->
+          <div
+            class="info-card specializing-card flex flex-col rounded-xl md:rounded-2xl bg-[#f8f9fa] border border-black/5 hover:border-black/10 hover:shadow-lg transition-all duration-300"
+          >
+            <span
+              class="card-title text-[10px] md:text-xs uppercase tracking-wider text-black/40 font-bold mb-1 md:mb-2"
+              >Specializing In</span
+            >
+            <div class="flex flex-wrap gap-1 md:gap-1.5">
+              <span
+                class="badge px-2 py-0.5 bg-black text-white text-[9px] md:text-[10px] font-semibold rounded-full uppercase tracking-wider"
+                >Web Design</span
+              >
+              <span
+                class="badge px-2 py-0.5 bg-black text-white text-[9px] md:text-[10px] font-semibold rounded-full uppercase tracking-wider"
+                >App Dev</span
+              >
+              <span
+                class="badge px-2 py-0.5 bg-black text-white text-[9px] md:text-[10px] font-semibold rounded-full uppercase tracking-wider"
+                >AI Consultation</span
+              >
+            </div>
+          </div>
+        </div>
+
+        <div class="flex justify-start">
+          <a
+            href="mailto:brando@wearedogs.net?subject=Hello%20There!&body=BARK%20BARK%20BARK%20BARK%20BARK%20BARK%20BARK"
+            class="contact-btn"
+          >
+            <Mail size={16} />
+            Contact Us Today
+          </a>
         </div>
       </div>
 
-      <div class="flex justify-start">
-        <a
-          href="mailto:brando@wearedogs.net?subject=Hello%20There!&body=BARK%20BARK%20BARK%20BARK%20BARK%20BARK%20BARK"
-          class="contact-btn"
+      <!-- Toggle tab control (Only visible in mobile landscape viewports, positioned underneath cards/3D view) -->
+      <div class="hidden landscape:max-lg:flex justify-center bg-black/10 p-0.5 rounded-lg mt-auto w-full max-w-[180px] mx-auto border border-black/5 pointer-events-auto">
+        <button
+          onclick={() => activeLandscapeTab = 'cards'}
+          class="flex-1 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider transition-all duration-200"
+          class:bg-black={activeLandscapeTab === 'cards'}
+          class:text-white={activeLandscapeTab === 'cards'}
+          class:shadow-sm={activeLandscapeTab === 'cards'}
+          class:text-black={activeLandscapeTab !== 'cards'}
+          class:opacity-50={activeLandscapeTab !== 'cards'}
         >
-          <Mail size={16} />
-          Contact Us Today
-        </a>
+          Info
+        </button>
+        <button
+          onclick={() => activeLandscapeTab = 'skeleton'}
+          class="flex-1 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider transition-all duration-200"
+          class:bg-black={activeLandscapeTab === 'skeleton'}
+          class:text-white={activeLandscapeTab === 'skeleton'}
+          class:shadow-sm={activeLandscapeTab === 'skeleton'}
+          class:text-black={activeLandscapeTab !== 'skeleton'}
+          class:opacity-50={activeLandscapeTab !== 'skeleton'}
+        >
+          3D View
+        </button>
       </div>
     </div>
   </div>
 
   <!-- Right Side 3D Canvas Layer -->
   <div
-    class="w-full lg:w-[45%] h-[50vh] lg:h-full absolute bottom-0 lg:top-0 right-0 z-0"
+    class="hidden landscape:block lg:block w-full landscape:w-[50%] lg:w-[45%] h-[35vh] landscape:h-full lg:h-full absolute bottom-0 landscape:top-0 lg:top-0 right-0 z-0"
+    class:landscape:max-lg:hidden={activeLandscapeTab === 'cards'}
   >
     {#if ThreeDCanvas}
       <ThreeDCanvas {isFlagColors} />
@@ -153,7 +202,7 @@
 
   <!-- Continuous Ink Drop & Ripple Animation (Maintains visual continuity) -->
   <div
-    class="ink-dripper absolute top-0 left-0 w-full h-full pointer-events-none z-[5]"
+    class="ink-dripper absolute top-0 left-0 w-full h-full pointer-events-none z-[5] landscape:max-lg:hidden"
   >
     <div class="droplet"></div>
     <div class="ripple ripple-2"></div>
@@ -365,5 +414,63 @@
       --color-neon-red,
       #ff3344
     ) !important;
+  }
+
+  /* Grid layout rules with orientation override */
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.625rem; /* gap-2.5 */
+    width: 100%;
+  }
+  .specializing-card {
+    grid-column: span 2 / span 2;
+  }
+
+  /* Cards padding and responsiveness */
+  .info-card {
+    padding: 0.75rem; /* p-3 */
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @media (min-width: 768px) {
+    .cards-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1rem;
+    }
+    .specializing-card {
+      grid-column: span 1 / span 1;
+    }
+    .info-card {
+      padding: 1.5rem; /* p-6 */
+    }
+    .specializing-card {
+      padding: 1.25rem; /* p-5 */
+    }
+  }
+
+  @media (max-width: 1023px) and (orientation: landscape) {
+    .cards-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.375rem; /* gap-1.5 */
+    }
+    .specializing-card {
+      grid-column: span 2 / span 2;
+    }
+    .info-card {
+      padding: 0.375rem 0.625rem; /* py-1.5 px-2.5 */
+    }
+    .info-card .card-title {
+      margin-bottom: 0.125rem !important; /* mb-0.5 */
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .cards-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+    .specializing-card {
+      grid-column: span 2 / span 2;
+    }
   }
 </style>

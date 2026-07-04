@@ -2,8 +2,20 @@
   import { T, useTask } from "@threlte/core";
   import { OrbitControls, useGltf } from "@threlte/extras";
   import * as THREE from "three";
+  import { onMount } from "svelte";
 
   let { isFlagColors = false } = $props();
+
+  let isMobile = $state(false);
+  onMount(() => {
+    const media = window.matchMedia("(max-width: 768px)");
+    isMobile = media.matches;
+    const listener = (e) => {
+      isMobile = e.matches;
+    };
+    media.addEventListener("change", listener);
+    return () => media.removeEventListener("change", listener);
+  });
 
   // Load GLTF model if it exists
   const gltf = useGltf("/models/dog_skeleton.gltf");
@@ -36,7 +48,7 @@
 <!-- Camera setup -->
 <T.PerspectiveCamera
   makeDefault
-  position={[5, 3, 7]}
+  position={isMobile ? [4.15, 2.49, 5.81] : [5, 3, 7]}
   fov={45}
 >
   <OrbitControls
@@ -45,6 +57,9 @@
     autoRotateSpeed={0.8}
     enableZoom={true}
     enablePan={true}
+    minPolarAngle={1.23}
+    maxPolarAngle={1.23}
+    target={isMobile ? [0, -1.0, 0] : [0, 0.3, 0]}
   />
 </T.PerspectiveCamera>
 
