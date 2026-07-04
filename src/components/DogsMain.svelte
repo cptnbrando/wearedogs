@@ -6,7 +6,7 @@
 <div
   class="w-full h-full relative flex flex-col justify-between overflow-hidden select-none"
   class:wad-colored={isFlagColors}
-  style="background: linear-gradient(to bottom, var(--bg-main, #000000) 33.3%, #ffffff 33.3%);"
+  style="background: conic-gradient(from 0deg at 90% 33.3%, var(--bg-main, #000000) 35deg, #f5f5f7 145deg, #f5f5f7 262deg, var(--bg-main, #000000) 277deg);"
 >
   <!-- Top 1/3 Section: Dark Theme background -->
   <div
