@@ -8,6 +8,7 @@
   let activePage = $state(null);
   let showInfo = $state(false);
   let weAreDogsColored = $state(false);
+  let isLandingPage = $state(true);
 
   let mainContainer = $state();
 
@@ -15,17 +16,19 @@
     // Check initial pathname on mount
     const checkInitialPath = () => {
       if (window.location.pathname === "/info") {
+        isLandingPage = false;
         const infoEl = document.getElementById("info-page");
         if (infoEl) {
           infoEl.scrollIntoView({ behavior: "auto" }); // Instant jump on load
         }
+      } else {
+        isLandingPage = true;
       }
     };
 
     // Delay slightly to ensure elements are rendered and sized
     setTimeout(checkInitialPath, 50);
 
-    // Scroll listener to update the URL between '/' and '/info'
     const handleScroll = () => {
       if (!mainContainer || activePage !== null || showInfo) return;
 
@@ -34,10 +37,16 @@
       const currentPath = window.location.pathname;
 
       if (scrollTop >= height * 0.5) {
+        if (isLandingPage) {
+          isLandingPage = false;
+        }
         if (currentPath !== "/info") {
           window.history.replaceState({ path: "/info" }, "", "/info");
         }
       } else {
+        if (!isLandingPage) {
+          isLandingPage = true;
+        }
         if (currentPath !== "/") {
           window.history.replaceState({ path: "/" }, "", "/");
         }
@@ -69,16 +78,26 @@
       }
     };
 
-    mainContainer?.addEventListener("touchstart", handleTouchStart, { passive: true });
-    mainContainer?.addEventListener("touchmove", handleTouchMove, { passive: false });
+    mainContainer?.addEventListener("touchstart", handleTouchStart, {
+      passive: true,
+    });
+    mainContainer?.addEventListener("touchmove", handleTouchMove, {
+      passive: false,
+    });
 
     // Handle back/forward buttons
     const handlePopState = () => {
       const currentPath = window.location.pathname;
       if (currentPath === "/info") {
-        document.getElementById("info-page")?.scrollIntoView({ behavior: "smooth" });
+        isLandingPage = false;
+        document
+          .getElementById("info-page")
+          ?.scrollIntoView({ behavior: "smooth" });
       } else {
-        document.getElementById("landing-page")?.scrollIntoView({ behavior: "smooth" });
+        isLandingPage = true;
+        document
+          .getElementById("landing-page")
+          ?.scrollIntoView({ behavior: "smooth" });
       }
     };
 
@@ -95,7 +114,7 @@
 
 <main
   bind:this={mainContainer}
-  class="w-screen h-dvh scroll-smooth"
+  class="w-screen h-dvh"
   class:overflow-y-auto={activePage === null && !showInfo}
   class:snap-y={activePage === null && !showInfo}
   class:snap-mandatory={activePage === null && !showInfo}
@@ -107,9 +126,10 @@
     class="w-full h-dvh snap-start snap-always relative flex items-center justify-center overflow-hidden"
   >
     <TitlePage
-      bind:activePage={activePage}
-      bind:showInfo={showInfo}
-      bind:weAreDogsColored={weAreDogsColored}
+      bind:activePage
+      bind:showInfo
+      bind:weAreDogsColored
+      {isLandingPage}
     />
   </div>
 

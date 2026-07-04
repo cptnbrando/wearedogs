@@ -12,19 +12,32 @@
   <div
     class="w-full h-[33.3vh] flex items-center justify-start px-6 md:px-16 lg:px-24 relative overflow-hidden z-10"
   >
-    <div class="dict-container z-30 max-w-[650px]">
-      <h2
-        class="dict-def text-white/90 text-sm md:text-xl lg:text-2xl font-light tracking-wide leading-relaxed transition-all duration-500"
+    <div class="dict-container z-30 max-w-[650px] flex flex-col gap-1 md:gap-2">
+      <div class="flex items-baseline gap-2.5 md:gap-3.5">
+        <h2
+          class="dict-word font-black text-white tracking-tight uppercase text-3xl md:text-4xl lg:text-5xl transition-colors duration-500"
+          class:colored={isFlagColors}
+        >
+          DOGS
+        </h2>
+        <span
+          class="phonetic text-white/50 font-mono text-sm md:text-base lg:text-lg"
+        >
+          /dôɡz/
+        </span>
+        <span
+          class="part-of-speech text-white/40 italic text-xs md:text-sm lg:text-base font-serif"
+        >
+          n.
+        </span>
+      </div>
+      <p
+        class="dict-def text-white/80 text-sm md:text-lg lg:text-xl font-light tracking-wide leading-relaxed transition-all duration-500"
         class:colored={isFlagColors}
       >
-        <span
-          class="dict-word font-black text-white tracking-widest uppercase text-base md:text-2xl lg:text-3xl block mb-1 md:mb-2 transition-colors duration-500"
-        >
-          DOGS (n)
-        </span>
-        &mdash; a carnivorous mammal (<em>Canis familiaris</em>) that has long
-        been domesticated as a pet.
-      </h2>
+        a carnivorous mammal (<em>Canis familiaris</em>) that has long been
+        domesticated as a pet.
+      </p>
     </div>
   </div>
 
@@ -104,17 +117,15 @@
 
 <style>
   /* Dictionary Highlight & Theme transitions */
-  .dict-def.colored {
+  .dict-def.colored,
+  .dict-word.colored {
     color: var(--color-neon-purple, var(--color-neon-red, #ff3344)) !important;
     text-shadow: 0 0 15px rgba(var(--color-neon-purple-rgb, 255, 51, 68), 0.35);
-  }
-  .dict-def.colored .dict-word {
-    color: var(--color-neon-purple, var(--color-neon-red, #ff3344)) !important;
   }
 
   /* Override to keep text white in default theme */
   :global(html[data-theme="default"]) .dict-def.colored,
-  :global(html[data-theme="default"]) .dict-def.colored .dict-word {
+  :global(html[data-theme="default"]) .dict-word.colored {
     color: #ffffff !important;
     text-shadow: none !important;
   }
