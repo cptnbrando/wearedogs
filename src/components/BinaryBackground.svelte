@@ -28,9 +28,10 @@
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       // Binary character color
-      // In color mode, use active neon color (via CSS variables), else standard dim white/gray
+      // In color mode, use active neon color based on active theme, else standard dim white/gray
+      const theme = document.documentElement.getAttribute("data-theme") || "default";
       ctx.fillStyle = isFlagColors
-        ? "rgba(160, 0, 235, 0.45)" // Match neon-purple-rgb
+        ? (theme === "default" ? "rgba(214, 26, 44, 0.45)" : "rgba(160, 0, 235, 0.45)")
         : "rgba(255, 255, 255, 0.15)";
       ctx.font = `${fontSize}px monospace`;
 

@@ -253,13 +253,21 @@
     box-shadow: 0 0 25px rgba(var(--color-neon-purple-rgb, 255, 51, 68), 0.5) !important;
   }
 
-  /* Default theme keeps it black/white */
+  /* Default theme uses neon red scrollbar color when active */
   :global(html[data-theme="default"]) :global(.wad-colored) .contact-btn {
-    background: #000000 !important;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+    background: #d61a2c !important;
+    box-shadow: 0 0 15px rgba(214, 26, 44, 0.35) !important;
+    border-color: transparent !important;
   }
   :global(html[data-theme="default"]) :global(.wad-colored) .contact-btn:hover {
-    background: #111111 !important;
+    background: #d61a2c !important;
+    opacity: 0.9;
+    box-shadow: 0 0 25px rgba(214, 26, 44, 0.5) !important;
+  }
+
+  /* Default theme badges/chips use darker neon red when active */
+  :global(html[data-theme="default"]) .wad-colored .badge {
+    background-color: #d61a2c !important;
   }
 
   /* Dictionary Highlight & Theme transitions */
@@ -269,11 +277,11 @@
     text-shadow: 0 0 15px rgba(var(--color-neon-purple-rgb, 255, 51, 68), 0.35);
   }
 
-  /* Override to keep text white in default theme */
+  /* Override to use neon red in default theme when active */
   :global(html[data-theme="default"]) .dict-def.colored,
   :global(html[data-theme="default"]) .dict-word.colored {
-    color: #ffffff !important;
-    text-shadow: none !important;
+    color: #d61a2c !important;
+    text-shadow: 0 0 15px rgba(214, 26, 44, 0.35) !important;
   }
 
   /* Dripping Droplet Animation on the Right */
