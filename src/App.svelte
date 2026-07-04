@@ -64,7 +64,7 @@
     };
 
     const handleTouchMove = (e) => {
-      if (!mainContainer) return;
+      if (!mainContainer || activePage !== null || showInfo) return;
       if (e.touches && e.touches.length > 0) {
         const currentY = e.touches[0].clientY;
         const diffY = currentY - touchStartY;

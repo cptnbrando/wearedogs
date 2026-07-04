@@ -7,14 +7,33 @@
   let { isFlagColors = false } = $props();
 
   let isMobile = $state(false);
+  let isLandscape = $state(false);
   onMount(() => {
     const media = window.matchMedia("(max-width: 768px)");
+    const landscapeMedia = window.matchMedia("(orientation: landscape)");
     isMobile = media.matches;
+    isLandscape = landscapeMedia.matches;
+
     const listener = (e) => {
       isMobile = e.matches;
     };
+    const landscapeListener = (e) => {
+      isLandscape = e.matches;
+    };
     media.addEventListener("change", listener);
-    return () => media.removeEventListener("change", listener);
+    landscapeMedia.addEventListener("change", landscapeListener);
+
+    const handleRotate = (e) => {
+      const step = 0.25;
+      modelRotationY += e.detail.direction === "left" ? -step : step;
+    };
+    window.addEventListener("rotate-skeleton", handleRotate);
+
+    return () => {
+      media.removeEventListener("change", listener);
+      landscapeMedia.removeEventListener("change", landscapeListener);
+      window.removeEventListener("rotate-skeleton", handleRotate);
+    };
   });
 
   // Load GLTF model if it exists
@@ -31,7 +50,7 @@
     color: 0xffffff,
     wireframe: true,
     transparent: true,
-    opacity: 0.85
+    opacity: 0.85,
   });
 
   // Color mode active material
@@ -39,7 +58,7 @@
     color: 0xa000eb, // Purple neon
     wireframe: true,
     transparent: true,
-    opacity: 0.9
+    opacity: 0.9,
   });
 
   let activeMaterial = $derived(isFlagColors ? neonMaterial : skeletonMaterial);
@@ -48,18 +67,22 @@
 <!-- Camera setup -->
 <T.PerspectiveCamera
   makeDefault
-  position={isMobile ? [4.15, 2.49, 5.81] : [5, 3, 7]}
+  position={isMobile
+    ? isLandscape
+      ? [4.15, 2.49, 5.81]
+      : [3.6, 2.16, 5.04]
+    : [5, 3, 7]}
   fov={45}
 >
   <OrbitControls
     enableDamping
     autoRotate
     autoRotateSpeed={0.8}
-    enableZoom={true}
-    enablePan={true}
+    enableZoom={false}
+    enablePan={false}
     minPolarAngle={1.23}
     maxPolarAngle={1.23}
-    target={isMobile ? [0, -1.0, 0] : [0, 0.3, 0]}
+    target={isMobile ? (isLandscape ? [0, -1.0, 0] : [0, 0.1, 0]) : [0, 0.3, 0]}
   />
 </T.PerspectiveCamera>
 
@@ -99,17 +122,29 @@
         <T.SphereGeometry args={[0.4, 12, 12]} />
       </T.Mesh>
       <!-- Snout -->
-      <T.Mesh position={[2.2, 0.7, 0]} rotation={[0, 0, -Math.PI / 6]} material={activeMaterial}>
+      <T.Mesh
+        position={[2.2, 0.7, 0]}
+        rotation={[0, 0, -Math.PI / 6]}
+        material={activeMaterial}
+      >
         <T.CylinderGeometry args={[0.15, 0.25, 0.6, 8]} />
       </T.Mesh>
 
       <!-- Neck -->
-      <T.Mesh position={[1.4, 0.35, 0]} rotation={[0, 0, -Math.PI / 4]} material={activeMaterial}>
+      <T.Mesh
+        position={[1.4, 0.35, 0]}
+        rotation={[0, 0, -Math.PI / 4]}
+        material={activeMaterial}
+      >
         <T.CylinderGeometry args={[0.06, 0.08, 0.9, 8]} />
       </T.Mesh>
 
       <!-- Tail -->
-      <T.Mesh position={[-1.7, 0.5, 0]} rotation={[0, 0, Math.PI / 3]} material={activeMaterial}>
+      <T.Mesh
+        position={[-1.7, 0.5, 0]}
+        rotation={[0, 0, Math.PI / 3]}
+        material={activeMaterial}
+      >
         <T.CylinderGeometry args={[0.02, 0.04, 1.2, 8]} />
       </T.Mesh>
 
@@ -131,7 +166,11 @@
       {#each [-0.25, 0.25] as zOffset}
         <T.Group position={[-1.2, -0.7, zOffset]}>
           <!-- Hip/Thigh -->
-          <T.Mesh position={[-0.1, 0.3, 0]} rotation={[0, 0, Math.PI / 12]} material={activeMaterial}>
+          <T.Mesh
+            position={[-0.1, 0.3, 0]}
+            rotation={[0, 0, Math.PI / 12]}
+            material={activeMaterial}
+          >
             <T.CylinderGeometry args={[0.06, 0.04, 0.7, 8]} />
           </T.Mesh>
           <!-- Lower leg -->

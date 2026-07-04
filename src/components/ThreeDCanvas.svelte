@@ -7,7 +7,7 @@
 
 <div class="canvas-container w-full h-full select-none pointer-events-auto">
   <Canvas>
-    <DogSkeletonScene isFlagColors={isFlagColors} />
+    <DogSkeletonScene {isFlagColors} />
   </Canvas>
 </div>
 
