@@ -4,21 +4,21 @@
 </script>
 
 <div
-  class="w-full h-full relative flex flex-col justify-between overflow-hidden bg-white select-none"
+  class="w-full h-full relative flex flex-col justify-between overflow-hidden select-none"
   class:wad-colored={isFlagColors}
+  style="background: linear-gradient(to bottom, var(--bg-main, #000000) 33.3%, #ffffff 33.3%);"
 >
   <!-- Top 1/3 Section: Dark Theme background -->
   <div
-    class="w-full h-[33.3vh] flex items-center justify-start px-8 md:px-16 lg:px-24 relative overflow-hidden z-10"
-    style="background: var(--bg-main, #000000);"
+    class="w-full h-[33.3vh] flex items-center justify-start px-6 md:px-16 lg:px-24 relative overflow-hidden z-10"
   >
     <div class="dict-container z-30 max-w-[650px]">
       <h2
-        class="dict-def text-white/90 text-lg md:text-xl lg:text-2xl font-light tracking-wide leading-relaxed transition-all duration-500"
+        class="dict-def text-white/90 text-sm md:text-xl lg:text-2xl font-light tracking-wide leading-relaxed transition-all duration-500"
         class:colored={isFlagColors}
       >
         <span
-          class="dict-word font-black text-white tracking-widest uppercase text-xl md:text-2xl lg:text-3xl block mb-2 transition-colors duration-500"
+          class="dict-word font-black text-white tracking-widest uppercase text-base md:text-2xl lg:text-3xl block mb-1 md:mb-2 transition-colors duration-500"
         >
           DOGS (n)
         </span>
@@ -38,76 +38,63 @@
 
   <!-- Bottom 2/3 Section: Modern Chic Company Info -->
   <div
-    class="w-full h-[66.7vh] flex flex-col justify-center items-start px-8 md:px-16 lg:px-24 bg-white relative z-0"
+    class="w-full h-[66.7vh] flex flex-col justify-center items-start px-6 md:px-16 lg:px-24 relative z-0"
   >
     <div
       class="company-section max-w-4xl w-full flex flex-col gap-6 md:gap-8 mt-12 md:mt-0"
     >
-      <div class="company-header flex flex-col">
-        <span
-          class="company-label text-xs uppercase tracking-widest text-black/40 font-bold mb-1"
-          >Company Profile</span
-        >
-        <h3
-          class="company-title text-3xl md:text-4xl lg:text-5xl font-black text-black tracking-tight leading-none"
-        >
-          WEAREDOGS STUDIOS
-        </h3>
-        <div class="w-16 h-1 mt-3 bg-black"></div>
-      </div>
-
       <div
-        class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mt-4 w-full"
+        class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mt-4 w-full"
       >
         <!-- Headquarters -->
         <div
-          class="info-card flex flex-col p-6 rounded-2xl bg-[#f8f9fa] border border-black/5 hover:border-black/10 hover:shadow-lg transition-all duration-300"
+          class="info-card flex flex-col p-4 md:p-6 rounded-xl md:rounded-2xl bg-[#f8f9fa] border border-black/5 hover:border-black/10 hover:shadow-lg transition-all duration-300"
         >
           <span
-            class="card-title text-xs uppercase tracking-wider text-black/40 font-bold mb-3"
+            class="card-title text-[10px] md:text-xs uppercase tracking-wider text-black/40 font-bold mb-2 md:mb-3"
             >Headquarters</span
           >
-          <span class="card-value text-lg md:text-xl font-bold text-black"
+          <span class="card-value text-base md:text-xl font-bold text-black"
             >Dallas, TX</span
           >
         </div>
 
         <!-- Established -->
         <div
-          class="info-card flex flex-col p-6 rounded-2xl bg-[#f8f9fa] border border-black/5 hover:border-black/10 hover:shadow-lg transition-all duration-300"
+          class="info-card flex flex-col p-4 md:p-6 rounded-xl md:rounded-2xl bg-[#f8f9fa] border border-black/5 hover:border-black/10 hover:shadow-lg transition-all duration-300"
         >
           <span
-            class="card-title text-xs uppercase tracking-wider text-black/40 font-bold mb-3"
+            class="card-title text-[10px] md:text-xs uppercase tracking-wider text-black/40 font-bold mb-2 md:mb-3"
             >Established</span
           >
-          <span class="card-value text-lg md:text-xl font-bold text-black"
+          <span class="card-value text-base md:text-xl font-bold text-black"
             >Formed in 2026</span
           >
         </div>
 
         <!-- Expertise -->
         <div
-          class="info-card flex flex-col p-6 rounded-2xl bg-[#f8f9fa] border border-black/5 hover:border-black/10 hover:shadow-lg transition-all duration-300 lg:col-span-2"
+          class="info-card col-span-2 flex flex-col p-4 md:p-6 rounded-xl md:rounded-2xl bg-[#f8f9fa] border border-black/5 hover:border-black/10 hover:shadow-lg transition-all duration-300 lg:col-span-2"
         >
           <span
-            class="card-title text-xs uppercase tracking-wider text-black/40 font-bold mb-3"
+            class="card-title text-[10px] md:text-xs uppercase tracking-wider text-black/40 font-bold mb-2 md:mb-3"
             >Specializing In</span
           >
-          <div class="flex flex-wrap gap-2">
+          <div class="flex flex-wrap gap-1.5 md:gap-2">
             <span
-              class="badge px-3 py-1 bg-black text-white text-xs font-semibold rounded-full uppercase tracking-wider"
+              class="badge px-2 md:px-3 py-1 bg-black text-white text-[10px] md:text-xs font-semibold rounded-full uppercase tracking-wider"
               >Web Design</span
             >
             <span
-              class="badge px-3 py-1 bg-black text-white text-xs font-semibold rounded-full uppercase tracking-wider"
+              class="badge px-2 md:px-3 py-1 bg-black text-white text-[10px] md:text-xs font-semibold rounded-full uppercase tracking-wider"
               >App Dev</span
             >
             <span
-              class="badge px-3 py-1 bg-black text-white text-xs font-semibold rounded-full uppercase tracking-wider"
+              class="badge px-2 md:px-3 py-1 bg-black text-white text-[10px] md:text-xs font-semibold rounded-full uppercase tracking-wider"
               >AI Consultation</span
             >
             <span
-              class="badge px-3 py-1 bg-black/10 text-black text-xs font-bold rounded-full border border-black/10 uppercase tracking-wider"
+              class="badge px-2 md:px-3 py-1 bg-black/10 text-black text-[10px] md:text-xs font-bold rounded-full border border-black/10 uppercase tracking-wider"
               >Building for Tomorrow</span
             >
           </div>
