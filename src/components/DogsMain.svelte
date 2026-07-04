@@ -1,19 +1,37 @@
 <script>
+  import { onMount } from "svelte";
   import { Mail } from "lucide-svelte";
+  import BinaryBackground from "./BinaryBackground.svelte";
+
   // Props mapping the flag colors toggle state
   let { isFlagColors = false } = $props();
+
+  // Lazy load the 3D canvas component to maintain initial speed
+  let ThreeDCanvas = $state(null);
+  onMount(async () => {
+    try {
+      const module = await import("./ThreeDCanvas.svelte");
+      ThreeDCanvas = module.default;
+    } catch (err) {
+      console.error("Failed to lazy load Threlte canvas:", err);
+    }
+  });
 </script>
 
 <div
-  class="w-full h-full relative flex flex-col justify-between overflow-hidden select-none"
+  class="w-full h-full relative flex flex-col lg:flex-row justify-between overflow-hidden select-none"
   class:wad-colored={isFlagColors}
   style="background: conic-gradient(from 0deg at 90% 33.3%, var(--bg-main, #000000) 35deg, #f5f5f7 145deg, #f5f5f7 262deg, var(--bg-main, #000000) 277deg);"
 >
-  <!-- Top 1/3 Section: Dark Theme background -->
+  <!-- Background Animated Matrix Binary Rain -->
+  <BinaryBackground {isFlagColors} />
+
+  <!-- Left UI Layer (High z-index to remain interactable) -->
   <div
-    class="w-full h-[33.3vh] flex items-center justify-start px-6 md:px-16 lg:px-24 relative overflow-hidden z-10"
+    class="w-full lg:w-[60%] h-full flex flex-col justify-between p-6 md:p-12 lg:p-24 relative z-10 pointer-events-none"
   >
-    <div class="dict-container z-30 max-w-[650px] flex flex-col gap-1 md:gap-2">
+    <!-- Top Section: Dictionary entry -->
+    <div class="dict-container max-w-[650px] mt-8 lg:mt-0 pointer-events-auto">
       <div class="flex items-baseline gap-2.5 md:gap-3.5">
         <h2
           class="dict-word font-black text-white tracking-tight uppercase text-3xl md:text-4xl lg:text-5xl transition-colors duration-500"
@@ -33,40 +51,31 @@
         </span>
       </div>
       <p
-        class="dict-def text-white/80 text-sm md:text-lg lg:text-xl font-light tracking-wide leading-relaxed transition-all duration-500"
+        class="dict-def text-white/80 text-sm md:text-lg lg:text-xl font-light tracking-wide leading-relaxed mt-2 transition-all duration-500"
         class:colored={isFlagColors}
       >
         a carnivorous mammal (<em>Canis familiaris</em>) that has long been
         domesticated as a pet.
       </p>
     </div>
-  </div>
 
-  <!-- Continuous Ink Drop & Ripple Animation -->
-  <div
-    class="ink-dripper absolute top-0 left-0 w-full h-full pointer-events-none z-[5]"
-  >
-    <div class="droplet"></div>
-    <div class="ripple ripple-2"></div>
-  </div>
-
-  <!-- Bottom 2/3 Section: Modern Chic Company Info -->
-  <div
-    class="w-full h-[66.7vh] flex flex-col justify-center items-start px-6 md:px-16 lg:px-24 relative z-0"
-  >
+    <!-- Bottom Section: Info Cards & Mailto button -->
     <div
-      class="company-section max-w-4xl w-full flex flex-col gap-6 md:gap-8 mt-12 md:mt-0"
+      class="company-section w-full flex flex-col gap-4 md:gap-6 mb-8 lg:mb-0 pointer-events-auto"
     >
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mt-4 w-full">
+      <div
+        class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 w-full"
+      >
         <!-- Headquarters -->
         <div
           class="info-card flex flex-col p-4 md:p-6 rounded-xl md:rounded-2xl bg-[#f8f9fa] border border-black/5 hover:border-black/10 hover:shadow-lg transition-all duration-300"
         >
           <span
-            class="card-title text-[10px] md:text-xs uppercase tracking-wider text-black/40 font-bold mb-2 md:mb-3"
+            class="card-title text-[10px] md:text-xs uppercase tracking-wider text-black/40 font-bold mb-1 md:mb-2"
             >Headquarters</span
           >
-          <span class="card-value text-base md:text-xl font-bold text-black"
+          <span
+            class="card-value text-base md:text-lg lg:text-xl font-bold text-black"
             >Dallas, TX</span
           >
         </div>
@@ -76,42 +85,40 @@
           class="info-card flex flex-col p-4 md:p-6 rounded-xl md:rounded-2xl bg-[#f8f9fa] border border-black/5 hover:border-black/10 hover:shadow-lg transition-all duration-300"
         >
           <span
-            class="card-title text-[10px] md:text-xs uppercase tracking-wider text-black/40 font-bold mb-2 md:mb-3"
+            class="card-title text-[10px] md:text-xs uppercase tracking-wider text-black/40 font-bold mb-1 md:mb-2"
             >Established</span
           >
-          <span class="card-value text-base md:text-xl font-bold text-black"
+          <span
+            class="card-value text-base md:text-lg lg:text-xl font-bold text-black"
             >Formed in 2026</span
           >
         </div>
 
         <!-- Expertise -->
         <div
-          class="info-card col-span-2 flex flex-col p-4 md:p-6 rounded-xl md:rounded-2xl bg-[#f8f9fa] border border-black/5 hover:border-black/10 hover:shadow-lg transition-all duration-300 lg:col-span-2"
+          class="info-card col-span-2 flex flex-col p-4 md:p-5 rounded-xl md:rounded-2xl bg-[#f8f9fa] border border-black/5 hover:border-black/10 hover:shadow-lg transition-all duration-300 md:col-span-1 lg:col-span-2"
         >
           <span
-            class="card-title text-[10px] md:text-xs uppercase tracking-wider text-black/40 font-bold mb-2 md:mb-3"
+            class="card-title text-[10px] md:text-xs uppercase tracking-wider text-black/40 font-bold mb-1 md:mb-2"
             >Specializing In</span
           >
-          <div class="flex flex-wrap gap-1.5 md:gap-2">
+          <div class="flex flex-wrap gap-1 md:gap-1.5">
             <span
-              class="badge px-2 md:px-3 py-1 bg-black text-white text-[10px] md:text-xs font-semibold rounded-full uppercase tracking-wider"
+              class="badge px-2 py-0.5 bg-black text-white text-[9px] md:text-[10px] font-semibold rounded-full uppercase tracking-wider"
               >Web Design</span
             >
             <span
-              class="badge px-2 md:px-3 py-1 bg-black text-white text-[10px] md:text-xs font-semibold rounded-full uppercase tracking-wider"
+              class="badge px-2 py-0.5 bg-black text-white text-[9px] md:text-[10px] font-semibold rounded-full uppercase tracking-wider"
               >App Dev</span
             >
             <span
-              class="badge px-2 md:px-3 py-1 bg-black text-white text-[10px] md:text-xs font-semibold rounded-full uppercase tracking-wider"
+              class="badge px-2 py-0.5 bg-black text-white text-[9px] md:text-[10px] font-semibold rounded-full uppercase tracking-wider"
               >AI Consultation</span
-            >
-            <span
-              class="badge px-2 md:px-3 py-1 bg-black/10 text-black text-[10px] md:text-xs font-bold rounded-full border border-black/10 uppercase tracking-wider"
-              >Building for Tomorrow</span
             >
           </div>
         </div>
       </div>
+
       <div class="flex justify-start">
         <a
           href="mailto:brando@wearedogs.net?subject=Hello%20There!&body=BARK%20BARK%20BARK%20BARK%20BARK%20BARK%20BARK"
@@ -122,6 +129,34 @@
         </a>
       </div>
     </div>
+  </div>
+
+  <!-- Right Side 3D Canvas Layer -->
+  <div
+    class="w-full lg:w-[45%] h-[50vh] lg:h-full absolute bottom-0 lg:top-0 right-0 z-0"
+  >
+    {#if ThreeDCanvas}
+      <ThreeDCanvas {isFlagColors} />
+    {:else}
+      <!-- Minimal CSS skeleton fallback loading states -->
+      <div
+        class="w-full h-full flex items-center justify-center bg-transparent pointer-events-none"
+      >
+        <div
+          class="text-white/20 text-xs font-mono tracking-widest uppercase animate-pulse"
+        >
+          Initializing 3D Visualizer...
+        </div>
+      </div>
+    {/if}
+  </div>
+
+  <!-- Continuous Ink Drop & Ripple Animation (Maintains visual continuity) -->
+  <div
+    class="ink-dripper absolute top-0 left-0 w-full h-full pointer-events-none z-[5]"
+  >
+    <div class="droplet"></div>
+    <div class="ripple ripple-2"></div>
   </div>
 </div>
 
@@ -317,7 +352,8 @@
   .wad-colored .info-card:hover {
     border-color: var(
       --color-neon-purple,
-      var(--color-neon-red, #ff3344)
+      --color-neon-red,
+      #ff3344
     ) !important;
     box-shadow: 0 12px 35px
       rgba(var(--color-neon-purple-rgb, 255, 51, 68), 0.12);
@@ -326,7 +362,8 @@
   .wad-colored .badge {
     background-color: var(
       --color-neon-purple,
-      var(--color-neon-red, #ff3344)
+      --color-neon-red,
+      #ff3344
     ) !important;
   }
 </style>
