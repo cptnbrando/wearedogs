@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1783220880,
+    "firstCommitTimestamp": 1783224539,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 56361
+    "averageLinesAltered": 56469
   },
   "entries": [
     {
       "version": "1.0.2",
       "name": "Master",
       "date": "2026-07-05",
-      "timestamp": 1783220825,
+      "timestamp": 1783224483,
       "commits": [
         {
-          "hash": "0773d6c",
-          "message": "Merge branch 'dogs-info'",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/0773d6c29a3fb140c9b59fc614c58aa74a4afb3c",
-          "timestamp": 1783220880,
-          "linesChanged": 56361
+          "hash": "e038b65",
+          "message": "added keyboard controls and new dogs",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/e038b6594626fe8c5493d1529c4da91ae72e0644",
+          "timestamp": 1783224539,
+          "linesChanged": 56469
         }
       ]
     },

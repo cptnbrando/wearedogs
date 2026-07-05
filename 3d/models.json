@@ -199,7 +199,7 @@
     "scaleMultiplier": 2.6,
     "centerOffset": [
       0,
-      -0.4,
+      -0.2,
       0
     ],
     "attribution": {
@@ -223,6 +223,38 @@
       "creator": "SPONg (@thegageinator)",
       "license": "CC Attribution",
       "link": "https://sketchfab.com/3d-models/nintendog-2-smash-bros-ultimate-f93f71de491a4bfc8cc815dd96797b69"
+    }
+  },
+  {
+    "id": "puppy",
+    "name": "Puppy",
+    "type": "glb",
+    "path": "/3d/dog-puppy-v1.glb",
+    "centerOffset": [
+      0,
+      1,
+      0
+    ],
+    "attribution": {
+      "creator": "@kenchoo",
+      "license": "CC Attribution",
+      "link": "https://sketchfab.com/3d-models/dog-puppy-72331763040e4314b154f84348fe0957"
+    }
+  },
+  {
+    "id": "dog2",
+    "name": "Dog 2",
+    "type": "glb",
+    "path": "/3d/dog2.glb",
+    "centerOffset": [
+      0,
+      0.2,
+      0
+    ],
+    "attribution": {
+      "creator": "@kenchoo",
+      "license": "CC Attribution",
+      "link": "https://sketchfab.com/3d-models/labrador-dog-1f56cfbab07e4fe49b5d9e521c82073a"
     }
   }
 ]
