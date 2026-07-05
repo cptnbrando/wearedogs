@@ -4,7 +4,7 @@
   import BinaryBackground from "./BinaryBackground.svelte";
 
   // Props mapping the flag colors toggle state
-  let { isFlagColors = false } = $props();
+  let { isFlagColors = false, active = false } = $props();
 
   let activeLandscapeTab = $state("cards"); // 'cards' or 'skeleton'
 
@@ -36,11 +36,19 @@
 </script>
 
 <div
-  class="w-full h-full relative flex flex-col lg:flex-row justify-between overflow-hidden select-none bg-[linear-gradient(180deg,_var(--bg-main,_#000000)_0%,_var(--bg-main,_#000000)_45%,_#f5f5f7_70%,_#f5f5f7_100%)] landscape:bg-[linear-gradient(90deg,_var(--bg-main,_#000000)_0%,_var(--bg-main,_#000000)_45%,_#f5f5f7_55%,_#f5f5f7_100%)] lg:bg-[conic-gradient(from_0deg_at_90%_33.3%,_var(--bg-main,_#000000)_35deg,_#f5f5f7_145deg,_#f5f5f7_262deg,_var(--bg-main,_#000000)_277deg)]"
+  class="w-full h-full relative flex flex-col lg:flex-row justify-between overflow-hidden select-none"
   class:wad-colored={isFlagColors}
+  class:page-active={active}
 >
+  <!-- Animated Background Gradient Layer -->
+  <div class="page-background-gradient pointer-events-none"></div>
+
   <!-- Background Animated Matrix Binary Rain -->
-  <BinaryBackground {isFlagColors} />
+  <div
+    class="matrix-layer absolute inset-0 z-0 pointer-events-none overflow-hidden"
+  >
+    <BinaryBackground {isFlagColors} />
+  </div>
 
   <!-- Left UI Layer (High z-index to remain interactable) -->
   <div
@@ -202,7 +210,7 @@
 
   <!-- Right Side 3D Canvas Layer -->
   <div
-    class="hidden landscape:block lg:block w-full max-lg:landscape:w-[50%] lg:w-[45%] h-[35vh] max-lg:landscape:h-full lg:h-full absolute bottom-0 max-lg:landscape:top-0 lg:top-0 right-0 z-0"
+    class="canvas-layer hidden landscape:block lg:block w-full max-lg:landscape:w-[50%] lg:w-[45%] h-[35vh] max-lg:landscape:h-full lg:h-full absolute bottom-0 max-lg:landscape:top-0 lg:top-0 right-0 z-0"
     class:landscape:max-lg:hidden={activeLandscapeTab === "cards"}
   >
     {#if isDesktopOrLandscape && ThreeDCanvas}
@@ -493,5 +501,125 @@
     .specializing-card {
       grid-column: span 2 / span 2;
     }
+  }
+
+  /* Futuristic stagger entry/exit transitions - Default (Exit State) is swift */
+  .dict-container,
+  .company-section,
+  .canvas-layer {
+    opacity: 0;
+    transition:
+      transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+      opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+      filter 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: transform, opacity, filter;
+  }
+
+  .dict-container {
+    transform: translate3d(-50px, 0, 0) skewX(-4deg);
+    filter: blur(8px);
+  }
+
+  .canvas-layer {
+    transform: scale(0.82) translate3d(60px, 0, 0);
+    filter: blur(10px);
+  }
+
+  .company-section {
+    transform: translate3d(0, 50px, 0) scale(0.95);
+    filter: blur(6px);
+  }
+
+  /* Active/visible page states - Entry State is longer and smoother */
+  .page-active .dict-container,
+  .page-active .company-section,
+  .page-active .canvas-layer {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1) skewX(0);
+    filter: blur(0px);
+    transition:
+      transform 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+      opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+      filter 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* Delays for entry transitions to create visual sequence */
+  .page-active .dict-container {
+    transition-delay: 0.1s;
+  }
+
+  .page-active .canvas-layer {
+    transition-delay: 0.25s;
+  }
+
+  .page-active .company-section {
+    transition-delay: 0.38s;
+  }
+
+  /* Animated background gradient layer rules - Exit is swift */
+  .page-background-gradient {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background: linear-gradient(
+      180deg,
+      var(--bg-main, #000000) 0%,
+      var(--bg-main, #000000) 45%,
+      #f5f5f7 70%,
+      #f5f5f7 100%
+    );
+    transition: transform 0.38s cubic-bezier(0.16, 1, 0.3, 1);
+    transform: translate3d(0, 100%, 0); /* Swipe up from bottom */
+    will-change: transform;
+  }
+
+  @media (orientation: landscape) {
+    .page-background-gradient {
+      background: linear-gradient(
+        90deg,
+        var(--bg-main, #000000) 0%,
+        var(--bg-main, #000000) 45%,
+        #f5f5f7 55%,
+        #f5f5f7 100%
+      );
+      transform: translate3d(100%, 0, 0); /* Swipe in from right */
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .page-background-gradient {
+      background: conic-gradient(
+        from 0deg at 90% 33.3%,
+        var(--bg-main, #000000) 35deg,
+        #f5f5f7 145deg,
+        #f5f5f7 262deg,
+        var(--bg-main, #000000) 277deg
+      );
+    }
+  }
+
+  /* Entry transition has longer easing */
+  .page-active .page-background-gradient {
+    transform: translate3d(0, 0, 0);
+    transition: transform 0.85s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* Animated background matrix rain canvas container rules - Exit is swift */
+  .matrix-layer {
+    transition: transform 0.38s cubic-bezier(0.16, 1, 0.3, 1);
+    transform: translate3d(0, -100%, 0); /* Swipe down from top */
+    will-change: transform;
+  }
+
+  @media (orientation: landscape) {
+    .matrix-layer {
+      transform: translate3d(-100%, 0, 0); /* Swipe in from left */
+    }
+  }
+
+  /* Entry transition has longer easing */
+  .page-active .matrix-layer {
+    transform: translate3d(0, 0, 0);
+    transition: transform 0.85s cubic-bezier(0.16, 1, 0.3, 1);
   }
 </style>

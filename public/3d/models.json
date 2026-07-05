@@ -248,23 +248,6 @@
     }
   },
   {
-    "id": "dog2",
-    "name": "Dog 2",
-    "type": "glb",
-    "path": "/3d/dog2.glb",
-    "scaleMultiplier": 0.9,
-    "centerOffset": [
-      0,
-      0.3,
-      0
-    ],
-    "attribution": {
-      "creator": "@kenchoo",
-      "license": "CC Attribution",
-      "link": "https://sketchfab.com/3d-models/labrador-dog-1f56cfbab07e4fe49b5d9e521c82073a"
-    }
-  },
-  {
     "id": "brian",
     "name": "Brian (Family Guy)",
     "type": "glb",
