@@ -28,6 +28,8 @@
     "vitest": "^3.0.7"
   },
   "dependencies": {
+    "@threlte/core": "^8.0.1",
+    "@threlte/extras": "^9.0.0",
     "jsqr": "^1.4.0",
     "lucide-svelte": "^1.0.1",
     "qrcode": "^1.5.4",

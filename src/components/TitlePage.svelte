@@ -21,13 +21,16 @@
   import { parsePath, panelToUrl, appToUrl } from "../lib/router.svelte.js";
 
   // Active view state: 'stats' | 'networking' | 'toolbox' | 'music' | 'store' | 'map' | null
-  let activePage = $state(null);
+  let {
+    activePage = $bindable(null),
+    showInfo = $bindable(false),
+    weAreDogsColored = $bindable(false),
+    isLandingPage = true,
+  } = $props();
   let isClosing = $state(false);
   let activeLang = $state(initialLocale);
   let activeApp = $state(null);
   let textIsPaused = $state(false);
-  let weAreDogsColored = $state(false);
-  let showInfo = $state(false);
 
   $effect(() => {
     locale.set(activeLang);
@@ -53,10 +56,10 @@
   let wasMainFullscreen = $state(false);
 
   // Deep-link params set on initial page load, cleared after panel mounts
-  let initialTrackId     = $state(null);
-  let deepLinkApp        = $state(null);
-  let deepLinkGoProShow  = $state(null);
-  let deepLinkGoProEp    = $state(null);
+  let initialTrackId = $state(null);
+  let deepLinkApp = $state(null);
+  let deepLinkGoProShow = $state(null);
+  let deepLinkGoProEp = $state(null);
   let deepLinkBlogPostSlug = $state(null);
 
   // ---------------------------------------------------------------------------
@@ -66,62 +69,80 @@
     const path = window.location.pathname;
     // Normalise the initial history entry so that closePage()'s history.go(-depth)
     // always returns the browser to '/' rather than the original deep-link URL.
-    history.replaceState({ view: null, app: null, depth: 0 }, '', '/');
+    if (path !== "/info") {
+      history.replaceState({ view: null, app: null, depth: 0 }, "", "/");
+    } else {
+      history.replaceState({ view: null, app: null, depth: 0 }, "", "/info");
+    }
 
     const params = parsePath(path);
     // null  or 'home' type  → already at home, nothing to open
-    if (!params || params.type === 'home') return;
+    if (!params || params.type === "home" || params.type === "info") return;
 
-    if (params.type === 'lang') {
+    if (params.type === "lang") {
       // Language is a preference, not a navigation step — set and stay at home.
       activeLang = params.lang;
       setTimeout(() => weAreDogsRef?.forceLanguage(params.lang), 0);
       return;
     }
 
-    if (params.type === 'panel') {
+    if (params.type === "panel") {
       openPage(params.panel);
       return;
     }
 
-    if (params.type === 'music-track') {
+    if (params.type === "music-track") {
       initialTrackId = params.trackId; // passed as prop to MusicPanel
-      openPage('music');
+      openPage("music");
       // Clear after MusicPanel has mounted and consumed the prop
-      setTimeout(() => { initialTrackId = null; }, 500);
+      setTimeout(() => {
+        initialTrackId = null;
+      }, 500);
       return;
     }
 
-    if (params.type === 'app') {
+    if (params.type === "app") {
       deepLinkApp = params.app;
-      openPage('toolbox');
-      setTimeout(() => { deepLinkApp = null; }, 400);
+      openPage("toolbox");
+      setTimeout(() => {
+        deepLinkApp = null;
+      }, 400);
       return;
     }
 
-    if (params.type === 'gopro-episode') {
-      deepLinkApp       = 'gopro';
+    if (params.type === "gopro-episode") {
+      deepLinkApp = "gopro";
       deepLinkGoProShow = params.show;
-      deepLinkGoProEp   = params.episode;
-      openPage('toolbox');
-      setTimeout(() => { deepLinkApp = null; deepLinkGoProShow = null; deepLinkGoProEp = null; }, 400);
+      deepLinkGoProEp = params.episode;
+      openPage("toolbox");
+      setTimeout(() => {
+        deepLinkApp = null;
+        deepLinkGoProShow = null;
+        deepLinkGoProEp = null;
+      }, 400);
       return;
     }
 
-    if (params.type === 'blog-post') {
-      deepLinkApp          = 'blog';
+    if (params.type === "blog-post") {
+      deepLinkApp = "blog";
       deepLinkBlogPostSlug = params.slug;
-      
-      activePage = 'toolbox';
-      activeApp = 'blog';
+
+      activePage = "toolbox";
+      activeApp = "blog";
       isClosing = false;
 
       // Seed the history stack sequentially to depth 2 (blog list)
-      history.pushState({ view: 'toolbox', app: null, depth: 1 }, '', '/apps');
-      history.pushState({ view: 'toolbox', app: 'blog', depth: 2 }, '', '/apps/blog');
+      history.pushState({ view: "toolbox", app: null, depth: 1 }, "", "/apps");
+      history.pushState(
+        { view: "toolbox", app: "blog", depth: 2 },
+        "",
+        "/apps/blog",
+      );
       depth = 2; // selectPost in BlogApp will push depth 3 for the slug
-      
-      setTimeout(() => { deepLinkApp = null; }, 400);
+
+      setTimeout(() => {
+        deepLinkApp = null;
+      }, 400);
       return;
     }
     // Any other parsePath result: home (already set up above)
@@ -163,7 +184,11 @@
     if (page === "toolbox") {
       if (app) {
         if (depth < 2) {
-          history.pushState({ view: page, app: app, depth: 2 }, '', appToUrl(app));
+          history.pushState(
+            { view: page, app: app, depth: 2 },
+            "",
+            appToUrl(app),
+          );
           depth = 2;
         }
       } else {
@@ -198,7 +223,12 @@
         }, 50);
       }
 
-      if (activePage === "toolbox" && activeApp && !targetApp && targetView === "toolbox") {
+      if (
+        activePage === "toolbox" &&
+        activeApp &&
+        !targetApp &&
+        targetView === "toolbox"
+      ) {
         activeApp = null;
         return;
       }
@@ -226,7 +256,11 @@
     isClosing = false;
 
     // Push the state procedurally — include the canonical URL for bookmarking
-    history.pushState({ view: page, app: null, depth: 1 }, '', panelToUrl(page));
+    history.pushState(
+      { view: page, app: null, depth: 1 },
+      "",
+      panelToUrl(page),
+    );
     depth = 1;
   }
 
@@ -257,6 +291,7 @@
   }
 
   function handleKeydown(e) {
+    if (window.location.pathname !== "/") return;
     if (e.key === "Escape" && activePage !== null) {
       closePage();
     }
@@ -272,6 +307,7 @@
   bind:isPaused={textIsPaused}
   bind:isFlagColors={weAreDogsColored}
   isFaded={activePage !== null}
+  {isLandingPage}
   onOpenStats={() => openPage("stats")}
   onOpenPage={(page) => openPage(page)}
 >
@@ -372,7 +408,7 @@
     goProShow={deepLinkGoProShow}
     goProEpisode={deepLinkGoProEp}
     bind:blogPostSlug={deepLinkBlogPostSlug}
-    bind:depth={depth}
+    bind:depth
     isFlagColors={weAreDogsColored}
   />
 {:else if activePage === "music"}
@@ -384,7 +420,11 @@
 {/if}
 
 {#if showInfo}
-  <InfoPanel onClose={() => { if (showInfo) history.back(); }} />
+  <InfoPanel
+    onClose={() => {
+      if (showInfo) history.back();
+    }}
+  />
 {/if}
 
 <style>
