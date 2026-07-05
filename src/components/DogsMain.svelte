@@ -13,7 +13,9 @@
   let isDesktopOrLandscape = $state(false);
 
   onMount(async () => {
-    const media = window.matchMedia("(min-width: 1024px), (orientation: landscape)");
+    const media = window.matchMedia(
+      "(min-width: 1024px), (orientation: landscape)",
+    );
     isDesktopOrLandscape = media.matches;
     const listener = (e) => {
       isDesktopOrLandscape = e.matches;
@@ -76,7 +78,7 @@
 
       <!-- Inline 3D Canvas for mobile portrait viewports -->
       <div
-        class="block landscape:hidden lg:hidden w-full h-[34vh] relative z-0"
+        class="block landscape:hidden lg:hidden w-full h-[44vh] relative z-0"
       >
         {#if !isDesktopOrLandscape && ThreeDCanvas}
           <ThreeDCanvas {isFlagColors} />

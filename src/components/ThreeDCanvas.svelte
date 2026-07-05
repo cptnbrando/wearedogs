@@ -1,7 +1,8 @@
+<!-- svelte-ignore a11y_no_static_element_interactions -->
 <script>
   import { Canvas } from "@threlte/core";
   import { onMount } from "svelte";
-  import DogSkeletonScene from "./DogSkeletonScene.svelte";
+  import DogDisplay from "./DogDisplay.svelte";
 
   let { isFlagColors = false } = $props();
 
@@ -58,7 +59,7 @@
   onmouseleave={() => (isDragging = false)}
 >
   <Canvas>
-    <DogSkeletonScene
+    <DogDisplay
       {isFlagColors}
       modelPath={selectedModel?.path}
       modelType={selectedModel?.type}
@@ -95,30 +96,27 @@
 
   <!-- Attribution credits overlay at bottom-right of display -->
   {#if selectedModel}
-    <div
-      class="absolute bottom-4 right-4 text-right bg-black/60 p-2.5 rounded border border-white/10 max-w-[200px] z-10 pointer-events-auto backdrop-blur-sm"
-    >
+    <div class="attribution-widget">
       <span
-        class="block text-[11px] text-white font-bold tracking-wide uppercase leading-none"
-        >{selectedModel.name}</span
+        class="name block text-[11px] text-white font-bold tracking-wide uppercase leading-none"
       >
+        {selectedModel.name}
+      </span>
 
       {#if selectedModel.attribution}
-        <span
-          class="block text-[7px] text-white/50 uppercase tracking-widest font-bold mt-2"
-          >Model Credit</span
+        <!-- <span
+          class="label block text-[7px] text-white/50 uppercase tracking-widest font-bold mt-2"
         >
+          Model Credit
+        </span> -->
         <a
           href={selectedModel.attribution.link}
           target="_blank"
           rel="noopener noreferrer"
-          class="block text-[10px] text-white hover:text-red-400 font-bold underline transition-colors mt-0.5 leading-tight"
+          class="creator block text-[10px] text-white hover:text-red-400 font-bold underline transition-colors mt-0.5 leading-tight"
         >
           {selectedModel.attribution.creator}
         </a>
-        <span class="block text-[8px] text-white/40 mt-0.5"
-          >{selectedModel.attribution.license}</span
-        >
       {/if}
     </div>
   {/if}
@@ -147,5 +145,44 @@
     color: #d61a2c;
     border-color: #d61a2c;
     box-shadow: 0 0 10px rgba(214, 26, 44, 0.25);
+  }
+
+  .attribution-widget {
+    position: absolute;
+    bottom: 1rem;
+    right: 1rem;
+    text-align: right;
+    background: rgba(0, 0, 0, 0.6);
+    padding: 0.625rem; /* 10px */
+    border-radius: 0.25rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    max-width: 200px;
+    z-index: 10;
+    pointer-events: auto;
+    backdrop-filter: blur(4px);
+  }
+
+  /* Mobile Landscape adjustments (orientation is landscape and viewport width is small) */
+  @media (orientation: landscape) and (max-width: 950px) {
+    .attribution-widget {
+      bottom: auto;
+      top: 1rem;
+      right: 1rem;
+      padding: 0.375rem; /* 6px */
+      max-width: 150px;
+    }
+    .attribution-widget :global(span.name) {
+      font-size: 9px !important;
+    }
+    .attribution-widget :global(span.label) {
+      font-size: 6px !important;
+      margin-top: 4px !important;
+    }
+    .attribution-widget :global(a.creator) {
+      font-size: 8px !important;
+    }
+    .attribution-widget :global(span.license) {
+      font-size: 6px !important;
+    }
   }
 </style>

@@ -57,7 +57,7 @@
     "type": "glb",
     "path": "/3d/gromit.glb",
     "attribution": {
-      "creator": "patrick.ambrose28403",
+      "creator": "@patrick.ambrose28403",
       "license": "CC Attribution",
       "link": "https://sketchfab.com/3d-models/gromit-1341f5b2183a4be4a0ca5a9dfc436668"
     }
@@ -79,7 +79,7 @@
     "type": "glb",
     "path": "/3d/courage.glb",
     "attribution": {
-      "creator": "ElPinguinoCoyosaurio (@penguincoyosaurio)",
+      "creator": "@penguincoyosaurio",
       "license": "CC Attribution",
       "link": "https://sketchfab.com/3d-models/courage-the-cowardly-dog-simple-design-low-poly-25095d3755f2411cbb2b19acfeb1065f"
     }
@@ -91,7 +91,7 @@
     "path": "/3d/dogs-life.glb",
     "scaleMultiplier": 0.03,
     "attribution": {
-      "creator": "DayTimeShows",
+      "creator": "@DayTimeShows",
       "license": "CC Attribution",
       "link": "https://sketchfab.com/3d-models/jake-38eaed66f7e54eac9dc900822dd4ccde"
     }
@@ -125,7 +125,7 @@
     "path": "/3d/slink.glb",
     "scaleMultiplier": 1.3,
     "attribution": {
-      "creator": "23200",
+      "creator": "@23200",
       "license": "CC Attribution",
       "link": "https://sketchfab.com/3d-models/wii-toy-story-3-slinky-dog-f9b7a22aa2e44f01ab932e9548ab98f4"
     }
@@ -136,7 +136,7 @@
     "type": "glb",
     "path": "/3d/pluto.glb",
     "attribution": {
-      "creator": "anderlenolan",
+      "creator": "@anderlenolan",
       "license": "CC Attribution",
       "link": "https://sketchfab.com/3d-models/pluto-142bbd6f619547059f26943c9a855ccd"
     }
@@ -147,7 +147,7 @@
     "type": "glb",
     "path": "/3d/goofy.glb",
     "attribution": {
-      "creator": "lissandroamorarios",
+      "creator": "@lissandroamorarios",
       "license": "CC Attribution",
       "link": "https://sketchfab.com/3d-models/goofy-a0dc4556d7b441cf9126bbd9cdf2fc23"
     }
@@ -197,8 +197,13 @@
     "type": "glb",
     "path": "/3d/low-poly-dogs.glb",
     "scaleMultiplier": 2.6,
+    "centerOffset": [
+      0,
+      -0.4,
+      0
+    ],
     "attribution": {
-      "creator": "compost the second (@compostthesecond)",
+      "creator": "@compostthesecond",
       "license": "CC Attribution",
       "link": "https://sketchfab.com/3d-models/low-poly-dog-pack-b27eaa571da14c3b93bf664fe7d950c8"
     }

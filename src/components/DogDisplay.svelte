@@ -125,8 +125,6 @@
     }
   };
 
-
-
   const loadGlb = (path) => {
     isGlbLoading = true;
     loadedModel = null;
@@ -134,7 +132,9 @@
     modelScale = 1.0;
     const loader = new GLTFLoader();
     const dracoLoader = new DRACOLoader();
-    dracoLoader.setDecoderPath("https://www.gstatic.com/draco/versioned/decoders/1.5.7/");
+    dracoLoader.setDecoderPath(
+      "https://www.gstatic.com/draco/versioned/decoders/1.5.7/",
+    );
     loader.setDRACOLoader(dracoLoader);
     loader.load(
       path,
@@ -278,12 +278,20 @@
     </T.Group>
   {:else if modelType === "glb" && loadedModel}
     <!-- Render loaded GLB group scaled and offset centered to align pivot rotation -->
-    <T.Group scale={[modelScale * scaleMultiplier, modelScale * scaleMultiplier, modelScale * scaleMultiplier]}>
-      <T.Group position={[
-        -modelCenter.x - centerOffset[0],
-        -modelCenter.y - centerOffset[1],
-        -modelCenter.z - centerOffset[2]
-      ]}>
+    <T.Group
+      scale={[
+        modelScale * scaleMultiplier,
+        modelScale * scaleMultiplier,
+        modelScale * scaleMultiplier,
+      ]}
+    >
+      <T.Group
+        position={[
+          -modelCenter.x - centerOffset[0],
+          -modelCenter.y - centerOffset[1],
+          -modelCenter.z - centerOffset[2],
+        ]}
+      >
         <T is={loadedModel} />
       </T.Group>
     </T.Group>
