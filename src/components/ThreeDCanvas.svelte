@@ -33,7 +33,7 @@
       }
 
       // Easily set to test dog models & animations here
-      // selectedModelId = "nintendog";
+      // selectedModelId = "gromit";
 
       // Dynamically fetch file sizes in the background
       models.forEach(async (model) => {
@@ -138,7 +138,7 @@
 </script>
 
 <div
-  class="canvas-container w-full h-full select-none pointer-events-auto"
+  class="canvas-container w-full h-full select-none pointer-events-auto flex align-center justify-center"
   class:dragging={isDragging}
   onpointerdown={handlePointerDown}
   onpointerup={handlePointerUp}
@@ -158,6 +158,8 @@
   {#if models.length > 1}
     <button
       onclick={handlePrev}
+      onpointerdown={(e) => e.stopPropagation()}
+      onpointerup={(e) => e.stopPropagation()}
       class="arrow-btn absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center w-10 h-10 rounded-full bg-black/55 text-white/80 border border-white/10 backdrop-blur-sm transition-all duration-300 hover:scale-110 cursor-pointer z-10"
       aria-label="Previous Model"
     >
@@ -171,6 +173,8 @@
   {#if models.length > 1}
     <button
       onclick={handleNext}
+      onpointerdown={(e) => e.stopPropagation()}
+      onpointerup={(e) => e.stopPropagation()}
       class="arrow-btn absolute right-4 top-1/2 -translate-y-1/2 flex items-center justify-center w-10 h-10 rounded-full bg-black/55 text-white/80 border border-white/10 backdrop-blur-sm transition-all duration-300 hover:scale-110 cursor-pointer z-10"
       aria-label="Next Model"
     >
@@ -224,16 +228,47 @@
     cursor: grabbing;
   }
 
-  /* Style arrow button hover effects dynamically with theme variables */
+  /* Arrow button hover effects - border/glow only, no color change */
   .arrow-btn:hover {
-    color: var(--color-neon-purple, #d61a2c);
-    border-color: var(--color-neon-purple, #d61a2c);
-    box-shadow: 0 0 10px rgba(var(--color-neon-purple-rgb, 214, 26, 44), 0.25);
+    border-color: rgba(255, 255, 255, 0.35);
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.15);
   }
-  :global(html[data-theme="default"]) .arrow-btn:hover {
-    color: #d61a2c;
-    border-color: #d61a2c;
-    box-shadow: 0 0 10px rgba(214, 26, 44, 0.25);
+
+  /* Hover jiggle keyframes and rules targeting the internal SVGs */
+  @keyframes arrow-jiggle-left {
+    0% {
+      transform: translateX(0);
+    }
+    25% {
+      transform: translateX(-3px);
+    }
+    50% {
+      transform: translateX(1px);
+    }
+    75% {
+      transform: translateX(-2px);
+    }
+    100% {
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes arrow-jiggle-right {
+    0% {
+      transform: translateX(0);
+    }
+    25% {
+      transform: translateX(3px);
+    }
+    50% {
+      transform: translateX(-1px);
+    }
+    75% {
+      transform: translateX(2px);
+    }
+    100% {
+      transform: translateX(0);
+    }
   }
 
   .attribution-widget {

@@ -7,22 +7,11 @@
     "attribution": null
   },
   {
-    "id": "dog1",
-    "name": "Dog 1",
-    "type": "glb",
-    "path": "/3d/dog1.glb",
-    "attribution": {
-      "creator": "neighbor (@kylekip)",
-      "license": "CC Attribution",
-      "link": "https://sketchfab.com/3d-models/dog-e395f26615ca445ab32f01ded17ff3bf"
-    }
-  },
-  {
     "id": "scooby",
     "name": "Scooby-Doo",
     "type": "glb",
     "path": "/3d/scooby.glb",
-    "scaleMultiplier": 1.15,
+    "scaleMultiplier": 1.30,
     "centerOffset": [
       0,
       0.6,
@@ -56,6 +45,12 @@
     "name": "Gromit",
     "type": "glb",
     "path": "/3d/gromit.glb",
+    "scaleMultiplier": 1.1,
+    "centerOffset": [
+      0,
+      0.16,
+      0
+    ],
     "attribution": {
       "creator": "@patrick.ambrose28403",
       "license": "CC Attribution",
@@ -146,7 +141,7 @@
     "name": "Goofy",
     "type": "glb",
     "path": "/3d/goofy.glb",
-    "scaleMultiplier": 0.25,
+    "scaleMultiplier": 0.21,
     "centerOffset": [
       0,
       1.6,
@@ -238,13 +233,30 @@
     "path": "/3d/dog-puppy-v1.glb",
     "centerOffset": [
       0,
-      1,
+      1.2,
       0
     ],
     "attribution": {
       "creator": "@kenchoo",
       "license": "CC Attribution",
       "link": "https://sketchfab.com/3d-models/dog-puppy-72331763040e4314b154f84348fe0957"
+    }
+  },
+  {
+    "id": "dog2",
+    "name": "Dog 2",
+    "type": "glb",
+    "path": "/3d/dog2.glb",
+    "scaleMultiplier": 0.9,
+    "centerOffset": [
+      0,
+      0.4,
+      0
+    ],
+    "attribution": {
+      "creator": "@kenchoo",
+      "license": "CC Attribution",
+      "link": "https://sketchfab.com/3d-models/labrador-dog-1f56cfbab07e4fe49b5d9e521c82073a"
     }
   },
   {
