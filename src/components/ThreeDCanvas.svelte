@@ -31,9 +31,72 @@
         models = shuffle(data);
         selectedModelId = models[0].id;
       }
+
+      // Easily set to test dog models & animations here
+      selectedModelId = "low-poly";
+
+      // Dynamically fetch file sizes in the background
+      models.forEach(async (model) => {
+        if (model.path) {
+          try {
+            const headRes = await fetch(model.path, { method: "HEAD" });
+            const size = headRes.headers.get("content-length");
+            if (size) {
+              const bytes = parseInt(size, 10);
+              let sizeStr = "";
+              if (bytes >= 1048576) {
+                sizeStr = (bytes / 1048576).toFixed(1) + "mb";
+              } else {
+                sizeStr = Math.round(bytes / 1024) + "kb";
+              }
+              model.fileSize = sizeStr;
+            }
+          } catch (err) {
+            console.warn(`Could not fetch size for ${model.name}:`, err);
+          }
+        }
+      });
     } catch (err) {
       console.error("Failed to load models list:", err);
     }
+
+    const handleGlobalKeydown = (e) => {
+      if (
+        document.activeElement &&
+        (document.activeElement.tagName === "INPUT" ||
+          document.activeElement.tagName === "TEXTAREA" ||
+          document.activeElement.isContentEditable)
+      ) {
+        return;
+      }
+
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        window.dispatchEvent(
+          new CustomEvent("rotate-skeleton", {
+            detail: { direction: "left" },
+          })
+        );
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        window.dispatchEvent(
+          new CustomEvent("rotate-skeleton", {
+            detail: { direction: "right" },
+          })
+        );
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        handlePrev();
+      } else if (e.key === "ArrowDown") {
+        e.preventDefault();
+        handleNext();
+      }
+    };
+    window.addEventListener("keydown", handleGlobalKeydown);
+
+    return () => {
+      window.removeEventListener("keydown", handleGlobalKeydown);
+    };
   });
 
   const handleNext = () => {
@@ -101,14 +164,14 @@
         class="name block text-[11px] text-white font-bold tracking-wide uppercase leading-none"
       >
         {selectedModel.name}
+        {#if selectedModel.fileSize}
+          <span class="file-size font-normal text-white/50" class:colored={isFlagColors}>
+            ({selectedModel.fileSize})
+          </span>
+        {/if}
       </span>
 
       {#if selectedModel.attribution}
-        <!-- <span
-          class="label block text-[7px] text-white/50 uppercase tracking-widest font-bold mt-2"
-        >
-          Model Credit
-        </span> -->
         <a
           href={selectedModel.attribution.link}
           target="_blank"
@@ -184,5 +247,18 @@
     .attribution-widget :global(span.license) {
       font-size: 6px !important;
     }
+  }
+
+  .file-size {
+    margin-left: 0.25rem;
+    transition: color 0.3s ease;
+  }
+  .file-size.colored {
+    color: var(--color-neon-purple, var(--color-neon-red, #ff3344)) !important;
+    text-shadow: 0 0 10px rgba(var(--color-neon-purple-rgb, 255, 51, 68), 0.35);
+  }
+  :global(html[data-theme="default"]) .file-size.colored {
+    color: #d61a2c !important;
+    text-shadow: 0 0 10px rgba(214, 26, 44, 0.35) !important;
   }
 </style>
