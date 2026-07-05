@@ -33,7 +33,7 @@
       }
 
       // Easily set to test dog models & animations here
-      selectedModelId = "nintendog";
+      // selectedModelId = "nintendog";
 
       // Dynamically fetch file sizes in the background
       models.forEach(async (model) => {
