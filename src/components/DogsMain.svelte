@@ -6,17 +6,30 @@
   // Props mapping the flag colors toggle state
   let { isFlagColors = false } = $props();
 
-  let activeLandscapeTab = $state('cards'); // 'cards' or 'skeleton'
+  let activeLandscapeTab = $state("cards"); // 'cards' or 'skeleton'
 
   // Lazy load the 3D canvas component to maintain initial speed
   let ThreeDCanvas = $state(null);
+  let isDesktopOrLandscape = $state(false);
+
   onMount(async () => {
+    const media = window.matchMedia("(min-width: 1024px), (orientation: landscape)");
+    isDesktopOrLandscape = media.matches;
+    const listener = (e) => {
+      isDesktopOrLandscape = e.matches;
+    };
+    media.addEventListener("change", listener);
+
     try {
       const module = await import("./ThreeDCanvas.svelte");
       ThreeDCanvas = module.default;
     } catch (err) {
       console.error("Failed to lazy load Threlte canvas:", err);
     }
+
+    return () => {
+      media.removeEventListener("change", listener);
+    };
   });
 </script>
 
@@ -32,7 +45,9 @@
     class="w-full lg:w-[60%] h-full flex flex-col max-lg:landscape:flex-row lg:flex-col justify-between max-lg:landscape:justify-between lg:justify-between max-lg:landscape:items-stretch lg:items-stretch p-6 md:p-12 lg:p-24 relative z-10 pointer-events-none gap-4 max-lg:landscape:gap-8 lg:gap-0"
   >
     <!-- Top Section: Dictionary entry -->
-    <div class="dict-container w-full max-lg:landscape:w-[46%] lg:w-full max-w-[650px] mt-4 max-lg:landscape:mt-0 lg:mt-0 pointer-events-auto max-lg:landscape:my-auto">
+    <div
+      class="dict-container w-full max-lg:landscape:w-[46%] lg:w-full max-w-[650px] mt-4 max-lg:landscape:mt-0 lg:mt-0 pointer-events-auto max-lg:landscape:my-auto"
+    >
       <div class="flex items-baseline gap-2.5 md:gap-3.5">
         <h2
           class="dict-word font-black text-white tracking-tight uppercase text-3xl md:text-4xl lg:text-5xl transition-colors duration-500"
@@ -55,17 +70,23 @@
         class="dict-def text-white/80 text-sm md:text-lg lg:text-xl font-light tracking-wide leading-relaxed mt-2 transition-all duration-500"
         class:colored={isFlagColors}
       >
-        a carnivorous mammal (<span class="italic">Canis familiaris</span>)
-        that has long been domesticated as a dog.
+        a carnivorous mammal (<span class="italic">Canis Familiaris</span>) that
+        has long been domesticated as a pet.
       </p>
 
       <!-- Inline 3D Canvas for mobile portrait viewports -->
-      <div class="block landscape:hidden lg:hidden w-full h-[34vh] relative z-0">
-        {#if ThreeDCanvas}
+      <div
+        class="block landscape:hidden lg:hidden w-full h-[34vh] relative z-0"
+      >
+        {#if !isDesktopOrLandscape && ThreeDCanvas}
           <ThreeDCanvas {isFlagColors} />
         {:else}
-          <div class="w-full h-full flex items-center justify-center bg-transparent pointer-events-none">
-            <div class="text-white/20 text-xs font-mono tracking-widest uppercase animate-pulse">
+          <div
+            class="w-full h-full flex items-center justify-center bg-transparent pointer-events-none"
+          >
+            <div
+              class="text-white/20 text-xs font-mono tracking-widest uppercase animate-pulse"
+            >
               Initializing 3D Visualizer...
             </div>
           </div>
@@ -80,11 +101,9 @@
       <!-- Info content wrapper: hidden when skeleton is active on mobile landscape -->
       <div
         class="flex flex-col gap-3 max-lg:landscape:gap-1.5 md:gap-6 w-full max-lg:landscape:my-auto pointer-events-auto"
-        class:landscape:max-lg:hidden={activeLandscapeTab === 'skeleton'}
+        class:landscape:max-lg:hidden={activeLandscapeTab === "skeleton"}
       >
-        <div
-          class="cards-grid"
-        >
+        <div class="cards-grid">
           <!-- Headquarters -->
           <div
             class="info-card flex flex-col rounded-xl md:rounded-2xl bg-[#f8f9fa] border border-black/5 hover:border-black/10 hover:shadow-lg transition-all duration-300"
@@ -150,26 +169,28 @@
       </div>
 
       <!-- Toggle tab control (Only visible in mobile landscape viewports, positioned underneath cards/3D view) -->
-      <div class="hidden landscape:max-lg:flex justify-center bg-black/10 p-0.5 rounded-lg mt-auto w-full max-w-[180px] mx-auto border border-black/5 pointer-events-auto">
+      <div
+        class="hidden landscape:max-lg:flex justify-center bg-black/10 p-0.5 rounded-lg mt-auto w-full max-w-[180px] mx-auto border border-black/5 pointer-events-auto"
+      >
         <button
-          onclick={() => activeLandscapeTab = 'cards'}
+          onclick={() => (activeLandscapeTab = "cards")}
           class="flex-1 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider transition-all duration-200"
-          class:bg-black={activeLandscapeTab === 'cards'}
-          class:text-white={activeLandscapeTab === 'cards'}
-          class:shadow-sm={activeLandscapeTab === 'cards'}
-          class:text-black={activeLandscapeTab !== 'cards'}
-          class:opacity-50={activeLandscapeTab !== 'cards'}
+          class:bg-black={activeLandscapeTab === "cards"}
+          class:text-white={activeLandscapeTab === "cards"}
+          class:shadow-sm={activeLandscapeTab === "cards"}
+          class:text-black={activeLandscapeTab !== "cards"}
+          class:opacity-50={activeLandscapeTab !== "cards"}
         >
           Info
         </button>
         <button
-          onclick={() => activeLandscapeTab = 'skeleton'}
+          onclick={() => (activeLandscapeTab = "skeleton")}
           class="flex-1 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider transition-all duration-200"
-          class:bg-black={activeLandscapeTab === 'skeleton'}
-          class:text-white={activeLandscapeTab === 'skeleton'}
-          class:shadow-sm={activeLandscapeTab === 'skeleton'}
-          class:text-black={activeLandscapeTab !== 'skeleton'}
-          class:opacity-50={activeLandscapeTab !== 'skeleton'}
+          class:bg-black={activeLandscapeTab === "skeleton"}
+          class:text-white={activeLandscapeTab === "skeleton"}
+          class:shadow-sm={activeLandscapeTab === "skeleton"}
+          class:text-black={activeLandscapeTab !== "skeleton"}
+          class:opacity-50={activeLandscapeTab !== "skeleton"}
         >
           3D View
         </button>
@@ -180,9 +201,9 @@
   <!-- Right Side 3D Canvas Layer -->
   <div
     class="hidden landscape:block lg:block w-full max-lg:landscape:w-[50%] lg:w-[45%] h-[35vh] max-lg:landscape:h-full lg:h-full absolute bottom-0 max-lg:landscape:top-0 lg:top-0 right-0 z-0"
-    class:landscape:max-lg:hidden={activeLandscapeTab === 'cards'}
+    class:landscape:max-lg:hidden={activeLandscapeTab === "cards"}
   >
-    {#if ThreeDCanvas}
+    {#if isDesktopOrLandscape && ThreeDCanvas}
       <ThreeDCanvas {isFlagColors} />
     {:else}
       <!-- Minimal CSS skeleton fallback loading states -->
@@ -197,7 +218,6 @@
       </div>
     {/if}
   </div>
-
 </div>
 
 <style>

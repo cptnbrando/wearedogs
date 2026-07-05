@@ -1,0 +1,196 @@
+[
+  {
+    "id": "skeleton",
+    "name": "Dog Skeleton",
+    "type": "gltf",
+    "path": "/models/dog_skeleton.gltf",
+    "attribution": null
+  },
+  {
+    "id": "dog1",
+    "name": "Dog 1",
+    "type": "glb",
+    "path": "/3d/dog1.glb",
+    "attribution": {
+      "creator": "neighbor (@kylekip)",
+      "license": "CC Attribution",
+      "link": "https://sketchfab.com/3d-models/dog-e395f26615ca445ab32f01ded17ff3bf"
+    }
+  },
+  {
+    "id": "scooby",
+    "name": "Scooby-Doo",
+    "type": "glb",
+    "path": "/3d/scooby.glb",
+    "attribution": {
+      "creator": "Guilherme Navarro (@guinavarro.al)",
+      "license": "CC Attribution",
+      "link": "https://sketchfab.com/3d-models/scooby-doo-scooby-doo-c94cd460bbe342849973306484cd9f2c"
+    }
+  },
+  {
+    "id": "snoopy",
+    "name": "Snoopy",
+    "type": "glb",
+    "path": "/3d/snoopy.glb",
+    "attribution": {
+      "creator": "Daz (@Darren.Hogan)",
+      "license": "CC Attribution",
+      "link": "https://sketchfab.com/3d-models/snoopy-df94fc680c404ffeb0a7b864958600a5"
+    }
+  },
+  {
+    "id": "gromit",
+    "name": "Gromit",
+    "type": "glb",
+    "path": "/3d/gromit.glb",
+    "attribution": {
+      "creator": "patrick.ambrose28403",
+      "license": "CC Attribution",
+      "link": "https://sketchfab.com/3d-models/gromit-1341f5b2183a4be4a0ca5a9dfc436668"
+    }
+  },
+  {
+    "id": "paw-patrol",
+    "name": "Chase (PAW Patrol)",
+    "type": "glb",
+    "path": "/3d/paw-patrol.glb",
+    "attribution": {
+      "creator": "Guilherme Navarro (@guinavarro.al)",
+      "license": "CC Attribution",
+      "link": "https://sketchfab.com/3d-models/chase-paw-patrol-no-rig-b2f3813cee134f83b4a2772c6e227390"
+    }
+  },
+  {
+    "id": "courage",
+    "name": "Courage the Cowardly Dog",
+    "type": "glb",
+    "path": "/3d/courage.glb",
+    "attribution": {
+      "creator": "ElPinguinoCoyosaurio (@penguincoyosaurio)",
+      "license": "CC Attribution",
+      "link": "https://sketchfab.com/3d-models/courage-the-cowardly-dog-simple-design-low-poly-25095d3755f2411cbb2b19acfeb1065f"
+    }
+  },
+  {
+    "id": "dogs-life",
+    "name": "Jake (Dog's Life)",
+    "type": "glb",
+    "path": "/3d/dogs-life.glb",
+    "attribution": {
+      "creator": "DayTimeShows",
+      "license": "CC Attribution",
+      "link": "https://sketchfab.com/3d-models/jake-38eaed66f7e54eac9dc900822dd4ccde"
+    }
+  },
+  {
+    "id": "jake-adventure-time",
+    "name": "Jake (Adventure Time)",
+    "type": "glb",
+    "path": "/3d/jake-adventure-time.glb",
+    "attribution": {
+      "creator": "Lapshin Sergey (@serg111)",
+      "license": "CC Attribution",
+      "link": "https://sketchfab.com/3d-models/9f149100c2884716a9f44634ae0b929d"
+    }
+  },
+  {
+    "id": "big-dogs",
+    "name": "Doberman",
+    "type": "glb",
+    "path": "/3d/doberman.glb",
+    "attribution": {
+      "creator": "Paleo Modelist (@victory_)",
+      "license": "CC Attribution",
+      "link": "https://sketchfab.com/3d-models/dog-2f9986e6ba4345fdabf71ed43c1086dd"
+    }
+  },
+  {
+    "id": "slink",
+    "name": "Slink (Toy Story)",
+    "type": "glb",
+    "path": "/3d/slink.glb",
+    "attribution": {
+      "creator": "23200",
+      "license": "CC Attribution",
+      "link": "https://sketchfab.com/3d-models/wii-toy-story-3-slinky-dog-f9b7a22aa2e44f01ab932e9548ab98f4"
+    }
+  },
+  {
+    "id": "pluto",
+    "name": "Pluto",
+    "type": "glb",
+    "path": "/3d/pluto.glb",
+    "attribution": {
+      "creator": "anderlenolan",
+      "license": "CC Attribution",
+      "link": "https://sketchfab.com/3d-models/pluto-142bbd6f619547059f26943c9a855ccd"
+    }
+  },
+  {
+    "id": "goofy",
+    "name": "Goofy",
+    "type": "glb",
+    "path": "/3d/goofy.glb",
+    "attribution": {
+      "creator": "lissandroamorarios",
+      "license": "CC Attribution",
+      "link": "https://sketchfab.com/3d-models/goofy-a0dc4556d7b441cf9126bbd9cdf2fc23"
+    }
+  },
+  {
+    "id": "lady-and-the-tramp",
+    "name": "Lady & Tramp",
+    "type": "glb",
+    "path": "/3d/lady-tramp.glb",
+    "attribution": {
+      "creator": "Stewart Budd (@StewartB)",
+      "license": "CC Attribution",
+      "link": "https://sketchfab.com/3d-models/lady-tramp-7d4098f2a41244b78b558eca292c6b27"
+    }
+  },
+  {
+    "id": "hot-dog",
+    "name": "Hot Dog",
+    "type": "glb",
+    "path": "/3d/hot-dog.glb",
+    "attribution": {
+      "creator": "Vlad's_Studios (@alexvladimircm)",
+      "license": "CC Attribution",
+      "link": "https://sketchfab.com/3d-models/hot-dog-3df5e2b8077b47b6b42d9dec1e4a3a03"
+    }
+  },
+  {
+    "id": "harvest-moon",
+    "name": "Harvest Moon Dog",
+    "type": "glb",
+    "path": "/3d/harvest-moon.glb",
+    "attribution": {
+      "creator": "Smoon (@Smoon.Vu)",
+      "license": "CC Attribution",
+      "link": "https://sketchfab.com/3d-models/dog-harvest-moon-7a034e47c5eb4afe95e08c2e7d74f403"
+    }
+  },
+  {
+    "id": "low-poly",
+    "name": "Low Poly Dog Pack",
+    "type": "glb",
+    "path": "/3d/low-poly-dogs.glb",
+    "attribution": {
+      "creator": "compost the second (@compostthesecond)",
+      "license": "CC Attribution",
+      "link": "https://sketchfab.com/3d-models/low-poly-dog-pack-b27eaa571da14c3b93bf664fe7d950c8"
+    }
+  },
+  {
+    "id": "nintendog",
+    "name": "Nintendog (Smash Bros.)",
+    "type": "glb",
+    "path": "/3d/nintendog1.glb",
+    "attribution": {
+      "creator": "SPONg (@thegageinator)",
+      "license": "CC Attribution",
+      "link": "https://sketchfab.com/3d-models/nintendog-2-smash-bros-ultimate-f93f71de491a4bfc8cc815dd96797b69"
+    }
+  }
+]
