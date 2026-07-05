@@ -33,7 +33,7 @@
       }
 
       // Easily set to test dog models & animations here
-      // selectedModelId = "dug";
+      selectedModelId = "nintendog";
 
       // Dynamically fetch file sizes in the background
       models.forEach(async (model) => {
@@ -112,13 +112,36 @@
     const prevIndex = (currentIndex - 1 + models.length) % models.length;
     selectedModelId = models[prevIndex].id;
   };
+
+  let startX = 0;
+  let startY = 0;
+  let startTime = 0;
+
+  const handlePointerDown = (e) => {
+    isDragging = true;
+    startX = e.clientX;
+    startY = e.clientY;
+    startTime = Date.now();
+  };
+
+  const handlePointerUp = (e) => {
+    isDragging = false;
+    const diffX = Math.abs(e.clientX - startX);
+    const diffY = Math.abs(e.clientY - startY);
+    const duration = Date.now() - startTime;
+
+    // Trigger spin only if it's a quick click/tap (minimal movement and duration)
+    if (diffX < 5 && diffY < 5 && duration < 250) {
+      window.dispatchEvent(new CustomEvent("spin-model"));
+    }
+  };
 </script>
 
 <div
   class="canvas-container w-full h-full select-none pointer-events-auto"
   class:dragging={isDragging}
-  onmousedown={() => (isDragging = true)}
-  onmouseup={() => (isDragging = false)}
+  onpointerdown={handlePointerDown}
+  onpointerup={handlePointerUp}
   onmouseleave={() => (isDragging = false)}
 >
   <Canvas>

@@ -219,7 +219,7 @@
     "name": "Nintendog (Smash Bros.)",
     "type": "glb",
     "path": "/3d/nintendog1.glb",
-    "scaleMultiplier": 0.1,
+    "scaleMultiplier": 0.15,
     "centerOffset": [
       0,
       5.4,

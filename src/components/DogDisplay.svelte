@@ -38,18 +38,31 @@
     };
     window.addEventListener("rotate-skeleton", handleRotate);
 
+    const handleSpin = () => {
+      spinSpeed = 25.0;
+    };
+    window.addEventListener("spin-model", handleSpin);
+
     return () => {
       media.removeEventListener("change", listener);
       landscapeMedia.removeEventListener("change", landscapeListener);
       window.removeEventListener("rotate-skeleton", handleRotate);
+      window.removeEventListener("spin-model", handleSpin);
     };
   });
 
   // Rotate model slowly if no user interaction
   let modelRotationY = $state(0);
   let mixer = null;
+  let spinSpeed = $state(0.15);
   useTask((delta) => {
-    modelRotationY += delta * 0.15; // Auto-rotate speed
+    if (spinSpeed > 0.15) {
+      spinSpeed -= delta * 25.0;
+      if (spinSpeed < 0.15) spinSpeed = 0.15;
+    } else {
+      spinSpeed = 0.15;
+    }
+    modelRotationY += delta * spinSpeed;
     if (mixer) {
       mixer.update(delta);
     }
