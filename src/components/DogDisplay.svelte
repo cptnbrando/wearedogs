@@ -47,8 +47,12 @@
 
   // Rotate model slowly if no user interaction
   let modelRotationY = $state(0);
+  let mixer = null;
   useTask((delta) => {
     modelRotationY += delta * 0.15; // Auto-rotate speed
+    if (mixer) {
+      mixer.update(delta);
+    }
   });
 
   // Emissive white wireframe material
@@ -128,6 +132,7 @@
   const loadGlb = (path) => {
     isGlbLoading = true;
     loadedModel = null;
+    mixer = null;
     modelCenter = new THREE.Vector3(0, 0, 0);
     modelScale = 1.0;
     const loader = new GLTFLoader();
@@ -143,6 +148,13 @@
         processModel(modelScene);
         loadedModel = modelScene;
         isGlbLoading = false;
+
+        if (gltf.animations && gltf.animations.length > 0) {
+          mixer = new THREE.AnimationMixer(modelScene);
+          gltf.animations.forEach((clip) => {
+            mixer.clipAction(clip).play();
+          });
+        }
       },
       undefined,
       (err) => {
@@ -157,6 +169,7 @@
       loadGlb(modelPath);
     } else {
       loadedModel = null;
+      mixer = null;
     }
   });
 </script>
