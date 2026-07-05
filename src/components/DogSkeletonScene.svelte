@@ -11,6 +11,8 @@
     modelPath = "/models/dog_skeleton.gltf",
     modelType = "gltf",
     scale = 1.0,
+    scaleMultiplier = 1.0,
+    centerOffset = [0, 0, 0],
   } = $props();
 
   let isMobile = $state(false);
@@ -276,8 +278,12 @@
     </T.Group>
   {:else if modelType === "glb" && loadedModel}
     <!-- Render loaded GLB group scaled and offset centered to align pivot rotation -->
-    <T.Group scale={[modelScale, modelScale, modelScale]}>
-      <T.Group position={[-modelCenter.x, -modelCenter.y, -modelCenter.z]}>
+    <T.Group scale={[modelScale * scaleMultiplier, modelScale * scaleMultiplier, modelScale * scaleMultiplier]}>
+      <T.Group position={[
+        -modelCenter.x - centerOffset[0],
+        -modelCenter.y - centerOffset[1],
+        -modelCenter.z - centerOffset[2]
+      ]}>
         <T is={loadedModel} />
       </T.Group>
     </T.Group>

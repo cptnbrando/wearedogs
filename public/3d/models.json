@@ -22,6 +22,12 @@
     "name": "Scooby-Doo",
     "type": "glb",
     "path": "/3d/scooby.glb",
+    "scaleMultiplier": 1.15,
+    "centerOffset": [
+      0,
+      0.6,
+      0
+    ],
     "attribution": {
       "creator": "Guilherme Navarro (@guinavarro.al)",
       "license": "CC Attribution",
@@ -33,6 +39,12 @@
     "name": "Snoopy",
     "type": "glb",
     "path": "/3d/snoopy.glb",
+    "scaleMultiplier": 2.4,
+    "centerOffset": [
+      0,
+      0.2,
+      0
+    ],
     "attribution": {
       "creator": "Daz (@Darren.Hogan)",
       "license": "CC Attribution",
@@ -77,6 +89,7 @@
     "name": "Jake (Dog's Life)",
     "type": "glb",
     "path": "/3d/dogs-life.glb",
+    "scaleMultiplier": 0.03,
     "attribution": {
       "creator": "DayTimeShows",
       "license": "CC Attribution",
@@ -110,6 +123,7 @@
     "name": "Slink (Toy Story)",
     "type": "glb",
     "path": "/3d/slink.glb",
+    "scaleMultiplier": 1.3,
     "attribution": {
       "creator": "23200",
       "license": "CC Attribution",
@@ -165,6 +179,12 @@
     "name": "Harvest Moon Dog",
     "type": "glb",
     "path": "/3d/harvest-moon.glb",
+    "scaleMultiplier": 0.55,
+    "centerOffset": [
+      0,
+      -0.4,
+      0
+    ],
     "attribution": {
       "creator": "Smoon (@Smoon.Vu)",
       "license": "CC Attribution",
@@ -176,6 +196,7 @@
     "name": "Low Poly Dog Pack",
     "type": "glb",
     "path": "/3d/low-poly-dogs.glb",
+    "scaleMultiplier": 2.6,
     "attribution": {
       "creator": "compost the second (@compostthesecond)",
       "license": "CC Attribution",
@@ -187,6 +208,12 @@
     "name": "Nintendog (Smash Bros.)",
     "type": "glb",
     "path": "/3d/nintendog1.glb",
+    "scaleMultiplier": 0.1,
+    "centerOffset": [
+      0,
+      5.4,
+      0
+    ],
     "attribution": {
       "creator": "SPONg (@thegageinator)",
       "license": "CC Attribution",

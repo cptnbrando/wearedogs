@@ -62,6 +62,8 @@
       {isFlagColors}
       modelPath={selectedModel?.path}
       modelType={selectedModel?.type}
+      scaleMultiplier={selectedModel?.scaleMultiplier ?? 1.0}
+      centerOffset={selectedModel?.centerOffset ?? [0, 0, 0]}
     />
   </Canvas>
 
