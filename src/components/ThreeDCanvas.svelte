@@ -33,7 +33,7 @@
       }
 
       // Easily set to test dog models & animations here
-      selectedModelId = "low-poly";
+      // selectedModelId = "dug";
 
       // Dynamically fetch file sizes in the background
       models.forEach(async (model) => {
@@ -75,14 +75,14 @@
         window.dispatchEvent(
           new CustomEvent("rotate-skeleton", {
             detail: { direction: "left" },
-          })
+          }),
         );
       } else if (e.key === "ArrowRight") {
         e.preventDefault();
         window.dispatchEvent(
           new CustomEvent("rotate-skeleton", {
             detail: { direction: "right" },
-          })
+          }),
         );
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
@@ -165,7 +165,10 @@
       >
         {selectedModel.name}
         {#if selectedModel.fileSize}
-          <span class="file-size font-normal text-white/50" class:colored={isFlagColors}>
+          <span
+            class="file-size font-normal text-white/50"
+            class:colored={isFlagColors}
+          >
             ({selectedModel.fileSize})
           </span>
         {/if}

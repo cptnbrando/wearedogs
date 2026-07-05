@@ -39,7 +39,7 @@
     "name": "Snoopy",
     "type": "glb",
     "path": "/3d/snoopy.glb",
-    "scaleMultiplier": 2.4,
+    "scaleMultiplier": 3,
     "centerOffset": [
       0,
       0.2,
@@ -146,10 +146,16 @@
     "name": "Goofy",
     "type": "glb",
     "path": "/3d/goofy.glb",
+    "scaleMultiplier": 0.25,
+    "centerOffset": [
+      0,
+      1.6,
+      0
+    ],
     "attribution": {
-      "creator": "@lissandroamorarios",
+      "creator": "@GFT1",
       "license": "CC Attribution",
-      "link": "https://sketchfab.com/3d-models/goofy-a0dc4556d7b441cf9126bbd9cdf2fc23"
+      "link": "https://sketchfab.com/3d-models/goofy-laugh-a1f12e2b092b4ffbbd2ed9af5cae530a"
     }
   },
   {
@@ -246,15 +252,50 @@
     "name": "Dog 2",
     "type": "glb",
     "path": "/3d/dog2.glb",
+    "scaleMultiplier": 0.9,
     "centerOffset": [
       0,
-      0.2,
+      0.3,
       0
     ],
     "attribution": {
       "creator": "@kenchoo",
       "license": "CC Attribution",
       "link": "https://sketchfab.com/3d-models/labrador-dog-1f56cfbab07e4fe49b5d9e521c82073a"
+    }
+  },
+  {
+    "id": "brian",
+    "name": "Brian (Family Guy)",
+    "type": "glb",
+    "path": "/3d/brian.glb",
+    "scaleMultiplier": 2,
+    "centerOffset": [
+      0,
+      0.005,
+      0
+    ],
+    "attribution": {
+      "creator": "Luxor (@ricardoatorres2016)",
+      "license": "CC Attribution",
+      "link": "https://sketchfab.com/3d-models/brian-griffin-dancing-hip-hop-9ae8a52b44d0495bbe46e3c6125b8103"
+    }
+  },
+  {
+    "id": "dug",
+    "name": "Dug (Up)",
+    "type": "glb",
+    "path": "/3d/dug.glb",
+    "scaleMultiplier": 1.5,
+    "centerOffset": [
+      0,
+      1.2,
+      0
+    ],
+    "attribution": {
+      "creator": "patrickambrose584",
+      "license": "CC Attribution",
+      "link": "https://sketchfab.com/3d-models/dug-doing-the-toothless-dance-479baca05644457faac67dac4bc0afa1"
     }
   }
 ]
