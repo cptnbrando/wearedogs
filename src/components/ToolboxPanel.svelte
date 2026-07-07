@@ -14,13 +14,15 @@
     Terminal,
     BookOpen,
     Settings,
+    Zap,
   } from "lucide-svelte";
   import SnakeApp from "./apps/SnakeApp.svelte";
   import SoundboardApp from "./apps/SoundboardApp.svelte";
   import PaintApp from "./apps/PaintApp.svelte";
   import StopwatchApp from "./apps/StopwatchApp.svelte";
   import GoPro from "./apps/GoPro.svelte";
-  import QRFlash from "./apps/QRFlash.svelte";
+  import DataFlash from "./apps/DataFlash.svelte";
+  import QRGenerator from "./apps/QRGenerator.svelte";
   import Rescue from "./apps/Rescue.svelte";
   import MemesApp from "./apps/MemesApp.svelte";
   import WorldCupApp from "./apps/WorldCupApp.svelte";
@@ -126,13 +128,13 @@
               </div>
             </div>
 
-            <!-- App 2: QRFlash Visual Transfer -->
+            <!-- App 2: DataFlash Visual Transfer -->
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div
               class="app-card border-neon-cyan"
               onclick={() => {
-                activeApp = "qrflash";
+                activeApp = "dataflash";
               }}
             >
               <div class="app-visual">
@@ -144,9 +146,34 @@
                 </div>
               </div>
               <div class="app-meta">
-                <span class="app-title"><QrCode size={14} /> QRFlash Link</span>
+                <span class="app-title"><QrCode size={14} /> DataFlash</span>
                 <span class="app-desc"
                   >Visual file transfer protocol over flashing QR codes.</span
+                >
+              </div>
+            </div>
+
+            <!-- App: QR Generator -->
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div
+              class="app-card border-neon-blue"
+              onclick={() => {
+                activeApp = "qrgenerator";
+              }}
+            >
+              <div class="app-visual">
+                <div class="qr-preview-mini">
+                  <span class="corner c1"></span>
+                  <span class="corner c2"></span>
+                  <span class="corner c3"></span>
+                  <div style="width: 4px; height: 4px; background: #00d7ff; border-radius: 50%; box-shadow: 0 0 6px #00d7ff;"></div>
+                </div>
+              </div>
+              <div class="app-meta">
+                <span class="app-title"><QrCode size={14} /> QR Generator</span>
+                <span class="app-desc"
+                  >Generate resizable QR codes with custom center logo overlays.</span
                 >
               </div>
             </div>
@@ -397,8 +424,10 @@
         <StopwatchApp />
       {:else if activeApp === "gopro"}
         <GoPro />
-      {:else if activeApp === "qrflash"}
-        <QRFlash />
+      {:else if activeApp === "dataflash"}
+        <DataFlash />
+      {:else if activeApp === "qrgenerator"}
+        <QRGenerator />
       {:else if activeApp === "rescue"}
         <Rescue />
       {:else if activeApp === "memes"}
