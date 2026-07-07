@@ -26,20 +26,28 @@
       destroy() {
         node.removeEventListener("load", handleLoad);
         node.removeEventListener("error", handleError);
-      }
+      },
     };
   }
 </script>
 
 <div
-  class="relative shrink-0 overflow-visible {size === 'panel' ? 'w-6 h-6' : 'w-10 h-10 md:w-12 h-12 lg:w-14 h-14'} {customClass}"
-  class:logo-glow={size === 'dict'}
+  class="relative shrink-0 overflow-visible {size === 'panel'
+    ? 'w-6 h-6'
+    : size === 'dict'
+      ? 'w-8 h-8 md:w-12 h-12 lg:w-14 h-14'
+      : 'w-10 h-10 md:w-12 h-12 lg:w-14 h-14'} {customClass}"
+  class:logo-glow={size === "dict"}
 >
   {#if audioCore.isPlaying}
-    <!-- Centered animation container that overflows horizontally to display notes -->
+    <!-- Left-aligned animation container that overflows horizontally to display notes over the text -->
     <div
       transition:fade={{ duration: 800 }}
-      class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-full w-auto aspect-[1.44/1] max-w-none overflow-visible flex items-center justify-center"
+      class="absolute top-1/2 -translate-y-1/2 h-full w-auto aspect-[1.44/1] max-w-none overflow-visible flex items-center justify-start pointer-events-none {size ===
+      'dict'
+        ? '-left-5 md:left-0'
+        : 'left-0'}"
+      style="mix-blend-mode: screen;"
     >
       {#if !isLottieLoaded}
         <!-- Fallback video (MP4) -->
@@ -78,10 +86,7 @@
     </div>
   {:else}
     <!-- Static Dog Face Logo -->
-    <div
-      transition:fade={{ duration: 800 }}
-      class="w-full h-full block"
-    >
+    <div transition:fade={{ duration: 800 }} class="w-full h-full block">
       <picture class="w-full h-full block">
         <source srcset={dogsLogoWebp} type="image/webp" />
         <img
@@ -97,9 +102,10 @@
 <style>
   /* Outline glow to make the black logo visible on dark backgrounds */
   .logo-glow img {
-    filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.85)) drop-shadow(0 0 8px rgba(255, 255, 255, 0.4));
+    filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.85))
+      drop-shadow(0 0 8px rgba(255, 255, 255, 0.4));
   }
-  
+
   /* Drop shadow for panel icons */
   div:not(.logo-glow) img {
     filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.4));
