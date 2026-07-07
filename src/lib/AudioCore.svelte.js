@@ -1,18 +1,18 @@
 /**
  * Core Web Audio Engine manages gain nodes, crossfaders, and ducking states.
- * Operates independently of Svelte view files, exposing Svelte 5 reactive states.
+ * Uses HTMLMediaElement streaming connected to Web Audio Context for native OS Media Session,
+ * hardware key, and Bluetooth controls integration.
  */
 export class AudioCore {
   audioCtx = null;
   musicGain = null;
+  trackAudio = null;
+  instAudio = null;
   trackSourceNode = null;
   instSourceNode = null;
   trackGainNode = null;
   instGainNode = null;
   analyser = $state(null);
-
-  trackBuffer = null;
-  instBuffer = null;
 
   // Reactive Svelte 5 Runes States
   isPlaying = $state(false);
@@ -27,8 +27,6 @@ export class AudioCore {
   repeatMode = $state(0); // 0 = Off, 1 = Repeat All, 2 = Repeat One
   activeAudioType = $state("music"); // 'music' | 'video'
 
-  startTime = 0;
-  pauseTime = 0;
   progressInterval = null;
   library = [];
 
@@ -50,6 +48,34 @@ export class AudioCore {
     this.musicGain.connect(this.analyser);
     this.analyser.connect(this.audioCtx.destination);
 
+    // Initialize HTML Audio elements
+    this.trackAudio = new Audio();
+    this.trackAudio.crossOrigin = "anonymous";
+    this.instAudio = new Audio();
+    this.instAudio.crossOrigin = "anonymous";
+
+    // Bind event listeners for ending and duration changes
+    this.trackAudio.addEventListener("ended", () => {
+      this.onEnded();
+    });
+    this.trackAudio.addEventListener("durationchange", () => {
+      this.duration = this.trackAudio.duration;
+    });
+
+    // Create gain nodes for crossfading
+    this.trackGainNode = this.audioCtx.createGain();
+    this.trackGainNode.connect(this.musicGain);
+
+    this.instGainNode = this.audioCtx.createGain();
+    this.instGainNode.connect(this.musicGain);
+
+    // Create source nodes from Audio elements
+    this.trackSourceNode = this.audioCtx.createMediaElementSource(this.trackAudio);
+    this.trackSourceNode.connect(this.trackGainNode);
+
+    this.instSourceNode = this.audioCtx.createMediaElementSource(this.instAudio);
+    this.instSourceNode.connect(this.instGainNode);
+
     this.applyVolume();
   }
 
@@ -58,24 +84,41 @@ export class AudioCore {
     this.currentTrackIndex = index;
     this.isInstrumental = false;
     this.currentTime = 0;
-    this.pauseTime = 0;
     this.isLoading = true;
 
     this.initContext();
     if (this.audioCtx.state === "suspended") {
       try { await this.audioCtx.resume(); } catch (e) { }
     }
-    this.stopNodes();
 
     const track = this.library[index];
     try {
-      const [tBuf, iBuf] = await Promise.all([
-        this.fetchAndDecode(track.src),
-        this.fetchAndDecode(track.instrumental)
-      ]);
-      this.trackBuffer = tBuf;
-      this.instBuffer = iBuf;
-      this.duration = this.trackBuffer ? this.trackBuffer.duration : 0;
+      this.trackAudio.src = track.src;
+      this.trackAudio.load();
+      if (track.instrumental) {
+        this.instAudio.src = track.instrumental;
+        this.instAudio.load();
+      } else {
+        this.instAudio.removeAttribute("src");
+        this.instAudio.load();
+      }
+
+      // Wait briefly for metadata to resolve duration
+      await new Promise((resolve) => {
+        const handler = () => {
+          this.duration = this.trackAudio.duration;
+          this.trackAudio.removeEventListener("loadedmetadata", handler);
+          resolve();
+        };
+        if (this.trackAudio.readyState >= 1) {
+          this.duration = this.trackAudio.duration;
+          resolve();
+        } else {
+          this.trackAudio.addEventListener("loadedmetadata", handler);
+          // Safety timeout
+          setTimeout(resolve, 1500);
+        }
+      });
     } catch (err) {
       console.error("Error loading track channels:", err);
       this.isPlaying = false;
@@ -83,63 +126,42 @@ export class AudioCore {
       this.isLoading = false;
     }
 
-    if (autoplay && this.trackBuffer) {
-      this.play();
+    if (autoplay) {
+      this.play(0);
     }
     this.updateMediaSession();
   }
 
-  async fetchAndDecode(url) {
-    if (!url) return null;
-    const res = await fetch(url);
-    const arrayBuffer = await res.arrayBuffer();
-    return await this.audioCtx.decodeAudioData(arrayBuffer);
-  }
-
-  stopNodes() {
-    try { this.trackSourceNode?.stop(); } catch { }
-    try { this.instSourceNode?.stop(); } catch { }
-    this.trackSourceNode = null;
-    this.instSourceNode = null;
-    this.trackGainNode = null;
-    this.instGainNode = null;
-  }
-
-  play(offset = this.pauseTime) {
-    if (!this.trackBuffer) return;
+  play(offset = this.currentTime) {
+    if (!this.trackAudio) return;
     this.initContext();
-    this.stopNodes();
-
     this.activeAudioType = "music";
-
-    this.trackSourceNode = this.audioCtx.createBufferSource();
-    this.trackSourceNode.buffer = this.trackBuffer;
-    this.trackGainNode = this.audioCtx.createGain();
-    this.trackSourceNode.connect(this.trackGainNode);
-    this.trackGainNode.connect(this.musicGain);
-
-    if (this.instBuffer) {
-      this.instSourceNode = this.audioCtx.createBufferSource();
-      this.instSourceNode.buffer = this.instBuffer;
-      this.instGainNode = this.audioCtx.createGain();
-      this.instSourceNode.connect(this.instGainNode);
-      this.instGainNode.connect(this.musicGain);
-    }
 
     this.applyCrossfade();
     this.applyVolume();
 
-    const now = this.audioCtx.currentTime;
-    this.startTime = now - offset;
-    this.pauseTime = offset;
+    // Set current time of HTML Audio elements
+    this.trackAudio.currentTime = offset;
+    if (this.instAudio && this.instAudio.src) {
+      this.instAudio.currentTime = offset;
+    }
 
-    this.trackSourceNode.start(now, offset);
-    if (this.instSourceNode) {
-      this.instSourceNode.start(now, offset);
+    // Play
+    this.trackAudio.play().catch(e => console.error("Error playing trackAudio:", e));
+    if (this.instAudio && this.instAudio.src) {
+      this.instAudio.play().catch(e => console.error("Error playing instAudio:", e));
     }
 
     this.isPlaying = true;
     this.startProgressTimer();
+    this.updateMediaSession();
+  }
+
+  pause() {
+    clearInterval(this.progressInterval);
+    if (this.trackAudio) this.trackAudio.pause();
+    if (this.instAudio) this.instAudio.pause();
+    this.isPlaying = false;
     this.updateMediaSession();
   }
 
@@ -149,27 +171,23 @@ export class AudioCore {
       try { await this.audioCtx.resume(); } catch (e) { }
     }
 
-    if (!this.trackBuffer && !this.isLoading) {
+    if (!this.trackAudio.src && !this.isLoading) {
       await this.loadTrack(this.currentTrackIndex, true);
       return;
     }
 
     if (this.isPlaying) {
-      clearInterval(this.progressInterval);
-      this.pauseTime = this.audioCtx.currentTime - this.startTime;
-      this.stopNodes();
-      this.isPlaying = false;
+      this.pause();
     } else {
-      this.play();
+      this.play(this.currentTime);
     }
     this.updateMediaSession();
   }
 
   prevTrack() {
     if (this.currentTime > 3) {
-      this.pauseTime = 0;
-      if (this.isPlaying) this.play();
-      else this.currentTime = 0;
+      this.currentTime = 0;
+      this.play(0);
       return;
     }
     const idx = this.isShuffled
@@ -192,27 +210,35 @@ export class AudioCore {
   startProgressTimer() {
     clearInterval(this.progressInterval);
     this.progressInterval = setInterval(() => {
-      if (this.isPlaying && this.audioCtx) {
-        this.currentTime = this.audioCtx.currentTime - this.startTime;
+      if (this.isPlaying && this.trackAudio) {
+        this.currentTime = this.trackAudio.currentTime;
+
+        // Keep instrumental in sync with the main track (within 50ms tolerance)
+        if (this.instAudio && this.instAudio.src && !this.instAudio.paused) {
+          const diff = Math.abs(this.instAudio.currentTime - this.trackAudio.currentTime);
+          if (diff > 0.05) {
+            this.instAudio.currentTime = this.trackAudio.currentTime;
+          }
+        }
+
         if (this.currentTime >= this.duration) {
           clearInterval(this.progressInterval);
           this.onEnded();
         }
       }
-    }, 100);
+    }, 150);
   }
 
   onEnded() {
     if (this.repeatMode === 2) {
-      this.pauseTime = 0;
+      this.currentTime = 0;
       this.isPlaying = false;
-      this.play();
+      this.play(0);
     } else if (this.repeatMode === 1 || this.currentTrackIndex < this.library.length - 1) {
       this.nextTrack();
     } else {
       this.isPlaying = false;
-      this.stopNodes();
-      this.pauseTime = 0;
+      this.pause();
       this.currentTime = 0;
     }
     this.updateMediaSession();
@@ -243,9 +269,15 @@ export class AudioCore {
   }
 
   applyVolume() {
+    const targetVol = this.isMuted ? 0 : this.volume;
     if (this.musicGain && this.audioCtx) {
-      const targetVol = this.isMuted ? 0 : this.volume;
       this.musicGain.gain.setValueAtTime(targetVol, this.audioCtx.currentTime);
+    }
+    if (this.trackAudio) {
+      this.trackAudio.volume = targetVol;
+    }
+    if (this.instAudio) {
+      this.instAudio.volume = targetVol;
     }
   }
 
@@ -284,8 +316,37 @@ export class AudioCore {
       navigator.mediaSession.setActionHandler("nexttrack", () => this.nextTrack());
       navigator.mediaSession.setActionHandler("seekto", (details) => {
         this.currentTime = details.seekTime;
-        this.pauseTime = details.seekTime;
-        if (this.isPlaying) this.play();
+        if (this.trackAudio) {
+          this.trackAudio.currentTime = details.seekTime;
+        }
+        if (this.instAudio && this.instAudio.src) {
+          this.instAudio.currentTime = details.seekTime;
+        }
+        this.updateMediaSessionPositionState();
+      });
+      navigator.mediaSession.setActionHandler("seekbackward", (details) => {
+        const offset = details.seekOffset || 10;
+        const newTime = Math.max(0, this.currentTime - offset);
+        this.currentTime = newTime;
+        if (this.trackAudio) {
+          this.trackAudio.currentTime = newTime;
+        }
+        if (this.instAudio && this.instAudio.src) {
+          this.instAudio.currentTime = newTime;
+        }
+        this.updateMediaSessionPositionState();
+      });
+      navigator.mediaSession.setActionHandler("seekforward", (details) => {
+        const offset = details.seekOffset || 10;
+        const newTime = Math.min(this.duration, this.currentTime + offset);
+        this.currentTime = newTime;
+        if (this.trackAudio) {
+          this.trackAudio.currentTime = newTime;
+        }
+        if (this.instAudio && this.instAudio.src) {
+          this.instAudio.currentTime = newTime;
+        }
+        this.updateMediaSessionPositionState();
       });
     }
   }
@@ -293,15 +354,32 @@ export class AudioCore {
   updateMediaSession() {
     if (typeof navigator !== "undefined" && "mediaSession" in navigator && this.library[this.currentTrackIndex]) {
       const track = this.library[this.currentTrackIndex];
+      const origin = typeof window !== "undefined" ? window.location.origin : "";
+      
       navigator.mediaSession.metadata = new MediaMetadata({
         title: track.title,
         artist: track.artist,
         album: track.album,
         artwork: [
-          { src: track.cover, sizes: "512x512", type: "image/webp" }
+          { src: origin + track.cover, sizes: "512x512", type: "image/webp" }
         ]
       });
       navigator.mediaSession.playbackState = this.isPlaying ? "playing" : "paused";
+      this.updateMediaSessionPositionState();
+    }
+  }
+
+  updateMediaSessionPositionState() {
+    if (typeof navigator !== "undefined" && "mediaSession" in navigator && "setPositionState" in navigator.mediaSession) {
+      try {
+        navigator.mediaSession.setPositionState({
+          duration: this.duration || 0,
+          playbackRate: 1.0,
+          position: this.currentTime || 0
+        });
+      } catch (e) {
+        console.error("Error setting position state:", e);
+      }
     }
   }
 }
