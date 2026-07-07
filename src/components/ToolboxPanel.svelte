@@ -15,13 +15,14 @@
     BookOpen,
     Settings,
     Zap,
+    Hourglass,
   } from "lucide-svelte";
   import SnakeApp from "./apps/SnakeApp.svelte";
   import DogsLogo from "./DogsLogo.svelte";
   import { audioCore } from "../lib/AudioCore.svelte.js";
   import SoundboardApp from "./apps/SoundboardApp.svelte";
   import PaintApp from "./apps/PaintApp.svelte";
-  import StopwatchApp from "./apps/StopwatchApp.svelte";
+  import FatherTimeApp from "./apps/fathertime/FatherTimeApp.svelte";
   import GoPro from "./apps/GoPro.svelte";
   import DataFlash from "./apps/DataFlash.svelte";
   import QRGenerator from "./apps/QRGenerator.svelte";
@@ -245,7 +246,7 @@
               </div>
             </div>
 
-            <!-- App 6: Stopwatch -->
+            <!-- App 6: Father Time -->
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div
@@ -256,13 +257,13 @@
             >
               <div class="app-visual">
                 <div class="stopwatch-preview">
-                  <Watch size={32} />
+                  <Hourglass size={32} />
                 </div>
               </div>
               <div class="app-meta">
-                <span class="app-title"><Watch size={14} /> Chronometer</span>
+                <span class="app-title"><Hourglass size={14} /> Father Time</span>
                 <span class="app-desc"
-                  >Track elapsed lap times with sub-millisecond precision.</span
+                  >Sands of time: stopwatch, timer, alarms, world clock, metronome & pitch tuner.</span
                 >
               </div>
             </div>
@@ -413,7 +414,7 @@
       {:else if activeApp === "paint"}
         <PaintApp />
       {:else if activeApp === "stopwatch"}
-        <StopwatchApp />
+        <FatherTimeApp />
       {:else if activeApp === "gopro"}
         <GoPro />
       {:else if activeApp === "dataflash"}
