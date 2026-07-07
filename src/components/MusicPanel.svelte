@@ -336,7 +336,10 @@
       <div class="brand">
         <button
           class="logo-btn"
-          onclick={() => window.dispatchEvent(new CustomEvent("open-info-panel"))}
+          onclick={() => {
+            if (audioCore.isPlaying) return;
+            window.dispatchEvent(new CustomEvent("open-info-panel"));
+          }}
           aria-label="Open DOGS Info"
         >
           <DogsLogo size="panel" />

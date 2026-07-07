@@ -1,6 +1,7 @@
 <script>
   import { ArrowLeft } from "lucide-svelte";
   import DogsLogo from "./DogsLogo.svelte";
+  import { audioCore } from "../lib/AudioCore.svelte.js";
 
   let {
     isClosing = false,
@@ -32,7 +33,7 @@
       <div class="brand">
         <button
           class="logo-btn"
-          onclick={() => window.dispatchEvent(new CustomEvent("open-info-panel"))}
+          onclick={() => window.dispatchEvent(new CustomEvent(audioCore.isPlaying ? "open-music-panel" : "open-info-panel"))}
           aria-label="Open DOGS Info"
         >
           <DogsLogo size="panel" />

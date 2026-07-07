@@ -19,6 +19,7 @@
   } from "lucide-svelte";
   import SwipeTabNav from "./SwipeTabNav.svelte";
   import DogsLogo from "./DogsLogo.svelte";
+  import { audioCore } from "../lib/AudioCore.svelte.js";
   import countryStats from "../lib/countryStats.js";
   import ExplorerTab from "./stats/ExplorerTab.svelte";
   import MapTab from "./stats/MapTab.svelte";
@@ -477,7 +478,7 @@
       <div class="brand">
         <button
           class="logo-btn"
-          onclick={() => window.dispatchEvent(new CustomEvent("open-info-panel"))}
+          onclick={() => window.dispatchEvent(new CustomEvent(audioCore.isPlaying ? "open-music-panel" : "open-info-panel"))}
           aria-label="Open DOGS Info"
         >
           <DogsLogo size="panel" />

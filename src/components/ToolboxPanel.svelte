@@ -18,6 +18,7 @@
   } from "lucide-svelte";
   import SnakeApp from "./apps/SnakeApp.svelte";
   import DogsLogo from "./DogsLogo.svelte";
+  import { audioCore } from "../lib/AudioCore.svelte.js";
   import SoundboardApp from "./apps/SoundboardApp.svelte";
   import PaintApp from "./apps/PaintApp.svelte";
   import StopwatchApp from "./apps/StopwatchApp.svelte";
@@ -77,8 +78,7 @@
       <div class="brand">
         <button
           class="logo-btn"
-          onclick={() =>
-            window.dispatchEvent(new CustomEvent("open-info-panel"))}
+          onclick={() => window.dispatchEvent(new CustomEvent(audioCore.isPlaying ? "open-music-panel" : "open-info-panel"))}
           aria-label="Open DOGS Info"
         >
           <DogsLogo size="panel" />

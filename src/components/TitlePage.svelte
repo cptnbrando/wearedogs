@@ -52,8 +52,16 @@
       const currentState = history.state || {};
       history.pushState({ ...currentState, showInfo: true }, "");
     };
+    const handleOpenMusic = () => {
+      showInfo = false;
+      openPage("music");
+    };
     window.addEventListener("open-info-panel", handleOpenInfo);
-    return () => window.removeEventListener("open-info-panel", handleOpenInfo);
+    window.addEventListener("open-music-panel", handleOpenMusic);
+    return () => {
+      window.removeEventListener("open-info-panel", handleOpenInfo);
+      window.removeEventListener("open-music-panel", handleOpenMusic);
+    };
   });
 
   // Component reference for API calls

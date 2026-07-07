@@ -3,6 +3,7 @@
   import { Mail } from "lucide-svelte";
   import BinaryBackground from "./BinaryBackground.svelte";
   import DogsLogo from "./DogsLogo.svelte";
+  import { audioCore } from "../lib/AudioCore.svelte.js";
 
   // Props mapping the flag colors toggle state
   let { isFlagColors = false, active = false } = $props();
@@ -60,7 +61,13 @@
       class="dict-container w-full max-lg:landscape:w-[46%] lg:w-full max-w-[650px] mt-4 max-lg:landscape:mt-0 lg:mt-0 pointer-events-auto max-lg:landscape:my-auto"
     >
       <div class="flex items-center gap-2.5 md:gap-3.5">
-        <DogsLogo size="dict" />
+        <button
+          class="logo-btn pointer-events-auto focus:outline-none"
+          onclick={() => window.dispatchEvent(new CustomEvent(audioCore.isPlaying ? "open-music-panel" : "open-info-panel"))}
+          aria-label="DOGS Logo"
+        >
+          <DogsLogo size="dict" />
+        </button>
         <h2
           class="dict-word font-black text-white tracking-tight uppercase text-3xl md:text-4xl lg:text-5xl transition-colors duration-500"
           class:colored={isFlagColors}

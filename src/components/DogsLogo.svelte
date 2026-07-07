@@ -1,4 +1,5 @@
 <script>
+  import { fade } from "svelte/transition";
   import { audioCore } from "../lib/AudioCore.svelte.js";
   import dogSingLottie from "../assets/dog-sing.lottie?url";
   import dogSingMp4 from "../assets/dog-sing.mp4";
@@ -8,26 +9,26 @@
   let { size = "panel", class: customClass = "" } = $props();
 
   let isLottieLoaded = $state(false);
-  let lottieElement = $state(null);
 
-  $effect(() => {
-    if (lottieElement) {
-      const handleLoad = () => {
-        console.log("Lottie loaded successfully!");
-        isLottieLoaded = true;
-      };
-      const handleError = () => {
-        console.log("Lottie failed to load.");
-        isLottieLoaded = false;
-      };
-      lottieElement.addEventListener("load", handleLoad);
-      lottieElement.addEventListener("error", handleError);
-      return () => {
-        lottieElement.removeEventListener("load", handleLoad);
-        lottieElement.removeEventListener("error", handleError);
-      };
-    }
-  });
+  // Svelte action to handle Lottie element event listeners safely
+  function setupLottie(node) {
+    const handleLoad = () => {
+      console.log("Lottie loaded successfully!");
+      isLottieLoaded = true;
+    };
+    const handleError = () => {
+      console.log("Lottie failed to load.");
+      isLottieLoaded = false;
+    };
+    node.addEventListener("load", handleLoad);
+    node.addEventListener("error", handleError);
+    return {
+      destroy() {
+        node.removeEventListener("load", handleLoad);
+        node.removeEventListener("error", handleError);
+      }
+    };
+  }
 </script>
 
 <div
@@ -36,7 +37,10 @@
 >
   {#if audioCore.isPlaying}
     <!-- Centered animation container that overflows horizontally to display notes -->
-    <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-full w-auto aspect-[1.44/1] max-w-none overflow-visible flex items-center justify-center">
+    <div
+      transition:fade={{ duration: 800 }}
+      class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-full w-auto aspect-[1.44/1] max-w-none overflow-visible flex items-center justify-center"
+    >
       {#if !isLottieLoaded}
         <!-- Fallback video (MP4) -->
         <video
@@ -60,7 +64,7 @@
 
       <!-- dotLottie Web Component (hidden unless loaded) -->
       <dotlottie-wc
-        bind:this={lottieElement}
+        use:setupLottie
         src={dogSingLottie}
         autoplay
         loop
@@ -74,14 +78,19 @@
     </div>
   {:else}
     <!-- Static Dog Face Logo -->
-    <picture class="w-full h-full block">
-      <source srcset={dogsLogoWebp} type="image/webp" />
-      <img
-        src={dogsLogoPng}
-        alt="DOGS Logo"
-        class="w-full h-full object-contain"
-      />
-    </picture>
+    <div
+      transition:fade={{ duration: 800 }}
+      class="w-full h-full block"
+    >
+      <picture class="w-full h-full block">
+        <source srcset={dogsLogoWebp} type="image/webp" />
+        <img
+          src={dogsLogoPng}
+          alt="DOGS Logo"
+          class="w-full h-full object-contain"
+        />
+      </picture>
+    </div>
   {/if}
 </div>
 
