@@ -23,8 +23,13 @@
   import HistoryTab from "./HistoryTab.svelte";
   import MetronomeTab from "./MetronomeTab.svelte";
   import TuningForkTab from "./TuningForkTab.svelte";
+  import { Metronome } from "./metronome.svelte.js";
+  import MetronomeVisual from "./MetronomeVisual.svelte";
 
   let activeTab = $state("hourglass");
+  let nowDate = $state(new Date());
+  let hourglassMode = $state("minute");
+  let sharedMetronome = $state(new Metronome());
   let digitalTime = $state("");
   let digitalDate = $state("");
   let timeTicker = null;
@@ -43,9 +48,9 @@
   ];
 
   function updateClock() {
-    const now = new Date();
-    digitalTime = now.toLocaleTimeString("en-US", { hour12: true });
-    digitalDate = now.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
+    nowDate = new Date();
+    digitalTime = nowDate.toLocaleTimeString("en-US", { hour12: true });
+    digitalDate = nowDate.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
   }
 
   onMount(() => {
@@ -181,8 +186,12 @@
       
       <!-- Persistent dashboard info panel -->
       <div class="w-80 border border-white/5 bg-black/25 rounded-2xl p-5 flex flex-col justify-between select-none">
-        <div class="text-center flex flex-col items-center">
-          <Hourglass isActive={true} progress={null} />
+        <div class="text-center flex flex-col items-center justify-center min-h-[280px]">
+          {#if activeTab === "metronome"}
+            <MetronomeVisual bpm={sharedMetronome.bpm} isPlaying={sharedMetronome.isPlaying} />
+          {:else}
+            <Hourglass now={nowDate} bind:currentMode={hourglassMode} />
+          {/if}
           <h2 class="text-lg font-black text-white uppercase tracking-widest mt-4">Father Time</h2>
           <p class="text-[10px] text-white/40 tracking-wider">Universal chronometer & audio suites</p>
           
@@ -201,7 +210,7 @@
       <div class="flex-1 border border-white/5 bg-black/15 rounded-2xl p-2 relative overflow-hidden">
         {#if activeTab === "hourglass"}
           <div class="flex flex-col items-center justify-center h-full text-center p-6">
-            <Hourglass isActive={true} progress={null} />
+            <Hourglass now={nowDate} bind:currentMode={hourglassMode} />
             <h3 class="font-bold text-white text-sm mt-4">Universal Sands of Time</h3>
             <p class="text-[10px] text-white/40 max-w-xs mt-1">Simulated granular sand particles falling and shifting in perfect alignment with physical timeline seconds.</p>
           </div>
@@ -212,7 +221,7 @@
           {#if activeTab === "worldclock"}<WorldClockTab />{/if}
           {#if activeTab === "servers"}<TimeServersTab />{/if}
           {#if activeTab === "history"}<HistoryTab />{/if}
-          {#if activeTab === "metronome"}<MetronomeTab />{/if}
+          {#if activeTab === "metronome"}<MetronomeTab metronome={sharedMetronome} />{/if}
           {#if activeTab === "tuner"}<TuningForkTab />{/if}
         {/if}
       </div>
@@ -222,7 +231,7 @@
     <div class="2xl:hidden w-full h-full flex flex-col items-stretch justify-center relative overflow-hidden">
       {#if activeTab === "hourglass"}
         <div class="flex flex-col items-center justify-center text-center p-6 h-full select-none">
-          <Hourglass isActive={true} progress={null} />
+          <Hourglass now={nowDate} bind:currentMode={hourglassMode} />
           <h3 class="font-bold text-white text-sm mt-4">Sands of Time</h3>
           <p class="text-[10px] text-white/40 max-w-xs mt-1">Particles settle dynamically every second. Click the glass to physically rotate it.</p>
           
@@ -238,7 +247,7 @@
         {#if activeTab === "worldclock"}<WorldClockTab />{/if}
         {#if activeTab === "servers"}<TimeServersTab />{/if}
         {#if activeTab === "history"}<HistoryTab />{/if}
-        {#if activeTab === "metronome"}<MetronomeTab />{/if}
+        {#if activeTab === "metronome"}<MetronomeTab metronome={sharedMetronome} />{/if}
         {#if activeTab === "tuner"}<TuningForkTab />{/if}
       {/if}
     </div>

@@ -2,8 +2,9 @@
   import { onMount, onDestroy } from "svelte";
   import { Play, Pause, ChevronLeft, ChevronRight, Volume2, Radio } from "lucide-svelte";
   import { Metronome } from "./metronome.svelte.js";
+  import MetronomeVisual from "./MetronomeVisual.svelte";
 
-  let metronome = $state(new Metronome());
+  let { metronome } = $props();
   
   // Local UI states matching metronome scheduler
   let isPlaying = $derived(metronome.isPlaying);
@@ -15,11 +16,8 @@
   let vibrate = $state(false);
 
   // Animation variables
-  let pendulumAngle = $state(0);
   let activeBeatIndex = $state(-1);
   let activeSubIndex = $state(-1);
-  let animationId = null;
-  let animStartTime = 0;
   
   // Tap tempo buffer
   let lastTapTime = 0;
@@ -109,49 +107,18 @@
         }
       }, 100);
     };
-
-    animationId = requestAnimationFrame(animatePendulum);
   });
 
   onDestroy(() => {
     metronome.stop();
-    if (animationId) cancelAnimationFrame(animationId);
   });
 </script>
 
 <div class="metronome-tab animated-pane flex flex-col md:flex-row items-center gap-6 justify-around h-full p-4 md:p-6 w-full max-w-4xl mx-auto">
   
-  <!-- Left Side: Swinging Pendulum Mechanical Animation -->
-  <div class="flex flex-col items-center justify-center relative w-48 h-64 border border-white/5 bg-black/30 rounded-2xl p-4 overflow-hidden">
-    
-    <!-- Pendulum pivot and shaft -->
-    <div class="absolute top-8 left-1/2 w-3.5 h-3.5 rounded-full bg-violet-400 border border-white/50 -translate-x-1/2 z-20"></div>
-    
-    <!-- Pendulum Arm (Rotating SVG group) -->
-    <div 
-      class="absolute top-10 left-1/2 w-1.5 h-44 origin-top -translate-x-1/2 z-10 transition-transform duration-75"
-      style="transform: rotate({pendulumAngle}deg); transform-origin: top center;"
-    >
-      <!-- Shaft rod -->
-      <div class="w-full h-full bg-gradient-to-b from-white/10 to-white/40 rounded-full"></div>
-      <!-- Adjustable weight mass -->
-      <div 
-        class="absolute w-6 h-6 bg-violet-400 border border-white/30 rounded-md -left-2 shadow-lg shadow-violet-500/25 flex items-center justify-center font-mono text-[8px] font-bold text-black"
-        style="bottom: {200 - (bpm - 30) * 0.55}px;"
-      >
-        {bpm}
-      </div>
-    </div>
-
-    <!-- Background ticking guidelines -->
-    <div class="absolute bottom-6 left-6 right-6 flex justify-between text-[9px] text-white/15 select-none font-bold">
-      <span>L</span>
-      <span>|</span>
-      <span>R</span>
-    </div>
-
-    <!-- Active ticking flash overlay -->
-    <div class="absolute inset-0 bg-violet-500/5 opacity-0 transition-opacity duration-75 pointer-events-none" class:opacity-100={activeBeatIndex === 0}></div>
+  <!-- Left Side: Metronome Visual (hidden on 2xl where sidebar renders it instead) -->
+  <div class="flex 2xl:hidden flex-col items-center justify-center flex-shrink-0">
+    <MetronomeVisual bpm={bpm} isPlaying={isPlaying} />
   </div>
 
   <!-- Right Side: Config Controls Dashboard -->

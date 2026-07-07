@@ -1,7 +1,6 @@
 <script>
   import { onDestroy } from "svelte";
   import { Play, Pause, RotateCcw, Volume2, VolumeX } from "lucide-svelte";
-  import Hourglass from "./Hourglass.svelte";
 
   let hoursInput = $state(0);
   let minutesInput = $state(5);
@@ -124,25 +123,54 @@
   });
 </script>
 
-<div class="timer-tab animated-pane flex flex-col md:flex-row items-center gap-6 justify-around h-full p-4 md:p-6 w-full max-w-4xl mx-auto">
+<div class="timer-tab animated-pane flex flex-col md:flex-row items-center gap-8 justify-around h-full p-4 md:p-6 w-full max-w-4xl mx-auto">
   
-  <!-- Left Side: Interactive Hourglass Display -->
-  <div class="flex flex-col items-center justify-center">
-    <Hourglass isActive={timerActive} {progress} />
-    <span class="text-[9px] text-white/30 uppercase mt-2.5 tracking-wider">Sands of time sync</span>
+  <!-- Left Side: Progress Ring -->
+  <div class="flex flex-col items-center justify-center relative w-48 h-48 select-none">
+    <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+      <circle 
+        cx="50" 
+        cy="50" 
+        r="40" 
+        fill="none" 
+        stroke="rgba(255, 255, 255, 0.05)" 
+        stroke-width="5" 
+      />
+      <circle 
+        cx="50" 
+        cy="50" 
+        r="40" 
+        fill="none" 
+        stroke="#f59e0b" 
+        stroke-width="5" 
+        stroke-dasharray="251.2"
+        stroke-dashoffset={251.2 * (1 - progress)}
+        stroke-linecap="round"
+        class="transition-all duration-150 ease-out"
+        style="filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.45));"
+      />
+    </svg>
+    <div class="absolute inset-0 flex flex-col items-center justify-center">
+      {#if timeRemaining > 0 || timerActive}
+        <span class="font-mono text-2xl font-black text-amber-400">{formatDisplayTime(timeRemaining)}</span>
+      {:else}
+        <span class="font-mono text-2xl font-black text-white/20">00:00:00</span>
+      {/if}
+      <span class="text-[8px] text-white/30 uppercase tracking-widest font-bold mt-1">TIMER ACTIVE</span>
+    </div>
   </div>
 
   <!-- Right Side: Settings & Countdown Controls -->
   <div class="flex flex-col items-center justify-center flex-1 max-w-md w-full">
-    <div class="w-full text-center mb-4">
+    <div class="w-full text-center md:text-left mb-4">
       <h2 class="text-xs uppercase tracking-widest text-amber-400 font-bold mb-1">Countdown Timer</h2>
-      <p class="text-[10px] text-white/40">Set durations and watch sand fall</p>
+      <p class="text-[10px] text-white/40">Set custom durations and track split intervals</p>
     </div>
 
     <!-- Mode Selector or Digital Display -->
     {#if timeRemaining > 0 || timerActive}
-      <!-- Active Timer Digital Countdown -->
-      <div class="timer-display font-mono text-5xl sm:text-6xl font-black text-amber-400 tracking-wider my-6 select-none">
+      <!-- Active Timer Digital Countdown (only visible on mobile, hidden on desktop since it is inside the dial) -->
+      <div class="timer-display md:hidden font-mono text-5xl font-black text-amber-400 tracking-wider my-6 select-none">
         {formatDisplayTime(timeRemaining)}
       </div>
     {:else}
