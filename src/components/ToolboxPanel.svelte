@@ -138,15 +138,10 @@
               }}
             >
               <div class="app-visual">
-                <div class="qr-preview-mini">
-                  <span class="corner c1"></span>
-                  <span class="corner c2"></span>
-                  <span class="corner c3"></span>
-                  <span class="scan-bar"></span>
-                </div>
+                <Zap size={28} style="color: var(--color-neon-cyan, #00d7ff); filter: drop-shadow(0 0 6px rgba(0, 215, 255, 0.4));" />
               </div>
               <div class="app-meta">
-                <span class="app-title"><QrCode size={14} /> DataFlash</span>
+                <span class="app-title"><Zap size={14} /> DataFlash</span>
                 <span class="app-desc"
                   >Visual file transfer protocol over flashing QR codes.</span
                 >
