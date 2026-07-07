@@ -6,52 +6,93 @@
   import dogsLogoPng from "../assets/dogs-logo-cropped.png";
 
   let { size = "panel", class: customClass = "" } = $props();
+
+  let isLottieLoaded = $state(false);
+  let lottieElement = $state(null);
+
+  $effect(() => {
+    if (lottieElement) {
+      const handleLoad = () => {
+        console.log("Lottie loaded successfully!");
+        isLottieLoaded = true;
+      };
+      const handleError = () => {
+        console.log("Lottie failed to load.");
+        isLottieLoaded = false;
+      };
+      lottieElement.addEventListener("load", handleLoad);
+      lottieElement.addEventListener("error", handleError);
+      return () => {
+        lottieElement.removeEventListener("load", handleLoad);
+        lottieElement.removeEventListener("error", handleError);
+      };
+    }
+  });
 </script>
 
-{#if audioCore.isPlaying}
-  <!-- dotLottie Web Component by default, falls back to video (MP4) and then picture -->
-  <dotlottie-wc
-    src={dogSingLottie}
-    autoplay
-    loop
-    background="transparent"
-    class="shrink-0 object-cover {size === 'panel' ? 'w-6 h-6' : 'w-10 h-10 md:w-12 h-12 lg:w-14 h-14'} {customClass}"
-  >
-    <video
-      src={dogSingMp4}
-      autoplay
-      loop
-      muted
-      playsinline
-      class="object-cover shrink-0 {size === 'panel' ? 'w-6 h-6' : 'w-10 h-10 md:w-12 h-12 lg:w-14 h-14'} {customClass}"
-    >
-      <picture>
-        <source srcset={dogsLogoWebp} type="image/webp" />
-        <img
-          src={dogsLogoPng}
-          alt="DOGS Logo"
-          class="shrink-0 {size === 'panel' ? 'w-6 h-6 drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]' : 'w-10 h-10 md:w-12 h-12 lg:w-14 h-14'} {customClass}"
-        />
-      </picture>
-    </video>
-  </dotlottie-wc>
-{:else}
-  <!-- Static Dog Face Logo -->
-  <picture>
-    <source srcset={dogsLogoWebp} type="image/webp" />
-    <img
-      src={dogsLogoPng}
-      alt="DOGS Logo"
-      class="shrink-0 {size === 'panel' ? 'w-6 h-6 drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]' : 'w-10 h-10 md:w-12 h-12 lg:w-14 h-14'} {customClass}"
-    />
-  </picture>
-{/if}
+<div
+  class="relative shrink-0 overflow-visible {size === 'panel' ? 'w-6 h-6' : 'w-10 h-10 md:w-12 h-12 lg:w-14 h-14'} {customClass}"
+  class:logo-glow={size === 'dict'}
+>
+  {#if audioCore.isPlaying}
+    <!-- Centered animation container that overflows horizontally to display notes -->
+    <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-full w-auto aspect-[1.44/1] max-w-none overflow-visible flex items-center justify-center">
+      {#if !isLottieLoaded}
+        <!-- Fallback video (MP4) -->
+        <video
+          src={dogSingMp4}
+          autoplay
+          loop
+          muted
+          playsinline
+          class="h-full w-auto aspect-[1.44/1] max-w-none object-contain"
+        >
+          <picture class="w-full h-full block">
+            <source srcset={dogsLogoWebp} type="image/webp" />
+            <img
+              src={dogsLogoPng}
+              alt="DOGS Logo"
+              class="w-full h-full object-contain"
+            />
+          </picture>
+        </video>
+      {/if}
+
+      <!-- dotLottie Web Component (hidden unless loaded) -->
+      <dotlottie-wc
+        bind:this={lottieElement}
+        src={dogSingLottie}
+        autoplay
+        loop
+        background="transparent"
+        activeAnimationId="animation_0"
+        animationId="animation_0"
+        active-animation-id="animation_0"
+        class="h-full w-auto aspect-[1.44/1] max-w-none"
+        style={isLottieLoaded ? "display: block;" : "display: none;"}
+      ></dotlottie-wc>
+    </div>
+  {:else}
+    <!-- Static Dog Face Logo -->
+    <picture class="w-full h-full block">
+      <source srcset={dogsLogoWebp} type="image/webp" />
+      <img
+        src={dogsLogoPng}
+        alt="DOGS Logo"
+        class="w-full h-full object-contain"
+      />
+    </picture>
+  {/if}
+</div>
 
 <style>
-  /* Progressive enhancement: hide fallback elements if dotlottie-wc component is defined and running */
-  dotlottie-wc:defined video,
-  dotlottie-wc:defined picture,
-  dotlottie-wc:defined img {
-    display: none !important;
+  /* Outline glow to make the black logo visible on dark backgrounds */
+  .logo-glow img {
+    filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.85)) drop-shadow(0 0 8px rgba(255, 255, 255, 0.4));
+  }
+  
+  /* Drop shadow for panel icons */
+  div:not(.logo-glow) img {
+    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.4));
   }
 </style>
