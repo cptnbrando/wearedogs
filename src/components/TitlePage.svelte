@@ -1,6 +1,7 @@
 <script>
   import { onMount } from "svelte";
-  import "../lib/i18n.js";
+  import { initialLocale } from "../lib/i18n.js";
+  import { locale } from "svelte-i18n";
   import {
     ChartNoAxesColumn,
     Component,
@@ -16,30 +17,68 @@
   import MusicPanel from "./MusicPanel.svelte";
   import StorePanel from "./StorePanel.svelte";
   import MapPanel from "./MapPanel.svelte";
+  import InfoPanel from "./InfoPanel.svelte";
   import { parsePath, panelToUrl, appToUrl } from "../lib/router.svelte.js";
+  import { audioCore } from "../lib/AudioCore.svelte.js";
 
   // Active view state: 'stats' | 'networking' | 'toolbox' | 'music' | 'store' | 'map' | null
-  let activePage = $state(null);
+  let {
+    activePage = $bindable(null),
+    showInfo = $bindable(false),
+    weAreDogsColored = $bindable(false),
+    isLandingPage = true,
+  } = $props();
   let isClosing = $state(false);
-  let activeLang = $state("en");
+  let activeLang = $state(initialLocale);
   let activeApp = $state(null);
   let textIsPaused = $state(false);
-  let weAreDogsColored = $state(false);
+
+  let prevIsLandingPage = $state(true);
+  $effect(() => {
+    const current = isLandingPage;
+    if (current && !prevIsLandingPage) {
+      textIsPaused = true;
+    }
+    prevIsLandingPage = current;
+  });
+
+  $effect(() => {
+    locale.set(activeLang);
+  });
+
+  $effect(() => {
+    const handleOpenInfo = () => {
+      showInfo = true;
+      const currentState = history.state || {};
+      history.pushState({ ...currentState, showInfo: true }, "");
+    };
+    const handleOpenMusic = () => {
+      showInfo = false;
+      openPage("music");
+    };
+    window.addEventListener("open-info-panel", handleOpenInfo);
+    window.addEventListener("open-music-panel", handleOpenMusic);
+    return () => {
+      window.removeEventListener("open-info-panel", handleOpenInfo);
+      window.removeEventListener("open-music-panel", handleOpenMusic);
+    };
+  });
 
   // Component reference for API calls
   let weAreDogsRef = $state();
 
   // History stack depth
-  let depth = 0;
+  let depth = $state(0);
 
   // Track document-level fullscreen state to catch back button events
   let wasMainFullscreen = $state(false);
 
   // Deep-link params set on initial page load, cleared after panel mounts
-  let initialTrackId     = $state(null);
-  let deepLinkApp        = $state(null);
-  let deepLinkGoProShow  = $state(null);
-  let deepLinkGoProEp    = $state(null);
+  let initialTrackId = $state(null);
+  let deepLinkApp = $state(null);
+  let deepLinkGoProShow = $state(null);
+  let deepLinkGoProEp = $state(null);
+  let deepLinkBlogPostSlug = $state(null);
 
   // ---------------------------------------------------------------------------
   // URL Routing — parse deep-link on first mount
@@ -48,45 +87,80 @@
     const path = window.location.pathname;
     // Normalise the initial history entry so that closePage()'s history.go(-depth)
     // always returns the browser to '/' rather than the original deep-link URL.
-    history.replaceState({ view: null, app: null, depth: 0 }, '', '/');
+    if (path !== "/info") {
+      history.replaceState({ view: null, app: null, depth: 0 }, "", "/");
+    } else {
+      history.replaceState({ view: null, app: null, depth: 0 }, "", "/info");
+    }
 
     const params = parsePath(path);
     // null  or 'home' type  → already at home, nothing to open
-    if (!params || params.type === 'home') return;
+    if (!params || params.type === "home" || params.type === "info") return;
 
-    if (params.type === 'lang') {
+    if (params.type === "lang") {
       // Language is a preference, not a navigation step — set and stay at home.
       activeLang = params.lang;
       setTimeout(() => weAreDogsRef?.forceLanguage(params.lang), 0);
       return;
     }
 
-    if (params.type === 'panel') {
+    if (params.type === "panel") {
       openPage(params.panel);
       return;
     }
 
-    if (params.type === 'music-track') {
+    if (params.type === "music-track") {
       initialTrackId = params.trackId; // passed as prop to MusicPanel
-      openPage('music');
+      openPage("music");
       // Clear after MusicPanel has mounted and consumed the prop
-      setTimeout(() => { initialTrackId = null; }, 500);
+      setTimeout(() => {
+        initialTrackId = null;
+      }, 500);
       return;
     }
 
-    if (params.type === 'app') {
+    if (params.type === "app") {
       deepLinkApp = params.app;
-      openPage('toolbox');
-      setTimeout(() => { deepLinkApp = null; }, 400);
+      openPage("toolbox");
+      setTimeout(() => {
+        deepLinkApp = null;
+      }, 400);
       return;
     }
 
-    if (params.type === 'gopro-episode') {
-      deepLinkApp       = 'gopro';
+    if (params.type === "gopro-episode") {
+      deepLinkApp = "gopro";
       deepLinkGoProShow = params.show;
-      deepLinkGoProEp   = params.episode;
-      openPage('toolbox');
-      setTimeout(() => { deepLinkApp = null; deepLinkGoProShow = null; deepLinkGoProEp = null; }, 400);
+      deepLinkGoProEp = params.episode;
+      openPage("toolbox");
+      setTimeout(() => {
+        deepLinkApp = null;
+        deepLinkGoProShow = null;
+        deepLinkGoProEp = null;
+      }, 400);
+      return;
+    }
+
+    if (params.type === "blog-post") {
+      deepLinkApp = "blog";
+      deepLinkBlogPostSlug = params.slug;
+
+      activePage = "toolbox";
+      activeApp = "blog";
+      isClosing = false;
+
+      // Seed the history stack sequentially to depth 2 (blog list)
+      history.pushState({ view: "toolbox", app: null, depth: 1 }, "", "/apps");
+      history.pushState(
+        { view: "toolbox", app: "blog", depth: 2 },
+        "",
+        "/apps/blog",
+      );
+      depth = 2; // selectPost in BlogApp will push depth 3 for the slug
+
+      setTimeout(() => {
+        deepLinkApp = null;
+      }, 400);
       return;
     }
     // Any other parsePath result: home (already set up above)
@@ -117,13 +191,22 @@
 
   // Sync activeApp pushes and pops procedurally/reactively
   $effect(() => {
+    if (isClosing) return;
     const page = activePage;
     const app = activeApp;
+
+    if (app !== "blog") {
+      deepLinkBlogPostSlug = null;
+    }
 
     if (page === "toolbox") {
       if (app) {
         if (depth < 2) {
-          history.pushState({ view: page, app: app, depth: 2 }, '', appToUrl(app));
+          history.pushState(
+            { view: page, app: app, depth: 2 },
+            "",
+            appToUrl(app),
+          );
           depth = 2;
         }
       } else {
@@ -138,26 +221,17 @@
   // Listen to popstate event for browser/device back key navigation
   $effect(() => {
     const handlePop = (e) => {
+      if (showInfo) {
+        showInfo = false;
+        return;
+      }
       const state = e.state;
       const targetView = state?.view || null;
       const targetApp = state?.app || null;
       const targetDepth = state?.depth || 0;
 
-      // Update depth to match popped state
       depth = targetDepth;
-
       const wasFS = !!document.fullscreenElement;
-
-      if (activePage === "toolbox" && activeApp && !targetApp) {
-        // Go back to app launcher
-        activeApp = null;
-      } else if (activePage && !targetView) {
-        // Close overlay panel
-        closePageInternal();
-      } else {
-        activePage = targetView;
-        activeApp = targetApp;
-      }
 
       if (wasFS) {
         setTimeout(() => {
@@ -166,6 +240,29 @@
           }
         }, 50);
       }
+
+      if (
+        activePage === "toolbox" &&
+        activeApp &&
+        !targetApp &&
+        targetView === "toolbox"
+      ) {
+        activeApp = null;
+        return;
+      }
+
+      if (activePage && !targetView) {
+        closePageInternal();
+        return;
+      }
+
+      if (targetView === "toolbox" && targetApp === "blog") {
+        deepLinkBlogPostSlug = state?.slug || null;
+      }
+
+      isClosing = false;
+      activePage = targetView;
+      activeApp = targetApp;
     };
 
     window.addEventListener("popstate", handlePop);
@@ -178,15 +275,19 @@
     isClosing = false;
 
     // Push the state procedurally — include the canonical URL for bookmarking
-    history.pushState({ view: page, app: null, depth: 1 }, '', panelToUrl(page));
+    history.pushState(
+      { view: page, app: null, depth: 1 },
+      "",
+      panelToUrl(page),
+    );
     depth = 1;
   }
 
   function closePage() {
     const wasFS = !!document.fullscreenElement;
     if (depth > 0) {
+      isClosing = true;
       history.go(-depth);
-      depth = 0;
       if (wasFS) {
         setTimeout(() => {
           if (!document.fullscreenElement) {
@@ -209,6 +310,7 @@
   }
 
   function handleKeydown(e) {
+    if (window.location.pathname !== "/") return;
     if (e.key === "Escape" && activePage !== null) {
       closePage();
     }
@@ -224,6 +326,7 @@
   bind:isPaused={textIsPaused}
   bind:isFlagColors={weAreDogsColored}
   isFaded={activePage !== null}
+  {isLandingPage}
   onOpenStats={() => openPage("stats")}
   onOpenPage={(page) => openPage(page)}
 >
@@ -245,6 +348,7 @@
       <!-- Music -->
       <button
         class="runic-btn border-neon-purple"
+        class:rune-dancing={audioCore.isPlaying}
         onclick={(e) => {
           e.stopPropagation();
           openPage("music");
@@ -323,6 +427,9 @@
     initialApp={deepLinkApp}
     goProShow={deepLinkGoProShow}
     goProEpisode={deepLinkGoProEp}
+    bind:blogPostSlug={deepLinkBlogPostSlug}
+    bind:depth
+    isFlagColors={weAreDogsColored}
   />
 {:else if activePage === "music"}
   <MusicPanel {isClosing} onClose={closePage} {initialTrackId} />
@@ -330,6 +437,14 @@
   <StorePanel {isClosing} onClose={closePage} />
 {:else if activePage === "map"}
   <MapPanel {isClosing} onClose={closePage} />
+{/if}
+
+{#if showInfo}
+  <InfoPanel
+    onClose={() => {
+      if (showInfo) history.back();
+    }}
+  />
 {/if}
 
 <style>
@@ -427,5 +542,23 @@
       width: 20px !important;
       height: 20px !important;
     }
+  }
+
+  @keyframes runeDance {
+    0%, 100% {
+      transform: scale(1) rotate(0deg);
+    }
+    25% {
+      transform: scale(1.1) rotate(-8deg);
+    }
+    75% {
+      transform: scale(1.1) rotate(8deg);
+    }
+  }
+
+  .rune-dancing :global(svg) {
+    animation: runeDance 1s ease-in-out infinite;
+    color: #a000eb !important;
+    filter: drop-shadow(0 0 8px rgba(160, 0, 237, 0.6));
   }
 </style>

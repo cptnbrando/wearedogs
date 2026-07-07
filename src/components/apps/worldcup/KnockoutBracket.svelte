@@ -618,23 +618,23 @@
     height: 44px;
     border-radius: 50%;
     background-color: rgba(15, 15, 22, 0.85);
-    border: 1px solid rgba($color-neon-red, 0.35);
+    border: 1px solid rgba(var(--color-neon-red-rgb, 255, 51, 68), 0.35);
     color: $color-neon-red;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     z-index: 10;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6), 0 0 12px rgba($color-neon-red, 0.15);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6), 0 0 12px rgba(var(--color-neon-red-rgb, 255, 51, 68), 0.15);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     transition: all $transition-speed-normal cubic-bezier(0.16, 1, 0.3, 1);
 
     &:hover {
-      background-color: rgba($color-neon-red, 0.15);
+      background-color: rgba(var(--color-neon-red-rgb, 255, 51, 68), 0.15);
       border-color: $color-neon-red;
       color: white;
-      box-shadow: 0 4px 20px rgba($color-neon-red, 0.4);
+      box-shadow: 0 4px 20px rgba(var(--color-neon-red-rgb, 255, 51, 68), 0.4);
       transform: translateY(-50%) scale(1.08);
     }
 
@@ -671,43 +671,43 @@
 
     &.searched-glow {
       animation: searchPulse 1.5s infinite alternate;
-      box-shadow: 0 0 20px rgba($color-neon-gold, 0.25);
+      box-shadow: 0 0 20px rgba(var(--color-neon-gold-rgb, 230, 185, 0), 0.25);
     }
 
     &.current-match-glow {
-      border-color: rgba($color-neon-red, 0.65) !important;
-      box-shadow: 0 0 25px rgba($color-neon-red, 0.25), 0 4px 16px rgba(0, 0, 0, 0.5) !important;
+      border-color: rgba(var(--color-neon-red-rgb, 255, 51, 68), 0.65) !important;
+      box-shadow: 0 0 25px rgba(var(--color-neon-red-rgb, 255, 51, 68), 0.25), 0 4px 16px rgba(0, 0, 0, 0.5) !important;
       animation: currentMatchPulse 2s infinite alternate;
     }
   }
 
   .current-round-col {
-    background-color: rgba($color-neon-red, 0.015);
-    border: 1px dashed rgba($color-neon-red, 0.12);
-    box-shadow: inset 0 0 20px rgba($color-neon-red, 0.015);
+    background-color: rgba(var(--color-neon-red-rgb, 255, 51, 68), 0.015);
+    border: 1px dashed rgba(var(--color-neon-red-rgb, 255, 51, 68), 0.12);
+    box-shadow: inset 0 0 20px rgba(var(--color-neon-red-rgb, 255, 51, 68), 0.015);
     
     .r-title {
       color: $color-neon-red;
-      border-bottom-color: rgba($color-neon-red, 0.25);
-      text-shadow: 0 0 10px rgba($color-neon-red, 0.2);
+      border-bottom-color: rgba(var(--color-neon-red-rgb, 255, 51, 68), 0.25);
+      text-shadow: 0 0 10px rgba(var(--color-neon-red-rgb, 255, 51, 68), 0.2);
     }
   }
 
   .current-badge {
-    background-color: rgba($color-neon-red, 0.15);
-    border: 1px solid rgba($color-neon-red, 0.3);
+    background-color: rgba(var(--color-neon-red-rgb, 255, 51, 68), 0.15);
+    border: 1px solid rgba(var(--color-neon-red-rgb, 255, 51, 68), 0.3);
     color: $color-neon-red;
-    text-shadow: 0 0 5px rgba($color-neon-red, 0.2);
+    text-shadow: 0 0 5px rgba(var(--color-neon-red-rgb, 255, 51, 68), 0.2);
   }
 
   @keyframes currentMatchPulse {
     0% {
-      border-color: rgba($color-neon-red, 0.4);
-      box-shadow: 0 0 15px rgba($color-neon-red, 0.15), 0 4px 16px rgba(0, 0, 0, 0.5);
+      border-color: rgba(var(--color-neon-red-rgb, 255, 51, 68), 0.4);
+      box-shadow: 0 0 15px rgba(var(--color-neon-red-rgb, 255, 51, 68), 0.15), 0 4px 16px rgba(0, 0, 0, 0.5);
     }
     100% {
-      border-color: rgba($color-neon-red, 0.8);
-      box-shadow: 0 0 30px rgba($color-neon-red, 0.35), 0 4px 16px rgba(0, 0, 0, 0.5);
+      border-color: rgba(var(--color-neon-red-rgb, 255, 51, 68), 0.8);
+      box-shadow: 0 0 30px rgba(var(--color-neon-red-rgb, 255, 51, 68), 0.35), 0 4px 16px rgba(0, 0, 0, 0.5);
     }
   }
 
@@ -715,7 +715,7 @@
     color: $color-neon-gold;
   }
   .text-glow {
-    text-shadow: 0 0 10px rgba($color-neon-gold, 0.25);
+    text-shadow: 0 0 10px rgba(var(--color-neon-gold-rgb, 230, 185, 0), 0.25);
   }
 
   // Score Row details
@@ -775,14 +775,14 @@
   // Winner / Loser stylings in finished cards
   .finished {
     .m-row.winner {
-      background-color: rgba($color-neon-green, 0.04);
+      background-color: rgba(var(--color-neon-green-rgb, 0, 215, 95), 0.04);
       .name {
         color: white;
         font-weight: 700;
       }
       .score {
         color: $color-neon-green;
-        text-shadow: 0 0 8px rgba($color-neon-green, 0.35);
+        text-shadow: 0 0 8px rgba(var(--color-neon-green-rgb, 0, 215, 95), 0.35);
       }
     }
 
@@ -801,8 +801,8 @@
 
   // Mobile navigation button state
   .active-mobile {
-    background-color: rgba($color-neon-red, 0.08) !important;
-    border: 1px solid rgba($color-neon-red, 0.2) !important;
+    background-color: rgba(var(--color-neon-red-rgb, 255, 51, 68), 0.08) !important;
+    border: 1px solid rgba(var(--color-neon-red-rgb, 255, 51, 68), 0.2) !important;
     color: $color-neon-red !important;
   }
 

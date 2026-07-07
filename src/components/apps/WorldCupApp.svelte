@@ -331,10 +331,10 @@
     }
 
     &.active {
-      background: rgba($color-neon-red, 0.1);
-      border: 1px solid rgba($color-neon-red, 0.3);
+      background: rgba(var(--color-neon-red-rgb, 255, 51, 68), 0.1);
+      border: 1px solid rgba(var(--color-neon-red-rgb, 255, 51, 68), 0.3);
       color: $color-neon-red;
-      text-shadow: 0 0 10px rgba($color-neon-red, 0.2);
+      text-shadow: 0 0 10px rgba(var(--color-neon-red-rgb, 255, 51, 68), 0.2);
     }
   }
 

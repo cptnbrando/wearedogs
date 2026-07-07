@@ -109,17 +109,17 @@
     }
 
     &.active-green {
-      background-color: rgba($color-neon-green, 0.08);
-      border-color: rgba($color-neon-green, 0.3);
+      background-color: rgba(var(--color-neon-green-rgb, 0, 215, 95), 0.08);
+      border-color: rgba(var(--color-neon-green-rgb, 0, 215, 95), 0.3);
       color: $color-neon-green;
-      box-shadow: 0 0 12px rgba($color-neon-green, 0.05);
+      box-shadow: 0 0 12px rgba(var(--color-neon-green-rgb, 0, 215, 95), 0.05);
     }
 
     &.active-red {
-      background-color: rgba($color-neon-red, 0.08);
-      border-color: rgba($color-neon-red, 0.3);
+      background-color: rgba(var(--color-neon-red-rgb, 255, 51, 68), 0.08);
+      border-color: rgba(var(--color-neon-red-rgb, 255, 51, 68), 0.3);
       color: $color-neon-red;
-      box-shadow: 0 0 12px rgba($color-neon-red, 0.05);
+      box-shadow: 0 0 12px rgba(var(--color-neon-red-rgb, 255, 51, 68), 0.05);
     }
   }
 
@@ -147,15 +147,15 @@
   }
 
   .status-in {
-    background-color: rgba($color-neon-green, 0.1);
-    border-color: rgba($color-neon-green, 0.25);
+    background-color: rgba(var(--color-neon-green-rgb, 0, 215, 95), 0.1);
+    border-color: rgba(var(--color-neon-green-rgb, 0, 215, 95), 0.25);
     color: $color-neon-green;
-    box-shadow: 0 0 8px rgba($color-neon-green, 0.15);
+    box-shadow: 0 0 8px rgba(var(--color-neon-green-rgb, 0, 215, 95), 0.15);
   }
 
   .status-out {
-    background-color: rgba($color-alert-red, 0.1);
-    border-color: rgba($color-alert-red, 0.25);
+    background-color: rgba(var(--color-alert-red-rgb, 239, 68, 68), 0.1);
+    border-color: rgba(var(--color-alert-red-rgb, 239, 68, 68), 0.25);
     color: $color-alert-red;
   }
 </style>

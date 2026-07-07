@@ -1,6 +1,6 @@
 <script>
   import {
-    X,
+    ArrowLeft,
     Undo,
     Award,
     Volume2,
@@ -11,23 +11,52 @@
     Radio,
     Smile,
     Trophy,
+    Terminal,
+    BookOpen,
+    Settings,
+    Zap,
   } from "lucide-svelte";
   import SnakeApp from "./apps/SnakeApp.svelte";
+  import DogsLogo from "./DogsLogo.svelte";
+  import { audioCore } from "../lib/AudioCore.svelte.js";
   import SoundboardApp from "./apps/SoundboardApp.svelte";
   import PaintApp from "./apps/PaintApp.svelte";
   import StopwatchApp from "./apps/StopwatchApp.svelte";
   import GoPro from "./apps/GoPro.svelte";
-  import QRFlash from "./apps/QRFlash.svelte";
+  import DataFlash from "./apps/DataFlash.svelte";
+  import QRGenerator from "./apps/QRGenerator.svelte";
   import Rescue from "./apps/Rescue.svelte";
   import MemesApp from "./apps/MemesApp.svelte";
   import WorldCupApp from "./apps/WorldCupApp.svelte";
+  import ChangelogApp from "./apps/ChangelogApp.svelte";
+  import BlogApp from "./apps/BlogApp.svelte";
+  import SettingsApp from "./apps/SettingsApp.svelte";
 
   const title = "Toolbox";
 
-  let { isClosing = false, onClose, activeApp = $bindable(null) } = $props();
+  let {
+    isClosing = false,
+    onClose,
+    activeApp = $bindable(null),
+    isFlagColors = false,
+    initialApp = null,
+    blogPostSlug = $bindable(null),
+    depth = $bindable(0),
+  } = $props();
+
+  let isReadingPost = $state(false);
+
+  // Sync initial deep-linked app on mount
+  $effect(() => {
+    if (initialApp && activeApp === null) {
+      activeApp = initialApp;
+    }
+  });
 
   function handleBack() {
-    if (history.state?.app) {
+    if (activeApp === "blog" && isReadingPost) {
+      isReadingPost = false;
+    } else if (history.state?.app) {
       history.back();
     } else {
       activeApp = null;
@@ -41,21 +70,28 @@
   <div
     class="toolbox-panel-container"
     class:closing={isClosing}
+    class:colored={isFlagColors}
     onclick={(e) => e.stopPropagation()}
   >
     <!-- Header -->
     <header class="panel-header">
       <div class="brand">
-        <img
-          src="/favicon.svg"
-          alt="DOGS Logo"
-          class="w-6 h-6 shrink-0 drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]"
-        />
+        <button
+          class="logo-btn"
+          onclick={() => window.dispatchEvent(new CustomEvent(audioCore.isPlaying ? "open-music-panel" : "open-info-panel"))}
+          aria-label="Open DOGS Info"
+        >
+          <DogsLogo size="panel" />
+        </button>
         <h1>{title}</h1>
       </div>
 
-      <button class="close-btn" onclick={onClose} aria-label="Close panel">
-        <X size={20} />
+      <button
+        class="close-btn"
+        onclick={activeApp !== null ? handleBack : onClose}
+        aria-label="Close panel"
+      >
+        <ArrowLeft size={20} />
       </button>
     </header>
 
@@ -64,9 +100,6 @@
       {#if activeApp === null}
         <!-- APPS LAUNCHER GRID VIEW -->
         <div class="launcher-view animated-pane">
-          <h2>/util</h2>
-          <p class="description">Select a gadget</p>
-
           <div class="apps-grid">
             <!-- App 1: GoPro Player -->
             <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -92,13 +125,33 @@
               </div>
             </div>
 
-            <!-- App 2: QRFlash Visual Transfer -->
+            <!-- App 2: DataFlash Visual Transfer -->
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div
               class="app-card border-neon-cyan"
               onclick={() => {
-                activeApp = "qrflash";
+                activeApp = "dataflash";
+              }}
+            >
+              <div class="app-visual">
+                <Zap size={28} style="color: var(--color-neon-cyan, #00d7ff); filter: drop-shadow(0 0 6px rgba(0, 215, 255, 0.4));" />
+              </div>
+              <div class="app-meta">
+                <span class="app-title"><Zap size={14} /> DataFlash</span>
+                <span class="app-desc"
+                  >Visual file transfer protocol over flashing QR codes.</span
+                >
+              </div>
+            </div>
+
+            <!-- App: QR Generator -->
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div
+              class="app-card border-neon-blue"
+              onclick={() => {
+                activeApp = "qrgenerator";
               }}
             >
               <div class="app-visual">
@@ -106,13 +159,13 @@
                   <span class="corner c1"></span>
                   <span class="corner c2"></span>
                   <span class="corner c3"></span>
-                  <span class="scan-bar"></span>
+                  <div style="width: 4px; height: 4px; background: #00d7ff; border-radius: 50%; box-shadow: 0 0 6px #00d7ff;"></div>
                 </div>
               </div>
               <div class="app-meta">
-                <span class="app-title"><QrCode size={14} /> QRFlash Link</span>
+                <span class="app-title"><QrCode size={14} /> QR Generator</span>
                 <span class="app-desc"
-                  >Visual file transfer protocol over flashing QR codes.</span
+                  >Generate resizable QR codes with custom center logo overlays.</span
                 >
               </div>
             </div>
@@ -160,8 +213,7 @@
                 </div>
               </div>
               <div class="app-meta">
-                <span class="app-title"><Award size={14} /> Playable Snake</span
-                >
+                <span class="app-title"><Award size={14} /> Snake</span>
                 <span class="app-desc"
                   >Retro snake game, runs inside grid. Use Arrow Keys.</span
                 >
@@ -283,6 +335,75 @@
                 >
               </div>
             </div>
+
+            <!-- App 10: Changelog -->
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div
+              class="app-card border-neon-green"
+              onclick={() => {
+                activeApp = "changelog";
+              }}
+            >
+              <div class="app-visual">
+                <div class="terminal-preview-mini">
+                  <span class="prompt-symbol">&gt;_</span>
+                  <span class="cursor-blink"></span>
+                </div>
+              </div>
+              <div class="app-meta">
+                <span class="app-title"><Terminal size={14} /> Changelog</span>
+                <span class="app-desc"
+                  >View the system changelog and repository development metrics.</span
+                >
+              </div>
+            </div>
+
+            <!-- App 11: DOG BLOG -->
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div
+              class="app-card border-neon-purple"
+              onclick={() => {
+                activeApp = "blog";
+              }}
+            >
+              <div class="app-visual">
+                <div class="blog-preview-mini">
+                  <span class="line l1"></span>
+                  <span class="line l2"></span>
+                  <span class="line l3"></span>
+                </div>
+              </div>
+              <div class="app-meta">
+                <span class="app-title"><BookOpen size={14} /> DOG BLOG</span>
+                <span class="app-desc"
+                  >Read articles about punk rock tech, development, and music.</span
+                >
+              </div>
+            </div>
+
+            <!-- App 12: Settings -->
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div
+              class="app-card border-neon-red"
+              onclick={() => {
+                activeApp = "settings";
+              }}
+            >
+              <div class="app-visual">
+                <div class="settings-preview-mini">
+                  <Settings size={28} class="animate-spin-slow text-white/50" />
+                </div>
+              </div>
+              <div class="app-meta">
+                <span class="app-title"><Settings size={14} /> Settings</span>
+                <span class="app-desc"
+                  >Customize site-wide themes and UI profiles.</span
+                >
+              </div>
+            </div>
           </div>
         </div>
       {:else if activeApp === "snake"}
@@ -295,27 +416,37 @@
         <StopwatchApp />
       {:else if activeApp === "gopro"}
         <GoPro />
-      {:else if activeApp === "qrflash"}
-        <QRFlash />
+      {:else if activeApp === "dataflash"}
+        <DataFlash />
+      {:else if activeApp === "qrgenerator"}
+        <QRGenerator />
       {:else if activeApp === "rescue"}
         <Rescue />
       {:else if activeApp === "memes"}
         <MemesApp />
       {:else if activeApp === "worldcup"}
         <WorldCupApp />
+      {:else if activeApp === "changelog"}
+        <ChangelogApp />
+      {:else if activeApp === "blog"}
+        <BlogApp
+          bind:initialSlug={blogPostSlug}
+          bind:isReading={isReadingPost}
+          bind:depth
+          {isFlagColors}
+        />
+      {:else if activeApp === "settings"}
+        <SettingsApp />
       {/if}
     </div>
 
     <!-- Footer -->
     <footer class="panel-footer">
       <div class="sys-status">
-        <span class="status-indicator-green"></span>
-        <span>UTILITY GRID STABLE</span>
+        <span>/util</span>
       </div>
       <div class="stats-counter">
-        <span>APPS LOADED: 9</span>
-        <span class="divider">|</span>
-        <span>ACTIVE APP: {activeApp ? activeApp.toUpperCase() : "NONE"}</span>
+        <span>APPS LOADED: 12</span>
       </div>
     </footer>
   </div>
@@ -357,6 +488,10 @@
     -webkit-backdrop-filter: blur(15px) saturate(160%);
     animation: panelSlideUpIn 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     transform-origin: center bottom;
+  }
+
+  .toolbox-panel-container:not(.colored) .launcher-view {
+    filter: grayscale(100%);
   }
 
   .toolbox-panel-container.closing {
@@ -446,7 +581,7 @@
   .close-btn:hover {
     background: rgba(255, 255, 255, 0.15);
     color: white;
-    transform: rotate(90deg);
+    transform: translateX(-4px);
   }
 
   /* ── Body Layout ── */
@@ -479,19 +614,6 @@
     height: 100%;
     display: flex;
     flex-direction: column;
-  }
-
-  .launcher-view h2 {
-    margin: 0;
-    font-size: 1.3rem;
-    font-weight: 700;
-    color: white;
-  }
-
-  .description {
-    font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.4);
-    margin: 4px 0 20px 0;
   }
 
   .apps-grid {
@@ -557,6 +679,7 @@
     align-items: center;
     justify-content: center;
     overflow: hidden;
+    flex-shrink: 0;
   }
 
   .app-meta {
@@ -784,22 +907,10 @@
     font-family: monospace;
   }
 
-  .status-indicator-green {
-    width: 6px;
-    height: 6px;
-    background: #00ff66;
-    border-radius: 50%;
-    display: inline-block;
-  }
-
   .stats-counter {
     display: flex;
     align-items: center;
     gap: 8px;
-  }
-
-  .divider {
-    color: rgba(255, 255, 255, 0.15);
   }
 
   /* Custom App Previews */
@@ -938,6 +1049,40 @@
     }
   }
 
+  .terminal-preview-mini {
+    position: relative;
+    width: 24px;
+    height: 24px;
+    background: #000;
+    border: 1px solid #00ff66;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: monospace;
+    font-size: 10px;
+    color: #00ff66;
+    overflow: hidden;
+  }
+  .terminal-preview-mini .prompt-symbol {
+    margin-right: 2px;
+  }
+  .terminal-preview-mini .cursor-blink {
+    width: 4px;
+    height: 8px;
+    background: #00ff66;
+    animation: terminalCursorBlink 1s infinite steps(2);
+  }
+  @keyframes terminalCursorBlink {
+    0%,
+    100% {
+      opacity: 0;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+
   /* ── Mobile Layout Full Screen & App Grid ── */
   @media (max-width: 768px) {
     .toolbox-panel-container {
@@ -1013,5 +1158,51 @@
     .panel-body {
       overflow-y: auto;
     }
+  }
+
+  /* ── Blog Preview Mini ── */
+  .blog-preview-mini {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 28px;
+    height: 28px;
+    justify-content: center;
+  }
+  .blog-preview-mini .line {
+    height: 2px;
+    background: rgba(180, 85, 255, 0.4);
+    border-radius: 1px;
+    transition: all 0.3s ease;
+  }
+  .blog-preview-mini .line.l1 {
+    width: 24px;
+    background: rgba(180, 85, 255, 0.9);
+  }
+  .blog-preview-mini .line.l2 {
+    width: 18px;
+  }
+  .blog-preview-mini .line.l3 {
+    width: 22px;
+  }
+  .app-card:hover .blog-preview-mini .line {
+    background: #b455ff;
+    box-shadow: 0 0 8px rgba(180, 85, 255, 0.8);
+  }
+
+  /* ── Settings Preview Mini ── */
+  .settings-preview-mini {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    transition: all 0.3s ease;
+  }
+  .app-card:hover .settings-preview-mini :global(svg) {
+    color: var(--color-neon-red, #ff3344);
+    filter: drop-shadow(
+      0 0 8px rgba(var(--color-neon-red-rgb, 255, 51, 68), 0.8)
+    );
   }
 </style>

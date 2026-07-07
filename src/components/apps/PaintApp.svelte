@@ -1,3 +1,5 @@
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
 <script>
   import { 
     Paintbrush, Eraser, Image, Sparkles, Check, X, Undo2, Redo2 
@@ -8,7 +10,9 @@
   let strokeColor = $state("#00bfff");
   let strokeWidth = $state(6);
   let canvasRef = $state();
+  let canvasContainerRef = $state();
   let ctx = null;
+  let dpr = $state(1);
 
   // Creative features
   let brushMode = $state("normal"); // "normal" | "neon" | "rainbow" | "spray" | "eraser"
@@ -21,8 +25,8 @@
   // Image insertion and Placement Mode
   let pastedImage = $state(null);
   let pastedImageUrl = $state("");
-  let imgX = $state(210);
-  let imgY = $state(160);
+  let imgX = $state(0);
+  let imgY = $state(0);
   let imgScale = $state(1);
   let imgRotation = $state(0);
   let initialScale = 1;
@@ -35,17 +39,58 @@
   let imgDragStartValX = 0;
   let imgDragStartValY = 0;
 
-  function initPaint() {
-    if (canvasRef) {
-      ctx = canvasRef.getContext("2d");
-      clearCanvas();
+  // Pagination for mobile controls
+  let activeTab = $state("brush"); // "brush" | "modes" | "actions"
+
+  function resizeCanvas() {
+    if (!canvasRef || !canvasContainerRef) return;
+    const rect = canvasContainerRef.getBoundingClientRect();
+    const newWidth = Math.floor(rect.width);
+    const newHeight = Math.floor(rect.height);
+
+    if (newWidth <= 0 || newHeight <= 0) return;
+
+    dpr = window.devicePixelRatio || 1;
+    const targetPhysicalWidth = newWidth * dpr;
+    const targetPhysicalHeight = newHeight * dpr;
+
+    // Only resize if the dimensions actually changed
+    if (canvasRef.width === targetPhysicalWidth && canvasRef.height === targetPhysicalHeight) {
+      return;
+    }
+
+    // Capture the current contents
+    let tempCanvas = null;
+    if (ctx && canvasRef.width > 0 && canvasRef.height > 0) {
+      tempCanvas = document.createElement("canvas");
+      tempCanvas.width = canvasRef.width;
+      tempCanvas.height = canvasRef.height;
+      const tempCtx = tempCanvas.getContext("2d");
+      tempCtx.drawImage(canvasRef, 0, 0);
+    }
+
+    canvasRef.width = targetPhysicalWidth;
+    canvasRef.height = targetPhysicalHeight;
+    canvasRef.style.width = `${newWidth}px`;
+    canvasRef.style.height = `${newHeight}px`;
+
+    ctx = canvasRef.getContext("2d");
+    
+    if (tempCanvas && ctx) {
+      // Draw old pixels exactly
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.drawImage(tempCanvas, 0, 0, targetPhysicalWidth, targetPhysicalHeight);
+      ctx.scale(dpr, dpr);
+    } else {
+      ctx.scale(dpr, dpr);
+      ctx.clearRect(0, 0, newWidth, newHeight);
     }
   }
 
   function clearCanvas() {
     if (ctx && canvasRef) {
       saveHistory();
-      ctx.clearRect(0, 0, canvasRef.width, canvasRef.height);
+      ctx.clearRect(0, 0, canvasRef.width / dpr, canvasRef.height / dpr);
     }
   }
 
@@ -63,18 +108,26 @@
   function undo() {
     if (undoStack.length > 0 && canvasRef && ctx) {
       const current = ctx.getImageData(0, 0, canvasRef.width, canvasRef.height);
-      redoStack.push(current);
       const previous = undoStack.pop();
-      ctx.putImageData(previous, 0, 0);
+      if (previous.width === canvasRef.width && previous.height === canvasRef.height) {
+        redoStack.push(current);
+        ctx.putImageData(previous, 0, 0);
+      } else {
+        redoStack = [];
+      }
     }
   }
 
   function redo() {
     if (redoStack.length > 0 && canvasRef && ctx) {
       const current = ctx.getImageData(0, 0, canvasRef.width, canvasRef.height);
-      undoStack.push(current);
       const next = redoStack.pop();
-      ctx.putImageData(next, 0, 0);
+      if (next.width === canvasRef.width && next.height === canvasRef.height) {
+        undoStack.push(current);
+        ctx.putImageData(next, 0, 0);
+      } else {
+        undoStack = [];
+      }
     }
   }
 
@@ -172,6 +225,36 @@
     }
   }
 
+  // Dragging Pasted Image (Touch)
+  function startImageTouchDrag(e) {
+    isDraggingImage = true;
+    const touch = e.touches[0];
+    imgDragStartX = touch.clientX;
+    imgDragStartY = touch.clientY;
+    imgDragStartValX = imgX;
+    imgDragStartValY = imgY;
+    window.addEventListener("touchmove", handleImageTouchDrag, { passive: false });
+    window.addEventListener("touchend", stopImageTouchDrag);
+    window.addEventListener("touchcancel", stopImageTouchDrag);
+  }
+
+  function handleImageTouchDrag(e) {
+    if (!isDraggingImage) return;
+    if (e.cancelable) e.preventDefault();
+    const touch = e.touches[0];
+    const deltaX = touch.clientX - imgDragStartX;
+    const deltaY = touch.clientY - imgDragStartY;
+    imgX = imgDragStartValX + deltaX;
+    imgY = imgDragStartValY + deltaY;
+  }
+
+  function stopImageTouchDrag() {
+    isDraggingImage = false;
+    window.removeEventListener("touchmove", handleImageTouchDrag);
+    window.removeEventListener("touchend", stopImageTouchDrag);
+    window.removeEventListener("touchcancel", stopImageTouchDrag);
+  }
+
   function drawTouch(e) {
     if (!isDrawing || pastedImage) return;
     if (e.cancelable) e.preventDefault();
@@ -206,16 +289,17 @@
     reader.onload = (event) => {
       const img = new Image();
       img.onload = () => {
-        // Fit within canvas bounds (420 width, 320 height)
         let scale = 1;
-        if (img.width > 420 || img.height > 320) {
-          scale = Math.min(420 / img.width, 320 / img.height);
+        const cw = canvasRef ? (canvasRef.width / dpr) : 420;
+        const ch = canvasRef ? (canvasRef.height / dpr) : 320;
+        if (img.width > cw || img.height > ch) {
+          scale = Math.min(cw / img.width, ch / img.height);
         }
         initialScale = scale;
         imgScale = scale;
         imgRotation = 0;
-        imgX = 210;
-        imgY = 160;
+        imgX = cw / 2;
+        imgY = ch / 2;
         pastedImage = img;
         pastedImageUrl = event.target.result;
       };
@@ -263,52 +347,16 @@
     window.removeEventListener("mouseup", stopImageDrag);
   }
 
-  // Dragging Pasted Image (Touch)
-  function startImageTouchDrag(e) {
-    isDraggingImage = true;
-    const touch = e.touches[0];
-    imgDragStartX = touch.clientX;
-    imgDragStartY = touch.clientY;
-    imgDragStartValX = imgX;
-    imgDragStartValY = imgY;
-    window.addEventListener("touchmove", handleImageTouchDrag, { passive: false });
-    window.addEventListener("touchend", stopImageTouchDrag);
-    window.addEventListener("touchcancel", stopImageTouchDrag);
-  }
-
-  function handleImageTouchDrag(e) {
-    if (!isDraggingImage) return;
-    if (e.cancelable) e.preventDefault();
-    const touch = e.touches[0];
-    const deltaX = touch.clientX - imgDragStartX;
-    const deltaY = touch.clientY - imgDragStartY;
-    imgX = imgDragStartValX + deltaX;
-    imgY = imgDragStartValY + deltaY;
-  }
-
-  function stopImageTouchDrag() {
-    isDraggingImage = false;
-    window.removeEventListener("touchmove", handleImageTouchDrag);
-    window.removeEventListener("touchend", stopImageTouchDrag);
-    window.removeEventListener("touchcancel", stopImageTouchDrag);
-  }
-
   function stampImage() {
     if (ctx && canvasRef && pastedImage) {
       saveHistory();
       ctx.save();
-      
-      // Move to target center
       ctx.translate(imgX, imgY);
       ctx.rotate((imgRotation * Math.PI) / 180);
-      
-      // Draw image scaled relative to center
       const w = pastedImage.width * imgScale;
       const h = pastedImage.height * imgScale;
-      
       ctx.drawImage(pastedImage, -w / 2, -h / 2, w, h);
       ctx.restore();
-      
       pastedImage = null;
       pastedImageUrl = "";
     }
@@ -319,13 +367,27 @@
     pastedImageUrl = "";
   }
 
+  let resizeObserver = null;
+
   onMount(() => {
-    initPaint();
+    resizeCanvas();
     window.addEventListener("paste", handlePaste);
+
+    if (window.ResizeObserver && canvasContainerRef) {
+      resizeObserver = new ResizeObserver(() => {
+        requestAnimationFrame(() => {
+          resizeCanvas();
+        });
+      });
+      resizeObserver.observe(canvasContainerRef);
+    }
   });
 
   onDestroy(() => {
     window.removeEventListener("paste", handlePaste);
+    if (resizeObserver) {
+      resizeObserver.disconnect();
+    }
   });
 </script>
 
@@ -338,33 +400,60 @@
         <span class="label">Image Controls</span>
         
         <div class="control-item">
-          <label for="img-scale-slider">SCALE: {imgScale.toFixed(2)}x</label>
+          <label for="img-scale-slider">
+            <span class="desktop-only-label">SCALE: </span>{imgScale.toFixed(2)}x
+          </label>
           <input id="img-scale-slider" type="range" min="0.1" max="3.0" step="0.05" bind:value={imgScale} />
         </div>
 
         <div class="control-item">
-          <label for="img-rotate-slider">ROTATE: {imgRotation}°</label>
+          <label for="img-rotate-slider">
+            <span class="desktop-only-label">ROTATE: </span>{imgRotation}°
+          </label>
           <input id="img-rotate-slider" type="range" min="-180" max="180" step="5" bind:value={imgRotation} />
         </div>
 
         <div class="placement-actions">
-          <button class="action-btn stamp-btn" onclick={stampImage}>
-            <Check size={14} /> PLACE
+          <button class="action-btn stamp-btn" onclick={stampImage} title="Place Image">
+            <Check size={14} /> <span class="place-text">PLACE</span>
           </button>
-          <button class="action-btn cancel-btn" onclick={cancelImagePlacement}>
-            <X size={14} /> CANCEL
+          <button class="action-btn cancel-btn" onclick={cancelImagePlacement} title="Cancel">
+            <X size={14} /> <span class="cancel-text">CANCEL</span>
           </button>
         </div>
       </div>
     {:else}
+      <!-- Mobile Pagination Tab Bar -->
+      <div class="mobile-tabs-bar">
+        <button 
+          class="tab-btn" 
+          class:active={activeTab === 'brush'} 
+          onclick={() => activeTab = 'brush'}
+        >
+          Brush
+        </button>
+        <button 
+          class="tab-btn" 
+          class:active={activeTab === 'modes'} 
+          onclick={() => activeTab = 'modes'}
+        >
+          Modes
+        </button>
+        <button 
+          class="tab-btn" 
+          class:active={activeTab === 'actions'} 
+          onclick={() => activeTab = 'actions'}
+        >
+          Actions
+        </button>
+      </div>
+
       <!-- Standard Brush Controls -->
       <div class="brush-settings animated-pane">
-        <div class="color-picker-box">
+        <div class="color-picker-box" class:hidden-mobile={activeTab !== 'brush'}>
           <span class="label">BRUSH COLOR</span>
           <div class="colors-row">
             {#each ['#00bfff', '#ff55bb', '#ffcc00', '#00ff66', '#ffffff'] as color}
-              <!-- svelte-ignore a11y_click_events_have_key_events -->
-              <!-- svelte-ignore a11y_no_static_element_interactions -->
               <span
                 class="color-dot"
                 class:active={strokeColor === color && brushMode !== 'eraser'}
@@ -375,12 +464,14 @@
           </div>
         </div>
 
-        <div class="brush-size-box">
-          <label for="brush-width-slider">BRUSH WIDTH: {strokeWidth}px</label>
+        <div class="brush-size-box" class:hidden-mobile={activeTab !== 'brush'}>
+          <label for="brush-width-slider">
+            <span class="desktop-only-label">BRUSH WIDTH: </span>{strokeWidth}px
+          </label>
           <input id="brush-width-slider" type="range" min="2" max="24" bind:value={strokeWidth} />
         </div>
 
-        <div class="brush-modes-box">
+        <div class="brush-modes-box" class:hidden-mobile={activeTab !== 'modes'}>
           <span class="label">BRUSH TYPE</span>
           <div class="brush-modes-grid">
             <button 
@@ -389,7 +480,7 @@
               onclick={() => brushMode = 'normal'}
               title="Solid Brush"
             >
-              <Paintbrush size={14} /> Solid
+              <Paintbrush size={14} /> <span class="mode-text">Solid</span>
             </button>
             <button 
               class="mode-btn" 
@@ -397,7 +488,7 @@
               onclick={() => brushMode = 'neon'}
               title="Neon Glow Effect"
             >
-              <Sparkles size={14} /> Neon
+              <Sparkles size={14} /> <span class="mode-text">Neon</span>
             </button>
             <button 
               class="mode-btn" 
@@ -405,7 +496,7 @@
               onclick={() => brushMode = 'rainbow'}
               title="Rainbow Hue Cycle"
             >
-              🌈 Rainbow
+              🌈 <span class="mode-text">Rainbow</span>
             </button>
             <button 
               class="mode-btn" 
@@ -413,7 +504,7 @@
               onclick={() => brushMode = 'spray'}
               title="Spray/Airbrush"
             >
-              💨 Spray
+              💨 <span class="mode-text">Spray</span>
             </button>
             <button 
               class="mode-btn" 
@@ -421,12 +512,12 @@
               onclick={() => brushMode = 'eraser'}
               title="Eraser"
             >
-              <Eraser size={14} /> Eraser
+              <Eraser size={14} /> <span class="mode-text">Eraser</span>
             </button>
           </div>
         </div>
 
-        <div class="history-actions">
+        <div class="history-actions" class:hidden-mobile={activeTab !== 'actions'}>
           <button class="history-btn" onclick={undo} disabled={undoStack.length === 0} title="Undo">
             <Undo2 size={14} />
           </button>
@@ -435,9 +526,9 @@
           </button>
         </div>
 
-        <div class="extra-actions">
+        <div class="extra-actions" class:hidden-mobile={activeTab !== 'actions'}>
           <button class="import-btn" onclick={() => fileInputRef.click()}>
-            <Image size={14} /> IMPORT IMAGE
+            <Image size={14} /> <span class="import-text">IMPORT</span>
           </button>
           <input 
             type="file" 
@@ -447,19 +538,21 @@
             style="display: none;" 
           />
         </div>
+
+        <button 
+          class="clear-canvas-btn" 
+          class:hidden-mobile={activeTab !== 'actions'} 
+          onclick={clearCanvas}
+        >
+          CLEAR CANVAS
+        </button>
       </div>
     {/if}
-
-    <button class="clear-canvas-btn" onclick={clearCanvas}>
-      CLEAR CANVAS
-    </button>
   </div>
 
-  <div class="canvas-container" onpaste={handlePaste}>
+  <div bind:this={canvasContainerRef} class="canvas-container" onpaste={handlePaste}>
     <canvas
       bind:this={canvasRef}
-      width="420"
-      height="320"
       onmousedown={startDraw}
       onmousemove={draw}
       onmouseup={stopDraw}
@@ -496,12 +589,22 @@
 
 <style>
   .paint-layout {
-    display: grid;
-    grid-template-columns: 200px 1fr;
+    display: flex;
+    flex-direction: row; /* Default layout: left-sidebar, right-canvas */
     gap: 20px;
     height: 100%;
-    align-items: center;
+    width: 100%;
     padding: 20px;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+
+  @media (max-width: 767px) and (orientation: portrait) {
+    .paint-layout {
+      flex-direction: column;
+      gap: 12px;
+      padding: 12px;
+    }
   }
 
   .paint-sidebar {
@@ -509,11 +612,49 @@
     border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: 16px;
     padding: 16px;
-    height: 100%;
     display: flex;
     flex-direction: column;
     gap: 14px;
+    width: 180px; /* Default sidebar width */
+    height: 100%;
+    box-sizing: border-box;
+    order: 1;
     overflow-y: auto;
+    overflow-x: hidden;
+    flex-shrink: 0;
+  }
+
+  @media (min-width: 1024px) {
+    .paint-sidebar {
+      width: 210px;
+    }
+  }
+
+  @media (min-width: 1280px) {
+    .paint-sidebar {
+      width: 240px;
+    }
+  }
+
+  /* Mobile Landscape sidebar adjustments */
+  @media (max-width: 767px) and (orientation: landscape) {
+    .paint-sidebar {
+      width: 100px;
+      padding: 8px;
+      gap: 10px;
+    }
+  }
+
+  /* Mobile Portrait bottom tabbed layout */
+  @media (max-width: 767px) and (orientation: portrait) {
+    .paint-sidebar {
+      width: 100%;
+      height: 106px;
+      padding: 12px;
+      gap: 12px;
+      order: 2;
+      overflow: hidden;
+    }
   }
 
   .paint-sidebar h3 {
@@ -524,19 +665,94 @@
     letter-spacing: 0.05em;
   }
 
+  @media (max-width: 767px) {
+    .paint-sidebar h3 {
+      display: none;
+    }
+  }
+
+  .mobile-tabs-bar {
+    display: none;
+  }
+
+  @media (max-width: 767px) and (orientation: portrait) {
+    .mobile-tabs-bar {
+      display: flex;
+      width: 100%;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      margin-bottom: 4px;
+      gap: 4px;
+    }
+  }
+
+  .tab-btn {
+    flex: 1;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 8px 0;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    transition: all 0.2s ease;
+  }
+
+  .tab-btn:hover {
+    color: rgba(255, 255, 255, 0.8);
+  }
+
+  .tab-btn.active {
+    color: #ffcc00;
+    border-bottom-color: #ffcc00;
+  }
+
   .brush-settings, .image-controls-box {
     display: flex;
     flex-direction: column;
+    align-items: stretch;
     gap: 14px;
+    height: 100%;
+    width: 100%;
+  }
+
+  @media (max-width: 767px) and (orientation: portrait) {
+    .brush-settings, .image-controls-box {
+      flex-direction: row;
+      flex-wrap: nowrap;
+      align-items: center;
+      gap: 16px;
+      height: 38px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    .brush-settings::-webkit-scrollbar, .image-controls-box::-webkit-scrollbar {
+      display: none;
+    }
   }
 
   .color-picker-box, .brush-size-box, .brush-modes-box, .control-item {
     display: flex;
     flex-direction: column;
+    align-items: stretch;
     gap: 8px;
+    flex-shrink: 0;
   }
 
-  .color-picker-box .label, .brush-size-box label, .brush-modes-box .label, .control-item label {
+  @media (max-width: 767px) and (orientation: portrait) {
+    .color-picker-box, .brush-size-box, .brush-modes-box, .control-item {
+      flex-direction: row;
+      align-items: center;
+      gap: 6px;
+    }
+  }
+
+  .label {
     font-size: 0.6rem;
     font-weight: 700;
     color: rgba(255, 255, 255, 0.35);
@@ -544,9 +760,29 @@
     text-transform: uppercase;
   }
 
+  @media (max-width: 767px) {
+    .label {
+      display: none;
+    }
+  }
+
   .colors-row {
     display: flex;
     gap: 8px;
+  }
+
+  @media (max-width: 767px) and (orientation: landscape) {
+    .colors-row {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+    }
+  }
+
+  @media (max-width: 767px) and (orientation: portrait) {
+    .colors-row {
+      gap: 6px;
+    }
   }
 
   .color-dot {
@@ -558,10 +794,24 @@
     border: 2px solid transparent;
   }
 
+  @media (max-width: 767px) {
+    .color-dot {
+      width: 18px;
+      height: 18px;
+    }
+  }
+
   .color-dot.active {
     transform: scale(1.15);
     border-color: white;
     box-shadow: 0 0 10px rgba(255, 255, 255, 0.4);
+  }
+
+  .brush-size-box label, .control-item label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.7);
+    white-space: nowrap;
   }
 
   .brush-size-box input[type="range"], .control-item input[type="range"] {
@@ -573,10 +823,32 @@
     cursor: pointer;
   }
 
+  @media (max-width: 767px) and (orientation: portrait) {
+    .brush-size-box input[type="range"], .control-item input[type="range"] {
+      width: 90px;
+    }
+  }
+
   .brush-modes-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 8px;
+    width: 100%;
+  }
+
+  @media (max-width: 767px) and (orientation: landscape) {
+    .brush-modes-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+    }
+  }
+
+  @media (max-width: 767px) and (orientation: portrait) {
+    .brush-modes-grid {
+      grid-template-columns: repeat(5, 1fr);
+      gap: 5px;
+      width: 100%;
+    }
   }
 
   .mode-btn {
@@ -593,6 +865,22 @@
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
+    white-space: nowrap;
+  }
+
+  @media (max-width: 767px) {
+    .mode-btn {
+      padding: 6px 8px;
+      font-size: 0.6rem;
+    }
+  }
+
+  @media (max-width: 767px) and (orientation: portrait) {
+    .mode-btn {
+      padding: 6px 3px;
+      gap: 4px;
+      font-size: 0.58rem;
+    }
   }
 
   .mode-btn:hover {
@@ -614,8 +902,14 @@
     margin-top: 4px;
   }
 
+  @media (max-width: 767px) and (orientation: portrait) {
+    .history-actions {
+      margin-top: 0;
+      flex-shrink: 0;
+    }
+  }
+
   .history-btn {
-    flex: 1;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -623,9 +917,16 @@
     border: 1px solid rgba(255, 255, 255, 0.06);
     color: rgba(255, 255, 255, 0.7);
     border-radius: 8px;
+    flex: 1;
     padding: 8px;
     cursor: pointer;
     transition: all 0.2s ease;
+  }
+
+  @media (max-width: 767px) and (orientation: portrait) {
+    .history-btn {
+      padding: 8px 12px;
+    }
   }
 
   .history-btn:hover:not(:disabled) {
@@ -644,8 +945,14 @@
     margin-top: 4px;
   }
 
+  @media (max-width: 767px) and (orientation: portrait) {
+    .extra-actions {
+      margin-top: 0;
+      flex-shrink: 0;
+    }
+  }
+
   .import-btn {
-    width: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -654,12 +961,20 @@
     border: 1px solid rgba(0, 191, 255, 0.2);
     color: #00bfff;
     border-radius: 8px;
+    width: 100%;
     padding: 8px;
     font-size: 0.7rem;
     font-weight: 700;
     cursor: pointer;
     transition: all 0.2s ease;
     letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+
+  @media (max-width: 767px) and (orientation: portrait) {
+    .import-btn {
+      padding: 8px 12px;
+    }
   }
 
   .import-btn:hover {
@@ -673,18 +988,31 @@
     margin-top: 8px;
   }
 
+  @media (max-width: 767px) and (orientation: portrait) {
+    .placement-actions {
+      margin-top: 0;
+    }
+  }
+
   .action-btn {
-    flex: 1;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 4px;
     border-radius: 8px;
+    flex: 1;
     padding: 8px 4px;
     font-size: 0.68rem;
     font-weight: 700;
     cursor: pointer;
     transition: all 0.2s ease;
+    white-space: nowrap;
+  }
+
+  @media (max-width: 767px) and (orientation: portrait) {
+    .action-btn {
+      padding: 6px 12px;
+    }
   }
 
   .stamp-btn {
@@ -710,17 +1038,28 @@
   }
 
   .clear-canvas-btn {
-    margin-top: auto;
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.05);
     color: rgba(255, 255, 255, 0.4);
     border-radius: 8px;
+    margin-top: auto;
     padding: 10px;
+    width: 100%;
     font-size: 0.7rem;
     font-weight: 700;
     cursor: pointer;
     transition: all 0.2s ease;
     letter-spacing: 0.08em;
+    white-space: nowrap;
+  }
+
+  @media (max-width: 767px) and (orientation: portrait) {
+    .clear-canvas-btn {
+      margin-top: 0;
+      padding: 8px 12px;
+      width: auto;
+      flex-shrink: 0;
+    }
   }
 
   .clear-canvas-btn:hover {
@@ -731,8 +1070,9 @@
 
   .canvas-container {
     position: relative;
-    width: 420px;
-    height: 320px;
+    flex-grow: 1;
+    width: 100%;
+    height: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -741,6 +1081,13 @@
     border-radius: 12px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
     overflow: hidden;
+    order: 2;
+  }
+
+  @media (max-width: 767px) and (orientation: portrait) {
+    .canvas-container {
+      order: 1;
+    }
   }
 
   .canvas-container canvas {
@@ -772,5 +1119,32 @@
   @keyframes paneFadeIn {
     0% { opacity: 0; transform: translateY(4px); }
     100% { opacity: 1; transform: translateY(0); }
+  }
+
+  .label-title, .desktop-only-text {
+    display: none;
+  }
+
+  .desktop-only-label {
+    display: none;
+  }
+
+  @media (min-width: 768px) {
+    .label-title, .desktop-only-text, .desktop-only-label {
+      display: inline;
+    }
+  }
+
+  /* Inline visibility adjustments for mobile landscape */
+  @media (max-width: 767px) and (orientation: landscape) {
+    .mode-text, .import-text, .place-text, .cancel-text {
+      display: none;
+    }
+  }
+
+  @media (max-width: 767px) and (orientation: portrait) {
+    .hidden-mobile {
+      display: none !important;
+    }
   }
 </style>

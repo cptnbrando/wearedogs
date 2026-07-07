@@ -9,10 +9,18 @@ export default defineConfig({
     tailwindcss(),
     svelte(),
     legacy({
-      targets: ['defaults', 'chrome >= 55', 'not IE 11'],
+      targets: ['defaults', 'chrome >= 40', 'not IE 11'],
       modernPolyfills: true,
     })
   ],
+  resolve: {
+    conditions: ['browser'],
+  },
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: ['./vitest.setup.js'],
+  },
   server: {
     proxy: {
       '/api-worldcup': {
@@ -27,7 +35,7 @@ export default defineConfig({
     target: 'modules',
 
     // Forces the CSS compiler to down-compile into safe fallbacks
-    cssTarget: 'chrome55',
+    cssTarget: 'chrome40',
 
     chunkSizeWarningLimit: 800,
     rollupOptions: {
