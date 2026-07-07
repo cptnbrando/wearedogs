@@ -679,6 +679,7 @@
     align-items: center;
     justify-content: center;
     overflow: hidden;
+    flex-shrink: 0;
   }
 
   .app-meta {
