@@ -260,6 +260,7 @@
         deepLinkBlogPostSlug = state?.slug || null;
       }
 
+      isClosing = false;
       activePage = targetView;
       activeApp = targetApp;
     };
