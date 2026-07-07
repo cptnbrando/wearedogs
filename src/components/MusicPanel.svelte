@@ -157,6 +157,7 @@
       dateAdded: "2026-06-24T03:00:00-05:00",
       year: 2026,
       genre: "Hip-Hop",
+      attrib: "https://the-gentlemens-club.com/",
     },
     {
       id: "chicago",
@@ -171,6 +172,22 @@
       dateAdded: "2026-06-24T03:00:00-05:00",
       year: 2014,
       genre: "Pop",
+    },
+    {
+      id: "rain",
+      title: "Pourin Rain (feat. Skratch Bastid)",
+      artist: "Zed's Dead",
+      album:
+        "Return to the Return (of the Spectrum of Intergalactic Happiness)",
+      cover: "/img/covers/zd.webp",
+      altCover: "/img/covers/zd.jpg",
+      src: "/music/Zed's Dead/Return/Pourin.mp3",
+      instrumental: "",
+      hasInstrumental: false,
+      dateAdded: "2026-07-07T018:12:00-05:00",
+      year: 2026,
+      genre: "Electronic",
+      attrib: "https://shop.zedsdead.net/",
     },
   ];
 
@@ -741,12 +758,12 @@
                       >{track.artist} · {track.album} ({track.year || ""})</span
                     >
                   </div>
-                  {#if track.artist === "YG"}
+                  {#if track.attrib}
                     <span class="inst-chip-link">
                       <a
-                        href="https://the-gentlemens-club.com/"
+                        href={track.attrib}
                         target="_blank"
-                        onclick={(e) => e.stopPropagation()}>YG</a
+                        onclick={(e) => e.stopPropagation()}>Merch</a
                       >
                     </span>
                   {/if}
