@@ -91,7 +91,9 @@
         {#if !isDesktopOrLandscape && ThreeDCanvas}
           <ThreeDCanvas {isFlagColors} />
         {:else}
-          <div class="w-full h-full bg-transparent pointer-events-none">
+          <div
+            class="w-full h-full flex justify-content align-items bg-transparent pointer-events-none"
+          >
             <div
               class="text-white/20 text-xs font-mono tracking-widest uppercase animate-pulse"
             >
