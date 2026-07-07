@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1783397026,
+    "firstCommitTimestamp": 1783402856,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 57788
+    "averageLinesAltered": 57954
   },
   "entries": [
     {
       "version": "1.0.2",
       "name": "Master",
       "date": "2026-07-07",
-      "timestamp": 1783396963,
+      "timestamp": 1783402887,
       "commits": [
         {
-          "hash": "d668575",
-          "message": "people can find my treasure now",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/d668575062c3394610fb913603d505637c3ea21d",
-          "timestamp": 1783397026,
-          "linesChanged": 57788
+          "hash": "ad434ff",
+          "message": "Merge pull request #13 from cptnbrando/logo",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/ad434ff3354c089ccc1b55110e1e831600b48a5a",
+          "timestamp": 1783402856,
+          "linesChanged": 57954
         }
       ]
     },
