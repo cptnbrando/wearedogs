@@ -17,6 +17,7 @@
     Zap,
   } from "lucide-svelte";
   import SnakeApp from "./apps/SnakeApp.svelte";
+  import DogsLogo from "./DogsLogo.svelte";
   import SoundboardApp from "./apps/SoundboardApp.svelte";
   import PaintApp from "./apps/PaintApp.svelte";
   import StopwatchApp from "./apps/StopwatchApp.svelte";
@@ -80,11 +81,7 @@
             window.dispatchEvent(new CustomEvent("open-info-panel"))}
           aria-label="Open DOGS Info"
         >
-          <img
-            src="/favicon.svg"
-            alt="DOGS Logo"
-            class="w-6 h-6 shrink-0 drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]"
-          />
+          <DogsLogo size="panel" />
         </button>
         <h1>{title}</h1>
       </div>

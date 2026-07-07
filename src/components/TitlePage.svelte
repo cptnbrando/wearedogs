@@ -19,6 +19,7 @@
   import MapPanel from "./MapPanel.svelte";
   import InfoPanel from "./InfoPanel.svelte";
   import { parsePath, panelToUrl, appToUrl } from "../lib/router.svelte.js";
+  import { audioCore } from "../lib/AudioCore.svelte.js";
 
   // Active view state: 'stats' | 'networking' | 'toolbox' | 'music' | 'store' | 'map' | null
   let {
@@ -338,6 +339,7 @@
       <!-- Music -->
       <button
         class="runic-btn border-neon-purple"
+        class:rune-dancing={audioCore.isPlaying}
         onclick={(e) => {
           e.stopPropagation();
           openPage("music");
@@ -531,5 +533,23 @@
       width: 20px !important;
       height: 20px !important;
     }
+  }
+
+  @keyframes runeDance {
+    0%, 100% {
+      transform: scale(1) rotate(0deg);
+    }
+    25% {
+      transform: scale(1.1) rotate(-8deg);
+    }
+    75% {
+      transform: scale(1.1) rotate(8deg);
+    }
+  }
+
+  .rune-dancing :global(svg) {
+    animation: runeDance 1s ease-in-out infinite;
+    color: #a000eb !important;
+    filter: drop-shadow(0 0 8px rgba(160, 0, 237, 0.6));
   }
 </style>

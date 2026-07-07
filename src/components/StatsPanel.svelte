@@ -18,6 +18,7 @@
     Palette,
   } from "lucide-svelte";
   import SwipeTabNav from "./SwipeTabNav.svelte";
+  import DogsLogo from "./DogsLogo.svelte";
   import countryStats from "../lib/countryStats.js";
   import ExplorerTab from "./stats/ExplorerTab.svelte";
   import MapTab from "./stats/MapTab.svelte";
@@ -479,11 +480,7 @@
           onclick={() => window.dispatchEvent(new CustomEvent("open-info-panel"))}
           aria-label="Open DOGS Info"
         >
-          <img
-            src="/favicon.svg"
-            alt="DOGS Logo"
-            class="w-6 h-6 shrink-0 drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]"
-          />
+          <DogsLogo size="panel" />
         </button>
         <h1>stats</h1>
       </div>

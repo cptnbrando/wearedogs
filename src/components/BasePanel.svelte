@@ -1,5 +1,6 @@
 <script>
   import { ArrowLeft } from "lucide-svelte";
+  import DogsLogo from "./DogsLogo.svelte";
 
   let {
     isClosing = false,
@@ -34,11 +35,7 @@
           onclick={() => window.dispatchEvent(new CustomEvent("open-info-panel"))}
           aria-label="Open DOGS Info"
         >
-          <img
-            src="/favicon.svg"
-            alt="DOGS Logo"
-            class="w-6 h-6 shrink-0 drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]"
-          />
+          <DogsLogo size="panel" />
         </button>
         <h1>{title}</h1>
       </div>

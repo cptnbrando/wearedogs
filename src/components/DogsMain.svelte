@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import { Mail } from "lucide-svelte";
   import BinaryBackground from "./BinaryBackground.svelte";
+  import DogsLogo from "./DogsLogo.svelte";
 
   // Props mapping the flag colors toggle state
   let { isFlagColors = false, active = false } = $props();
@@ -58,7 +59,8 @@
     <div
       class="dict-container w-full max-lg:landscape:w-[46%] lg:w-full max-w-[650px] mt-4 max-lg:landscape:mt-0 lg:mt-0 pointer-events-auto max-lg:landscape:my-auto"
     >
-      <div class="flex items-baseline gap-2.5 md:gap-3.5">
+      <div class="flex items-center gap-2.5 md:gap-3.5">
+        <DogsLogo size="dict" />
         <h2
           class="dict-word font-black text-white tracking-tight uppercase text-3xl md:text-4xl lg:text-5xl transition-colors duration-500"
           class:colored={isFlagColors}
