@@ -22,7 +22,7 @@
   import TimeServersTab from "./TimeServersTab.svelte";
   import HistoryTab from "./HistoryTab.svelte";
   import MetronomeTab from "./MetronomeTab.svelte";
-  import TunerTab from "./TunerTab.svelte";
+  import TuningForkTab from "./TuningForkTab.svelte";
 
   let activeTab = $state("hourglass");
   let digitalTime = $state("");
@@ -39,7 +39,7 @@
     { id: "servers", label: "Servers", icon: Server },
     { id: "history", label: "History", icon: HistoryIcon },
     { id: "metronome", label: "Metronome", icon: Music },
-    { id: "tuner", label: "Tuner", icon: Mic }
+    { id: "tuner", label: "Tuning Fork", icon: Mic }
   ];
 
   function updateClock() {
@@ -53,6 +53,58 @@
     timeTicker = setInterval(updateClock, 1000);
     return () => clearInterval(timeTicker);
   });
+
+  // Touch swipe handling to swipe between tabs
+  let touchStartX = 0;
+  let touchStartY = 0;
+
+  function handleTouchStart(e) {
+    const target = e.target;
+    // Prevent swipes from interrupting input components (sliders, selectors, maps)
+    if (
+      target.closest('input[type="range"]') || 
+      target.closest('select') || 
+      target.closest('button') || 
+      target.closest('canvas') ||
+      target.closest('.scroll-container') ||
+      target.closest('.input-wheel') ||
+      target.closest('svg') ||
+      target.closest('path')
+    ) {
+      return;
+    }
+    
+    if (e.touches && e.touches.length > 0) {
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    }
+  }
+
+  function handleTouchEnd(e) {
+    if (!touchStartX) return;
+    
+    if (e.changedTouches && e.changedTouches.length > 0) {
+      const deltaX = e.changedTouches[0].clientX - touchStartX;
+      const deltaY = e.changedTouches[0].clientY - touchStartY;
+      
+      touchStartX = 0;
+      touchStartY = 0;
+
+      // Swipe threshold check (mostly horizontal swipe)
+      if (Math.abs(deltaX) > 85 && Math.abs(deltaY) < 55) {
+        const currentIdx = TABS_CONFIG.findIndex(t => t.id === activeTab);
+        if (currentIdx !== -1) {
+          if (deltaX < 0 && currentIdx < TABS_CONFIG.length - 1) {
+            // Swiped left -> Go to next tab
+            activeTab = TABS_CONFIG[currentIdx + 1].id;
+          } else if (deltaX > 0 && currentIdx > 0) {
+            // Swiped right -> Go to previous tab
+            activeTab = TABS_CONFIG[currentIdx - 1].id;
+          }
+        }
+      }
+    }
+  }
 </script>
 
 <div class="fathertime-app border-white/5 bg-[#07070b]/90 backdrop-blur-md rounded-2xl w-full h-full flex flex-col md:flex-row overflow-hidden relative shadow-2xl">
@@ -117,7 +169,11 @@
   </div>
 
   <!-- Main Viewport Container -->
-  <main class="flex-grow overflow-y-auto scrollbar-none p-4 md:p-6 w-full flex flex-col justify-between">
+  <main 
+    class="flex-grow overflow-y-auto scrollbar-none p-4 md:p-6 w-full flex flex-col justify-between"
+    ontouchstart={handleTouchStart}
+    ontouchend={handleTouchEnd}
+  >
     
     <!-- TV/Ultra-wide 2xl Master-Detail layout override: -->
     <!-- Displays hourglass clock AND active tab side-by-side to fill empty spaces -->
@@ -157,7 +213,7 @@
           {#if activeTab === "servers"}<TimeServersTab />{/if}
           {#if activeTab === "history"}<HistoryTab />{/if}
           {#if activeTab === "metronome"}<MetronomeTab />{/if}
-          {#if activeTab === "tuner"}<TunerTab />{/if}
+          {#if activeTab === "tuner"}<TuningForkTab />{/if}
         {/if}
       </div>
     </div>
@@ -183,7 +239,7 @@
         {#if activeTab === "servers"}<TimeServersTab />{/if}
         {#if activeTab === "history"}<HistoryTab />{/if}
         {#if activeTab === "metronome"}<MetronomeTab />{/if}
-        {#if activeTab === "tuner"}<TunerTab />{/if}
+        {#if activeTab === "tuner"}<TuningForkTab />{/if}
       {/if}
     </div>
   </main>
