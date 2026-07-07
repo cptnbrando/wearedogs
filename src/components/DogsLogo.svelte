@@ -43,10 +43,10 @@
     <!-- Left-aligned animation container that overflows horizontally to display notes over the text -->
     <div
       transition:fade={{ duration: 800 }}
-      class="absolute top-1/2 -translate-y-1/2 h-full w-auto aspect-[1.44/1] max-w-none overflow-visible flex items-center justify-start pointer-events-none {size ===
+      class="absolute top-1/2 -translate-y-1/2 w-auto aspect-[1.44/1] max-w-none overflow-visible flex items-center justify-start pointer-events-none {size ===
       'dict'
-        ? '-left-5 md:left-0'
-        : 'left-0'}"
+        ? 'h-[75%] -left-2 md:left-0'
+        : 'h-full left-0'}"
       style="mix-blend-mode: screen;"
     >
       {#if !isLottieLoaded}

@@ -24,7 +24,7 @@ export class AudioCore {
   currentTrackIndex = $state(0);
   isLoading = $state(false);
   isShuffled = $state(false);
-  repeatMode = $state(0); // 0 = Off, 1 = Repeat All, 2 = Repeat One
+  repeatMode = $state(1); // 0 = Off, 1 = Repeat All, 2 = Repeat One
   activeAudioType = $state("music"); // 'music' | 'video'
 
   progressInterval = null;

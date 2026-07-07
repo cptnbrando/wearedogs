@@ -124,6 +124,8 @@
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    backdrop-filter: blur(15px) saturate(160%);
+    -webkit-backdrop-filter: blur(15px) saturate(160%);
     animation: infoSlideIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
