@@ -12,6 +12,15 @@
 
   let mainContainer = $state();
 
+  $effect(() => {
+    if (activePage !== null) {
+      isLandingPage = true;
+      document
+        .getElementById("landing-page")
+        ?.scrollIntoView({ behavior: "instant" });
+    }
+  });
+
   onMount(() => {
     // Check initial pathname on mount
     const checkInitialPath = () => {

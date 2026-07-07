@@ -138,7 +138,7 @@
 </script>
 
 <div
-  class="canvas-container w-full h-full select-none pointer-events-auto flex align-center justify-center"
+  class="canvas-container fuck w-full h-full flex justify-center align-center select-none pointer-events-auto flex align-center justify-center"
   class:dragging={isDragging}
   onpointerdown={handlePointerDown}
   onpointerup={handlePointerUp}
@@ -215,7 +215,20 @@
   {/if}
 </div>
 
-<style>
+<style lang="scss">
+  .fuck {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    :global(div:first-of-type),
+    :global(canvas:first-of-type) {
+      display: flex !important;
+      justify-content: center !important;
+      align-items: center !important;
+    }
+  }
+
   .canvas-container {
     width: 100%;
     height: 100%;

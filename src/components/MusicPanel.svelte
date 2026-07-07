@@ -27,6 +27,7 @@
   } from "lucide-svelte";
   import { audioCore } from "../lib/AudioCore.svelte.js";
   import { VisualizerEngine } from "../lib/visualizer/VisualizerEngine.js";
+  import DogsLogo from "./DogsLogo.svelte";
   import { PRESETS, NO_SIGNAL_PRESET } from "../lib/visualizer/presets.js";
 
   import SwipeTabNav from "./SwipeTabNav.svelte";
@@ -335,14 +336,13 @@
       <div class="brand">
         <button
           class="logo-btn"
-          onclick={() => window.dispatchEvent(new CustomEvent("open-info-panel"))}
+          onclick={() => {
+            if (audioCore.isPlaying) return;
+            window.dispatchEvent(new CustomEvent("open-info-panel"));
+          }}
           aria-label="Open DOGS Info"
         >
-          <img
-            src="/favicon.svg"
-            alt="DOGS Logo"
-            class="w-6 h-6 shrink-0 drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]"
-          />
+          <DogsLogo size="panel" />
         </button>
         <h1>{title}</h1>
       </div>

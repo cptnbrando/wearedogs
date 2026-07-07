@@ -2,6 +2,8 @@
   import { onMount } from "svelte";
   import { Mail } from "lucide-svelte";
   import BinaryBackground from "./BinaryBackground.svelte";
+  import DogsLogo from "./DogsLogo.svelte";
+  import { audioCore } from "../lib/AudioCore.svelte.js";
 
   // Props mapping the flag colors toggle state
   let { isFlagColors = false, active = false } = $props();
@@ -58,7 +60,14 @@
     <div
       class="dict-container w-full max-lg:landscape:w-[46%] lg:w-full max-w-[650px] mt-4 max-lg:landscape:mt-0 lg:mt-0 pointer-events-auto max-lg:landscape:my-auto"
     >
-      <div class="flex items-baseline gap-2.5 md:gap-3.5">
+      <div class="flex items-center gap-2.5 md:gap-3.5">
+        <button
+          class="logo-btn pointer-events-auto focus:outline-none"
+          onclick={() => window.dispatchEvent(new CustomEvent(audioCore.isPlaying ? "open-music-panel" : "open-info-panel"))}
+          aria-label="DOGS Logo"
+        >
+          <DogsLogo size="dict" />
+        </button>
         <h2
           class="dict-word font-black text-white tracking-tight uppercase text-3xl md:text-4xl lg:text-5xl transition-colors duration-500"
           class:colored={isFlagColors}
@@ -310,106 +319,6 @@
   :global(html[data-theme="default"]) .dict-word.colored {
     color: #d61a2c !important;
     text-shadow: 0 0 15px rgba(214, 26, 44, 0.35) !important;
-  }
-
-  /* Dripping Droplet Animation on the Right */
-  .droplet {
-    position: absolute;
-    left: 90%;
-    top: 33.3%;
-    width: 14px;
-    height: 14px;
-    background: var(--bg-main, #000000);
-    border-radius: 50% 0 50% 50%;
-    transform: translate(-50%, -50%) rotate(-45deg);
-    opacity: 0;
-    animation: drop-fall-down 3.2s infinite cubic-bezier(0.5, 0, 0.85, 1);
-  }
-
-  .ripple {
-    position: absolute;
-    left: 90%;
-    top: 90%;
-    width: 70px;
-    height: 18px;
-    border: 2px solid var(--bg-main, #000000);
-    border-radius: 50%;
-    transform: translate(-50%, -50%) scale(0);
-    opacity: 0;
-    pointer-events: none;
-  }
-
-  .ripple-1 {
-    animation: ripple-out 3.2s infinite cubic-bezier(0.1, 0.8, 0.3, 1);
-  }
-
-  .ripple-2 {
-    animation: ripple-out 3.2s infinite cubic-bezier(0.1, 0.8, 0.3, 1);
-    animation-delay: 0s;
-  }
-
-  @keyframes drop-fall-down {
-    0% {
-      top: 25.3%;
-      transform: translate(-50%, -50%) rotate(-45deg) scale(0);
-      opacity: 0;
-    }
-    2% {
-      top: 25.3%;
-      transform: translate(-50%, -50%) rotate(-45deg) scale(1.5, 0.4);
-      opacity: 1;
-    }
-    8% {
-      top: 25.3%;
-      transform: translate(-50%, -50%) rotate(-45deg) scale(1.1, 0.9);
-      opacity: 1;
-    }
-    13% {
-      top: 31%;
-      transform: translate(-50%, -50%) rotate(-45deg) scale(0.8, 1.5);
-      opacity: 1;
-    }
-    16% {
-      top: 32%;
-      transform: translate(-50%, -50%) rotate(-45deg) scale(1, 1);
-      opacity: 1;
-    }
-    40% {
-      top: 90%;
-      transform: translate(-50%, -50%) rotate(-45deg) scale(0.65, 1.35);
-      opacity: 1;
-    }
-    41% {
-      top: 90%;
-      transform: translate(-50%, -50%) rotate(-45deg) scale(0, 0);
-      opacity: 0;
-    }
-    42%,
-    100% {
-      top: 30.3%;
-      transform: translate(-50%, -50%) rotate(-45deg) scale(0);
-      opacity: 0;
-    }
-  }
-
-  @keyframes ripple-out {
-    0%,
-    40% {
-      transform: translate(-50%, -50%) scale(0);
-      opacity: 0;
-    }
-    41% {
-      transform: translate(-50%, -50%) scale(0.1);
-      opacity: 0.8;
-    }
-    70% {
-      transform: translate(-50%, -50%) scale(2.8);
-      opacity: 0;
-    }
-    100% {
-      transform: translate(-50%, -50%) scale(2.8);
-      opacity: 0;
-    }
   }
 
   /* Chic Card hover styling */

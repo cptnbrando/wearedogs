@@ -19,6 +19,7 @@
   import MapPanel from "./MapPanel.svelte";
   import InfoPanel from "./InfoPanel.svelte";
   import { parsePath, panelToUrl, appToUrl } from "../lib/router.svelte.js";
+  import { audioCore } from "../lib/AudioCore.svelte.js";
 
   // Active view state: 'stats' | 'networking' | 'toolbox' | 'music' | 'store' | 'map' | null
   let {
@@ -51,8 +52,16 @@
       const currentState = history.state || {};
       history.pushState({ ...currentState, showInfo: true }, "");
     };
+    const handleOpenMusic = () => {
+      showInfo = false;
+      openPage("music");
+    };
     window.addEventListener("open-info-panel", handleOpenInfo);
-    return () => window.removeEventListener("open-info-panel", handleOpenInfo);
+    window.addEventListener("open-music-panel", handleOpenMusic);
+    return () => {
+      window.removeEventListener("open-info-panel", handleOpenInfo);
+      window.removeEventListener("open-music-panel", handleOpenMusic);
+    };
   });
 
   // Component reference for API calls
@@ -251,6 +260,7 @@
         deepLinkBlogPostSlug = state?.slug || null;
       }
 
+      isClosing = false;
       activePage = targetView;
       activeApp = targetApp;
     };
@@ -338,6 +348,7 @@
       <!-- Music -->
       <button
         class="runic-btn border-neon-purple"
+        class:rune-dancing={audioCore.isPlaying}
         onclick={(e) => {
           e.stopPropagation();
           openPage("music");
@@ -531,5 +542,23 @@
       width: 20px !important;
       height: 20px !important;
     }
+  }
+
+  @keyframes runeDance {
+    0%, 100% {
+      transform: scale(1) rotate(0deg);
+    }
+    25% {
+      transform: scale(1.1) rotate(-8deg);
+    }
+    75% {
+      transform: scale(1.1) rotate(8deg);
+    }
+  }
+
+  .rune-dancing :global(svg) {
+    animation: runeDance 1s ease-in-out infinite;
+    color: #a000eb !important;
+    filter: drop-shadow(0 0 8px rgba(160, 0, 237, 0.6));
   }
 </style>
