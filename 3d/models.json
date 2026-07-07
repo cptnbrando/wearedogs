@@ -288,9 +288,49 @@
       0
     ],
     "attribution": {
-      "creator": "patrickambrose584",
+      "creator": "@patrickambrose584",
       "license": "CC Attribution",
       "link": "https://sketchfab.com/3d-models/dug-doing-the-toothless-dance-479baca05644457faac67dac4bc0afa1"
+    }
+  },
+  {
+    "id": "chop",
+    "name": "Chop (GTA V)",
+    "type": "glb",
+    "path": "/3d/chop.glb",
+    "scaleMultiplier": 2,
+    "attribution": {
+      "creator": "@Dudueyidk",
+      "license": "CC Attribution",
+      "link": "https://sketchfab.com/3d-models/chop-gta-75763caacbec4ae29f84e033d441fdd3"
+    }
+  },
+  {
+    "id": "parappa",
+    "name": "PaRappa the Rapper",
+    "type": "glb",
+    "path": "/3d/parappa.glb",
+    "attribution": {
+      "creator": "@THEREALBIGGRAFIS",
+      "license": "CC Attribution",
+      "link": "https://sketchfab.com/3d-models/parappa-the-rapper-f604382ccde7448aaaffd06f4cc16b71"
+    }
+  },
+  {
+    "id": "dogman",
+    "name": "Dog Man",
+    "type": "glb",
+    "path": "/3d/dogman.glb",
+    "scaleMultiplier": 0.025,
+    "centerOffset": [
+      0,
+      0.55,
+      0
+    ],
+    "attribution": {
+      "creator": "Dream Dixie Works",
+      "license": "CC Attribution",
+      "link": "https://sketchfab.com/3d-models/dog-man-doing-the-toothless-dance-3df6658042e74678bec197153d3a0156"
     }
   }
 ]
