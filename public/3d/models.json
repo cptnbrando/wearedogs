@@ -321,7 +321,7 @@
     "name": "Dog Man",
     "type": "glb",
     "path": "/3d/dogman.glb",
-    "scaleMultiplier": 0.02,
+    "scaleMultiplier": 0.025,
     "centerOffset": [
       0,
       0.55,
