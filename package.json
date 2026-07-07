@@ -28,6 +28,7 @@
     "vitest": "^3.0.7"
   },
   "dependencies": {
+    "@lottiefiles/dotlottie-wc": "^0.9.19",
     "@threlte/core": "^8.0.1",
     "@threlte/extras": "^9.0.0",
     "jsqr": "^1.4.0",
