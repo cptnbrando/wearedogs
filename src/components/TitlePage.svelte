@@ -32,6 +32,15 @@
   let activeApp = $state(null);
   let textIsPaused = $state(false);
 
+  let prevIsLandingPage = $state(true);
+  $effect(() => {
+    const current = isLandingPage;
+    if (current && !prevIsLandingPage) {
+      textIsPaused = true;
+    }
+    prevIsLandingPage = current;
+  });
+
   $effect(() => {
     locale.set(activeLang);
   });

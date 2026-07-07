@@ -377,6 +377,12 @@
     clearInterval(hoverTimer);
   }
 
+  $effect(() => {
+    if (isPaused) {
+      stopCycling();
+    }
+  });
+
   function onEnter() {
     isHovering = true;
     if (!isPaused) {
