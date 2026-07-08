@@ -1275,4 +1275,30 @@
       0 0 8px rgba(var(--color-neon-red-rgb, 255, 51, 68), 0.8)
     );
   }
+
+  /* ── Windshield Wiper Preview ── */
+  .wiper-icon-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+  }
+  .wiper-blade-animate {
+    transform-origin: 50px 85px;
+    animation: wiper-sweep 2.5s ease-in-out infinite alternate;
+  }
+  @keyframes wiper-sweep {
+    0% {
+      transform: rotate(-55deg);
+    }
+    100% {
+      transform: rotate(55deg);
+    }
+  }
+  .app-card:hover .wiper-blade-animate {
+    animation: wiper-sweep 1s ease-in-out infinite alternate;
+    stroke: #00ffff;
+    filter: drop-shadow(0 0 4px rgba(0, 255, 255, 0.8));
+  }
 </style>
