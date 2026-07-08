@@ -446,16 +446,14 @@
   });
 
   function getKnobCoords() {
-    if (!faderFxCanvas) return { x: 100, y: 100 };
     const knobEl = document.querySelector(".dj-fader-knob");
-    if (!knobEl) return { x: faderFxCanvas.width / 2, y: faderFxCanvas.height / 2 };
+    if (!knobEl) return { x: window.innerWidth / 2, y: window.innerHeight / 2 };
 
     const knobRect = knobEl.getBoundingClientRect();
-    const canvasRect = faderFxCanvas.getBoundingClientRect();
 
-    const x = knobRect.left - canvasRect.left + knobRect.width / 2;
-    // Canvas coordinate space has Y=0 at the bottom and Y=height at the top
-    const y = canvasRect.bottom - knobRect.top - knobRect.height / 2;
+    // Directly use viewport CSS pixels, shifting to the left-bottom of the fader knob
+    const x = knobRect.left + knobRect.width * 0.15;
+    const y = window.innerHeight - (knobRect.top + knobRect.height * 0.85);
     return { x, y };
   }
 
@@ -534,8 +532,8 @@
       p.y += p.vy;
       p.life -= p.decay;
 
-      // Expand smoke into large, soft, floating clouds as it goes up the screen
-      const scale = p.startScale + (1.0 - p.life) * 58;
+      // Expand smoke into very large, soft, floating clouds as it goes up the screen
+      const scale = p.startScale + (1.0 - p.life) * 88;
       p.mesh.scale.set(scale, scale, 1);
       p.mesh.position.set(p.x, p.y, 0);
       p.mesh.material.opacity = p.life * 0.16;
@@ -554,12 +552,13 @@
   function spawnSmokeParticle(x, y) {
     if (!fxScene) return;
 
-    const geom = new THREE.CircleGeometry(4.5, 8);
-    const colorVal = 0.35 + Math.random() * 0.22;
+    const geom = new THREE.CircleGeometry(5.0, 8);
+    // Whitish-grey color parameters
+    const colorVal = 0.85 + Math.random() * 0.12;
     const mat = new THREE.MeshBasicMaterial({
-      color: new THREE.Color(colorVal, colorVal, colorVal),
+      color: new THREE.Color(colorVal, colorVal, colorVal * 1.01),
       transparent: true,
-      opacity: 0.16,
+      opacity: 0.06,
       blending: THREE.NormalBlending
     });
     const mesh = new THREE.Mesh(geom, mat);
@@ -570,11 +569,11 @@
       mesh,
       x,
       y,
-      vx: (Math.random() - 0.5) * 0.45 + Math.sin(Date.now() * 0.001) * 0.15, // wind drift
-      vy: Math.random() * 0.6 + 0.85, // gently rise
+      vx: (Math.random() - 0.5) * 0.55 + Math.sin(Date.now() * 0.001) * 0.22, // wind drift
+      vy: Math.random() * 0.7 + 1.25, // rise upwards faster
       startScale: 1.0,
       life: 1.0,
-      decay: 0.0016 + Math.random() * 0.0008 // very slow decay to reach the top of the browser screen!
+      decay: 0.0006 + Math.random() * 0.0004 // extremely slow decay to rise completely past the top of the screen!
     });
   }
 
@@ -625,7 +624,6 @@
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div class="mp-backdrop" onclick={onClose}>
-  <canvas bind:this={faderFxCanvas} class="fader-fx-canvas pointer-events-none"></canvas>
   <div
     class="mp-container"
     class:closing={isClosing}
@@ -1268,6 +1266,7 @@
       </div>
     </div>
   {/if}
+  <canvas bind:this={faderFxCanvas} class="fader-fx-canvas pointer-events-none"></canvas>
 </div>
 
 <style lang="scss">
