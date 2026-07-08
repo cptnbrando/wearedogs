@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1783546571,
+    "firstCommitTimestamp": 1783546615,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 66912
+    "averageLinesAltered": 66948
   },
   "entries": [
     {
       "version": "1.0.1",
       "name": "Master",
       "date": "2026-07-08",
-      "timestamp": 1783546507,
+      "timestamp": 1783546556,
       "commits": [
         {
-          "hash": "f6d6102",
-          "message": "well here goes nothin (45 second database migration lol)",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/f6d610253996d5cf131fece7620be04675f3706d",
-          "timestamp": 1783546571,
-          "linesChanged": 66912
+          "hash": "d5f0cbd",
+          "message": "added attrib for shut up dude",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/d5f0cbd5cf99e09de832ec3ead08112708a9f7e3",
+          "timestamp": 1783546615,
+          "linesChanged": 66948
         }
       ]
     },
