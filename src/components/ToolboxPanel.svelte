@@ -1,4 +1,5 @@
 <script>
+  import { onMount, onDestroy } from "svelte";
   import {
     ArrowLeft,
     Undo,
@@ -79,6 +80,18 @@
       activeApp = null;
     }
   }
+
+  // Escape key: navigate sub-app → grid only.
+  // TitlePage's handler closes the panel when no sub-app is active.
+  function handleEscapeKey(e) {
+    if (e.key !== "Escape") return;
+    const tag = document.activeElement?.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || document.activeElement?.isContentEditable) return;
+    if (activeApp !== null) handleBack();
+  }
+
+  onMount(() => window.addEventListener("keydown", handleEscapeKey));
+  onDestroy(() => window.removeEventListener("keydown", handleEscapeKey));
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->

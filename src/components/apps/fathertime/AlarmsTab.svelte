@@ -176,10 +176,10 @@
   });
 </script>
 
-<div class="alarms-tab animated-pane flex flex-col h-full p-4 md:p-6 w-full max-w-3xl mx-auto justify-between relative">
+<div class="alarms-tab animated-pane flex flex-col p-4 md:p-6 w-full max-w-3xl mx-auto gap-4 relative">
   
   <!-- Add Alarm Box -->
-  <div class="border border-white/5 bg-black/25 p-4 rounded-xl mb-4 w-full">
+  <div class="border border-white/5 bg-black/25 p-4 rounded-xl w-full">
     <h3 class="text-xs font-bold text-white uppercase tracking-wider mb-3 flex items-center gap-1.5">
       <AlarmClock size={14} class="text-red-400" />
       Create New Alarm
