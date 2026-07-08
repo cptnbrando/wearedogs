@@ -197,9 +197,8 @@
       id: "denchai",
       title: "Den Chai",
       artist: "The Buddha-Bar Lounge",
-      album: "Buddha-Bar Lounge",
-      cover:
-        "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20300%20300'%20width='300'%20height='300'%3E%3Cdefs%3E%3CradialGradient%20id='bgGrad'%20cx='50%25'%20cy='50%25'%20r='50%25'%3E%3Cstop%20offset='0%25'%20stop-color='%232d0a14'/%3E%3Cstop%20offset='100%25'%20stop-color='%23050508'/%3E%3C/radialGradient%3E%3ClinearGradient%20id='goldGrad'%20x1='0%25'%20y1='0%25'%20x2='100%25'%20y2='100%25'%3E%3Cstop%20offset='0%25'%20stop-color='%23ffe259'/%3E%3Cstop%20offset='100%25'%20stop-color='%23ffa751'/%3E%3C/linearGradient%3E%3Cfilter%20id='glow'%20x='-20%25'%20y='-20%25'%20width='140%25'%20height='140%25'%3E%3Cdrop-shadow%20dx='0'%20dy='0'%20stdDeviation='6'%20flood-color='%23ff0055'%20flood-opacity='0.6'/%3E%3C/filter%3E%3C/defs%3E%3Crect%20width='300'%20height='300'%20fill='url(%23bgGrad)'/%3E%3Ccircle%20cx='150'%20cy='150'%20r='100'%20fill='none'%20stroke='%23ff0055'%20stroke-width='2'%20filter='url(%23glow)'/%3E%3Ccircle%20cx='150'%20cy='150'%20r='95'%20fill='none'%20stroke='url(%23goldGrad)'%20stroke-width='1'%20opacity='0.5'/%3E%3Cpath%20d='M150%2075%20C142%2085,%20140%20100,%20142%20110%20C132%20115,%20125%20125,%20125%20140%20C125%20160,%20135%20180,%20145%20190%20C130%20195,%20110%20205,%20100%20215%20C95%20220,%2095%20225,%20105%20225%20L195%20225%20C205%20225,%20205%20220,%20200%20215%20C190%20205,%20170%20195,%20155%20190%20C165%20180,%20175%20160,%20175%20140%20C175%20125,%20168%20115,%20158%20110%20C160%20100,%20158%2085,%20150%2075%20Z'%20fill='url(%23goldGrad)'/%3E%3Ctext%20x='150'%20y='250'%20font-family='system-ui,%20-apple-system,%20sans-serif'%20font-size='12'%20font-weight='900'%20fill='%23ffa751'%20letter-spacing='4'%20text-anchor='middle'%3EBUDDHA-BAR%3C/text%3E%3Ctext%20x='150'%20y='265'%20font-family='system-ui,%20-apple-system,%20sans-serif'%20font-size='8'%20font-weight='400'%20fill='rgba(255,255,255,0.4)'%20letter-spacing='2'%20text-anchor='middle'%3EDEN%20CHAI%3C/text%3E%3C/svg%3E",
+      album: "Den Chai",
+      cover: "/img/covers/buddha.webp",
       altCover: "",
       src: "/music/DENCHAI.mp3",
       instrumental: "",
@@ -315,7 +314,7 @@
     const success = audioCore.setCrossfade(newVal);
     if (!success) {
       crossfadeFailCount++;
-      
+
       if (!isKnobJiggling) {
         isKnobJiggling = true;
         setTimeout(() => {
@@ -472,7 +471,7 @@
     fxRenderer = new THREE.WebGLRenderer({
       canvas: faderFxCanvas,
       alpha: true,
-      antialias: true
+      antialias: true,
     });
     fxRenderer.setSize(width, height, false);
     fxRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -559,7 +558,7 @@
       color: new THREE.Color(colorVal, colorVal, colorVal * 1.01),
       transparent: true,
       opacity: 0.06,
-      blending: THREE.NormalBlending
+      blending: THREE.NormalBlending,
     });
     const mesh = new THREE.Mesh(geom, mat);
     mesh.position.set(x, y, 0);
@@ -573,7 +572,7 @@
       vy: Math.random() * 0.7 + 1.25, // rise upwards faster
       startScale: 1.0,
       life: 1.0,
-      decay: 0.0006 + Math.random() * 0.0004 // extremely slow decay to rise completely past the top of the screen!
+      decay: 0.0006 + Math.random() * 0.0004, // extremely slow decay to rise completely past the top of the screen!
     });
   }
 
@@ -592,7 +591,7 @@
         color: new THREE.Color(color),
         transparent: true,
         opacity: 1.0,
-        blending: THREE.AdditiveBlending
+        blending: THREE.AdditiveBlending,
       });
       const mesh = new THREE.Mesh(geom, mat);
       mesh.position.set(knobX, knobY, 0);
@@ -609,7 +608,7 @@
         vy: Math.sin(angle) * speed,
         ay: -0.15,
         life: 1.0,
-        decay: 0.02 + Math.random() * 0.02
+        decay: 0.02 + Math.random() * 0.02,
       });
     }
   }
@@ -659,7 +658,11 @@
       ontouchend={handleBodyTouchEnd}
     >
       {#if activeTab === "songs"}
-        <div class="songs-layout" in:fade={{ duration: 120, delay: 120 }} out:fade={{ duration: 120 }}>
+        <div
+          class="songs-layout"
+          in:fade={{ duration: 120, delay: 120 }}
+          out:fade={{ duration: 120 }}
+        >
           <!-- Left side player details -->
           <div class="player-side" class:tracklist-open={showMobileTracklist}>
             <!-- Top block (Vinyl & track info) - disappears on mobile tracklist active -->
@@ -1125,7 +1128,11 @@
           </div>
         </div>
       {:else if activeTab === "samples"}
-        <div class="tab-scroll scroll-y" in:fade={{ duration: 120, delay: 120 }} out:fade={{ duration: 120 }}>
+        <div
+          class="tab-scroll scroll-y"
+          in:fade={{ duration: 120, delay: 120 }}
+          out:fade={{ duration: 120 }}
+        >
           <div class="sec-head">
             <h2 class="sec-title">Samples</h2>
             <p class="sec-sub">
@@ -1154,7 +1161,11 @@
           </div>
         </div>
       {:else if activeTab === "playlists"}
-        <div class="tab-scroll scroll-y" in:fade={{ duration: 120, delay: 120 }} out:fade={{ duration: 120 }}>
+        <div
+          class="tab-scroll scroll-y"
+          in:fade={{ duration: 120, delay: 120 }}
+          out:fade={{ duration: 120 }}
+        >
           <div class="sec-head">
             <h2 class="sec-title">Playlists</h2>
             <p class="sec-sub">
@@ -1199,7 +1210,11 @@
           </div>
         </div>
       {:else if activeTab === "radio"}
-        <div class="tab-scroll scroll-y" in:fade={{ duration: 120, delay: 120 }} out:fade={{ duration: 120 }}>
+        <div
+          class="tab-scroll scroll-y"
+          in:fade={{ duration: 120, delay: 120 }}
+          out:fade={{ duration: 120 }}
+        >
           <div class="sec-head">
             <h2 class="sec-title">Radio</h2>
             <p class="sec-sub">
@@ -1266,7 +1281,8 @@
       </div>
     </div>
   {/if}
-  <canvas bind:this={faderFxCanvas} class="fader-fx-canvas pointer-events-none"></canvas>
+  <canvas bind:this={faderFxCanvas} class="fader-fx-canvas pointer-events-none"
+  ></canvas>
 </div>
 
 <style lang="scss">
@@ -1509,19 +1525,33 @@
 
   /* ── DJ Crossfader Easter Egg Animations & FX ── */
   @keyframes knob-wiggle {
-    0%, 100% { transform: translate(0, -50%) scale(1); }
-    20%, 60% { transform: translate(-3.5px, -50%) rotate(-4deg); }
-    40%, 80% { transform: translate(3.5px, -50%) rotate(4deg); }
+    0%,
+    100% {
+      transform: translate(0, -50%) scale(1);
+    }
+    20%,
+    60% {
+      transform: translate(-3.5px, -50%) rotate(-4deg);
+    }
+    40%,
+    80% {
+      transform: translate(3.5px, -50%) rotate(4deg);
+    }
   }
-  
+
   .knob-jiggle {
     animation: knob-wiggle 0.3s ease-in-out;
   }
 
   .dj-fader-knob.fried {
-    background: linear-gradient(135deg, #2c2222 0%, #1a1212 50%, #0f0505 100%) !important;
+    background: linear-gradient(
+      135deg,
+      #2c2222 0%,
+      #1a1212 50%,
+      #0f0505 100%
+    ) !important;
     border-color: rgba(239, 68, 68, 0.35) !important;
-    box-shadow: 
+    box-shadow:
       0 4px 10px rgba(0, 0, 0, 0.9),
       0 0 8px rgba(239, 68, 68, 0.25) !important;
   }
@@ -1533,8 +1563,12 @@
   }
 
   @keyframes fader-flicker {
-    0% { opacity: 0.35; }
-    100% { opacity: 1; }
+    0% {
+      opacity: 0.35;
+    }
+    100% {
+      opacity: 1;
+    }
   }
 
   .dj-crossfader.fader-flash {
@@ -1555,7 +1589,7 @@
 
   .dj-crossfader.fader-fried {
     border-color: rgba(239, 68, 68, 0.25) !important;
-    box-shadow: 
+    box-shadow:
       inset 0 0 8px rgba(239, 68, 68, 0.08),
       0 8px 24px rgba(0, 0, 0, 0.5) !important;
   }
