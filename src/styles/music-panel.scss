@@ -30,6 +30,48 @@
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
   animation: mpIn 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+
+  // Purple theme variables (Vocal/Default)
+  --glow-color: rgba(170, 90, 255, 0.85);
+  --glow-light: rgba(170, 90, 255, 0.6);
+  
+  --badge-bg: rgba(170, 90, 255, 0.13);
+  --badge-border: rgba(170, 90, 255, 0.28);
+  --badge-text: rgba(180, 110, 255, 0.9);
+  --badge-bg-hover: rgba(170, 90, 255, 0.22);
+  --badge-border-hover: rgba(170, 90, 255, 0.45);
+  
+  --active-row-bg: rgba(170, 90, 255, 0.07);
+  --active-btn-text: rgba(170, 90, 255, 0.9);
+  
+  --play-gradient-start: rgba(170, 90, 255, 0.92);
+  --play-gradient-end: rgba(90, 130, 255, 0.92);
+  --play-glow: rgba(140, 80, 255, 0.5);
+  
+  --progress-gradient-start: rgba(170, 90, 255, 0.9);
+  --progress-gradient-end: rgba(90, 180, 255, 0.8);
+}
+
+.mp-container.theme-inst {
+  // Blue theme variables (Instrumental)
+  --glow-color: rgba(90, 210, 255, 0.85);
+  --glow-light: rgba(90, 210, 255, 0.6);
+  
+  --badge-bg: rgba(90, 210, 255, 0.13);
+  --badge-border: rgba(90, 210, 255, 0.28);
+  --badge-text: rgba(90, 210, 255, 0.9);
+  --badge-bg-hover: rgba(90, 210, 255, 0.22);
+  --badge-border-hover: rgba(90, 210, 255, 0.45);
+  
+  --active-row-bg: rgba(90, 210, 255, 0.07);
+  --active-btn-text: rgba(90, 210, 255, 0.9);
+  
+  --play-gradient-start: rgba(90, 210, 255, 0.92);
+  --play-gradient-end: rgba(90, 130, 255, 0.92);
+  --play-glow: rgba(90, 210, 255, 0.5);
+  
+  --progress-gradient-start: rgba(90, 210, 255, 0.9);
+  --progress-gradient-end: rgba(90, 180, 255, 0.8);
 }
 
 .mp-container.closing {
@@ -88,6 +130,14 @@
   border-right: 1px solid rgba(255, 255, 255, 0.05);
   background: rgba(0, 0, 0, 0.12);
   overflow-x: hidden;
+}
+
+.player-top-block {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
 }
 
 .vinyl-wrapper {
@@ -219,8 +269,8 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: rgba(170, 90, 255, 0.85);
-  box-shadow: 0 0 8px rgba(170, 90, 255, 0.6);
+  background: var(--glow-color, rgba(170, 90, 255, 0.85));
+  box-shadow: 0 0 8px var(--glow-light, rgba(170, 90, 255, 0.6));
 }
 
 .tonearm.playing {
@@ -230,6 +280,8 @@
 .track-info {
   text-align: center;
   width: 100%;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .version-badge {
@@ -252,6 +304,35 @@
   background: rgba(90, 210, 255, 0.1);
   border-color: rgba(90, 210, 255, 0.28);
   color: rgba(90, 210, 255, 0.9);
+}
+
+.scroll-container {
+  width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.scroll-container.overflowing {
+  text-align: left;
+}
+
+.scroll-text {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.scroll-text.animate-scroll {
+  animation: scroll-text 8s linear infinite alternate;
+}
+
+@keyframes scroll-text {
+  0%, 15% {
+    transform: translateX(0);
+  }
+  85%, 100% {
+    transform: translateX(var(--scroll-dist));
+  }
 }
 
 .track-title {
@@ -277,6 +358,48 @@
   text-transform: uppercase;
   letter-spacing: 0.06em;
   font-family: "Outfit", monospace;
+}
+
+.tr-share-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.45);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.9);
+    border-color: rgba(255, 255, 255, 0.16);
+  }
+}
+
+.player-share-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--badge-bg, rgba(170, 90, 255, 0.13));
+  border: 1px solid var(--badge-border, rgba(170, 90, 255, 0.28));
+  color: var(--badge-text, rgba(180, 110, 255, 0.9));
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+
+  &:hover {
+    background: var(--badge-bg-hover, rgba(170, 90, 255, 0.22));
+    color: rgba(200, 155, 255, 1);
+    border-color: var(--badge-border-hover, rgba(170, 90, 255, 0.45));
+  }
 }
 
 .progress-row {
@@ -306,8 +429,8 @@
 .progress-fill {
   height: 100%;
   background: linear-gradient(90deg,
-      rgba(170, 90, 255, 0.9) 0%,
-      rgba(90, 180, 255, 0.8) 100%);
+      var(--progress-gradient-start, rgba(170, 90, 255, 0.9)) 0%,
+      var(--progress-gradient-end, rgba(90, 180, 255, 0.8)) 100%);
   border-radius: 3px;
   transition: width 0.1s linear;
   pointer-events: none;
@@ -379,15 +502,15 @@
   border-radius: 50%;
   color: #fff;
   background: linear-gradient(135deg,
-      rgba(170, 90, 255, 0.92) 0%,
-      rgba(90, 130, 255, 0.92) 100%);
-  box-shadow: 0 4px 22px rgba(140, 80, 255, 0.5);
+      var(--play-gradient-start, rgba(170, 90, 255, 0.92)) 0%,
+      var(--play-gradient-end, rgba(90, 130, 255, 0.92)) 100%);
+  box-shadow: 0 4px 22px var(--play-glow, rgba(140, 80, 255, 0.5));
   transition: all 0.2s;
 }
 
 .ctrl-play:hover {
   transform: scale(1.07);
-  box-shadow: 0 6px 30px rgba(140, 80, 255, 0.7);
+  box-shadow: 0 6px 30px var(--play-glow, rgba(140, 80, 255, 0.7));
 }
 
 .ctrl-play:active {
@@ -395,7 +518,7 @@
 }
 
 .active-ctrl {
-  color: rgba(170, 90, 255, 0.9) !important;
+  color: var(--active-btn-text, rgba(170, 90, 255, 0.9)) !important;
 }
 
 .spin-ring {
@@ -481,7 +604,7 @@
 }
 
 .track-row.active {
-  background: rgba(170, 90, 255, 0.07);
+  background: var(--active-row-bg, rgba(170, 90, 255, 0.07));
 }
 
 .track-row.active::before {
@@ -492,7 +615,7 @@
   bottom: 0;
   width: 3px;
   background: linear-gradient(to bottom,
-      rgba(170, 90, 255, 0.9),
+      var(--glow-color, rgba(170, 90, 255, 0.9)),
       rgba(90, 150, 255, 0.7));
   border-radius: 0 2px 2px 0;
 }
@@ -584,7 +707,7 @@
 
 .eq-b {
   width: 3px;
-  background: rgba(170, 90, 255, 0.85);
+  background: var(--glow-color, rgba(170, 90, 255, 0.85));
   border-radius: 1px;
   animation: eq 0.55s ease infinite alternate;
 }
@@ -674,8 +797,8 @@
 }
 
 .drop-zone:hover {
-  border-color: rgba(170, 90, 255, 0.28);
-  background: rgba(170, 90, 255, 0.03);
+  border-color: var(--badge-border, rgba(170, 90, 255, 0.28));
+  background: var(--active-row-bg, rgba(170, 90, 255, 0.03));
 }
 
 .drop-zone :global(svg) {
@@ -724,7 +847,7 @@
 }
 
 .link-input:focus {
-  border-color: rgba(170, 90, 255, 0.38);
+  border-color: var(--badge-border-hover, rgba(170, 90, 255, 0.38));
 }
 
 .add-btn {
@@ -734,8 +857,8 @@
   padding: 9px 16px;
   white-space: nowrap;
   background: linear-gradient(135deg,
-      rgba(170, 90, 255, 0.85) 0%,
-      rgba(90, 130, 255, 0.85) 100%);
+      var(--play-gradient-start, rgba(170, 90, 255, 0.85)) 0%,
+      var(--play-gradient-end, rgba(90, 130, 255, 0.85)) 100%);
   border: none;
   border-radius: 10px;
   color: #fff;

@@ -24,6 +24,8 @@
     Waves,
     Maximize2,
     Minimize2,
+    Share2,
+    Check,
   } from "lucide-svelte";
   import { audioCore } from "../lib/AudioCore.svelte.js";
   import { VisualizerEngine } from "../lib/visualizer/VisualizerEngine.js";
@@ -230,6 +232,37 @@
 
   let currentTrack = $derived(library[audioCore.currentTrackIndex]);
 
+  let titleContainerWidth = $state(0);
+  let titleTextWidth = $state(0);
+  let artistContainerWidth = $state(0);
+  let artistTextWidth = $state(0);
+  let albumContainerWidth = $state(0);
+  let albumTextWidth = $state(0);
+
+  let copiedTrackId = $state(null);
+  let copyTimeout = null;
+
+  function handleShareTrack(e, track) {
+    e.stopPropagation();
+    const shareUrl = `${window.location.origin}/music/${track.id}`;
+    navigator.clipboard
+      .writeText(shareUrl)
+      .then(() => {
+        copiedTrackId = track.id;
+        if (copyTimeout) clearTimeout(copyTimeout);
+        copyTimeout = setTimeout(() => {
+          copiedTrackId = null;
+        }, 2000);
+      })
+      .catch((err) => {
+        console.error("Failed to copy share link:", err);
+      });
+  }
+
+  onDestroy(() => {
+    if (copyTimeout) clearTimeout(copyTimeout);
+  });
+
   onMount(() => {
     audioCore.init(library);
     if (initialTrackId) {
@@ -346,6 +379,7 @@
   <div
     class="mp-container"
     class:closing={isClosing}
+    class:theme-inst={audioCore.isInstrumental}
     onclick={(e) => e.stopPropagation()}
   >
     <!-- Header -->
@@ -467,15 +501,62 @@
 
               <!-- Track info (Always visible!) -->
               <div class="track-info mt-2">
-                <div
-                  class="version-badge"
-                  class:inst={audioCore.isInstrumental}
-                >
-                  {audioCore.isInstrumental ? "INSTRUMENTAL" : "ORIGINAL"}
+                <div class="flex items-center justify-center mb-1.5">
+                  <button
+                    class="player-share-btn"
+                    onclick={(e) => handleShareTrack(e, currentTrack)}
+                    title="Copy track link"
+                    aria-label="Share track"
+                  >
+                    {#if copiedTrackId === currentTrack.id}
+                      <Check size={12} class="text-[#22c55e]" />
+                    {:else}
+                      <Share2 size={12} />
+                    {/if}
+                  </button>
                 </div>
-                <h2 class="track-title">{currentTrack.title}</h2>
-                <p class="track-artist">{currentTrack.artist}</p>
-                <p class="track-album">{currentTrack.album}</p>
+                <div
+                  class="scroll-container"
+                  bind:clientWidth={titleContainerWidth}
+                  class:overflowing={titleTextWidth > titleContainerWidth}
+                  style="--scroll-dist: -{titleTextWidth - titleContainerWidth}px"
+                >
+                  <h2
+                    class="track-title scroll-text"
+                    bind:clientWidth={titleTextWidth}
+                    class:animate-scroll={titleTextWidth > titleContainerWidth}
+                  >
+                    {currentTrack.title}
+                  </h2>
+                </div>
+                <div
+                  class="scroll-container"
+                  bind:clientWidth={artistContainerWidth}
+                  class:overflowing={artistTextWidth > artistContainerWidth}
+                  style="--scroll-dist: -{artistTextWidth - artistContainerWidth}px"
+                >
+                  <p
+                    class="track-artist scroll-text"
+                    bind:clientWidth={artistTextWidth}
+                    class:animate-scroll={artistTextWidth > artistContainerWidth}
+                  >
+                    {currentTrack.artist}
+                  </p>
+                </div>
+                <div
+                  class="scroll-container"
+                  bind:clientWidth={albumContainerWidth}
+                  class:overflowing={albumTextWidth > albumContainerWidth}
+                  style="--scroll-dist: -{albumTextWidth - albumContainerWidth}px"
+                >
+                  <p
+                    class="track-album scroll-text"
+                    bind:clientWidth={albumTextWidth}
+                    class:animate-scroll={albumTextWidth > albumContainerWidth}
+                  >
+                    {currentTrack.album}
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -758,15 +839,31 @@
                       >{track.artist} · {track.album} ({track.year || ""})</span
                     >
                   </div>
-                  {#if track.attrib}
-                    <span class="inst-chip-link">
-                      <a
-                        href={track.attrib}
-                        target="_blank"
-                        onclick={(e) => e.stopPropagation()}>Merch</a
-                      >
-                    </span>
-                  {/if}
+                  <div class="flex items-center gap-2 flex-shrink-0">
+                    {#if track.attrib}
+                      <span class="inst-chip-link">
+                        <a
+                          href={track.attrib}
+                          target="_blank"
+                          onclick={(e) => e.stopPropagation()}>Merch</a
+                        >
+                      </span>
+                    {/if}
+                    <!-- svelte-ignore a11y_click_events_have_key_events -->
+                    <!-- svelte-ignore a11y_no_static_element_interactions -->
+                    <button
+                      class="tr-share-btn"
+                      onclick={(e) => handleShareTrack(e, track)}
+                      title="Copy track link"
+                      aria-label="Share track"
+                    >
+                      {#if copiedTrackId === track.id}
+                        <Check size={12} class="text-[#22c55e]" />
+                      {:else}
+                        <Share2 size={12} />
+                      {/if}
+                    </button>
+                  </div>
                 </div>
               {/each}
             </div>
