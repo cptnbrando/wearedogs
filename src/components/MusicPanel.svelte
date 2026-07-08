@@ -27,6 +27,7 @@
     Minimize2,
     Share2,
     Check,
+    AlertTriangle,
   } from "lucide-svelte";
   import { audioCore } from "../lib/AudioCore.svelte.js";
   import { VisualizerEngine } from "../lib/visualizer/VisualizerEngine.js";
@@ -306,9 +307,19 @@
     }
   });
 
+  let focusedTrackId = $state(null);
+
+  function scrollFocusedTrackIntoView() {
+    const el = document.querySelector(`.track-row[data-track-id="${focusedTrackId}"]`);
+    if (el) {
+      el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+  }
+
   function selectSortedTrack(track) {
+    focusedTrackId = track.id;
     const idx = library.findIndex((t) => t.id === track.id);
-    if (audioCore.currentTrackIndex === idx) {
+    if (audioCore.currentTrackIndex === idx && !audioCore.fetchErrors[track.id]) {
       audioCore.togglePlay();
     } else {
       audioCore.loadTrack(idx, true);
@@ -361,19 +372,53 @@
   }
 
   function handleKeydown(e) {
+    const activeEl = document.activeElement;
+    if (
+      activeEl &&
+      (activeEl.tagName === "INPUT" ||
+        activeEl.tagName === "TEXTAREA" ||
+        activeEl.isContentEditable)
+    ) {
+      return;
+    }
+
     if (e.code === "Space" || e.key === " ") {
-      const activeEl = document.activeElement;
-      if (
-        activeEl &&
-        (activeEl.tagName === "INPUT" ||
-          activeEl.tagName === "TEXTAREA" ||
-          activeEl.isContentEditable)
-      ) {
-        return;
-      }
       if (activeTab === "songs") {
         e.preventDefault();
         audioCore.togglePlay();
+      }
+    } else if (e.key === "ArrowDown") {
+      if (activeTab === "songs" && sortedLibrary.length > 0) {
+        e.preventDefault();
+        let currentIdx = sortedLibrary.findIndex((t) => t.id === focusedTrackId);
+        if (currentIdx === -1) {
+          const playingTrack = library[audioCore.currentTrackIndex];
+          currentIdx = sortedLibrary.findIndex((t) => t.id === playingTrack?.id);
+        }
+        const nextIdx = (currentIdx + 1) % sortedLibrary.length;
+        focusedTrackId = sortedLibrary[nextIdx].id;
+        scrollFocusedTrackIntoView();
+      }
+    } else if (e.key === "ArrowUp") {
+      if (activeTab === "songs" && sortedLibrary.length > 0) {
+        e.preventDefault();
+        let currentIdx = sortedLibrary.findIndex((t) => t.id === focusedTrackId);
+        if (currentIdx === -1) {
+          const playingTrack = library[audioCore.currentTrackIndex];
+          currentIdx = sortedLibrary.findIndex((t) => t.id === playingTrack?.id);
+        }
+        const prevIdx =
+          (currentIdx - 1 + sortedLibrary.length) % sortedLibrary.length;
+        focusedTrackId = sortedLibrary[prevIdx].id;
+        scrollFocusedTrackIntoView();
+      }
+    } else if (e.key === "Enter") {
+      if (activeTab === "songs" && focusedTrackId) {
+        e.preventDefault();
+        const track = sortedLibrary.find((t) => t.id === focusedTrackId);
+        if (track) {
+          selectSortedTrack(track);
+        }
       }
     }
   }
@@ -1087,6 +1132,9 @@
                   class="track-row"
                   class:active={library[audioCore.currentTrackIndex].id ===
                     track.id}
+                  class:kb-focused={focusedTrackId === track.id}
+                  class:fetch-error={audioCore.fetchErrors[track.id]}
+                  data-track-id={track.id}
                   onclick={() => selectSortedTrack(track)}
                 >
                   <div class="tr-num">
@@ -1107,7 +1155,22 @@
                     class="tr-art"
                   />
                   <div class="tr-info">
-                    <span class="tr-title">{track.title}</span>
+                    <div class="flex items-center gap-1.5 min-w-0">
+                      <span
+                        class="tr-title"
+                        class:line-through={audioCore.fetchErrors[track.id]}
+                        class:opacity-50={audioCore.fetchErrors[track.id]}
+                        >{track.title}</span
+                      >
+                      {#if audioCore.fetchErrors[track.id]}
+                        <span
+                          class="text-amber-400 flex items-center gap-1 text-[9px] font-bold tracking-wider uppercase bg-amber-500/10 px-1.5 py-0.5 rounded flex-shrink-0"
+                          title="Failed to fetch music source from remote database"
+                        >
+                          <AlertTriangle size={10} /> Error Fetching
+                        </span>
+                      {/if}
+                    </div>
                     <span class="tr-meta"
                       >{track.artist} · {track.album} ({track.year || ""})</span
                     >

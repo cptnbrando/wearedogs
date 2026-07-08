@@ -81,22 +81,82 @@
     }
   }
 
-  // Escape key: navigate sub-app → grid only.
-  // TitlePage's handler closes the panel when no sub-app is active.
-  function handleEscapeKey(e) {
-    if (e.key !== "Escape") return;
-    const tag = document.activeElement?.tagName;
-    if (
-      tag === "INPUT" ||
-      tag === "TEXTAREA" ||
-      document.activeElement?.isContentEditable
-    )
-      return;
-    if (activeApp !== null) handleBack();
+  const appIds = [
+    "gopro",
+    "dataflash",
+    "qrgenerator",
+    "soundboard",
+    "snake",
+    "paint",
+    "stopwatch",
+    "rescue",
+    "memes",
+    "worldcup",
+    "changelog",
+    "blog",
+    "soundstripper",
+    "windshieldwiper",
+    "settings",
+  ];
+
+  let focusedIdx = $state(0);
+
+  function scrollFocusedCardIntoView() {
+    const el = document.querySelector(`.app-card[data-app-idx="${focusedIdx}"]`);
+    if (el) {
+      el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
   }
 
-  onMount(() => window.addEventListener("keydown", handleEscapeKey));
-  onDestroy(() => window.removeEventListener("keydown", handleEscapeKey));
+  function handleKeydown(e) {
+    if (e.key === "Escape") {
+      const tag = document.activeElement?.tagName;
+      if (
+        tag === "INPUT" ||
+        tag === "TEXTAREA" ||
+        document.activeElement?.isContentEditable
+      )
+        return;
+      if (activeApp !== null) {
+        handleBack();
+      }
+      return;
+    }
+
+    if (activeApp !== null) {
+      // Sub-app is open, let the sub-app handle its own keyboard navigation
+      return;
+    }
+
+    const isMobile = window.innerWidth <= 768;
+    const cols = isMobile ? 1 : 2;
+
+    if (e.key === "ArrowRight") {
+      e.preventDefault();
+      focusedIdx = (focusedIdx + 1) % appCount;
+      scrollFocusedCardIntoView();
+    } else if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      focusedIdx = (focusedIdx - 1 + appCount) % appCount;
+      scrollFocusedCardIntoView();
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      focusedIdx = (focusedIdx + cols) % appCount;
+      scrollFocusedCardIntoView();
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      focusedIdx = (focusedIdx - cols + appCount) % appCount;
+      scrollFocusedCardIntoView();
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (focusedIdx >= 0 && focusedIdx < appIds.length) {
+        activeApp = appIds[focusedIdx];
+      }
+    }
+  }
+
+  onMount(() => window.addEventListener("keydown", handleKeydown));
+  onDestroy(() => window.removeEventListener("keydown", handleKeydown));
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -146,8 +206,14 @@
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div
               class="app-card border-neon-purple"
+              class:focused={focusedIdx === 0}
+              data-app-idx="0"
               onclick={() => {
                 activeApp = "gopro";
+                focusedIdx = 0;
+              }}
+              onmouseenter={() => {
+                focusedIdx = 0;
               }}
             >
               <div class="app-visual">
@@ -170,8 +236,14 @@
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div
               class="app-card border-neon-cyan"
+              class:focused={focusedIdx === 1}
+              data-app-idx="1"
               onclick={() => {
                 activeApp = "dataflash";
+                focusedIdx = 1;
+              }}
+              onmouseenter={() => {
+                focusedIdx = 1;
               }}
             >
               <div class="app-visual">
@@ -193,8 +265,14 @@
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div
               class="app-card border-neon-blue"
+              class:focused={focusedIdx === 2}
+              data-app-idx="2"
               onclick={() => {
                 activeApp = "qrgenerator";
+                focusedIdx = 2;
+              }}
+              onmouseenter={() => {
+                focusedIdx = 2;
               }}
             >
               <div class="app-visual">
@@ -220,8 +298,14 @@
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div
               class="app-card border-neon-pink"
+              class:focused={focusedIdx === 3}
+              data-app-idx="3"
               onclick={() => {
                 activeApp = "soundboard";
+                focusedIdx = 3;
+              }}
+              onmouseenter={() => {
+                focusedIdx = 3;
               }}
             >
               <div class="app-visual">
@@ -245,8 +329,14 @@
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div
               class="app-card border-neon-blue"
+              class:focused={focusedIdx === 4}
+              data-app-idx="4"
               onclick={() => {
                 activeApp = "snake";
+                focusedIdx = 4;
+              }}
+              onmouseenter={() => {
+                focusedIdx = 4;
               }}
             >
               <div class="app-visual">
@@ -270,8 +360,14 @@
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div
               class="app-card border-neon-yellow"
+              class:focused={focusedIdx === 5}
+              data-app-idx="5"
               onclick={() => {
                 activeApp = "paint";
+                focusedIdx = 5;
+              }}
+              onmouseenter={() => {
+                focusedIdx = 5;
               }}
             >
               <div class="app-visual">
@@ -295,8 +391,14 @@
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div
               class="app-card border-neon-green"
+              class:focused={focusedIdx === 6}
+              data-app-idx="6"
               onclick={() => {
                 activeApp = "stopwatch";
+                focusedIdx = 6;
+              }}
+              onmouseenter={() => {
+                focusedIdx = 6;
               }}
             >
               <div class="app-visual">
@@ -320,8 +422,14 @@
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div
               class="app-card border-neon-cyan"
+              class:focused={focusedIdx === 7}
+              data-app-idx="7"
               onclick={() => {
                 activeApp = "rescue";
+                focusedIdx = 7;
+              }}
+              onmouseenter={() => {
+                focusedIdx = 7;
               }}
             >
               <div class="app-visual">
@@ -342,8 +450,14 @@
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div
               class="app-card border-neon-pink"
+              class:focused={focusedIdx === 8}
+              data-app-idx="8"
               onclick={() => {
                 activeApp = "memes";
+                focusedIdx = 8;
+              }}
+              onmouseenter={() => {
+                focusedIdx = 8;
               }}
             >
               <div class="app-visual">
@@ -364,8 +478,14 @@
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div
               class="app-card border-neon-gold-hover"
+              class:focused={focusedIdx === 9}
+              data-app-idx="9"
               onclick={() => {
                 activeApp = "worldcup";
+                focusedIdx = 9;
+              }}
+              onmouseenter={() => {
+                focusedIdx = 9;
               }}
             >
               <div class="app-visual">
@@ -389,8 +509,14 @@
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div
               class="app-card border-neon-green"
+              class:focused={focusedIdx === 10}
+              data-app-idx="10"
               onclick={() => {
                 activeApp = "changelog";
+                focusedIdx = 10;
+              }}
+              onmouseenter={() => {
+                focusedIdx = 10;
               }}
             >
               <div class="app-visual">
@@ -412,8 +538,14 @@
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div
               class="app-card border-neon-purple"
+              class:focused={focusedIdx === 11}
+              data-app-idx="11"
               onclick={() => {
                 activeApp = "blog";
+                focusedIdx = 11;
+              }}
+              onmouseenter={() => {
+                focusedIdx = 11;
               }}
             >
               <div class="app-visual">
@@ -436,8 +568,14 @@
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div
               class="app-card border-neon-pink"
+              class:focused={focusedIdx === 12}
+              data-app-idx="12"
               onclick={() => {
                 activeApp = "soundstripper";
+                focusedIdx = 12;
+              }}
+              onmouseenter={() => {
+                focusedIdx = 12;
               }}
             >
               <div class="app-visual">
@@ -464,8 +602,14 @@
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div
               class="app-card border-neon-cyan"
+              class:focused={focusedIdx === 13}
+              data-app-idx="13"
               onclick={() => {
                 activeApp = "windshieldwiper";
+                focusedIdx = 13;
+              }}
+              onmouseenter={() => {
+                focusedIdx = 13;
               }}
             >
               <div class="app-visual">
@@ -511,8 +655,14 @@
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div
               class="app-card border-neon-red"
+              class:focused={focusedIdx === 14}
+              data-app-idx="14"
               onclick={() => {
                 activeApp = "settings";
+                focusedIdx = 14;
+              }}
+              onmouseenter={() => {
+                focusedIdx = 14;
               }}
             >
               <div class="app-visual">
@@ -760,39 +910,53 @@
     transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  .app-card:hover {
+  .app-card:hover,
+  .app-card.focused {
     background: rgba(255, 255, 255, 0.06);
     transform: scale(1.01) translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.12);
   }
 
   /* Neon Borders */
-  .border-neon-blue:hover {
+  .border-neon-blue:hover,
+  .border-neon-blue.focused {
     border-color: rgba(0, 191, 255, 0.6);
     box-shadow: 0 8px 30px rgba(0, 191, 255, 0.1);
   }
-  .border-neon-pink:hover {
+  .border-neon-pink:hover,
+  .border-neon-pink.focused {
     border-color: rgba(255, 85, 187, 0.6);
     box-shadow: 0 8px 30px rgba(255, 85, 187, 0.1);
   }
-  .border-neon-yellow:hover {
+  .border-neon-yellow:hover,
+  .border-neon-yellow.focused {
     border-color: rgba(255, 204, 0, 0.6);
     box-shadow: 0 8px 30px rgba(255, 204, 0, 0.1);
   }
-  .border-neon-green:hover {
+  .border-neon-green:hover,
+  .border-neon-green.focused {
     border-color: rgba(0, 255, 102, 0.6);
     box-shadow: 0 8px 30px rgba(0, 255, 102, 0.1);
   }
-  .border-neon-purple:hover {
+  .border-neon-purple:hover,
+  .border-neon-purple.focused {
     border-color: rgba(180, 85, 255, 0.6);
     box-shadow: 0 8px 30px rgba(180, 85, 255, 0.1);
   }
-  .border-neon-cyan:hover {
+  .border-neon-cyan:hover,
+  .border-neon-cyan.focused {
     border-color: rgba(0, 191, 255, 0.6);
     box-shadow: 0 8px 30px rgba(0, 191, 255, 0.1);
   }
-  .border-neon-gold-hover:hover {
+  .border-neon-gold-hover:hover,
+  .border-neon-gold-hover.focused {
     border-color: rgba(230, 185, 0, 0.6);
     box-shadow: 0 8px 30px rgba(230, 185, 0, 0.15);
+  }
+  .border-neon-red:hover,
+  .border-neon-red.focused {
+    border-color: rgba(255, 51, 68, 0.6);
+    box-shadow: 0 8px 30px rgba(255, 51, 68, 0.1);
   }
 
   .app-visual {

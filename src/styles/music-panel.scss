@@ -578,8 +578,28 @@
   position: relative;
 }
 
-.track-row:hover {
+.track-row:hover,
+.track-row.kb-focused {
   background: rgba(255, 255, 255, 0.04);
+}
+
+.track-row.kb-focused {
+  outline: 1px dashed rgba(255, 255, 255, 0.25);
+  outline-offset: -3px;
+}
+
+.track-row.fetch-error {
+  border-left: 3px solid rgba(245, 158, 11, 0.4);
+  background: rgba(245, 158, 11, 0.03);
+}
+
+.track-row.fetch-error:hover,
+.track-row.fetch-error.kb-focused {
+  background: rgba(245, 158, 11, 0.06);
+}
+
+.track-row.fetch-error .tr-title {
+  color: #f59e0b;
 }
 
 .track-row.active {

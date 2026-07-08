@@ -27,6 +27,7 @@ export class AudioCore {
   isShuffled = $state(false);
   repeatMode = $state(1); // 0 = Off, 1 = Repeat All, 2 = Repeat One
   activeAudioType = $state("music"); // 'music' | 'video'
+  fetchErrors = $state({});
 
   progressInterval = null;
   library = [];
@@ -49,9 +50,12 @@ export class AudioCore {
             this.activeInstBlobUrl = blobUrl;
           }
           return blobUrl;
+        } else {
+          throw new Error(`Fetch failed with status ${res.status}`);
         }
       } catch (e) {
         console.warn(`Failed to fetch remote audio source for ${url}:`, e);
+        throw e;
       }
     }
     return url;
@@ -106,8 +110,16 @@ export class AudioCore {
 
   async loadTrack(index, autoplay = false) {
     if (index < 0 || index >= this.library.length) return;
+
+    // Stop current playback immediately
+    this.pause();
+
     this.currentTrackIndex = index;
     const track = this.library[index];
+    
+    // Clear failed track state on attempt to retry
+    delete this.fetchErrors[track.id];
+
     if (track && track.hasInstrumental) {
       this.isInstrumental = this.userPrefersInstrumental || false;
     } else {
@@ -121,6 +133,7 @@ export class AudioCore {
       try { await this.audioCtx.resume(); } catch (e) { }
     }
 
+    let loadFailed = false;
     try {
       if (this.activeTrackBlobUrl) {
         URL.revokeObjectURL(this.activeTrackBlobUrl);
@@ -163,11 +176,13 @@ export class AudioCore {
     } catch (err) {
       console.error("Error loading track channels:", err);
       this.isPlaying = false;
+      this.fetchErrors[track.id] = true;
+      loadFailed = true;
     } finally {
       this.isLoading = false;
     }
 
-    if (autoplay) {
+    if (!loadFailed && autoplay) {
       this.play(0);
     }
     this.updateMediaSession();
@@ -212,7 +227,10 @@ export class AudioCore {
       try { await this.audioCtx.resume(); } catch (e) { }
     }
 
-    if (!this.trackAudio.src && !this.isLoading) {
+    const track = this.library[this.currentTrackIndex];
+    const hasFetchError = track ? this.fetchErrors[track.id] : false;
+
+    if ((!this.trackAudio.src && !this.isLoading) || hasFetchError) {
       await this.loadTrack(this.currentTrackIndex, true);
       return;
     }
