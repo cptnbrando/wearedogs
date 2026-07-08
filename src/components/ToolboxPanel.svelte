@@ -82,7 +82,12 @@
       <div class="brand">
         <button
           class="logo-btn"
-          onclick={() => window.dispatchEvent(new CustomEvent(audioCore.isPlaying ? "open-music-panel" : "open-info-panel"))}
+          onclick={() =>
+            window.dispatchEvent(
+              new CustomEvent(
+                audioCore.isPlaying ? "open-music-panel" : "open-info-panel",
+              ),
+            )}
           aria-label="Open DOGS Info"
         >
           <DogsLogo size="panel" />
@@ -139,7 +144,10 @@
               }}
             >
               <div class="app-visual">
-                <Zap size={28} style="color: var(--color-neon-cyan, #00d7ff); filter: drop-shadow(0 0 6px rgba(0, 215, 255, 0.4));" />
+                <Zap
+                  size={28}
+                  style="color: var(--color-neon-cyan, #00d7ff); filter: drop-shadow(0 0 6px rgba(0, 215, 255, 0.4));"
+                />
               </div>
               <div class="app-meta">
                 <span class="app-title"><Zap size={14} /> DataFlash</span>
@@ -163,7 +171,9 @@
                   <span class="corner c1"></span>
                   <span class="corner c2"></span>
                   <span class="corner c3"></span>
-                  <div style="width: 4px; height: 4px; background: #00d7ff; border-radius: 50%; box-shadow: 0 0 6px #00d7ff;"></div>
+                  <div
+                    style="width: 4px; height: 4px; background: #00d7ff; border-radius: 50%; box-shadow: 0 0 6px #00d7ff;"
+                  ></div>
                 </div>
               </div>
               <div class="app-meta">
@@ -398,13 +408,19 @@
             >
               <div class="app-visual">
                 <div class="flex items-center justify-center h-full">
-                  <Scissors size={28} style="color: var(--color-neon-pink, #ff007f); filter: drop-shadow(0 0 6px rgba(255, 0, 127, 0.4));" />
+                  <Scissors
+                    size={28}
+                    style="color: var(--color-neon-pink, #ff007f); filter: drop-shadow(0 0 6px rgba(255, 0, 127, 0.4));"
+                  />
                 </div>
               </div>
               <div class="app-meta">
-                <span class="app-title"><Scissors size={14} /> Sound Stripper</span>
+                <span class="app-title"
+                  ><Scissors size={14} /> Sound Stripper</span
+                >
                 <span class="app-desc"
-                  >Extract vocal acapellas by subtracting reference instrumental bleed.</span
+                  >Extract vocal acapellas by subtracting reference instrumental
+                  bleed.</span
                 >
               </div>
             </div>
@@ -419,19 +435,39 @@
               }}
             >
               <div class="app-visual">
-                <div class="flex items-center justify-center h-full relative overflow-hidden">
+                <div
+                  class="flex items-center justify-center h-full relative overflow-hidden"
+                >
                   <div class="wiper-icon-container">
                     <svg viewBox="0 0 100 100" class="w-12 h-12">
-                      <path d="M 15 80 A 45 45 0 0 1 85 80" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="6" stroke-linecap="round" />
-                      <line x1="50" y1="85" x2="50" y2="40" stroke="#00ffff" stroke-width="4" stroke-linecap="round" class="wiper-blade-animate" />
+                      <path
+                        d="M 15 80 A 45 45 0 0 1 85 80"
+                        fill="none"
+                        stroke="rgba(255,255,255,0.08)"
+                        stroke-width="6"
+                        stroke-linecap="round"
+                      />
+                      <line
+                        x1="50"
+                        y1="85"
+                        x2="50"
+                        y2="40"
+                        stroke="#00ffff"
+                        stroke-width="4"
+                        stroke-linecap="round"
+                        class="wiper-blade-animate"
+                      />
                     </svg>
                   </div>
                 </div>
               </div>
               <div class="app-meta">
-                <span class="app-title"><Sparkles size={14} /> Windshield Wiper</span>
+                <span class="app-title"
+                  ><Sparkles size={14} /> Windshield Wiper</span
+                >
                 <span class="app-desc"
-                  >Clean watermarks and logos from images and videos using canvas magic.</span
+                  >Clean watermarks and logos from images and videos using
+                  canvas magic.</span
                 >
               </div>
             </div>
@@ -493,7 +529,7 @@
       {:else if activeApp === "soundstripper"}
         <SoundStripper />
       {:else if activeApp === "windshieldwiper"}
-        <WindshieldWiper onClose={() => activeApp = null} />
+        <WindshieldWiper onClose={() => (activeApp = null)} />
       {/if}
     </div>
 
@@ -503,7 +539,7 @@
         <span>/util</span>
       </div>
       <div class="stats-counter">
-        <span>APPS LOADED: 14</span>
+        <span>APPS LOADED: 15</span>
       </div>
     </footer>
   </div>
@@ -1276,8 +1312,12 @@
     animation: wiper-sweep 2.5s ease-in-out infinite alternate;
   }
   @keyframes wiper-sweep {
-    0% { transform: rotate(-55deg); }
-    100% { transform: rotate(55deg); }
+    0% {
+      transform: rotate(-55deg);
+    }
+    100% {
+      transform: rotate(55deg);
+    }
   }
   .app-card:hover .wiper-blade-animate {
     animation: wiper-sweep 1s ease-in-out infinite alternate;
