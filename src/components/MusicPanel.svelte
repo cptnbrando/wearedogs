@@ -223,6 +223,7 @@
       dateAdded: "2026-07-08T16:35:00-05:00",
       year: 2010,
       genre: "Hip-Hop",
+      attrib: "https://dasracist.bandcamp.com/album/shut-up-dude",
     },
   ];
 
@@ -329,7 +330,7 @@
     const success = audioCore.setCrossfade(newVal);
     if (!success) {
       crossfadeFailCount++;
-      
+
       if (!isKnobJiggling) {
         isKnobJiggling = true;
         setTimeout(() => {
@@ -486,7 +487,7 @@
     fxRenderer = new THREE.WebGLRenderer({
       canvas: faderFxCanvas,
       alpha: true,
-      antialias: true
+      antialias: true,
     });
     fxRenderer.setSize(width, height, false);
     fxRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -573,7 +574,7 @@
       color: new THREE.Color(colorVal, colorVal, colorVal * 1.01),
       transparent: true,
       opacity: 0.06,
-      blending: THREE.NormalBlending
+      blending: THREE.NormalBlending,
     });
     const mesh = new THREE.Mesh(geom, mat);
     mesh.position.set(x, y, 0);
@@ -587,7 +588,7 @@
       vy: Math.random() * 0.7 + 1.25, // rise upwards faster
       startScale: 1.0,
       life: 1.0,
-      decay: 0.0006 + Math.random() * 0.0004 // extremely slow decay to rise completely past the top of the screen!
+      decay: 0.0006 + Math.random() * 0.0004, // extremely slow decay to rise completely past the top of the screen!
     });
   }
 
@@ -606,7 +607,7 @@
         color: new THREE.Color(color),
         transparent: true,
         opacity: 1.0,
-        blending: THREE.AdditiveBlending
+        blending: THREE.AdditiveBlending,
       });
       const mesh = new THREE.Mesh(geom, mat);
       mesh.position.set(knobX, knobY, 0);
@@ -623,7 +624,7 @@
         vy: Math.sin(angle) * speed,
         ay: -0.15,
         life: 1.0,
-        decay: 0.02 + Math.random() * 0.02
+        decay: 0.02 + Math.random() * 0.02,
       });
     }
   }
@@ -673,7 +674,11 @@
       ontouchend={handleBodyTouchEnd}
     >
       {#if activeTab === "songs"}
-        <div class="songs-layout" in:fade={{ duration: 120, delay: 120 }} out:fade={{ duration: 120 }}>
+        <div
+          class="songs-layout"
+          in:fade={{ duration: 120, delay: 120 }}
+          out:fade={{ duration: 120 }}
+        >
           <!-- Left side player details -->
           <div class="player-side" class:tracklist-open={showMobileTracklist}>
             <!-- Top block (Vinyl & track info) - disappears on mobile tracklist active -->
@@ -1139,7 +1144,11 @@
           </div>
         </div>
       {:else if activeTab === "samples"}
-        <div class="tab-scroll scroll-y" in:fade={{ duration: 120, delay: 120 }} out:fade={{ duration: 120 }}>
+        <div
+          class="tab-scroll scroll-y"
+          in:fade={{ duration: 120, delay: 120 }}
+          out:fade={{ duration: 120 }}
+        >
           <div class="sec-head">
             <h2 class="sec-title">Samples</h2>
             <p class="sec-sub">
@@ -1168,7 +1177,11 @@
           </div>
         </div>
       {:else if activeTab === "playlists"}
-        <div class="tab-scroll scroll-y" in:fade={{ duration: 120, delay: 120 }} out:fade={{ duration: 120 }}>
+        <div
+          class="tab-scroll scroll-y"
+          in:fade={{ duration: 120, delay: 120 }}
+          out:fade={{ duration: 120 }}
+        >
           <div class="sec-head">
             <h2 class="sec-title">Playlists</h2>
             <p class="sec-sub">
@@ -1213,7 +1226,11 @@
           </div>
         </div>
       {:else if activeTab === "radio"}
-        <div class="tab-scroll scroll-y" in:fade={{ duration: 120, delay: 120 }} out:fade={{ duration: 120 }}>
+        <div
+          class="tab-scroll scroll-y"
+          in:fade={{ duration: 120, delay: 120 }}
+          out:fade={{ duration: 120 }}
+        >
           <div class="sec-head">
             <h2 class="sec-title">Radio</h2>
             <p class="sec-sub">
@@ -1280,7 +1297,8 @@
       </div>
     </div>
   {/if}
-  <canvas bind:this={faderFxCanvas} class="fader-fx-canvas pointer-events-none"></canvas>
+  <canvas bind:this={faderFxCanvas} class="fader-fx-canvas pointer-events-none"
+  ></canvas>
 </div>
 
 <style lang="scss">
@@ -1523,19 +1541,33 @@
 
   /* ── DJ Crossfader Easter Egg Animations & FX ── */
   @keyframes knob-wiggle {
-    0%, 100% { transform: translate(0, -50%) scale(1); }
-    20%, 60% { transform: translate(-3.5px, -50%) rotate(-4deg); }
-    40%, 80% { transform: translate(3.5px, -50%) rotate(4deg); }
+    0%,
+    100% {
+      transform: translate(0, -50%) scale(1);
+    }
+    20%,
+    60% {
+      transform: translate(-3.5px, -50%) rotate(-4deg);
+    }
+    40%,
+    80% {
+      transform: translate(3.5px, -50%) rotate(4deg);
+    }
   }
-  
+
   .knob-jiggle {
     animation: knob-wiggle 0.3s ease-in-out;
   }
 
   .dj-fader-knob.fried {
-    background: linear-gradient(135deg, #2c2222 0%, #1a1212 50%, #0f0505 100%) !important;
+    background: linear-gradient(
+      135deg,
+      #2c2222 0%,
+      #1a1212 50%,
+      #0f0505 100%
+    ) !important;
     border-color: rgba(239, 68, 68, 0.35) !important;
-    box-shadow: 
+    box-shadow:
       0 4px 10px rgba(0, 0, 0, 0.9),
       0 0 8px rgba(239, 68, 68, 0.25) !important;
   }
@@ -1547,8 +1579,12 @@
   }
 
   @keyframes fader-flicker {
-    0% { opacity: 0.35; }
-    100% { opacity: 1; }
+    0% {
+      opacity: 0.35;
+    }
+    100% {
+      opacity: 1;
+    }
   }
 
   .dj-crossfader.fader-flash {
@@ -1569,7 +1605,7 @@
 
   .dj-crossfader.fader-fried {
     border-color: rgba(239, 68, 68, 0.25) !important;
-    box-shadow: 
+    box-shadow:
       inset 0 0 8px rgba(239, 68, 68, 0.08),
       0 8px 24px rgba(0, 0, 0, 0.5) !important;
   }
