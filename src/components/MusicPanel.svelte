@@ -947,10 +947,13 @@
                 </button>
                 <button
                   class="ctrl ctrl-play"
+                  class:ctrl-error={audioCore.fetchErrors[currentTrack.id]}
                   onclick={() => audioCore.togglePlay()}
                   aria-label={audioCore.isPlaying ? "Pause" : "Play"}
                 >
-                  {#if audioCore.isLoading}
+                  {#if audioCore.fetchErrors[currentTrack.id]}
+                    <AlertTriangle size={22} />
+                  {:else if audioCore.isLoading}
                     <div class="spin-ring"></div>
                   {:else if audioCore.isPlaying}
                     <Pause size={22} fill="currentColor" />
