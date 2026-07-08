@@ -512,9 +512,11 @@
     };
   });
 
-  // Reset fail counts and clear meshes when track changes
+  // Reset fail counts and clear meshes when track changes, tab changes, or leaving the player
   $effect(() => {
     const trackIdx = audioCore.currentTrackIndex;
+    const tab = activeTab;
+    const closing = isClosing;
     crossfadeFailCount = 0;
     hasSmokeStarted = false;
     if (fxScene) {
