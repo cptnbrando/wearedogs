@@ -457,11 +457,11 @@
     <!-- Viewport 1-5 Responsive Layout Engine Grid -->
     <div class="stripper-grid">
       
-      <!-- LEFT SECTION: Uploaders & Param Tuning -->
-      <div class="stripper-controls">
+      <!-- LEFT SECTION: Uploaders & Param Tuning grouped in a responsive panel -->
+      <div class="left-panel">
         
-        <!-- Side-by-side Uploaders Row -->
-        <div class="upload-row">
+        <!-- Column 1: Uploaders (stacked vertically on desktop/mobile) -->
+        <div class="upload-column flex flex-col gap-3">
           <!-- Dropzone Box File 1 -->
           <div class="control-box border-neon-cyan relative">
             <h3 class="box-title text-neon-cyan"><Scissors size={14} class="mr-2 inline" /> 1. Upload Mix</h3>
@@ -497,7 +497,7 @@
           <!-- Dropzone Box File 2 -->
           <div class="control-box border-neon-pink">
             <h3 class="box-title text-neon-pink"><Waves size={14} class="mr-2 inline" /> 2. Upload Backing</h3>
-            <p class="box-desc">Clean reference instrumental file</p>
+            <p class="box-desc">Clean reference backing track</p>
             
             <label 
               class="upload-dropzone" 
@@ -527,7 +527,7 @@
           </div>
         </div>
 
-        <!-- Tuning sliders console (Only enabled when files uploaded) -->
+        <!-- Column 2: Tuning sliders console (Only enabled when files uploaded) -->
         <div class="control-box border-neon-gold">
           <div class="flex justify-between items-center mb-2">
             <h3 class="box-title text-neon-gold"><Settings2 size={14} class="mr-2 inline" /> 3. Bleed Alignment Tuning</h3>
@@ -659,7 +659,8 @@
                 </button>
               </div>
             </div>
-      </div>
+          </div>
+        </div>
       </div>
 
       <!-- RIGHT SECTION: Waveform Alignment Graph, Processing, & Custom Playback Player -->
@@ -823,36 +824,29 @@
     
     // Viewport 4-5: Desktop / TV consoles
     @media (min-width: 1024px) {
-      grid-template-columns: 380px 1fr;
+      grid-template-columns: 636px 1fr;
       height: 100%;
     }
   }
 
-  .stripper-controls {
+  .left-panel {
     display: flex;
     flex-direction: column;
     gap: 12px;
     min-height: 0;
-    overflow-y: auto;
-    padding-right: 4px;
 
-    &::-webkit-scrollbar {
-      width: 4px;
-    }
-    &::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 2px;
+    @media (min-width: 1024px) {
+      display: grid;
+      grid-template-columns: 280px 340px;
+      gap: 16px;
+      height: 100%;
     }
   }
 
-  .upload-row {
-    display: grid;
-    grid-template-columns: 1fr;
+  .upload-column {
+    display: flex;
+    flex-direction: column;
     gap: 12px;
-
-    @media (min-width: 640px) {
-      grid-template-columns: 1fr 1fr;
-    }
   }
 
   .control-box {
