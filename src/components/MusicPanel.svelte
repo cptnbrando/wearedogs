@@ -1,5 +1,6 @@
 <script>
   import { onMount, onDestroy } from "svelte";
+  import * as THREE from "three";
   import {
     Play,
     Pause,
@@ -33,6 +34,7 @@
   import { PRESETS, NO_SIGNAL_PRESET } from "../lib/visualizer/presets.js";
 
   import SwipeTabNav from "./SwipeTabNav.svelte";
+  import { fade } from "svelte/transition";
 
   const title = "MUSIC";
 
@@ -191,6 +193,23 @@
       genre: "Electronic",
       attrib: "https://shop.zedsdead.net/",
     },
+    {
+      id: "denchai",
+      title: "Den Chai",
+      artist: "The Buddha-Bar Lounge",
+      album: "Buddha-Bar Lounge",
+      cover:
+        "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20300%20300'%20width='300'%20height='300'%3E%3Cdefs%3E%3CradialGradient%20id='bgGrad'%20cx='50%25'%20cy='50%25'%20r='50%25'%3E%3Cstop%20offset='0%25'%20stop-color='%232d0a14'/%3E%3Cstop%20offset='100%25'%20stop-color='%23050508'/%3E%3C/radialGradient%3E%3ClinearGradient%20id='goldGrad'%20x1='0%25'%20y1='0%25'%20x2='100%25'%20y2='100%25'%3E%3Cstop%20offset='0%25'%20stop-color='%23ffe259'/%3E%3Cstop%20offset='100%25'%20stop-color='%23ffa751'/%3E%3C/linearGradient%3E%3Cfilter%20id='glow'%20x='-20%25'%20y='-20%25'%20width='140%25'%20height='140%25'%3E%3Cdrop-shadow%20dx='0'%20dy='0'%20stdDeviation='6'%20flood-color='%23ff0055'%20flood-opacity='0.6'/%3E%3C/filter%3E%3C/defs%3E%3Crect%20width='300'%20height='300'%20fill='url(%23bgGrad)'/%3E%3Ccircle%20cx='150'%20cy='150'%20r='100'%20fill='none'%20stroke='%23ff0055'%20stroke-width='2'%20filter='url(%23glow)'/%3E%3Ccircle%20cx='150'%20cy='150'%20r='95'%20fill='none'%20stroke='url(%23goldGrad)'%20stroke-width='1'%20opacity='0.5'/%3E%3Cpath%20d='M150%2075%20C142%2085,%20140%20100,%20142%20110%20C132%20115,%20125%20125,%20125%20140%20C125%20160,%20135%20180,%20145%20190%20C130%20195,%20110%20205,%20100%20215%20C95%20220,%2095%20225,%20105%20225%20L195%20225%20C205%20225,%20205%20220,%20200%20215%20C190%20205,%20170%20195,%20155%20190%20C165%20180,%20175%20160,%20175%20140%20C175%20125,%20168%20115,%20158%20110%20C160%20100,%20158%2085,%20150%2075%20Z'%20fill='url(%23goldGrad)'/%3E%3Ctext%20x='150'%20y='250'%20font-family='system-ui,%20-apple-system,%20sans-serif'%20font-size='12'%20font-weight='900'%20fill='%23ffa751'%20letter-spacing='4'%20text-anchor='middle'%3EBUDDHA-BAR%3C/text%3E%3Ctext%20x='150'%20y='265'%20font-family='system-ui,%20-apple-system,%20sans-serif'%20font-size='8'%20font-weight='400'%20fill='rgba(255,255,255,0.4)'%20letter-spacing='2'%20text-anchor='middle'%3EDEN%20CHAI%3C/text%3E%3C/svg%3E",
+      altCover: "",
+      src: "/music/DENCHAI.mp3",
+      instrumental: "",
+      hasInstrumental: false,
+      dateAdded: "2026-07-07T22:34:00-05:00",
+      year: 2008,
+      genre: "Lounge",
+      attrib:
+        "https://open.spotify.com/artist/0du3MpnxBOpQEie1IV3u9v?si=2UO722ntTE--Ck_Ji7Go7Q",
+    },
   ];
 
   // Derive sort values
@@ -295,11 +314,27 @@
     const newVal = !audioCore.isInstrumental;
     const success = audioCore.setCrossfade(newVal);
     if (!success) {
-      if (!isBouncing) {
-        isBouncing = true;
+      crossfadeFailCount++;
+      
+      if (!isKnobJiggling) {
+        isKnobJiggling = true;
         setTimeout(() => {
-          isBouncing = false;
-        }, 400);
+          isKnobJiggling = false;
+        }, 300);
+      }
+
+      if (crossfadeFailCount === 5) {
+        triggerSparkBurst();
+        isFlashActive = true;
+        setTimeout(() => {
+          isFlashActive = false;
+        }, 150);
+      } else if (crossfadeFailCount === 10) {
+        triggerSparkBurst(35);
+      } else if (crossfadeFailCount > 5 && crossfadeFailCount < 10) {
+        triggerSparkBurst(8);
+      } else if (crossfadeFailCount > 10) {
+        if (Math.random() < 0.4) triggerSparkBurst(3);
       }
     }
   }
@@ -365,6 +400,219 @@
       activeTab = musicTabs[idx - 1].id;
     }
   }
+
+  // DJ Crossfader Easter Egg States & WebGL Particle Logic
+  let faderFxCanvas = $state(null);
+  let crossfadeFailCount = $state(0);
+  let isKnobJiggling = $state(false);
+  let isFlashActive = $state(false);
+
+  let fxScene, fxCamera, fxRenderer;
+  let fxSparks = [];
+  let fxSmoke = [];
+  let fxAnimId;
+  let hasSmokeStarted = $state(false);
+
+  // Monitor canvas ref to instantiate/cleanup WebGL
+  $effect(() => {
+    if (faderFxCanvas) {
+      initThreeFx();
+    }
+    return () => {
+      if (fxAnimId) cancelAnimationFrame(fxAnimId);
+      window.removeEventListener("resize", handleResize);
+      if (fxRenderer) {
+        fxRenderer.dispose();
+        fxRenderer = null;
+      }
+      fxScene = null;
+      fxCamera = null;
+      fxSparks = [];
+      fxSmoke = [];
+    };
+  });
+
+  // Reset fail counts and clear meshes when track changes
+  $effect(() => {
+    const trackIdx = audioCore.currentTrackIndex;
+    crossfadeFailCount = 0;
+    hasSmokeStarted = false;
+    if (fxScene) {
+      for (const p of fxSparks) fxScene.remove(p.mesh);
+      for (const p of fxSmoke) fxScene.remove(p.mesh);
+    }
+    fxSparks = [];
+    fxSmoke = [];
+  });
+
+  function getKnobCoords() {
+    const knobEl = document.querySelector(".dj-fader-knob");
+    if (!knobEl) return { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+
+    const knobRect = knobEl.getBoundingClientRect();
+
+    // Directly use viewport CSS pixels, shifting to the left-bottom of the fader knob
+    const x = knobRect.left + knobRect.width * 0.15;
+    const y = window.innerHeight - (knobRect.top + knobRect.height * 0.85);
+    return { x, y };
+  }
+
+  function initThreeFx() {
+    if (!faderFxCanvas) return;
+
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    faderFxCanvas.width = width;
+    faderFxCanvas.height = height;
+
+    fxScene = new THREE.Scene();
+    fxCamera = new THREE.OrthographicCamera(0, width, height, 0, -1, 1);
+
+    fxRenderer = new THREE.WebGLRenderer({
+      canvas: faderFxCanvas,
+      alpha: true,
+      antialias: true
+    });
+    fxRenderer.setSize(width, height, false);
+    fxRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    window.addEventListener("resize", handleResize);
+    animateThreeFx();
+  }
+
+  function handleResize() {
+    if (!faderFxCanvas || !fxRenderer || !fxCamera) return;
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    faderFxCanvas.width = width;
+    faderFxCanvas.height = height;
+    fxRenderer.setSize(width, height, false);
+    fxCamera.right = width;
+    fxCamera.top = height;
+    fxCamera.updateProjectionMatrix();
+  }
+
+  function animateThreeFx() {
+    fxAnimId = requestAnimationFrame(animateThreeFx);
+    if (!fxScene || !fxCamera || !fxRenderer || !faderFxCanvas) return;
+
+    // Spawn smoke continuously once threshold met
+    if (crossfadeFailCount >= 10) {
+      hasSmokeStarted = true;
+      if (Math.random() < 0.22) {
+        const coords = getKnobCoords();
+        spawnSmokeParticle(coords.x, coords.y);
+      }
+    }
+
+    // Update sparks
+    for (let i = fxSparks.length - 1; i >= 0; i--) {
+      const p = fxSparks[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += p.ay; // gravity gravity
+      p.life -= p.decay;
+
+      p.mesh.position.set(p.x, p.y, 0);
+      p.mesh.material.opacity = p.life;
+
+      if (p.life <= 0) {
+        fxScene.remove(p.mesh);
+        p.mesh.geometry.dispose();
+        p.mesh.material.dispose();
+        fxSparks.splice(i, 1);
+      }
+    }
+
+    // Update smoke
+    for (let i = fxSmoke.length - 1; i >= 0; i--) {
+      const p = fxSmoke[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.life -= p.decay;
+
+      // Expand smoke into very large, soft, floating clouds as it goes up the screen
+      const scale = p.startScale + (1.0 - p.life) * 88;
+      p.mesh.scale.set(scale, scale, 1);
+      p.mesh.position.set(p.x, p.y, 0);
+      p.mesh.material.opacity = p.life * 0.16;
+
+      if (p.life <= 0) {
+        fxScene.remove(p.mesh);
+        p.mesh.geometry.dispose();
+        p.mesh.material.dispose();
+        fxSmoke.splice(i, 1);
+      }
+    }
+
+    fxRenderer.render(fxScene, fxCamera);
+  }
+
+  function spawnSmokeParticle(x, y) {
+    if (!fxScene) return;
+
+    const geom = new THREE.CircleGeometry(5.0, 8);
+    // Whitish-grey color parameters
+    const colorVal = 0.85 + Math.random() * 0.12;
+    const mat = new THREE.MeshBasicMaterial({
+      color: new THREE.Color(colorVal, colorVal, colorVal * 1.01),
+      transparent: true,
+      opacity: 0.06,
+      blending: THREE.NormalBlending
+    });
+    const mesh = new THREE.Mesh(geom, mat);
+    mesh.position.set(x, y, 0);
+    fxScene.add(mesh);
+
+    fxSmoke.push({
+      mesh,
+      x,
+      y,
+      vx: (Math.random() - 0.5) * 0.55 + Math.sin(Date.now() * 0.001) * 0.22, // wind drift
+      vy: Math.random() * 0.7 + 1.25, // rise upwards faster
+      startScale: 1.0,
+      life: 1.0,
+      decay: 0.0006 + Math.random() * 0.0004 // extremely slow decay to rise completely past the top of the screen!
+    });
+  }
+
+  function triggerSparkBurst(count = 25) {
+    if (!fxScene || !faderFxCanvas) return;
+    const coords = getKnobCoords();
+    const knobX = coords.x;
+    const knobY = coords.y;
+
+    for (let i = 0; i < count; i++) {
+      const geom = new THREE.CircleGeometry(1.3, 4);
+      const isPink = Math.random() < 0.4;
+      const color = isPink ? 0xff0055 : 0xffaa00;
+
+      const mat = new THREE.MeshBasicMaterial({
+        color: new THREE.Color(color),
+        transparent: true,
+        opacity: 1.0,
+        blending: THREE.AdditiveBlending
+      });
+      const mesh = new THREE.Mesh(geom, mat);
+      mesh.position.set(knobX, knobY, 0);
+      fxScene.add(mesh);
+
+      const angle = Math.random() * Math.PI * 2;
+      const speed = Math.random() * 4.0 + 2.0;
+
+      fxSparks.push({
+        mesh,
+        x: knobX,
+        y: knobY,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        ay: -0.15,
+        life: 1.0,
+        decay: 0.02 + Math.random() * 0.02
+      });
+    }
+  }
 </script>
 
 <svelte:window
@@ -411,7 +659,7 @@
       ontouchend={handleBodyTouchEnd}
     >
       {#if activeTab === "songs"}
-        <div class="songs-layout">
+        <div class="songs-layout" in:fade={{ duration: 120, delay: 120 }} out:fade={{ duration: 120 }}>
           <!-- Left side player details -->
           <div class="player-side" class:tracklist-open={showMobileTracklist}>
             <!-- Top block (Vinyl & track info) - disappears on mobile tracklist active -->
@@ -519,7 +767,8 @@
                   class="scroll-container"
                   bind:clientWidth={titleContainerWidth}
                   class:overflowing={titleTextWidth > titleContainerWidth}
-                  style="--scroll-dist: -{titleTextWidth - titleContainerWidth}px"
+                  style="--scroll-dist: -{titleTextWidth -
+                    titleContainerWidth}px"
                 >
                   <h2
                     class="track-title scroll-text"
@@ -533,12 +782,14 @@
                   class="scroll-container"
                   bind:clientWidth={artistContainerWidth}
                   class:overflowing={artistTextWidth > artistContainerWidth}
-                  style="--scroll-dist: -{artistTextWidth - artistContainerWidth}px"
+                  style="--scroll-dist: -{artistTextWidth -
+                    artistContainerWidth}px"
                 >
                   <p
                     class="track-artist scroll-text"
                     bind:clientWidth={artistTextWidth}
-                    class:animate-scroll={artistTextWidth > artistContainerWidth}
+                    class:animate-scroll={artistTextWidth >
+                      artistContainerWidth}
                   >
                     {currentTrack.artist}
                   </p>
@@ -547,7 +798,8 @@
                   class="scroll-container"
                   bind:clientWidth={albumContainerWidth}
                   class:overflowing={albumTextWidth > albumContainerWidth}
-                  style="--scroll-dist: -{albumTextWidth - albumContainerWidth}px"
+                  style="--scroll-dist: -{albumTextWidth -
+                    albumContainerWidth}px"
                 >
                   <p
                     class="track-album scroll-text"
@@ -648,7 +900,8 @@
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
                 <div
                   class="dj-crossfader"
-                  class:animate-wiggle={isBouncing}
+                  class:fader-flash={isFlashActive}
+                  class:fader-fried={crossfadeFailCount >= 10}
                   onclick={toggleCrossfade}
                 >
                   <span
@@ -658,10 +911,12 @@
                     <Mic2 size={12} />
                     <span>VOCAL</span>
                   </span>
-                  <div class="dj-fader-slot">
+                  <div class="dj-fader-slot relative">
                     <div
                       class="dj-fader-knob"
                       class:right={audioCore.isInstrumental}
+                      class:knob-jiggle={isKnobJiggling}
+                      class:fried={crossfadeFailCount >= 10}
                     ></div>
                   </div>
                   <span
@@ -870,7 +1125,7 @@
           </div>
         </div>
       {:else if activeTab === "samples"}
-        <div class="tab-scroll scroll-y">
+        <div class="tab-scroll scroll-y" in:fade={{ duration: 120, delay: 120 }} out:fade={{ duration: 120 }}>
           <div class="sec-head">
             <h2 class="sec-title">Samples</h2>
             <p class="sec-sub">
@@ -899,7 +1154,7 @@
           </div>
         </div>
       {:else if activeTab === "playlists"}
-        <div class="tab-scroll scroll-y">
+        <div class="tab-scroll scroll-y" in:fade={{ duration: 120, delay: 120 }} out:fade={{ duration: 120 }}>
           <div class="sec-head">
             <h2 class="sec-title">Playlists</h2>
             <p class="sec-sub">
@@ -944,7 +1199,7 @@
           </div>
         </div>
       {:else if activeTab === "radio"}
-        <div class="tab-scroll scroll-y">
+        <div class="tab-scroll scroll-y" in:fade={{ duration: 120, delay: 120 }} out:fade={{ duration: 120 }}>
           <div class="sec-head">
             <h2 class="sec-title">Radio</h2>
             <p class="sec-sub">
@@ -1011,6 +1266,7 @@
       </div>
     </div>
   {/if}
+  <canvas bind:this={faderFxCanvas} class="fader-fx-canvas pointer-events-none"></canvas>
 </div>
 
 <style lang="scss">
@@ -1249,5 +1505,68 @@
 
   .visualizer-container:hover .visualizer-hover-overlay {
     opacity: 1;
+  }
+
+  /* ── DJ Crossfader Easter Egg Animations & FX ── */
+  @keyframes knob-wiggle {
+    0%, 100% { transform: translate(0, -50%) scale(1); }
+    20%, 60% { transform: translate(-3.5px, -50%) rotate(-4deg); }
+    40%, 80% { transform: translate(3.5px, -50%) rotate(4deg); }
+  }
+  
+  .knob-jiggle {
+    animation: knob-wiggle 0.3s ease-in-out;
+  }
+
+  .dj-fader-knob.fried {
+    background: linear-gradient(135deg, #2c2222 0%, #1a1212 50%, #0f0505 100%) !important;
+    border-color: rgba(239, 68, 68, 0.35) !important;
+    box-shadow: 
+      0 4px 10px rgba(0, 0, 0, 0.9),
+      0 0 8px rgba(239, 68, 68, 0.25) !important;
+  }
+
+  .dj-fader-knob.fried::after {
+    background: #ef4444 !important;
+    box-shadow: 0 0 5px #ef4444 !important;
+    animation: fader-flicker 0.15s infinite alternate;
+  }
+
+  @keyframes fader-flicker {
+    0% { opacity: 0.35; }
+    100% { opacity: 1; }
+  }
+
+  .dj-crossfader.fader-flash {
+    animation: fader-flash-anim 0.15s ease-out;
+  }
+
+  @keyframes fader-flash-anim {
+    0% {
+      background: #ff0055;
+      box-shadow: 0 0 25px rgba(255, 0, 85, 0.8);
+      border-color: #ffffff;
+    }
+    100% {
+      background: linear-gradient(180deg, #1e1e24 0%, #121215 100%);
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+  }
+
+  .dj-crossfader.fader-fried {
+    border-color: rgba(239, 68, 68, 0.25) !important;
+    box-shadow: 
+      inset 0 0 8px rgba(239, 68, 68, 0.08),
+      0 8px 24px rgba(0, 0, 0, 0.5) !important;
+  }
+
+  .fader-fx-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 99999;
   }
 </style>

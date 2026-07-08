@@ -18,7 +18,12 @@
   const SHARE_COOLDOWN_MS = 2000;
 
   // Props
-  let { initialSlug = $bindable(null), isReading = $bindable(false), depth = $bindable(0), isFlagColors = false } = $props();
+  let {
+    initialSlug = $bindable(null),
+    isReading = $bindable(false),
+    depth = $bindable(0),
+    isFlagColors = false,
+  } = $props();
 
   // App state
   let posts = $state([]);
@@ -41,11 +46,11 @@
 
   const SCRAMBLE_LANGUAGES = [
     "01ｦｱｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ", // Japanese Katakana
-    "010101010189034567",                               // Binary/Numeric
-    "αβγδεζηθικλμνξοπρστυφχψω0123456789",               // Greek
-    "БГДЖИЛПФЦЧШЩЪЫЭЮЯ0123456789",                      // Cyrillic
-    "ᚠᚢᚦᚨᚱᚲᚷᚹᚺᚾᛁᚹᛇᛈᛉᛊᛏᛒᛗᛚᛜᛞᛟ01",                     // Nordic Runes
-    "0123456789ABCDEF$#@%&?"                            // Cyber Hex/Leet
+    "010101010189034567", // Binary/Numeric
+    "αβγδεζηθικλμνξοπρστυφχψω0123456789", // Greek
+    "БГДЖИЛПФЦЧШЩЪЫЭЮЯ0123456789", // Cyrillic
+    "ᚠᚢᚦᚨᚱᚲᚷᚹᚺᚾᛁᚹᛇᛈᛉᛊᛏᛒᛗᛚᛜᛞᛟ01", // Nordic Runes
+    "0123456789ABCDEF$#@%&?", // Cyber Hex/Leet
   ];
 
   /**
@@ -55,7 +60,12 @@
    * @param {number} duration
    * @param {string} glyphs
    */
-  function scrambleText(originalText, callback, duration = 500, glyphs = SCRAMBLE_LANGUAGES[0]) {
+  function scrambleText(
+    originalText,
+    callback,
+    duration = 500,
+    glyphs = SCRAMBLE_LANGUAGES[0],
+  ) {
     if (!originalText) return;
     const length = originalText.length;
     let iterations = 0;
@@ -63,14 +73,17 @@
     const maxIterations = Math.max(1, duration / intervalTime);
 
     const timer = setInterval(() => {
-      let scrambled = originalText.split("").map((char, index) => {
-        if (char === " " || char === "\n") return char;
-        const lockThreshold = (iterations / maxIterations) * length;
-        if (index < lockThreshold) {
-          return originalText[index];
-        }
-        return glyphs[Math.floor(Math.random() * glyphs.length)];
-      }).join("");
+      let scrambled = originalText
+        .split("")
+        .map((char, index) => {
+          if (char === " " || char === "\n") return char;
+          const lockThreshold = (iterations / maxIterations) * length;
+          if (index < lockThreshold) {
+            return originalText[index];
+          }
+          return glyphs[Math.floor(Math.random() * glyphs.length)];
+        })
+        .join("");
 
       callback(scrambled);
       iterations++;
@@ -88,13 +101,28 @@
    * Wrapper to show exit glitch before closing post.
    */
   function handleExitPost() {
-    const glyphs = SCRAMBLE_LANGUAGES[Math.floor(Math.random() * SCRAMBLE_LANGUAGES.length)];
+    const glyphs =
+      SCRAMBLE_LANGUAGES[Math.floor(Math.random() * SCRAMBLE_LANGUAGES.length)];
     isGlitching = true;
     if (activePost) {
-      scrambleText(activePost.title, (v) => { scrambledTitle = v; }, 280, glyphs);
-      scrambleText(activePost.description, (v) => { scrambledDesc = v; }, 280, glyphs);
+      scrambleText(
+        activePost.title,
+        (v) => {
+          scrambledTitle = v;
+        },
+        280,
+        glyphs,
+      );
+      scrambleText(
+        activePost.description,
+        (v) => {
+          scrambledDesc = v;
+        },
+        280,
+        glyphs,
+      );
     }
-    
+
     setTimeout(() => {
       deselectPost();
       isGlitching = false;
@@ -113,7 +141,12 @@
     if (isNaN(date.getTime())) return dateStr;
 
     const hasTime = dateStr.includes("T");
-    const optionsDate = { weekday: "long", year: "numeric", month: "long", day: "numeric" };
+    const optionsDate = {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    };
     const formattedDate = date.toLocaleDateString("en-US", optionsDate);
 
     if (!hasTime || !showTime) {
@@ -179,14 +212,43 @@
     initialSlug = post.slug;
 
     // Pick a random language glyph set for this transition
-    const glyphs = SCRAMBLE_LANGUAGES[Math.floor(Math.random() * SCRAMBLE_LANGUAGES.length)];
+    const glyphs =
+      SCRAMBLE_LANGUAGES[Math.floor(Math.random() * SCRAMBLE_LANGUAGES.length)];
 
     // Trigger matrix glitch scramble
     isGlitching = true;
-    scrambleText(post.title, (v) => { scrambledTitle = v; }, 500, glyphs);
-    scrambleText(post.description, (v) => { scrambledDesc = v; }, 500, glyphs);
-    scrambleText(post.author, (v) => { scrambledAuthor = v; }, 500, glyphs);
-    scrambleText(formatBlogDate(post.date), (v) => { scrambledDate = v; }, 500, glyphs);
+    scrambleText(
+      post.title,
+      (v) => {
+        scrambledTitle = v;
+      },
+      500,
+      glyphs,
+    );
+    scrambleText(
+      post.description,
+      (v) => {
+        scrambledDesc = v;
+      },
+      500,
+      glyphs,
+    );
+    scrambleText(
+      post.author,
+      (v) => {
+        scrambledAuthor = v;
+      },
+      500,
+      glyphs,
+    );
+    scrambleText(
+      formatBlogDate(post.date),
+      (v) => {
+        scrambledDate = v;
+      },
+      500,
+      glyphs,
+    );
 
     try {
       const data = await getPostContent(post.slug);
@@ -337,7 +399,9 @@
                 class="post-card text-left p-4 md:p-5 rounded-2xl border transition-all duration-300 flex flex-col gap-3.5 relative group overflow-hidden bg-white/[0.01] border-white/5 hover:border-[#b455ff]/40 hover:bg-white/[0.03] cursor-pointer"
               >
                 <!-- Card Header -->
-                <div class="flex items-center gap-2 w-full flex-nowrap overflow-hidden">
+                <div
+                  class="flex items-center gap-2 w-full flex-nowrap overflow-hidden"
+                >
                   <span
                     class="text-[8px] xs:text-[9px] sm:text-[10px] font-mono text-[#b455ff] font-semibold truncate shrink-0"
                     >{formatBlogDate(post.date, false)}</span
@@ -398,10 +462,14 @@
                 class="flex items-center gap-4 text-xs text-white/40 font-mono"
               >
                 <span class="flex items-center gap-1"
-                  ><Calendar size={12} /> {isGlitching ? scrambledDate : formatBlogDate(activePost.date)}</span
+                  ><Calendar size={12} />
+                  {isGlitching
+                    ? scrambledDate
+                    : formatBlogDate(activePost.date)}</span
                 >
                 <span class="flex items-center gap-1"
-                  ><User size={12} /> {isGlitching ? scrambledAuthor : activePost.author}</span
+                  ><User size={12} />
+                  {isGlitching ? scrambledAuthor : activePost.author}</span
                 >
               </div>
 
@@ -434,7 +502,7 @@
                     <span class="text-[#00d75f] font-mono">LINK_COPIED</span>
                   {:else}
                     <Share2 size={14} class="text-[#b455ff]" />
-                    <span>Share Log</span>
+                    <span>Share</span>
                   {/if}
                 </button>
               </div>
@@ -492,13 +560,35 @@
 
   /* ── Cyberpunk Matrix Glitch Effect ── */
   @keyframes glitchSkew {
-    0%, 100% { transform: none; filter: none; }
-    10% { transform: skewX(-4deg) scaleY(1.02); filter: var(--glitch-filter); color: var(--glitch-color); text-shadow: var(--glitch-shadow-1), var(--glitch-shadow-2); }
-    20% { transform: skewX(4deg); }
-    30% { transform: none; }
-    40% { transform: skewX(-2deg); }
-    50% { transform: skewY(1deg); filter: var(--glitch-filter-alt); color: var(--glitch-color); text-shadow: var(--glitch-shadow-2), var(--glitch-shadow-1); }
-    60% { transform: none; }
+    0%,
+    100% {
+      transform: none;
+      filter: none;
+    }
+    10% {
+      transform: skewX(-4deg) scaleY(1.02);
+      filter: var(--glitch-filter);
+      color: var(--glitch-color);
+      text-shadow: var(--glitch-shadow-1), var(--glitch-shadow-2);
+    }
+    20% {
+      transform: skewX(4deg);
+    }
+    30% {
+      transform: none;
+    }
+    40% {
+      transform: skewX(-2deg);
+    }
+    50% {
+      transform: skewY(1deg);
+      filter: var(--glitch-filter-alt);
+      color: var(--glitch-color);
+      text-shadow: var(--glitch-shadow-2), var(--glitch-shadow-1);
+    }
+    60% {
+      transform: none;
+    }
   }
 
   .glitching-pane {
