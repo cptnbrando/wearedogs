@@ -46,6 +46,14 @@
     { id: "radio", label: "Radio", icon: BoomBox },
   ];
 
+  const ERROR_COVER = "/img/error_cover.png";
+
+  function handleCoverError(e) {
+    if (!e.target.src.endsWith(ERROR_COVER)) {
+      e.target.src = ERROR_COVER;
+    }
+  }
+
   let { isClosing = false, onClose, initialTrackId = null } = $props();
 
   // Tab: 'songs' | 'samples' | 'playlists' | 'radio'
@@ -310,7 +318,9 @@
   let focusedTrackId = $state(null);
 
   function scrollFocusedTrackIntoView() {
-    const el = document.querySelector(`.track-row[data-track-id="${focusedTrackId}"]`);
+    const el = document.querySelector(
+      `.track-row[data-track-id="${focusedTrackId}"]`,
+    );
     if (el) {
       el.scrollIntoView({ block: "nearest", behavior: "smooth" });
     }
@@ -319,7 +329,10 @@
   function selectSortedTrack(track) {
     focusedTrackId = track.id;
     const idx = library.findIndex((t) => t.id === track.id);
-    if (audioCore.currentTrackIndex === idx && !audioCore.fetchErrors[track.id]) {
+    if (
+      audioCore.currentTrackIndex === idx &&
+      !audioCore.fetchErrors[track.id]
+    ) {
       audioCore.togglePlay();
     } else {
       audioCore.loadTrack(idx, true);
@@ -390,10 +403,14 @@
     } else if (e.key === "ArrowDown") {
       if (activeTab === "songs" && sortedLibrary.length > 0) {
         e.preventDefault();
-        let currentIdx = sortedLibrary.findIndex((t) => t.id === focusedTrackId);
+        let currentIdx = sortedLibrary.findIndex(
+          (t) => t.id === focusedTrackId,
+        );
         if (currentIdx === -1) {
           const playingTrack = library[audioCore.currentTrackIndex];
-          currentIdx = sortedLibrary.findIndex((t) => t.id === playingTrack?.id);
+          currentIdx = sortedLibrary.findIndex(
+            (t) => t.id === playingTrack?.id,
+          );
         }
         const nextIdx = (currentIdx + 1) % sortedLibrary.length;
         focusedTrackId = sortedLibrary[nextIdx].id;
@@ -402,10 +419,14 @@
     } else if (e.key === "ArrowUp") {
       if (activeTab === "songs" && sortedLibrary.length > 0) {
         e.preventDefault();
-        let currentIdx = sortedLibrary.findIndex((t) => t.id === focusedTrackId);
+        let currentIdx = sortedLibrary.findIndex(
+          (t) => t.id === focusedTrackId,
+        );
         if (currentIdx === -1) {
           const playingTrack = library[audioCore.currentTrackIndex];
-          currentIdx = sortedLibrary.findIndex((t) => t.id === playingTrack?.id);
+          currentIdx = sortedLibrary.findIndex(
+            (t) => t.id === playingTrack?.id,
+          );
         }
         const prevIdx =
           (currentIdx - 1 + sortedLibrary.length) % sortedLibrary.length;
@@ -792,12 +813,13 @@
                       <div class="groove g4"></div>
                       <div class="record-label">
                         <img
-                          src={currentTrack.cover}
+                          src={(audioCore.fetchErrors[currentTrack.id] || !currentTrack.cover) ? ERROR_COVER : currentTrack.cover}
                           alt={currentTrack.album}
                           loading="lazy"
                           class="record-art"
                           class:loaded={vinylLoaded}
                           onload={() => (vinylLoaded = true)}
+                          onerror={handleCoverError}
                         />
                       </div>
                       <div class="spindle"></div>
@@ -1149,10 +1171,11 @@
                     {/if}
                   </div>
                   <img
-                    src={track.cover}
+                    src={(audioCore.fetchErrors[track.id] || !track.cover) ? ERROR_COVER : track.cover}
                     alt={track.album}
                     loading="lazy"
                     class="tr-art"
+                    onerror={handleCoverError}
                   />
                   <div class="tr-info">
                     <div class="flex items-center gap-1.5 min-w-0">
@@ -1362,6 +1385,7 @@
   <canvas bind:this={faderFxCanvas} class="fader-fx-canvas pointer-events-none"
   ></canvas>
 </div>
+
 <style lang="scss">
   @use "../styles/music-panel.scss";
 
@@ -1411,7 +1435,6 @@
     color: white;
     transform: translateX(-4px);
   }
-
 
   /* ── DJ Crossfader ── */
   .dj-crossfader {
