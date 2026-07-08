@@ -914,49 +914,8 @@
   .app-card.focused {
     background: rgba(255, 255, 255, 0.06);
     transform: scale(1.01) translateY(-2px);
-    border-color: rgba(255, 255, 255, 0.12);
-  }
-
-  /* Neon Borders */
-  .border-neon-blue:hover,
-  .border-neon-blue.focused {
-    border-color: rgba(0, 191, 255, 0.6);
-    box-shadow: 0 8px 30px rgba(0, 191, 255, 0.1);
-  }
-  .border-neon-pink:hover,
-  .border-neon-pink.focused {
-    border-color: rgba(255, 85, 187, 0.6);
-    box-shadow: 0 8px 30px rgba(255, 85, 187, 0.1);
-  }
-  .border-neon-yellow:hover,
-  .border-neon-yellow.focused {
-    border-color: rgba(255, 204, 0, 0.6);
-    box-shadow: 0 8px 30px rgba(255, 204, 0, 0.1);
-  }
-  .border-neon-green:hover,
-  .border-neon-green.focused {
-    border-color: rgba(0, 255, 102, 0.6);
-    box-shadow: 0 8px 30px rgba(0, 255, 102, 0.1);
-  }
-  .border-neon-purple:hover,
-  .border-neon-purple.focused {
-    border-color: rgba(180, 85, 255, 0.6);
-    box-shadow: 0 8px 30px rgba(180, 85, 255, 0.1);
-  }
-  .border-neon-cyan:hover,
-  .border-neon-cyan.focused {
-    border-color: rgba(0, 191, 255, 0.6);
-    box-shadow: 0 8px 30px rgba(0, 191, 255, 0.1);
-  }
-  .border-neon-gold-hover:hover,
-  .border-neon-gold-hover.focused {
-    border-color: rgba(230, 185, 0, 0.6);
-    box-shadow: 0 8px 30px rgba(230, 185, 0, 0.15);
-  }
-  .border-neon-red:hover,
-  .border-neon-red.focused {
-    border-color: rgba(255, 51, 68, 0.6);
-    box-shadow: 0 8px 30px rgba(255, 51, 68, 0.1);
+    border-color: rgba(150, 150, 150, 0.45);
+    box-shadow: 0 8px 30px rgba(150, 150, 150, 0.08);
   }
 
   .app-visual {
