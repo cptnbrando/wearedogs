@@ -284,27 +284,6 @@
   overflow: hidden;
 }
 
-.version-badge {
-  display: inline-block;
-  font-size: 0.6rem;
-  font-weight: 700;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
-  padding: 3px 10px;
-  border-radius: 20px;
-  margin-bottom: 7px;
-  background: rgba(170, 90, 255, 0.13);
-  border: 1px solid rgba(170, 90, 255, 0.28);
-  color: rgba(180, 110, 255, 0.9);
-  font-family: "Outfit", monospace;
-  transition: all 0.3s;
-}
-
-.version-badge.inst {
-  background: rgba(90, 210, 255, 0.1);
-  border-color: rgba(90, 210, 255, 0.28);
-  color: rgba(90, 210, 255, 0.9);
-}
 
 .scroll-container {
   width: 100%;

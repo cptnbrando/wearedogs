@@ -398,11 +398,11 @@ export class AudioCore {
     if (typeof navigator !== "undefined" && "mediaSession" in navigator && this.library[this.currentTrackIndex]) {
       const track = this.library[this.currentTrackIndex];
       const origin = typeof window !== "undefined" ? window.location.origin : "";
-      
+
       const coverUrl = (track.cover.startsWith("data:") || track.cover.startsWith("http://") || track.cover.startsWith("https://"))
         ? track.cover
         : origin + track.cover;
-      
+
       navigator.mediaSession.metadata = new MediaMetadata({
         title: track.title,
         artist: track.artist,

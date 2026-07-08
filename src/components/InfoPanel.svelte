@@ -96,7 +96,6 @@
     </footer>
   </div>
 </div>
-
 <style lang="scss">
   .info-panel-backdrop {
     position: fixed;
@@ -157,7 +156,7 @@
     }
   }
 
-  .text-neon-gold {
+  :global(.text-neon-gold) {
     color: var(--color-neon-gold, #e6b900);
   }
 
@@ -238,13 +237,13 @@
     }
   }
 
-  .text-castle {
+  :global(.text-castle) {
     color: var(--color-neon-cyan, #00d7ff);
   }
-  .text-wax {
+  :global(.text-wax) {
     color: var(--color-neon-purple, #a000eb);
   }
-  .text-forty {
+  :global(.text-forty) {
     color: var(--color-neon-green, #00d75f);
   }
 

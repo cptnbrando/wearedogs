@@ -544,7 +544,6 @@
     </footer>
   </div>
 </div>
-
 <style>
   /* ── Backdrop ── */
   .toolbox-panel-backdrop {
@@ -1123,24 +1122,7 @@
     bottom: 0;
     left: 0;
   }
-  .qr-preview-mini .scan-bar {
-    position: absolute;
-    width: 100%;
-    height: 2px;
-    background: #00bfff;
-    box-shadow: 0 0 6px #00bfff;
-    top: 2px;
-    animation: qrScanMini 1.5s infinite alternate ease-in-out;
-  }
 
-  @keyframes qrScanMini {
-    0% {
-      top: 2px;
-    }
-    100% {
-      top: 16px;
-    }
-  }
 
   .terminal-preview-mini {
     position: relative;

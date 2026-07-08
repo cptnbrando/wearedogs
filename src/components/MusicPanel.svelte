@@ -1300,7 +1300,6 @@
   <canvas bind:this={faderFxCanvas} class="fader-fx-canvas pointer-events-none"
   ></canvas>
 </div>
-
 <style lang="scss">
   @use "../styles/music-panel.scss";
 
@@ -1351,21 +1350,6 @@
     transform: translateX(-4px);
   }
 
-  @keyframes wiggle {
-    0%,
-    100% {
-      transform: translateX(0);
-    }
-    25% {
-      transform: translateX(-6px) rotate(-1.5deg);
-    }
-    75% {
-      transform: translateX(6px) rotate(1.5deg);
-    }
-  }
-  .animate-wiggle {
-    animation: wiggle 0.2s ease-in-out 2;
-  }
 
   /* ── DJ Crossfader ── */
   .dj-crossfader {
