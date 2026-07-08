@@ -1,6 +1,7 @@
 // Custom SCSS styles go here
 // Tailwind utility classes are available from app.css
 @use "./styles/variables" as *;
+@use "./styles/gopro";
 
 body {
     margin: 0;

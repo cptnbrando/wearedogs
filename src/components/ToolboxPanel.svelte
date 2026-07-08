@@ -622,7 +622,7 @@
               </div>
             </div>
 
-            <!-- App: Windshield Wiper -->
+            <!-- App 13: Windshield Wiper -->
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div
@@ -669,7 +669,7 @@
               </div>
             </div>
 
-            <!-- App 12: Settings -->
+            <!-- App 14: Settings -->
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div
@@ -741,7 +741,6 @@
     </footer>
   </div>
 </div>
-
 <style>
   /* ── Backdrop ── */
   .toolbox-panel-backdrop {
@@ -1321,14 +1320,6 @@
     left: 0;
   }
 
-  @keyframes qrScanMini {
-    0% {
-      top: 2px;
-    }
-    100% {
-      top: 16px;
-    }
-  }
 
   .terminal-preview-mini {
     position: relative;

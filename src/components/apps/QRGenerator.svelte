@@ -384,7 +384,6 @@
     </div>
   {/if}
 </div>
-
 <style>
   .qrgenerator-layout {
     display: flex;
@@ -595,12 +594,12 @@
     text-align: center;
   }
 
-  .upload-icon {
+  :global(.upload-icon) {
     color: rgba(255, 255, 255, 0.3);
     transition: color 0.2s;
   }
 
-  .dropzone:hover .upload-icon {
+  .dropzone:hover :global(.upload-icon) {
     color: #00d7ff;
     transform: translateY(-2px);
   }

@@ -153,10 +153,10 @@
       title: "HOLLYWOOD",
       artist: "YG",
       album: "THE GENTLEMEN'S CLUB",
-      cover: "/img/covers/yg.webp",
-      altCover: "/img/covers/yg.jpg",
-      src: "/music/YG/THE GENTLEMEN'S CLUB/HOLLYWOOD.mp3",
-      instrumental: "/music/YG/THE GENTLEMEN'S CLUB/HOLLYWOOD-FREE.mp3",
+      cover: "https://data.wearedogs.net/img/covers/2026/yg.webp",
+      altCover: "https://data.wearedogs.net/img/covers/2026/yg.jpg",
+      src: "https://data.wearedogs.net/music/2026/HOLLYWOOD.mp3",
+      instrumental: "https://data.wearedogs.net/music/2026/HOLLYWOOD-free.mp3",
       hasInstrumental: true,
       dateAdded: "2026-06-24T03:00:00-05:00",
       year: 2026,
@@ -168,10 +168,10 @@
       title: "Chicago",
       artist: "Michael Jackson",
       album: "Xscape",
-      cover: "/img/covers/mj.webp",
-      altCover: "/img/covers/mj.jpg",
-      src: "/music/Michael Jackson/Xscape/Chicago.mp3",
-      instrumental: "/music/Michael Jackson/Xscape/Chicago-free.mp3",
+      cover: "https://data.wearedogs.net/img/covers/2026/mj.webp",
+      altCover: "https://data.wearedogs.net/img/covers/2026/mj.jpg",
+      src: "https://data.wearedogs.net/music/2026/Chicago.mp3",
+      instrumental: "https://data.wearedogs.net/music/2026/Chicago-free.mp3",
       hasInstrumental: true,
       dateAdded: "2026-06-24T03:00:00-05:00",
       year: 2014,
@@ -183,9 +183,9 @@
       artist: "Zed's Dead",
       album:
         "Return to the Return (of the Spectrum of Intergalactic Happiness)",
-      cover: "/img/covers/zd.webp",
-      altCover: "/img/covers/zd.jpg",
-      src: "/music/Zed's Dead/Return/Pourin.mp3",
+      cover: "https://data.wearedogs.net/img/covers/2026/zd.webp",
+      altCover: "https://data.wearedogs.net/img/covers/2026/zd.jpg",
+      src: "https://data.wearedogs.net/music/2026/Pourin.mp3",
       instrumental: "",
       hasInstrumental: false,
       dateAdded: "2026-07-07T018:12:00-05:00",
@@ -200,7 +200,7 @@
       album: "Den Chai",
       cover: "/img/covers/buddha.webp",
       altCover: "",
-      src: "/music/DENCHAI.mp3",
+      src: "https://data.wearedogs.net/music/2026/DENCHAI.mp3",
       instrumental: "",
       hasInstrumental: false,
       dateAdded: "2026-07-07T22:34:00-05:00",
@@ -208,6 +208,21 @@
       genre: "Lounge",
       attrib:
         "https://open.spotify.com/artist/0du3MpnxBOpQEie1IV3u9v?si=2UO722ntTE--Ck_Ji7Go7Q",
+    },
+    {
+      id: "rainbow",
+      title: "Rainbow in the Dark",
+      artist: "Das Racist",
+      album: "Shut Up, Dude",
+      cover: "https://data.wearedogs.net/img/covers/2026/rainbow.webp",
+      altCover: "https://data.wearedogs.net/img/covers/2026/rainbow.png",
+      src: "https://data.wearedogs.net/music/2026/rainbow.mp3",
+      instrumental: "https://data.wearedogs.net/music/2026/rainbow-free.mp3",
+      hasInstrumental: true,
+      dateAdded: "2026-07-08T16:35:00-05:00",
+      year: 2010,
+      genre: "Hip-Hop",
+      attrib: "https://dasracist.bandcamp.com/album/shut-up-dude",
     },
   ];
 
@@ -1284,7 +1299,6 @@
   <canvas bind:this={faderFxCanvas} class="fader-fx-canvas pointer-events-none"
   ></canvas>
 </div>
-
 <style lang="scss">
   @use "../styles/music-panel.scss";
 
@@ -1335,21 +1349,6 @@
     transform: translateX(-4px);
   }
 
-  @keyframes wiggle {
-    0%,
-    100% {
-      transform: translateX(0);
-    }
-    25% {
-      transform: translateX(-6px) rotate(-1.5deg);
-    }
-    75% {
-      transform: translateX(6px) rotate(1.5deg);
-    }
-  }
-  .animate-wiggle {
-    animation: wiggle 0.2s ease-in-out 2;
-  }
 
   /* ── DJ Crossfader ── */
   .dj-crossfader {

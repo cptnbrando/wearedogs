@@ -30,8 +30,32 @@ export class AudioCore {
 
   progressInterval = null;
   library = [];
+  activeTrackBlobUrl = null;
+  activeInstBlobUrl = null;
 
   constructor() { }
+
+  async getAudioSource(url, type) {
+    if (!url) return "";
+    if (url.startsWith("https://data.wearedogs.net/")) {
+      try {
+        const res = await fetch(url);
+        if (res.ok) {
+          const blob = await res.blob();
+          const blobUrl = URL.createObjectURL(blob);
+          if (type === "track") {
+            this.activeTrackBlobUrl = blobUrl;
+          } else if (type === "inst") {
+            this.activeInstBlobUrl = blobUrl;
+          }
+          return blobUrl;
+        }
+      } catch (e) {
+        console.warn(`Failed to fetch remote audio source for ${url}:`, e);
+      }
+    }
+    return url;
+  }
 
   init(lib) {
     this.library = lib;
@@ -98,10 +122,22 @@ export class AudioCore {
     }
 
     try {
-      this.trackAudio.src = track.src;
+      if (this.activeTrackBlobUrl) {
+        URL.revokeObjectURL(this.activeTrackBlobUrl);
+        this.activeTrackBlobUrl = null;
+      }
+      if (this.activeInstBlobUrl) {
+        URL.revokeObjectURL(this.activeInstBlobUrl);
+        this.activeInstBlobUrl = null;
+      }
+
+      const resolvedTrackSrc = await this.getAudioSource(track.src, "track");
+      const resolvedInstSrc = track.instrumental ? await this.getAudioSource(track.instrumental, "inst") : "";
+
+      this.trackAudio.src = resolvedTrackSrc;
       this.trackAudio.load();
-      if (track.instrumental) {
-        this.instAudio.src = track.instrumental;
+      if (resolvedInstSrc) {
+        this.instAudio.src = resolvedInstSrc;
         this.instAudio.load();
       } else {
         this.instAudio.removeAttribute("src");
@@ -362,11 +398,11 @@ export class AudioCore {
     if (typeof navigator !== "undefined" && "mediaSession" in navigator && this.library[this.currentTrackIndex]) {
       const track = this.library[this.currentTrackIndex];
       const origin = typeof window !== "undefined" ? window.location.origin : "";
-      
+
       const coverUrl = (track.cover.startsWith("data:") || track.cover.startsWith("http://") || track.cover.startsWith("https://"))
         ? track.cover
         : origin + track.cover;
-      
+
       navigator.mediaSession.metadata = new MediaMetadata({
         title: track.title,
         artist: track.artist,

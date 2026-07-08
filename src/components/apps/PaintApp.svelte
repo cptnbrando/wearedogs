@@ -586,7 +586,6 @@
     {/if}
   </div>
 </div>
-
 <style>
   .paint-layout {
     display: flex;
@@ -1121,16 +1120,12 @@
     100% { opacity: 1; transform: translateY(0); }
   }
 
-  .label-title, .desktop-only-text {
-    display: none;
-  }
-
   .desktop-only-label {
     display: none;
   }
 
   @media (min-width: 768px) {
-    .label-title, .desktop-only-text, .desktop-only-label {
+    .desktop-only-label {
       display: inline;
     }
   }

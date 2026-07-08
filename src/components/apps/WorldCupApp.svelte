@@ -278,7 +278,6 @@
     </div>
   {/if}
 </div>
-
 <style lang="scss">
   @use "../../styles/variables" as *;
 
@@ -300,32 +299,7 @@
     animation: pulseGlow 2s infinite alternate;
   }
 
-  .tab-btn {
-    background: transparent;
-    border: none;
-    color: rgba(255, 255, 255, 0.55);
-    padding: 6px 12px;
-    border-radius: 8px;
-    font-size: 0.75rem;
-    font-weight: 700;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    transition: all $transition-speed-fast cubic-bezier(0.16, 1, 0.3, 1);
 
-    &:hover {
-      background: rgba(255, 255, 255, 0.03);
-      color: white;
-    }
-
-    &.active {
-      background: rgba(var(--color-neon-red-rgb, 255, 51, 68), 0.1);
-      border: 1px solid rgba(var(--color-neon-red-rgb, 255, 51, 68), 0.3);
-      color: $color-neon-red;
-      text-shadow: 0 0 10px rgba(var(--color-neon-red-rgb, 255, 51, 68), 0.2);
-    }
-  }
 
   /* ── SwipeTabNav Integration Theme ── */
   :global(.wc-navigation-bar .swipe-tab-nav) {
@@ -333,30 +307,30 @@
     border-bottom: none !important;
     width: auto !important;
     padding: 0 !important;
+  }
 
-    :global(.tab-btn) {
-      padding: 6px 12px !important;
-      border-radius: 8px !important;
-      font-size: 0.75rem !important;
-      font-weight: 700 !important;
-      color: rgba(255, 255, 255, 0.55) !important;
-      background: transparent !important;
-      border: 1px solid transparent !important;
-      box-shadow: none !important;
-      text-shadow: none !important;
+  :global(.wc-navigation-bar .swipe-tab-nav .tab-btn) {
+    padding: 6px 12px !important;
+    border-radius: 8px !important;
+    font-size: 0.75rem !important;
+    font-weight: 700 !important;
+    color: rgba(255, 255, 255, 0.55) !important;
+    background: transparent !important;
+    border: 1px solid transparent !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
 
-      &:hover {
-        background: rgba(255, 255, 255, 0.03) !important;
-        color: white !important;
-      }
+  :global(.wc-navigation-bar .swipe-tab-nav .tab-btn:hover) {
+    background: rgba(255, 255, 255, 0.03) !important;
+    color: white !important;
+  }
 
-      &.active {
-        background: rgba(255, 51, 68, 0.1) !important;
-        border: 1px solid rgba(255, 51, 68, 0.3) !important;
-        color: #ff3344 !important;
-        text-shadow: 0 0 10px rgba(255, 51, 68, 0.2) !important;
-      }
-    }
+  :global(.wc-navigation-bar .swipe-tab-nav .tab-btn.active) {
+    background: rgba(255, 51, 68, 0.1) !important;
+    border: 1px solid rgba(255, 51, 68, 0.3) !important;
+    color: #ff3344 !important;
+    text-shadow: 0 0 10px rgba(255, 51, 68, 0.2) !important;
   }
 
   // Landscape View styling
@@ -420,7 +394,7 @@
         padding-bottom: 3px !important;
         gap: 6px !important;
 
-        .tab-btn {
+        :global(.tab-btn) {
           padding: 4px 8px !important;
           font-size: 0.7rem !important;
         }

@@ -490,6 +490,7 @@
     window.removeEventListener("mouseup", handleMaskMouseUp);
   }
 
+
   // Toggle Video Playback
   function toggleVideo() {
     if (!videoEl) return;
