@@ -1,5 +1,6 @@
 <script>
   import { onMount } from "svelte";
+  import { fade } from "svelte/transition";
   import {
     translations,
     langs,
@@ -503,28 +504,38 @@
         ontouchend={handleTouchEnd}
       >
         {#if activeTab === "explorer"}
-          <ExplorerTab
-            {allLangItems}
-            bind:currentLang
-            {handleHover}
-            {handleSelect}
-          />
+          <div in:fade={{ duration: 120, delay: 120 }} out:fade={{ duration: 120 }}>
+            <ExplorerTab
+              {allLangItems}
+              bind:currentLang
+              {handleHover}
+              {handleSelect}
+            />
+          </div>
         {:else if activeTab === "map"}
-          <MapTab
-            {activeColor}
-            {activeLangItem}
-            {activeCountries}
-            {enrichedCountryStats}
-            {countryColorsMap}
-            {countryLanguagesMap}
-            {handleCountrySelect}
-          />
+          <div in:fade={{ duration: 120, delay: 120 }} out:fade={{ duration: 120 }}>
+            <MapTab
+              {activeColor}
+              {activeLangItem}
+              {activeCountries}
+              {enrichedCountryStats}
+              {countryColorsMap}
+              {countryLanguagesMap}
+              {handleCountrySelect}
+            />
+          </div>
         {:else if activeTab === "comparison"}
-          <ComparisonTab {enrichedCountryStats} />
+          <div in:fade={{ duration: 120, delay: 120 }} out:fade={{ duration: 120 }}>
+            <ComparisonTab {enrichedCountryStats} />
+          </div>
         {:else if activeTab === "animals"}
-          <AnimalsTab {allLangItems} />
+          <div in:fade={{ duration: 120, delay: 120 }} out:fade={{ duration: 120 }}>
+            <AnimalsTab {allLangItems} />
+          </div>
         {:else if activeTab === "themes"}
-          <ThemesTab {allLangItems} {onSelectLang} />
+          <div in:fade={{ duration: 120, delay: 120 }} out:fade={{ duration: 120 }}>
+            <ThemesTab {allLangItems} {onSelectLang} />
+          </div>
         {/if}
       </main>
 

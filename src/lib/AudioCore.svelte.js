@@ -87,7 +87,7 @@ export class AudioCore {
     if (track && track.hasInstrumental) {
       this.isInstrumental = this.userPrefersInstrumental || false;
     } else {
-      this.isInstrumental = (track && track.id === "rain");
+      this.isInstrumental = (track && (track.id === "rain" || track.id === "denchai"));
     }
     this.currentTime = 0;
     this.isLoading = true;
@@ -363,12 +363,16 @@ export class AudioCore {
       const track = this.library[this.currentTrackIndex];
       const origin = typeof window !== "undefined" ? window.location.origin : "";
       
+      const coverUrl = (track.cover.startsWith("data:") || track.cover.startsWith("http://") || track.cover.startsWith("https://"))
+        ? track.cover
+        : origin + track.cover;
+      
       navigator.mediaSession.metadata = new MediaMetadata({
         title: track.title,
         artist: track.artist,
         album: track.album,
         artwork: [
-          { src: origin + track.cover, sizes: "512x512", type: "image/webp" }
+          { src: coverUrl, sizes: "512x512", type: "image/webp" }
         ]
       });
       navigator.mediaSession.playbackState = this.isPlaying ? "playing" : "paused";
