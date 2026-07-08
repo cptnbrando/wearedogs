@@ -15,6 +15,7 @@
     BookOpen,
     Settings,
     Zap,
+    Scissors,
   } from "lucide-svelte";
   import SnakeApp from "./apps/SnakeApp.svelte";
   import DogsLogo from "./DogsLogo.svelte";
@@ -31,6 +32,7 @@
   import ChangelogApp from "./apps/ChangelogApp.svelte";
   import BlogApp from "./apps/BlogApp.svelte";
   import SettingsApp from "./apps/SettingsApp.svelte";
+  import SoundStripper from "./apps/SoundStripper.svelte";
 
   const title = "Toolbox";
 
@@ -383,6 +385,28 @@
               </div>
             </div>
 
+            <!-- App: Sound Stripper -->
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div
+              class="app-card border-neon-pink"
+              onclick={() => {
+                activeApp = "soundstripper";
+              }}
+            >
+              <div class="app-visual">
+                <div class="flex items-center justify-center h-full">
+                  <Scissors size={28} style="color: var(--color-neon-pink, #ff007f); filter: drop-shadow(0 0 6px rgba(255, 0, 127, 0.4));" />
+                </div>
+              </div>
+              <div class="app-meta">
+                <span class="app-title"><Scissors size={14} /> Sound Stripper</span>
+                <span class="app-desc"
+                  >Extract vocal acapellas by subtracting reference instrumental bleed.</span
+                >
+              </div>
+            </div>
+
             <!-- App 12: Settings -->
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -437,6 +461,8 @@
         />
       {:else if activeApp === "settings"}
         <SettingsApp />
+      {:else if activeApp === "soundstripper"}
+        <SoundStripper />
       {/if}
     </div>
 
@@ -446,7 +472,7 @@
         <span>/util</span>
       </div>
       <div class="stats-counter">
-        <span>APPS LOADED: 12</span>
+        <span>APPS LOADED: 13</span>
       </div>
     </footer>
   </div>

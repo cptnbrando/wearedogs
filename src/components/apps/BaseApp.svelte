@@ -83,8 +83,7 @@
     flex-direction: column;
     min-height: 0;
     position: relative;
-    justify-content: center;
-    align-items: center;
+    width: 100%;
   }
 
   /* ── WIP tape styling ── */
