@@ -1,6 +1,7 @@
 ---
 title: "woof"
-date: "2026-06-27T12:50:30-05:00"
+date: "2026-07-08T00:01:59-05:00"
+location: "Dallas, TX"
 description: "Alexa, play Despacito"
 author: "Captain Brando!"
 coverImage: "/favicon.svg"
