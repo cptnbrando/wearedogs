@@ -127,7 +127,9 @@
             >
               {item.era}
             </span>
-            <ArrowRight size={12} class="text-violet-400/40 node-arrow transition-transform" />
+            <span class="node-arrow text-violet-400/40 transition-transform inline-flex">
+              <ArrowRight size={12} />
+            </span>
           </div>
           <h4 class="font-bold text-xs text-white/90 mt-2 truncate">{item.title}</h4>
           <p class="text-[10px] text-white/45 mt-0.5 truncate">{item.summary}</p>
