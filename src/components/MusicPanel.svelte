@@ -395,6 +395,22 @@
       return;
     }
 
+    if (e.shiftKey) {
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        const currentIdx = musicTabs.findIndex((t) => t.id === activeTab);
+        const nextIdx = (currentIdx + 1) % musicTabs.length;
+        activeTab = musicTabs[nextIdx].id;
+        return;
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        const currentIdx = musicTabs.findIndex((t) => t.id === activeTab);
+        const prevIdx = (currentIdx - 1 + musicTabs.length) % musicTabs.length;
+        activeTab = musicTabs[prevIdx].id;
+        return;
+      }
+    }
+
     if (e.code === "Space" || e.key === " ") {
       if (activeTab === "songs") {
         e.preventDefault();
