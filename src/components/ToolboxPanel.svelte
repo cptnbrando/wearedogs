@@ -16,6 +16,7 @@
     Settings,
     Zap,
     Scissors,
+    Sparkles,
   } from "lucide-svelte";
   import SnakeApp from "./apps/SnakeApp.svelte";
   import DogsLogo from "./DogsLogo.svelte";
@@ -33,6 +34,7 @@
   import BlogApp from "./apps/BlogApp.svelte";
   import SettingsApp from "./apps/SettingsApp.svelte";
   import SoundStripper from "./apps/SoundStripper.svelte";
+  import WindshieldWiper from "./apps/WindshieldWiper.svelte";
 
   const title = "Toolbox";
 
@@ -407,7 +409,34 @@
               </div>
             </div>
 
-            <!-- App 12: Settings -->
+            <!-- App 13: Windshield Wiper -->
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div
+              class="app-card border-neon-cyan"
+              onclick={() => {
+                activeApp = "windshieldwiper";
+              }}
+            >
+              <div class="app-visual">
+                <div class="flex items-center justify-center h-full relative overflow-hidden">
+                  <div class="wiper-icon-container">
+                    <svg viewBox="0 0 100 100" class="w-12 h-12">
+                      <path d="M 15 80 A 45 45 0 0 1 85 80" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="6" stroke-linecap="round" />
+                      <line x1="50" y1="85" x2="50" y2="40" stroke="#00ffff" stroke-width="4" stroke-linecap="round" class="wiper-blade-animate" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+              <div class="app-meta">
+                <span class="app-title"><Sparkles size={14} /> Windshield Wiper</span>
+                <span class="app-desc"
+                  >Clean watermarks and logos from images and videos using canvas magic.</span
+                >
+              </div>
+            </div>
+
+            <!-- App 14: Settings -->
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div
@@ -463,6 +492,8 @@
         <SettingsApp />
       {:else if activeApp === "soundstripper"}
         <SoundStripper />
+      {:else if activeApp === "windshieldwiper"}
+        <WindshieldWiper onClose={() => activeApp = null} />
       {/if}
     </div>
 
@@ -472,7 +503,7 @@
         <span>/util</span>
       </div>
       <div class="stats-counter">
-        <span>APPS LOADED: 13</span>
+        <span>APPS LOADED: 14</span>
       </div>
     </footer>
   </div>
@@ -1230,5 +1261,27 @@
     filter: drop-shadow(
       0 0 8px rgba(var(--color-neon-red-rgb, 255, 51, 68), 0.8)
     );
+  }
+
+  /* ── Windshield Wiper Preview ── */
+  .wiper-icon-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+  }
+  .wiper-blade-animate {
+    transform-origin: 50px 85px;
+    animation: wiper-sweep 2.5s ease-in-out infinite alternate;
+  }
+  @keyframes wiper-sweep {
+    0% { transform: rotate(-55deg); }
+    100% { transform: rotate(55deg); }
+  }
+  .app-card:hover .wiper-blade-animate {
+    animation: wiper-sweep 1s ease-in-out infinite alternate;
+    stroke: #00ffff;
+    filter: drop-shadow(0 0 4px rgba(0, 255, 255, 0.8));
   }
 </style>
