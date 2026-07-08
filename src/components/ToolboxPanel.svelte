@@ -16,6 +16,8 @@
     Settings,
     Zap,
     Hourglass,
+    Scissors,
+    Sparkles,
   } from "lucide-svelte";
   import SnakeApp from "./apps/SnakeApp.svelte";
   import DogsLogo from "./DogsLogo.svelte";
@@ -32,6 +34,8 @@
   import ChangelogApp from "./apps/ChangelogApp.svelte";
   import BlogApp from "./apps/BlogApp.svelte";
   import SettingsApp from "./apps/SettingsApp.svelte";
+  import SoundStripper from "./apps/SoundStripper.svelte";
+  import WindshieldWiper from "./apps/WindshieldWiper.svelte";
 
   const title = "Toolbox";
 
@@ -46,6 +50,18 @@
   } = $props();
 
   let isReadingPost = $state(false);
+  let appsGridEl = $state(null);
+  let appCount = $state(15);
+
+  // Scan apps grid to count apps dynamically
+  $effect(() => {
+    if (appsGridEl) {
+      const cards = appsGridEl.querySelectorAll(".app-card");
+      if (cards.length > 0) {
+        appCount = cards.length;
+      }
+    }
+  });
 
   // Sync initial deep-linked app on mount
   $effect(() => {
@@ -101,7 +117,7 @@
       {#if activeApp === null}
         <!-- APPS LAUNCHER GRID VIEW -->
         <div class="launcher-view animated-pane">
-          <div class="apps-grid">
+          <div class="apps-grid" bind:this={appsGridEl}>
             <!-- App 1: GoPro Player -->
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -384,6 +400,55 @@
               </div>
             </div>
 
+            <!-- App: Sound Stripper -->
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div
+              class="app-card border-neon-pink"
+              onclick={() => {
+                activeApp = "soundstripper";
+              }}
+            >
+              <div class="app-visual">
+                <div class="flex items-center justify-center h-full">
+                  <Scissors size={28} style="color: var(--color-neon-pink, #ff007f); filter: drop-shadow(0 0 6px rgba(255, 0, 127, 0.4));" />
+                </div>
+              </div>
+              <div class="app-meta">
+                <span class="app-title"><Scissors size={14} /> Sound Stripper</span>
+                <span class="app-desc"
+                  >Extract vocal acapellas by subtracting reference instrumental bleed.</span
+                >
+              </div>
+            </div>
+
+            <!-- App: Windshield Wiper -->
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div
+              class="app-card border-neon-cyan"
+              onclick={() => {
+                activeApp = "windshieldwiper";
+              }}
+            >
+              <div class="app-visual">
+                <div class="flex items-center justify-center h-full relative overflow-hidden">
+                  <div class="wiper-icon-container">
+                    <svg viewBox="0 0 100 100" class="w-12 h-12">
+                      <path d="M 15 80 A 45 45 0 0 1 85 80" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="6" stroke-linecap="round" />
+                      <line x1="50" y1="85" x2="50" y2="40" stroke="#00ffff" stroke-width="4" stroke-linecap="round" class="wiper-blade-animate" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+              <div class="app-meta">
+                <span class="app-title"><Sparkles size={14} /> Windshield Wiper</span>
+                <span class="app-desc"
+                  >Clean watermarks and logos from images and videos using canvas magic.</span
+                >
+              </div>
+            </div>
+
             <!-- App 12: Settings -->
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -438,6 +503,10 @@
         />
       {:else if activeApp === "settings"}
         <SettingsApp />
+      {:else if activeApp === "soundstripper"}
+        <SoundStripper />
+      {:else if activeApp === "windshieldwiper"}
+        <WindshieldWiper onClose={() => (activeApp = null)} />
       {/if}
     </div>
 
@@ -447,7 +516,7 @@
         <span>/util</span>
       </div>
       <div class="stats-counter">
-        <span>APPS LOADED: 12</span>
+        <span>APPS LOADED: {appCount}</span>
       </div>
     </footer>
   </div>

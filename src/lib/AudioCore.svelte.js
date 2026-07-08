@@ -21,6 +21,7 @@ export class AudioCore {
   volume = $state(1);
   isMuted = $state(false);
   isInstrumental = $state(false);
+  userPrefersInstrumental = $state(false);
   currentTrackIndex = $state(0);
   isLoading = $state(false);
   isShuffled = $state(false);
@@ -82,7 +83,12 @@ export class AudioCore {
   async loadTrack(index, autoplay = false) {
     if (index < 0 || index >= this.library.length) return;
     this.currentTrackIndex = index;
-    this.isInstrumental = false;
+    const track = this.library[index];
+    if (track && track.hasInstrumental) {
+      this.isInstrumental = this.userPrefersInstrumental || false;
+    } else {
+      this.isInstrumental = (track && (track.id === "rain" || track.id === "denchai"));
+    }
     this.currentTime = 0;
     this.isLoading = true;
 
@@ -91,7 +97,6 @@ export class AudioCore {
       try { await this.audioCtx.resume(); } catch (e) { }
     }
 
-    const track = this.library[index];
     try {
       this.trackAudio.src = track.src;
       this.trackAudio.load();
@@ -248,22 +253,24 @@ export class AudioCore {
     if (!this.audioCtx) return;
     const now = this.audioCtx.currentTime;
     const isInst = this.isInstrumental;
+    const track = this.library[this.currentTrackIndex];
+    const hasInstFile = track && track.instrumental;
 
     if (this.trackGainNode) {
-      this.trackGainNode.gain.setValueAtTime(isInst ? 0 : 1, now);
+      this.trackGainNode.gain.setValueAtTime((isInst && hasInstFile) ? 0 : 1, now);
     }
     if (this.instGainNode) {
-      this.instGainNode.gain.setValueAtTime(isInst ? 1 : 0, now);
+      this.instGainNode.gain.setValueAtTime((isInst && hasInstFile) ? 1 : 0, now);
     }
   }
 
   setCrossfade(isInst) {
     const track = this.library[this.currentTrackIndex];
     if (track && !track.hasInstrumental) {
-      this.isInstrumental = false;
       return false; // indicates locked
     }
     this.isInstrumental = isInst;
+    this.userPrefersInstrumental = isInst;
     this.applyCrossfade();
     return true;
   }
@@ -356,12 +363,16 @@ export class AudioCore {
       const track = this.library[this.currentTrackIndex];
       const origin = typeof window !== "undefined" ? window.location.origin : "";
       
+      const coverUrl = (track.cover.startsWith("data:") || track.cover.startsWith("http://") || track.cover.startsWith("https://"))
+        ? track.cover
+        : origin + track.cover;
+      
       navigator.mediaSession.metadata = new MediaMetadata({
         title: track.title,
         artist: track.artist,
         album: track.album,
         artwork: [
-          { src: origin + track.cover, sizes: "512x512", type: "image/webp" }
+          { src: coverUrl, sizes: "512x512", type: "image/webp" }
         ]
       });
       navigator.mediaSession.playbackState = this.isPlaying ? "playing" : "paused";
