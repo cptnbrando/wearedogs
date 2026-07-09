@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1783576619,
+    "firstCommitTimestamp": 1783577047,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 71518
+    "averageLinesAltered": 71536
   },
   "entries": [
     {
       "version": "1.0.1",
       "name": "Master",
       "date": "2026-07-09",
-      "timestamp": 1783576552,
+      "timestamp": 1783576982,
       "commits": [
         {
-          "hash": "7b6f3b8",
-          "message": "wiper blades",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/7b6f3b8cd8a0301ebfed527cf5bcbe50ce461644",
-          "timestamp": 1783576619,
-          "linesChanged": 71518
+          "hash": "3ea0f84",
+          "message": "ending the glitches",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/3ea0f8468312e6eea845217ad1dde3f998d8b3e4",
+          "timestamp": 1783577047,
+          "linesChanged": 71536
         }
       ]
     },
