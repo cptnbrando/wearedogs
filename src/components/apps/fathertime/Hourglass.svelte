@@ -1,399 +1,680 @@
 <script>
   import { onMount, onDestroy } from "svelte";
+  import * as THREE from "three";
 
   let {
     now = new Date(),
     currentMode = $bindable("minute")
   } = $props();
 
-  // --- Canvas ---
+  // Canvas and Three.js state
+  let containerEl = $state();
   let canvasEl = $state();
-  let widgetEl = $state();
+  let renderer, scene, camera, frameGroup;
+  let instancedMesh, trickleMesh;
   let animationId = null;
 
-  // Canvas constants — NEVER change, widget size is always fixed
-  const W        = 160;
-  const H        = 240;
-  const NECK_Y   = H / 2;
-  const NECK_X   = W / 2;
-  const PAD      = 14;
-  const G_BASE   = 0.052; // base gravity per frame
+  // Rotation flip state
+  let isFlipping = false;
+  let flipStartTime = 0;
+  let flipDuration = 700; // ms
+  let startRotation = 0;
+  let targetRotation = 0;
+  let currentGroupRotation = 0;
 
-  // ---------------------------------------------------------------------------
-  // Grain specs: radius, mass, colors by mode+type
-  // Heavier mass = faster fall (gravity scales by mass)
-  // ---------------------------------------------------------------------------
-  const GRAIN = {
-    minute: {
-      small: { r: 2.2, mass: 1.0, fill: "#7dd3fc", glow: "#38bdf8", ghost: "rgba(125,211,252,0.2)" }
+  // Neck Gate state
+  let gateOpenCount = 0;
+
+  // Modes
+  const MODES = ["minute", "hour", "day"];
+
+  // Particles array
+  let particles = [];
+  let trickleParticles = [];
+  const TRICKLE_COUNT = 45;
+
+  // Hourglass geometry constants
+  const BULB_HEIGHT = 3.8;
+  const NECK_RADIUS = 0.28;
+  const CAP_RADIUS = 1.65;
+
+  // Grains config
+  const GRAINS_CONFIG = {
+    small: {
+      radius: 0.08,
+      color: 0x7dd3fc,
+      mass: 1.0
     },
-    hour: {
-      small: { r: 1.4, mass: 0.55, fill: "#fcd34d", glow: "#f59e0b", ghost: "rgba(252,211,77,0.18)" },
-      large: { r: 3.0, mass: 2.8,  fill: "#60a5fa", glow: "#3b82f6", ghost: "rgba(96,165,250,0.16)" }
+    medium: {
+      radius: 0.15,
+      color: 0xc084fc,
+      mass: 1.6
     },
-    day: {
-      small: { r: 1.4, mass: 0.55, fill: "#818cf8", glow: "#6366f1", ghost: "rgba(129,140,248,0.18)" },
-      large: { r: 4.0, mass: 5.0,  fill: "#c084fc", glow: "#a855f7", ghost: "rgba(192,132,252,0.16)" }
+    large: {
+      radius: 0.26,
+      color: 0xff55bb,
+      mass: 2.8
     }
   };
 
-  // ---------------------------------------------------------------------------
-  // Mutable counts (NOT reactive $state — mutated directly in rAF loop)
-  // ---------------------------------------------------------------------------
-  let bottomSmall = 0, bottomLarge = 0;
-  let topSmall    = 0, topLarge    = 0;
-
-  // Physics particles actively falling through neck
-  let falling = [];
-
-  // Dissolve-reset animation (replaces CSS flip)
-  let resetAlpha  = 1.0;
-  let isResetting = false;
-
-  // Time boundary trackers — initialized to current time to avoid false first-fire
-  const _nowInit  = new Date();
-  let lastSec     = -1;
-  let lastMin     = -1;
-  let lastHr      = -1;
-  let boundaryMin = _nowInit.getMinutes();
-  let boundaryHr  = _nowInit.getHours() % 12 || 12;
-  let boundaryDay = _nowInit.getDate();
-
-  // Position cache — rebuilt only when counts change (not every frame)
-  let posCache = { key: "", bsPos: [], blPos: [], tsPos: [], tlPos: [] };
-
-  // ---------------------------------------------------------------------------
-  // Geometry helpers
-  // ---------------------------------------------------------------------------
   /**
-   * Returns inner half-width of the hourglass glass profile at a given y.
+   * Helper to return profile radius of the glass bulb at a given height y.
    * @param {number} y
-   * @param {string} mode
-   * @returns {number}
    */
-  function halfWidthAt(y, mode) {
-    const d    = Math.abs(y - NECK_Y);
-    const maxW = (W - PAD * 2) * 0.42;
-    const t    = d / (H / 2);
-    if (mode === "minute") return 4 + Math.pow(t, 1.4) * maxW;
-    if (mode === "hour")   return 4 + Math.sqrt(t) * maxW;
-    return 4 + t * maxW; // day: straight
+  function glassRadiusAt(y) {
+    const d = Math.abs(y);
+    const t = Math.min(1.0, d / BULB_HEIGHT);
+    return NECK_RADIUS + Math.pow(t, 1.4) * (CAP_RADIUS - NECK_RADIUS);
   }
 
   /**
-   * Build resting dot positions inside a bulb, filling from the gravity-settled edge.
-   * @param {boolean} isTop
-   * @param {number} count
-   * @param {number} radius
-   * @returns {Array<{x:number, y:number}>}
+   * Sync particles array to time parameters.
    */
-  function buildPositions(isTop, count, radius) {
-    if (count <= 0) return [];
-    const mode    = currentMode;
-    const yStart  = isTop ? PAD + 6      : NECK_Y + 12;
-    const yEnd    = isTop ? NECK_Y - 12  : H - PAD - 6;
-    const spacing = radius * 2 + 1.6;
-    const rows    = Math.max(1, Math.floor(Math.abs(yEnd - yStart) / spacing));
-    const rowH    = Math.abs(yEnd - yStart) / rows;
+  function initParticles() {
+    particles = [];
+    trickleParticles = [];
+    gateOpenCount = 0;
 
-    const grid = [];
-    for (let ri = 0; ri < rows; ri++) {
-      // Bottom bulb fills from bottom up; top bulb fills from top down
-      const y = isTop ? yStart + rowH * ri + rowH / 2
-                      : yEnd   - rowH * ri - rowH / 2;
-      const hw = halfWidthAt(y, mode) - radius - 1.5;
-      if (hw <= 0) continue;
-      const cols = Math.max(1, Math.floor((hw * 2) / spacing));
-      for (let c = 0; c < cols; c++) {
-        grid.push({ x: NECK_X - hw + (hw * 2 / cols) * c + (hw * 2 / cols) / 2, y });
-      }
-    }
-    while (grid.length < count) grid.push(grid[grid.length - 1] || { x: NECK_X, y: (yStart + yEnd) / 2 });
-    return grid.slice(0, count);
-  }
-
-  function getPositions() {
-    const key = `${currentMode}-${bottomSmall}-${bottomLarge}-${topSmall}-${topLarge}`;
-    if (posCache.key === key) return posCache;
-    const g = GRAIN[currentMode];
-    const sr = g.small.r;
-    const lr = g.large?.r ?? sr;
-    posCache = {
-      key,
-      bsPos: buildPositions(false, bottomSmall, sr),
-      blPos: buildPositions(false, bottomLarge, lr),
-      tsPos: buildPositions(true,  topSmall,    sr),
-      tlPos: buildPositions(true,  topLarge,    lr),
-    };
-    return posCache;
-  }
-
-  // ---------------------------------------------------------------------------
-  // Initialize counts from a Date (or current time)
-  // ---------------------------------------------------------------------------
-  function initCounts(mode) {
-    const d   = now || new Date();
+    const mode = currentMode;
+    const d = now || new Date();
     const sec = d.getSeconds();
     const min = d.getMinutes();
-    const hr  = d.getHours() % 12 || 12;
-    falling   = [];
-    posCache.key = "";
+    const hr = d.getHours(); // 0 to 23
+
+    let smallTop = 60, smallBottom = 0;
+    let mediumTop = 0, mediumBottom = 0;
+    let largeTop = 0, largeBottom = 0;
 
     if (mode === "minute") {
-      bottomSmall = sec;     topSmall = 60 - sec;
-      bottomLarge = 0;       topLarge = 0;
+      smallBottom = sec;
+      smallTop = 60 - sec;
     } else if (mode === "hour") {
-      bottomSmall = sec;     topSmall = 60 - sec;
-      bottomLarge = min;     topLarge = 60 - min;
-    } else {
-      bottomSmall = min;     topSmall = 60 - min;
-      bottomLarge = hr - 1;  topLarge = 12 - (hr - 1);
+      smallBottom = sec;
+      smallTop = 60 - sec;
+      mediumBottom = min;
+      mediumTop = 60 - min;
+    } else { // day
+      smallBottom = sec;
+      smallTop = 60 - sec;
+      mediumBottom = min;
+      mediumTop = 60 - min;
+      largeBottom = hr;
+      largeTop = 24 - hr;
     }
-    lastSec = sec; lastMin = min; lastHr = hr;
+
+    const isBaseOrientation = Math.cos(currentGroupRotation) >= 0;
+    const topIsPositiveY = isBaseOrientation;
+
+    const spawnGroup = (type, count, isTop) => {
+      const config = GRAINS_CONFIG[type];
+      for (let i = 0; i < count; i++) {
+        // Spawn randomly distributed inside the target bulb volume
+        let py = isTop
+          ? (1.2 + Math.random() * (BULB_HEIGHT - 1.4))
+          : (-1.2 - Math.random() * (BULB_HEIGHT - 1.4));
+        const rMax = Math.max(0.1, glassRadiusAt(py) - config.radius - 0.05);
+        const theta = Math.random() * Math.PI * 2;
+        const r = Math.random() * rMax;
+
+        particles.push({
+          pos: new THREE.Vector3(Math.cos(theta) * r, py, Math.sin(theta) * r),
+          vel: new THREE.Vector3(0, 0, 0),
+          type,
+          radius: config.radius,
+          color: config.color,
+          mass: config.mass
+        });
+      }
+    };
+
+    spawnGroup("small", smallTop, topIsPositiveY);
+    spawnGroup("small", smallBottom, !topIsPositiveY);
+    
+    if (mode === "hour" || mode === "day") {
+      spawnGroup("medium", mediumTop, topIsPositiveY);
+      spawnGroup("medium", mediumBottom, !topIsPositiveY);
+    }
+    if (mode === "day") {
+      spawnGroup("large", largeTop, topIsPositiveY);
+      spawnGroup("large", largeBottom, !topIsPositiveY);
+    }
+
+    // Initialize visual trickle stream
+    const targetColor = GRAINS_CONFIG.small.color;
+    for (let i = 0; i < TRICKLE_COUNT; i++) {
+      const yOffset = (Math.random() - 0.5) * BULB_HEIGHT * 1.5;
+      trickleParticles.push({
+        pos: new THREE.Vector3(
+          (Math.random() - 0.5) * 0.08,
+          yOffset,
+          (Math.random() - 0.5) * 0.08
+        ),
+        vel: new THREE.Vector3(0, -0.06 - Math.random() * 0.04, 0),
+        color: targetColor,
+        active: true
+      });
+    }
+
+    // Pre-settle particles so they appear as static, stable piles instantly on mount
+    const localGravY = topIsPositiveY ? -0.009 : 0.009;
+    for (let step = 0; step < 85; step++) {
+      runPhysicsStep(0, localGravY, 0);
+    }
+
+    recreateInstancedMesh();
   }
 
-  // ---------------------------------------------------------------------------
-  // Release one grain — decrement top count and spawn physics particle at neck
-  // ---------------------------------------------------------------------------
-  function releaseGrain(type) {
-    const spec = currentMode === "minute"
-      ? GRAIN.minute.small
-      : (type === "small" ? GRAIN[currentMode].small : GRAIN[currentMode].large);
+  function recreateInstancedMesh() {
+    if (!scene || !frameGroup) return;
+    
+    if (instancedMesh) {
+      frameGroup.remove(instancedMesh);
+      instancedMesh.dispose();
+    }
+    if (trickleMesh) {
+      frameGroup.remove(trickleMesh);
+      trickleMesh.dispose();
+    }
 
-    if (type === "small") { if (topSmall <= 0) return; topSmall--;  }
-    else                  { if (topLarge <= 0) return; topLarge--;  }
-    posCache.key = "";
+    const count = particles.length;
+    if (count > 0) {
+      const particleGeo = new THREE.DodecahedronGeometry(0.12, 0);
+      const particleMat = new THREE.MeshStandardMaterial({
+        roughness: 0.9,
+        metalness: 0.05
+      });
+      instancedMesh = new THREE.InstancedMesh(particleGeo, particleMat, count);
+      frameGroup.add(instancedMesh);
+    }
 
-    const jitter = (Math.random() - 0.5) * 2.5;
-    falling.push({
-      x: NECK_X + jitter,
-      y: NECK_Y - spec.r - 1,
-      vx: jitter * 0.07,
-      vy: 0.35 + Math.random() * 0.25,
-      r: spec.r,
-      mass: spec.mass,
-      fill: spec.fill,
-      glow: spec.glow,
-      type,
-      done: false,
+    const trickleGeo = new THREE.BoxGeometry(0.04, 0.04, 0.04);
+    const trickleMat = new THREE.MeshBasicMaterial({
+      transparent: true,
+      opacity: 0.65
+    });
+    trickleMesh = new THREE.InstancedMesh(trickleGeo, trickleMat, TRICKLE_COUNT);
+    frameGroup.add(trickleMesh);
+  }
+
+  function teleportGrains(type, toTop) {
+    const isBaseOrientation = Math.cos(currentGroupRotation) >= 0;
+    const targetTop = isBaseOrientation ? toTop : !toTop;
+    
+    particles.forEach(p => {
+      if (p.type === type) {
+        let py = targetTop
+          ? (1.2 + Math.random() * (BULB_HEIGHT - 1.4))
+          : (-1.2 - Math.random() * (BULB_HEIGHT - 1.4));
+        const rMax = Math.max(0.1, glassRadiusAt(py) - p.radius - 0.05);
+        const theta = Math.random() * Math.PI * 2;
+        const r = Math.random() * rMax;
+        p.pos.set(Math.cos(theta) * r, py, Math.sin(theta) * r);
+        p.vel.set(0, 0, 0);
+      }
     });
   }
 
-  // ---------------------------------------------------------------------------
-  // Physics step — called every animation frame
-  // ---------------------------------------------------------------------------
-  function updatePhysics() {
-    const mode  = currentMode;
-    const floor = H - PAD - 5;
-
-    for (let i = falling.length - 1; i >= 0; i--) {
-      const g = falling[i];
-      if (g.done) { falling.splice(i, 1); continue; }
-
-      // Gravity — scaled by mass so heavy grains fall faster
-      g.vy += G_BASE * g.mass;
-      g.vx *= 0.97;
-
-      // Funnel through the narrow neck passage
-      const inNeck = g.y > NECK_Y - 18 && g.y < NECK_Y + 8;
-      if (inNeck) {
-        g.x  += (NECK_X - g.x) * 0.28;
-        g.vx *= 0.3;
-      }
-
-      g.x += g.vx;
-      g.y += g.vy;
-
-      // Wall bounce (inside hourglass profile)
-      const hw = Math.max(g.r + 0.5, halfWidthAt(g.y, mode) - g.r);
-      if (g.x < NECK_X - hw) { g.x = NECK_X - hw + 0.5; g.vx =  Math.abs(g.vx) * 0.2; }
-      if (g.x > NECK_X + hw) { g.x = NECK_X + hw - 0.5; g.vx = -Math.abs(g.vx) * 0.2; }
-
-      // Bottom floor bounce
-      if (g.y + g.r >= floor) {
-        g.y = floor - g.r;
-        g.vy *= -0.18;
-        g.vx *= 0.65;
-      }
-
-      // Settle when slow enough AND below neck
-      if (g.y > NECK_Y + 18 && Math.abs(g.vy) < 0.25 && Math.abs(g.vx) < 0.18) {
-        if (g.type === "small") bottomSmall++;
-        else                    bottomLarge++;
-        posCache.key = "";
-        g.done = true;
-      }
+  function teleportOneGrain(type, toTop) {
+    const isBaseOrientation = Math.cos(currentGroupRotation) >= 0;
+    const targetTop = isBaseOrientation ? toTop : !toTop;
+    
+    const grain = particles.find(p => p.type === type && (targetTop ? p.pos.y < 0 : p.pos.y > 0));
+    if (grain) {
+      grain.pos.set(
+        (Math.random() - 0.5) * 0.05,
+        targetTop ? 0.22 : -0.22,
+        (Math.random() - 0.5) * 0.05
+      );
+      grain.vel.set(0, targetTop ? 0.05 : -0.05, 0);
     }
   }
 
-  // ---------------------------------------------------------------------------
-  // Draw helpers
-  // ---------------------------------------------------------------------------
-  function drawDots(ctx, positions, r, fill, glow) {
-    if (!positions.length) return;
-    ctx.shadowColor = glow;
-    ctx.shadowBlur  = r > 2.5 ? 5 : 2.5;
-    ctx.fillStyle   = fill;
-    for (const p of positions) {
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    ctx.shadowBlur = 0;
+  function triggerFlip() {
+    if (isFlipping) return;
+    isFlipping = true;
+    flipStartTime = performance.now();
+    startRotation = currentGroupRotation;
+    targetRotation = currentGroupRotation + Math.PI;
   }
 
-  function drawGrains(ctx) {
+  // Time boundary state
+  let lastSec = -1;
+  let lastMin = -1;
+  let lastHr = -1;
+
+  let boundaryMin = new Date().getMinutes();
+  let boundaryHr = new Date().getHours();
+  let boundaryDay = new Date().getDate();
+
+  $effect(() => {
     const mode = currentMode;
-    const g    = GRAIN[mode];
-    const { bsPos, blPos, tsPos, tlPos } = getPositions();
+    initParticles();
 
-    if (mode === "minute") {
-      drawDots(ctx, bsPos, g.small.r, g.small.fill,  g.small.glow);
-      drawDots(ctx, tsPos, g.small.r, g.small.ghost, g.small.glow);
-    } else {
-      drawDots(ctx, blPos, g.large.r, g.large.fill,  g.large.glow);
-      drawDots(ctx, bsPos, g.small.r, g.small.fill,  g.small.glow);
-      drawDots(ctx, tlPos, g.large.r, g.large.ghost, g.large.glow);
-      drawDots(ctx, tsPos, g.small.r, g.small.ghost, g.small.glow);
+    const d = now || new Date();
+    boundaryMin = d.getMinutes();
+    boundaryHr = d.getHours();
+    boundaryDay = d.getDate();
+  });
+
+  $effect(() => {
+    if (!now) return;
+    const sec = now.getSeconds();
+    const min = now.getMinutes();
+    const hr = now.getHours();
+    const date = now.getDate();
+
+    if (lastSec === -1) {
+      lastSec = sec; lastMin = min; lastHr = hr;
+      return;
     }
+    if (isFlipping) return;
 
-    // Falling physics grains — slightly larger glow while airborne
-    for (const p of falling) {
-      if (p.done) continue;
-      ctx.shadowColor = p.glow;
-      ctx.shadowBlur  = p.r > 2.5 ? 8 : 5;
-      ctx.fillStyle   = p.fill;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r * 1.12, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.shadowBlur = 0;
-    }
-  }
-
-  function drawFrame(ctx) {
     const mode = currentMode;
-    const tC = mode === "minute" ? "rgba(125,211,252,0.25)"
-             : mode === "hour"   ? "rgba(96,165,250,0.25)"
-                                 : "rgba(192,132,252,0.25)";
-    const mC = mode === "minute" ? "rgba(125,211,252,0.45)"
-             : mode === "hour"   ? "rgba(96,165,250,0.45)"
-                                 : "rgba(192,132,252,0.45)";
 
-    ctx.strokeStyle = tC;
-    ctx.lineWidth   = 2.5;
-
-    // Top bulb profile
-    ctx.beginPath();
-    ctx.moveTo(PAD, PAD);
-    ctx.lineTo(W - PAD, PAD);
-    if (mode === "minute") {
-      ctx.bezierCurveTo(W - PAD - 5, PAD + 40, NECK_X + 15, NECK_Y - 20, NECK_X + 4, NECK_Y - 8);
-      ctx.arcTo(NECK_X, NECK_Y - 2, NECK_X - 4, NECK_Y - 8, 4);
-      ctx.bezierCurveTo(NECK_X - 15, NECK_Y - 20, PAD + 5, PAD + 40, PAD, PAD);
-    } else if (mode === "hour") {
-      ctx.bezierCurveTo(W - PAD + 15, PAD + 35, NECK_X + 22, NECK_Y - 30, NECK_X + 4, NECK_Y - 8);
-      ctx.arcTo(NECK_X, NECK_Y - 2, NECK_X - 4, NECK_Y - 8, 4);
-      ctx.bezierCurveTo(NECK_X - 22, NECK_Y - 30, PAD - 15, PAD + 35, PAD, PAD);
-    } else {
-      ctx.lineTo(NECK_X + 4, NECK_Y - 8);
-      ctx.arcTo(NECK_X, NECK_Y - 2, NECK_X - 4, NECK_Y - 8, 4);
-      ctx.lineTo(PAD, PAD);
+    // Check full flips
+    if (mode === "minute" && min !== boundaryMin) {
+      boundaryMin = min;
+      triggerFlip();
+      lastSec = sec; lastMin = min; lastHr = hr;
+      return;
     }
-    ctx.stroke();
-
-    // Bottom bulb profile
-    ctx.beginPath();
-    ctx.moveTo(PAD, H - PAD);
-    ctx.lineTo(W - PAD, H - PAD);
-    if (mode === "minute") {
-      ctx.bezierCurveTo(W - PAD - 5, H - PAD - 40, NECK_X + 15, NECK_Y + 20, NECK_X + 4, NECK_Y + 8);
-      ctx.arcTo(NECK_X, NECK_Y + 2, NECK_X - 4, NECK_Y + 8, 4);
-      ctx.bezierCurveTo(NECK_X - 15, NECK_Y + 20, PAD + 5, H - PAD - 40, PAD, H - PAD);
-    } else if (mode === "hour") {
-      ctx.bezierCurveTo(W - PAD + 15, H - PAD - 35, NECK_X + 22, NECK_Y + 30, NECK_X + 4, NECK_Y + 8);
-      ctx.arcTo(NECK_X, NECK_Y + 2, NECK_X - 4, NECK_Y + 8, 4);
-      ctx.bezierCurveTo(NECK_X - 22, NECK_Y + 30, PAD - 15, H - PAD - 35, PAD, H - PAD);
-    } else {
-      ctx.lineTo(NECK_X + 4, NECK_Y + 8);
-      ctx.arcTo(NECK_X, NECK_Y + 2, NECK_X - 4, NECK_Y + 8, 4);
-      ctx.lineTo(PAD, H - PAD);
+    if (mode === "hour" && hr !== boundaryHr) {
+      boundaryHr = hr;
+      triggerFlip();
+      lastSec = sec; lastMin = min; lastHr = hr;
+      return;
     }
-    ctx.stroke();
+    if (mode === "day" && date !== boundaryDay) {
+      boundaryDay = date;
+      triggerFlip();
+      lastSec = sec; lastMin = min; lastHr = hr;
+      return;
+    }
 
-    // End caps
-    ctx.fillStyle = mC;
-    ctx.fillRect(PAD - 6, PAD - 5, W - (PAD - 6) * 2, 5);
-    ctx.fillRect(PAD - 6, H - PAD, W - (PAD - 6) * 2, 5);
+    if (sec === lastSec) return;
 
-    // Support pillars
-    ctx.strokeStyle = "rgba(255,255,255,0.07)";
-    ctx.lineWidth   = 2;
-    ctx.beginPath();
-    ctx.moveTo(PAD - 4, PAD);      ctx.lineTo(PAD - 4, H - PAD);
-    ctx.moveTo(W - PAD + 4, PAD);  ctx.lineTo(W - PAD + 4, H - PAD);
-    ctx.stroke();
+    // Tick release
+    gateOpenCount++;
+
+    if (mode === "hour") {
+      if (min !== lastMin) {
+        teleportGrains("small", true);
+        teleportOneGrain("medium", false);
+      }
+    } else if (mode === "day") {
+      if (min !== lastMin) {
+        teleportGrains("small", true);
+        teleportOneGrain("medium", false);
+      }
+      if (hr !== lastHr) {
+        teleportGrains("medium", true);
+        teleportOneGrain("large", false);
+      }
+    }
+
+    lastSec = sec;
+    lastMin = min;
+    lastHr = hr;
+  });
+
+  /**
+   * Run one step of gravity, funnel forces, collisions, and particle stacking.
+   */
+  function runPhysicsStep(localGravX, localGravY, localGravZ) {
+    const topIsPositiveY = (localGravY < 0);
+    const topGrainsCount = particles.filter(p => topIsPositiveY ? p.pos.y > 0.1 : p.pos.y < -0.1).length;
+    const hasTopGrains = (topGrainsCount > 0);
+
+    // 1. Particle velocities & gravity & funnel
+    particles.forEach(p => {
+      p.vel.x += localGravX * p.mass;
+      p.vel.y += localGravY * p.mass;
+      p.vel.z += localGravZ * p.mass;
+
+      // Funnel draw force towards center vertical axis for top grains
+      const isTopBulb = topIsPositiveY ? (p.pos.y > 0.1) : (p.pos.y < -0.1);
+      if (isTopBulb) {
+        p.vel.x += -p.pos.x * 0.014;
+        p.vel.z += -p.pos.z * 0.014;
+      }
+
+      p.vel.x *= 0.95;
+      p.vel.y *= 0.95;
+      p.vel.z *= 0.95;
+
+      p.pos.add(p.vel);
+
+      // Glass collision
+      const rMax = Math.max(p.radius, glassRadiusAt(p.pos.y) - p.radius - 0.02);
+      const r = Math.sqrt(p.pos.x * p.pos.x + p.pos.z * p.pos.z);
+      if (r > rMax) {
+        p.pos.x = rMax * (p.pos.x / (r || 1)) * 0.99;
+        p.pos.z = rMax * (p.pos.z / (r || 1)) * 0.99;
+        p.vel.x *= -0.1;
+        p.vel.z *= -0.1;
+      }
+
+      // Caps collision
+      const maxY = BULB_HEIGHT + 0.15;
+      if (p.pos.y > maxY - p.radius) {
+        p.pos.y = maxY - p.radius;
+        p.vel.y *= -0.1;
+      }
+      if (p.pos.y < -maxY + p.radius) {
+        p.pos.y = -maxY + p.radius;
+        p.vel.y *= -0.1;
+      }
+
+      // Neck Gate block
+      const gateY = localGravY < 0 ? 0.06 : -0.06;
+      const isCrossingGate = localGravY < 0
+        ? (p.pos.y - p.vel.y > gateY && p.pos.y <= gateY)
+        : (p.pos.y - p.vel.y < gateY && p.pos.y >= gateY);
+
+      if (isCrossingGate) {
+        const rad = Math.sqrt(p.pos.x*p.pos.x + p.pos.z*p.pos.z);
+        if (gateOpenCount > 0 && rad < 0.28) {
+          gateOpenCount--;
+        } else {
+          p.pos.y = gateY;
+          p.vel.y = -p.vel.y * 0.1;
+        }
+      }
+    });
+
+    // 2. Trickle stream particles update
+    trickleParticles.forEach(p => {
+      p.vel.x += localGravX * 1.5;
+      p.vel.y += localGravY * 1.5;
+      p.vel.z += localGravZ * 1.5;
+
+      p.vel.x *= 0.92;
+      p.vel.y *= 0.92;
+      p.vel.z *= 0.92;
+      p.pos.add(p.vel);
+
+      const rMax = Math.max(0.02, glassRadiusAt(p.pos.y) - 0.02);
+      const r = Math.sqrt(p.pos.x * p.pos.x + p.pos.z * p.pos.z);
+      if (r > rMax) {
+        p.pos.x = rMax * (p.pos.x / (r || 1)) * 0.98;
+        p.pos.z = rMax * (p.pos.z / (r || 1)) * 0.98;
+      }
+
+      const isBottom = localGravY < 0 ? (p.pos.y < -1.8) : (p.pos.y > 1.8);
+      if (isBottom) {
+        if (hasTopGrains && !isFlipping) {
+          p.pos.set(
+            (Math.random() - 0.5) * 0.08,
+            localGravY < 0 ? 0.15 : -0.15,
+            (Math.random() - 0.5) * 0.08
+          );
+          p.vel.set(0, localGravY < 0 ? -0.06 : 0.06, 0);
+          p.active = true;
+        } else {
+          p.pos.set(0, 9999, 0);
+          p.active = false;
+        }
+      }
+    });
+
+    // 3. Particle-particle collision resolver (2 iterations for solid pile stacking)
+    for (let step = 0; step < 2; step++) {
+      for (let i = 0; i < particles.length; i++) {
+        const p1 = particles[i];
+        for (let j = i + 1; j < particles.length; j++) {
+          const p2 = particles[j];
+          const dx = p2.pos.x - p1.pos.x;
+          const dy = p2.pos.y - p1.pos.y;
+          const dz = p2.pos.z - p1.pos.z;
+          const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+          const minDist = p1.radius + p2.radius;
+
+          if (dist < minDist) {
+            const overlap = minDist - dist;
+            const nx = dx / (dist || 1);
+            const ny = dy / (dist || 1);
+            const nz = dz / (dist || 1);
+
+            const pushX = nx * overlap * 0.5;
+            const pushY = ny * overlap * 0.5;
+            const pushZ = nz * overlap * 0.5;
+
+            p1.pos.x -= pushX;
+            p1.pos.y -= pushY;
+            p1.pos.z -= pushZ;
+
+            p2.pos.x += pushX;
+            p2.pos.y += pushY;
+            p2.pos.z += pushZ;
+
+            p1.vel.x -= pushX * 0.06;
+            p1.vel.y -= pushY * 0.06;
+            p1.vel.z -= pushZ * 0.06;
+
+            p2.vel.x += pushX * 0.06;
+            p2.vel.y += pushY * 0.06;
+            p2.vel.z += pushZ * 0.06;
+          }
+        }
+      }
+    }
   }
 
-  // ---------------------------------------------------------------------------
-  // Main rAF loop
-  // ---------------------------------------------------------------------------
-  function frame() {
-    if (canvasEl) {
-      const ctx = canvasEl.getContext("2d");
-      ctx.clearRect(0, 0, W, H);
-      ctx.globalAlpha = resetAlpha;
-      drawFrame(ctx);
-      updatePhysics();
-      drawGrains(ctx);
-      ctx.globalAlpha = 1;
+  /**
+   * Render frame and execute particle-particle physics.
+   */
+  function frame(timestamp) {
+    const canvas = canvasEl;
+    if (!renderer || !scene || !canvas) return;
+
+    let gravityY = -0.0095;
+    
+    if (isFlipping) {
+      const elapsed = timestamp - flipStartTime;
+      const progress = Math.min(1.0, elapsed / flipDuration);
+      const ease = 1 - Math.pow(1 - progress, 3);
+      currentGroupRotation = startRotation + (targetRotation - startRotation) * ease;
+      
+      if (frameGroup) {
+        frameGroup.rotation.x = currentGroupRotation;
+      }
+
+      if (progress >= 1.0) {
+        isFlipping = false;
+        currentGroupRotation = currentGroupRotation % (Math.PI * 2);
+        if (frameGroup) {
+          frameGroup.rotation.x = currentGroupRotation;
+        }
+      }
     }
+
+    const cosR = Math.cos(currentGroupRotation);
+    const sinR = Math.sin(currentGroupRotation);
+    const localGravY = gravityY * cosR;
+    const localGravZ = gravityY * sinR;
+
+    // Run continuous dynamic physics solver for every frame!
+    runPhysicsStep(0, localGravY, localGravZ);
+
+    // Update main instanced mesh
+    if (instancedMesh) {
+      const dummy = new THREE.Object3D();
+      particles.forEach((p, i) => {
+        dummy.position.copy(p.pos);
+        dummy.scale.setScalar(p.radius / 0.12);
+        dummy.updateMatrix();
+        instancedMesh.setMatrixAt(i, dummy.matrix);
+        instancedMesh.setColorAt(i, new THREE.Color(p.color));
+      });
+      instancedMesh.instanceMatrix.needsUpdate = true;
+      if (instancedMesh.instanceColor) {
+        instancedMesh.instanceColor.needsUpdate = true;
+      }
+    }
+
+    // Update trickle instanced mesh
+    if (trickleMesh) {
+      const dummy = new THREE.Object3D();
+      trickleParticles.forEach((p, i) => {
+        dummy.position.copy(p.pos);
+        dummy.scale.setScalar(1);
+        dummy.updateMatrix();
+        trickleMesh.setMatrixAt(i, dummy.matrix);
+        trickleMesh.setColorAt(i, new THREE.Color(p.color));
+      });
+      trickleMesh.instanceMatrix.needsUpdate = true;
+      if (trickleMesh.instanceColor) {
+        trickleMesh.instanceColor.needsUpdate = true;
+      }
+    }
+
+    renderer.render(scene, camera);
     animationId = requestAnimationFrame(frame);
+    canvas.__threeAnimationId = animationId;
   }
 
-  // ---------------------------------------------------------------------------
-  // Dissolve-reset: fades out → reinits counts → fades back in
-  // Sand ALWAYS falls downward — no CSS flip ever applied
-  // ---------------------------------------------------------------------------
-  function triggerReset(mode) {
-    if (isResetting) return;
-    isResetting = true;
-    const STEPS = 7;
-    let step = 0;
-
-    const fadeOut = () => {
-      resetAlpha = 1 - step / STEPS;
-      step++;
-      if (step <= STEPS) {
-        setTimeout(fadeOut, 16);
-      } else {
-        initCounts(mode || currentMode);
-        step = 0;
-        fadeIn();
+  function disposeRenderer(rendererInstance, sceneInstance) {
+    if (rendererInstance) {
+      try {
+        rendererInstance.dispose();
+      } catch (e) {
+        console.warn("Error disposing Three.js renderer:", e);
       }
-    };
-    const fadeIn = () => {
-      resetAlpha = step / STEPS;
-      step++;
-      if (step <= STEPS) setTimeout(fadeIn, 16);
-      else { resetAlpha = 1; isResetting = false; }
-    };
-    fadeOut();
+    }
+    if (sceneInstance) {
+      sceneInstance.traverse((object) => {
+        if (object.isMesh) {
+          object.geometry?.dispose();
+          if (Array.isArray(object.material)) {
+            object.material.forEach((mat) => mat.dispose());
+          } else {
+            object.material?.dispose();
+          }
+        }
+      });
+    }
   }
 
-  // ---------------------------------------------------------------------------
-  // Mode cycling (click or shift+scroll)
-  // ---------------------------------------------------------------------------
-  const MODES = ["minute", "hour", "day"];
+  function initThree() {
+    const canvas = canvasEl;
+    if (!canvas) return;
+
+    if (canvas.__threeAnimationId) {
+      cancelAnimationFrame(canvas.__threeAnimationId);
+      canvas.__threeAnimationId = null;
+    }
+    if (canvas.__threeRenderer) {
+      disposeRenderer(canvas.__threeRenderer, canvas.__threeScene);
+      canvas.__threeRenderer = null;
+      canvas.__threeScene = null;
+    }
+
+    const width = 160;
+    const height = 240;
+
+    renderer = new THREE.WebGLRenderer({
+      canvas: canvas,
+      antialias: true,
+      alpha: true
+    });
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    canvas.__threeRenderer = renderer;
+
+    scene = new THREE.Scene();
+    canvas.__threeScene = scene;
+
+    camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
+    camera.position.set(0, 0, 13.0);
+
+    frameGroup = new THREE.Group();
+    scene.add(frameGroup);
+
+    // End Caps Material (dark plastic/wood)
+    const capMat = new THREE.MeshStandardMaterial({
+      color: 0x181822,
+      roughness: 0.55,
+      metalness: 0.5
+    });
+    const capGeo = new THREE.CylinderGeometry(CAP_RADIUS + 0.15, CAP_RADIUS + 0.15, 0.4, 24);
+    
+    const topCap = new THREE.Mesh(capGeo, capMat);
+    topCap.position.y = BULB_HEIGHT + 0.2;
+    frameGroup.add(topCap);
+
+    const bottomCap = new THREE.Mesh(capGeo, capMat);
+    bottomCap.position.y = -BULB_HEIGHT - 0.2;
+    frameGroup.add(bottomCap);
+
+    // Pillars Material (chrome metal)
+    const pillarMat = new THREE.MeshStandardMaterial({
+      color: 0x888899,
+      roughness: 0.12,
+      metalness: 0.95
+    });
+    const pillarGeo = new THREE.CylinderGeometry(0.08, 0.08, BULB_HEIGHT * 2 + 0.4, 12);
+
+    const angles = [0, (Math.PI * 2) / 3, (Math.PI * 4) / 3];
+    const rOffset = CAP_RADIUS - 0.05;
+    angles.forEach(angle => {
+      const pillar = new THREE.Mesh(pillarGeo, pillarMat);
+      pillar.position.set(
+        Math.cos(angle) * rOffset,
+        0,
+        Math.sin(angle) * rOffset
+      );
+      frameGroup.add(pillar);
+    });
+
+    // Glass lathe
+    const points = [];
+    for (let i = 0; i <= 25; i++) {
+      const t = i / 25;
+      const y = (t - 0.5) * BULB_HEIGHT * 2;
+      const r = glassRadiusAt(y);
+      points.push(new THREE.Vector2(r, y));
+    }
+    const glassGeo = new THREE.LatheGeometry(points, 36);
+    const glassMat = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.16,
+      roughness: 0.05,
+      metalness: 0.1,
+      side: THREE.DoubleSide
+    });
+    const glassMesh = new THREE.Mesh(glassGeo, glassMat);
+    frameGroup.add(glassMesh);
+
+    recreateInstancedMesh();
+
+    // Lights
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+    scene.add(ambientLight);
+
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1.25);
+    dirLight.position.set(2, 4, 6);
+    scene.add(dirLight);
+
+    const pointLight = new THREE.PointLight(0x7dd3fc, 1.5, 8);
+    pointLight.position.set(0, 0, 1);
+    scene.add(pointLight);
+
+    animationId = requestAnimationFrame(frame);
+    canvas.__threeAnimationId = animationId;
+  }
 
   function cycleMode(dir) {
-    if (isResetting) return;
+    if (isFlipping) return;
     const idx = MODES.indexOf(currentMode);
     currentMode = MODES[(idx + dir + 3) % 3];
   }
 
-  function handleModeCycle() { cycleMode(1); }
+  function handleModeCycle() {
+    cycleMode(1);
+  }
 
-  // Shift+scroll: cycle hourglass modes (non-passive so we can preventDefault)
   function handleWheel(e) {
     if (!e.shiftKey) return;
     e.preventDefault();
@@ -401,103 +682,40 @@
     cycleMode(e.deltaY > 0 ? 1 : -1);
   }
 
-  // ---------------------------------------------------------------------------
-  // Effects
-  // ---------------------------------------------------------------------------
-
-  // Re-initialize when mode changes (user click or scroll)
-  $effect(() => {
-    const mode = currentMode;
-    initCounts(mode);
-    // Reset boundary trackers for new mode
-    const d = now || new Date();
-    boundaryMin = d.getMinutes();
-    boundaryHr  = d.getHours() % 12 || 12;
-    boundaryDay = d.getDate();
-  });
-
-  // React to each second tick from parent `now` prop
-  $effect(() => {
-    if (!now) return;
-    const sec  = now.getSeconds();
-    const min  = now.getMinutes();
-    const hr   = now.getHours() % 12 || 12;
-    const date = now.getDate();
-
-    // Skip until properly initialized
-    if (lastSec === -1) { lastSec = sec; lastMin = min; lastHr = hr; return; }
-    if (isResetting) { lastSec = sec; lastMin = min; lastHr = hr; return; }
-    if (sec === lastSec) return; // same second, no change
-
-    const mode = currentMode;
-
-    // --- Boundary resets (full hourglass depleted) ---
-    if (mode === "minute" && min !== boundaryMin) {
-      boundaryMin = min;
-      triggerReset(mode);
-      lastSec = sec; lastMin = min; lastHr = hr;
-      return;
-    }
-    if (mode === "hour" && hr !== boundaryHr) {
-      boundaryHr = hr;
-      triggerReset(mode);
-      lastSec = sec; lastMin = min; lastHr = hr;
-      return;
-    }
-    if (mode === "day" && date !== boundaryDay) {
-      boundaryDay = date;
-      triggerReset(mode);
-      lastSec = sec; lastMin = min; lastHr = hr;
-      return;
-    }
-
-    // --- Per-tick grain releases ---
-    if (mode === "minute") {
-      releaseGrain("small"); // 1 grain per second
-    } else if (mode === "hour") {
-      releaseGrain("small"); // 1 tiny per second
-      if (min !== lastMin) {
-        releaseGrain("large"); // 1 large per minute
-        // Tiny second grains reset for the new minute
-        bottomSmall = 0; topSmall = 60;
-        falling = falling.filter(g => g.type !== "small");
-        posCache.key = "";
-      }
-    } else { // day
-      if (min !== lastMin) {
-        releaseGrain("small"); // 1 tiny per minute
-      }
-      if (hr !== lastHr) {
-        releaseGrain("large"); // 1 large per hour
-        // Minute grains reset for the new hour
-        bottomSmall = 0; topSmall = 60;
-        falling = falling.filter(g => g.type !== "small");
-        posCache.key = "";
-      }
-    }
-
-    lastSec = sec; lastMin = min; lastHr = hr;
-  });
-
-  // ---------------------------------------------------------------------------
-  // Lifecycle
-  // ---------------------------------------------------------------------------
   onMount(() => {
-    // Non-passive wheel listener to allow preventDefault inside the widget
-    widgetEl?.addEventListener("wheel", handleWheel, { passive: false });
-    frame();
-    return () => widgetEl?.removeEventListener("wheel", handleWheel);
+    containerEl?.addEventListener("wheel", handleWheel, { passive: false });
+    initParticles();
+    initThree();
   });
 
   onDestroy(() => {
-    if (animationId) cancelAnimationFrame(animationId);
+    containerEl?.removeEventListener("wheel", handleWheel);
+    
+    if (animationId) {
+      cancelAnimationFrame(animationId);
+      const canvas = canvasEl;
+      if (canvas && canvas.__threeAnimationId === animationId) {
+        canvas.__threeAnimationId = null;
+      }
+    }
+
+    if (renderer) {
+      const canvas = canvasEl;
+      if (canvas && canvas.__threeRenderer === renderer) {
+        disposeRenderer(renderer, scene);
+        canvas.__threeRenderer = null;
+        canvas.__threeScene = null;
+      } else {
+        disposeRenderer(renderer, scene);
+      }
+    }
   });
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
-  bind:this={widgetEl}
+  bind:this={containerEl}
   class="hourglass-widget"
   class:minute-mode={currentMode === "minute"}
   class:hour-mode={currentMode === "hour"}
@@ -508,7 +726,7 @@
   aria-label={`Hourglass clock in ${currentMode} mode. Click or Shift+scroll to cycle.`}
   onkeydown={(e) => e.key === "Enter" && handleModeCycle()}
 >
-  <canvas bind:this={canvasEl} width={W} height={H}></canvas>
+  <canvas bind:this={canvasEl} width="160" height="240"></canvas>
 
   <div class="mode-metadata">
     <span class="mode-tag">{currentMode} Glass</span>
@@ -527,7 +745,6 @@
 </div>
 
 <style>
-  /* Fixed dimensions — widget NEVER resizes on mode change */
   .hourglass-widget {
     width: 184px;
     min-width: 184px;
@@ -543,7 +760,7 @@
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     transition: background 0.3s ease, box-shadow 0.3s ease;
     user-select: none;
-    overflow: hidden; /* clip any stray pixels */
+    overflow: hidden;
   }
 
   .hourglass-widget:hover {
@@ -559,6 +776,7 @@
     display: block;
     width: 160px;
     height: 240px;
+    background: transparent;
   }
 
   .mode-metadata {
@@ -567,7 +785,6 @@
     flex-direction: column;
     align-items: center;
     gap: 5px;
-    /* Fixed height prevents text changes from shifting layout */
     height: 36px;
     justify-content: center;
   }
