@@ -490,21 +490,6 @@
     window.removeEventListener("mouseup", handleMaskMouseUp);
   }
 
-  function addVideoMask() {
-    const nextId = videoMasks.length > 0 ? Math.max(...videoMasks.map(m => m.id)) + 1 : 1;
-    videoMasks = [
-      ...videoMasks,
-      { id: nextId, x: 50, y: 50, width: 100, height: 40, mode: "blur" }
-    ];
-    selectedMaskId = nextId;
-  }
-
-  function removeVideoMask(id) {
-    videoMasks = videoMasks.filter(m => m.id !== id);
-    if (selectedMaskId === id && videoMasks.length > 0) {
-      selectedMaskId = videoMasks[0].id;
-    }
-  }
 
   // Toggle Video Playback
   function toggleVideo() {
@@ -670,6 +655,22 @@
     if (videoEl) {
       videoWidth = videoEl.clientWidth;
       videoHeight = videoEl.clientHeight;
+    }
+  }
+
+  function addVideoMask() {
+    const nextId = videoMasks.length > 0 ? Math.max(...videoMasks.map(m => m.id)) + 1 : 1;
+    videoMasks = [
+      ...videoMasks,
+      { id: nextId, x: 50, y: 50, width: 100, height: 40, mode: "blur" }
+    ];
+    selectedMaskId = nextId;
+  }
+
+  function removeVideoMask(id) {
+    videoMasks = videoMasks.filter(m => m.id !== id);
+    if (selectedMaskId === id && videoMasks.length > 0) {
+      selectedMaskId = videoMasks[0].id;
     }
   }
 </script>

@@ -3,7 +3,6 @@
 @use "./styles/variables" as *;
 @use "./styles/gopro";
 
-
 body {
     margin: 0;
     padding: 0;
@@ -11,7 +10,8 @@ body {
     /* Use dvh (dynamic viewport height) so the background fills correctly on
        mobile even when the browser address bar is visible */
     height: 100dvh;
-    min-height: 100vh; /* fallback for browsers without dvh support */
+    min-height: 100vh;
+    /* fallback for browsers without dvh support */
     overflow-x: hidden;
     overflow-y: hidden;
     overscroll-behavior: none;
@@ -60,6 +60,7 @@ body {
 /* Hide scrollbars but keep scrolling functionality */
 .scrollbar-none {
     scrollbar-width: none !important;
+
     &::-webkit-scrollbar {
         display: none !important;
         width: 0 !important;
@@ -70,9 +71,9 @@ body {
 /* ── Layout stability transition for WeAreDogs panel close ── */
 .wad-container {
     transition:
-      opacity 0.5s ease,
-      filter 0.5s ease,
-      transform 0.5s ease;
+        opacity 0.5s ease,
+        filter 0.5s ease,
+        transform 0.5s ease;
 }
 
 /* ── Interactive Logo Button ── */
@@ -91,7 +92,7 @@ body {
         transform: scale(1.15);
         filter: drop-shadow(0 0 10px rgba(var(--color-neon-gold-rgb, 230, 185, 0), 0.8));
     }
-    
+
     &:active {
         transform: scale(0.95);
     }

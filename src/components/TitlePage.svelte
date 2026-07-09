@@ -310,10 +310,25 @@
   }
 
   function handleKeydown(e) {
-    if (window.location.pathname !== "/") return;
-    if (e.key === "Escape" && activePage !== null) {
-      closePage();
+    // Guard: don't steal keys from actual text inputs
+    const tag = document.activeElement?.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || document.activeElement?.isContentEditable) return;
+
+    if (e.key === "Escape") {
+      // If inside a toolbox sub-app, ToolboxPanel's Escape handler takes the first press
+      // (app → grid). We only close the panel once the grid is showing (activeApp === null).
+      if (activePage === "toolbox" && activeApp !== null) return;
+      if (activePage !== null) closePage();
+      return;
     }
+
+    // Homepage shortcuts — only when no panel is open
+    if (activePage !== null) return;
+
+    if (e.key === ",") { e.preventDefault(); openPage("store"); }
+    else if (e.key === ".") { e.preventDefault(); openPage("music"); }
+    else if (e.key === "/") { e.preventDefault(); openPage("toolbox"); }
+    else if (e.key === "'" || e.key === "\'") { e.preventDefault(); openPage("map"); }
   }
 </script>
 
