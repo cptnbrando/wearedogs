@@ -1,5 +1,5 @@
 <script>
-  import { onMount } from "svelte";
+  import { onMount, onDestroy } from "svelte";
 
   let {
     tabs = [], // Array of { id: string, label: string, icon: Component }
@@ -9,6 +9,43 @@
 
   let containerRef = $state();
   let tabRefs = $state({});
+  let cleanupWheel;
+
+  onMount(() => {
+    const handleWheel = (e) => {
+      if (e.shiftKey) {
+        // Prevent default browser horizontal scrolling
+        e.preventDefault();
+        
+        if (!containerRef) return;
+        const rect = containerRef.getBoundingClientRect();
+        const isVisible = rect.width > 0 && rect.height > 0 &&
+                          rect.top < window.innerHeight && rect.bottom > 0 &&
+                          rect.left < window.innerWidth && rect.right > 0;
+                          
+        if (!isVisible) return;
+        
+        const closestApp = containerRef.closest(".mp-container, .stats-container, .app-container, .base-app-layout, body");
+        if (closestApp && !closestApp.contains(e.target)) return;
+
+        const idx = tabs.findIndex(t => t.id === activeTab);
+        if (idx === -1) return;
+
+        if (e.deltaY > 0) {
+          selectTab(tabs[(idx + 1) % tabs.length].id);
+        } else if (e.deltaY < 0) {
+          selectTab(tabs[(idx - 1 + tabs.length) % tabs.length].id);
+        }
+      }
+    };
+
+    window.addEventListener("wheel", handleWheel, { passive: false });
+    cleanupWheel = () => window.removeEventListener("wheel", handleWheel);
+  });
+
+  onDestroy(() => {
+    if (cleanupWheel) cleanupWheel();
+  });
 
   // Mouse & Touch drag variables for swipe/scroll gestures
   let isDown = $state(false);

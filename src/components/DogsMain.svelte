@@ -63,7 +63,12 @@
       <div class="flex items-center gap-2.5 md:gap-3.5">
         <button
           class="logo-btn pointer-events-auto focus:outline-none"
-          onclick={() => window.dispatchEvent(new CustomEvent(audioCore.isPlaying ? "open-music-panel" : "open-info-panel"))}
+          onclick={() =>
+            window.dispatchEvent(
+              new CustomEvent(
+                audioCore.isPlaying ? "open-music-panel" : "open-info-panel",
+              ),
+            )}
           aria-label="DOGS Logo"
         >
           <DogsLogo size="dict" />
@@ -126,7 +131,7 @@
             class="info-card flex flex-col rounded-xl md:rounded-2xl bg-[#f8f9fa] border border-black/5 hover:border-black/10 hover:shadow-lg transition-all duration-300"
           >
             <span
-              class="card-title text-[10px] md:text-xs uppercase tracking-wider text-black/40 font-bold mb-1 md:mb-2"
+              class="text-[10px] md:text-xs uppercase tracking-wider text-black/40 font-bold mb-1 md:mb-2"
               >Headquarters</span
             >
             <span
@@ -335,11 +340,7 @@
 
   /* Theme highlight integrated colors */
   .wad-colored .info-card:hover {
-    border-color: var(
-      --color-neon-purple,
-      --color-neon-red,
-      #ff3344
-    ) !important;
+    border-color: var(--color-neon-red, #ff3344) !important;
     box-shadow: 0 12px 35px
       rgba(var(--color-neon-purple-rgb, 255, 51, 68), 0.12);
   }
@@ -395,9 +396,6 @@
     }
     .info-card {
       padding: 0.375rem 0.625rem; /* py-1.5 px-2.5 */
-    }
-    .info-card .card-title {
-      margin-bottom: 0.125rem !important; /* mb-0.5 */
     }
   }
 

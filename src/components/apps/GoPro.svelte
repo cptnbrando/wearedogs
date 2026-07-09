@@ -1979,6 +1979,3 @@
     {/if}
 </div>
 
-<style lang="scss">
-    @use "../../styles/gopro.scss" as *;
-</style>

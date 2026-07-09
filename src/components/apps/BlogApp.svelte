@@ -18,7 +18,12 @@
   const SHARE_COOLDOWN_MS = 2000;
 
   // Props
-  let { initialSlug = $bindable(null), isReading = $bindable(false), depth = $bindable(0), isFlagColors = false } = $props();
+  let {
+    initialSlug = $bindable(null),
+    isReading = $bindable(false),
+    depth = $bindable(0),
+    isFlagColors = false,
+  } = $props();
 
   // App state
   let posts = $state([]);
@@ -41,11 +46,11 @@
 
   const SCRAMBLE_LANGUAGES = [
     "01ｦｱｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ", // Japanese Katakana
-    "010101010189034567",                               // Binary/Numeric
-    "αβγδεζηθικλμνξοπρστυφχψω0123456789",               // Greek
-    "БГДЖИЛПФЦЧШЩЪЫЭЮЯ0123456789",                      // Cyrillic
-    "ᚠᚢᚦᚨᚱᚲᚷᚹᚺᚾᛁᚹᛇᛈᛉᛊᛏᛒᛗᛚᛜᛞᛟ01",                     // Nordic Runes
-    "0123456789ABCDEF$#@%&?"                            // Cyber Hex/Leet
+    "010101010189034567", // Binary/Numeric
+    "αβγδεζηθικλμνξοπρστυφχψω0123456789", // Greek
+    "БГДЖИЛПФЦЧШЩЪЫЭЮЯ0123456789", // Cyrillic
+    "ᚠᚢᚦᚨᚱᚲᚷᚹᚺᚾᛁᚹᛇᛈᛉᛊᛏᛒᛗᛚᛜᛞᛟ01", // Nordic Runes
+    "0123456789ABCDEF$#@%&?", // Cyber Hex/Leet
   ];
 
   /**
@@ -55,7 +60,12 @@
    * @param {number} duration
    * @param {string} glyphs
    */
-  function scrambleText(originalText, callback, duration = 500, glyphs = SCRAMBLE_LANGUAGES[0]) {
+  function scrambleText(
+    originalText,
+    callback,
+    duration = 500,
+    glyphs = SCRAMBLE_LANGUAGES[0],
+  ) {
     if (!originalText) return;
     const length = originalText.length;
     let iterations = 0;
@@ -63,14 +73,17 @@
     const maxIterations = Math.max(1, duration / intervalTime);
 
     const timer = setInterval(() => {
-      let scrambled = originalText.split("").map((char, index) => {
-        if (char === " " || char === "\n") return char;
-        const lockThreshold = (iterations / maxIterations) * length;
-        if (index < lockThreshold) {
-          return originalText[index];
-        }
-        return glyphs[Math.floor(Math.random() * glyphs.length)];
-      }).join("");
+      let scrambled = originalText
+        .split("")
+        .map((char, index) => {
+          if (char === " " || char === "\n") return char;
+          const lockThreshold = (iterations / maxIterations) * length;
+          if (index < lockThreshold) {
+            return originalText[index];
+          }
+          return glyphs[Math.floor(Math.random() * glyphs.length)];
+        })
+        .join("");
 
       callback(scrambled);
       iterations++;
@@ -88,13 +101,28 @@
    * Wrapper to show exit glitch before closing post.
    */
   function handleExitPost() {
-    const glyphs = SCRAMBLE_LANGUAGES[Math.floor(Math.random() * SCRAMBLE_LANGUAGES.length)];
+    const glyphs =
+      SCRAMBLE_LANGUAGES[Math.floor(Math.random() * SCRAMBLE_LANGUAGES.length)];
     isGlitching = true;
     if (activePost) {
-      scrambleText(activePost.title, (v) => { scrambledTitle = v; }, 280, glyphs);
-      scrambleText(activePost.description, (v) => { scrambledDesc = v; }, 280, glyphs);
+      scrambleText(
+        activePost.title,
+        (v) => {
+          scrambledTitle = v;
+        },
+        280,
+        glyphs,
+      );
+      scrambleText(
+        activePost.description,
+        (v) => {
+          scrambledDesc = v;
+        },
+        280,
+        glyphs,
+      );
     }
-    
+
     setTimeout(() => {
       deselectPost();
       isGlitching = false;
@@ -113,7 +141,12 @@
     if (isNaN(date.getTime())) return dateStr;
 
     const hasTime = dateStr.includes("T");
-    const optionsDate = { weekday: "long", year: "numeric", month: "long", day: "numeric" };
+    const optionsDate = {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    };
     const formattedDate = date.toLocaleDateString("en-US", optionsDate);
 
     if (!hasTime || !showTime) {
@@ -179,14 +212,43 @@
     initialSlug = post.slug;
 
     // Pick a random language glyph set for this transition
-    const glyphs = SCRAMBLE_LANGUAGES[Math.floor(Math.random() * SCRAMBLE_LANGUAGES.length)];
+    const glyphs =
+      SCRAMBLE_LANGUAGES[Math.floor(Math.random() * SCRAMBLE_LANGUAGES.length)];
 
     // Trigger matrix glitch scramble
     isGlitching = true;
-    scrambleText(post.title, (v) => { scrambledTitle = v; }, 500, glyphs);
-    scrambleText(post.description, (v) => { scrambledDesc = v; }, 500, glyphs);
-    scrambleText(post.author, (v) => { scrambledAuthor = v; }, 500, glyphs);
-    scrambleText(formatBlogDate(post.date), (v) => { scrambledDate = v; }, 500, glyphs);
+    scrambleText(
+      post.title,
+      (v) => {
+        scrambledTitle = v;
+      },
+      500,
+      glyphs,
+    );
+    scrambleText(
+      post.description,
+      (v) => {
+        scrambledDesc = v;
+      },
+      500,
+      glyphs,
+    );
+    scrambleText(
+      post.author,
+      (v) => {
+        scrambledAuthor = v;
+      },
+      500,
+      glyphs,
+    );
+    scrambleText(
+      formatBlogDate(post.date),
+      (v) => {
+        scrambledDate = v;
+      },
+      500,
+      glyphs,
+    );
 
     try {
       const data = await getPostContent(post.slug);
@@ -255,7 +317,46 @@
         console.error("Failed to copy share link.");
       });
   }
+
+  let focusedPostIdx = $state(0);
+
+  function handleKeydown(e) {
+    if (activePost !== null) return;
+    if (posts.length === 0) return;
+
+    if (e.key === "ArrowRight") {
+      e.preventDefault();
+      focusedPostIdx = (focusedPostIdx + 1) % posts.length;
+      scrollFocusedPostIntoView();
+    } else if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      focusedPostIdx = (focusedPostIdx - 1 + posts.length) % posts.length;
+      scrollFocusedPostIntoView();
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      const columns = window.innerWidth >= 640 ? 2 : 1;
+      focusedPostIdx = (focusedPostIdx + columns) % posts.length;
+      scrollFocusedPostIntoView();
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      const columns = window.innerWidth >= 640 ? 2 : 1;
+      focusedPostIdx = (focusedPostIdx - columns + posts.length) % posts.length;
+      scrollFocusedPostIntoView();
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      selectPost(posts[focusedPostIdx]);
+    }
+  }
+
+  function scrollFocusedPostIntoView() {
+    const el = document.querySelector(`.post-card[data-index="${focusedPostIdx}"]`);
+    if (el) {
+      el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+  }
 </script>
+
+<svelte:window onkeydown={handleKeydown} />
 
 <svelte:head>
   {#if activePost}
@@ -330,14 +431,19 @@
           </div>
         {:else}
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {#each posts as post}
+            {#each posts as post, i}
               <button
                 type="button"
+                data-index={i}
+                class:focused={focusedPostIdx === i}
                 onclick={() => selectPost(post)}
+                onmouseenter={() => (focusedPostIdx = i)}
                 class="post-card text-left p-4 md:p-5 rounded-2xl border transition-all duration-300 flex flex-col gap-3.5 relative group overflow-hidden bg-white/[0.01] border-white/5 hover:border-[#b455ff]/40 hover:bg-white/[0.03] cursor-pointer"
               >
                 <!-- Card Header -->
-                <div class="flex items-center gap-2 w-full flex-nowrap overflow-hidden">
+                <div
+                  class="flex items-center gap-2 w-full flex-nowrap overflow-hidden"
+                >
                   <span
                     class="text-[8px] xs:text-[9px] sm:text-[10px] font-mono text-[#b455ff] font-semibold truncate shrink-0"
                     >{formatBlogDate(post.date, false)}</span
@@ -362,7 +468,7 @@
 
                 <!-- Bottom Indicator -->
                 <div
-                  class="flex justify-end items-center text-[10px] text-[#b455ff] font-semibold opacity-0 group-hover:opacity-100 transition-opacity gap-1 font-mono pt-1"
+                  class="read-indicator flex justify-end items-center text-[10px] text-[#b455ff] font-semibold opacity-0 group-hover:opacity-100 transition-opacity gap-1 font-mono pt-1"
                 >
                   <span>READ_LOG_ENTRY</span>
                   <ChevronRight size={10} />
@@ -398,10 +504,14 @@
                 class="flex items-center gap-4 text-xs text-white/40 font-mono"
               >
                 <span class="flex items-center gap-1"
-                  ><Calendar size={12} /> {isGlitching ? scrambledDate : formatBlogDate(activePost.date)}</span
+                  ><Calendar size={12} />
+                  {isGlitching
+                    ? scrambledDate
+                    : formatBlogDate(activePost.date)}</span
                 >
                 <span class="flex items-center gap-1"
-                  ><User size={12} /> {isGlitching ? scrambledAuthor : activePost.author}</span
+                  ><User size={12} />
+                  {isGlitching ? scrambledAuthor : activePost.author}</span
                 >
               </div>
 
@@ -434,7 +544,7 @@
                     <span class="text-[#00d75f] font-mono">LINK_COPIED</span>
                   {:else}
                     <Share2 size={14} class="text-[#b455ff]" />
-                    <span>Share Log</span>
+                    <span>Share</span>
                   {/if}
                 </button>
               </div>
@@ -492,13 +602,35 @@
 
   /* ── Cyberpunk Matrix Glitch Effect ── */
   @keyframes glitchSkew {
-    0%, 100% { transform: none; filter: none; }
-    10% { transform: skewX(-4deg) scaleY(1.02); filter: var(--glitch-filter); color: var(--glitch-color); text-shadow: var(--glitch-shadow-1), var(--glitch-shadow-2); }
-    20% { transform: skewX(4deg); }
-    30% { transform: none; }
-    40% { transform: skewX(-2deg); }
-    50% { transform: skewY(1deg); filter: var(--glitch-filter-alt); color: var(--glitch-color); text-shadow: var(--glitch-shadow-2), var(--glitch-shadow-1); }
-    60% { transform: none; }
+    0%,
+    100% {
+      transform: none;
+      filter: none;
+    }
+    10% {
+      transform: skewX(-4deg) scaleY(1.02);
+      filter: var(--glitch-filter);
+      color: var(--glitch-color);
+      text-shadow: var(--glitch-shadow-1), var(--glitch-shadow-2);
+    }
+    20% {
+      transform: skewX(4deg);
+    }
+    30% {
+      transform: none;
+    }
+    40% {
+      transform: skewX(-2deg);
+    }
+    50% {
+      transform: skewY(1deg);
+      filter: var(--glitch-filter-alt);
+      color: var(--glitch-color);
+      text-shadow: var(--glitch-shadow-2), var(--glitch-shadow-1);
+    }
+    60% {
+      transform: none;
+    }
   }
 
   .glitching-pane {
@@ -533,5 +665,14 @@
   .text-matrix:not(.colored-glitch) {
     color: #ffffff !important;
     text-shadow: 0 0 8px rgba(255, 255, 255, 0.8) !important;
+  }
+
+  .post-card.focused {
+    border-color: rgba(180, 85, 255, 0.4) !important;
+    background: rgba(255, 255, 255, 0.03) !important;
+  }
+
+  .post-card.focused .read-indicator {
+    opacity: 1 !important;
   }
 </style>

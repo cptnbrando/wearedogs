@@ -77,7 +77,6 @@
     </section>
   </main>
 </div>
-
 <style lang="scss">
   @use "../../styles/variables" as *;
 
@@ -221,7 +220,7 @@
     letter-spacing: 0.05em;
   }
 
-  .text-neon-red {
+  :global(.text-neon-red) {
     color: var(--color-neon-red, #ff3344);
   }
 

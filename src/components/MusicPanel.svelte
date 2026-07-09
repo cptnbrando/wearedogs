@@ -1,5 +1,6 @@
 <script>
   import { onMount, onDestroy } from "svelte";
+  import * as THREE from "three";
   import {
     Play,
     Pause,
@@ -24,6 +25,9 @@
     Waves,
     Maximize2,
     Minimize2,
+    Share2,
+    Check,
+    AlertTriangle,
   } from "lucide-svelte";
   import { audioCore } from "../lib/AudioCore.svelte.js";
   import { VisualizerEngine } from "../lib/visualizer/VisualizerEngine.js";
@@ -31,6 +35,7 @@
   import { PRESETS, NO_SIGNAL_PRESET } from "../lib/visualizer/presets.js";
 
   import SwipeTabNav from "./SwipeTabNav.svelte";
+  import { fade } from "svelte/transition";
 
   const title = "MUSIC";
 
@@ -40,6 +45,14 @@
     { id: "playlists", label: "Playlists", icon: Radio },
     { id: "radio", label: "Radio", icon: BoomBox },
   ];
+
+  const ERROR_COVER = "/img/error_cover.png";
+
+  function handleCoverError(e) {
+    if (!e.target.src.endsWith(ERROR_COVER)) {
+      e.target.src = ERROR_COVER;
+    }
+  }
 
   let { isClosing = false, onClose, initialTrackId = null } = $props();
 
@@ -149,28 +162,76 @@
       title: "HOLLYWOOD",
       artist: "YG",
       album: "THE GENTLEMEN'S CLUB",
-      cover: "/img/covers/yg.webp",
-      altCover: "/img/covers/yg.jpg",
-      src: "/music/YG/THE GENTLEMEN'S CLUB/HOLLYWOOD.mp3",
-      instrumental: "/music/YG/THE GENTLEMEN'S CLUB/HOLLYWOOD-FREE.mp3",
+      cover: "https://data.wearedogs.net/img/covers/2026/yg.webp",
+      altCover: "https://data.wearedogs.net/img/covers/2026/yg.jpg",
+      src: "https://data.wearedogs.net/music/2026/HOLLYWOOD.mp3",
+      instrumental: "https://data.wearedogs.net/music/2026/HOLLYWOOD-free.mp3",
       hasInstrumental: true,
       dateAdded: "2026-06-24T03:00:00-05:00",
       year: 2026,
       genre: "Hip-Hop",
+      attrib: "https://the-gentlemens-club.com/",
     },
     {
       id: "chicago",
       title: "Chicago",
       artist: "Michael Jackson",
       album: "Xscape",
-      cover: "/img/covers/mj.webp",
-      altCover: "/img/covers/mj.jpg",
-      src: "/music/Michael Jackson/Xscape/Chicago.mp3",
-      instrumental: "/music/Michael Jackson/Xscape/Chicago-free.mp3",
+      cover: "https://data.wearedogs.net/img/covers/2026/mj.webp",
+      altCover: "https://data.wearedogs.net/img/covers/2026/mj.jpg",
+      src: "https://data.wearedogs.net/music/2026/Chicago.mp3",
+      instrumental: "https://data.wearedogs.net/music/2026/Chicago-free.mp3",
       hasInstrumental: true,
       dateAdded: "2026-06-24T03:00:00-05:00",
       year: 2014,
       genre: "Pop",
+    },
+    {
+      id: "rain",
+      title: "Pourin Rain (feat. Skratch Bastid)",
+      artist: "Zed's Dead",
+      album:
+        "Return to the Return (of the Spectrum of Intergalactic Happiness)",
+      cover: "https://data.wearedogs.net/img/covers/2026/zd.webp",
+      altCover: "https://data.wearedogs.net/img/covers/2026/zd.jpg",
+      src: "https://data.wearedogs.net/music/2026/Pourin.mp3",
+      instrumental: "",
+      hasInstrumental: false,
+      dateAdded: "2026-07-07T018:12:00-05:00",
+      year: 2026,
+      genre: "Electronic",
+      attrib: "https://shop.zedsdead.net/",
+    },
+    {
+      id: "denchai",
+      title: "Den Chai",
+      artist: "The Buddha-Bar Lounge",
+      album: "Den Chai",
+      cover: "/img/covers/buddha.webp",
+      altCover: "",
+      src: "https://data.wearedogs.net/music/2026/DENCHAI.mp3",
+      instrumental: "",
+      hasInstrumental: false,
+      dateAdded: "2026-07-07T22:34:00-05:00",
+      year: 2008,
+      genre: "Lounge",
+      attrib:
+        "https://open.spotify.com/artist/0du3MpnxBOpQEie1IV3u9v?si=2UO722ntTE--Ck_Ji7Go7Q",
+    },
+    {
+      id: "rainbow",
+      title: "Rainbow in the Dark",
+      artist: "Das Racist",
+      album: "Shut Up, Dude",
+      cover: "https://data.wearedogs.net/img/covers/2026/rainbow.webp",
+      altCover: "https://data.wearedogs.net/img/covers/2026/rainbow.png",
+      src: "https://data.wearedogs.net/music/2026/rainbow.mp3",
+      instrumental: "https://data.wearedogs.net/music/2026/rainbow-free.mp3",
+      hasInstrumental: true,
+      dateAdded: "2026-07-08T16:35:00-05:00",
+      year: 2010,
+      genre: "Hip-Hop",
+      attrib: "https://dasracist.bandcamp.com/album/shut-up-dude",
     },
   ];
 
@@ -213,6 +274,37 @@
 
   let currentTrack = $derived(library[audioCore.currentTrackIndex]);
 
+  let titleContainerWidth = $state(0);
+  let titleTextWidth = $state(0);
+  let artistContainerWidth = $state(0);
+  let artistTextWidth = $state(0);
+  let albumContainerWidth = $state(0);
+  let albumTextWidth = $state(0);
+
+  let copiedTrackId = $state(null);
+  let copyTimeout = null;
+
+  function handleShareTrack(e, track) {
+    e.stopPropagation();
+    const shareUrl = `${window.location.origin}/music/${track.id}`;
+    navigator.clipboard
+      .writeText(shareUrl)
+      .then(() => {
+        copiedTrackId = track.id;
+        if (copyTimeout) clearTimeout(copyTimeout);
+        copyTimeout = setTimeout(() => {
+          copiedTrackId = null;
+        }, 2000);
+      })
+      .catch((err) => {
+        console.error("Failed to copy share link:", err);
+      });
+  }
+
+  onDestroy(() => {
+    if (copyTimeout) clearTimeout(copyTimeout);
+  });
+
   onMount(() => {
     audioCore.init(library);
     if (initialTrackId) {
@@ -223,9 +315,24 @@
     }
   });
 
+  let focusedTrackId = $state(null);
+
+  function scrollFocusedTrackIntoView() {
+    const el = document.querySelector(
+      `.track-row[data-track-id="${focusedTrackId}"]`,
+    );
+    if (el) {
+      el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+  }
+
   function selectSortedTrack(track) {
+    focusedTrackId = track.id;
     const idx = library.findIndex((t) => t.id === track.id);
-    if (audioCore.currentTrackIndex === idx) {
+    if (
+      audioCore.currentTrackIndex === idx &&
+      !audioCore.fetchErrors[track.id]
+    ) {
       audioCore.togglePlay();
     } else {
       audioCore.loadTrack(idx, true);
@@ -245,11 +352,27 @@
     const newVal = !audioCore.isInstrumental;
     const success = audioCore.setCrossfade(newVal);
     if (!success) {
-      if (!isBouncing) {
-        isBouncing = true;
+      crossfadeFailCount++;
+
+      if (!isKnobJiggling) {
+        isKnobJiggling = true;
         setTimeout(() => {
-          isBouncing = false;
-        }, 400);
+          isKnobJiggling = false;
+        }, 300);
+      }
+
+      if (crossfadeFailCount === 5) {
+        triggerSparkBurst();
+        isFlashActive = true;
+        setTimeout(() => {
+          isFlashActive = false;
+        }, 150);
+      } else if (crossfadeFailCount === 10) {
+        triggerSparkBurst(35);
+      } else if (crossfadeFailCount > 5 && crossfadeFailCount < 10) {
+        triggerSparkBurst(8);
+      } else if (crossfadeFailCount > 10) {
+        if (Math.random() < 0.4) triggerSparkBurst(3);
       }
     }
   }
@@ -262,19 +385,77 @@
   }
 
   function handleKeydown(e) {
-    if (e.code === "Space" || e.key === " ") {
-      const activeEl = document.activeElement;
-      if (
-        activeEl &&
-        (activeEl.tagName === "INPUT" ||
-          activeEl.tagName === "TEXTAREA" ||
-          activeEl.isContentEditable)
-      ) {
+    const activeEl = document.activeElement;
+    if (
+      activeEl &&
+      (activeEl.tagName === "INPUT" ||
+        activeEl.tagName === "TEXTAREA" ||
+        activeEl.isContentEditable)
+    ) {
+      return;
+    }
+
+    if (e.shiftKey) {
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        const currentIdx = musicTabs.findIndex((t) => t.id === activeTab);
+        const nextIdx = (currentIdx + 1) % musicTabs.length;
+        activeTab = musicTabs[nextIdx].id;
+        return;
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        const currentIdx = musicTabs.findIndex((t) => t.id === activeTab);
+        const prevIdx = (currentIdx - 1 + musicTabs.length) % musicTabs.length;
+        activeTab = musicTabs[prevIdx].id;
         return;
       }
+    }
+
+    if (e.code === "Space" || e.key === " ") {
       if (activeTab === "songs") {
         e.preventDefault();
         audioCore.togglePlay();
+      }
+    } else if (e.key === "ArrowDown") {
+      if (activeTab === "songs" && sortedLibrary.length > 0) {
+        e.preventDefault();
+        let currentIdx = sortedLibrary.findIndex(
+          (t) => t.id === focusedTrackId,
+        );
+        if (currentIdx === -1) {
+          const playingTrack = library[audioCore.currentTrackIndex];
+          currentIdx = sortedLibrary.findIndex(
+            (t) => t.id === playingTrack?.id,
+          );
+        }
+        const nextIdx = (currentIdx + 1) % sortedLibrary.length;
+        focusedTrackId = sortedLibrary[nextIdx].id;
+        scrollFocusedTrackIntoView();
+      }
+    } else if (e.key === "ArrowUp") {
+      if (activeTab === "songs" && sortedLibrary.length > 0) {
+        e.preventDefault();
+        let currentIdx = sortedLibrary.findIndex(
+          (t) => t.id === focusedTrackId,
+        );
+        if (currentIdx === -1) {
+          const playingTrack = library[audioCore.currentTrackIndex];
+          currentIdx = sortedLibrary.findIndex(
+            (t) => t.id === playingTrack?.id,
+          );
+        }
+        const prevIdx =
+          (currentIdx - 1 + sortedLibrary.length) % sortedLibrary.length;
+        focusedTrackId = sortedLibrary[prevIdx].id;
+        scrollFocusedTrackIntoView();
+      }
+    } else if (e.key === "Enter") {
+      if (activeTab === "songs" && focusedTrackId) {
+        e.preventDefault();
+        const track = sortedLibrary.find((t) => t.id === focusedTrackId);
+        if (track) {
+          selectSortedTrack(track);
+        }
       }
     }
   }
@@ -315,6 +496,221 @@
       activeTab = musicTabs[idx - 1].id;
     }
   }
+
+  // DJ Crossfader Easter Egg States & WebGL Particle Logic
+  let faderFxCanvas = $state(null);
+  let crossfadeFailCount = $state(0);
+  let isKnobJiggling = $state(false);
+  let isFlashActive = $state(false);
+
+  let fxScene, fxCamera, fxRenderer;
+  let fxSparks = [];
+  let fxSmoke = [];
+  let fxAnimId;
+  let hasSmokeStarted = $state(false);
+
+  // Monitor canvas ref to instantiate/cleanup WebGL
+  $effect(() => {
+    if (faderFxCanvas) {
+      initThreeFx();
+    }
+    return () => {
+      if (fxAnimId) cancelAnimationFrame(fxAnimId);
+      window.removeEventListener("resize", handleResize);
+      if (fxRenderer) {
+        fxRenderer.dispose();
+        fxRenderer = null;
+      }
+      fxScene = null;
+      fxCamera = null;
+      fxSparks = [];
+      fxSmoke = [];
+    };
+  });
+
+  // Reset fail counts and clear meshes when track changes, tab changes, or leaving the player
+  $effect(() => {
+    const trackIdx = audioCore.currentTrackIndex;
+    const tab = activeTab;
+    const closing = isClosing;
+    crossfadeFailCount = 0;
+    hasSmokeStarted = false;
+    if (fxScene) {
+      for (const p of fxSparks) fxScene.remove(p.mesh);
+      for (const p of fxSmoke) fxScene.remove(p.mesh);
+    }
+    fxSparks = [];
+    fxSmoke = [];
+  });
+
+  function getKnobCoords() {
+    const knobEl = document.querySelector(".dj-fader-knob");
+    if (!knobEl) return { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+
+    const knobRect = knobEl.getBoundingClientRect();
+
+    // Directly use viewport CSS pixels, shifting to the left-bottom of the fader knob
+    const x = knobRect.left + knobRect.width * 0.15;
+    const y = window.innerHeight - (knobRect.top + knobRect.height * 0.85);
+    return { x, y };
+  }
+
+  function initThreeFx() {
+    if (!faderFxCanvas) return;
+
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    faderFxCanvas.width = width;
+    faderFxCanvas.height = height;
+
+    fxScene = new THREE.Scene();
+    fxCamera = new THREE.OrthographicCamera(0, width, height, 0, -1, 1);
+
+    fxRenderer = new THREE.WebGLRenderer({
+      canvas: faderFxCanvas,
+      alpha: true,
+      antialias: true,
+    });
+    fxRenderer.setSize(width, height, false);
+    fxRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    window.addEventListener("resize", handleResize);
+    animateThreeFx();
+  }
+
+  function handleResize() {
+    if (!faderFxCanvas || !fxRenderer || !fxCamera) return;
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    faderFxCanvas.width = width;
+    faderFxCanvas.height = height;
+    fxRenderer.setSize(width, height, false);
+    fxCamera.right = width;
+    fxCamera.top = height;
+    fxCamera.updateProjectionMatrix();
+  }
+
+  function animateThreeFx() {
+    fxAnimId = requestAnimationFrame(animateThreeFx);
+    if (!fxScene || !fxCamera || !fxRenderer || !faderFxCanvas) return;
+
+    // Spawn smoke continuously once threshold met
+    if (crossfadeFailCount >= 10) {
+      hasSmokeStarted = true;
+      if (Math.random() < 0.22) {
+        const coords = getKnobCoords();
+        spawnSmokeParticle(coords.x, coords.y);
+      }
+    }
+
+    // Update sparks
+    for (let i = fxSparks.length - 1; i >= 0; i--) {
+      const p = fxSparks[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += p.ay; // gravity gravity
+      p.life -= p.decay;
+
+      p.mesh.position.set(p.x, p.y, 0);
+      p.mesh.material.opacity = p.life;
+
+      if (p.life <= 0) {
+        fxScene.remove(p.mesh);
+        p.mesh.geometry.dispose();
+        p.mesh.material.dispose();
+        fxSparks.splice(i, 1);
+      }
+    }
+
+    // Update smoke
+    for (let i = fxSmoke.length - 1; i >= 0; i--) {
+      const p = fxSmoke[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.life -= p.decay;
+
+      // Expand smoke into very large, soft, floating clouds as it goes up the screen
+      const scale = p.startScale + (1.0 - p.life) * 88;
+      p.mesh.scale.set(scale, scale, 1);
+      p.mesh.position.set(p.x, p.y, 0);
+      p.mesh.material.opacity = p.life * 0.16;
+
+      if (p.life <= 0) {
+        fxScene.remove(p.mesh);
+        p.mesh.geometry.dispose();
+        p.mesh.material.dispose();
+        fxSmoke.splice(i, 1);
+      }
+    }
+
+    fxRenderer.render(fxScene, fxCamera);
+  }
+
+  function spawnSmokeParticle(x, y) {
+    if (!fxScene) return;
+
+    const geom = new THREE.CircleGeometry(5.0, 8);
+    // Whitish-grey color parameters
+    const colorVal = 0.85 + Math.random() * 0.12;
+    const mat = new THREE.MeshBasicMaterial({
+      color: new THREE.Color(colorVal, colorVal, colorVal * 1.01),
+      transparent: true,
+      opacity: 0.06,
+      blending: THREE.NormalBlending,
+    });
+    const mesh = new THREE.Mesh(geom, mat);
+    mesh.position.set(x, y, 0);
+    fxScene.add(mesh);
+
+    fxSmoke.push({
+      mesh,
+      x,
+      y,
+      vx: (Math.random() - 0.5) * 0.55 + Math.sin(Date.now() * 0.001) * 0.22, // wind drift
+      vy: Math.random() * 0.7 + 1.25, // rise upwards faster
+      startScale: 1.0,
+      life: 1.0,
+      decay: 0.0006 + Math.random() * 0.0004, // extremely slow decay to rise completely past the top of the screen!
+    });
+  }
+
+  function triggerSparkBurst(count = 25) {
+    if (!fxScene || !faderFxCanvas) return;
+    const coords = getKnobCoords();
+    const knobX = coords.x;
+    const knobY = coords.y;
+
+    for (let i = 0; i < count; i++) {
+      const geom = new THREE.CircleGeometry(1.3, 4);
+      const isPink = Math.random() < 0.4;
+      const color = isPink ? 0xff0055 : 0xffaa00;
+
+      const mat = new THREE.MeshBasicMaterial({
+        color: new THREE.Color(color),
+        transparent: true,
+        opacity: 1.0,
+        blending: THREE.AdditiveBlending,
+      });
+      const mesh = new THREE.Mesh(geom, mat);
+      mesh.position.set(knobX, knobY, 0);
+      fxScene.add(mesh);
+
+      const angle = Math.random() * Math.PI * 2;
+      const speed = Math.random() * 4.0 + 2.0;
+
+      fxSparks.push({
+        mesh,
+        x: knobX,
+        y: knobY,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        ay: -0.15,
+        life: 1.0,
+        decay: 0.02 + Math.random() * 0.02,
+      });
+    }
+  }
 </script>
 
 <svelte:window
@@ -329,6 +725,7 @@
   <div
     class="mp-container"
     class:closing={isClosing}
+    class:theme-inst={audioCore.isInstrumental}
     onclick={(e) => e.stopPropagation()}
   >
     <!-- Header -->
@@ -360,7 +757,11 @@
       ontouchend={handleBodyTouchEnd}
     >
       {#if activeTab === "songs"}
-        <div class="songs-layout">
+        <div
+          class="songs-layout"
+          in:fade={{ duration: 120, delay: 120 }}
+          out:fade={{ duration: 120 }}
+        >
           <!-- Left side player details -->
           <div class="player-side" class:tracklist-open={showMobileTracklist}>
             <!-- Top block (Vinyl & track info) - disappears on mobile tracklist active -->
@@ -430,12 +831,13 @@
                       <div class="groove g4"></div>
                       <div class="record-label">
                         <img
-                          src={currentTrack.cover}
+                          src={(audioCore.fetchErrors[currentTrack.id] || !currentTrack.cover) ? ERROR_COVER : currentTrack.cover}
                           alt={currentTrack.album}
                           loading="lazy"
                           class="record-art"
                           class:loaded={vinylLoaded}
                           onload={() => (vinylLoaded = true)}
+                          onerror={handleCoverError}
                         />
                       </div>
                       <div class="spindle"></div>
@@ -450,15 +852,66 @@
 
               <!-- Track info (Always visible!) -->
               <div class="track-info mt-2">
-                <div
-                  class="version-badge"
-                  class:inst={audioCore.isInstrumental}
-                >
-                  {audioCore.isInstrumental ? "INSTRUMENTAL" : "ORIGINAL"}
+                <div class="flex items-center justify-center mb-1.5">
+                  <button
+                    class="player-share-btn"
+                    onclick={(e) => handleShareTrack(e, currentTrack)}
+                    title="Copy track link"
+                    aria-label="Share track"
+                  >
+                    {#if copiedTrackId === currentTrack.id}
+                      <Check size={12} class="text-[#22c55e]" />
+                    {:else}
+                      <Share2 size={12} />
+                    {/if}
+                  </button>
                 </div>
-                <h2 class="track-title">{currentTrack.title}</h2>
-                <p class="track-artist">{currentTrack.artist}</p>
-                <p class="track-album">{currentTrack.album}</p>
+                <div
+                  class="scroll-container"
+                  bind:clientWidth={titleContainerWidth}
+                  class:overflowing={titleTextWidth > titleContainerWidth}
+                  style="--scroll-dist: -{titleTextWidth -
+                    titleContainerWidth}px"
+                >
+                  <h2
+                    class="track-title scroll-text"
+                    bind:clientWidth={titleTextWidth}
+                    class:animate-scroll={titleTextWidth > titleContainerWidth}
+                  >
+                    {currentTrack.title}
+                  </h2>
+                </div>
+                <div
+                  class="scroll-container"
+                  bind:clientWidth={artistContainerWidth}
+                  class:overflowing={artistTextWidth > artistContainerWidth}
+                  style="--scroll-dist: -{artistTextWidth -
+                    artistContainerWidth}px"
+                >
+                  <p
+                    class="track-artist scroll-text"
+                    bind:clientWidth={artistTextWidth}
+                    class:animate-scroll={artistTextWidth >
+                      artistContainerWidth}
+                  >
+                    {currentTrack.artist}
+                  </p>
+                </div>
+                <div
+                  class="scroll-container"
+                  bind:clientWidth={albumContainerWidth}
+                  class:overflowing={albumTextWidth > albumContainerWidth}
+                  style="--scroll-dist: -{albumTextWidth -
+                    albumContainerWidth}px"
+                >
+                  <p
+                    class="track-album scroll-text"
+                    bind:clientWidth={albumTextWidth}
+                    class:animate-scroll={albumTextWidth > albumContainerWidth}
+                  >
+                    {currentTrack.album}
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -512,10 +965,13 @@
                 </button>
                 <button
                   class="ctrl ctrl-play"
+                  class:ctrl-error={audioCore.fetchErrors[currentTrack.id]}
                   onclick={() => audioCore.togglePlay()}
                   aria-label={audioCore.isPlaying ? "Pause" : "Play"}
                 >
-                  {#if audioCore.isLoading}
+                  {#if audioCore.fetchErrors[currentTrack.id]}
+                    <AlertTriangle size={22} />
+                  {:else if audioCore.isLoading}
                     <div class="spin-ring"></div>
                   {:else if audioCore.isPlaying}
                     <Pause size={22} fill="currentColor" />
@@ -550,7 +1006,8 @@
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
                 <div
                   class="dj-crossfader"
-                  class:animate-wiggle={isBouncing}
+                  class:fader-flash={isFlashActive}
+                  class:fader-fried={crossfadeFailCount >= 10}
                   onclick={toggleCrossfade}
                 >
                   <span
@@ -560,10 +1017,12 @@
                     <Mic2 size={12} />
                     <span>VOCAL</span>
                   </span>
-                  <div class="dj-fader-slot">
+                  <div class="dj-fader-slot relative">
                     <div
                       class="dj-fader-knob"
                       class:right={audioCore.isInstrumental}
+                      class:knob-jiggle={isKnobJiggling}
+                      class:fried={crossfadeFailCount >= 10}
                     ></div>
                   </div>
                   <span
@@ -716,6 +1175,9 @@
                   class="track-row"
                   class:active={library[audioCore.currentTrackIndex].id ===
                     track.id}
+                  class:kb-focused={focusedTrackId === track.id}
+                  class:fetch-error={audioCore.fetchErrors[track.id]}
+                  data-track-id={track.id}
                   onclick={() => selectSortedTrack(track)}
                 >
                   <div class="tr-num">
@@ -730,33 +1192,69 @@
                     {/if}
                   </div>
                   <img
-                    src={track.cover}
+                    src={(audioCore.fetchErrors[track.id] || !track.cover) ? ERROR_COVER : track.cover}
                     alt={track.album}
                     loading="lazy"
                     class="tr-art"
+                    onerror={handleCoverError}
                   />
                   <div class="tr-info">
-                    <span class="tr-title">{track.title}</span>
+                    <div class="flex items-center gap-1.5 min-w-0">
+                      <span
+                        class="tr-title"
+                        class:line-through={audioCore.fetchErrors[track.id]}
+                        class:opacity-50={audioCore.fetchErrors[track.id]}
+                        >{track.title}</span
+                      >
+                      {#if audioCore.fetchErrors[track.id]}
+                        <span
+                          class="text-amber-400 flex items-center gap-1 text-[9px] font-bold tracking-wider uppercase bg-amber-500/10 px-1.5 py-0.5 rounded flex-shrink-0"
+                          title="Failed to fetch music source from remote database"
+                        >
+                          <AlertTriangle size={10} /> Error Fetching
+                        </span>
+                      {/if}
+                    </div>
                     <span class="tr-meta"
                       >{track.artist} · {track.album} ({track.year || ""})</span
                     >
                   </div>
-                  {#if track.artist === "YG"}
-                    <span class="inst-chip-link">
-                      <a
-                        href="https://the-gentlemens-club.com/"
-                        target="_blank"
-                        onclick={(e) => e.stopPropagation()}>YG</a
-                      >
-                    </span>
-                  {/if}
+                  <div class="flex items-center gap-2 flex-shrink-0">
+                    {#if track.attrib}
+                      <span class="inst-chip-link">
+                        <a
+                          href={track.attrib}
+                          target="_blank"
+                          onclick={(e) => e.stopPropagation()}>Merch</a
+                        >
+                      </span>
+                    {/if}
+                    <!-- svelte-ignore a11y_click_events_have_key_events -->
+                    <!-- svelte-ignore a11y_no_static_element_interactions -->
+                    <button
+                      class="tr-share-btn"
+                      onclick={(e) => handleShareTrack(e, track)}
+                      title="Copy track link"
+                      aria-label="Share track"
+                    >
+                      {#if copiedTrackId === track.id}
+                        <Check size={12} class="text-[#22c55e]" />
+                      {:else}
+                        <Share2 size={12} />
+                      {/if}
+                    </button>
+                  </div>
                 </div>
               {/each}
             </div>
           </div>
         </div>
       {:else if activeTab === "samples"}
-        <div class="tab-scroll scroll-y">
+        <div
+          class="tab-scroll scroll-y"
+          in:fade={{ duration: 120, delay: 120 }}
+          out:fade={{ duration: 120 }}
+        >
           <div class="sec-head">
             <h2 class="sec-title">Samples</h2>
             <p class="sec-sub">
@@ -785,7 +1283,11 @@
           </div>
         </div>
       {:else if activeTab === "playlists"}
-        <div class="tab-scroll scroll-y">
+        <div
+          class="tab-scroll scroll-y"
+          in:fade={{ duration: 120, delay: 120 }}
+          out:fade={{ duration: 120 }}
+        >
           <div class="sec-head">
             <h2 class="sec-title">Playlists</h2>
             <p class="sec-sub">
@@ -830,7 +1332,11 @@
           </div>
         </div>
       {:else if activeTab === "radio"}
-        <div class="tab-scroll scroll-y">
+        <div
+          class="tab-scroll scroll-y"
+          in:fade={{ duration: 120, delay: 120 }}
+          out:fade={{ duration: 120 }}
+        >
           <div class="sec-head">
             <h2 class="sec-title">Radio</h2>
             <p class="sec-sub">
@@ -897,6 +1403,8 @@
       </div>
     </div>
   {/if}
+  <canvas bind:this={faderFxCanvas} class="fader-fx-canvas pointer-events-none"
+  ></canvas>
 </div>
 
 <style lang="scss">
@@ -947,22 +1455,6 @@
     background: rgba(255, 255, 255, 0.15);
     color: white;
     transform: translateX(-4px);
-  }
-
-  @keyframes wiggle {
-    0%,
-    100% {
-      transform: translateX(0);
-    }
-    25% {
-      transform: translateX(-6px) rotate(-1.5deg);
-    }
-    75% {
-      transform: translateX(6px) rotate(1.5deg);
-    }
-  }
-  .animate-wiggle {
-    animation: wiggle 0.2s ease-in-out 2;
   }
 
   /* ── DJ Crossfader ── */
@@ -1135,5 +1627,86 @@
 
   .visualizer-container:hover .visualizer-hover-overlay {
     opacity: 1;
+  }
+
+  /* ── DJ Crossfader Easter Egg Animations & FX ── */
+  @keyframes knob-wiggle {
+    0%,
+    100% {
+      transform: translate(0, -50%) scale(1);
+    }
+    20%,
+    60% {
+      transform: translate(-3.5px, -50%) rotate(-4deg);
+    }
+    40%,
+    80% {
+      transform: translate(3.5px, -50%) rotate(4deg);
+    }
+  }
+
+  .knob-jiggle {
+    animation: knob-wiggle 0.3s ease-in-out;
+  }
+
+  .dj-fader-knob.fried {
+    background: linear-gradient(
+      135deg,
+      #2c2222 0%,
+      #1a1212 50%,
+      #0f0505 100%
+    ) !important;
+    border-color: rgba(239, 68, 68, 0.35) !important;
+    box-shadow:
+      0 4px 10px rgba(0, 0, 0, 0.9),
+      0 0 8px rgba(239, 68, 68, 0.25) !important;
+  }
+
+  .dj-fader-knob.fried::after {
+    background: #ef4444 !important;
+    box-shadow: 0 0 5px #ef4444 !important;
+    animation: fader-flicker 0.15s infinite alternate;
+  }
+
+  @keyframes fader-flicker {
+    0% {
+      opacity: 0.35;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+
+  .dj-crossfader.fader-flash {
+    animation: fader-flash-anim 0.15s ease-out;
+  }
+
+  @keyframes fader-flash-anim {
+    0% {
+      background: #ff0055;
+      box-shadow: 0 0 25px rgba(255, 0, 85, 0.8);
+      border-color: #ffffff;
+    }
+    100% {
+      background: linear-gradient(180deg, #1e1e24 0%, #121215 100%);
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+  }
+
+  .dj-crossfader.fader-fried {
+    border-color: rgba(239, 68, 68, 0.25) !important;
+    box-shadow:
+      inset 0 0 8px rgba(239, 68, 68, 0.08),
+      0 8px 24px rgba(0, 0, 0, 0.5) !important;
+  }
+
+  .fader-fx-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 99999;
   }
 </style>

@@ -21,16 +21,45 @@ export class AudioCore {
   volume = $state(1);
   isMuted = $state(false);
   isInstrumental = $state(false);
+  userPrefersInstrumental = $state(false);
   currentTrackIndex = $state(0);
   isLoading = $state(false);
   isShuffled = $state(false);
   repeatMode = $state(1); // 0 = Off, 1 = Repeat All, 2 = Repeat One
   activeAudioType = $state("music"); // 'music' | 'video'
+  fetchErrors = $state({});
 
   progressInterval = null;
   library = [];
+  activeTrackBlobUrl = null;
+  activeInstBlobUrl = null;
 
   constructor() { }
+
+  async getAudioSource(url, type) {
+    if (!url) return "";
+    if (url.startsWith("https://data.wearedogs.net/")) {
+      try {
+        const res = await fetch(url);
+        if (res.ok) {
+          const blob = await res.blob();
+          const blobUrl = URL.createObjectURL(blob);
+          if (type === "track") {
+            this.activeTrackBlobUrl = blobUrl;
+          } else if (type === "inst") {
+            this.activeInstBlobUrl = blobUrl;
+          }
+          return blobUrl;
+        } else {
+          throw new Error(`Fetch failed with status ${res.status}`);
+        }
+      } catch (e) {
+        console.warn(`Failed to fetch remote audio source for ${url}:`, e);
+        throw e;
+      }
+    }
+    return url;
+  }
 
   init(lib) {
     this.library = lib;
@@ -81,8 +110,21 @@ export class AudioCore {
 
   async loadTrack(index, autoplay = false) {
     if (index < 0 || index >= this.library.length) return;
+
+    // Stop current playback immediately
+    this.pause();
+
     this.currentTrackIndex = index;
-    this.isInstrumental = false;
+    const track = this.library[index];
+    
+    // Clear failed track state on attempt to retry
+    delete this.fetchErrors[track.id];
+
+    if (track && track.hasInstrumental) {
+      this.isInstrumental = this.userPrefersInstrumental || false;
+    } else {
+      this.isInstrumental = (track && (track.id === "rain" || track.id === "denchai"));
+    }
     this.currentTime = 0;
     this.isLoading = true;
 
@@ -91,12 +133,24 @@ export class AudioCore {
       try { await this.audioCtx.resume(); } catch (e) { }
     }
 
-    const track = this.library[index];
+    let loadFailed = false;
     try {
-      this.trackAudio.src = track.src;
+      if (this.activeTrackBlobUrl) {
+        URL.revokeObjectURL(this.activeTrackBlobUrl);
+        this.activeTrackBlobUrl = null;
+      }
+      if (this.activeInstBlobUrl) {
+        URL.revokeObjectURL(this.activeInstBlobUrl);
+        this.activeInstBlobUrl = null;
+      }
+
+      const resolvedTrackSrc = await this.getAudioSource(track.src, "track");
+      const resolvedInstSrc = track.instrumental ? await this.getAudioSource(track.instrumental, "inst") : "";
+
+      this.trackAudio.src = resolvedTrackSrc;
       this.trackAudio.load();
-      if (track.instrumental) {
-        this.instAudio.src = track.instrumental;
+      if (resolvedInstSrc) {
+        this.instAudio.src = resolvedInstSrc;
         this.instAudio.load();
       } else {
         this.instAudio.removeAttribute("src");
@@ -122,11 +176,13 @@ export class AudioCore {
     } catch (err) {
       console.error("Error loading track channels:", err);
       this.isPlaying = false;
+      this.fetchErrors[track.id] = true;
+      loadFailed = true;
     } finally {
       this.isLoading = false;
     }
 
-    if (autoplay) {
+    if (!loadFailed && autoplay) {
       this.play(0);
     }
     this.updateMediaSession();
@@ -171,7 +227,10 @@ export class AudioCore {
       try { await this.audioCtx.resume(); } catch (e) { }
     }
 
-    if (!this.trackAudio.src && !this.isLoading) {
+    const track = this.library[this.currentTrackIndex];
+    const hasFetchError = track ? this.fetchErrors[track.id] : false;
+
+    if ((!this.trackAudio.src && !this.isLoading) || hasFetchError) {
       await this.loadTrack(this.currentTrackIndex, true);
       return;
     }
@@ -248,22 +307,24 @@ export class AudioCore {
     if (!this.audioCtx) return;
     const now = this.audioCtx.currentTime;
     const isInst = this.isInstrumental;
+    const track = this.library[this.currentTrackIndex];
+    const hasInstFile = track && track.instrumental;
 
     if (this.trackGainNode) {
-      this.trackGainNode.gain.setValueAtTime(isInst ? 0 : 1, now);
+      this.trackGainNode.gain.setValueAtTime((isInst && hasInstFile) ? 0 : 1, now);
     }
     if (this.instGainNode) {
-      this.instGainNode.gain.setValueAtTime(isInst ? 1 : 0, now);
+      this.instGainNode.gain.setValueAtTime((isInst && hasInstFile) ? 1 : 0, now);
     }
   }
 
   setCrossfade(isInst) {
     const track = this.library[this.currentTrackIndex];
     if (track && !track.hasInstrumental) {
-      this.isInstrumental = false;
       return false; // indicates locked
     }
     this.isInstrumental = isInst;
+    this.userPrefersInstrumental = isInst;
     this.applyCrossfade();
     return true;
   }
@@ -355,13 +416,17 @@ export class AudioCore {
     if (typeof navigator !== "undefined" && "mediaSession" in navigator && this.library[this.currentTrackIndex]) {
       const track = this.library[this.currentTrackIndex];
       const origin = typeof window !== "undefined" ? window.location.origin : "";
-      
+
+      const coverUrl = (track.cover.startsWith("data:") || track.cover.startsWith("http://") || track.cover.startsWith("https://"))
+        ? track.cover
+        : origin + track.cover;
+
       navigator.mediaSession.metadata = new MediaMetadata({
         title: track.title,
         artist: track.artist,
         album: track.album,
         artwork: [
-          { src: origin + track.cover, sizes: "512x512", type: "image/webp" }
+          { src: coverUrl, sizes: "512x512", type: "image/webp" }
         ]
       });
       navigator.mediaSession.playbackState = this.isPlaying ? "playing" : "paused";
