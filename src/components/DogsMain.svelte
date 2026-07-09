@@ -131,11 +131,7 @@
             class="info-card flex flex-col rounded-xl md:rounded-2xl bg-[#f8f9fa] border border-black/5 hover:border-black/10 hover:shadow-lg transition-all duration-300"
           >
             <span
-              class="text-[10px] md:text-xs uppercase tracking-wider text-black/40 font-bold mb-1 md:mb-2"
-              >Headquarters</span
-            >
-            <span
-              class="card-value text-base md:text-lg lg:text-xl font-bold text-black"
+              class="card-value text-sm md:text-lg lg:text-xl font-bold text-black"
               >Dallas, TX</span
             >
           </div>
@@ -145,12 +141,8 @@
             class="info-card flex flex-col rounded-xl md:rounded-2xl bg-[#f8f9fa] border border-black/5 hover:border-black/10 hover:shadow-lg transition-all duration-300"
           >
             <span
-              class="card-title text-[10px] md:text-xs uppercase tracking-wider text-black/40 font-bold mb-1 md:mb-2"
-              >Established</span
-            >
-            <span
-              class="card-value text-base md:text-lg lg:text-xl font-bold text-black"
-              >Formed in 2026</span
+              class="card-value text-sm md:text-lg lg:text-xl font-bold text-black"
+              >2026</span
             >
           </div>
 
@@ -162,7 +154,7 @@
               class="card-title text-[10px] md:text-xs uppercase tracking-wider text-black/40 font-bold mb-1 md:mb-2"
               >Specializing In</span
             >
-            <div class="flex flex-wrap gap-1 md:gap-1.5">
+            <div class="flex flex-wrap gap-1 md:gap-1.5 items-center">
               <span
                 class="badge px-2 py-0.5 bg-black text-white text-[9px] md:text-[10px] font-semibold rounded-full uppercase tracking-wider"
                 >Web Design</span
@@ -177,15 +169,22 @@
               >
             </div>
           </div>
-        </div>
 
-        <div class="flex justify-start">
+          <!-- Contact Us Today -->
           <a
             href="mailto:brando@wearedogs.net?subject=Hello%20There!&body=BARK%20BARK%20BARK%20BARK%20BARK%20BARK%20BARK"
-            class="contact-btn"
+            class="info-card contact-card flex flex-col justify-center items-center rounded-xl md:rounded-2xl bg-[#f8f9fa] border border-black/5 hover:border-black/10 hover:shadow-lg transition-all duration-300 cursor-pointer text-decoration-none pointer-events-auto"
           >
-            <Mail size={16} />
-            Contact Us Today
+            <span
+              class="text-[10px] md:text-xs uppercase tracking-wider text-black/40 font-bold mb-1.5 md:mb-2.5 text-center"
+              >Contact Us Today</span
+            >
+            <div class="flex items-center gap-2 text-black justify-center">
+              <Mail size={16} class="contact-icon" />
+              <span
+                class="card-value text-base md:text-lg lg:text-xl font-bold font-mono"
+              ></span>
+            </div>
           </a>
         </div>
       </div>
@@ -243,65 +242,35 @@
 </div>
 
 <style>
-  /* Contact Button */
-  .contact-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.75rem 1.5rem;
-    background: #000000;
-    color: #ffffff;
-    font-weight: 700;
-    border-radius: 0.75rem;
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    box-shadow:
-      0 4px 6px -1px rgba(0, 0, 0, 0.1),
-      0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    font-size: 0.75rem;
-    cursor: pointer;
+  /* Contact Card */
+  .contact-card {
     text-decoration: none;
-  }
-  @media (min-width: 768px) {
-    .contact-btn {
-      font-size: 0.875rem;
-    }
-  }
-  .contact-btn:hover {
-    transform: scale(1.02);
-    background: #111111;
-    box-shadow:
-      0 10px 15px -3px rgba(0, 0, 0, 0.1),
-      0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    cursor: pointer;
   }
 
   /* Color highlights for active color mode */
-  :global(.wad-colored) .contact-btn {
-    background: var(
-      --color-neon-purple,
-      var(--color-neon-red, #ff3344)
-    ) !important;
+  :global(.wad-colored) .contact-card {
+    background: var(--color-neon-purple, --color-neon-red, #ff3344) !important;
     border-color: transparent !important;
     box-shadow: 0 0 15px rgba(var(--color-neon-purple-rgb, 255, 51, 68), 0.35) !important;
   }
-  :global(.wad-colored) .contact-btn:hover {
-    background: var(
-      --color-neon-purple,
-      var(--color-neon-red, #ff3344)
-    ) !important;
+  :global(.wad-colored) .contact-card * {
+    color: #ffffff !important;
+  }
+  :global(.wad-colored) .contact-card:hover {
     opacity: 0.9;
     box-shadow: 0 0 25px rgba(var(--color-neon-purple-rgb, 255, 51, 68), 0.5) !important;
   }
 
-  /* Default theme uses neon red scrollbar color when active */
-  :global(html[data-theme="default"]) :global(.wad-colored) .contact-btn {
+  /* Default theme uses neon red color when active */
+  :global(html[data-theme="default"]) :global(.wad-colored) .contact-card {
     background: #d61a2c !important;
     box-shadow: 0 0 15px rgba(214, 26, 44, 0.35) !important;
     border-color: transparent !important;
   }
-  :global(html[data-theme="default"]) :global(.wad-colored) .contact-btn:hover {
+  :global(html[data-theme="default"])
+    :global(.wad-colored)
+    .contact-card:hover {
     background: #d61a2c !important;
     opacity: 0.9;
     box-shadow: 0 0 25px rgba(214, 26, 44, 0.5) !important;
@@ -356,12 +325,18 @@
   /* Grid layout rules with orientation override */
   .cards-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.625rem; /* gap-2.5 */
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem; /* compact gap for mobile portrait */
     width: 100%;
   }
   .specializing-card {
     grid-column: span 2 / span 2;
+    grid-row: 2 / 3;
+  }
+  .contact-card {
+    grid-column: 3 / 4;
+    grid-row: 1 / 3; /* Spans both rows, making it taller and on the right */
   }
 
   /* Cards padding and responsiveness */
@@ -372,11 +347,7 @@
 
   @media (min-width: 768px) {
     .cards-grid {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 1rem;
-    }
-    .specializing-card {
-      grid-column: span 1 / span 1;
     }
     .info-card {
       padding: 1.5rem; /* p-6 */
@@ -388,11 +359,17 @@
 
   @media (max-width: 1023px) and (orientation: landscape) {
     .cards-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      grid-template-rows: auto;
       gap: 0.375rem; /* gap-1.5 */
     }
     .specializing-card {
       grid-column: span 2 / span 2;
+      grid-row: auto;
+    }
+    .contact-card {
+      grid-column: span 1 / span 1;
+      grid-row: auto;
     }
     .info-card {
       padding: 0.375rem 0.625rem; /* py-1.5 px-2.5 */
@@ -401,10 +378,17 @@
 
   @media (min-width: 1024px) {
     .cards-grid {
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      grid-template-rows: auto;
+      gap: 1.25rem;
     }
     .specializing-card {
       grid-column: span 2 / span 2;
+      grid-row: auto;
+    }
+    .contact-card {
+      grid-column: span 1 / span 1;
+      grid-row: auto;
     }
   }
 
