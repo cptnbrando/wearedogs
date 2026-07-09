@@ -233,6 +233,21 @@
       genre: "Hip-Hop",
       attrib: "https://dasracist.bandcamp.com/album/shut-up-dude",
     },
+    {
+      id: "hipsong",
+      title: "Hip Song",
+      artist: "Toby Fox / Trevor Alan Gomes",
+      album: "Deltarune",
+      cover: "https://data.wearedogs.net/img/covers/2026/deltarune.webp",
+      altCover: "https://data.wearedogs.net/img/covers/2026/deltarune.png",
+      src: "https://data.wearedogs.net/music/2026/shop.mp3",
+      instrumental: "https://data.wearedogs.net/music/2026/shop-free.mp3",
+      hasInstrumental: true,
+      dateAdded: "2026-07-09T01:22:00-05:00",
+      year: 2021,
+      genre: "Video Game",
+      attrib: "https://deltarune.com/",
+    },
   ];
 
   // Derive sort values
@@ -831,7 +846,10 @@
                       <div class="groove g4"></div>
                       <div class="record-label">
                         <img
-                          src={(audioCore.fetchErrors[currentTrack.id] || !currentTrack.cover) ? ERROR_COVER : currentTrack.cover}
+                          src={audioCore.fetchErrors[currentTrack.id] ||
+                          !currentTrack.cover
+                            ? ERROR_COVER
+                            : currentTrack.cover}
                           alt={currentTrack.album}
                           loading="lazy"
                           class="record-art"
@@ -1192,7 +1210,9 @@
                     {/if}
                   </div>
                   <img
-                    src={(audioCore.fetchErrors[track.id] || !track.cover) ? ERROR_COVER : track.cover}
+                    src={audioCore.fetchErrors[track.id] || !track.cover
+                      ? ERROR_COVER
+                      : track.cover}
                     alt={track.album}
                     loading="lazy"
                     class="tr-art"
@@ -1225,7 +1245,7 @@
                         <a
                           href={track.attrib}
                           target="_blank"
-                          onclick={(e) => e.stopPropagation()}>Merch</a
+                          onclick={(e) => e.stopPropagation()}>i</a
                         >
                       </span>
                     {/if}
