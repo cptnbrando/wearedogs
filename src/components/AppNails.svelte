@@ -8,6 +8,7 @@
     Hourglass,
     Scissors,
     Trophy,
+    RefreshCw,
   } from "lucide-svelte";
 
   let { appId } = $props();
@@ -76,6 +77,14 @@
     <Scissors
       size={28}
       style="color: var(--color-neon-pink, #ff007f); filter: drop-shadow(0 0 6px rgba(255, 0, 127, 0.4));"
+    />
+  </div>
+{:else if appId === "converter"}
+  <div class="flex items-center justify-center h-full">
+    <RefreshCw
+      size={28}
+      style="color: var(--color-neon-orange, #ff5e00); filter: drop-shadow(0 0 6px rgba(255, 94, 0, 0.4));"
+      class="animate-spin-slow"
     />
   </div>
 {:else if appId === "windshieldwiper"}
@@ -514,5 +523,17 @@
   :global(.app-card.focused) :global(.wiper-blade-animate) {
     stroke: #00ffff;
     filter: drop-shadow(0 0 4px rgba(0, 255, 255, 0.8));
+  }
+
+  :global(.animate-spin-slow) {
+    animation: spin-slow 8s linear infinite;
+  }
+  @keyframes spin-slow {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
   }
 </style>

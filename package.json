@@ -28,9 +28,11 @@
     "vitest": "^3.0.7"
   },
   "dependencies": {
+    "@breezystack/lamejs": "^1.2.3",
     "@lottiefiles/dotlottie-wc": "^0.9.19",
     "@threlte/core": "^8.0.1",
     "@threlte/extras": "^9.0.0",
+    "fflate": "^0.8.3",
     "jsqr": "^1.4.0",
     "lucide-svelte": "^1.0.1",
     "qrcode": "^1.5.4",
@@ -46,6 +48,8 @@
     "i just watch the warning come and go": "all fucking day",
     "...": "...",
     "anyway": "",
-    "if you need batman you can run sh ./public/batman/download.sh": "toodle loo"
+    "if you need batman you can run sh ./public/batman/download.sh": "toodle loo",
+    "@breezystack/lamejs": "Used for catalytic converter to go to LAME mp3",
+    "fflate": "Needed for catalytic converter to open zip files"
   }
 }
