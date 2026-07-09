@@ -1015,7 +1015,7 @@
             </div>
           </div>
           <div class="flex flex-col gap-1.5">
-            <span class="font-bold text-[#00ffff]">🎵 SOUND</span>
+            <span class="font-bold text-[#00ffff]">🎵 AUDIO</span>
             <div class="flex flex-wrap items-center gap-2">
               <span
                 class="px-1.5 py-0.5 rounded bg-white/5 font-mono text-[10px]"
@@ -1046,7 +1046,7 @@
           <div
             class="flex flex-col gap-1.5 col-span-1 sm:col-span-2 md:col-span-1"
           >
-            <span class="font-bold text-[#a855f7]">🎞️ MOTION PICTURE</span>
+            <span class="font-bold text-[#a855f7]">🎞️ VID</span>
             <div class="flex flex-wrap items-center gap-2">
               <span
                 class="px-1.5 py-0.5 rounded bg-white/5 font-mono text-[10px]"

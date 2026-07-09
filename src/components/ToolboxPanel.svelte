@@ -91,7 +91,7 @@
     {
       id: "converter",
       title: "Catalytic Converter",
-      desc: "Rapid format refinement engine for images and audio files.",
+      desc: "A way to convert img, vid, audio files.",
       icon: RefreshCw,
     },
     {
