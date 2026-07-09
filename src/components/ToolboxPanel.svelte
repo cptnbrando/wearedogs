@@ -169,9 +169,10 @@
   const appIds = $derived(apps.map(a => a.id));
   const appCount = $derived(apps.length);
 
-  let focusedIdx = $state(0);
+  let focusedIdx = $state(-1);
 
   function scrollFocusedCardIntoView() {
+    if (focusedIdx === -1) return;
     const el = document.querySelector(
       `.app-card[data-app-idx="${focusedIdx}"]`,
     );
@@ -206,22 +207,22 @@
     if (e.key === "ArrowRight") {
       e.preventDefault();
       isKeyboardNav = true;
-      focusedIdx = (focusedIdx + 1) % appCount;
+      focusedIdx = focusedIdx === -1 ? 0 : (focusedIdx + 1) % appCount;
       scrollFocusedCardIntoView();
     } else if (e.key === "ArrowLeft") {
       e.preventDefault();
       isKeyboardNav = true;
-      focusedIdx = (focusedIdx - 1 + appCount) % appCount;
+      focusedIdx = focusedIdx === -1 ? appCount - 1 : (focusedIdx - 1 + appCount) % appCount;
       scrollFocusedCardIntoView();
     } else if (e.key === "ArrowDown") {
       e.preventDefault();
       isKeyboardNav = true;
-      focusedIdx = (focusedIdx + cols) % appCount;
+      focusedIdx = focusedIdx === -1 ? 0 : (focusedIdx + cols) % appCount;
       scrollFocusedCardIntoView();
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       isKeyboardNav = true;
-      focusedIdx = (focusedIdx - cols + appCount) % appCount;
+      focusedIdx = focusedIdx === -1 ? appCount - 1 : (focusedIdx - cols + appCount) % appCount;
       scrollFocusedCardIntoView();
     } else if (e.key === "Enter") {
       e.preventDefault();
@@ -283,6 +284,7 @@
                 index={i}
                 isFocused={focusedIdx === i}
                 {isKeyboardNav}
+                tabIndex={focusedIdx === i || (i === 0 && focusedIdx === -1) ? 0 : -1}
                 onclick={() => {
                   activeApp = app.id;
                   focusedIdx = i;

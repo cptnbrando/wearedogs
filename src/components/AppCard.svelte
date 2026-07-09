@@ -6,6 +6,7 @@
     index,
     isFocused,
     isKeyboardNav,
+    tabIndex = -1,
     onclick,
     onmouseenter,
     onfocus,
@@ -25,9 +26,9 @@
 <button
   bind:this={buttonEl}
   class="app-card"
-  class:focused={isFocused}
+  class:focused={isFocused && isKeyboardNav}
   data-app-idx={index}
-  tabindex={isFocused ? 0 : -1}
+  tabindex={tabIndex}
   {onclick}
   {onmouseenter}
   {onfocus}
@@ -61,6 +62,7 @@
   }
 
   button.app-card:hover,
+  button.app-card:focus-visible,
   button.app-card.focused {
     background: rgba(255, 255, 255, 0.06);
     transform: scale(1.01) translateY(-2px);
