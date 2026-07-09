@@ -77,16 +77,10 @@
   // CRITICAL: The changelog and settings apps MUST always remain next to each other at the bottom of the toolbox list, with settings last.
   const apps = [
     {
-      id: "gopro",
-      title: "GoPro Cinema",
-      desc: "Stream retro TV series and clip custom audio loops.",
-      icon: Video,
-    },
-    {
-      id: "dataflash",
-      title: "DataFlash",
-      desc: "Visual file transfer protocol over flashing QR codes.",
-      icon: Zap,
+      id: "blog",
+      title: "DOG BLOG",
+      desc: "Read articles about punk rock tech, development, and music.",
+      icon: BookOpen,
     },
     {
       id: "qrgenerator",
@@ -95,10 +89,34 @@
       icon: QrCode,
     },
     {
-      id: "soundboard",
-      title: "Dog Soundboard",
-      desc: "Play high fidelity dog bark synthesizers.",
-      icon: Volume2,
+      id: "catalyticconverter",
+      title: "Catalytic Converter",
+      desc: "Rapid format refinement engine for images and audio files.",
+      icon: RefreshCw,
+    },
+    {
+      id: "stopwatch",
+      title: "Father Time",
+      desc: "Sands of time: stopwatch, timer, alarms, world clock, metronome & tuning fork.",
+      icon: Hourglass,
+    },
+    {
+      id: "worldcup",
+      title: "FIFA World Cup",
+      desc: "Track matches, group stage standings, and the responsive bracket.",
+      icon: Trophy,
+    },
+    {
+      id: "soundstripper",
+      title: "Sound Stripper",
+      desc: "Extract vocal acapellas by subtracting reference instrumental bleed.",
+      icon: Scissors,
+    },
+    {
+      id: "windshieldwiper",
+      title: "Windshield Wiper",
+      desc: "Clean watermarks and logos from images and videos using canvas magic.",
+      icon: Sparkles,
     },
     {
       id: "snake",
@@ -113,16 +131,10 @@
       icon: Paintbrush,
     },
     {
-      id: "stopwatch",
-      title: "Father Time",
-      desc: "Sands of time: stopwatch, timer, alarms, world clock, metronome & pitch tuner.",
-      icon: Hourglass,
-    },
-    {
-      id: "rescue",
-      title: "Rescue Ops",
-      desc: "Coordinate search-and-rescue beacons and flight paths.",
-      icon: Radio,
+      id: "soundboard",
+      title: "Dog Soundboard",
+      desc: "Play high fidelity dog bark synthesizers.",
+      icon: Volume2,
     },
     {
       id: "memes",
@@ -130,35 +142,24 @@
       desc: "Explore and share high-fidelity, hilarious dog memes.",
       icon: Smile,
     },
+    // RESCUE, GOPRO, DATAFLASH, CHANGELOG, AND SETTINGS MUST ALWAYS BE LAST IN THIS LIST
     {
-      id: "worldcup",
-      title: "FIFA World Cup",
-      desc: "Track matches, group stage standings, and the responsive bracket.",
-      icon: Trophy,
+      id: "gopro",
+      title: "GoPro Cinema",
+      desc: "Stream retro TV series and clip custom audio loops.",
+      icon: Video,
     },
     {
-      id: "blog",
-      title: "DOG BLOG",
-      desc: "Read articles about punk rock tech, development, and music.",
-      icon: BookOpen,
+      id: "dataflash",
+      title: "DataFlash",
+      desc: "Visual file transfer protocol over flashing QR codes.",
+      icon: Zap,
     },
     {
-      id: "soundstripper",
-      title: "Sound Stripper",
-      desc: "Extract vocal acapellas by subtracting reference instrumental bleed.",
-      icon: Scissors,
-    },
-    {
-      id: "catalyticconverter",
-      title: "Catalytic Converter",
-      desc: "Rapid format refinement engine for images and audio files.",
-      icon: RefreshCw,
-    },
-    {
-      id: "windshieldwiper",
-      title: "Windshield Wiper",
-      desc: "Clean watermarks and logos from images and videos using canvas magic.",
-      icon: Sparkles,
+      id: "rescue",
+      title: "Rescue Ops",
+      desc: "Coordinate search-and-rescue beacons and flight paths.",
+      icon: Radio,
     },
     {
       id: "changelog",
@@ -174,7 +175,7 @@
     },
   ];
 
-  const appIds = $derived(apps.map(a => a.id));
+  const appIds = $derived(apps.map((a) => a.id));
   const appCount = $derived(apps.length);
 
   let focusedIdx = $state(-1);
@@ -220,7 +221,10 @@
     } else if (e.key === "ArrowLeft") {
       e.preventDefault();
       isKeyboardNav = true;
-      focusedIdx = focusedIdx === -1 ? appCount - 1 : (focusedIdx - 1 + appCount) % appCount;
+      focusedIdx =
+        focusedIdx === -1
+          ? appCount - 1
+          : (focusedIdx - 1 + appCount) % appCount;
       scrollFocusedCardIntoView();
     } else if (e.key === "ArrowDown") {
       e.preventDefault();
@@ -230,7 +234,10 @@
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       isKeyboardNav = true;
-      focusedIdx = focusedIdx === -1 ? appCount - 1 : (focusedIdx - cols + appCount) % appCount;
+      focusedIdx =
+        focusedIdx === -1
+          ? appCount - 1
+          : (focusedIdx - cols + appCount) % appCount;
       scrollFocusedCardIntoView();
     } else if (e.key === "Enter") {
       e.preventDefault();
@@ -292,7 +299,9 @@
                 index={i}
                 isFocused={focusedIdx === i}
                 {isKeyboardNav}
-                tabIndex={focusedIdx === i || (i === 0 && focusedIdx === -1) ? 0 : -1}
+                tabIndex={focusedIdx === i || (i === 0 && focusedIdx === -1)
+                  ? 0
+                  : -1}
                 onclick={() => {
                   activeApp = app.id;
                   focusedIdx = i;
