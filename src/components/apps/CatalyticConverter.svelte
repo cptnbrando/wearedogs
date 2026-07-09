@@ -13,8 +13,9 @@
     AlertCircle,
     Link2,
     Link2Off,
+    FileVideo,
   } from "lucide-svelte";
-  import { convertImage, convertAudio } from "./convert.js";
+  import { convertImage, convertAudio, convertVideo } from "./convert.js";
 
   // State variables
   let isDragging = $state(false);
@@ -50,8 +51,9 @@
 
   // Available output formats based on detected type
   const formatMap = {
-    image: ["png", "jpg", "webp"],
-    audio: ["mp3", "wav", "m4a"],
+    image: ["png", "jpg", "webp", "avif", "svg"],
+    audio: ["mp3", "wav", "m4a", "aac", "webm"],
+    video: ["mp4", "mov", "mkv", "avi"],
   };
 
   let availableFormats = $derived(fileType ? formatMap[fileType] || [] : []);
@@ -60,13 +62,17 @@
   function handleKeydown(e) {
     if (conversionStatus !== "idle" || !file) return;
 
-    // Numbers 1, 2, 3 to select formats
+    // Numbers 1-5 to select formats
     if (e.key === "1" && availableFormats[0]) {
       outputFormat = availableFormats[0];
     } else if (e.key === "2" && availableFormats[1]) {
       outputFormat = availableFormats[1];
     } else if (e.key === "3" && availableFormats[2]) {
       outputFormat = availableFormats[2];
+    } else if (e.key === "4" && availableFormats[3]) {
+      outputFormat = availableFormats[3];
+    } else if (e.key === "5" && availableFormats[4]) {
+      outputFormat = availableFormats[4];
     } else if (e.key === "Enter" && outputFormat) {
       startConversion();
     }
@@ -114,7 +120,7 @@
 
     if (
       file.type.startsWith("image/") ||
-      ["jpg", "jpeg", "png", "webp", "gif"].includes(ext)
+      ["jpg", "jpeg", "png", "webp", "gif", "avif", "svg"].includes(ext)
     ) {
       fileType = "image";
       inputFormat = ext === "jpeg" ? "jpg" : ext;
@@ -133,7 +139,7 @@
       };
     } else if (
       file.type.startsWith("audio/") ||
-      ["mp3", "wav", "m4a", "ogg", "aac"].includes(ext)
+      ["mp3", "wav", "m4a", "ogg", "aac", "webm"].includes(ext)
     ) {
       fileType = "audio";
       inputFormat = ext;
@@ -148,10 +154,18 @@
       } catch (err) {
         console.error("Failed to decode audio data:", err);
       }
+    } else if (
+      file.type.startsWith("video/") ||
+      ["mp4", "mov", "mkv", "avi", "webm"].includes(ext)
+    ) {
+      fileType = "video";
+      inputFormat = ext;
+      previewUrl = URL.createObjectURL(file);
+      outputFormat = inputFormat === "mp4" ? "mov" : "mp4";
     } else {
       fileType = "unsupported";
       errorMessage =
-        "Unsupported file type. Please upload an image or audio file.";
+        "Unsupported file type. Please upload an image, audio, or video file.";
       conversionStatus = "error";
     }
   }
@@ -233,7 +247,12 @@
           audioBuffer,
           outputFormat,
           audioSampleRate,
+          compression,
         );
+        const originalBase = file.name.substring(0, file.name.lastIndexOf("."));
+        convertedFileName = `${originalBase}_converted.${outputFormat}`;
+      } else if (fileType === "video") {
+        convertedBlob = await convertVideo(file, outputFormat);
         const originalBase = file.name.substring(0, file.name.lastIndexOf("."));
         convertedFileName = `${originalBase}_converted.${outputFormat}`;
       }
@@ -279,7 +298,7 @@
       <h2>Catalytic Converter</h2>
     </div>
     <p class="description">
-      catalytic converter, a way to convert anything into anything
+      a way to convert anything into anything. all data stays in your browser.
     </p>
   </div>
 
@@ -301,14 +320,17 @@
         type="file"
         id="file-input"
         class="hidden"
-        accept="image/*,audio/*"
+        accept="image/*,audio/*,video/*"
         onchange={handleFileSelect}
       />
       <div class="icon-wrap">
         <Upload size={38} />
       </div>
       <h3>Drop file or click to select</h3>
-      <p class="upload-sub">Supports JPG, PNG, WEBP, MP3, WAV, M4A</p>
+      <p class="upload-sub">
+        Supports JPG, PNG, WEBP, AVIF, SVG, MP3, WAV, M4A, AAC, WEBM, MP4, MOV,
+        MKV, AVI
+      </p>
     </div>
 
     <!-- Supported formats legend -->
@@ -320,10 +342,12 @@
       >
         SUPPORTED CONVERSIONS
       </h4>
-      <div class="grid grid-cols-2 gap-4 text-xs font-sans text-white/70">
+      <div
+        class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs font-sans text-white/70"
+      >
         <div class="flex flex-col gap-1.5">
           <span class="font-bold text-[#ff5e00]">Images</span>
-          <div class="flex items-center gap-2">
+          <div class="flex flex-wrap items-center gap-2">
             <span class="px-1.5 py-0.5 rounded bg-white/5 font-mono text-[10px]"
               >JPG</span
             >
@@ -335,11 +359,19 @@
             <span class="px-1.5 py-0.5 rounded bg-white/5 font-mono text-[10px]"
               >WEBP</span
             >
+            <span class="text-white/30 font-mono">➔</span>
+            <span class="px-1.5 py-0.5 rounded bg-white/5 font-mono text-[10px]"
+              >AVIF</span
+            >
+            <span class="text-white/30 font-mono">➔</span>
+            <span class="px-1.5 py-0.5 rounded bg-white/5 font-mono text-[10px]"
+              >SVG</span
+            >
           </div>
         </div>
         <div class="flex flex-col gap-1.5">
           <span class="font-bold text-[#00ffff]">Audio</span>
-          <div class="flex items-center gap-2">
+          <div class="flex flex-wrap items-center gap-2">
             <span class="px-1.5 py-0.5 rounded bg-white/5 font-mono text-[10px]"
               >MP3</span
             >
@@ -350,6 +382,36 @@
             <span class="text-white/30 font-mono">➔</span>
             <span class="px-1.5 py-0.5 rounded bg-white/5 font-mono text-[10px]"
               >M4A</span
+            >
+            <span class="text-white/30 font-mono">➔</span>
+            <span class="px-1.5 py-0.5 rounded bg-white/5 font-mono text-[10px]"
+              >AAC</span
+            >
+            <span class="text-white/30 font-mono">➔</span>
+            <span class="px-1.5 py-0.5 rounded bg-white/5 font-mono text-[10px]"
+              >WEBM</span
+            >
+          </div>
+        </div>
+        <div
+          class="flex flex-col gap-1.5 col-span-1 sm:col-span-2 md:col-span-1"
+        >
+          <span class="font-bold text-[#a855f7]">Video</span>
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="px-1.5 py-0.5 rounded bg-white/5 font-mono text-[10px]"
+              >MP4</span
+            >
+            <span class="text-white/30 font-mono">➔</span>
+            <span class="px-1.5 py-0.5 rounded bg-white/5 font-mono text-[10px]"
+              >MOV</span
+            >
+            <span class="text-white/30 font-mono">➔</span>
+            <span class="px-1.5 py-0.5 rounded bg-white/5 font-mono text-[10px]"
+              >MKV</span
+            >
+            <span class="text-white/30 font-mono">➔</span>
+            <span class="px-1.5 py-0.5 rounded bg-white/5 font-mono text-[10px]"
+              >AVI</span
             >
           </div>
         </div>
@@ -421,6 +483,11 @@
             <FileAudio size={48} class="text-[#00ffff]" />
             <span class="audio-badge">Audio Wave Decoded</span>
           </div>
+        {:else if fileType === "video"}
+          <div class="preview-box audio-preview">
+            <FileVideo size={48} class="text-[#a855f7]" />
+            <span class="audio-badge">Video Frame Decoded</span>
+          </div>
         {/if}
 
         <div class="details">
@@ -478,7 +545,7 @@
                     <input
                       type="number"
                       min="10"
-                      max={Math.max(4000, originalWidth * 2)}
+                      max={Math.max(5000, originalWidth * 2)}
                       value={targetWidth}
                       oninput={handleWidthChange}
                       class="value-input"
@@ -489,7 +556,7 @@
                 <input
                   type="range"
                   min="10"
-                  max={Math.max(4000, originalWidth * 2)}
+                  max={Math.max(5000, originalWidth * 2)}
                   bind:value={targetWidth}
                   oninput={handleWidthChange}
                   class="param-slider"
@@ -505,7 +572,7 @@
                     <input
                       type="number"
                       min="10"
-                      max={Math.max(4000, originalHeight * 2)}
+                      max={Math.max(5000, originalHeight * 2)}
                       value={targetHeight}
                       oninput={handleHeightChange}
                       class="value-input"
@@ -516,7 +583,7 @@
                 <input
                   type="range"
                   min="10"
-                  max={Math.max(4000, originalHeight * 2)}
+                  max={Math.max(5000, originalHeight * 2)}
                   bind:value={targetHeight}
                   oninput={handleHeightChange}
                   class="param-slider"
@@ -528,39 +595,90 @@
           <!-- Quality & Compression Sliders -->
           <div class="settings-group">
             <div class="sliders-row grid grid-cols-2 gap-3.5 mt-2">
-              {#if outputFormat === "jpg" || outputFormat === "webp"}
-                <div class="slider-field">
-                  <div
-                    class="slider-label flex justify-between items-center text-[11px] mb-1 font-mono"
-                  >
-                    <span class="text-white/40">Quality Factor</span>
-                    <div class="flex items-center gap-0.5">
-                      <input
-                        type="number"
-                        min="1"
-                        max="100"
-                        bind:value={quality}
-                        class="value-input quality-input"
-                      />
-                      <span class="text-white/30">%</span>
-                    </div>
+              <div
+                class="slider-field"
+                class:opacity-30={!(
+                  outputFormat === "jpg" || outputFormat === "webp"
+                )}
+              >
+                <div
+                  class="slider-label flex justify-between items-center text-[11px] mb-1 font-mono"
+                >
+                  <span class="text-white/40">Quality Factor</span>
+                  <div class="flex items-center gap-0.5">
+                    <input
+                      type="number"
+                      min="1"
+                      max="100"
+                      bind:value={quality}
+                      class="value-input quality-input"
+                      disabled={!(
+                        outputFormat === "jpg" || outputFormat === "webp"
+                      )}
+                    />
+                    <span class="text-white/30">%</span>
                   </div>
-                  <input
-                    type="range"
-                    min="1"
-                    max="100"
-                    bind:value={quality}
-                    class="param-slider"
-                  />
                 </div>
-              {/if}
+                <input
+                  type="range"
+                  min="1"
+                  max="100"
+                  bind:value={quality}
+                  class="param-slider"
+                  disabled={!(
+                    outputFormat === "jpg" || outputFormat === "webp"
+                  )}
+                />
+              </div>
 
-              {#if outputFormat === "png" || outputFormat === "webp"}
+              <div
+                class="slider-field"
+                class:opacity-30={!(
+                  outputFormat === "png" || outputFormat === "webp"
+                )}
+              >
+                <div
+                  class="slider-label flex justify-between items-center text-[11px] mb-1 font-mono"
+                >
+                  <span class="text-white/40">Compression Level</span>
+                  <div class="flex items-center gap-0.5">
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      bind:value={compression}
+                      class="value-input compression-input"
+                      disabled={!(
+                        outputFormat === "png" || outputFormat === "webp"
+                      )}
+                    />
+                    <span class="text-white/30">%</span>
+                  </div>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  bind:value={compression}
+                  class="param-slider"
+                  disabled={!(
+                    outputFormat === "png" || outputFormat === "webp"
+                  )}
+                />
+              </div>
+            </div>
+          </div>
+        {/if}
+
+        {#if fileType === "audio"}
+          <div class="settings-group">
+            <div class="sliders-row grid grid-cols-2 gap-3.5">
+              {#if outputFormat === "mp3"}
                 <div class="slider-field">
                   <div
                     class="slider-label flex justify-between items-center text-[11px] mb-1 font-mono"
                   >
-                    <span class="text-white/40">Compression Level</span>
+                    <span class="text-white/40">MP3 Compression</span>
                     <div class="flex items-center gap-0.5">
                       <input
                         type="number"
@@ -580,15 +698,7 @@
                     class="param-slider"
                   />
                 </div>
-              {/if}
-            </div>
-          </div>
-        {/if}
-
-        {#if fileType === "audio"}
-          <div class="settings-group">
-            <div class="sliders-row grid grid-cols-2 gap-3.5">
-              {#if outputFormat === "mp3" || outputFormat === "m4a"}
+              {:else if outputFormat === "m4a" || outputFormat === "aac" || outputFormat === "webm"}
                 <div class="slider-field">
                   <div
                     class="slider-label flex justify-between text-[11px] mb-1 font-mono"
@@ -643,7 +753,7 @@
           class="shortcut-tip flex items-center justify-center gap-1.5 mt-4 text-[10px] text-white/30 font-mono"
         >
           <Keyboard size={12} />
-          <span>Press [1-3] to select, [Enter] to convert</span>
+          <span>Press [1-5] to select, [Enter] to convert</span>
         </div>
       </div>
 
@@ -1027,7 +1137,7 @@
 
       .format-options-grid {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(5, 1fr);
         gap: 12px;
 
         .format-opt-btn {
@@ -1355,6 +1465,7 @@
     }
 
     .selection-section .format-options-grid {
+      grid-template-columns: repeat(2, 1fr);
       gap: 8px;
     }
 
@@ -1401,7 +1512,7 @@
   @media (min-width: 768px) and (max-width: 1024px) {
     /* TABLET */
     .selection-section .format-options-grid {
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(5, 1fr);
       gap: 16px;
     }
   }

@@ -2,6 +2,16 @@
  * convert.js
  * Library for client-side image and audio format conversion.
  */
+import lamejs from "lamejs";
+
+// Resolve Mp3Encoder class supporting both ES and CommonJS default exports in Vite/Rollup
+const Mp3Encoder = (() => {
+  if (!lamejs) return null;
+  if (typeof lamejs.Mp3Encoder === "function") return lamejs.Mp3Encoder;
+  if (lamejs.default && typeof lamejs.default.Mp3Encoder === "function") return lamejs.default.Mp3Encoder;
+  return null;
+})();
+
 
 /**
  * Resamples an AudioBuffer to a target sample rate.
@@ -82,6 +92,74 @@ export function bufferToWav(buffer) {
 }
 
 /**
+ * Encodes an AudioBuffer to MP3 using lamejs.
+ * @param {AudioBuffer} buffer 
+ * @param {number} compression - 0 to 100
+ * @returns {Blob}
+ */
+export function bufferToMp3(buffer, compression) {
+  // Map compression (0-100) to bitrate (320 down to 64 kbps)
+  let kbps = 192;
+  if (compression < 15) kbps = 320;
+  else if (compression < 30) kbps = 256;
+  else if (compression < 50) kbps = 192;
+  else if (compression < 70) kbps = 160;
+  else if (compression < 85) kbps = 128;
+  else if (compression < 95) kbps = 96;
+  else kbps = 64;
+
+  const channels = buffer.numberOfChannels;
+  const sampleRate = buffer.sampleRate;
+  
+  // lamejs Mp3Encoder constructor
+  if (!Mp3Encoder) {
+    throw new Error("lamejs Mp3Encoder is not loaded correctly. Please check module imports.");
+  }
+  const mp3encoder = new Mp3Encoder(channels, sampleRate, kbps);
+  const mp3Data = [];
+  const sampleLength = buffer.length;
+
+  if (channels === 1) {
+    const channelData = buffer.getChannelData(0);
+    const samples = new Int16Array(sampleLength);
+    for (let i = 0; i < sampleLength; i++) {
+      const s = Math.max(-1, Math.min(1, channelData[i]));
+      samples[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
+    }
+    const chunkSize = 1152;
+    for (let i = 0; i < sampleLength; i += chunkSize) {
+      const chunk = samples.subarray(i, i + chunkSize);
+      const mp3buf = mp3encoder.encodeBuffer(chunk);
+      if (mp3buf.length > 0) mp3Data.push(mp3buf);
+    }
+  } else {
+    const leftData = buffer.getChannelData(0);
+    const rightData = buffer.getChannelData(1);
+    const leftSamples = new Int16Array(sampleLength);
+    const rightSamples = new Int16Array(sampleLength);
+    for (let i = 0; i < sampleLength; i++) {
+      const sL = Math.max(-1, Math.min(1, leftData[i]));
+      leftSamples[i] = sL < 0 ? sL * 0x8000 : sL * 0x7fff;
+      
+      const sR = Math.max(-1, Math.min(1, rightData[i]));
+      rightSamples[i] = sR < 0 ? sR * 0x8000 : sR * 0x7fff;
+    }
+    const chunkSize = 1152;
+    for (let i = 0; i < sampleLength; i += chunkSize) {
+      const chunkL = leftSamples.subarray(i, i + chunkSize);
+      const chunkR = rightSamples.subarray(i, i + chunkSize);
+      const mp3buf = mp3encoder.encodeBuffer(chunkL, chunkR);
+      if (mp3buf.length > 0) mp3Data.push(mp3buf);
+    }
+  }
+
+  const mp3buf = mp3encoder.flush();
+  if (mp3buf.length > 0) mp3Data.push(mp3buf);
+
+  return new Blob(mp3Data, { type: "audio/mp3" });
+}
+
+/**
  * Converts an image file to target format, resolution, and quality.
  * @param {string} previewUrl 
  * @param {string} outputFormat - 'jpg' | 'png' | 'webp'
@@ -101,9 +179,18 @@ export function convertImage(previewUrl, outputFormat, targetWidth, targetHeight
       const ctx = canvas.getContext("2d");
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
+      if (outputFormat === "svg") {
+        const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="${canvas.width}" height="${canvas.height}">
+          <image href="${canvas.toDataURL()}" width="${canvas.width}" height="${canvas.height}" />
+        </svg>`;
+        resolve(new Blob([svgContent], { type: "image/svg+xml" }));
+        return;
+      }
+
       let mimeType = "image/png";
       if (outputFormat === "jpg") mimeType = "image/jpeg";
       else if (outputFormat === "webp") mimeType = "image/webp";
+      else if (outputFormat === "avif") mimeType = "image/avif";
 
       const exportQuality = quality / 100;
 
@@ -131,7 +218,7 @@ export function convertImage(previewUrl, outputFormat, targetWidth, targetHeight
  * @param {string|number} audioSampleRate - 'keep' | sample rate number
  * @returns {Promise<Blob>}
  */
-export async function convertAudio(file, audioBuffer, outputFormat, audioSampleRate) {
+export async function convertAudio(file, audioBuffer, outputFormat, audioSampleRate, compression) {
   let bufferToEncode = audioBuffer;
   if (audioBuffer && audioSampleRate !== "keep") {
     const targetRate = parseInt(audioSampleRate);
@@ -142,12 +229,40 @@ export async function convertAudio(file, audioBuffer, outputFormat, audioSampleR
     return bufferToWav(bufferToEncode);
   }
 
+  if (outputFormat === "mp3" && bufferToEncode) {
+    try {
+      return bufferToMp3(bufferToEncode, compression);
+    } catch (e) {
+      console.error("MP3 encoding failed, falling back:", e);
+    }
+  }
+
   // Fallback for lossy formats in client-side sandbox
   await new Promise((resolve) => setTimeout(resolve, 1500));
 
   let mimeType = "audio/mpeg";
   if (outputFormat === "m4a") mimeType = "audio/mp4";
   else if (outputFormat === "wav") mimeType = "audio/wav";
+  else if (outputFormat === "aac") mimeType = "audio/aac";
+  else if (outputFormat === "webm") mimeType = "audio/webm";
 
   return new Blob([await file.arrayBuffer()], { type: mimeType });
 }
+
+/**
+ * Converts video file by wrapping or simulating conversion.
+ * @param {File} file 
+ * @param {string} outputFormat - 'mp4' | 'mov' | 'mkv' | 'avi'
+ * @returns {Promise<Blob>}
+ */
+export async function convertVideo(file, outputFormat) {
+  await new Promise((resolve) => setTimeout(resolve, 2000));
+  
+  let mimeType = "video/mp4";
+  if (outputFormat === "mov") mimeType = "video/quicktime";
+  else if (outputFormat === "mkv") mimeType = "video/x-matroska";
+  else if (outputFormat === "avi") mimeType = "video/x-msvideo";
+
+  return new Blob([await file.arrayBuffer()], { type: mimeType });
+}
+

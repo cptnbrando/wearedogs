@@ -79,7 +79,7 @@
       style="color: var(--color-neon-pink, #ff007f); filter: drop-shadow(0 0 6px rgba(255, 0, 127, 0.4));"
     />
   </div>
-{:else if appId === "catalyticconverter"}
+{:else if appId === "converter"}
   <div class="flex items-center justify-center h-full">
     <RefreshCw
       size={28}

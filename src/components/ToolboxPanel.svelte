@@ -89,7 +89,7 @@
       icon: QrCode,
     },
     {
-      id: "catalyticconverter",
+      id: "converter",
       title: "Catalytic Converter",
       desc: "Rapid format refinement engine for images and audio files.",
       icon: RefreshCw,
@@ -350,7 +350,7 @@
         <SettingsApp />
       {:else if activeApp === "soundstripper"}
         <SoundStripper />
-      {:else if activeApp === "catalyticconverter"}
+      {:else if activeApp === "converter"}
         <CatalyticConverter />
       {:else if activeApp === "windshieldwiper"}
         <WindshieldWiper onClose={() => (activeApp = null)} />
