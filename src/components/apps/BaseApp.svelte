@@ -58,7 +58,7 @@
     height: 100%;
     padding: 24px;
     box-sizing: border-box;
-    overflow-y: auto;
+    overflow: hidden;
   }
 
   .app-header {

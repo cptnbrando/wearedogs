@@ -10,6 +10,9 @@
   let weAreDogsColored = $state(false);
   let isLandingPage = $state(true);
 
+  let isScrolling = $state(false);
+  let scrollTimeout = null;
+
   let mainContainer = $state();
 
   $effect(() => {
@@ -39,6 +42,12 @@
     setTimeout(checkInitialPath, 50);
 
     const handleScroll = () => {
+      isScrolling = true;
+      if (scrollTimeout) clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => {
+        isScrolling = false;
+      }, 1000);
+
       if (!mainContainer || activePage !== null || showInfo) return;
 
       const scrollTop = mainContainer.scrollTop;
@@ -113,6 +122,7 @@
     window.addEventListener("popstate", handlePopState);
 
     return () => {
+      if (scrollTimeout) clearTimeout(scrollTimeout);
       mainContainer?.removeEventListener("scroll", handleScroll);
       mainContainer?.removeEventListener("touchstart", handleTouchStart);
       mainContainer?.removeEventListener("touchmove", handleTouchMove);
@@ -124,6 +134,8 @@
 <main
   bind:this={mainContainer}
   class="w-screen h-dvh"
+  class:colored={weAreDogsColored}
+  class:is-scrolling={isScrolling}
   class:overflow-y-auto={activePage === null && !showInfo}
   class:snap-y={activePage === null && !showInfo}
   class:snap-mandatory={activePage === null && !showInfo}

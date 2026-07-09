@@ -34,27 +34,64 @@ body {
     height: 8px;
 }
 
-::-webkit-scrollbar-track {
+/* Grayscale state (when color is off) */
+main:not(.colored) ::-webkit-scrollbar-track {
+    background: var(--bg-app, #050508);
+    border-left: 1px solid rgba(255, 255, 255, 0.05);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+main:not(.colored) ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border: 2px solid var(--bg-app, #050508);
+    border-radius: 4px;
+}
+
+main:not(.colored) ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.35);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Colored state (when color is on) */
+main.colored ::-webkit-scrollbar-track {
     background: var(--bg-app, #050508);
     border-left: 1px solid rgba(var(--color-neon-red-rgb, 255, 51, 68), 0.15);
     border-top: 1px solid rgba(var(--color-neon-red-rgb, 255, 51, 68), 0.15);
 }
 
-::-webkit-scrollbar-thumb {
+main.colored ::-webkit-scrollbar-thumb {
     background: var(--color-neon-red, #ff3344);
     border: 2px solid var(--bg-app, #050508);
     border-radius: 4px;
 }
 
-::-webkit-scrollbar-thumb:hover {
+main.colored ::-webkit-scrollbar-thumb:hover {
     background: var(--color-text, #ffffff);
     border-color: var(--color-neon-red, #ff3344);
 }
 
 /* Firefox standard styling */
-* {
+main:not(.colored) * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.15) var(--bg-app, #050508);
+}
+
+main.colored * {
     scrollbar-width: thin;
     scrollbar-color: var(--color-neon-red, #ff3344) var(--bg-app, #050508);
+}
+
+/* ── Auto-hide main screen scrollbars when not actively scrolling ── */
+main:not(.is-scrolling)::-webkit-scrollbar-thumb {
+    background: transparent !important;
+    border-color: transparent !important;
+}
+main:not(.is-scrolling)::-webkit-scrollbar-track {
+    background: transparent !important;
+    border: none !important;
+}
+main:not(.is-scrolling) {
+    scrollbar-color: transparent transparent !important;
 }
 
 /* Hide scrollbars but keep scrolling functionality */
@@ -96,4 +133,56 @@ body {
     &:active {
         transform: scale(0.95);
     }
+}
+
+/* ── Disable scrollbars popping in during panel open/close transitions ── */
+
+@keyframes temp-hide-overflow {
+  0%, 99% {
+    overflow: hidden !important;
+    overflow-y: hidden !important;
+    overflow-x: hidden !important;
+  }
+  100% {
+    /* Resets to default overflow styles */
+  }
+}
+
+.scroll-container,
+.panel-content-pane,
+.launcher-view,
+.player-side,
+.songs-list,
+.search-results-list,
+.lyrics-tab,
+.catalog-container,
+.drawer-body,
+.panel-body {
+  animation: temp-hide-overflow 0.45s steps(1, end) forwards;
+}
+
+/* Hide scrollbars on any inner scrollable element during the closing transition */
+.template-panel-container.closing .scroll-container,
+.template-panel-container.closing .panel-content-pane,
+.toolbox-panel-container.closing .launcher-view,
+.toolbox-panel-container.closing .panel-body,
+.stats-panel-container.closing .panel-content-pane,
+.info-panel-container.closing .info-content,
+.mp-container.closing .player-side,
+.mp-container.closing .songs-list,
+.mp-container.closing .search-results-list,
+.mp-container.closing .lyrics-tab,
+.toolbox-panel-container.closing .catalog-container,
+.toolbox-panel-container.closing .drawer-body {
+  overflow: hidden !important;
+  overflow-y: hidden !important;
+  overflow-x: hidden !important;
+}
+
+.template-panel-container.closing,
+.toolbox-panel-container.closing,
+.stats-panel-container.closing,
+.info-panel-container.closing,
+.mp-container.closing {
+  overflow: hidden !important;
 }

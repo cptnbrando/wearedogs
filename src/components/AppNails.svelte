@@ -512,7 +512,6 @@
 
   :global(.app-card:hover) :global(.wiper-blade-animate),
   :global(.app-card.focused) :global(.wiper-blade-animate) {
-    animation: wiper-sweep 1s ease-in-out infinite alternate;
     stroke: #00ffff;
     filter: drop-shadow(0 0 4px rgba(0, 255, 255, 0.8));
   }
