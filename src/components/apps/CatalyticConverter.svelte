@@ -29,6 +29,7 @@
   let convertedBlob = $state(null);
   let convertedFileName = $state("");
   let errorMessage = $state("");
+  let currentNotice = $state("Refining Format Molecules");
 
   // Image size parameters
   let originalWidth = $state(0);
@@ -57,6 +58,56 @@
   };
 
   let availableFormats = $derived(fileType ? formatMap[fileType] || [] : []);
+
+  const notices = [
+    "Refining Format Molecules",
+    "Microwaving the Pizza",
+    "Flipping the Pancakes",
+    "Flapping the Flapjacks",
+    "Cheesing the Cheesecake",
+    "Moving the Needle",
+    "Baking the Goods",
+    "Painting the Painting",
+    "Doing the Laundry",
+    "Spinning the Gears",
+    "Vaccuming the Car",
+    "Investigating 311",
+    "Playing Polymerization",
+    "Popping the Popcorn",
+    "Teabagging the Teabag",
+    "Lickin my Fingers",
+    "Feeding to Ditto",
+    "Roasting the Marshmallows",
+    "Bending the Spoon",
+    "Surfing the Big One",
+    "Petting the Dog",
+    "Layering the Lasagna",
+    "Chopping the Onion",
+    "Shifting the Shapes",
+    "Sanding the Silverware",
+    "Firing the Clay",
+    "Heating up the Kiln",
+    "Microwaving the Leftovers",
+    "Chasing the Mailman",
+    "Pushing the Limits",
+    "Bursting the Bubbles",
+    "Ironing the Pants",
+    "Paying the 'LectricBill",
+    "Bribing the Policemen",
+    "Karate Chopping the Salad",
+    "Tipping the Waitress",
+    "Pressure Washin the Winder",
+    "Lickin the Lightbulbs",
+    "Eating the Bologna",
+    "Tuning the Pianos",
+    "Feeding the Pidgeons",
+    "Fighting the Fake News",
+    "Kicking the Nazis",
+    "Doing git push-ups",
+    "Doing Sit-Ups",
+    "Doing git pull-ups",
+    `Doing git revert --no-commit "HEAD~$c..HEAD"-Ups`,
+  ];
 
   // Keyboard shortcut listener
   function handleKeydown(e) {
@@ -224,6 +275,7 @@
     if (!file || !outputFormat) return;
     conversionStatus = "converting";
     progress = 0;
+    currentNotice = notices[Math.floor(Math.random() * notices.length)];
 
     const interval = setInterval(() => {
       progress += 10;
@@ -242,6 +294,16 @@
         const originalBase = file.name.substring(0, file.name.lastIndexOf("."));
         convertedFileName = `${originalBase}.${outputFormat}`;
       } else if (fileType === "audio") {
+        if (!audioBuffer) {
+          try {
+            const arrayBuffer = await file.arrayBuffer();
+            audioContext = new (window.AudioContext ||
+              window.webkitAudioContext)();
+            audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+          } catch (err) {
+            console.error("Failed to decode audio data on-the-fly:", err);
+          }
+        }
         convertedBlob = await convertAudio(
           file,
           audioBuffer,
@@ -294,7 +356,7 @@
 <div class="converter-app animated-pane">
   <div class="app-header">
     <div class="title-wrap">
-      <Flame class="converter-flame-icon" size={24} />
+      <span class="converter-flame-icon"><Flame size={24} /></span>
       <h2>Catalytic Converter</h2>
     </div>
     <p class="description">
@@ -427,10 +489,10 @@
             <span class="spark s2"></span>
             <span class="spark s3"></span>
           </div>
-          <Flame class="cylinder-flame" size={48} />
+          <span class="cylinder-flame"><Flame size={48} /></span>
         </div>
       </div>
-      <h3>Refining Format Molecules...</h3>
+      <h3>{currentNotice}...</h3>
       <div class="progress-bar-wrap">
         <div class="progress-bar-fill" style="width: {progress}%"></div>
       </div>
@@ -1084,7 +1146,6 @@
           -webkit-appearance: none;
           margin: 0;
         }
-        -moz-appearance: textfield;
       }
 
       .param-slider {
@@ -1302,7 +1363,6 @@
     }
   }
 
-  /* ── SUCCESS PANEL ── */
   .success-panel,
   .error-panel {
     flex: 1;
@@ -1320,7 +1380,9 @@
       margin: 0;
       font-family: "Outfit", sans-serif;
     }
+  }
 
+  .success-panel {
     .converted-info-card {
       background: rgba(255, 255, 255, 0.02);
       border: 1px solid rgba(255, 255, 255, 0.05);

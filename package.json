@@ -36,8 +36,7 @@
     "qrcode": "^1.5.4",
     "svelte-i18n": "^4.0.1",
     "three": "^0.184.0",
-    "// lamejs": "Used for catalytic converter to go to mp3",
-    "lamejs": "^1.2.1"
+    "@breezystack/lamejs": "^1.2.3"
   },
   "blahblahblah": {
     "if you see this shit": "npm warn allow-scripts 4 packages have install scripts not yet covered by allowScripts:",
@@ -48,6 +47,7 @@
     "i just watch the warning come and go": "all fucking day",
     "...": "...",
     "anyway": "",
-    "if you need batman you can run sh ./public/batman/download.sh": "toodle loo"
+    "if you need batman you can run sh ./public/batman/download.sh": "toodle loo",
+    "@breezystack/lamejs": "Used for catalytic converter to go to LAME mp3"
   }
 }

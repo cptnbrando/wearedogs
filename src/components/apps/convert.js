@@ -2,15 +2,20 @@
  * convert.js
  * Library for client-side image and audio format conversion.
  */
-import lamejs from "lamejs";
+import { Mp3Encoder } from "@breezystack/lamejs";
 
-// Resolve Mp3Encoder class supporting both ES and CommonJS default exports in Vite/Rollup
-const Mp3Encoder = (() => {
-  if (!lamejs) return null;
-  if (typeof lamejs.Mp3Encoder === "function") return lamejs.Mp3Encoder;
-  if (lamejs.default && typeof lamejs.default.Mp3Encoder === "function") return lamejs.default.Mp3Encoder;
-  return null;
-})();
+// Fix for lamejs packaging bugs causing "MPEGMode is not defined"
+if (typeof globalThis !== "undefined" && !globalThis.MPEGMode) {
+  globalThis.MPEGMode = {
+    STEREO: 0,
+    JOINT_STEREO: 1,
+    DUAL_CHANNEL: 2,
+    SINGLE_CHANNEL: 3,
+  };
+}
+if (typeof window !== "undefined" && !window.MPEGMode) {
+  window.MPEGMode = globalThis.MPEGMode;
+}
 
 
 /**
@@ -97,15 +102,16 @@ export function bufferToWav(buffer) {
  * @param {number} compression - 0 to 100
  * @returns {Blob}
  */
-export function bufferToMp3(buffer, compression) {
+export async function bufferToMp3(buffer, compression) {
+  const comp = Number(compression) || 0;
   // Map compression (0-100) to bitrate (320 down to 64 kbps)
   let kbps = 192;
-  if (compression < 15) kbps = 320;
-  else if (compression < 30) kbps = 256;
-  else if (compression < 50) kbps = 192;
-  else if (compression < 70) kbps = 160;
-  else if (compression < 85) kbps = 128;
-  else if (compression < 95) kbps = 96;
+  if (comp < 15) kbps = 320;
+  else if (comp < 30) kbps = 256;
+  else if (comp < 50) kbps = 192;
+  else if (comp < 70) kbps = 160;
+  else if (comp < 85) kbps = 128;
+  else if (comp < 95) kbps = 96;
   else kbps = 64;
 
   const channels = buffer.numberOfChannels;
@@ -128,7 +134,15 @@ export function bufferToMp3(buffer, compression) {
     }
     const chunkSize = 1152;
     for (let i = 0; i < sampleLength; i += chunkSize) {
-      const chunk = samples.subarray(i, i + chunkSize);
+      if (i > 0 && (i / chunkSize) % 500 === 0) {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      }
+      let chunk = samples.subarray(i, i + chunkSize);
+      if (chunk.length < chunkSize) {
+        const padded = new Int16Array(chunkSize);
+        padded.set(chunk);
+        chunk = padded;
+      }
       const mp3buf = mp3encoder.encodeBuffer(chunk);
       if (mp3buf.length > 0) mp3Data.push(mp3buf);
     }
@@ -146,8 +160,19 @@ export function bufferToMp3(buffer, compression) {
     }
     const chunkSize = 1152;
     for (let i = 0; i < sampleLength; i += chunkSize) {
-      const chunkL = leftSamples.subarray(i, i + chunkSize);
-      const chunkR = rightSamples.subarray(i, i + chunkSize);
+      if (i > 0 && (i / chunkSize) % 500 === 0) {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      }
+      let chunkL = leftSamples.subarray(i, i + chunkSize);
+      let chunkR = rightSamples.subarray(i, i + chunkSize);
+      if (chunkL.length < chunkSize) {
+        const paddedL = new Int16Array(chunkSize);
+        const paddedR = new Int16Array(chunkSize);
+        paddedL.set(chunkL);
+        paddedR.set(chunkR);
+        chunkL = paddedL;
+        chunkR = paddedR;
+      }
       const mp3buf = mp3encoder.encodeBuffer(chunkL, chunkR);
       if (mp3buf.length > 0) mp3Data.push(mp3buf);
     }
@@ -230,11 +255,7 @@ export async function convertAudio(file, audioBuffer, outputFormat, audioSampleR
   }
 
   if (outputFormat === "mp3" && bufferToEncode) {
-    try {
-      return bufferToMp3(bufferToEncode, compression);
-    } catch (e) {
-      console.error("MP3 encoding failed, falling back:", e);
-    }
+    return await bufferToMp3(bufferToEncode, compression);
   }
 
   // Fallback for lossy formats in client-side sandbox
