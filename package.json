@@ -35,7 +35,9 @@
     "lucide-svelte": "^1.0.1",
     "qrcode": "^1.5.4",
     "svelte-i18n": "^4.0.1",
-    "three": "^0.184.0"
+    "three": "^0.184.0",
+    "// lamejs": "Used for catalytic converter to go to mp3",
+    "lamejs": "^1.2.1"
   },
   "blahblahblah": {
     "if you see this shit": "npm warn allow-scripts 4 packages have install scripts not yet covered by allowScripts:",

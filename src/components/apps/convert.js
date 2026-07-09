@@ -144,7 +144,7 @@ export async function convertAudio(file, audioBuffer, outputFormat, audioSampleR
 
   // Fallback for lossy formats in client-side sandbox
   await new Promise((resolve) => setTimeout(resolve, 1500));
-  
+
   let mimeType = "audio/mpeg";
   if (outputFormat === "m4a") mimeType = "audio/mp4";
   else if (outputFormat === "wav") mimeType = "audio/wav";
