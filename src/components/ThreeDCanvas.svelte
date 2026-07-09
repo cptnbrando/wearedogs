@@ -33,7 +33,8 @@
       }
 
       // Easily set to test dog models & animations here
-      // selectedModelId = "gromit";
+      const DEFAULT_MODEL = "dug";
+      selectedModelId = DEFAULT_MODEL;
 
       // Dynamically fetch file sizes in the background
       models.forEach(async (model) => {
