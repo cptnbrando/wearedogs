@@ -317,7 +317,46 @@
         console.error("Failed to copy share link.");
       });
   }
+
+  let focusedPostIdx = $state(0);
+
+  function handleKeydown(e) {
+    if (activePost !== null) return;
+    if (posts.length === 0) return;
+
+    if (e.key === "ArrowRight") {
+      e.preventDefault();
+      focusedPostIdx = (focusedPostIdx + 1) % posts.length;
+      scrollFocusedPostIntoView();
+    } else if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      focusedPostIdx = (focusedPostIdx - 1 + posts.length) % posts.length;
+      scrollFocusedPostIntoView();
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      const columns = window.innerWidth >= 640 ? 2 : 1;
+      focusedPostIdx = (focusedPostIdx + columns) % posts.length;
+      scrollFocusedPostIntoView();
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      const columns = window.innerWidth >= 640 ? 2 : 1;
+      focusedPostIdx = (focusedPostIdx - columns + posts.length) % posts.length;
+      scrollFocusedPostIntoView();
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      selectPost(posts[focusedPostIdx]);
+    }
+  }
+
+  function scrollFocusedPostIntoView() {
+    const el = document.querySelector(`.post-card[data-index="${focusedPostIdx}"]`);
+    if (el) {
+      el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+  }
 </script>
+
+<svelte:window onkeydown={handleKeydown} />
 
 <svelte:head>
   {#if activePost}
@@ -392,10 +431,13 @@
           </div>
         {:else}
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {#each posts as post}
+            {#each posts as post, i}
               <button
                 type="button"
+                data-index={i}
+                class:focused={focusedPostIdx === i}
                 onclick={() => selectPost(post)}
+                onmouseenter={() => (focusedPostIdx = i)}
                 class="post-card text-left p-4 md:p-5 rounded-2xl border transition-all duration-300 flex flex-col gap-3.5 relative group overflow-hidden bg-white/[0.01] border-white/5 hover:border-[#b455ff]/40 hover:bg-white/[0.03] cursor-pointer"
               >
                 <!-- Card Header -->
@@ -426,7 +468,7 @@
 
                 <!-- Bottom Indicator -->
                 <div
-                  class="flex justify-end items-center text-[10px] text-[#b455ff] font-semibold opacity-0 group-hover:opacity-100 transition-opacity gap-1 font-mono pt-1"
+                  class="read-indicator flex justify-end items-center text-[10px] text-[#b455ff] font-semibold opacity-0 group-hover:opacity-100 transition-opacity gap-1 font-mono pt-1"
                 >
                   <span>READ_LOG_ENTRY</span>
                   <ChevronRight size={10} />
@@ -623,5 +665,14 @@
   .text-matrix:not(.colored-glitch) {
     color: #ffffff !important;
     text-shadow: 0 0 8px rgba(255, 255, 255, 0.8) !important;
+  }
+
+  .post-card.focused {
+    border-color: rgba(180, 85, 255, 0.4) !important;
+    background: rgba(255, 255, 255, 0.03) !important;
+  }
+
+  .post-card.focused .read-indicator {
+    opacity: 1 !important;
   }
 </style>

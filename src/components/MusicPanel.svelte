@@ -27,6 +27,7 @@
     Minimize2,
     Share2,
     Check,
+    AlertTriangle,
   } from "lucide-svelte";
   import { audioCore } from "../lib/AudioCore.svelte.js";
   import { VisualizerEngine } from "../lib/visualizer/VisualizerEngine.js";
@@ -44,6 +45,14 @@
     { id: "playlists", label: "Playlists", icon: Radio },
     { id: "radio", label: "Radio", icon: BoomBox },
   ];
+
+  const ERROR_COVER = "/img/error_cover.png";
+
+  function handleCoverError(e) {
+    if (!e.target.src.endsWith(ERROR_COVER)) {
+      e.target.src = ERROR_COVER;
+    }
+  }
 
   let { isClosing = false, onClose, initialTrackId = null } = $props();
 
@@ -197,9 +206,8 @@
       id: "denchai",
       title: "Den Chai",
       artist: "The Buddha-Bar Lounge",
-      album: "Buddha-Bar Lounge",
-      cover:
-        "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20300%20300'%20width='300'%20height='300'%3E%3Cdefs%3E%3CradialGradient%20id='bgGrad'%20cx='50%25'%20cy='50%25'%20r='50%25'%3E%3Cstop%20offset='0%25'%20stop-color='%232d0a14'/%3E%3Cstop%20offset='100%25'%20stop-color='%23050508'/%3E%3C/radialGradient%3E%3ClinearGradient%20id='goldGrad'%20x1='0%25'%20y1='0%25'%20x2='100%25'%20y2='100%25'%3E%3Cstop%20offset='0%25'%20stop-color='%23ffe259'/%3E%3Cstop%20offset='100%25'%20stop-color='%23ffa751'/%3E%3C/linearGradient%3E%3Cfilter%20id='glow'%20x='-20%25'%20y='-20%25'%20width='140%25'%20height='140%25'%3E%3Cdrop-shadow%20dx='0'%20dy='0'%20stdDeviation='6'%20flood-color='%23ff0055'%20flood-opacity='0.6'/%3E%3C/filter%3E%3C/defs%3E%3Crect%20width='300'%20height='300'%20fill='url(%23bgGrad)'/%3E%3Ccircle%20cx='150'%20cy='150'%20r='100'%20fill='none'%20stroke='%23ff0055'%20stroke-width='2'%20filter='url(%23glow)'/%3E%3Ccircle%20cx='150'%20cy='150'%20r='95'%20fill='none'%20stroke='url(%23goldGrad)'%20stroke-width='1'%20opacity='0.5'/%3E%3Cpath%20d='M150%2075%20C142%2085,%20140%20100,%20142%20110%20C132%20115,%20125%20125,%20125%20140%20C125%20160,%20135%20180,%20145%20190%20C130%20195,%20110%20205,%20100%20215%20C95%20220,%2095%20225,%20105%20225%20L195%20225%20C205%20225,%20205%20220,%20200%20215%20C190%20205,%20170%20195,%20155%20190%20C165%20180,%20175%20160,%20175%20140%20C175%20125,%20168%20115,%20158%20110%20C160%20100,%20158%2085,%20150%2075%20Z'%20fill='url(%23goldGrad)'/%3E%3Ctext%20x='150'%20y='250'%20font-family='system-ui,%20-apple-system,%20sans-serif'%20font-size='12'%20font-weight='900'%20fill='%23ffa751'%20letter-spacing='4'%20text-anchor='middle'%3EBUDDHA-BAR%3C/text%3E%3Ctext%20x='150'%20y='265'%20font-family='system-ui,%20-apple-system,%20sans-serif'%20font-size='8'%20font-weight='400'%20fill='rgba(255,255,255,0.4)'%20letter-spacing='2'%20text-anchor='middle'%3EDEN%20CHAI%3C/text%3E%3C/svg%3E",
+      album: "Den Chai",
+      cover: "/img/covers/buddha.webp",
       altCover: "",
       src: "https://data.wearedogs.net/music/2026/DENCHAI.mp3",
       instrumental: "",
@@ -307,9 +315,24 @@
     }
   });
 
+  let focusedTrackId = $state(null);
+
+  function scrollFocusedTrackIntoView() {
+    const el = document.querySelector(
+      `.track-row[data-track-id="${focusedTrackId}"]`,
+    );
+    if (el) {
+      el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+  }
+
   function selectSortedTrack(track) {
+    focusedTrackId = track.id;
     const idx = library.findIndex((t) => t.id === track.id);
-    if (audioCore.currentTrackIndex === idx) {
+    if (
+      audioCore.currentTrackIndex === idx &&
+      !audioCore.fetchErrors[track.id]
+    ) {
       audioCore.togglePlay();
     } else {
       audioCore.loadTrack(idx, true);
@@ -362,19 +385,77 @@
   }
 
   function handleKeydown(e) {
-    if (e.code === "Space" || e.key === " ") {
-      const activeEl = document.activeElement;
-      if (
-        activeEl &&
-        (activeEl.tagName === "INPUT" ||
-          activeEl.tagName === "TEXTAREA" ||
-          activeEl.isContentEditable)
-      ) {
+    const activeEl = document.activeElement;
+    if (
+      activeEl &&
+      (activeEl.tagName === "INPUT" ||
+        activeEl.tagName === "TEXTAREA" ||
+        activeEl.isContentEditable)
+    ) {
+      return;
+    }
+
+    if (e.shiftKey) {
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        const currentIdx = musicTabs.findIndex((t) => t.id === activeTab);
+        const nextIdx = (currentIdx + 1) % musicTabs.length;
+        activeTab = musicTabs[nextIdx].id;
+        return;
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        const currentIdx = musicTabs.findIndex((t) => t.id === activeTab);
+        const prevIdx = (currentIdx - 1 + musicTabs.length) % musicTabs.length;
+        activeTab = musicTabs[prevIdx].id;
         return;
       }
+    }
+
+    if (e.code === "Space" || e.key === " ") {
       if (activeTab === "songs") {
         e.preventDefault();
         audioCore.togglePlay();
+      }
+    } else if (e.key === "ArrowDown") {
+      if (activeTab === "songs" && sortedLibrary.length > 0) {
+        e.preventDefault();
+        let currentIdx = sortedLibrary.findIndex(
+          (t) => t.id === focusedTrackId,
+        );
+        if (currentIdx === -1) {
+          const playingTrack = library[audioCore.currentTrackIndex];
+          currentIdx = sortedLibrary.findIndex(
+            (t) => t.id === playingTrack?.id,
+          );
+        }
+        const nextIdx = (currentIdx + 1) % sortedLibrary.length;
+        focusedTrackId = sortedLibrary[nextIdx].id;
+        scrollFocusedTrackIntoView();
+      }
+    } else if (e.key === "ArrowUp") {
+      if (activeTab === "songs" && sortedLibrary.length > 0) {
+        e.preventDefault();
+        let currentIdx = sortedLibrary.findIndex(
+          (t) => t.id === focusedTrackId,
+        );
+        if (currentIdx === -1) {
+          const playingTrack = library[audioCore.currentTrackIndex];
+          currentIdx = sortedLibrary.findIndex(
+            (t) => t.id === playingTrack?.id,
+          );
+        }
+        const prevIdx =
+          (currentIdx - 1 + sortedLibrary.length) % sortedLibrary.length;
+        focusedTrackId = sortedLibrary[prevIdx].id;
+        scrollFocusedTrackIntoView();
+      }
+    } else if (e.key === "Enter") {
+      if (activeTab === "songs" && focusedTrackId) {
+        e.preventDefault();
+        const track = sortedLibrary.find((t) => t.id === focusedTrackId);
+        if (track) {
+          selectSortedTrack(track);
+        }
       }
     }
   }
@@ -447,9 +528,11 @@
     };
   });
 
-  // Reset fail counts and clear meshes when track changes
+  // Reset fail counts and clear meshes when track changes, tab changes, or leaving the player
   $effect(() => {
     const trackIdx = audioCore.currentTrackIndex;
+    const tab = activeTab;
+    const closing = isClosing;
     crossfadeFailCount = 0;
     hasSmokeStarted = false;
     if (fxScene) {
@@ -748,12 +831,13 @@
                       <div class="groove g4"></div>
                       <div class="record-label">
                         <img
-                          src={currentTrack.cover}
+                          src={(audioCore.fetchErrors[currentTrack.id] || !currentTrack.cover) ? ERROR_COVER : currentTrack.cover}
                           alt={currentTrack.album}
                           loading="lazy"
                           class="record-art"
                           class:loaded={vinylLoaded}
                           onload={() => (vinylLoaded = true)}
+                          onerror={handleCoverError}
                         />
                       </div>
                       <div class="spindle"></div>
@@ -881,10 +965,13 @@
                 </button>
                 <button
                   class="ctrl ctrl-play"
+                  class:ctrl-error={audioCore.fetchErrors[currentTrack.id]}
                   onclick={() => audioCore.togglePlay()}
                   aria-label={audioCore.isPlaying ? "Pause" : "Play"}
                 >
-                  {#if audioCore.isLoading}
+                  {#if audioCore.fetchErrors[currentTrack.id]}
+                    <AlertTriangle size={22} />
+                  {:else if audioCore.isLoading}
                     <div class="spin-ring"></div>
                   {:else if audioCore.isPlaying}
                     <Pause size={22} fill="currentColor" />
@@ -1088,6 +1175,9 @@
                   class="track-row"
                   class:active={library[audioCore.currentTrackIndex].id ===
                     track.id}
+                  class:kb-focused={focusedTrackId === track.id}
+                  class:fetch-error={audioCore.fetchErrors[track.id]}
+                  data-track-id={track.id}
                   onclick={() => selectSortedTrack(track)}
                 >
                   <div class="tr-num">
@@ -1102,13 +1192,29 @@
                     {/if}
                   </div>
                   <img
-                    src={track.cover}
+                    src={(audioCore.fetchErrors[track.id] || !track.cover) ? ERROR_COVER : track.cover}
                     alt={track.album}
                     loading="lazy"
                     class="tr-art"
+                    onerror={handleCoverError}
                   />
                   <div class="tr-info">
-                    <span class="tr-title">{track.title}</span>
+                    <div class="flex items-center gap-1.5 min-w-0">
+                      <span
+                        class="tr-title"
+                        class:line-through={audioCore.fetchErrors[track.id]}
+                        class:opacity-50={audioCore.fetchErrors[track.id]}
+                        >{track.title}</span
+                      >
+                      {#if audioCore.fetchErrors[track.id]}
+                        <span
+                          class="text-amber-400 flex items-center gap-1 text-[9px] font-bold tracking-wider uppercase bg-amber-500/10 px-1.5 py-0.5 rounded flex-shrink-0"
+                          title="Failed to fetch music source from remote database"
+                        >
+                          <AlertTriangle size={10} /> Error Fetching
+                        </span>
+                      {/if}
+                    </div>
                     <span class="tr-meta"
                       >{track.artist} · {track.album} ({track.year || ""})</span
                     >
@@ -1300,6 +1406,7 @@
   <canvas bind:this={faderFxCanvas} class="fader-fx-canvas pointer-events-none"
   ></canvas>
 </div>
+
 <style lang="scss">
   @use "../styles/music-panel.scss";
 
@@ -1349,7 +1456,6 @@
     color: white;
     transform: translateX(-4px);
   }
-
 
   /* ── DJ Crossfader ── */
   .dj-crossfader {
