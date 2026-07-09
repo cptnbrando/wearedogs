@@ -19,6 +19,7 @@
     Hourglass,
     Scissors,
     Sparkles,
+    RefreshCw,
   } from "lucide-svelte";
   import SnakeApp from "./apps/SnakeApp.svelte";
   import DogsLogo from "./DogsLogo.svelte";
@@ -37,6 +38,7 @@
   import SettingsApp from "./apps/SettingsApp.svelte";
   import SoundStripper from "./apps/SoundStripper.svelte";
   import WindshieldWiper from "./apps/WindshieldWiper.svelte";
+  import CatalyticConverter from "./apps/CatalyticConverter.svelte";
   import AppCard from "./AppCard.svelte";
 
   const title = "Toolbox";
@@ -145,6 +147,12 @@
       title: "Sound Stripper",
       desc: "Extract vocal acapellas by subtracting reference instrumental bleed.",
       icon: Scissors,
+    },
+    {
+      id: "catalyticconverter",
+      title: "Catalytic Converter",
+      desc: "Rapid format refinement engine for images and audio files.",
+      icon: RefreshCw,
     },
     {
       id: "windshieldwiper",
@@ -333,6 +341,8 @@
         <SettingsApp />
       {:else if activeApp === "soundstripper"}
         <SoundStripper />
+      {:else if activeApp === "catalyticconverter"}
+        <CatalyticConverter />
       {:else if activeApp === "windshieldwiper"}
         <WindshieldWiper onClose={() => (activeApp = null)} />
       {/if}
