@@ -395,6 +395,14 @@
     </p>
   </div>
 
+  <input
+    type="file"
+    id="file-input"
+    class="hidden"
+    accept="image/*,audio/*,video/*"
+    onchange={handleFileSelect}
+  />
+
   <div class="app-content-scroll">
     {#if conversionStatus === "idle" && !file}
       <!-- UPLOAD ZONE -->
@@ -410,13 +418,6 @@
         role="button"
         tabindex="0"
       >
-        <input
-          type="file"
-          id="file-input"
-          class="hidden"
-          accept="image/*,audio/*,video/*"
-          onchange={handleFileSelect}
-        />
         <div class="icon-wrap">
           <Upload size={38} />
         </div>
@@ -588,18 +589,45 @@
           <div class="sm:col-span-6 flex flex-col gap-4">
             <div class="meta-section">
               {#if fileType === "image"}
-                <div class="preview-box image-preview">
+                <!-- svelte-ignore a11y_click_events_have_key_events -->
+                <!-- svelte-ignore a11y_no_static_element_interactions -->
+                <div
+                  class="preview-box image-preview cursor-pointer hover:opacity-80 transition-opacity relative group"
+                  onclick={() => document.getElementById("file-input").click()}
+                  title="Click to select another file"
+                >
                   <img src={previewUrl} alt="Upload preview" />
+                  <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-[10px] text-white font-bold font-sans uppercase">
+                    Replace
+                  </div>
                 </div>
               {:else if fileType === "audio"}
-                <div class="preview-box audio-preview">
+                <!-- svelte-ignore a11y_click_events_have_key_events -->
+                <!-- svelte-ignore a11y_no_static_element_interactions -->
+                <div
+                  class="preview-box audio-preview cursor-pointer hover:opacity-80 transition-opacity relative group"
+                  onclick={() => document.getElementById("file-input").click()}
+                  title="Click to select another file"
+                >
                   <FileAudio size={48} class="text-[#00ffff]" />
                   <span class="audio-badge">Audio Wave Decoded</span>
+                  <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-[10px] text-white font-bold font-sans uppercase">
+                    Replace
+                  </div>
                 </div>
               {:else if fileType === "video"}
-                <div class="preview-box audio-preview">
+                <!-- svelte-ignore a11y_click_events_have_key_events -->
+                <!-- svelte-ignore a11y_no_static_element_interactions -->
+                <div
+                  class="preview-box audio-preview cursor-pointer hover:opacity-80 transition-opacity relative group"
+                  onclick={() => document.getElementById("file-input").click()}
+                  title="Click to select another file"
+                >
                   <FileVideo size={48} class="text-[#a855f7]" />
                   <span class="audio-badge">Video Frame Decoded</span>
+                  <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-[10px] text-white font-bold font-sans uppercase">
+                    Replace
+                  </div>
                 </div>
               {/if}
 
