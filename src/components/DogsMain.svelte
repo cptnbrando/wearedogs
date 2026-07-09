@@ -145,7 +145,7 @@
             class="info-card flex flex-col rounded-xl md:rounded-2xl bg-[#f8f9fa] border border-black/5 hover:border-black/10 hover:shadow-lg transition-all duration-300"
           >
             <span
-              class="text-[10px] md:text-xs uppercase tracking-wider text-black/40 font-bold mb-1 md:mb-2"
+              class="card-title text-[10px] md:text-xs uppercase tracking-wider text-black/40 font-bold mb-1 md:mb-2"
               >Established</span
             >
             <span
@@ -159,7 +159,7 @@
             class="info-card specializing-card flex flex-col rounded-xl md:rounded-2xl bg-[#f8f9fa] border border-black/5 hover:border-black/10 hover:shadow-lg transition-all duration-300"
           >
             <span
-              class="text-[10px] md:text-xs uppercase tracking-wider text-black/40 font-bold mb-1 md:mb-2"
+              class="card-title text-[10px] md:text-xs uppercase tracking-wider text-black/40 font-bold mb-1 md:mb-2"
               >Specializing In</span
             >
             <div class="flex flex-wrap gap-1 md:gap-1.5">
@@ -340,11 +340,7 @@
 
   /* Theme highlight integrated colors */
   .wad-colored .info-card:hover {
-    border-color: var(
-      --color-neon-purple,
-      --color-neon-red,
-      #ff3344
-    ) !important;
+    border-color: var(--color-neon-red, #ff3344) !important;
     box-shadow: 0 12px 35px
       rgba(var(--color-neon-purple-rgb, 255, 51, 68), 0.12);
   }
