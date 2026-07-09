@@ -15,8 +15,11 @@
     Link2Off,
     FileVideo,
     Undo,
+    Trash2,
+    Loader2,
   } from "lucide-svelte";
   import { convertImage, convertAudio, convertVideo } from "./convert.js";
+  import * as fflate from "fflate";
 
   // State variables
   let isDragging = $state(false);
@@ -31,6 +34,16 @@
   let convertedFileName = $state("");
   let errorMessage = $state("");
   let currentNotice = $state("Refining Format Molecules");
+
+  // Bulk state variables
+  let bulkFiles = $state([]);
+  let isBulkMode = $derived(bulkFiles.length > 0);
+  let isConvertingBulk = $state(false);
+  let overallProgress = $state(0);
+  let currentConvertingIndex = $state(0);
+  let batchImageFormat = $state("png");
+  let batchAudioFormat = $state("mp3");
+  let batchVideoFormat = $state("mp4");
 
   // Image size parameters
   let originalWidth = $state(0);
@@ -154,19 +167,42 @@
   function handleDrop(e) {
     e.preventDefault();
     isDragging = false;
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      processFile(e.dataTransfer.files[0]);
+    if (e.dataTransfer.items) {
+      const entries = [];
+      for (let i = 0; i < e.dataTransfer.items.length; i++) {
+        const entry = e.dataTransfer.items[i].webkitGetAsEntry();
+        if (entry) {
+          entries.push(entry);
+        }
+      }
+      traverseEntries(entries);
+    } else if (e.dataTransfer.files) {
+      const files = Array.from(e.dataTransfer.files);
+      if (files.length === 1 && files[0].name.endsWith(".zip")) {
+        processZipFile(files[0]);
+      } else if (files.length > 0) {
+        processMultipleFiles(files);
+      }
     }
   }
 
   function handleFileSelect(e) {
-    if (e.target.files && e.target.files[0]) {
-      processFile(e.target.files[0]);
+    if (e.target.files) {
+      const files = Array.from(e.target.files);
+      if (files.length === 1 && files[0].name.endsWith(".zip")) {
+        processZipFile(files[0]);
+      } else if (files.length > 0) {
+        processMultipleFiles(files);
+      }
     }
   }
 
   // Detect and analyze file type/format
   async function processFile(selectedFile) {
+    if (selectedFile.name.endsWith(".zip")) {
+      await processZipFile(selectedFile);
+      return;
+    }
     resetState();
     file = selectedFile;
     const name = file.name.toLowerCase();
@@ -299,6 +335,10 @@
       audioContext.close();
       audioContext = null;
     }
+    bulkFiles = [];
+    isConvertingBulk = false;
+    overallProgress = 0;
+    currentConvertingIndex = 0;
   }
 
   // Run Conversion
@@ -382,6 +422,299 @@
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   }
+
+  // Directory traversal helpers
+  async function traverseEntries(entries) {
+    const files = [];
+    const queue = [...entries];
+
+    while (queue.length > 0) {
+      const entry = queue.shift();
+      if (entry.isFile) {
+        const fileObj = await getFileFromEntry(entry);
+        files.push(fileObj);
+      } else if (entry.isDirectory) {
+        const dirReader = entry.createReader();
+        const subEntries = await readAllEntries(dirReader);
+        queue.push(...subEntries);
+      }
+    }
+
+    if (files.length > 0) {
+      processMultipleFiles(files);
+    }
+  }
+
+  function getFileFromEntry(entry) {
+    return new Promise((resolve) => {
+      entry.file((file) => resolve(file));
+    });
+  }
+
+  function readAllEntries(dirReader) {
+    return new Promise((resolve) => {
+      dirReader.readEntries((entries) => resolve(entries));
+    });
+  }
+
+  // ZIP file extractor
+  async function processZipFile(zipFile) {
+    currentNotice = "Extracting ZIP Molecules";
+    conversionStatus = "converting";
+    progress = 10;
+
+    try {
+      const arrayBuffer = await zipFile.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+
+      fflate.unzip(uint8Array, (err, unzipped) => {
+        if (err) {
+          errorMessage = "Could not extract ZIP file: " + err.message;
+          conversionStatus = "error";
+          return;
+        }
+
+        const extractedFiles = [];
+        for (const [path, data] of Object.entries(unzipped)) {
+          if (path.endsWith("/") || data.length === 0) continue;
+
+          const filename = path.split("/").pop();
+          const ext = filename.split(".").pop().toLowerCase();
+
+          let mime = "application/octet-stream";
+          if (
+            ["png", "jpg", "jpeg", "webp", "gif", "avif", "svg"].includes(ext)
+          ) {
+            mime = `image/${ext === "jpg" || ext === "jpeg" ? "jpeg" : ext}`;
+          } else if (
+            ["mp3", "wav", "m4a", "aac", "webm", "ogg"].includes(ext)
+          ) {
+            mime = `audio/${ext}`;
+          } else if (["mp4", "mov", "mkv", "avi"].includes(ext)) {
+            mime = `video/${ext}`;
+          }
+
+          const fileObj = new File([data], filename, { type: mime });
+          extractedFiles.push(fileObj);
+        }
+
+        if (extractedFiles.length === 0) {
+          errorMessage = "No supported files found inside the ZIP.";
+          conversionStatus = "error";
+          return;
+        }
+
+        conversionStatus = "idle";
+        processMultipleFiles(extractedFiles);
+      });
+    } catch (err) {
+      errorMessage = "Error reading ZIP file: " + err.message;
+      conversionStatus = "error";
+    }
+  }
+
+  // Process batch list
+  function processMultipleFiles(files) {
+    const list = [];
+    for (const f of files) {
+      const name = f.name.toLowerCase();
+      const ext = name.split(".").pop();
+      let type = "unsupported";
+      if (["png", "jpg", "jpeg", "webp", "gif", "avif", "svg"].includes(ext)) {
+        type = "image";
+      } else if (["mp3", "wav", "m4a", "ogg", "aac", "webm"].includes(ext)) {
+        type = "audio";
+      } else if (["mp4", "mov", "mkv", "avi"].includes(ext)) {
+        type = "video";
+      }
+
+      if (type === "unsupported") continue;
+
+      const inputFmt = ext === "jpeg" ? "jpg" : ext;
+      let outputFmt = "";
+      if (type === "image") outputFmt = inputFmt === "png" ? "jpg" : "png";
+      else if (type === "audio") outputFmt = "mp3";
+      else if (type === "video") outputFmt = "mp4";
+
+      list.push({
+        file: f,
+        fileType: type,
+        inputFormat: inputFmt,
+        outputFormat: outputFmt,
+        status: "idle",
+        errorMsg: "",
+        progress: 0,
+        convertedBlob: null,
+        convertedFileName: "",
+        originalWidth: 0,
+        originalHeight: 0,
+        targetWidth: 0,
+        targetHeight: 0,
+        keepAspectRatio: true,
+        keepTens: false,
+        quality: 90,
+        compression: 15,
+        audioBitrate: "192",
+        audioSampleRate: "keep",
+      });
+    }
+
+    if (list.length === 1) {
+      processFile(list[0].file);
+    } else if (list.length > 1) {
+      bulkFiles = list;
+      for (const item of bulkFiles) {
+        if (item.fileType === "image") {
+          const url = URL.createObjectURL(item.file);
+          const img = new Image();
+          img.src = url;
+          img.onload = () => {
+            item.originalWidth = img.naturalWidth;
+            item.originalHeight = img.naturalHeight;
+            item.targetWidth = img.naturalWidth;
+            item.targetHeight = img.naturalHeight;
+            URL.revokeObjectURL(url);
+          };
+        }
+      }
+    }
+  }
+
+  // Bulk convert sequential runner
+  async function startBulkConversion() {
+    isConvertingBulk = true;
+    overallProgress = 0;
+    currentConvertingIndex = 0;
+
+    for (let i = 0; i < bulkFiles.length; i++) {
+      currentConvertingIndex = i;
+      const item = bulkFiles[i];
+
+      if (item.status === "done" || !item.outputFormat) continue;
+
+      item.status = "converting";
+      item.progress = 10;
+
+      try {
+        currentNotice = `Converting ${i + 1}/${bulkFiles.length}: ${item.file.name}`;
+
+        let resultBlob;
+        if (item.fileType === "image") {
+          resultBlob = await convertImage(
+            item.file,
+            item.outputFormat,
+            item.targetWidth || 800,
+            item.targetHeight || 600,
+            item.quality,
+            item.compression,
+          );
+        } else if (item.fileType === "audio") {
+          resultBlob = await convertAudio(
+            item.file,
+            item.outputFormat,
+            item.audioBitrate,
+            item.audioSampleRate,
+            (p) => {
+              item.progress = Math.round(10 + p * 0.85);
+            },
+          );
+        } else if (item.fileType === "video") {
+          resultBlob = await convertVideo(item.file, item.outputFormat, (p) => {
+            item.progress = Math.round(10 + p * 0.85);
+          });
+        }
+
+        item.convertedBlob = resultBlob;
+        const nameParts = item.file.name.split(".");
+        nameParts.pop();
+        item.convertedFileName = `${nameParts.join(".")}.${item.outputFormat}`;
+        item.status = "done";
+        item.progress = 100;
+      } catch (err) {
+        item.status = "error";
+        item.errorMsg = err.message || "Conversion failed";
+        item.progress = 0;
+      }
+
+      overallProgress = Math.round(((i + 1) / bulkFiles.length) * 100);
+    }
+
+    isConvertingBulk = false;
+    currentNotice = "Batch Processing Complete";
+  }
+
+  // Compress all converted files back into a single ZIP
+  async function downloadAllAsZip() {
+    currentNotice = "Zipping Converted Molecules";
+    const zipData = {};
+
+    for (const bf of bulkFiles) {
+      if (bf.status === "done" && bf.convertedBlob) {
+        zipData[bf.convertedFileName] = bf.convertedBlob;
+      }
+    }
+
+    if (Object.keys(zipData).length === 0) return;
+
+    const promises = Object.entries(zipData).map(async ([name, blob]) => {
+      const arrayBuffer = await blob.arrayBuffer();
+      return [name, new Uint8Array(arrayBuffer)];
+    });
+
+    try {
+      const entries = await Promise.all(promises);
+      const zipObj = Object.fromEntries(entries);
+
+      fflate.zip(zipObj, (err, data) => {
+        if (err) {
+          alert("Error creating ZIP: " + err.message);
+          return;
+        }
+        const blob = new Blob([data], { type: "application/zip" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "catalytic-converted-files.zip";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      });
+    } catch (err) {
+      alert("Failed to build ZIP archive: " + err.message);
+    }
+  }
+
+  function applyBatchImageFormat(fmt) {
+    batchImageFormat = fmt;
+    for (const bf of bulkFiles) {
+      if (bf.fileType === "image") {
+        bf.outputFormat = fmt;
+      }
+    }
+  }
+
+  function applyBatchAudioFormat(fmt) {
+    batchAudioFormat = fmt;
+    for (const bf of bulkFiles) {
+      if (bf.fileType === "audio") {
+        bf.outputFormat = fmt;
+      }
+    }
+  }
+
+  function applyBatchVideoFormat(fmt) {
+    batchVideoFormat = fmt;
+    for (const bf of bulkFiles) {
+      if (bf.fileType === "video") {
+        bf.outputFormat = fmt;
+      }
+    }
+  }
+
+  function removeBulkFile(index) {
+    bulkFiles = bulkFiles.filter((_, i) => i !== index);
+  }
 </script>
 
 <div class="converter-app animated-pane">
@@ -392,6 +725,7 @@
     </div>
     <p class="description">
       a way to convert anything into anything. all data stays in your browser.
+      batch file support.
     </p>
   </div>
 
@@ -399,12 +733,223 @@
     type="file"
     id="file-input"
     class="hidden"
-    accept="image/*,audio/*,video/*"
+    accept="image/*,audio/*,video/*,.zip"
+    multiple
     onchange={handleFileSelect}
   />
 
   <div class="app-content-scroll">
-    {#if conversionStatus === "idle" && !file}
+    {#if isBulkMode}
+      <!-- BULK DASHBOARD -->
+      <div class="bulk-mode-container">
+        <!-- Back and Reset -->
+        <div class="back-bar flex items-center justify-between w-full">
+          <button class="back-btn" onclick={resetState} type="button">
+            <ArrowLeft size={14} /> Reset Batch
+          </button>
+        </div>
+
+        <!-- Global Batch Presets -->
+        <div class="bulk-batch-header">
+          <div class="batch-title">Batch Output Formats</div>
+          <div class="batch-presets">
+            {#if bulkFiles.some((f) => f.fileType === "image")}
+              <div class="preset-group">
+                <span>🖼️ Images ➔</span>
+                <select
+                  value={batchImageFormat}
+                  onchange={(e) => applyBatchImageFormat(e.target.value)}
+                  class="preset-select"
+                  disabled={isConvertingBulk}
+                >
+                  <option value="png">PNG</option>
+                  <option value="jpg">JPG</option>
+                  <option value="webp">WEBP</option>
+                  <option value="avif">AVIF</option>
+                  <option value="svg">SVG</option>
+                </select>
+              </div>
+            {/if}
+
+            {#if bulkFiles.some((f) => f.fileType === "audio")}
+              <div class="preset-group">
+                <span>🎵 Audios ➔</span>
+                <select
+                  value={batchAudioFormat}
+                  onchange={(e) => applyBatchAudioFormat(e.target.value)}
+                  class="preset-select"
+                  disabled={isConvertingBulk}
+                >
+                  <option value="mp3">MP3</option>
+                  <option value="wav">WAV</option>
+                  <option value="m4a">M4A</option>
+                  <option value="aac">AAC</option>
+                  <option value="webm">WEBM</option>
+                </select>
+              </div>
+            {/if}
+
+            {#if bulkFiles.some((f) => f.fileType === "video")}
+              <div class="preset-group">
+                <span>🎞️ Videos ➔</span>
+                <select
+                  value={batchVideoFormat}
+                  onchange={(e) => applyBatchVideoFormat(e.target.value)}
+                  class="preset-select"
+                  disabled={isConvertingBulk}
+                >
+                  <option value="mp4">MP4</option>
+                  <option value="mov">MOV</option>
+                  <option value="mkv">MKV</option>
+                  <option value="avi">AVI</option>
+                </select>
+              </div>
+            {/if}
+          </div>
+        </div>
+
+        <!-- Scrollable Files List -->
+        <div class="bulk-file-list">
+          {#each bulkFiles as item, index}
+            <div class="bulk-file-card">
+              <div class="file-info">
+                <div class="mini-preview">
+                  {#if item.fileType === "image"}
+                    <FileImage size={18} class="text-[#ff5e00]" />
+                  {:else if item.fileType === "audio"}
+                    <FileAudio size={18} class="text-[#00ffff]" />
+                  {:else if item.fileType === "video"}
+                    <FileVideo size={18} class="text-[#a855f7]" />
+                  {/if}
+                </div>
+                <div class="meta">
+                  <span class="name" title={item.file.name}
+                    >{item.file.name}</span
+                  >
+                  <span class="size">{formatBytes(item.file.size)}</span>
+                </div>
+              </div>
+
+              <div class="controls-status">
+                <select
+                  bind:value={item.outputFormat}
+                  class="format-selector"
+                  disabled={isConvertingBulk || item.status === "done"}
+                >
+                  {#each formatMap[item.fileType] || [] as fmt}
+                    <option value={fmt}>{fmt.toUpperCase()}</option>
+                  {/each}
+                </select>
+
+                <div
+                  class="status-badge"
+                  class:idle={item.status === "idle"}
+                  class:converting={item.status === "converting"}
+                  class:done={item.status === "done"}
+                  class:error={item.status === "error"}
+                >
+                  {#if item.status === "idle"}
+                    <span class="text-white/20">•</span>
+                  {:else if item.status === "converting"}
+                    <Loader2 size={12} class="animate-spin text-[#ff8800]" />
+                  {:else if item.status === "done"}
+                    <CheckCircle size={12} class="text-[#4ade80]" />
+                  {:else if item.status === "error"}
+                    <AlertCircle
+                      size={12}
+                      class="text-[#f87171]"
+                      title={item.errorMsg}
+                    />
+                  {/if}
+                </div>
+
+                {#if item.status === "done" && item.convertedBlob}
+                  <button
+                    class="item-action-btn"
+                    onclick={() => {
+                      const url = URL.createObjectURL(item.convertedBlob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = item.convertedFileName;
+                      document.body.appendChild(a);
+                      a.click();
+                      document.body.removeChild(a);
+                      URL.revokeObjectURL(url);
+                    }}
+                    type="button"
+                    title="Download converted file"
+                  >
+                    <Download size={12} />
+                  </button>
+                {:else}
+                  <button
+                    class="item-action-btn delete-btn"
+                    onclick={() => removeBulkFile(index)}
+                    disabled={isConvertingBulk}
+                    type="button"
+                    title="Remove from batch"
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                {/if}
+              </div>
+            </div>
+          {/each}
+        </div>
+
+        {#if isConvertingBulk || bulkFiles.some((f) => f.status === "done" || f.status === "error")}
+          <div class="bulk-progress-panel">
+            <div class="progress-header">
+              <span>Overall Progress</span>
+              <span>{overallProgress}%</span>
+            </div>
+            <div class="progress-bar-wrap !w-full">
+              <div
+                class="progress-bar-fill"
+                style="width: {overallProgress}%"
+              ></div>
+            </div>
+            <div class="text-[10px] text-white/40 mt-1 font-mono text-center">
+              {currentNotice}
+            </div>
+          </div>
+        {/if}
+
+        <!-- Actions -->
+        <div class="bulk-actions-row">
+          <button
+            class="action-btn secondary"
+            onclick={resetState}
+            disabled={isConvertingBulk}
+            type="button"
+          >
+            Clear Batch
+          </button>
+
+          {#if bulkFiles.some((f) => f.status === "done")}
+            <button
+              class="action-btn download !m-0"
+              onclick={downloadAllAsZip}
+              type="button"
+            >
+              <Download size={14} /> ZIP & DOWNLOAD ALL
+            </button>
+          {:else}
+            <button
+              class="action-btn convert-launch !m-0"
+              onclick={startBulkConversion}
+              disabled={isConvertingBulk || bulkFiles.length === 0}
+              type="button"
+            >
+              <RefreshCw
+                size={14}
+                class={isConvertingBulk ? "animate-spin" : ""}
+              /> BATCH CONVERT
+            </button>
+          {/if}
+        </div>
+      </div>
+    {:else if conversionStatus === "idle" && !file}
       <!-- UPLOAD ZONE -->
       <!-- svelte-ignore a11y_click_events_have_key_events -->
       <!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
@@ -597,7 +1142,9 @@
                   title="Click to select another file"
                 >
                   <img src={previewUrl} alt="Upload preview" />
-                  <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-[10px] text-white font-bold font-sans uppercase">
+                  <div
+                    class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-[10px] text-white font-bold font-sans uppercase"
+                  >
                     Replace
                   </div>
                 </div>
@@ -611,7 +1158,9 @@
                 >
                   <FileAudio size={48} class="text-[#00ffff]" />
                   <span class="audio-badge">Audio Wave Decoded</span>
-                  <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-[10px] text-white font-bold font-sans uppercase">
+                  <div
+                    class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-[10px] text-white font-bold font-sans uppercase"
+                  >
                     Replace
                   </div>
                 </div>
@@ -625,7 +1174,9 @@
                 >
                   <FileVideo size={48} class="text-[#a855f7]" />
                   <span class="audio-badge">Video Frame Decoded</span>
-                  <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-[10px] text-white font-bold font-sans uppercase">
+                  <div
+                    class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-[10px] text-white font-bold font-sans uppercase"
+                  >
                     Replace
                   </div>
                 </div>
@@ -980,732 +1531,5 @@
 </div>
 
 <style lang="scss">
-  .converter-app {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    padding: 20px;
-    box-sizing: border-box;
-    overflow: hidden;
-    background: rgba(7, 7, 11, 0.4);
-  }
-
-  .app-content-scroll {
-    flex: 1;
-    overflow-y: auto;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-
-    /* Webkit scrollbar customization to look clean and premium */
-    &::-webkit-scrollbar {
-      width: 6px;
-    }
-    &::-webkit-scrollbar-track {
-      background: transparent;
-    }
-    &::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.08);
-      border-radius: 3px;
-    }
-    &::-webkit-scrollbar-thumb:hover {
-      background: rgba(255, 255, 255, 0.15);
-    }
-  }
-
-  .app-header {
-    margin-bottom: 24px;
-    flex-shrink: 0;
-
-    .title-wrap {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    h2 {
-      margin: 0;
-      font-size: 1.3rem;
-      font-weight: 800;
-      color: #fff;
-      font-family: "Outfit", sans-serif;
-    }
-
-    .converter-flame-icon {
-      color: #ff5e00;
-      filter: drop-shadow(0 0 8px rgba(255, 94, 0, 0.5));
-    }
-
-    .description {
-      margin: 4px 0 0 0;
-      font-size: 0.78rem;
-      color: rgba(255, 255, 255, 0.4);
-      font-family: "Inter", sans-serif;
-    }
-  }
-
-  /* ── UPLOAD ZONE ── */
-  .upload-dropzone {
-    flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    border: 2px dashed rgba(255, 255, 255, 0.08);
-    border-radius: 16px;
-    background: rgba(255, 255, 255, 0.01);
-    cursor: pointer;
-    transition: all 0.22s cubic-bezier(0.25, 0.8, 0.25, 1);
-    padding: 40px 20px;
-    gap: 12px;
-
-    .icon-wrap {
-      width: 72px;
-      height: 72px;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.03);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: rgba(255, 255, 255, 0.3);
-      transition: all 0.22s;
-    }
-
-    h3 {
-      font-size: 1rem;
-      font-weight: 700;
-      color: rgba(255, 255, 255, 0.7);
-      margin: 0;
-      font-family: "Outfit", sans-serif;
-    }
-
-    .upload-sub {
-      font-size: 0.72rem;
-      color: rgba(255, 255, 255, 0.3);
-      margin: 0;
-      font-family: monospace;
-    }
-
-    &:hover,
-    &.dragging {
-      border-color: #ff5e00;
-      background: rgba(255, 94, 0, 0.03);
-
-      .icon-wrap {
-        background: rgba(255, 94, 0, 0.1);
-        color: #ff5e00;
-        transform: translateY(-4px) scale(1.05);
-        box-shadow: 0 8px 24px rgba(255, 94, 0, 0.15);
-      }
-
-      h3 {
-        color: #fff;
-      }
-    }
-  }
-
-  /* ── FILE LOADED PANEL ── */
-  .file-loaded-panel {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-
-    .back-bar {
-      .back-btn {
-        background: transparent;
-        border: none;
-        color: rgba(255, 255, 255, 0.4);
-        font-size: 0.75rem;
-        font-weight: 700;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        transition: color 0.18s;
-        padding: 0;
-
-        &:hover {
-          color: #fff;
-        }
-      }
-    }
-
-    .meta-section {
-      display: flex;
-      gap: 16px;
-      background: rgba(255, 255, 255, 0.02);
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      border-radius: 14px;
-      padding: 16px;
-
-      .preview-box {
-        width: 80px;
-        height: 80px;
-        border-radius: 10px;
-        overflow: hidden;
-        flex-shrink: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: rgba(0, 0, 0, 0.2);
-        border: 1px solid rgba(255, 255, 255, 0.06);
-
-        img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
-
-        &.audio-preview {
-          flex-direction: column;
-          gap: 6px;
-          padding: 8px;
-          text-align: center;
-
-          .audio-badge {
-            font-size: 0.5rem;
-            font-weight: 800;
-            color: rgba(255, 255, 255, 0.3);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-          }
-        }
-      }
-
-      .details {
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        min-width: 0;
-        flex: 1;
-
-        .file-name-label {
-          font-size: 0.95rem;
-          font-weight: 700;
-          color: #fff;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-
-        .file-size-label {
-          font-size: 0.72rem;
-          color: rgba(255, 255, 255, 0.4);
-          margin-top: 2px;
-          font-family: monospace;
-        }
-
-        .badge-row {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          margin-top: 10px;
-
-          .format-badge {
-            font-size: 0.65rem;
-            font-weight: 800;
-            font-family: monospace;
-            padding: 3px 8px;
-            border-radius: 6px;
-
-            &.input {
-              background: rgba(255, 255, 255, 0.08);
-              color: rgba(255, 255, 255, 0.8);
-            }
-
-            &.output {
-              background: rgba(255, 94, 0, 0.15);
-              border: 1px solid rgba(255, 94, 0, 0.3);
-              color: #ff7700;
-            }
-          }
-
-          .arrow-trans {
-            font-size: 0.75rem;
-            color: rgba(255, 255, 255, 0.25);
-          }
-        }
-      }
-    }
-
-    /* ── SETTINGS PANEL ── */
-    .settings-control-panel {
-      background: rgba(255, 255, 255, 0.01);
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      border-radius: 14px;
-      padding: 18px;
-
-      h3 {
-        font-size: 0.72rem;
-        font-weight: 800;
-        color: rgba(255, 255, 255, 0.35);
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        margin: 0 0 16px 0;
-        font-family: monospace;
-      }
-
-      .settings-group {
-        border-bottom: 1px dashed rgba(255, 255, 255, 0.04);
-        padding-bottom: 14px;
-        margin-bottom: 14px;
-
-        &:last-child {
-          border-bottom: none;
-          padding-bottom: 0;
-          margin-bottom: 0;
-        }
-
-        .aspect-link-btn {
-          background: rgba(255, 255, 255, 0.03);
-          border: 1px solid rgba(255, 255, 255, 0.07);
-          color: rgba(255, 255, 255, 0.6);
-          font-size: 10px;
-          font-weight: 700;
-          border-radius: 6px;
-          padding: 4px 8px;
-          cursor: pointer;
-          transition: all 0.2s;
-
-          &:hover {
-            background: rgba(255, 255, 255, 0.07);
-            color: #fff;
-          }
-
-          &.linked {
-            border-color: rgba(255, 94, 0, 0.4);
-            color: #ff8800;
-            background: rgba(255, 94, 0, 0.07);
-          }
-        }
-      }
-
-      .value-input {
-        width: 48px;
-        background: transparent;
-        border: none;
-        border-bottom: 1px dashed rgba(255, 255, 255, 0.15);
-        color: #ff5e00;
-        font-weight: 700;
-        text-align: right;
-        font-family: monospace;
-        font-size: 11px;
-        outline: none;
-        padding: 0 2px;
-
-        &:focus {
-          border-color: #ff5e00;
-          border-bottom-style: solid;
-        }
-
-        &.quality-input {
-          color: #4ade80;
-          &:focus {
-            border-color: #4ade80;
-          }
-        }
-
-        &.compression-input {
-          color: #60a5fa;
-          &:focus {
-            border-color: #60a5fa;
-          }
-        }
-
-        &::-webkit-outer-spin-button,
-        &::-webkit-inner-spin-button {
-          -webkit-appearance: none;
-          margin: 0;
-        }
-      }
-
-      .param-slider {
-        width: 100%;
-        height: 4px;
-        background: rgba(255, 255, 255, 0.08);
-        border-radius: 2px;
-        outline: none;
-        accent-color: #ff5e00;
-        cursor: pointer;
-        transition: opacity 0.2s;
-
-        &:hover {
-          background: rgba(255, 255, 255, 0.12);
-        }
-      }
-
-      .param-select {
-        width: 100%;
-        background: rgba(0, 0, 0, 0.3);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 8px;
-        padding: 8px 12px;
-        font-size: 0.8rem;
-        color: rgba(255, 255, 255, 0.7);
-        outline: none;
-        cursor: pointer;
-        font-family: "Outfit", sans-serif;
-
-        &:focus {
-          border-color: #ff5e00;
-        }
-
-        option {
-          background: #0d0d12;
-          color: #fff;
-        }
-      }
-    }
-
-    .selection-section {
-      h3 {
-        font-size: 0.8rem;
-        font-weight: 800;
-        color: rgba(255, 255, 255, 0.45);
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        margin: 0 0 12px 0;
-      }
-
-      .format-options-grid {
-        .format-opt-btn {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          padding: 16px;
-          border-radius: 12px;
-          background: rgba(255, 255, 255, 0.02);
-          border: 1px solid rgba(255, 255, 255, 0.06);
-          cursor: pointer;
-          transition: all 0.2s;
-          position: relative;
-
-          .format-num {
-            position: absolute;
-            top: 6px;
-            left: 8px;
-            font-size: 0.58rem;
-            font-weight: 800;
-            font-family: monospace;
-            color: rgba(255, 255, 255, 0.25);
-            background: rgba(255, 255, 255, 0.05);
-            width: 14px;
-            height: 14px;
-            border-radius: 3px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-          }
-
-          .format-label {
-            font-size: 1.1rem;
-            font-weight: 800;
-            font-family: monospace;
-            color: rgba(255, 255, 255, 0.5);
-            transition: color 0.2s;
-          }
-
-          &:hover {
-            border-color: rgba(255, 94, 0, 0.3);
-            background: rgba(255, 94, 0, 0.02);
-
-            .format-label {
-              color: rgba(255, 255, 255, 0.85);
-            }
-          }
-
-          &.selected {
-            border-color: #ff5e00;
-            background: rgba(255, 94, 0, 0.08);
-            box-shadow: 0 0 16px rgba(255, 94, 0, 0.1);
-
-            .format-num {
-              background: #ff5e00;
-              color: #000;
-            }
-
-            .format-label {
-              color: #ff8800;
-            }
-          }
-        }
-      }
-    }
-  }
-
-  /* ── CONVERTING STATE ── */
-  .converting-panel {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-
-    .engine-wrap {
-      margin-bottom: 24px;
-
-      .catalytic-canister {
-        position: relative;
-        width: 90px;
-        height: 90px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, #1f1f2e 0%, #0d0d12 100%);
-        border: 2px solid rgba(255, 94, 0, 0.25);
-        box-shadow: 0 0 35px rgba(255, 94, 0, 0.15);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        .cylinder-flame {
-          color: #ff5e00;
-          animation: flame-pulse 0.4s infinite alternate ease-in-out;
-        }
-
-        .honeycomb-grid {
-          position: absolute;
-          inset: 8px;
-          border-radius: 50%;
-          border: 1px dashed rgba(255, 94, 0, 0.15);
-          animation: spin 6s linear infinite;
-
-          .spark {
-            position: absolute;
-            width: 5px;
-            height: 5px;
-            background: #ffaa00;
-            border-radius: 50%;
-            box-shadow: 0 0 8px #ffaa00;
-
-            &.s1 {
-              top: 15%;
-              left: 20%;
-              animation: float-spark 1.2s infinite ease-out;
-            }
-            &.s2 {
-              top: 50%;
-              right: 15%;
-              animation: float-spark 1s infinite 0.3s ease-out;
-            }
-            &.s3 {
-              bottom: 20%;
-              left: 45%;
-              animation: float-spark 1.5s infinite 0.6s ease-out;
-            }
-          }
-        }
-      }
-    }
-
-    h3 {
-      font-size: 1.05rem;
-      font-weight: 700;
-      color: #fff;
-      margin: 0 0 16px 0;
-      font-family: "Outfit", sans-serif;
-      letter-spacing: 0.02em;
-    }
-
-    .progress-bar-wrap {
-      width: 260px;
-      height: 6px;
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 3px;
-      overflow: hidden;
-      margin-bottom: 8px;
-
-      .progress-bar-fill {
-        height: 100%;
-        background: linear-gradient(90deg, #ff3c00 0%, #ffaa00 100%);
-        box-shadow: 0 0 8px rgba(255, 94, 0, 0.4);
-        transition: width 0.15s ease-out;
-      }
-    }
-
-    .progress-text {
-      font-size: 0.72rem;
-      font-family: monospace;
-      color: rgba(255, 255, 255, 0.4);
-      margin: 0;
-    }
-  }
-
-  .success-panel,
-  .error-panel {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    gap: 16px;
-
-    h3 {
-      font-size: 1.2rem;
-      font-weight: 800;
-      color: #fff;
-      margin: 0;
-      font-family: "Outfit", sans-serif;
-    }
-  }
-
-  .success-panel {
-    .converted-info-card {
-      background: rgba(255, 255, 255, 0.02);
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      border-radius: 12px;
-      padding: 14px 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
-      max-width: 280px;
-
-      .filename {
-        font-size: 0.85rem;
-        font-weight: 700;
-        color: rgba(255, 255, 255, 0.85);
-        word-break: break-all;
-      }
-
-      .filesize {
-        font-size: 0.7rem;
-        font-family: monospace;
-        color: rgba(255, 255, 255, 0.45);
-      }
-    }
-
-    .success-actions {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      width: 100%;
-      max-width: 240px;
-      margin-top: 10px;
-    }
-  }
-
-  .error-panel {
-    .error-msg {
-      font-size: 0.8rem;
-      color: rgba(255, 255, 255, 0.45);
-      margin: 0;
-      max-width: 280px;
-      line-height: 1.4;
-    }
-  }
-
-  /* ── BUTTON STYLES ── */
-  .action-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 12px 24px;
-    border-radius: 10px;
-    font-size: 0.82rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-family: "Outfit", sans-serif;
-    letter-spacing: 0.05em;
-
-    &.convert-launch {
-      width: 100%;
-      background: linear-gradient(135deg, #ff3c00 0%, #ff8800 100%);
-      color: #fff;
-      border: none;
-      box-shadow: 0 6px 20px rgba(255, 94, 0, 0.2);
-      margin-top: auto;
-
-      &:hover:not(:disabled) {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 24px rgba(255, 94, 0, 0.3);
-      }
-
-      &:disabled {
-        opacity: 0.35;
-        cursor: not-allowed;
-        box-shadow: none;
-      }
-    }
-
-    &.download {
-      background: #fff;
-      color: #000;
-      border: none;
-
-      &:hover {
-        background: rgba(255, 255, 255, 0.9);
-        transform: translateY(-1.5px);
-        box-shadow: 0 4px 12px rgba(255, 255, 255, 0.15);
-      }
-    }
-
-    &.secondary {
-      background: rgba(255, 255, 255, 0.04);
-      color: rgba(255, 255, 255, 0.7);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-
-      &:hover {
-        background: rgba(255, 255, 255, 0.08);
-        color: #fff;
-      }
-    }
-  }
-
-  /* ── ANIMATIONS ── */
-  @keyframes flame-pulse {
-    0% {
-      transform: scale(1) translateY(0);
-      opacity: 0.85;
-    }
-    100% {
-      transform: scale(1.15) translateY(-2px);
-      opacity: 1;
-      filter: drop-shadow(0 0 10px rgba(255, 94, 0, 0.7));
-    }
-  }
-
-  @keyframes float-spark {
-    0% {
-      transform: scale(0.5) translateY(10px);
-      opacity: 0;
-    }
-    50% {
-      opacity: 1;
-    }
-    100% {
-      transform: scale(1) translateY(-20px);
-      opacity: 0;
-    }
-  }
-
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
-    }
-  }
-
-  /* ── RESPONSIVE VIEWPORT BREAKPOINTS ── */
-  @media (max-width: 640px) {
-    /* MOBILE PORTRAIT */
-    .converter-app {
-      padding: 14px;
-    }
-
-    .settings-control-panel {
-      padding: 12px;
-    }
-  }
-
-  @media (min-width: 1200px) {
-    /* DESKTOP */
-    .converter-app {
-      max-width: 720px;
-      margin: 0 auto;
-      justify-content: center;
-    }
-  }
+  @use "./CatalyticConverter.scss";
 </style>
