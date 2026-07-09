@@ -112,7 +112,10 @@
     const name = file.name.toLowerCase();
     const ext = name.split(".").pop();
 
-    if (file.type.startsWith("image/") || ["jpg", "jpeg", "png", "webp", "gif"].includes(ext)) {
+    if (
+      file.type.startsWith("image/") ||
+      ["jpg", "jpeg", "png", "webp", "gif"].includes(ext)
+    ) {
       fileType = "image";
       inputFormat = ext === "jpeg" ? "jpg" : ext;
       previewUrl = URL.createObjectURL(file);
@@ -128,7 +131,10 @@
         targetWidth = originalWidth;
         targetHeight = originalHeight;
       };
-    } else if (file.type.startsWith("audio/") || ["mp3", "wav", "m4a", "ogg", "aac"].includes(ext)) {
+    } else if (
+      file.type.startsWith("audio/") ||
+      ["mp3", "wav", "m4a", "ogg", "aac"].includes(ext)
+    ) {
       fileType = "audio";
       inputFormat = ext;
       previewUrl = URL.createObjectURL(file);
@@ -144,7 +150,8 @@
       }
     } else {
       fileType = "unsupported";
-      errorMessage = "Unsupported file type. Please upload an image or audio file.";
+      errorMessage =
+        "Unsupported file type. Please upload an image or audio file.";
       conversionStatus = "error";
     }
   }
@@ -211,11 +218,22 @@
 
     try {
       if (fileType === "image") {
-        convertedBlob = await convertImage(previewUrl, outputFormat, targetWidth, targetHeight, quality);
+        convertedBlob = await convertImage(
+          previewUrl,
+          outputFormat,
+          targetWidth,
+          targetHeight,
+          quality,
+        );
         const originalBase = file.name.substring(0, file.name.lastIndexOf("."));
-        convertedFileName = `${originalBase}_converted.${outputFormat}`;
+        convertedFileName = `${originalBase}.${outputFormat}`;
       } else if (fileType === "audio") {
-        convertedBlob = await convertAudio(file, audioBuffer, outputFormat, audioSampleRate);
+        convertedBlob = await convertAudio(
+          file,
+          audioBuffer,
+          outputFormat,
+          audioSampleRate,
+        );
         const originalBase = file.name.substring(0, file.name.lastIndexOf("."));
         convertedFileName = `${originalBase}_converted.${outputFormat}`;
       }
@@ -227,7 +245,8 @@
     } catch (err) {
       clearInterval(interval);
       console.error(err);
-      errorMessage = err.message || "An error occurred during format conversion.";
+      errorMessage =
+        err.message || "An error occurred during format conversion.";
       conversionStatus = "error";
     }
   }
@@ -259,7 +278,9 @@
       <Flame class="converter-flame-icon" size={24} />
       <h2>Catalytic Converter</h2>
     </div>
-    <p class="description">Rapid exhaust-style format refinement engine.</p>
+    <p class="description">
+      catalytic converter, a way to convert anything into anything
+    </p>
   </div>
 
   {#if conversionStatus === "idle" && !file}
@@ -288,6 +309,51 @@
       </div>
       <h3>Drop file or click to select</h3>
       <p class="upload-sub">Supports JPG, PNG, WEBP, MP3, WAV, M4A</p>
+    </div>
+
+    <!-- Supported formats legend -->
+    <div
+      class="supported-formats-legend mt-4 p-4 rounded-lg bg-white/[0.02] border border-white/5 flex flex-col gap-2.5"
+    >
+      <h4
+        class="text-xs font-bold text-white/40 uppercase tracking-wider font-mono"
+      >
+        SUPPORTED CONVERSIONS
+      </h4>
+      <div class="grid grid-cols-2 gap-4 text-xs font-sans text-white/70">
+        <div class="flex flex-col gap-1.5">
+          <span class="font-bold text-[#ff5e00]">Images</span>
+          <div class="flex items-center gap-2">
+            <span class="px-1.5 py-0.5 rounded bg-white/5 font-mono text-[10px]"
+              >JPG</span
+            >
+            <span class="text-white/30 font-mono">➔</span>
+            <span class="px-1.5 py-0.5 rounded bg-white/5 font-mono text-[10px]"
+              >PNG</span
+            >
+            <span class="text-white/30 font-mono">➔</span>
+            <span class="px-1.5 py-0.5 rounded bg-white/5 font-mono text-[10px]"
+              >WEBP</span
+            >
+          </div>
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <span class="font-bold text-[#00ffff]">Audio</span>
+          <div class="flex items-center gap-2">
+            <span class="px-1.5 py-0.5 rounded bg-white/5 font-mono text-[10px]"
+              >MP3</span
+            >
+            <span class="text-white/30 font-mono">➔</span>
+            <span class="px-1.5 py-0.5 rounded bg-white/5 font-mono text-[10px]"
+              >WAV</span
+            >
+            <span class="text-white/30 font-mono">➔</span>
+            <span class="px-1.5 py-0.5 rounded bg-white/5 font-mono text-[10px]"
+              >M4A</span
+            >
+          </div>
+        </div>
+      </div>
     </div>
   {:else if conversionStatus === "converting"}
     <!-- CONVERTING STATE -->
@@ -363,7 +429,9 @@
           <div class="badge-row">
             <span class="format-badge input">{inputFormat.toUpperCase()}</span>
             <span class="arrow-trans">➔</span>
-            <span class="format-badge output">{outputFormat ? outputFormat.toUpperCase() : "?"}</span>
+            <span class="format-badge output"
+              >{outputFormat ? outputFormat.toUpperCase() : "?"}</span
+            >
           </div>
         </div>
       </div>
@@ -371,47 +439,85 @@
       <!-- Settings Panel (Quality, Compression, Dimensions) -->
       <div class="settings-control-panel">
         <h3>Configuration Parameters</h3>
-        
-        {#if fileType === 'image'}
+
+        {#if fileType === "image"}
           <!-- Dimensions Control -->
           <div class="settings-group">
-            <div class="settings-group-header flex items-center justify-between gap-3 mb-2.5">
-              <span class="text-xs font-bold text-white/50 uppercase tracking-wide">Image Resolution Scaling</span>
-              <button class="aspect-link-btn" class:linked={keepAspectRatio} onclick={handleAspectRatioToggle} type="button">
+            <div
+              class="settings-group-header flex items-center justify-between gap-3 mb-2.5"
+            >
+              <span
+                class="text-xs font-bold text-white/50 uppercase tracking-wide"
+                >Image Resolution Scaling</span
+              >
+              <button
+                class="aspect-link-btn"
+                class:linked={keepAspectRatio}
+                onclick={handleAspectRatioToggle}
+                type="button"
+              >
                 {#if keepAspectRatio}
-                  <Link2 size={12} class="mr-1 inline" /><span>Linked (Fixed Aspect)</span>
+                  <Link2 size={12} class="mr-1 inline" /><span
+                    >Linked (Fixed Aspect)</span
+                  >
                 {:else}
-                  <Link2Off size={12} class="mr-1 inline opacity-40" /><span>Unlinked (Free)</span>
+                  <Link2Off size={12} class="mr-1 inline opacity-40" /><span
+                    >Unlinked (Free)</span
+                  >
                 {/if}
               </button>
             </div>
-            
+
             <div class="sliders-row grid grid-cols-2 gap-3.5">
               <div class="slider-field">
-                <div class="slider-label flex justify-between text-[11px] mb-1 font-mono">
+                <div
+                  class="slider-label flex justify-between items-center text-[11px] mb-1 font-mono"
+                >
                   <span class="text-white/40">Width</span>
-                  <span class="text-[#ff5e00] font-bold">{targetWidth}px</span>
+                  <div class="flex items-center gap-0.5">
+                    <input
+                      type="number"
+                      min="10"
+                      max={Math.max(4000, originalWidth * 2)}
+                      value={targetWidth}
+                      oninput={handleWidthChange}
+                      class="value-input"
+                    />
+                    <span class="text-white/30">px</span>
+                  </div>
                 </div>
-                <input 
-                  type="range" 
-                  min="10" 
-                  max={Math.max(4000, originalWidth * 2)} 
-                  value={targetWidth} 
+                <input
+                  type="range"
+                  min="10"
+                  max={Math.max(4000, originalWidth * 2)}
+                  bind:value={targetWidth}
                   oninput={handleWidthChange}
                   class="param-slider"
                 />
               </div>
-              
+
               <div class="slider-field">
-                <div class="slider-label flex justify-between text-[11px] mb-1 font-mono">
+                <div
+                  class="slider-label flex justify-between items-center text-[11px] mb-1 font-mono"
+                >
                   <span class="text-white/40">Height</span>
-                  <span class="text-[#ff5e00] font-bold">{targetHeight}px</span>
+                  <div class="flex items-center gap-0.5">
+                    <input
+                      type="number"
+                      min="10"
+                      max={Math.max(4000, originalHeight * 2)}
+                      value={targetHeight}
+                      oninput={handleHeightChange}
+                      class="value-input"
+                    />
+                    <span class="text-white/30">px</span>
+                  </div>
                 </div>
-                <input 
-                  type="range" 
-                  min="10" 
-                  max={Math.max(4000, originalHeight * 2)} 
-                  value={targetHeight} 
+                <input
+                  type="range"
+                  min="10"
+                  max={Math.max(4000, originalHeight * 2)}
+                  bind:value={targetHeight}
                   oninput={handleHeightChange}
                   class="param-slider"
                 />
@@ -422,33 +528,55 @@
           <!-- Quality & Compression Sliders -->
           <div class="settings-group">
             <div class="sliders-row grid grid-cols-2 gap-3.5 mt-2">
-              {#if outputFormat === 'jpg' || outputFormat === 'webp'}
+              {#if outputFormat === "jpg" || outputFormat === "webp"}
                 <div class="slider-field">
-                  <div class="slider-label flex justify-between text-[11px] mb-1 font-mono">
+                  <div
+                    class="slider-label flex justify-between items-center text-[11px] mb-1 font-mono"
+                  >
                     <span class="text-white/40">Quality Factor</span>
-                    <span class="text-green-400 font-bold">{quality}%</span>
+                    <div class="flex items-center gap-0.5">
+                      <input
+                        type="number"
+                        min="1"
+                        max="100"
+                        bind:value={quality}
+                        class="value-input quality-input"
+                      />
+                      <span class="text-white/30">%</span>
+                    </div>
                   </div>
-                  <input 
-                    type="range" 
-                    min="1" 
-                    max="100" 
-                    bind:value={quality} 
+                  <input
+                    type="range"
+                    min="1"
+                    max="100"
+                    bind:value={quality}
                     class="param-slider"
                   />
                 </div>
               {/if}
-              
-              {#if outputFormat === 'png' || outputFormat === 'webp'}
+
+              {#if outputFormat === "png" || outputFormat === "webp"}
                 <div class="slider-field">
-                  <div class="slider-label flex justify-between text-[11px] mb-1 font-mono">
+                  <div
+                    class="slider-label flex justify-between items-center text-[11px] mb-1 font-mono"
+                  >
                     <span class="text-white/40">Compression Level</span>
-                    <span class="text-blue-400 font-bold">{compression}%</span>
+                    <div class="flex items-center gap-0.5">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        bind:value={compression}
+                        class="value-input compression-input"
+                      />
+                      <span class="text-white/30">%</span>
+                    </div>
                   </div>
-                  <input 
-                    type="range" 
-                    min="0" 
-                    max="100" 
-                    bind:value={compression} 
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    bind:value={compression}
                     class="param-slider"
                   />
                 </div>
@@ -457,12 +585,14 @@
           </div>
         {/if}
 
-        {#if fileType === 'audio'}
+        {#if fileType === "audio"}
           <div class="settings-group">
             <div class="sliders-row grid grid-cols-2 gap-3.5">
-              {#if outputFormat === 'mp3' || outputFormat === 'm4a'}
+              {#if outputFormat === "mp3" || outputFormat === "m4a"}
                 <div class="slider-field">
-                  <div class="slider-label flex justify-between text-[11px] mb-1 font-mono">
+                  <div
+                    class="slider-label flex justify-between text-[11px] mb-1 font-mono"
+                  >
                     <span class="text-white/40">Target Bitrate</span>
                   </div>
                   <select bind:value={audioBitrate} class="param-select">
@@ -476,7 +606,9 @@
               {/if}
 
               <div class="slider-field">
-                <div class="slider-label flex justify-between text-[11px] mb-1 font-mono">
+                <div
+                  class="slider-label flex justify-between text-[11px] mb-1 font-mono"
+                >
                   <span class="text-white/40">Sample Rate Resampler</span>
                 </div>
                 <select bind:value={audioSampleRate} class="param-select">
@@ -507,7 +639,9 @@
           {/each}
         </div>
 
-        <div class="shortcut-tip flex items-center justify-center gap-1.5 mt-4 text-[10px] text-white/30 font-mono">
+        <div
+          class="shortcut-tip flex items-center justify-center gap-1.5 mt-4 text-[10px] text-white/30 font-mono"
+        >
           <Keyboard size={12} />
           <span>Press [1-3] to select, [Enter] to convert</span>
         </div>
@@ -801,6 +935,46 @@
             background: rgba(255, 94, 0, 0.07);
           }
         }
+      }
+
+      .value-input {
+        width: 48px;
+        background: transparent;
+        border: none;
+        border-bottom: 1px dashed rgba(255, 255, 255, 0.15);
+        color: #ff5e00;
+        font-weight: 700;
+        text-align: right;
+        font-family: monospace;
+        font-size: 11px;
+        outline: none;
+        padding: 0 2px;
+
+        &:focus {
+          border-color: #ff5e00;
+          border-bottom-style: solid;
+        }
+
+        &.quality-input {
+          color: #4ade80;
+          &:focus {
+            border-color: #4ade80;
+          }
+        }
+
+        &.compression-input {
+          color: #60a5fa;
+          &:focus {
+            border-color: #60a5fa;
+          }
+        }
+
+        &::-webkit-outer-spin-button,
+        &::-webkit-inner-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
+        -moz-appearance: textfield;
       }
 
       .param-slider {
@@ -1186,7 +1360,7 @@
 
     .settings-control-panel {
       padding: 12px;
-      
+
       .sliders-row {
         grid-template-columns: 1fr !important;
         gap: 10px !important;
