@@ -107,8 +107,18 @@
 .mp-body {
   flex: 1;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: 1fr;
+  grid-template-columns: 1fr;
+
+  & > * {
+    grid-row: 1;
+    grid-column: 1;
+    height: 100%;
+    width: 100%;
+    min-height: 0;
+    min-width: 0;
+  }
 }
 
 .songs-layout {
@@ -1144,6 +1154,14 @@
 
   .mobile-close-bar {
     display: flex !important;
+  }
+
+  .tab-scroll {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    &::-webkit-scrollbar {
+      display: none;
+    }
   }
 
 
