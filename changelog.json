@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1783577047,
+    "firstCommitTimestamp": 1783578806,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 71536
+    "averageLinesAltered": 71556
   },
   "entries": [
     {
       "version": "1.0.1",
       "name": "Master",
       "date": "2026-07-09",
-      "timestamp": 1783576982,
+      "timestamp": 1783578746,
       "commits": [
         {
-          "hash": "3ea0f84",
-          "message": "ending the glitches",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/3ea0f8468312e6eea845217ad1dde3f998d8b3e4",
-          "timestamp": 1783577047,
-          "linesChanged": 71536
+          "hash": "8628597",
+          "message": "deltarune rocks",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/862859794a0903d5c0078772b9f44f23cbeafd25",
+          "timestamp": 1783578806,
+          "linesChanged": 71556
         }
       ]
     },
