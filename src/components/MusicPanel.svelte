@@ -28,8 +28,10 @@
     Share2,
     Check,
     AlertTriangle,
+    Swords,
   } from "lucide-svelte";
   import { audioCore } from "../lib/AudioCore.svelte.js";
+  import BattlePanel from "./music/BattlePanel.svelte";
   import { VisualizerEngine } from "../lib/visualizer/VisualizerEngine.js";
   import DogsLogo from "./DogsLogo.svelte";
   import { PRESETS, NO_SIGNAL_PRESET } from "../lib/visualizer/presets.js";
@@ -44,6 +46,7 @@
     { id: "samples", label: "Samples", icon: Mic2 },
     { id: "playlists", label: "Playlists", icon: Radio },
     { id: "radio", label: "Radio", icon: BoomBox },
+    { id: "battle", label: "Battle", icon: Swords },
   ];
 
   const ERROR_COVER = "/img/error_cover.png";
@@ -1367,6 +1370,14 @@
             <div class="wip-tape">COMING SOON</div>
             <p>Live radio feeds will appear here once connected.</p>
           </div>
+        </div>
+      {:else if activeTab === "battle"}
+        <div
+          class="tab-scroll scroll-y"
+          in:fade={{ duration: 120, delay: 120 }}
+          out:fade={{ duration: 120 }}
+        >
+          <BattlePanel {audioCore} />
         </div>
       {/if}
     </div>
