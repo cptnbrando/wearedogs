@@ -207,7 +207,7 @@
       title: "Den Chai",
       artist: "The Buddha-Bar Lounge",
       album: "Den Chai",
-      cover: "/img/covers/buddha.webp",
+      cover: "https://data.wearedogs.net/img/covers/2026/buddha.webp",
       altCover: "",
       src: "https://data.wearedogs.net/music/2026/DENCHAI.mp3",
       instrumental: "",
