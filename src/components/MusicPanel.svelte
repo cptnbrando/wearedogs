@@ -31,7 +31,6 @@
     Swords,
   } from "lucide-svelte";
   import { audioCore } from "../lib/AudioCore.svelte.js";
-  import BattlePanel from "./music/BattlePanel.svelte";
   import { VisualizerEngine } from "../lib/visualizer/VisualizerEngine.js";
   import DogsLogo from "./DogsLogo.svelte";
   import { PRESETS, NO_SIGNAL_PRESET } from "../lib/visualizer/presets.js";
@@ -1389,7 +1388,9 @@
           in:fade={{ duration: 120, delay: 120 }}
           out:fade={{ duration: 120 }}
         >
-          <BattlePanel {audioCore} />
+          {#await import("./music/BattlePanel.svelte") then m}
+            <m.default {audioCore} />
+          {/await}
         </div>
       {/if}
     </div>

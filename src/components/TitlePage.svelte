@@ -12,12 +12,6 @@
     ChevronDown,
   } from "lucide-svelte";
   import WeAreDogs from "./WeAreDogs.svelte";
-  import StatsPanel from "./StatsPanel.svelte";
-  import ToolboxPanel from "./ToolboxPanel.svelte";
-  import MusicPanel from "./MusicPanel.svelte";
-  import StorePanel from "./StorePanel.svelte";
-  import MapPanel from "./MapPanel.svelte";
-  import InfoPanel from "./InfoPanel.svelte";
   import { parsePath, panelToUrl, appToUrl } from "../lib/router.svelte.js";
   import { audioCore } from "../lib/AudioCore.svelte.js";
 
@@ -430,49 +424,65 @@
 
 <!-- Overlay Panels -->
 {#if activePage === "stats"}
-  <StatsPanel
-    {isClosing}
-    currentLang={activeLang}
-    onClose={closePage}
-    onHoverLang={(code) => {
-      activeLang = code;
-    }}
-    onSelectLang={(code) => {
-      activeLang = code;
-      if (weAreDogsRef) {
-        weAreDogsRef.forceLanguage(code);
-      }
-    }}
-  />
+  {#await import("./StatsPanel.svelte")}
+    <div class="panel-loading-spinner" aria-label="Loading..."></div>
+  {:then m}
+    <m.default
+      {isClosing}
+      currentLang={activeLang}
+      onClose={closePage}
+      onHoverLang={(code) => { activeLang = code; }}
+      onSelectLang={(code) => {
+        activeLang = code;
+        if (weAreDogsRef) weAreDogsRef.forceLanguage(code);
+      }}
+    />
+  {/await}
 {:else if activePage === "networking"}
   <NetworkingPanel {isClosing} onClose={closePage} />
 {:else if activePage === "toolbox"}
-  <ToolboxPanel
-    {isClosing}
-    onClose={closePage}
-    bind:activeApp
-    initialApp={deepLinkApp}
-    goProShow={deepLinkGoProShow}
-    goProEpisode={deepLinkGoProEp}
-    bind:blogPostSlug={deepLinkBlogPostSlug}
-    bind:depth
-    isFlagColors={weAreDogsColored}
-    {deepLinkArcadeGame}
-  />
+  {#await import("./ToolboxPanel.svelte")}
+    <div class="panel-loading-spinner" aria-label="Loading..."></div>
+  {:then m}
+    <m.default
+      {isClosing}
+      onClose={closePage}
+      bind:activeApp
+      initialApp={deepLinkApp}
+      goProShow={deepLinkGoProShow}
+      goProEpisode={deepLinkGoProEp}
+      bind:blogPostSlug={deepLinkBlogPostSlug}
+      bind:depth
+      isFlagColors={weAreDogsColored}
+      {deepLinkArcadeGame}
+    />
+  {/await}
 {:else if activePage === "music"}
-  <MusicPanel {isClosing} onClose={closePage} {initialTrackId} />
+  {#await import("./MusicPanel.svelte")}
+    <div class="panel-loading-spinner" aria-label="Loading..."></div>
+  {:then m}
+    <m.default {isClosing} onClose={closePage} {initialTrackId} />
+  {/await}
 {:else if activePage === "store"}
-  <StorePanel {isClosing} onClose={closePage} />
+  {#await import("./StorePanel.svelte")}
+    <div class="panel-loading-spinner" aria-label="Loading..."></div>
+  {:then m}
+    <m.default {isClosing} onClose={closePage} />
+  {/await}
 {:else if activePage === "map"}
-  <MapPanel {isClosing} onClose={closePage} />
+  {#await import("./MapPanel.svelte")}
+    <div class="panel-loading-spinner" aria-label="Loading..."></div>
+  {:then m}
+    <m.default {isClosing} onClose={closePage} />
+  {/await}
 {/if}
 
 {#if showInfo}
-  <InfoPanel
-    onClose={() => {
-      if (showInfo) history.back();
-    }}
-  />
+  {#await import("./InfoPanel.svelte")}
+    <div class="panel-loading-spinner" aria-label="Loading..."></div>
+  {:then m}
+    <m.default onClose={() => { if (showInfo) history.back(); }} />
+  {/await}
 {/if}
 
 <style>
@@ -588,5 +598,32 @@
     animation: runeDance 1s ease-in-out infinite;
     color: #a000eb !important;
     filter: drop-shadow(0 0 8px rgba(160, 0, 237, 0.6));
+  }
+
+  /* Panel lazy-load spinner */
+  .panel-loading-spinner {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  .panel-loading-spinner::after {
+    content: "";
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 3px solid rgba(255, 255, 255, 0.1);
+    border-top-color: rgba(255, 255, 255, 0.7);
+    animation: panelSpinner 0.7s linear infinite;
+  }
+
+  @keyframes panelSpinner {
+    to { transform: rotate(360deg); }
   }
 </style>

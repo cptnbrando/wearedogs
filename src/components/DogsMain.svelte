@@ -103,7 +103,7 @@
         class="block landscape:hidden lg:hidden w-full h-[40vh] relative z-0"
       >
         {#if !isDesktopOrLandscape && ThreeDCanvas}
-          <ThreeDCanvas {isFlagColors} />
+          <ThreeDCanvas {isFlagColors} {active} />
         {:else}
           <div class="w-full h-full bg-transparent pointer-events-none">
             <div
@@ -198,7 +198,7 @@
     class:landscape:max-lg:hidden={activeLandscapeTab === "cards"}
   >
     {#if isDesktopOrLandscape && ThreeDCanvas}
-      <ThreeDCanvas {isFlagColors} />
+      <ThreeDCanvas {isFlagColors} {active} />
     {:else}
       <!-- Minimal CSS skeleton fallback loading states -->
       <div

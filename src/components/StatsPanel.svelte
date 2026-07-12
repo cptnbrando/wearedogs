@@ -22,11 +22,6 @@
   import DogsLogo from "./DogsLogo.svelte";
   import { audioCore } from "../lib/AudioCore.svelte.js";
   import countryStats from "../lib/countryStats.js";
-  import ExplorerTab from "./stats/ExplorerTab.svelte";
-  import MapTab from "./stats/MapTab.svelte";
-  import ComparisonTab from "./stats/ComparisonTab.svelte";
-  import AnimalsTab from "./stats/AnimalsTab.svelte";
-  import ThemesTab from "./stats/ThemesTab.svelte";
 
   let {
     isClosing = false,
@@ -505,36 +500,46 @@
       >
         {#if activeTab === "explorer"}
           <div in:fade={{ duration: 120, delay: 120 }} out:fade={{ duration: 120 }}>
-            <ExplorerTab
-              {allLangItems}
-              bind:currentLang
-              {handleHover}
-              {handleSelect}
-            />
+            {#await import("./stats/ExplorerTab.svelte") then m}
+              <m.default
+                {allLangItems}
+                bind:currentLang
+                {handleHover}
+                {handleSelect}
+              />
+            {/await}
           </div>
         {:else if activeTab === "map"}
           <div in:fade={{ duration: 120, delay: 120 }} out:fade={{ duration: 120 }}>
-            <MapTab
-              {activeColor}
-              {activeLangItem}
-              {activeCountries}
-              {enrichedCountryStats}
-              {countryColorsMap}
-              {countryLanguagesMap}
-              {handleCountrySelect}
-            />
+            {#await import("./stats/MapTab.svelte") then m}
+              <m.default
+                {activeColor}
+                {activeLangItem}
+                {activeCountries}
+                {enrichedCountryStats}
+                {countryColorsMap}
+                {countryLanguagesMap}
+                {handleCountrySelect}
+              />
+            {/await}
           </div>
         {:else if activeTab === "comparison"}
           <div in:fade={{ duration: 120, delay: 120 }} out:fade={{ duration: 120 }}>
-            <ComparisonTab {enrichedCountryStats} />
+            {#await import("./stats/ComparisonTab.svelte") then m}
+              <m.default {enrichedCountryStats} />
+            {/await}
           </div>
         {:else if activeTab === "animals"}
           <div in:fade={{ duration: 120, delay: 120 }} out:fade={{ duration: 120 }}>
-            <AnimalsTab {allLangItems} />
+            {#await import("./stats/AnimalsTab.svelte") then m}
+              <m.default {allLangItems} />
+            {/await}
           </div>
         {:else if activeTab === "themes"}
           <div in:fade={{ duration: 120, delay: 120 }} out:fade={{ duration: 120 }}>
-            <ThemesTab {allLangItems} {onSelectLang} />
+            {#await import("./stats/ThemesTab.svelte") then m}
+              <m.default {allLangItems} {onSelectLang} />
+            {/await}
           </div>
         {/if}
       </main>
