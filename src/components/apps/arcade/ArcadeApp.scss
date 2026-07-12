@@ -383,12 +383,37 @@
   #emulator {
     width: 100%;
     height: 100%;
+    position: relative !important;
 
     :global(canvas) {
       width: 100% !important;
       height: 100% !important;
       object-fit: contain !important;
       display: block;
+    }
+
+    :global([id*="EmuBlock"]) {
+      min-width: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    :global([class*="NeptunButton"]) {
+      margin: 0 auto !important;
+      left: 0 !important;
+      right: 0 !important;
+      position: absolute !important;
+      top: 50% !important;
+      transform: translateY(-50%) !important;
+    }
+
+    :global([class*="loader_emu"]) {
+      margin: 0 auto !important;
+      left: 0 !important;
+      right: 0 !important;
+      position: absolute !important;
+      top: 50% !important;
+      transform: translateY(-50%) !important;
     }
   }
 }
