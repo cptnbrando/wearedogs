@@ -1,1 +1,0 @@
-System.register(["./vendor-legacy-BzziM5ZC.js","./BasePanel-legacy-D20NVM0l.js"],function(e,n){var t,r;return e("default",function(e,n){var o=t(n,"isClosing",3,!1);r(e,{title:"World Map",get isClosing(){return o()},get onClose(){return n.onClose}})}),{setters:[function(e){t=e.er},function(e){r=e.t}],execute:function(){}}});

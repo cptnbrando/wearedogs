@@ -1,0 +1,1 @@
+import"./vendor-B1QhM8cf.js";import e from"./BaseApp-BEoH9upv.js";function t(t){e(t,{title:`Canine Memes`,description:`An infinite catalog of hilarious dog memes to brighten your day.`,graphicSrc:`/memes.png`,themeColor:`#ff55bb`})}export{t as default};
