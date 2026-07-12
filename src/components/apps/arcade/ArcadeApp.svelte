@@ -15,12 +15,12 @@
     Maximize2,
     Minimize2,
   } from "lucide-svelte";
-  import rom2p from "./rom/2p.zip?url";
-  import romConker from "./rom/conker-n64.zip?url";
-  import romGoldeneye from "./rom/goldeneye-n64.zip?url";
-  import romMarioDS from "./rom/mario64-ds.zip?url";
-  import romMarioN64 from "./rom/mario64-n64.zip?url";
-  import romMoonwalker from "./rom/moonwalker-segagenesis.zip?url";
+  // import rom2p from "./rom/2p.zip?url";
+  // import romConker from "./rom/conker-n64.zip?url";
+  // import romGoldeneye from "./rom/goldeneye-n64.zip?url";
+  // import romMarioDS from "./rom/mario64-ds.zip?url";
+  // import romMarioN64 from "./rom/mario64-n64.zip?url";
+  // import romMoonwalker from "./rom/moonwalker-segagenesis.zip?url";
   import { DEFAULT_MAPPINGS } from "./controlsConfig.js";
   import KeyboardControlsModal from "./KeyboardControlsModal.svelte";
 
@@ -48,42 +48,49 @@
       id: "mario64",
       title: "Super Mario 64",
       console: "n64",
-      file: romMarioN64,
+      file: "https://data.wearedogs.net/game/n64/mario.zip",
       desc: "Classic N64 3D platformer.",
     },
     {
       id: "goldeneye",
       title: "GoldenEye 007",
       console: "n64",
-      file: romGoldeneye,
+      file: "https://data.wearedogs.net/game/n64/goldeneye.zip",
       desc: "Classic FPS multiplayer action.",
     },
     {
       id: "conker",
       title: "Conker's Bad Fur Day",
       console: "n64",
-      file: romConker,
+      file: "https://data.wearedogs.net/game/n64/conker.zip",
       desc: "Classic N64 comedy platformer.",
     },
     {
       id: "mariods",
       title: "Super Mario 64 DS",
       console: "nds",
-      file: romMarioDS,
+      file: "https://data.wearedogs.net/game/nds/mario64.zip",
       desc: "Enhanced Nintendo DS port.",
+    },
+    {
+      id: "nintendogs",
+      title: "Nintendogs: Dalmatian and Friends",
+      console: "nds",
+      file: "https://data.wearedogs.net/game/nds/dalmatian.zip",
+      desc: "Virtual pet game.",
     },
     {
       id: "zelda",
       title: "Zelda (GBA)",
       console: "gba",
-      file: rom2p,
+      file: "https://data.wearedogs.net/game/gba/zelda.zip",
       desc: "Epic Gameboy Advance adventure.",
     },
     {
       id: "moonwalker",
       title: "Moonwalker",
       console: "sega",
-      file: romMoonwalker,
+      file: "https://data.wearedogs.net/game/genesis/moonwalker.zip",
       desc: "Michael Jackson's Sega Genesis classic.",
     },
   ];
@@ -114,7 +121,7 @@
             } else {
               parsed[consoleKey] = {
                 ...DEFAULT_MAPPINGS[consoleKey],
-                ...parsed[consoleKey]
+                ...parsed[consoleKey],
               };
             }
           }
@@ -144,7 +151,7 @@
     const config = userMappings[consoleType];
     if (!config) return;
 
-    const action = Object.keys(config).find(key => config[key] === e.code);
+    const action = Object.keys(config).find((key) => config[key] === e.code);
     if (action) {
       e.preventDefault();
       e.stopPropagation();
@@ -164,7 +171,10 @@
       bubbles: true,
       cancelable: true,
     });
-    Object.defineProperty(eventObj, "synthesized", { value: true, enumerable: true });
+    Object.defineProperty(eventObj, "synthesized", {
+      value: true,
+      enumerable: true,
+    });
 
     const canvas = document.querySelector("#emulator canvas");
     if (canvas) {
@@ -549,24 +559,32 @@
     if (!playArea) return;
 
     if (!document.fullscreenElement) {
-      playArea.requestFullscreen().then(() => {
-        isFullscreen = true;
-      }).catch(() => {
-        isFullscreen = !isFullscreen;
-      });
+      playArea
+        .requestFullscreen()
+        .then(() => {
+          isFullscreen = true;
+        })
+        .catch(() => {
+          isFullscreen = !isFullscreen;
+        });
     } else {
-      document.exitFullscreen().then(() => {
-        isFullscreen = false;
-      }).catch(() => {
-        isFullscreen = false;
-      });
+      document
+        .exitFullscreen()
+        .then(() => {
+          isFullscreen = false;
+        })
+        .catch(() => {
+          isFullscreen = false;
+        });
     }
   }
 
   // Svelte 5 dynamic emulator DOM positioning effect
   $effect(() => {
     if (isEmuRunning && activeTheme && emulatorEl) {
-      const container = document.querySelector(`.console-${activeTheme} .screen-display-area`);
+      const container = document.querySelector(
+        `.console-${activeTheme} .screen-display-area`,
+      );
       if (container && emulatorEl.parentElement !== container) {
         container.appendChild(emulatorEl);
       }
@@ -576,7 +594,10 @@
   // Sync custom controls to local storage
   $effect(() => {
     try {
-      localStorage.setItem("arcade-keyboard-mappings", JSON.stringify(userMappings));
+      localStorage.setItem(
+        "arcade-keyboard-mappings",
+        JSON.stringify(userMappings),
+      );
     } catch (e) {
       console.warn("Failed to save mappings to localStorage:", e);
     }
@@ -589,7 +610,8 @@
     window.addEventListener("keyup", handleWindowKeyEvent, true);
 
     // Check auto load
-    const reloadGameId = initialGameId || localStorage.getItem("arcade-auto-load");
+    const reloadGameId =
+      initialGameId || localStorage.getItem("arcade-auto-load");
     const reloadTheme = localStorage.getItem("arcade-auto-theme");
 
     if (reloadTheme) {
@@ -733,9 +755,10 @@
           Keyboard Bindings
         </h3>
         <p>
-          Configure custom keyboard controls for Sega Genesis, NDS, N64, PSX, and GBA.
+          Configure custom keyboard controls for Sega Genesis, NDS, N64, PSX,
+          and GBA.
         </p>
-        <button class="config-btn" onclick={() => isControlsModalOpen = true}>
+        <button class="config-btn" onclick={() => (isControlsModalOpen = true)}>
           <Settings2 size={14} />
           Configure Keys
         </button>
@@ -759,10 +782,18 @@
             <option value="gba">GBA Horizontal</option>
             <option value="screen">Screen Only</option>
           </select>
-          <button class="fullscreen-btn hidden md:flex" onclick={() => isControlsModalOpen = true} aria-label="Keyboard controls">
+          <button
+            class="fullscreen-btn hidden md:flex"
+            onclick={() => (isControlsModalOpen = true)}
+            aria-label="Keyboard controls"
+          >
             <Settings2 size={14} />
           </button>
-          <button class="fullscreen-btn" onclick={toggleFullscreen} aria-label="Toggle Fullscreen">
+          <button
+            class="fullscreen-btn"
+            onclick={toggleFullscreen}
+            aria-label="Toggle Fullscreen"
+          >
             {#if isFullscreen}
               <Minimize2 size={14} />
             {:else}
@@ -774,10 +805,17 @@
 
       <div class="console-body-wrapper">
         <!-- Persistent Emulator Container -->
-        <div bind:this={emulatorEl} id="emulator" style="width: 100%; height: 100%;"></div>
+        <div
+          bind:this={emulatorEl}
+          id="emulator"
+          style="width: 100%; height: 100%;"
+        ></div>
 
         <!-- GAMEBOY COLOR THEME (VERTICAL STACK) -->
-        <div class="console-gbc" style="display: {activeTheme === 'gbc' ? 'flex' : 'none'}">
+        <div
+          class="console-gbc"
+          style="display: {activeTheme === 'gbc' ? 'flex' : 'none'}"
+        >
           <div class="screen-bezel">
             <span class="power-led"></span>
             <div class="screen-display-area">
@@ -892,7 +930,10 @@
         </div>
 
         <!-- PSP THEME (HORIZONTAL SPLIT) -->
-        <div class="console-psp" style="display: {activeTheme === 'psp' ? 'flex' : 'none'}">
+        <div
+          class="console-psp"
+          style="display: {activeTheme === 'psp' ? 'flex' : 'none'}"
+        >
           <!-- PSP L Shoulder button -->
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <div
@@ -1065,7 +1106,10 @@
         </div>
 
         <!-- GAMEBOY ADVANCE (HORIZONTAL THEME) -->
-        <div class="console-gba" style="display: {activeTheme === 'gba' ? 'flex' : 'none'}">
+        <div
+          class="console-gba"
+          style="display: {activeTheme === 'gba' ? 'flex' : 'none'}"
+        >
           <!-- GBA Shoulder Buttons -->
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <div
@@ -1195,7 +1239,12 @@
         </div>
 
         <!-- SCREEN ONLY THEME (BEZEL-LESS SCREEN) -->
-        <div class="console-screen" style="display: {activeTheme === 'screen' ? 'flex' : 'none'}; width: 100%; height: 100%;">
+        <div
+          class="console-screen"
+          style="display: {activeTheme === 'screen'
+            ? 'flex'
+            : 'none'}; width: 100%; height: 100%;"
+        >
           <div class="screen-display-area" style="width: 100%; height: 100%;">
             <!-- Emulator is moved here dynamically by $effect -->
           </div>
@@ -1207,7 +1256,7 @@
 
 <KeyboardControlsModal
   bind:isOpen={isControlsModalOpen}
-  bind:userMappings={userMappings}
+  bind:userMappings
   onReset={handleResetConsoleMappings}
 />
 
