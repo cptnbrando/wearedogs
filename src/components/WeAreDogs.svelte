@@ -1610,7 +1610,7 @@
     margin: 0;
     padding: 0;
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-    font-size: clamp(3rem, 12vmin, 9rem);
+    font-size: clamp(4rem, 15vmin, 12rem);
     font-weight: 900;
     line-height: 1.05;
     letter-spacing: -0.02em;
@@ -1634,7 +1634,7 @@
 
   @media (max-height: 500px) {
     .word {
-      font-size: clamp(2rem, 9vh, 4rem);
+      font-size: clamp(2.5rem, 11vh, 5rem);
     }
     .pronunciation {
       margin-top: 1.25rem !important;
