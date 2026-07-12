@@ -1,3 +1,5 @@
+.env
+
 # Media assets
 public/batman/*.mp4
 # !public/batman/batman1.mp4

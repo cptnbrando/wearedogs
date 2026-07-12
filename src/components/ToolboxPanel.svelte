@@ -31,7 +31,7 @@
   import PaintApp from "./apps/PaintApp.svelte";
   import FatherTimeApp from "./apps/fathertime/FatherTimeApp.svelte";
   import GoPro from "./apps/GoPro.svelte";
-  import DataFlash from "./apps/DataFlash.svelte";
+  import DataTrain from "./apps/datatrain/DataTrain.svelte";
   import QRGenerator from "./apps/QRGenerator.svelte";
   import Rescue from "./apps/Rescue.svelte";
   import MemesApp from "./apps/MemesApp.svelte";
@@ -168,8 +168,8 @@
     },
     {
       id: "dataflash",
-      title: "DataFlash",
-      desc: "Visual file transfer protocol over flashing QR codes.",
+      title: "Data Train",
+      desc: "Multi-protocol secure data dispatcher (QR, BT, USB, AirRTC).",
       icon: Zap,
     },
     {
@@ -347,7 +347,7 @@
       {:else if activeApp === "gopro"}
         <GoPro />
       {:else if activeApp === "dataflash"}
-        <DataFlash />
+        <DataTrain />
       {:else if activeApp === "qrgenerator"}
         <QRGenerator />
       {:else if activeApp === "rescue"}
