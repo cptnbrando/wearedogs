@@ -169,7 +169,6 @@
       altCover: "https://data.wearedogs.net/img/covers/2026/yg.jpg",
       src: "https://data.wearedogs.net/music/2026/HOLLYWOOD.mp3",
       instrumental: "https://data.wearedogs.net/music/2026/HOLLYWOOD-free.mp3",
-      hasInstrumental: true,
       dateAdded: "2026-06-24T03:00:00-05:00",
       year: 2026,
       genre: "Hip-Hop",
@@ -184,7 +183,6 @@
       altCover: "https://data.wearedogs.net/img/covers/2026/mj.jpg",
       src: "https://data.wearedogs.net/music/2026/Chicago.mp3",
       instrumental: "https://data.wearedogs.net/music/2026/Chicago-free.mp3",
-      hasInstrumental: true,
       dateAdded: "2026-06-24T03:00:00-05:00",
       year: 2014,
       genre: "Pop",
@@ -199,7 +197,6 @@
       altCover: "https://data.wearedogs.net/img/covers/2026/zd.jpg",
       src: "https://data.wearedogs.net/music/2026/Pourin.mp3",
       instrumental: "",
-      hasInstrumental: false,
       dateAdded: "2026-07-07T018:12:00-05:00",
       year: 2026,
       genre: "Electronic",
@@ -214,7 +211,6 @@
       altCover: "https://data.wearedogs.net/img/covers/2026/buddha.png",
       src: "https://data.wearedogs.net/music/2026/DENCHAI.mp3",
       instrumental: "",
-      hasInstrumental: false,
       dateAdded: "2026-07-07T22:34:00-05:00",
       year: 2008,
       genre: "Lounge",
@@ -230,7 +226,6 @@
       altCover: "https://data.wearedogs.net/img/covers/2026/rainbow.png",
       src: "https://data.wearedogs.net/music/2026/rainbow.mp3",
       instrumental: "https://data.wearedogs.net/music/2026/rainbow-free.mp3",
-      hasInstrumental: true,
       dateAdded: "2026-07-08T16:35:00-05:00",
       year: 2010,
       genre: "Hip-Hop",
@@ -245,7 +240,6 @@
       altCover: "https://data.wearedogs.net/img/covers/2026/deltarune.png",
       src: "https://data.wearedogs.net/music/2026/shop.mp3",
       instrumental: "https://data.wearedogs.net/music/2026/shop-free.mp3",
-      hasInstrumental: true,
       dateAdded: "2026-07-09T01:22:00-05:00",
       year: 2021,
       genre: "Video Game",
@@ -258,9 +252,8 @@
       album: "> album title goes here <",
       cover: "https://data.wearedogs.net/img/covers/2026/sleepless.webp",
       altCover: "https://data.wearedogs.net/img/covers/2026/sleepless.png",
-      src: "https://data.wearedogs.net/music/2026/sleepless.mp3",
-      instrumental: "",
-      hasInstrumental: false,
+      src: "",
+      instrumental: "https://data.wearedogs.net/music/2026/sleepless.mp3",
       dateAdded: "2026-07-12T04:22:00-05:00",
       year: 2026,
       genre: "Electronic",
@@ -345,7 +338,8 @@
       if (idx !== -1) {
         audioCore.loadTrack(idx, true);
       }
-    } else {
+    } else if (!audioCore.hasPickedRandomTrack) {
+      audioCore.hasPickedRandomTrack = true;
       const randomIdx = Math.floor(Math.random() * library.length);
       audioCore.loadTrack(randomIdx, false);
     }

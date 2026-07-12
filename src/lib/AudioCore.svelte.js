@@ -33,6 +33,12 @@ export class AudioCore {
   library = [];
   activeTrackBlobUrl = null;
   activeInstBlobUrl = null;
+  hasPickedRandomTrack = false;
+
+  // True when the currently loaded track has a non-empty instrumental source
+  trackHasInstrumental = $derived(
+    !!(this.library[this.currentTrackIndex]?.instrumental)
+  );
 
   constructor() { }
 
@@ -120,11 +126,7 @@ export class AudioCore {
     // Clear failed track state on attempt to retry
     delete this.fetchErrors[track.id];
 
-    if (track && track.hasInstrumental) {
-      this.isInstrumental = this.userPrefersInstrumental || false;
-    } else {
-      this.isInstrumental = (track && (track.id === "rain" || track.id === "denchai"));
-    }
+    this.isInstrumental = this.trackHasInstrumental && (this.userPrefersInstrumental || false);
     this.currentTime = 0;
     this.isLoading = true;
 
