@@ -12,7 +12,6 @@
     Play,
     Sparkles,
   } from "lucide-svelte";
-  import Tesseract from "tesseract.js";
 
   // App Reactive States
   let bulkFiles = $state([]); // array of { file, name, url, status, progress, text, error, sourceImage }
@@ -213,6 +212,7 @@
     try {
       ocrStatus = "Starting scanning worker...";
 
+      const Tesseract = (await import("tesseract.js")).default;
       const {
         data: { text },
       } = await Tesseract.recognize(canvasElement, "eng", {
@@ -272,6 +272,7 @@
         await new Promise((r) => setTimeout(r, 60));
 
         try {
+          const Tesseract = (await import("tesseract.js")).default;
           const {
             data: { text },
           } = await Tesseract.recognize(canvasElement, "eng", {

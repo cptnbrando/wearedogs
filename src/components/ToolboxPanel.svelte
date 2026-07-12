@@ -2,11 +2,9 @@
   import { onMount, onDestroy } from "svelte";
   import {
     ArrowLeft,
-    Undo,
     Award,
     Volume2,
     Paintbrush,
-    Watch,
     Video,
     QrCode,
     Radio,
@@ -23,29 +21,9 @@
     FileText,
     Gamepad2,
   } from "lucide-svelte";
-  import SnakeApp from "./apps/SnakeApp.svelte";
-  import ArcadeApp from "./apps/arcade/ArcadeApp.svelte";
   import DogsLogo from "./DogsLogo.svelte";
-  import { audioCore } from "../lib/AudioCore.svelte.js";
-  import SoundboardApp from "./apps/SoundboardApp.svelte";
-  import PaintApp from "./apps/PaintApp.svelte";
-  import FatherTimeApp from "./apps/fathertime/FatherTimeApp.svelte";
-  import GoPro from "./apps/GoPro.svelte";
-  import DataTrain from "./apps/datatrain/DataTrain.svelte";
-  import QRGenerator from "./apps/QRGenerator.svelte";
-  import Rescue from "./apps/Rescue.svelte";
-  import MemesApp from "./apps/MemesApp.svelte";
-  import WorldCupApp from "./apps/WorldCupApp.svelte";
-  import ChangelogApp from "./apps/ChangelogApp.svelte";
-  import BlogApp from "./apps/BlogApp.svelte";
-  import SettingsApp from "./apps/SettingsApp.svelte";
-  import SoundStripper from "./apps/SoundStripper.svelte";
-  import WindshieldWiper from "./apps/WindshieldWiper.svelte";
-  import CatalyticConverter from "./apps/CatalyticConverter.svelte";
-  import ImageReader from "./apps/ImageReader.svelte";
   import AppCard from "./AppCard.svelte";
-
-  const title = "Toolbox";
+  import { audioCore } from "../lib/AudioCore.svelte.js";
 
   let {
     isClosing = false,
@@ -58,9 +36,16 @@
     deepLinkArcadeGame = null,
   } = $props();
 
+  const TITLE_DEFAULT = "Toolbox";
+
   let isReadingPost = $state(false);
   let appsGridEl = $state(null);
   let isKeyboardNav = $state(false);
+
+  // Derive header title from the active app, falling back to the default
+  const panelTitle = $derived(
+    activeApp ? (apps.find((a) => a.id === activeApp)?.title ?? TITLE_DEFAULT) : TITLE_DEFAULT
+  );
 
   // Sync initial deep-linked app on mount
   $effect(() => {
@@ -292,7 +277,7 @@
         >
           <DogsLogo size="panel" />
         </button>
-        <h1>{title}</h1>
+        <h1>{panelTitle}</h1>
       </div>
 
       <button
@@ -335,46 +320,118 @@
           </div>
         </div>
       {:else if activeApp === "snake"}
-        <SnakeApp />
+        {#await import("./apps/SnakeApp.svelte")}
+          <div class="app-loading-spinner" aria-label="Loading..."></div>
+        {:then m}
+          <m.default />
+        {/await}
       {:else if activeApp === "arcade"}
-        <ArcadeApp initialGameId={deepLinkArcadeGame} />
+        {#await import("./apps/arcade/ArcadeApp.svelte")}
+          <div class="app-loading-spinner" aria-label="Loading..."></div>
+        {:then m}
+          <m.default initialGameId={deepLinkArcadeGame} />
+        {/await}
       {:else if activeApp === "soundboard"}
-        <SoundboardApp />
+        {#await import("./apps/SoundboardApp.svelte")}
+          <div class="app-loading-spinner" aria-label="Loading..."></div>
+        {:then m}
+          <m.default />
+        {/await}
       {:else if activeApp === "paint"}
-        <PaintApp />
+        {#await import("./apps/PaintApp.svelte")}
+          <div class="app-loading-spinner" aria-label="Loading..."></div>
+        {:then m}
+          <m.default />
+        {/await}
       {:else if activeApp === "stopwatch"}
-        <FatherTimeApp />
+        {#await import("./apps/fathertime/FatherTimeApp.svelte")}
+          <div class="app-loading-spinner" aria-label="Loading..."></div>
+        {:then m}
+          <m.default />
+        {/await}
       {:else if activeApp === "gopro"}
-        <GoPro />
+        {#await import("./apps/GoPro.svelte")}
+          <div class="app-loading-spinner" aria-label="Loading..."></div>
+        {:then m}
+          <m.default />
+        {/await}
       {:else if activeApp === "dataflash"}
-        <DataTrain />
+        {#await import("./apps/datatrain/DataTrain.svelte")}
+          <div class="app-loading-spinner" aria-label="Loading..."></div>
+        {:then m}
+          <m.default />
+        {/await}
       {:else if activeApp === "qrgenerator"}
-        <QRGenerator />
+        {#await import("./apps/QRGenerator.svelte")}
+          <div class="app-loading-spinner" aria-label="Loading..."></div>
+        {:then m}
+          <m.default />
+        {/await}
       {:else if activeApp === "rescue"}
-        <Rescue />
+        {#await import("./apps/Rescue.svelte")}
+          <div class="app-loading-spinner" aria-label="Loading..."></div>
+        {:then m}
+          <m.default />
+        {/await}
       {:else if activeApp === "memes"}
-        <MemesApp />
+        {#await import("./apps/MemesApp.svelte")}
+          <div class="app-loading-spinner" aria-label="Loading..."></div>
+        {:then m}
+          <m.default />
+        {/await}
       {:else if activeApp === "worldcup"}
-        <WorldCupApp />
+        {#await import("./apps/WorldCupApp.svelte")}
+          <div class="app-loading-spinner" aria-label="Loading..."></div>
+        {:then m}
+          <m.default />
+        {/await}
       {:else if activeApp === "changelog"}
-        <ChangelogApp />
+        {#await import("./apps/ChangelogApp.svelte")}
+          <div class="app-loading-spinner" aria-label="Loading..."></div>
+        {:then m}
+          <m.default />
+        {/await}
       {:else if activeApp === "blog"}
-        <BlogApp
-          bind:initialSlug={blogPostSlug}
-          bind:isReading={isReadingPost}
-          bind:depth
-          {isFlagColors}
-        />
+        {#await import("./apps/BlogApp.svelte")}
+          <div class="app-loading-spinner" aria-label="Loading..."></div>
+        {:then m}
+          <m.default
+            bind:initialSlug={blogPostSlug}
+            bind:isReading={isReadingPost}
+            bind:depth
+            {isFlagColors}
+          />
+        {/await}
       {:else if activeApp === "settings"}
-        <SettingsApp />
+        {#await import("./apps/SettingsApp.svelte")}
+          <div class="app-loading-spinner" aria-label="Loading..."></div>
+        {:then m}
+          <m.default />
+        {/await}
       {:else if activeApp === "soundstripper"}
-        <SoundStripper />
+        {#await import("./apps/SoundStripper.svelte")}
+          <div class="app-loading-spinner" aria-label="Loading..."></div>
+        {:then m}
+          <m.default />
+        {/await}
       {:else if activeApp === "converter"}
-        <CatalyticConverter />
+        {#await import("./apps/CatalyticConverter.svelte")}
+          <div class="app-loading-spinner" aria-label="Loading..."></div>
+        {:then m}
+          <m.default />
+        {/await}
       {:else if activeApp === "reader"}
-        <ImageReader />
+        {#await import("./apps/ImageReader.svelte")}
+          <div class="app-loading-spinner" aria-label="Loading..."></div>
+        {:then m}
+          <m.default />
+        {/await}
       {:else if activeApp === "windshieldwiper"}
-        <WindshieldWiper onClose={() => (activeApp = null)} />
+        {#await import("./apps/WindshieldWiper.svelte")}
+          <div class="app-loading-spinner" aria-label="Loading..."></div>
+        {:then m}
+          <m.default onClose={() => (activeApp = null)} />
+        {/await}
       {/if}
     </div>
 
@@ -581,6 +638,29 @@
     display: flex;
     align-items: center;
     gap: 8px;
+  }
+
+  /* ── App Loading Spinner ── */
+  .app-loading-spinner {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .app-loading-spinner::after {
+    content: "";
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 3px solid rgba(255, 255, 255, 0.08);
+    border-top-color: rgba(255, 255, 255, 0.6);
+    animation: appSpinner 0.7s linear infinite;
+  }
+
+  @keyframes appSpinner {
+    to { transform: rotate(360deg); }
   }
 
   /* ── Mobile Layout Full Screen & App Grid ── */
