@@ -20,8 +20,11 @@
     Scissors,
     Sparkles,
     RefreshCw,
+    FileText,
+    Gamepad2,
   } from "lucide-svelte";
   import SnakeApp from "./apps/SnakeApp.svelte";
+  import ArcadeApp from "./apps/arcade/ArcadeApp.svelte";
   import DogsLogo from "./DogsLogo.svelte";
   import { audioCore } from "../lib/AudioCore.svelte.js";
   import SoundboardApp from "./apps/SoundboardApp.svelte";
@@ -39,6 +42,7 @@
   import SoundStripper from "./apps/SoundStripper.svelte";
   import WindshieldWiper from "./apps/WindshieldWiper.svelte";
   import CatalyticConverter from "./apps/CatalyticConverter.svelte";
+  import ImageReader from "./apps/ImageReader.svelte";
   import AppCard from "./AppCard.svelte";
 
   const title = "Toolbox";
@@ -51,6 +55,7 @@
     initialApp = null,
     blogPostSlug = $bindable(null),
     depth = $bindable(0),
+    deepLinkArcadeGame = null,
   } = $props();
 
   let isReadingPost = $state(false);
@@ -125,6 +130,12 @@
       icon: Award,
     },
     {
+      id: "arcade",
+      title: "Retro Arcade",
+      desc: "Play retro consoles (GBA, N64, NDS, Genesis) with virtual touch gamepads.",
+      icon: Gamepad2,
+    },
+    {
       id: "paint",
       title: "Sketch Canvas",
       desc: "Draw and paint illustrations on a canvas.",
@@ -141,6 +152,12 @@
       title: "Canine Memes",
       desc: "Explore and share high-fidelity, hilarious dog memes.",
       icon: Smile,
+    },
+    {
+      id: "reader",
+      title: "Image Reader",
+      desc: "Extract editable text from uploaded images in any format.",
+      icon: FileText,
     },
     // RESCUE, GOPRO, DATAFLASH, CHANGELOG, AND SETTINGS MUST ALWAYS BE LAST IN THIS LIST
     {
@@ -319,6 +336,8 @@
         </div>
       {:else if activeApp === "snake"}
         <SnakeApp />
+      {:else if activeApp === "arcade"}
+        <ArcadeApp initialGameId={deepLinkArcadeGame} />
       {:else if activeApp === "soundboard"}
         <SoundboardApp />
       {:else if activeApp === "paint"}
@@ -352,6 +371,8 @@
         <SoundStripper />
       {:else if activeApp === "converter"}
         <CatalyticConverter />
+      {:else if activeApp === "reader"}
+        <ImageReader />
       {:else if activeApp === "windshieldwiper"}
         <WindshieldWiper onClose={() => (activeApp = null)} />
       {/if}
