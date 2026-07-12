@@ -65,37 +65,39 @@
             return;
         }
         try {
-            if (file.startsWith("https://data.wearedogs.net/vid")) {
-                const password =
-                    currentPassword ||
-                    localStorage.getItem("gopro_password") ||
-                    "";
-                const res = await fetch(file, {
-                    headers: {
-                        Authorization: `password=${password}`,
-                    },
-                });
-                if (res.ok) {
-                    const blob = await res.blob();
-                    streamUrl = URL.createObjectURL(blob);
-                } else {
-                    streamUrl = "";
-                    showDownloadPrompt = true;
+            const remoteBase = activeShow.baseUrl || "";
+            const remoteUrl = remoteBase ? `${remoteBase}${file}` : file;
+
+            const password =
+                currentPassword ||
+                localStorage.getItem("gopro_password") ||
+                "";
+
+            // First, try a local HEAD check (serves cached/locally hosted copies)
+            const localFolder = activeShow.baseUrl
+                ? null
+                : (activeShowKey === "Batman Beyond" ? "/batman/" : "/");
+
+            if (localFolder) {
+                const localPath = encodeURI(`${localFolder}${file}`);
+                const localRes = await fetch(localPath, { method: "HEAD" });
+                if (localRes.ok) {
+                    streamUrl = localPath;
+                    return;
                 }
-                return;
             }
-            const folder = activeShowKey === "Batman Beyond" ? "/batman/" : "/";
 
-            // Check for the standard file name first (e.g. S01 E01 - Rebirth, Part 1 of 2.ia.mp4)
-            let path = `${folder}${file}`;
-            let res = await fetch(encodeURI(path), { method: "HEAD" });
+            // Fall back to the remote R2 URL with auth header
+            const res = await fetch(remoteUrl, {
+                method: "HEAD",
+                headers: password ? { Authorization: `password=${password}` } : {},
+            });
             if (res.ok) {
-                streamUrl = encodeURI(path);
-                return;
+                streamUrl = remoteUrl;
+            } else {
+                streamUrl = "";
+                showDownloadPrompt = true;
             }
-
-            // If local file is not present, use the remote URL directly
-            streamUrl = file;
         } catch {
             streamUrl = "";
         }
@@ -113,7 +115,8 @@
     }
 
     $effect(() => {
-        if (currentEpisode && currentEpisode.file) {
+        // Only fetch the video URL once the user has actively selected an episode to play.
+        if (isPlayingEpisode && currentEpisode && currentEpisode.file) {
             showDownloadPrompt = false;
             checkLocalFile(currentEpisode.file);
         }
