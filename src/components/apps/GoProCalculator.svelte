@@ -151,12 +151,15 @@
     isChecking = true;
 
     try {
-      const response = await fetch(`https://data.wearedogs.net/vid/check.txt`, {
-        method: "GET",
-        headers: {
-          Authorization: `password=${concatenated}`,
+      const response = await fetch(
+        `https://data.wearedogs.net/vid/popcorn/check.txt`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `password=${concatenated}`,
+          },
         },
-      });
+      );
 
       if (response.ok) {
         localStorage.setItem("gopro_password", concatenated);
