@@ -1,0 +1,1 @@
+import{er as e}from"./vendor-B87WZ28s.js";import{t}from"./BasePanel-DXWxhJrt.js";function n(n,r){let i=e(r,`isClosing`,3,!1);t(n,{title:`DOGS SHOP`,get isClosing(){return i()},get onClose(){return r.onClose}})}export{n as default};
