@@ -73,29 +73,41 @@
     // Limit to 25 files at once to maintain performance
     const filesList = Array.from(files).slice(0, 25);
 
-    // Check for invalid file types
-    const invalidFiles = filesList.filter((f) => !f.type.startsWith("image/"));
-    if (invalidFiles.length > 0) {
-      errorMsg =
-        "Some files were skipped. Only image formats (.png, .jpg, .webp) are supported.";
-    }
+    // Filter valid files (image or audio)
+    const validFiles = filesList.filter((f) => {
+      const type = f.type.toLowerCase();
+      const ext = f.name.toLowerCase().split(".").pop();
+      return (
+        type.startsWith("image/") ||
+        type.startsWith("audio/") ||
+        ["mp3", "wav", "m4a", "ogg", "aac", "webm"].includes(ext)
+      );
+    });
 
-    const validFiles = filesList.filter((f) => f.type.startsWith("image/"));
     if (validFiles.length === 0) {
-      if (!errorMsg) errorMsg = "Please upload valid image files.";
+      errorMsg = "Please upload valid image or audio files.";
       return;
     }
 
-    const newItems = validFiles.map((file) => ({
-      file,
-      name: file.name,
-      url: "",
-      status: "idle",
-      progress: 0,
-      text: "",
-      error: "",
-      sourceImage: null,
-    }));
+    if (validFiles.length < filesList.length) {
+      errorMsg = "Some files were skipped. Only image and audio formats are supported.";
+    }
+
+    const newItems = validFiles.map((file) => {
+      const ext = file.name.toLowerCase().split(".").pop();
+      const isAudio = file.type.startsWith("audio/") || ["mp3", "wav", "m4a", "ogg", "aac", "webm"].includes(ext);
+      return {
+        file,
+        name: file.name,
+        type: isAudio ? "audio" : "image",
+        url: "",
+        status: "idle",
+        progress: 0,
+        text: "",
+        error: "",
+        sourceImage: null,
+      };
+    });
 
     const startIdx = bulkFiles.length;
     bulkFiles = [...bulkFiles, ...newItems];
@@ -104,23 +116,28 @@
       activeFileIndex = 0;
     }
 
-    // Load URLs and HTMLImageElements reactively
+    // Load URLs reactively based on file type
     newItems.forEach((item, index) => {
       const targetIdx = startIdx + index;
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        bulkFiles[targetIdx].url = event.target.result;
-        const img = new window.Image();
-        img.src = event.target.result;
-        img.onload = () => {
-          bulkFiles[targetIdx].sourceImage = img;
-          // Trigger initial canvas draw if active
-          if (targetIdx === activeFileIndex) {
-            drawAndFilterImage();
-          }
+      if (item.type === "image") {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          bulkFiles[targetIdx].url = event.target.result;
+          const img = new window.Image();
+          img.src = event.target.result;
+          img.onload = () => {
+            bulkFiles[targetIdx].sourceImage = img;
+            // Trigger initial canvas draw if active
+            if (targetIdx === activeFileIndex) {
+              drawAndFilterImage();
+            }
+          };
         };
-      };
-      reader.readAsDataURL(item.file);
+        reader.readAsDataURL(item.file);
+      } else {
+        // Create an Object URL for the audio element play preview
+        bulkFiles[targetIdx].url = URL.createObjectURL(item.file);
+      }
     });
   }
 
@@ -196,22 +213,99 @@
     }
   }
 
-  // Trigger OCR extraction on active file
-  async function runOCR() {
-    if (!canvasElement || isProcessing || activeFileIndex === -1) return;
-    isProcessing = true;
-    errorMsg = "";
-    ocrProgress = 0;
-    ocrStatus = "Initializing engine...";
+  // Trigger speech transcription for audio files locally using Whisper
+  async function runAudioTranscription(item) {
+    item.status = "scanning";
+    item.progress = 0;
+    ocrStatus = "Loading speech engine...";
+    ocrProgress = 5;
 
-    if (activeItem) {
-      activeItem.status = "scanning";
-      activeItem.progress = 0;
+    try {
+      const module = await import("https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2");
+      const pipeline = module.pipeline;
+
+      ocrStatus = "Loading speech model (~75MB)...";
+      item.progress = 15;
+      ocrProgress = 15;
+
+      const transcriber = await pipeline(
+        "automatic-speech-recognition",
+        "Xenova/whisper-tiny.en",
+        {
+          progress_callback: (p) => {
+            if (p.status === "progress") {
+              const downloadPct = Math.round((p.loaded / p.total) * 100);
+              ocrStatus = `Downloading model: ${downloadPct}%`;
+              ocrProgress = 15 + (p.loaded / p.total) * 35; // 15% to 50%
+              item.progress = ocrProgress;
+            } else if (p.status === "ready") {
+              ocrStatus = "Model loaded. Processing audio...";
+              ocrProgress = 50;
+              item.progress = ocrProgress;
+            }
+          },
+        }
+      );
+
+      ocrStatus = "Decoding audio bytes...";
+      ocrProgress = 55;
+      item.progress = ocrProgress;
+
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const arrayBuffer = await item.file.arrayBuffer();
+      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+      ocrStatus = "Resampling audio to 16kHz...";
+      ocrProgress = 65;
+      item.progress = ocrProgress;
+
+      const offlineCtx = new OfflineAudioContext(
+        1,
+        audioBuffer.duration * 16000,
+        16000
+      );
+      const bufferSource = offlineCtx.createBufferSource();
+      bufferSource.buffer = audioBuffer;
+      bufferSource.connect(offlineCtx.destination);
+      bufferSource.start();
+      const resampledBuffer = await offlineCtx.startRendering();
+      const audioData = resampledBuffer.getChannelData(0);
+
+      ocrStatus = "Transcribing speech...";
+      ocrProgress = 75;
+      item.progress = ocrProgress;
+
+      const output = await transcriber(audioData, {
+        chunk_length_s: 30,
+        stride_length_s: 5,
+        return_timestamps: false,
+      });
+
+      item.text = output.text || "No speech detected.";
+      item.status = "done";
+      item.progress = 100;
+      ocrStatus = "Transcription complete.";
+      ocrProgress = 100;
+      activeMobileTab = "output";
+    } catch (err) {
+      console.error(err);
+      item.status = "error";
+      item.error = err.message;
+      errorMsg = "Transcription failed: " + err.message;
+      ocrStatus = "Transcription error";
+      ocrProgress = 0;
     }
+  }
+
+  // Trigger OCR extraction on active image
+  async function runImageOCR(item) {
+    if (!canvasElement) return;
+    item.status = "scanning";
+    item.progress = 0;
+    ocrStatus = "Initializing engine...";
 
     try {
       ocrStatus = "Starting scanning worker...";
-
       const Tesseract = (await import("tesseract.js")).default;
       const {
         data: { text },
@@ -220,21 +314,18 @@
           if (m.status === "recognizing text") {
             ocrStatus = `Reading symbols: ${Math.round(m.progress * 100)}%`;
             ocrProgress = m.progress * 100;
-            if (activeItem) activeItem.progress = ocrProgress;
+            item.progress = ocrProgress;
           } else {
             ocrStatus = m.status.charAt(0).toUpperCase() + m.status.slice(1);
             ocrProgress = Math.max(ocrProgress, 12);
-            if (activeItem) activeItem.progress = ocrProgress;
+            item.progress = ocrProgress;
           }
         },
       });
 
-      if (activeItem) {
-        activeItem.text = text || "No text detected.";
-        activeItem.status = "done";
-        activeItem.progress = 100;
-      }
-
+      item.text = text || "No text detected.";
+      item.status = "done";
+      item.progress = 100;
       ocrStatus = "Extraction completed successfully.";
       ocrProgress = 100;
       activeMobileTab = "output";
@@ -243,9 +334,29 @@
       errorMsg = "Extraction failed: " + err.message;
       ocrStatus = "Scan error";
       ocrProgress = 0;
-      if (activeItem) {
-        activeItem.status = "error";
-        activeItem.error = err.message;
+      item.status = "error";
+      item.error = err.message;
+    }
+  }
+
+  // Orchestrator for active item scanner/transcriber
+  async function runOCR() {
+    if (isProcessing || activeFileIndex === -1) return;
+    isProcessing = true;
+    errorMsg = "";
+    ocrProgress = 0;
+
+    const item = activeItem;
+    if (!item) {
+      isProcessing = false;
+      return;
+    }
+
+    try {
+      if (item.type === "image") {
+        await runImageOCR(item);
+      } else if (item.type === "audio") {
+        await runAudioTranscription(item);
       }
     } finally {
       isProcessing = false;
@@ -268,41 +379,22 @@
         item.status = "scanning";
         item.progress = 0;
 
-        // Briefly wait for Svelte reactivity to render canvas
-        await new Promise((r) => setTimeout(r, 60));
+        // Briefly wait for Svelte reactivity to render canvas/components
+        await new Promise((r) => setTimeout(r, 80));
 
-        try {
-          const Tesseract = (await import("tesseract.js")).default;
-          const {
-            data: { text },
-          } = await Tesseract.recognize(canvasElement, "eng", {
-            logger: (m) => {
-              if (m.status === "recognizing text") {
-                ocrStatus = `Batch [${i + 1}/${bulkFiles.length}]: ${Math.round(m.progress * 100)}%`;
-                ocrProgress = m.progress * 100;
-                item.progress = ocrProgress;
-              } else {
-                ocrStatus = `Batch [${i + 1}/${bulkFiles.length}]: preparing...`;
-              }
-            },
-          });
-
-          item.text = text || "No text detected.";
-          item.status = "done";
-          item.progress = 100;
-        } catch (err) {
-          console.error(err);
-          item.status = "error";
-          item.error = err.message;
+        if (item.type === "image") {
+          await runImageOCR(item);
+        } else if (item.type === "audio") {
+          await runAudioTranscription(item);
         }
       }
 
-      ocrStatus = "Batch scan completed.";
+      ocrStatus = "Batch processing completed.";
       ocrProgress = 100;
       activeMobileTab = "output";
     } catch (err) {
       console.error(err);
-      errorMsg = "Batch OCR failed: " + err.message;
+      errorMsg = "Batch processing failed: " + err.message;
     } finally {
       isProcessing = false;
     }
@@ -518,7 +610,7 @@
             type="file"
             bind:this={fileInputRef}
             onchange={handleFileChange}
-            accept="image/*"
+            accept="image/*,audio/*"
             multiple
             class="hidden"
           />
@@ -530,10 +622,10 @@
           </div>
 
           <h3 class="text-xs font-bold text-white mb-0.5">
-            Drag & drop images or tap to upload
+            Drag & drop files or tap to upload
           </h3>
-          <p class="text-[10px] text-white/40 max-w-[240px] mx-auto mb-2.5">
-            PNG, JPG, or WEBP. Upload up to 25 files at once for batch parsing.
+          <p class="text-[10px] text-white/40 max-w-[280px] mx-auto mb-2.5">
+            PNG, JPG, WEBP or MP3, WAV, M4A, OGG, AAC. Upload up to 25 files at once for batch parsing.
           </p>
 
           <span
@@ -594,25 +686,39 @@
             type="file"
             bind:this={fileInputRef}
             onchange={handleFileChange}
-            accept="image/*"
+            accept="image/*,audio/*"
             multiple
             class="hidden"
           />
         </div>
 
-        <!-- Preview Board with Canvas -->
+        <!-- Preview Board with Canvas / Audio Visualizer -->
         <div
           class="relative flex-grow flex items-center justify-center bg-black/40 border border-white/5 rounded-xl overflow-hidden min-h-[140px] sm:min-h-0"
         >
           <!-- Image Scan Line Overlay -->
           {#if isProcessing}
-            <div class="scan-laser-line"></div>
+            <div class="scan-laser-line" class:bg-[#00ffff]={activeItem && activeItem.type === 'audio'}></div>
+          {/if}
+
+          {#if activeItem && activeItem.type === 'audio'}
+            <div class="flex flex-col items-center justify-center p-6 w-full h-full gap-4 text-center">
+              <div class="w-14 h-14 rounded-full bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center animate-pulse">
+                <FileText class="text-cyan-400" size={24} />
+              </div>
+              <div class="flex flex-col gap-1">
+                <span class="text-xs text-white/80 font-bold max-w-[260px] truncate">{activeItem.name}</span>
+                <span class="text-[10px] text-cyan-400/60 font-mono">Speech Recognition Decoded Buffer</span>
+              </div>
+              <audio src={activeItem.url} controls class="w-full max-w-[280px] h-8 rounded opacity-80 hover:opacity-100 transition-opacity mt-2"></audio>
+            </div>
           {/if}
 
           <!-- Dynamic Canvas Rendering -->
           <canvas
             bind:this={canvasElement}
             class="max-w-full max-h-full object-contain rounded p-2"
+            class:hidden={activeItem && activeItem.type === 'audio'}
           ></canvas>
         </div>
 
@@ -629,7 +735,7 @@
             </h4>
           </div>
 
-          <div class="grid grid-cols-1 xs:grid-cols-2 gap-3">
+          <div class="grid grid-cols-1 xs:grid-cols-2 gap-3" class:opacity-30={activeItem && activeItem.type === 'audio'}>
             <div class="flex flex-col gap-1">
               <div
                 class="flex justify-between items-center text-[9px] font-mono"
@@ -643,6 +749,7 @@
                 max="300"
                 bind:value={filterContrast}
                 class="accent-slider-bar"
+                disabled={activeItem && activeItem.type === 'audio'}
               />
             </div>
 
@@ -661,6 +768,7 @@
                 max="240"
                 bind:value={filterBinarize}
                 class="accent-slider-bar"
+                disabled={activeItem && activeItem.type === 'audio'}
               />
             </div>
           </div>
@@ -671,11 +779,13 @@
           >
             <label
               class="toggle-switch-wrapper flex items-center gap-2 cursor-pointer"
+              class:opacity-30={activeItem && activeItem.type === 'audio'}
             >
               <input
                 type="checkbox"
                 bind:checked={filterGrayscale}
                 class="sr-only peer"
+                disabled={activeItem && activeItem.type === 'audio'}
               />
               <div
                 class="w-7 h-4 bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-white after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-red-500 relative"

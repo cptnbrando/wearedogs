@@ -44,6 +44,7 @@
   let batchImageFormat = $state("png");
   let batchAudioFormat = $state("mp3");
   let batchVideoFormat = $state("mp4");
+  let batchCropMode = $state("none"); // 'none' | 'center-square' | 'center-16-9' | 'center-4-3'
 
   // Image size parameters
   let originalWidth = $state(0);
@@ -52,6 +53,7 @@
   let targetHeight = $state(0);
   let keepAspectRatio = $state(true);
   let keepTens = $state(true);
+  let cropMode = $state("none"); // 'none' | 'center-square' | 'center-16-9' | 'center-4-3'
 
   // Quality & compression parameters
   let quality = $state(92); // 0 to 100
@@ -327,6 +329,7 @@
     targetHeight = 0;
     keepAspectRatio = true;
     keepTens = true;
+    cropMode = "none";
     quality = 92;
     compression = 15;
     audioBitrate = "192";
@@ -339,6 +342,7 @@
     isConvertingBulk = false;
     overallProgress = 0;
     currentConvertingIndex = 0;
+    batchCropMode = "none";
   }
 
   // Run Conversion
@@ -361,6 +365,7 @@
           targetWidth,
           targetHeight,
           quality,
+          cropMode === "none" ? null : cropMode
         );
         const originalBase = file.name.substring(0, file.name.lastIndexOf("."));
         convertedFileName = `${originalBase}.${outputFormat}`;
@@ -603,10 +608,10 @@
           resultBlob = await convertImage(
             item.file,
             item.outputFormat,
-            item.targetWidth || 800,
-            item.targetHeight || 600,
+            item.targetWidth || item.originalWidth || 800,
+            item.targetHeight || item.originalHeight || 600,
             item.quality,
-            item.compression,
+            batchCropMode === "none" ? null : batchCropMode
           );
         } else if (item.fileType === "audio") {
           resultBlob = await convertAudio(
@@ -767,6 +772,20 @@
                   <option value="webp">WEBP</option>
                   <option value="avif">AVIF</option>
                   <option value="svg">SVG</option>
+                </select>
+              </div>
+
+              <div class="preset-group">
+                <span>✂️ Batch Crop ➔</span>
+                <select
+                  bind:value={batchCropMode}
+                  class="preset-select text-[#ff5e00] font-bold"
+                  disabled={isConvertingBulk}
+                >
+                  <option value="none">No Crop</option>
+                  <option value="center-square">Center Square</option>
+                  <option value="center-16-9">Center 16:9</option>
+                  <option value="center-4-3">Center 4:3</option>
                 </select>
               </div>
             {/if}
@@ -1327,6 +1346,45 @@
                           class="param-slider"
                         />
                       </div>
+                    </div>
+                  </div>
+
+                  <!-- Crop Option Control -->
+                  <div class="settings-group mt-2">
+                    <span class="text-xs font-bold text-white/50 uppercase tracking-wide block mb-2">Crop Image Aspect</span>
+                    <div class="flex flex-wrap gap-2">
+                      <button
+                        class="aspect-link-btn"
+                        class:linked={cropMode === "none"}
+                        onclick={() => cropMode = "none"}
+                        type="button"
+                      >
+                        No Crop
+                      </button>
+                      <button
+                        class="aspect-link-btn"
+                        class:linked={cropMode === "center-square"}
+                        onclick={() => cropMode = "center-square"}
+                        type="button"
+                      >
+                        Center Square (1:1)
+                      </button>
+                      <button
+                        class="aspect-link-btn"
+                        class:linked={cropMode === "center-16-9"}
+                        onclick={() => cropMode = "center-16-9"}
+                        type="button"
+                      >
+                        Center 16:9
+                      </button>
+                      <button
+                        class="aspect-link-btn"
+                        class:linked={cropMode === "center-4-3"}
+                        onclick={() => cropMode = "center-4-3"}
+                        type="button"
+                      >
+                        Center 4:3
+                      </button>
                     </div>
                   </div>
 

@@ -185,24 +185,73 @@ export async function bufferToMp3(buffer, compression) {
 }
 
 /**
- * Converts an image file to target format, resolution, and quality.
- * @param {string} previewUrl 
- * @param {string} outputFormat - 'jpg' | 'png' | 'webp'
+ * Converts an image file to target format, resolution, and quality, with optional cropping.
+ * @param {string|File|Blob} previewUrl 
+ * @param {string} outputFormat - 'jpg' | 'png' | 'webp' | 'avif' | 'svg'
  * @param {number} targetWidth 
  * @param {number} targetHeight 
  * @param {number} quality - 0 to 100
+ * @param {string|object} cropOptions - 'center-square' | 'center-16-9' | 'center-4-3' | {x, y, width, height} | null
  * @returns {Promise<Blob>}
  */
-export function convertImage(previewUrl, outputFormat, targetWidth, targetHeight, quality) {
+export function convertImage(previewUrl, outputFormat, targetWidth, targetHeight, quality, cropOptions = null) {
   return new Promise((resolve, reject) => {
     const img = new Image();
-    img.src = previewUrl;
+    let srcUrl = previewUrl;
+    let needsRevoke = false;
+    if (previewUrl instanceof File || previewUrl instanceof Blob) {
+      srcUrl = URL.createObjectURL(previewUrl);
+      needsRevoke = true;
+    }
+    img.src = srcUrl;
     img.onload = () => {
+      let cropX = 0;
+      let cropY = 0;
+      let cropW = img.naturalWidth;
+      let cropH = img.naturalHeight;
+
+      if (cropOptions === "center-square") {
+        const minDim = Math.min(img.naturalWidth, img.naturalHeight);
+        cropW = minDim;
+        cropH = minDim;
+        cropX = (img.naturalWidth - minDim) / 2;
+        cropY = (img.naturalHeight - minDim) / 2;
+      } else if (cropOptions === "center-16-9") {
+        if (img.naturalWidth / img.naturalHeight > 16 / 9) {
+          cropH = img.naturalHeight;
+          cropW = img.naturalHeight * (16 / 9);
+        } else {
+          cropW = img.naturalWidth;
+          cropH = img.naturalWidth * (9 / 16);
+        }
+        cropX = (img.naturalWidth - cropW) / 2;
+        cropY = (img.naturalHeight - cropH) / 2;
+      } else if (cropOptions === "center-4-3") {
+        if (img.naturalWidth / img.naturalHeight > 4 / 3) {
+          cropH = img.naturalHeight;
+          cropW = img.naturalHeight * (4 / 3);
+        } else {
+          cropW = img.naturalWidth;
+          cropH = img.naturalWidth * (3 / 4);
+        }
+        cropX = (img.naturalWidth - cropW) / 2;
+        cropY = (img.naturalHeight - cropH) / 2;
+      } else if (cropOptions && typeof cropOptions === "object") {
+        cropX = cropOptions.x ?? 0;
+        cropY = cropOptions.y ?? 0;
+        cropW = cropOptions.width ?? img.naturalWidth;
+        cropH = cropOptions.height ?? img.naturalHeight;
+      }
+
       const canvas = document.createElement("canvas");
-      canvas.width = targetWidth || img.naturalWidth;
-      canvas.height = targetHeight || img.naturalHeight;
+      canvas.width = targetWidth || cropW;
+      canvas.height = targetHeight || cropH;
       const ctx = canvas.getContext("2d");
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, canvas.width, canvas.height);
+
+      if (needsRevoke) {
+        URL.revokeObjectURL(srcUrl);
+      }
 
       if (outputFormat === "svg") {
         const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="${canvas.width}" height="${canvas.height}">
@@ -231,7 +280,10 @@ export function convertImage(previewUrl, outputFormat, targetWidth, targetHeight
         exportQuality
       );
     };
-    img.onerror = () => reject(new Error("Failed to load image."));
+    img.onerror = () => {
+      if (needsRevoke) URL.revokeObjectURL(srcUrl);
+      reject(new Error("Failed to load image."));
+    };
   });
 }
 
