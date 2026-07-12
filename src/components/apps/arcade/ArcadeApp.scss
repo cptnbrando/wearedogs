@@ -1,0 +1,1263 @@
+@use "../../../styles/variables" as *;
+
+.arcade-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  color: var(--color-text, #ffffff);
+  background: rgba(0, 0, 0, 0.2);
+  font-family: $font-primary;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ── Selection Screen ── */
+.selection-screen {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 24px;
+  overflow-y: auto;
+  gap: 20px;
+
+  h2 {
+    margin: 0;
+    font-size: 1.3rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: $color-neon-gold;
+    text-shadow: 0 0 10px rgba($color-neon-gold, 0.3);
+  }
+
+  .intro-text {
+    margin: -10px 0 10px 0;
+    font-size: 0.8rem;
+    color: var(--color-text-muted, rgba(255, 255, 255, 0.45));
+  }
+}
+
+.games-list-grid {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 16px;
+
+  @media (min-width: 580px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (min-width: 900px) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.game-card {
+  background: rgba(15, 15, 25, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  padding: 18px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: transparent;
+    transition: background 0.2s ease;
+  }
+
+  &:hover {
+    transform: translateY(-4px);
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+
+    &::before {
+      background: $color-neon-red;
+    }
+  }
+
+  .game-badge {
+    align-self: flex-start;
+    padding: 3px 8px;
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.85);
+
+    &.n64 {
+      background: rgba(230, 185, 0, 0.15);
+      color: $color-neon-gold;
+      border: 1px solid rgba(230, 185, 0, 0.25);
+    }
+    &.nds {
+      background: rgba(255, 51, 68, 0.15);
+      color: $color-neon-red;
+      border: 1px solid rgba(255, 51, 68, 0.25);
+    }
+    &.gba {
+      background: rgba(0, 215, 95, 0.15);
+      color: $color-neon-green;
+      border: 1px solid rgba(0, 215, 95, 0.25);
+    }
+    &.sega {
+      background: rgba(160, 0, 235, 0.15);
+      color: #b13df2;
+      border: 1px solid rgba(160, 0, 235, 0.25);
+    }
+  }
+
+  h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+  }
+
+  p {
+    margin: 0;
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.5);
+    line-height: 1.4;
+  }
+}
+
+/* ── Save Management Section at Bottom of Selector ── */
+.saves-management-card {
+  background: rgba(20, 20, 30, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  padding: 20px;
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  h3 {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-neon-red, #ff3344);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+}
+
+.saves-list-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.save-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.72rem;
+  border: 1px solid rgba(255, 255, 255, 0.03);
+
+  .save-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    .save-name {
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.9);
+      word-break: break-all;
+    }
+    .save-date {
+      font-size: 0.6rem;
+      color: rgba(255, 255, 255, 0.35);
+    }
+  }
+
+  .save-actions {
+    display: flex;
+    gap: 8px;
+  }
+}
+
+.save-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.7);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+  }
+
+  &.delete:hover {
+    background: rgba($color-alert-red, 0.2);
+    color: $color-alert-red;
+    border-color: rgba($color-alert-red, 0.3);
+  }
+}
+
+.import-sync-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+
+  .upload-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba($color-neon-gold, 0.1);
+    border: 1px dashed rgba($color-neon-gold, 0.3);
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: $color-neon-gold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: rgba($color-neon-gold, 0.18);
+      border-color: $color-neon-gold;
+    }
+  }
+
+  .sync-cloud-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba($color-neon-green, 0.1);
+    border: 1px solid rgba($color-neon-green, 0.3);
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: $color-neon-green;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: rgba($color-neon-green, 0.18);
+      border-color: $color-neon-green;
+      box-shadow: 0 0 10px rgba($color-neon-green, 0.1);
+    }
+  }
+}
+
+/* ── Play Emulation Interface ── */
+.play-interface {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+.emulator-top-bar {
+  height: 52px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(0, 0, 0, 0.4);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  z-index: 10;
+  flex-shrink: 0;
+
+  .bar-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    .back-btn {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      color: rgba(255, 255, 255, 0.7);
+      padding: 6px 12px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.15);
+        color: white;
+        transform: translateX(-2px);
+      }
+    }
+
+    h3 {
+      margin: 0;
+      font-size: 0.9rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+  }
+
+  .bar-settings {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+
+    .settings-select {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: rgba(255, 255, 255, 0.8);
+      border-radius: 6px;
+      font-size: 0.65rem;
+      padding: 4px 8px;
+      font-family: monospace;
+      outline: none;
+      cursor: pointer;
+
+      &:hover {
+        border-color: rgba(255, 255, 255, 0.2);
+      }
+    }
+  }
+}
+
+.console-body-wrapper {
+  flex-grow: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: #020203;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ── Theme: Gameboy Color (Vertical Layout) ── */
+.console-gbc {
+  width: 90%;
+  max-width: 380px;
+  aspect-ratio: 1 / 1.7;
+  background: linear-gradient(135deg, #4d2b77 0%, #301750 100%); // Atomic Purple
+  border-radius: 20px 20px 40px 40px;
+  box-shadow: 
+    0 24px 50px rgba(0, 0, 0, 0.75),
+    inset 0 2px 2px rgba(255, 255, 255, 0.15),
+    inset 0 -6px 12px rgba(0, 0, 0, 0.4);
+  border: 2px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  gap: 16px;
+  position: relative;
+
+  .screen-bezel {
+    background: #252627;
+    border-radius: 8px;
+    border: 3px solid #1a1b1c;
+    padding: 24px 20px 14px 20px;
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.8);
+    position: relative;
+
+    &::after {
+      content: "GAME BOY COLOR";
+      position: absolute;
+      bottom: 2px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.5rem;
+      font-weight: 800;
+      color: rgba(255, 255, 255, 0.35);
+      letter-spacing: 0.1em;
+      word-spacing: 0.25em;
+    }
+
+    .power-led {
+      position: absolute;
+      left: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 5px;
+      height: 5px;
+      background: #ff3344;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #ff3344;
+      animation: ledPulse 1.5s infinite alternate;
+    }
+  }
+
+  .screen-display-area {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    background: #000;
+    overflow: hidden;
+    position: relative;
+    border-radius: 4px;
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.9);
+  }
+
+  .controls-area {
+    flex-grow: 1;
+    display: grid;
+    grid-template-rows: 1fr auto;
+    gap: 12px;
+    padding: 10px 8px;
+  }
+
+  .dpad-buttons-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+  }
+
+  /* Retro D-Pad */
+  .gbc-dpad {
+    position: relative;
+    width: 90px;
+    height: 90px;
+
+    .dpad-cross {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #111;
+      border-radius: 6px;
+    }
+
+    .cross-h {
+      width: 90px;
+      height: 28px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+    }
+    
+    .cross-v {
+      width: 28px;
+      height: 90px;
+      box-shadow: inset 1px 0 0 rgba(255,255,255,0.08);
+    }
+
+    .dpad-btn {
+      position: absolute;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      outline: none;
+
+      &::after {
+        content: "";
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: transparent;
+        transition: background 0.1s ease;
+      }
+
+      &:active::after {
+        background: rgba(255, 255, 255, 0.15);
+      }
+
+      &.up {
+        top: 0; left: 31px; width: 28px; height: 31px;
+      }
+      &.down {
+        bottom: 0; left: 31px; width: 28px; height: 31px;
+      }
+      &.left {
+        left: 0; top: 31px; width: 31px; height: 28px;
+      }
+      &.right {
+        right: 0; top: 31px; width: 31px; height: 28px;
+      }
+    }
+  }
+
+  /* GBC A/B Buttons */
+  .gbc-action-buttons {
+    display: flex;
+    gap: 16px;
+    transform: rotate(-25deg);
+    position: relative;
+    top: -5px;
+
+    .action-btn-circle {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: #8b1c3d; // Dark Maroon Red
+      border: 1px solid rgba(0, 0, 0, 0.4);
+      box-shadow: 
+        1px 3px 5px rgba(0, 0, 0, 0.5),
+        inset 0 1px 1px rgba(255, 255, 255, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(255, 255, 255, 0.85);
+      font-size: 0.85rem;
+      font-weight: 800;
+      cursor: pointer;
+      outline: none;
+      user-select: none;
+      transition: transform 0.08s ease;
+
+      &:active {
+        transform: translateY(2px) scale(0.96);
+        box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.6);
+      }
+    }
+  }
+
+  /* GBC Start/Select */
+  .gbc-system-row {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    padding-top: 10px;
+
+    .system-btn-capsule {
+      width: 48px;
+      height: 10px;
+      background: #7b7e80; // Gray rubber
+      border-radius: 5px;
+      transform: rotate(-28deg);
+      border: 1px solid rgba(0, 0, 0, 0.3);
+      box-shadow: 1px 2px 2px rgba(0, 0, 0, 0.4);
+      cursor: pointer;
+      outline: none;
+      position: relative;
+
+      &::after {
+        content: attr(data-label);
+        position: absolute;
+        bottom: -15px;
+        left: 50%;
+        transform: translateX(-50%) rotate(28deg);
+        font-size: 0.42rem;
+        font-weight: 800;
+        color: rgba(255, 255, 255, 0.35);
+        letter-spacing: 0.05em;
+      }
+
+      &:active {
+        background: #555759;
+        transform: rotate(-28deg) translateY(1px);
+        box-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
+      }
+    }
+  }
+
+  /* Speaker Grill Accents at bottom right */
+  .speaker-grill {
+    position: absolute;
+    bottom: 24px;
+    right: 28px;
+    display: flex;
+    gap: 5px;
+    transform: rotate(-28deg);
+
+    .grill-hole {
+      width: 4px;
+      height: 22px;
+      background: rgba(0, 0, 0, 0.4);
+      border-radius: 2px;
+      box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.04);
+    }
+  }
+}
+
+/* ── Theme: PSP (Horizontal Layout) ── */
+.console-psp {
+  width: 96%;
+  max-width: 800px;
+  aspect-ratio: 16 / 9;
+  background: linear-gradient(180deg, #18191b 0%, #0d0e0f 100%);
+  border-radius: 36px;
+  box-shadow: 
+    0 32px 64px rgba(0, 0, 0, 0.8),
+    inset 0 1px 1px rgba(255, 255, 255, 0.1),
+    inset 0 -4px 8px rgba(0, 0, 0, 0.6);
+  border: 2.5px solid #28292c;
+  display: flex;
+  padding: 16px 20px;
+  position: relative;
+  gap: 20px;
+
+  /* Left Controls Column */
+  .left-wing {
+    width: 140px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+  }
+
+  /* Right Controls Column */
+  .right-wing {
+    width: 140px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+  }
+
+  /* Center Screen Area */
+  .screen-center {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: relative;
+    border-radius: 12px;
+    border: 3px solid #1a1c1e;
+    overflow: hidden;
+    box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.95);
+  }
+
+  .screen-display-area {
+    width: 100%;
+    height: 100%;
+    background: #000;
+    overflow: hidden;
+  }
+
+  /* PSP Action Buttons */
+  .psp-action-buttons {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    width: 90px;
+    height: 90px;
+    position: relative;
+    margin-top: 15px;
+
+    .psp-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 
+        0 2px 4px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(255, 255, 255, 0.85);
+      font-size: 0.7rem;
+      font-weight: 800;
+      cursor: pointer;
+      outline: none;
+      user-select: none;
+      position: absolute;
+      transition: all 0.1s ease;
+
+      &:active {
+        background: rgba(255, 255, 255, 0.18);
+        transform: scale(0.94);
+        box-shadow: 0 1px 1px rgba(0, 0, 0, 0.5);
+      }
+
+      &.triangle {
+        top: 0; left: 31px; color: #00d75f;
+      }
+      &.circle {
+        right: 0; top: 31px; color: #ff3344;
+      }
+      &.cross {
+        bottom: 0; left: 31px; color: #3b82f6;
+      }
+      &.square {
+        left: 0; top: 31px; color: #eab308;
+      }
+    }
+  }
+
+  /* PSP D-Pad */
+  .psp-dpad {
+    position: relative;
+    width: 84px;
+    height: 84px;
+    margin-top: 10px;
+
+    .psp-dpad-btn {
+      position: absolute;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 0.65rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      outline: none;
+      border-radius: 4px;
+
+      &:active {
+        background: rgba(255, 255, 255, 0.15);
+      }
+
+      &.up {
+        top: 0; left: 28px; width: 28px; height: 30px;
+        border-bottom: none;
+        border-radius: 6px 6px 0 0;
+      }
+      &.down {
+        bottom: 0; left: 28px; width: 28px; height: 30px;
+        border-top: none;
+        border-radius: 0 0 6px 6px;
+      }
+      &.left {
+        left: 0; top: 28px; width: 30px; height: 28px;
+        border-right: none;
+        border-radius: 6px 0 0 6px;
+      }
+      &.right {
+        right: 0; top: 28px; width: 30px; height: 28px;
+        border-left: none;
+        border-radius: 0 6px 6px 0;
+      }
+    }
+  }
+
+  /* PSP Analog Nub */
+  .psp-analog {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: radial-gradient(circle at center, #222 0%, #111 100%);
+    border: 2px dashed rgba(255, 255, 255, 0.06);
+    box-shadow: 
+      0 4px 8px rgba(0, 0, 0, 0.6),
+      inset 0 2px 4px rgba(0,0,0,0.8);
+    position: relative;
+    cursor: pointer;
+    touch-action: none;
+    margin-bottom: 5px;
+
+    .analog-cap {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #2a2c30;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      transition: transform 0.05s ease;
+      background-image: radial-gradient(#3a3c40 20%, transparent 20%), radial-gradient(#3a3c40 20%, transparent 20%);
+      background-size: 4px 4px;
+      background-position: 0 0, 2px 2px;
+    }
+  }
+
+  /* PSP L/R Shoulders (At top corners) */
+  .psp-shoulder {
+    position: absolute;
+    top: -12px;
+    width: 100px;
+    height: 20px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.62rem;
+    font-weight: 800;
+    color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    outline: none;
+
+    &:active {
+      background: rgba(255, 255, 255, 0.18);
+      color: white;
+    }
+
+    &.left {
+      left: 36px;
+      border-radius: 12px 0 0 0;
+    }
+    &.right {
+      right: 36px;
+      border-radius: 0 12px 0 0;
+    }
+  }
+
+  /* PSP Bottom Bar system buttons */
+  .psp-bottom-bar {
+    position: absolute;
+    bottom: -15px;
+    left: 120px;
+    right: 120px;
+    height: 24px;
+    background: rgba(0, 0, 0, 0.85);
+    border: 1.5px solid #28292c;
+    border-radius: 6px;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 0 16px;
+
+    .psp-sys-btn {
+      background: transparent;
+      border: none;
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 0.55rem;
+      font-weight: 800;
+      cursor: pointer;
+      outline: none;
+
+      &:active {
+        color: white;
+      }
+    }
+  }
+}
+
+/* ── Theme: Gameboy Advance (GBA Horizontal Layout) ── */
+.console-gba {
+  width: 96%;
+  max-width: 760px;
+  aspect-ratio: 16 / 9;
+  background: linear-gradient(135deg, #0e2a5c 0%, #051330 100%); // Indigo GBA Blue
+  border-radius: 40px;
+  box-shadow: 
+    0 32px 64px rgba(0, 0, 0, 0.8),
+    inset 0 1px 1px rgba(255, 255, 255, 0.12),
+    inset 0 -5px 10px rgba(0, 0, 0, 0.6);
+  border: 2px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  padding: 20px 24px;
+  position: relative;
+  gap: 16px;
+
+  /* Screen Frame Center */
+  .screen-center {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background: #111213;
+    padding: 28px 12px 14px 12px;
+    border-radius: 12px;
+    box-shadow: inset 0 2px 8px rgba(0,0,0,0.8);
+    position: relative;
+    border: 1px solid rgba(255,255,255,0.04);
+
+    &::after {
+      content: "GAME BOY ADVANCE";
+      position: absolute;
+      top: 6px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.52rem;
+      font-weight: 800;
+      color: rgba(255, 255, 255, 0.25);
+      letter-spacing: 0.1em;
+    }
+  }
+
+  .screen-display-area {
+    width: 100%;
+    height: 100%;
+    background: #000;
+    overflow: hidden;
+    border-radius: 4px;
+  }
+
+  /* Left Wing GBA */
+  .left-wing {
+    width: 120px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+
+  /* Right Wing GBA */
+  .right-wing {
+    width: 120px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+
+  /* GBA D-Pad */
+  .gba-dpad {
+    position: relative;
+    width: 80px;
+    height: 80px;
+
+    .dpad-cross {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #18181a;
+      border-radius: 4px;
+    }
+
+    .cross-h {
+      width: 80px;
+      height: 24px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+    }
+    
+    .cross-v {
+      width: 24px;
+      height: 80px;
+      box-shadow: inset 1px 0 0 rgba(255,255,255,0.06);
+    }
+
+    .dpad-btn {
+      position: absolute;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      outline: none;
+
+      &::after {
+        content: "";
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: transparent;
+      }
+
+      &:active::after {
+        background: rgba(255, 255, 255, 0.15);
+      }
+
+      &.up {
+        top: 0; left: 28px; width: 24px; height: 28px;
+      }
+      &.down {
+        bottom: 0; left: 28px; width: 24px; height: 28px;
+      }
+      &.left {
+        left: 0; top: 28px; width: 28px; height: 24px;
+      }
+      &.right {
+        right: 0; top: 28px; width: 28px; height: 24px;
+      }
+    }
+  }
+
+  /* GBA Action Buttons */
+  .gba-action-buttons {
+    display: flex;
+    gap: 12px;
+    transform: rotate(-25deg);
+    position: relative;
+
+    .action-btn-circle {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: #8b1c3d;
+      border: 1px solid rgba(0, 0, 0, 0.4);
+      box-shadow: 
+        1px 2px 4px rgba(0, 0, 0, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(255, 255, 255, 0.85);
+      font-size: 0.75rem;
+      font-weight: 800;
+      cursor: pointer;
+      outline: none;
+      user-select: none;
+      transition: transform 0.08s ease;
+
+      &:active {
+        transform: translateY(2px) scale(0.96);
+        box-shadow: 1px 1px 1px rgba(0, 0, 0, 0.6);
+      }
+    }
+  }
+
+  /* GBA L/R Shoulders */
+  .gba-shoulder {
+    position: absolute;
+    top: -12px;
+    width: 90px;
+    height: 18px;
+    background: #b2b6ba; // Gray metallic plastic
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.58rem;
+    font-weight: 800;
+    color: #444;
+    cursor: pointer;
+    outline: none;
+
+    &:active {
+      background: #8e9296;
+      color: #111;
+    }
+
+    &.left {
+      left: 32px;
+      border-radius: 10px 0 0 0;
+    }
+    &.right {
+      right: 32px;
+      border-radius: 0 10px 0 0;
+    }
+  }
+
+  /* GBA Bottom Select/Start */
+  .gba-system-buttons {
+    position: absolute;
+    bottom: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 16px;
+
+    .system-btn {
+      width: 44px;
+      height: 9px;
+      background: #6c6f71;
+      border-radius: 4px;
+      border: 1px solid rgba(0, 0, 0, 0.3);
+      box-shadow: 1px 1.5px 2px rgba(0,0,0,0.4);
+      cursor: pointer;
+      outline: none;
+      position: relative;
+
+      &::after {
+        content: attr(data-label);
+        position: absolute;
+        bottom: -13px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 0.4rem;
+        font-weight: 800;
+        color: rgba(255, 255, 255, 0.3);
+        letter-spacing: 0.05em;
+      }
+
+      &:active {
+        background: #4e5052;
+        transform: translateY(1px);
+        box-shadow: 1px 0.5px 1px rgba(0,0,0,0.5);
+      }
+    }
+  }
+}
+
+/* ── Screen LED Pulsing animation ── */
+@keyframes ledPulse {
+  0% {
+    opacity: 0.75;
+    box-shadow: 0 0 4px #ff3344;
+  }
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 10px #ff3344;
+  }
+}
+
+/* ── Responsive Viewport Scaling & Position Layouts ── */
+@media (max-width: 768px) {
+  .selection-screen {
+    padding: 16px;
+    gap: 14px;
+  }
+
+  .game-card {
+    padding: 14px;
+  }
+
+  .import-sync-bar {
+    justify-content: stretch;
+    .upload-label, .sync-cloud-btn {
+      flex: 1 1 100%;
+      justify-content: center;
+    }
+  }
+
+  .console-body-wrapper {
+    padding: 8px;
+  }
+
+  /* GBC Scaling for smaller viewports */
+  .console-gbc {
+    width: 96%;
+    border-radius: 16px 16px 24px 24px;
+    padding: 12px;
+    gap: 10px;
+
+    .screen-bezel {
+      padding: 16px 12px 10px 12px;
+    }
+    
+    .gbc-dpad {
+      width: 76px;
+      height: 76px;
+      .cross-h { width: 76px; height: 24px; }
+      .cross-v { width: 24px; height: 76px; }
+      .dpad-btn.up { left: 26px; width: 24px; }
+      .dpad-btn.down { left: 26px; width: 24px; }
+      .dpad-btn.left { top: 26px; height: 24px; }
+      .dpad-btn.right { top: 26px; height: 24px; }
+    }
+
+    .gbc-action-buttons {
+      gap: 10px;
+      .action-btn-circle {
+        width: 32px;
+        height: 32px;
+      }
+    }
+  }
+
+  /* PSP Landscape scaling */
+  .console-psp {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    padding: 10px;
+    gap: 10px;
+    border-radius: 16px;
+
+    .left-wing, .right-wing {
+      width: 90px;
+    }
+    
+    .psp-dpad {
+      width: 60px;
+      height: 60px;
+      .psp-dpad-btn {
+        width: 20px;
+        height: 20px;
+        &.up { top: 0; left: 20px; width: 20px; height: 22px; }
+        &.down { bottom: 0; left: 20px; width: 20px; height: 22px; }
+        &.left { left: 0; top: 20px; width: 22px; height: 20px; }
+        &.right { right: 0; top: 20px; width: 22px; height: 20px; }
+      }
+    }
+
+    .psp-action-buttons {
+      width: 64px;
+      height: 64px;
+      .psp-btn {
+        width: 22px;
+        height: 22px;
+        &.triangle { left: 21px; }
+        &.cross { left: 21px; }
+        &.circle { top: 21px; }
+        &.square { top: 21px; }
+      }
+    }
+
+    .psp-analog {
+      width: 32px;
+      height: 32px;
+      .analog-cap {
+        width: 18px;
+        height: 18px;
+      }
+    }
+
+    .psp-shoulder {
+      width: 70px;
+      top: -8px;
+      &.left { left: 16px; }
+      &.right { right: 16px; }
+    }
+
+    .psp-bottom-bar {
+      left: 80px;
+      right: 80px;
+      height: 18px;
+      bottom: -10px;
+    }
+  }
+
+  /* GBA Landscape scaling */
+  .console-gba {
+    width: 100%;
+    padding: 10px;
+    gap: 10px;
+    border-radius: 20px;
+
+    .left-wing, .right-wing {
+      width: 80px;
+    }
+
+    .gba-dpad {
+      width: 64px;
+      height: 64px;
+      .dpad-cross.cross-h { width: 64px; height: 20px; }
+      .dpad-cross.cross-v { width: 20px; height: 64px; }
+      .dpad-btn.up { left: 22px; width: 20px; }
+      .dpad-btn.down { left: 22px; width: 20px; }
+      .dpad-btn.left { top: 22px; height: 20px; }
+      .dpad-btn.right { top: 22px; height: 20px; }
+    }
+
+    .gba-action-buttons {
+      gap: 8px;
+      .action-btn-circle {
+        width: 28px;
+        height: 28px;
+      }
+    }
+
+    .gba-shoulder {
+      width: 64px;
+      top: -8px;
+      &.left { left: 16px; }
+      &.right { right: 16px; }
+    }
+
+    .gba-system-buttons {
+      bottom: -10px;
+    }
+  }
+}

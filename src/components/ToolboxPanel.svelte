@@ -21,8 +21,10 @@
     Sparkles,
     RefreshCw,
     FileText,
+    Gamepad2,
   } from "lucide-svelte";
   import SnakeApp from "./apps/SnakeApp.svelte";
+  import ArcadeApp from "./apps/arcade/ArcadeApp.svelte";
   import DogsLogo from "./DogsLogo.svelte";
   import { audioCore } from "../lib/AudioCore.svelte.js";
   import SoundboardApp from "./apps/SoundboardApp.svelte";
@@ -125,6 +127,12 @@
       title: "Snake",
       desc: "Retro snake game, runs inside grid. Use Arrow Keys.",
       icon: Award,
+    },
+    {
+      id: "arcade",
+      title: "Retro Arcade",
+      desc: "Play retro consoles (GBA, N64, NDS, Genesis) with virtual touch gamepads.",
+      icon: Gamepad2,
     },
     {
       id: "paint",
@@ -327,6 +335,8 @@
         </div>
       {:else if activeApp === "snake"}
         <SnakeApp />
+      {:else if activeApp === "arcade"}
+        <ArcadeApp />
       {:else if activeApp === "soundboard"}
         <SoundboardApp />
       {:else if activeApp === "paint"}
