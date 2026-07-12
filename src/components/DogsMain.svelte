@@ -6,7 +6,7 @@
   import { audioCore } from "../lib/AudioCore.svelte.js";
 
   // Props mapping the flag colors toggle state
-  let { isFlagColors = false, active = false } = $props();
+  let { isFlagColors = false, active = false, activePage = null } = $props();
 
   let activeLandscapeTab = $state("cards"); // 'cards' or 'skeleton'
 
@@ -102,7 +102,7 @@
       <div
         class="block landscape:hidden lg:hidden w-full h-[40vh] relative z-0"
       >
-        {#if !isDesktopOrLandscape && ThreeDCanvas}
+        {#if !isDesktopOrLandscape && ThreeDCanvas && activePage === null}
           <ThreeDCanvas {isFlagColors} {active} />
         {:else}
           <div class="w-full h-full bg-transparent pointer-events-none">
@@ -197,7 +197,7 @@
     class="canvas-layer hidden landscape:block lg:block w-full max-lg:landscape:w-[50%] lg:w-[45%] h-[35vh] max-lg:landscape:h-full lg:h-full absolute bottom-0 max-lg:landscape:top-0 lg:top-0 right-0 z-0"
     class:landscape:max-lg:hidden={activeLandscapeTab === "cards"}
   >
-    {#if isDesktopOrLandscape && ThreeDCanvas}
+    {#if isDesktopOrLandscape && ThreeDCanvas && activePage === null}
       <ThreeDCanvas {isFlagColors} {active} />
     {:else}
       <!-- Minimal CSS skeleton fallback loading states -->

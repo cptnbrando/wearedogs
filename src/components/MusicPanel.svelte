@@ -61,6 +61,17 @@
   // Tab: 'songs' | 'samples' | 'playlists' | 'radio'
   let activeTab = $state("songs");
   let sortBy = $state("default"); // 'default' | 'artist' | 'album' | 'year' | 'filename' | 'genre' | 'season'
+
+  // Lazy loaded BattlePanel component caching
+  let loadedBattlePanel = $state(null);
+
+  $effect(() => {
+    if (activeTab === "battle" && !loadedBattlePanel) {
+      import("./music/BattlePanel.svelte").then((m) => {
+        loadedBattlePanel = m.default;
+      });
+    }
+  });
   let showMobileTracklist = $state(false);
   let isBouncing = $state(false);
   let vinylLoaded = $state(false);
@@ -1388,9 +1399,12 @@
           in:fade={{ duration: 120, delay: 120 }}
           out:fade={{ duration: 120 }}
         >
-          {#await import("./music/BattlePanel.svelte") then m}
-            <m.default {audioCore} />
-          {/await}
+          {#if loadedBattlePanel}
+            {@const Panel = loadedBattlePanel}
+            <Panel {audioCore} />
+          {:else}
+            <div class="app-loading-spinner" aria-label="Loading..."></div>
+          {/if}
         </div>
       {/if}
     </div>

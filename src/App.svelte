@@ -146,6 +146,6 @@
     id="info-page"
     class="w-full h-dvh snap-start snap-always relative overflow-hidden"
   >
-    <DogsMain isFlagColors={weAreDogsColored} active={!isLandingPage} />
+    <DogsMain isFlagColors={weAreDogsColored} active={!isLandingPage} {activePage} />
   </div>
 </main>

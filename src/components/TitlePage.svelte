@@ -27,6 +27,45 @@
   let activeApp = $state(null);
   let textIsPaused = $state(false);
 
+  // 1. Tell Vite to code-split all sibling panel components in this directory
+  const panelModules = import.meta.glob("./*.svelte");
+
+  // 2. Map panel keys to their relative paths from this file
+  const panelPathMap = {
+    stats: "./StatsPanel.svelte",
+    toolbox: "./ToolboxPanel.svelte",
+    music: "./MusicPanel.svelte",
+    store: "./StorePanel.svelte",
+    map: "./MapPanel.svelte",
+    info: "./InfoPanel.svelte"
+  };
+
+  // Lazy loaded panel components caching
+  let loadedPanels = $state({});
+
+  $effect(() => {
+    if (activePage && !loadedPanels[activePage]) {
+      const path = panelPathMap[activePage];
+      const loader = panelModules[path];
+      if (loader) {
+        loader().then((m) => {
+          loadedPanels[activePage] = m.default;
+        });
+      }
+    }
+  });
+
+  $effect(() => {
+    if (showInfo && !loadedPanels.info) {
+      const loader = panelModules["./InfoPanel.svelte"];
+      if (loader) {
+        loader().then((m) => {
+          loadedPanels.info = m.default;
+        });
+      }
+    }
+  });
+
   let prevIsLandingPage = $state(true);
   $effect(() => {
     const current = isLandingPage;
@@ -423,66 +462,52 @@
 </WeAreDogs>
 
 <!-- Overlay Panels -->
-{#if activePage === "stats"}
-  {#await import("./StatsPanel.svelte")}
-    <div class="panel-loading-spinner" aria-label="Loading..."></div>
-  {:then m}
-    <m.default
-      {isClosing}
-      currentLang={activeLang}
-      onClose={closePage}
-      onHoverLang={(code) => { activeLang = code; }}
-      onSelectLang={(code) => {
-        activeLang = code;
-        if (weAreDogsRef) weAreDogsRef.forceLanguage(code);
-      }}
-    />
-  {/await}
-{:else if activePage === "networking"}
+{#if activePage === "networking"}
   <NetworkingPanel {isClosing} onClose={closePage} />
-{:else if activePage === "toolbox"}
-  {#await import("./ToolboxPanel.svelte")}
+{:else if activePage}
+  {#if loadedPanels[activePage]}
+    {@const Panel = loadedPanels[activePage]}
+    {#if activePage === "stats"}
+      <Panel
+        {isClosing}
+        currentLang={activeLang}
+        onClose={closePage}
+        onHoverLang={(code) => { activeLang = code; }}
+        onSelectLang={(code) => {
+          activeLang = code;
+          if (weAreDogsRef) weAreDogsRef.forceLanguage(code);
+        }}
+      />
+    {:else if activePage === "toolbox"}
+      <Panel
+        {isClosing}
+        onClose={closePage}
+        bind:activeApp
+        initialApp={deepLinkApp}
+        goProShow={deepLinkGoProShow}
+        goProEpisode={deepLinkGoProEp}
+        bind:blogPostSlug={deepLinkBlogPostSlug}
+        bind:depth
+        isFlagColors={weAreDogsColored}
+        {deepLinkArcadeGame}
+      />
+    {:else if activePage === "music"}
+      <Panel {isClosing} onClose={closePage} {initialTrackId} />
+    {:else if activePage === "store" || activePage === "map"}
+      <Panel {isClosing} onClose={closePage} />
+    {/if}
+  {:else}
     <div class="panel-loading-spinner" aria-label="Loading..."></div>
-  {:then m}
-    <m.default
-      {isClosing}
-      onClose={closePage}
-      bind:activeApp
-      initialApp={deepLinkApp}
-      goProShow={deepLinkGoProShow}
-      goProEpisode={deepLinkGoProEp}
-      bind:blogPostSlug={deepLinkBlogPostSlug}
-      bind:depth
-      isFlagColors={weAreDogsColored}
-      {deepLinkArcadeGame}
-    />
-  {/await}
-{:else if activePage === "music"}
-  {#await import("./MusicPanel.svelte")}
-    <div class="panel-loading-spinner" aria-label="Loading..."></div>
-  {:then m}
-    <m.default {isClosing} onClose={closePage} {initialTrackId} />
-  {/await}
-{:else if activePage === "store"}
-  {#await import("./StorePanel.svelte")}
-    <div class="panel-loading-spinner" aria-label="Loading..."></div>
-  {:then m}
-    <m.default {isClosing} onClose={closePage} />
-  {/await}
-{:else if activePage === "map"}
-  {#await import("./MapPanel.svelte")}
-    <div class="panel-loading-spinner" aria-label="Loading..."></div>
-  {:then m}
-    <m.default {isClosing} onClose={closePage} />
-  {/await}
+  {/if}
 {/if}
 
 {#if showInfo}
-  {#await import("./InfoPanel.svelte")}
+  {#if loadedPanels.info}
+    {@const Panel = loadedPanels.info}
+    <Panel onClose={() => { if (showInfo) history.back(); }} />
+  {:else}
     <div class="panel-loading-spinner" aria-label="Loading..."></div>
-  {:then m}
-    <m.default onClose={() => { if (showInfo) history.back(); }} />
-  {/await}
+  {/if}
 {/if}
 
 <style>
