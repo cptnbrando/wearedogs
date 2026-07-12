@@ -10,6 +10,7 @@
     Trophy,
     RefreshCw,
     FileText,
+    Gamepad,
   } from "lucide-svelte";
 
   let { appId } = $props();
@@ -126,6 +127,13 @@
     <FileText
       size={28}
       style="color: var(--color-neon-red, #ff3344); filter: drop-shadow(0 0 6px rgba(255, 51, 68, 0.4));"
+    />
+  </div>
+{:else if appId === "arcade"}
+  <div class="flex items-center justify-center h-full">
+    <Gamepad
+      size={28}
+      style="color: var(--color-neon-gold, #e6b900); filter: drop-shadow(0 0 6px rgba(230, 185, 0, 0.4));"
     />
   </div>
 {/if}

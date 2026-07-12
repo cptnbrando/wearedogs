@@ -55,6 +55,7 @@
     initialApp = null,
     blogPostSlug = $bindable(null),
     depth = $bindable(0),
+    deepLinkArcadeGame = null,
   } = $props();
 
   let isReadingPost = $state(false);
@@ -336,7 +337,7 @@
       {:else if activeApp === "snake"}
         <SnakeApp />
       {:else if activeApp === "arcade"}
-        <ArcadeApp />
+        <ArcadeApp initialGameId={deepLinkArcadeGame} />
       {:else if activeApp === "soundboard"}
         <SoundboardApp />
       {:else if activeApp === "paint"}

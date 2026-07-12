@@ -1333,3 +1333,56 @@
     background: #000;
   }
 }
+
+/* ── Keyboard Remapping Modal & Controls Config UI ── */
+.keyboard-controls-card {
+  background: rgba(20, 20, 30, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  padding: 20px;
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  h3 {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: $color-neon-gold;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  p {
+    margin: 0;
+    font-size: 0.72rem;
+    color: rgba(255, 255, 255, 0.4);
+    line-height: 1.4;
+  }
+
+  .config-btn {
+    align-self: flex-start;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba($color-neon-gold, 0.1);
+    border: 1px solid rgba($color-neon-gold, 0.3);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: $color-neon-gold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: rgba($color-neon-gold, 0.18);
+      border-color: $color-neon-gold;
+      box-shadow: 0 0 10px rgba($color-neon-gold, 0.15);
+    }
+  }
+}

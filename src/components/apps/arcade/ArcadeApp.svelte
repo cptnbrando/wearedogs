@@ -1,5 +1,7 @@
 <script>
   import { onMount, onDestroy } from "svelte";
+
+  let { initialGameId = null } = $props();
   import {
     Gamepad,
     ArrowLeft,
@@ -19,6 +21,8 @@
   import romMarioDS from "./rom/mario64-ds.zip?url";
   import romMarioN64 from "./rom/mario64-n64.zip?url";
   import romMoonwalker from "./rom/moonwalker-segagenesis.zip?url";
+  import { DEFAULT_MAPPINGS } from "./controlsConfig.js";
+  import KeyboardControlsModal from "./KeyboardControlsModal.svelte";
 
   // Initialize obfuscated global variables to prevent ReferenceErrors in cores (e.g., Sega Genesis)
   if (typeof window !== "undefined") {
@@ -96,6 +100,79 @@
   // Video settings
   let filterType = $state("composite");
   let zoomEnabled = $state(true);
+
+  // Keyboard mappings state initialized synchronously from localStorage if available
+  let userMappings = $state(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("arcade-keyboard-mappings");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          for (const consoleKey of Object.keys(DEFAULT_MAPPINGS)) {
+            if (!parsed[consoleKey]) {
+              parsed[consoleKey] = { ...DEFAULT_MAPPINGS[consoleKey] };
+            } else {
+              parsed[consoleKey] = {
+                ...DEFAULT_MAPPINGS[consoleKey],
+                ...parsed[consoleKey]
+              };
+            }
+          }
+          return parsed;
+        }
+      } catch (e) {
+        console.warn("Failed to load mappings from localStorage:", e);
+      }
+    }
+    return JSON.parse(JSON.stringify(DEFAULT_MAPPINGS));
+  });
+  let isControlsModalOpen = $state(false);
+
+  function handleResetConsoleMappings(consoleKey) {
+    if (DEFAULT_MAPPINGS[consoleKey]) {
+      userMappings[consoleKey] = { ...DEFAULT_MAPPINGS[consoleKey] };
+    }
+  }
+
+  function handleWindowKeyEvent(e) {
+    if (isControlsModalOpen) return;
+    if (e.type !== "keydown" && e.type !== "keyup") return;
+    if (!currentGame) return;
+    if (e.synthesized) return;
+
+    const consoleType = currentGame.console;
+    const config = userMappings[consoleType];
+    if (!config) return;
+
+    const action = Object.keys(config).find(key => config[key] === e.code);
+    if (action) {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const isN64 = consoleType === "n64";
+      const targetKeyCode = getKeyCode(action, isN64);
+      if (targetKeyCode) {
+        dispatchSynthesizedKey(e.type, targetKeyCode);
+      }
+    }
+  }
+
+  function dispatchSynthesizedKey(type, keyCode) {
+    const eventObj = new KeyboardEvent(type, {
+      keyCode: keyCode,
+      which: keyCode,
+      bubbles: true,
+      cancelable: true,
+    });
+    Object.defineProperty(eventObj, "synthesized", { value: true, enumerable: true });
+
+    const canvas = document.querySelector("#emulator canvas");
+    if (canvas) {
+      canvas.dispatchEvent(eventObj);
+    } else {
+      window.dispatchEvent(eventObj);
+    }
+  }
 
   // Analog Nub touch tracking
   let analogContainerEl = $state(null);
@@ -496,10 +573,23 @@
     }
   });
 
+  // Sync custom controls to local storage
+  $effect(() => {
+    try {
+      localStorage.setItem("arcade-keyboard-mappings", JSON.stringify(userMappings));
+    } catch (e) {
+      console.warn("Failed to save mappings to localStorage:", e);
+    }
+  });
+
   // Lifecycle
   onMount(() => {
+    // Capture key events at window level to translate physical keys
+    window.addEventListener("keydown", handleWindowKeyEvent, true);
+    window.addEventListener("keyup", handleWindowKeyEvent, true);
+
     // Check auto load
-    const reloadGameId = localStorage.getItem("arcade-auto-load");
+    const reloadGameId = initialGameId || localStorage.getItem("arcade-auto-load");
     const reloadTheme = localStorage.getItem("arcade-auto-theme");
 
     if (reloadTheme) {
@@ -527,6 +617,10 @@
   });
 
   onDestroy(() => {
+    // Remove capture listeners
+    window.removeEventListener("keydown", handleWindowKeyEvent, true);
+    window.removeEventListener("keyup", handleWindowKeyEvent, true);
+
     // Delete globally mapped variables to avoid leak on exit
     delete window.NepEmu;
     delete window.NepPlayer;
@@ -631,6 +725,21 @@
           </button>
         </div>
       </div>
+
+      <!-- Keyboard Controls Configuration (Desktop/Tablet only) -->
+      <div class="keyboard-controls-card hidden md:flex">
+        <h3>
+          <Gamepad size={18} />
+          Keyboard Bindings
+        </h3>
+        <p>
+          Configure custom keyboard controls for Sega Genesis, NDS, N64, PSX, and GBA.
+        </p>
+        <button class="config-btn" onclick={() => isControlsModalOpen = true}>
+          <Settings2 size={14} />
+          Configure Keys
+        </button>
+      </div>
     </div>
   {:else}
     <!-- EMULATION INTERFACE -->
@@ -650,6 +759,9 @@
             <option value="gba">GBA Horizontal</option>
             <option value="screen">Screen Only</option>
           </select>
+          <button class="fullscreen-btn hidden md:flex" onclick={() => isControlsModalOpen = true} aria-label="Keyboard controls">
+            <Settings2 size={14} />
+          </button>
           <button class="fullscreen-btn" onclick={toggleFullscreen} aria-label="Toggle Fullscreen">
             {#if isFullscreen}
               <Minimize2 size={14} />
@@ -1092,6 +1204,12 @@
     </div>
   {/if}
 </div>
+
+<KeyboardControlsModal
+  bind:isOpen={isControlsModalOpen}
+  bind:userMappings={userMappings}
+  onReset={handleResetConsoleMappings}
+/>
 
 <style lang="scss">
   @use "./ArcadeApp.scss";

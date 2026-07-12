@@ -79,6 +79,7 @@
   let deepLinkGoProShow = $state(null);
   let deepLinkGoProEp = $state(null);
   let deepLinkBlogPostSlug = $state(null);
+  let deepLinkArcadeGame = $state(null);
 
   // ---------------------------------------------------------------------------
   // URL Routing — parse deep-link on first mount
@@ -124,6 +125,17 @@
       openPage("toolbox");
       setTimeout(() => {
         deepLinkApp = null;
+      }, 400);
+      return;
+    }
+
+    if (params.type === "arcade-game") {
+      deepLinkApp = "arcade";
+      deepLinkArcadeGame = params.game;
+      openPage("toolbox");
+      setTimeout(() => {
+        deepLinkApp = null;
+        deepLinkArcadeGame = null;
       }, 400);
       return;
     }
@@ -445,6 +457,7 @@
     bind:blogPostSlug={deepLinkBlogPostSlug}
     bind:depth
     isFlagColors={weAreDogsColored}
+    {deepLinkArcadeGame}
   />
 {:else if activePage === "music"}
   <MusicPanel {isClosing} onClose={closePage} {initialTrackId} />
