@@ -157,9 +157,6 @@
     }
   }
 
-  .tab-icon-svg {
-    flex-shrink: 0;
-  }
 
   .btn-text {
     font-size: 0.72rem;

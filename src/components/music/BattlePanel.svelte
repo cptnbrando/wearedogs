@@ -366,6 +366,7 @@
               class:active={useInstrumental}
               onclick={() => useInstrumental = !useInstrumental}
               disabled={isRecording}
+              aria-label="Toggle instrumental track"
             >
               <span class="switch-nob"></span>
             </button>
@@ -597,15 +598,6 @@
     }
   }
 
-  .text-magenta {
-    color: #ff007f;
-    filter: drop-shadow(0 0 6px rgba(255, 0, 127, 0.5));
-  }
-
-  .text-cyan {
-    color: #00f0ff;
-    filter: drop-shadow(0 0 6px rgba(0, 240, 255, 0.5));
-  }
 
   /* ── Selector Section ── */
   .selector-section {
@@ -941,11 +933,6 @@
     align-items: center;
   }
 
-  .search-icon {
-    position: absolute;
-    left: 10px;
-    color: rgba(255, 255, 255, 0.3);
-  }
 
   .search-bar {
     width: 100%;
