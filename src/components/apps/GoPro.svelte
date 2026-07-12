@@ -1018,7 +1018,7 @@
         }
     }
 
-    onMount(async () => {
+    onMount(() => {
         const savedPassword = localStorage.getItem("gopro_password");
         if (savedPassword) {
             currentPassword = savedPassword;
@@ -1026,21 +1026,6 @@
         }
         loadCheckpoints();
         document.addEventListener("fullscreenchange", handleFullscreenChange);
-
-        try {
-            const res = await fetch("/videos.json");
-            if (res.ok) {
-                const data = await res.json();
-                if (data && typeof data === "object") {
-                    catalog = data;
-                }
-            }
-        } catch (e) {
-            console.warn(
-                "Failed to fetch dynamic video catalog, using cached backup:",
-                e,
-            );
-        }
     });
 
     // Swipe gesture support for controls tabs
