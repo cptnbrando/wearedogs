@@ -33,6 +33,33 @@
 
   let activeTab = $state("explorer");
 
+  // 1. Tell Vite to code-split and load all .svelte tabs inside stats/
+  const tabModules = import.meta.glob("./stats/*.svelte");
+
+  // 2. Map tab ids to their relative paths from this file
+  const tabPathMap = {
+    explorer: "./stats/ExplorerTab.svelte",
+    map: "./stats/MapTab.svelte",
+    comparison: "./stats/ComparisonTab.svelte",
+    animals: "./stats/AnimalsTab.svelte",
+    themes: "./stats/ThemesTab.svelte"
+  };
+
+  // Lazy loaded tab components caching
+  let loadedTabs = $state({});
+
+  $effect(() => {
+    if (activeTab && !loadedTabs[activeTab]) {
+      const path = tabPathMap[activeTab];
+      const loader = tabModules[path];
+      if (loader) {
+        loader().then((m) => {
+          loadedTabs[activeTab] = m.default;
+        });
+      }
+    }
+  });
+
   const userLocale =
     typeof navigator !== "undefined" ? navigator.language : "en";
 
@@ -498,21 +525,18 @@
         ontouchstart={handleTouchStart}
         ontouchend={handleTouchEnd}
       >
-        {#if activeTab === "explorer"}
+        {#if loadedTabs[activeTab]}
+          {@const Tab = loadedTabs[activeTab]}
           <div in:fade={{ duration: 120, delay: 120 }} out:fade={{ duration: 120 }}>
-            {#await import("./stats/ExplorerTab.svelte") then m}
-              <m.default
+            {#if activeTab === "explorer"}
+              <Tab
                 {allLangItems}
                 bind:currentLang
                 {handleHover}
                 {handleSelect}
               />
-            {/await}
-          </div>
-        {:else if activeTab === "map"}
-          <div in:fade={{ duration: 120, delay: 120 }} out:fade={{ duration: 120 }}>
-            {#await import("./stats/MapTab.svelte") then m}
-              <m.default
+            {:else if activeTab === "map"}
+              <Tab
                 {activeColor}
                 {activeLangItem}
                 {activeCountries}
@@ -521,26 +545,16 @@
                 {countryLanguagesMap}
                 {handleCountrySelect}
               />
-            {/await}
+            {:else if activeTab === "comparison"}
+              <Tab {enrichedCountryStats} />
+            {:else if activeTab === "animals"}
+              <Tab {allLangItems} />
+            {:else if activeTab === "themes"}
+              <Tab {allLangItems} {onSelectLang} />
+            {/if}
           </div>
-        {:else if activeTab === "comparison"}
-          <div in:fade={{ duration: 120, delay: 120 }} out:fade={{ duration: 120 }}>
-            {#await import("./stats/ComparisonTab.svelte") then m}
-              <m.default {enrichedCountryStats} />
-            {/await}
-          </div>
-        {:else if activeTab === "animals"}
-          <div in:fade={{ duration: 120, delay: 120 }} out:fade={{ duration: 120 }}>
-            {#await import("./stats/AnimalsTab.svelte") then m}
-              <m.default {allLangItems} />
-            {/await}
-          </div>
-        {:else if activeTab === "themes"}
-          <div in:fade={{ duration: 120, delay: 120 }} out:fade={{ duration: 120 }}>
-            {#await import("./stats/ThemesTab.svelte") then m}
-              <m.default {allLangItems} {onSelectLang} />
-            {/await}
-          </div>
+        {:else}
+          <div class="tab-loading-spinner" aria-label="Loading..."></div>
         {/if}
       </main>
 

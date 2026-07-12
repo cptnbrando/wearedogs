@@ -42,6 +42,46 @@
   let appsGridEl = $state(null);
   let isKeyboardNav = $state(false);
 
+  // 1. Tell Vite to code-split and find all .svelte apps inside apps/ recursively
+  const appModules = import.meta.glob("./apps/**/*.svelte");
+
+  // 2. Map app ids to their actual relative paths from this file
+  const appPathMap = {
+    snake: "./apps/SnakeApp.svelte",
+    arcade: "./apps/arcade/ArcadeApp.svelte",
+    soundboard: "./apps/SoundboardApp.svelte",
+    paint: "./apps/PaintApp.svelte",
+    stopwatch: "./apps/fathertime/FatherTimeApp.svelte",
+    gopro: "./apps/GoPro.svelte",
+    dataflash: "./apps/datatrain/DataTrain.svelte",
+    qrgenerator: "./apps/QRGenerator.svelte",
+    rescue: "./apps/Rescue.svelte",
+    memes: "./apps/MemesApp.svelte",
+    worldcup: "./apps/WorldCupApp.svelte",
+    changelog: "./apps/ChangelogApp.svelte",
+    blog: "./apps/BlogApp.svelte",
+    settings: "./apps/SettingsApp.svelte",
+    soundstripper: "./apps/SoundStripper.svelte",
+    converter: "./apps/CatalyticConverter.svelte",
+    reader: "./apps/ImageReader.svelte",
+    windshieldwiper: "./apps/WindshieldWiper.svelte"
+  };
+
+  // Lazy loaded app components caching
+  let loadedApps = $state({});
+
+  $effect(() => {
+    if (activeApp && !loadedApps[activeApp]) {
+      const path = appPathMap[activeApp];
+      const loader = appModules[path];
+      if (loader) {
+        loader().then((m) => {
+          loadedApps[activeApp] = m.default;
+        });
+      }
+    }
+  });
+
   // Derive header title from the active app, falling back to the default
   const panelTitle = $derived(
     activeApp ? (apps.find((a) => a.id === activeApp)?.title ?? TITLE_DEFAULT) : TITLE_DEFAULT
@@ -319,119 +359,26 @@
             {/each}
           </div>
         </div>
-      {:else if activeApp === "snake"}
-        {#await import("./apps/SnakeApp.svelte")}
+      {:else if activeApp}
+        {#if loadedApps[activeApp]}
+          {@const App = loadedApps[activeApp]}
+          {#if activeApp === "arcade"}
+            <App initialGameId={deepLinkArcadeGame} />
+          {:else if activeApp === "blog"}
+            <App
+              bind:initialSlug={blogPostSlug}
+              bind:isReading={isReadingPost}
+              bind:depth
+              {isFlagColors}
+            />
+          {:else if activeApp === "windshieldwiper"}
+            <App onClose={() => (activeApp = null)} />
+          {:else}
+            <App />
+          {/if}
+        {:else}
           <div class="app-loading-spinner" aria-label="Loading..."></div>
-        {:then m}
-          <m.default />
-        {/await}
-      {:else if activeApp === "arcade"}
-        {#await import("./apps/arcade/ArcadeApp.svelte")}
-          <div class="app-loading-spinner" aria-label="Loading..."></div>
-        {:then m}
-          <m.default initialGameId={deepLinkArcadeGame} />
-        {/await}
-      {:else if activeApp === "soundboard"}
-        {#await import("./apps/SoundboardApp.svelte")}
-          <div class="app-loading-spinner" aria-label="Loading..."></div>
-        {:then m}
-          <m.default />
-        {/await}
-      {:else if activeApp === "paint"}
-        {#await import("./apps/PaintApp.svelte")}
-          <div class="app-loading-spinner" aria-label="Loading..."></div>
-        {:then m}
-          <m.default />
-        {/await}
-      {:else if activeApp === "stopwatch"}
-        {#await import("./apps/fathertime/FatherTimeApp.svelte")}
-          <div class="app-loading-spinner" aria-label="Loading..."></div>
-        {:then m}
-          <m.default />
-        {/await}
-      {:else if activeApp === "gopro"}
-        {#await import("./apps/GoPro.svelte")}
-          <div class="app-loading-spinner" aria-label="Loading..."></div>
-        {:then m}
-          <m.default />
-        {/await}
-      {:else if activeApp === "dataflash"}
-        {#await import("./apps/datatrain/DataTrain.svelte")}
-          <div class="app-loading-spinner" aria-label="Loading..."></div>
-        {:then m}
-          <m.default />
-        {/await}
-      {:else if activeApp === "qrgenerator"}
-        {#await import("./apps/QRGenerator.svelte")}
-          <div class="app-loading-spinner" aria-label="Loading..."></div>
-        {:then m}
-          <m.default />
-        {/await}
-      {:else if activeApp === "rescue"}
-        {#await import("./apps/Rescue.svelte")}
-          <div class="app-loading-spinner" aria-label="Loading..."></div>
-        {:then m}
-          <m.default />
-        {/await}
-      {:else if activeApp === "memes"}
-        {#await import("./apps/MemesApp.svelte")}
-          <div class="app-loading-spinner" aria-label="Loading..."></div>
-        {:then m}
-          <m.default />
-        {/await}
-      {:else if activeApp === "worldcup"}
-        {#await import("./apps/WorldCupApp.svelte")}
-          <div class="app-loading-spinner" aria-label="Loading..."></div>
-        {:then m}
-          <m.default />
-        {/await}
-      {:else if activeApp === "changelog"}
-        {#await import("./apps/ChangelogApp.svelte")}
-          <div class="app-loading-spinner" aria-label="Loading..."></div>
-        {:then m}
-          <m.default />
-        {/await}
-      {:else if activeApp === "blog"}
-        {#await import("./apps/BlogApp.svelte")}
-          <div class="app-loading-spinner" aria-label="Loading..."></div>
-        {:then m}
-          <m.default
-            bind:initialSlug={blogPostSlug}
-            bind:isReading={isReadingPost}
-            bind:depth
-            {isFlagColors}
-          />
-        {/await}
-      {:else if activeApp === "settings"}
-        {#await import("./apps/SettingsApp.svelte")}
-          <div class="app-loading-spinner" aria-label="Loading..."></div>
-        {:then m}
-          <m.default />
-        {/await}
-      {:else if activeApp === "soundstripper"}
-        {#await import("./apps/SoundStripper.svelte")}
-          <div class="app-loading-spinner" aria-label="Loading..."></div>
-        {:then m}
-          <m.default />
-        {/await}
-      {:else if activeApp === "converter"}
-        {#await import("./apps/CatalyticConverter.svelte")}
-          <div class="app-loading-spinner" aria-label="Loading..."></div>
-        {:then m}
-          <m.default />
-        {/await}
-      {:else if activeApp === "reader"}
-        {#await import("./apps/ImageReader.svelte")}
-          <div class="app-loading-spinner" aria-label="Loading..."></div>
-        {:then m}
-          <m.default />
-        {/await}
-      {:else if activeApp === "windshieldwiper"}
-        {#await import("./apps/WindshieldWiper.svelte")}
-          <div class="app-loading-spinner" aria-label="Loading..."></div>
-        {:then m}
-          <m.default onClose={() => (activeApp = null)} />
-        {/await}
+        {/if}
       {/if}
     </div>
 
