@@ -211,7 +211,7 @@
       artist: "The Buddha-Bar Lounge",
       album: "Den Chai",
       cover: "https://data.wearedogs.net/img/covers/2026/buddha.webp",
-      altCover: "",
+      altCover: "https://data.wearedogs.net/img/covers/2026/buddha.png",
       src: "https://data.wearedogs.net/music/2026/DENCHAI.mp3",
       instrumental: "",
       hasInstrumental: false,
@@ -250,6 +250,21 @@
       year: 2021,
       genre: "Video Game",
       attrib: "https://deltarune.com/",
+    },
+    {
+      id: "sleepless",
+      title: "Sleepless",
+      artist: "deadmau5",
+      album: "> album title goes here <",
+      cover: "https://data.wearedogs.net/img/covers/2026/sleepless.webp",
+      altCover: "https://data.wearedogs.net/img/covers/2026/sleepless.png",
+      src: "https://data.wearedogs.net/music/2026/sleepless.mp3",
+      instrumental: "",
+      hasInstrumental: false,
+      dateAdded: "2026-07-12T04:22:00-05:00",
+      year: 2026,
+      genre: "Electronic",
+      attrib: "https://deadmau5.com/",
     },
   ];
 
@@ -330,6 +345,9 @@
       if (idx !== -1) {
         audioCore.loadTrack(idx, true);
       }
+    } else {
+      const randomIdx = Math.floor(Math.random() * library.length);
+      audioCore.loadTrack(randomIdx, false);
     }
   });
 
