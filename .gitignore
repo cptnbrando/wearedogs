@@ -1,7 +1,7 @@
 # Media assets
 public/batman/*.mp4
 # !public/batman/batman1.mp4
-src/components/arcade/rom/*
+src/components/apps/arcade/rom/*
 
 # public/changelog.json
 

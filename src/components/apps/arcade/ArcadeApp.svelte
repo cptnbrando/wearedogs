@@ -1,22 +1,22 @@
 <script>
   import { onMount, onDestroy } from "svelte";
-  import { 
-    Gamepad, 
-    ArrowLeft, 
-    Trash2, 
-    Download, 
-    Upload, 
-    RefreshCw, 
-    HardDrive, 
-    Cloud, 
-    Settings2 
+  import {
+    Gamepad,
+    ArrowLeft,
+    Trash2,
+    Download,
+    Upload,
+    RefreshCw,
+    HardDrive,
+    Cloud,
+    Settings2,
   } from "lucide-svelte";
-  import rom2p from "../../arcade/rom/2p.zip?url";
-  import romConker from "../../arcade/rom/conker-n64.zip?url";
-  import romGoldeneye from "../../arcade/rom/goldeneye-n64.zip?url";
-  import romMarioDS from "../../arcade/rom/mario64-ds.zip?url";
-  import romMarioN64 from "../../arcade/rom/mario64-n64.zip?url";
-  import romMoonwalker from "../../arcade/rom/moonwalker-segagenesis.zip?url";
+  import rom2p from "./rom/2p.zip?url";
+  import romConker from "./rom/conker-n64.zip?url";
+  import romGoldeneye from "./rom/goldeneye-n64.zip?url";
+  import romMarioDS from "./rom/mario64-ds.zip?url";
+  import romMarioN64 from "./rom/mario64-n64.zip?url";
+  import romMoonwalker from "./rom/moonwalker-segagenesis.zip?url";
 
   // Hoist constants to top of file
   const KEY_UP = 38;
@@ -28,12 +28,48 @@
 
   // Games catalog mapping
   const GAMES = [
-    { id: "mario64", title: "Super Mario 64", console: "n64", file: romMarioN64, desc: "Classic N64 3D platformer." },
-    { id: "goldeneye", title: "GoldenEye 007", console: "n64", file: romGoldeneye, desc: "Classic FPS multiplayer action." },
-    { id: "conker", title: "Conker's Bad Fur Day", console: "n64", file: romConker, desc: "Classic N64 comedy platformer." },
-    { id: "mariods", title: "Super Mario 64 DS", console: "nds", file: romMarioDS, desc: "Enhanced Nintendo DS port." },
-    { id: "zelda", title: "Zelda (GBA)", console: "gba", file: rom2p, desc: "Epic Gameboy Advance adventure." },
-    { id: "moonwalker", title: "Moonwalker", console: "sega", file: romMoonwalker, desc: "Michael Jackson's Sega Genesis classic." }
+    {
+      id: "mario64",
+      title: "Super Mario 64",
+      console: "n64",
+      file: romMarioN64,
+      desc: "Classic N64 3D platformer.",
+    },
+    {
+      id: "goldeneye",
+      title: "GoldenEye 007",
+      console: "n64",
+      file: romGoldeneye,
+      desc: "Classic FPS multiplayer action.",
+    },
+    {
+      id: "conker",
+      title: "Conker's Bad Fur Day",
+      console: "n64",
+      file: romConker,
+      desc: "Classic N64 comedy platformer.",
+    },
+    {
+      id: "mariods",
+      title: "Super Mario 64 DS",
+      console: "nds",
+      file: romMarioDS,
+      desc: "Enhanced Nintendo DS port.",
+    },
+    {
+      id: "zelda",
+      title: "Zelda (GBA)",
+      console: "gba",
+      file: rom2p,
+      desc: "Epic Gameboy Advance adventure.",
+    },
+    {
+      id: "moonwalker",
+      title: "Moonwalker",
+      console: "sega",
+      file: romMoonwalker,
+      desc: "Michael Jackson's Sega Genesis classic.",
+    },
   ];
 
   // States
@@ -57,41 +93,73 @@
   function getKeyCode(btn, isN64) {
     if (isN64) {
       switch (btn) {
-        case "UP": return 38;
-        case "DOWN": return 40;
-        case "LEFT": return 37;
-        case "RIGHT": return 39;
-        case "A": return 75; // K
-        case "B": return 67; // C
-        case "L": return 81; // Q
-        case "R": return 69; // E
-        case "Z": return 32; // Space
-        case "START": return 13; // Enter
-        case "ANALOG_UP": return 87; // W
-        case "ANALOG_DOWN": return 83; // S
-        case "ANALOG_LEFT": return 65; // A
-        case "ANALOG_RIGHT": return 68; // D
-        case "C_UP": return 73; // I
-        case "C_DOWN": return 76; // L
-        case "C_LEFT": return 85; // U
-        case "C_RIGHT": return 79; // O
+        case "UP":
+          return 38;
+        case "DOWN":
+          return 40;
+        case "LEFT":
+          return 37;
+        case "RIGHT":
+          return 39;
+        case "A":
+          return 75; // K
+        case "B":
+          return 67; // C
+        case "L":
+          return 81; // Q
+        case "R":
+          return 69; // E
+        case "Z":
+          return 32; // Space
+        case "START":
+          return 13; // Enter
+        case "ANALOG_UP":
+          return 87; // W
+        case "ANALOG_DOWN":
+          return 83; // S
+        case "ANALOG_LEFT":
+          return 65; // A
+        case "ANALOG_RIGHT":
+          return 68; // D
+        case "C_UP":
+          return 73; // I
+        case "C_DOWN":
+          return 76; // L
+        case "C_LEFT":
+          return 85; // U
+        case "C_RIGHT":
+          return 79; // O
       }
     } else {
       switch (btn) {
-        case "UP": return 38;
-        case "DOWN": return 40;
-        case "LEFT": return 37;
-        case "RIGHT": return 39;
-        case "A": return 88; // X
-        case "B": return 67; // C
-        case "X": return 90; // Z
-        case "Y": return 83; // S
-        case "L": return 65; // A
-        case "R": return 68; // D
-        case "L2": return 81; // Q
-        case "R2": return 69; // E
-        case "SELECT": return 16; // Shift
-        case "START": return 13; // Enter
+        case "UP":
+          return 38;
+        case "DOWN":
+          return 40;
+        case "LEFT":
+          return 37;
+        case "RIGHT":
+          return 39;
+        case "A":
+          return 88; // X
+        case "B":
+          return 67; // C
+        case "X":
+          return 90; // Z
+        case "Y":
+          return 83; // S
+        case "L":
+          return 65; // A
+        case "R":
+          return 68; // D
+        case "L2":
+          return 81; // Q
+        case "R2":
+          return 69; // E
+        case "SELECT":
+          return 16; // Shift
+        case "START":
+          return 13; // Enter
       }
     }
     return null;
@@ -109,7 +177,7 @@
       keyCode: code,
       which: code,
       bubbles: true,
-      cancelable: true
+      cancelable: true,
     });
 
     const canvas = document.querySelector("#emulator canvas");
@@ -156,7 +224,7 @@
       analogNubEl.style.transform = "translate(-50%, -50%)";
     }
     // Release all active analog keys
-    activeAnalogKeys.forEach(key => triggerButton(key, false));
+    activeAnalogKeys.forEach((key) => triggerButton(key, false));
     activeAnalogKeys = [];
   }
 
@@ -165,19 +233,19 @@
     const rect = analogContainerEl.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
-    
+
     // Relative coordinates
     let deltaX = touch.clientX - centerX;
     let deltaY = touch.clientY - centerY;
-    
+
     const maxRadius = rect.width / 2 - 12; // Nub offset cap
     const distance = Math.hypot(deltaX, deltaY);
-    
+
     if (distance > maxRadius) {
       deltaX = (deltaX / distance) * maxRadius;
       deltaY = (deltaY / distance) * maxRadius;
     }
-    
+
     analogNubEl.style.transform = `translate(calc(-50% + ${deltaX}px), calc(-50% + ${deltaY}px))`;
 
     // Map delta vectors to analog keys
@@ -189,12 +257,12 @@
     if (deltaX > threshold) targetKeys.push("ANALOG_RIGHT");
 
     // Release old keys no longer active
-    activeAnalogKeys.forEach(key => {
+    activeAnalogKeys.forEach((key) => {
       if (!targetKeys.includes(key)) triggerButton(key, false);
     });
 
     // Press new keys not previously active
-    targetKeys.forEach(key => {
+    targetKeys.forEach((key) => {
       if (!activeAnalogKeys.includes(key)) triggerButton(key, true);
     });
 
@@ -250,7 +318,7 @@
   // IndexedDB Saves operations
   function refreshSaves() {
     indexedDB.open("/webdata/state"); // Ensure database initialized
-    
+
     // Slight timeout to let DB initialize
     setTimeout(() => {
       const request = indexedDB.open("/webdata/state");
@@ -283,7 +351,7 @@
                 name: name,
                 timestamp: val.timestamp ? new Date(val.timestamp) : new Date(),
                 size: val.contents ? val.contents.byteLength : 0,
-                contents: val.contents
+                contents: val.contents,
               });
             }
           }
@@ -299,7 +367,9 @@
   }
 
   function downloadSave(save) {
-    const blob = new Blob([save.contents], { type: "application/octet-stream" });
+    const blob = new Blob([save.contents], {
+      type: "application/octet-stream",
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -336,12 +406,12 @@
         const db = request.result;
         const transaction = db.transaction("FILE_DATA", "readwrite");
         const store = transaction.objectStore("FILE_DATA");
-        
+
         const path = `/webdata/state/${file.name}`;
         const fileObj = {
           timestamp: Date.now(),
           mode: 33206, // Regular file
-          contents: new Uint8Array(arrayBuffer)
+          contents: new Uint8Array(arrayBuffer),
         };
 
         const putReq = store.put(fileObj, path);
@@ -363,7 +433,7 @@
     // Check auto load
     const reloadGameId = localStorage.getItem("arcade-auto-load");
     const reloadTheme = localStorage.getItem("arcade-auto-theme");
-    
+
     if (reloadTheme) {
       activeTheme = reloadTheme;
       localStorage.removeItem("arcade-auto-theme");
@@ -371,7 +441,7 @@
 
     if (reloadGameId) {
       localStorage.removeItem("arcade-auto-load");
-      const game = GAMES.find(g => g.id === reloadGameId);
+      const game = GAMES.find((g) => g.id === reloadGameId);
       if (game) {
         selectGame(game);
       }
@@ -400,7 +470,9 @@
     <div class="selection-screen">
       <div>
         <h2>Dogs Retro Arcade</h2>
-        <p class="intro-text">Load vintage ROM games from local disk database.</p>
+        <p class="intro-text">
+          Load vintage ROM games from local disk database.
+        </p>
       </div>
 
       <div class="games-list-grid">
@@ -421,10 +493,12 @@
           <HardDrive size={18} />
           Memory Card Management
         </h3>
-        
+
         <div class="saves-list-container">
           {#if localSaves.length === 0}
-            <p class="text-[0.7rem] text-white/30 italic">No local save states detected.</p>
+            <p class="text-[0.7rem] text-white/30 italic">
+              No local save states detected.
+            </p>
           {:else}
             {#each localSaves as save}
               <div class="save-item">
@@ -435,16 +509,16 @@
                   </span>
                 </div>
                 <div class="save-actions">
-                  <button 
-                    class="save-btn" 
-                    onclick={() => downloadSave(save)} 
+                  <button
+                    class="save-btn"
+                    onclick={() => downloadSave(save)}
                     aria-label="Download save"
                   >
                     <Download size={14} />
                   </button>
-                  <button 
-                    class="save-btn delete" 
-                    onclick={() => deleteSave(save)} 
+                  <button
+                    class="save-btn delete"
+                    onclick={() => deleteSave(save)}
                     aria-label="Delete save"
                   >
                     <Trash2 size={14} />
@@ -459,11 +533,11 @@
           <label class="upload-label" for="import-file">
             <Upload size={14} />
             Import State (.state/.sav)
-            <input 
-              type="file" 
-              id="import-file" 
-              style="display: none;" 
-              onchange={handleImportSave} 
+            <input
+              type="file"
+              id="import-file"
+              style="display: none;"
+              onchange={handleImportSave}
             />
           </label>
 
@@ -471,8 +545,12 @@
             <Cloud size={14} />
             Sync Cloud Saves
           </button>
-          
-          <button class="save-btn" onclick={refreshSaves} aria-label="Refresh saves">
+
+          <button
+            class="save-btn"
+            onclick={refreshSaves}
+            aria-label="Refresh saves"
+          >
             <RefreshCw size={14} />
           </button>
         </div>
@@ -516,7 +594,7 @@
                   <div class="dpad-cross cross-h"></div>
                   <div class="dpad-cross cross-v"></div>
                   <!-- svelte-ignore a11y_no_static_element_interactions -->
-                  <div 
+                  <div
                     class="dpad-btn up"
                     ontouchstart={(e) => handleTouchStart(e, "UP")}
                     ontouchend={(e) => handleTouchEnd(e, "UP")}
@@ -525,7 +603,7 @@
                     aria-label="Up"
                   ></div>
                   <!-- svelte-ignore a11y_no_static_element_interactions -->
-                  <div 
+                  <div
                     class="dpad-btn down"
                     ontouchstart={(e) => handleTouchStart(e, "DOWN")}
                     ontouchend={(e) => handleTouchEnd(e, "DOWN")}
@@ -534,7 +612,7 @@
                     aria-label="Down"
                   ></div>
                   <!-- svelte-ignore a11y_no_static_element_interactions -->
-                  <div 
+                  <div
                     class="dpad-btn left"
                     ontouchstart={(e) => handleTouchStart(e, "LEFT")}
                     ontouchend={(e) => handleTouchEnd(e, "LEFT")}
@@ -543,7 +621,7 @@
                     aria-label="Left"
                   ></div>
                   <!-- svelte-ignore a11y_no_static_element_interactions -->
-                  <div 
+                  <div
                     class="dpad-btn right"
                     ontouchstart={(e) => handleTouchStart(e, "RIGHT")}
                     ontouchend={(e) => handleTouchEnd(e, "RIGHT")}
@@ -556,7 +634,7 @@
                 <!-- GBC A/B Buttons -->
                 <div class="gbc-action-buttons">
                   <!-- svelte-ignore a11y_no_static_element_interactions -->
-                  <div 
+                  <div
                     class="action-btn-circle"
                     ontouchstart={(e) => handleTouchStart(e, "B")}
                     ontouchend={(e) => handleTouchEnd(e, "B")}
@@ -567,7 +645,7 @@
                     B
                   </div>
                   <!-- svelte-ignore a11y_no_static_element_interactions -->
-                  <div 
+                  <div
                     class="action-btn-circle"
                     ontouchstart={(e) => handleTouchStart(e, "A")}
                     ontouchend={(e) => handleTouchEnd(e, "A")}
@@ -583,8 +661,8 @@
               <!-- Start / Select rubber keys -->
               <div class="gbc-system-row">
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
-                <div 
-                  class="system-btn-capsule" 
+                <div
+                  class="system-btn-capsule"
                   data-label="SELECT"
                   ontouchstart={(e) => handleTouchStart(e, "SELECT")}
                   ontouchend={(e) => handleTouchEnd(e, "SELECT")}
@@ -593,8 +671,8 @@
                   aria-label="Select"
                 ></div>
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
-                <div 
-                  class="system-btn-capsule" 
+                <div
+                  class="system-btn-capsule"
                   data-label="START"
                   ontouchstart={(e) => handleTouchStart(e, "START")}
                   ontouchend={(e) => handleTouchEnd(e, "START")}
@@ -619,7 +697,7 @@
           <div class="console-psp">
             <!-- PSP L Shoulder button -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <div 
+            <div
               class="psp-shoulder left"
               ontouchstart={(e) => handleTouchStart(e, "L")}
               ontouchend={(e) => handleTouchEnd(e, "L")}
@@ -634,7 +712,7 @@
             <div class="left-wing">
               <div class="psp-dpad">
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
-                <div 
+                <div
                   class="psp-dpad-btn up"
                   ontouchstart={(e) => handleTouchStart(e, "UP")}
                   ontouchend={(e) => handleTouchEnd(e, "UP")}
@@ -645,7 +723,7 @@
                   ▲
                 </div>
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
-                <div 
+                <div
                   class="psp-dpad-btn down"
                   ontouchstart={(e) => handleTouchStart(e, "DOWN")}
                   ontouchend={(e) => handleTouchEnd(e, "DOWN")}
@@ -656,7 +734,7 @@
                   ▼
                 </div>
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
-                <div 
+                <div
                   class="psp-dpad-btn left"
                   ontouchstart={(e) => handleTouchStart(e, "LEFT")}
                   ontouchend={(e) => handleTouchEnd(e, "LEFT")}
@@ -667,7 +745,7 @@
                   ◀
                 </div>
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
-                <div 
+                <div
                   class="psp-dpad-btn right"
                   ontouchstart={(e) => handleTouchStart(e, "RIGHT")}
                   ontouchend={(e) => handleTouchEnd(e, "RIGHT")}
@@ -681,7 +759,7 @@
 
               <!-- Analog Nub -->
               <!-- svelte-ignore a11y_no_static_element_interactions -->
-              <div 
+              <div
                 class="psp-analog"
                 bind:this={analogContainerEl}
                 ontouchstart={handleAnalogStart}
@@ -704,7 +782,7 @@
             <div class="right-wing">
               <div class="psp-action-buttons">
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
-                <div 
+                <div
                   class="psp-btn triangle"
                   ontouchstart={(e) => handleTouchStart(e, "Y")}
                   ontouchend={(e) => handleTouchEnd(e, "Y")}
@@ -715,7 +793,7 @@
                   ▲
                 </div>
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
-                <div 
+                <div
                   class="psp-btn circle"
                   ontouchstart={(e) => handleTouchStart(e, "A")}
                   ontouchend={(e) => handleTouchEnd(e, "A")}
@@ -726,7 +804,7 @@
                   ●
                 </div>
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
-                <div 
+                <div
                   class="psp-btn cross"
                   ontouchstart={(e) => handleTouchStart(e, "B")}
                   ontouchend={(e) => handleTouchEnd(e, "B")}
@@ -737,7 +815,7 @@
                   ✖
                 </div>
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
-                <div 
+                <div
                   class="psp-btn square"
                   ontouchstart={(e) => handleTouchStart(e, "X")}
                   ontouchend={(e) => handleTouchEnd(e, "X")}
@@ -752,7 +830,7 @@
 
             <!-- PSP R Shoulder button -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <div 
+            <div
               class="psp-shoulder right"
               ontouchstart={(e) => handleTouchStart(e, "R")}
               ontouchend={(e) => handleTouchEnd(e, "R")}
@@ -766,7 +844,7 @@
             <!-- PSP Bottom bar overlay -->
             <div class="psp-bottom-bar">
               <!-- svelte-ignore a11y_no_static_element_interactions -->
-              <button 
+              <button
                 class="psp-sys-btn"
                 ontouchstart={(e) => handleTouchStart(e, "SELECT")}
                 ontouchend={(e) => handleTouchEnd(e, "SELECT")}
@@ -776,7 +854,7 @@
                 SELECT
               </button>
               <!-- svelte-ignore a11y_no_static_element_interactions -->
-              <button 
+              <button
                 class="psp-sys-btn"
                 ontouchstart={(e) => handleTouchStart(e, "START")}
                 ontouchend={(e) => handleTouchEnd(e, "START")}
@@ -792,7 +870,7 @@
           <div class="console-gba">
             <!-- GBA Shoulder Buttons -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <div 
+            <div
               class="gba-shoulder left"
               ontouchstart={(e) => handleTouchStart(e, "L")}
               ontouchend={(e) => handleTouchEnd(e, "L")}
@@ -803,7 +881,7 @@
               L
             </div>
             <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <div 
+            <div
               class="gba-shoulder right"
               ontouchstart={(e) => handleTouchStart(e, "R")}
               ontouchend={(e) => handleTouchEnd(e, "R")}
@@ -820,7 +898,7 @@
                 <div class="dpad-cross cross-h"></div>
                 <div class="dpad-cross cross-v"></div>
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
-                <div 
+                <div
                   class="dpad-btn up"
                   ontouchstart={(e) => handleTouchStart(e, "UP")}
                   ontouchend={(e) => handleTouchEnd(e, "UP")}
@@ -829,7 +907,7 @@
                   aria-label="Up"
                 ></div>
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
-                <div 
+                <div
                   class="dpad-btn down"
                   ontouchstart={(e) => handleTouchStart(e, "DOWN")}
                   ontouchend={(e) => handleTouchEnd(e, "DOWN")}
@@ -838,7 +916,7 @@
                   aria-label="Down"
                 ></div>
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
-                <div 
+                <div
                   class="dpad-btn left"
                   ontouchstart={(e) => handleTouchStart(e, "LEFT")}
                   ontouchend={(e) => handleTouchEnd(e, "LEFT")}
@@ -847,7 +925,7 @@
                   aria-label="Left"
                 ></div>
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
-                <div 
+                <div
                   class="dpad-btn right"
                   ontouchstart={(e) => handleTouchStart(e, "RIGHT")}
                   ontouchend={(e) => handleTouchEnd(e, "RIGHT")}
@@ -869,7 +947,7 @@
             <div class="right-wing">
               <div class="gba-action-buttons">
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
-                <div 
+                <div
                   class="action-btn-circle"
                   ontouchstart={(e) => handleTouchStart(e, "B")}
                   ontouchend={(e) => handleTouchEnd(e, "B")}
@@ -880,7 +958,7 @@
                   B
                 </div>
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
-                <div 
+                <div
                   class="action-btn-circle"
                   ontouchstart={(e) => handleTouchStart(e, "A")}
                   ontouchend={(e) => handleTouchEnd(e, "A")}
@@ -896,8 +974,8 @@
             <!-- GBA System Buttons Select/Start -->
             <div class="gba-system-buttons">
               <!-- svelte-ignore a11y_no_static_element_interactions -->
-              <div 
-                class="system-btn" 
+              <div
+                class="system-btn"
                 data-label="SELECT"
                 ontouchstart={(e) => handleTouchStart(e, "SELECT")}
                 ontouchend={(e) => handleTouchEnd(e, "SELECT")}
@@ -906,8 +984,8 @@
                 aria-label="Select"
               ></div>
               <!-- svelte-ignore a11y_no_static_element_interactions -->
-              <div 
-                class="system-btn" 
+              <div
+                class="system-btn"
                 data-label="START"
                 ontouchstart={(e) => handleTouchStart(e, "START")}
                 ontouchend={(e) => handleTouchEnd(e, "START")}
