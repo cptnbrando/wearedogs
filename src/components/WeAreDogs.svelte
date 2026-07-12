@@ -1613,7 +1613,7 @@
     font-size: clamp(5rem, 18vmin, 15rem);
     font-weight: 700;
     line-height: 1.05;
-    gap: 0.18em;
+    gap: 0.04em;
     text-transform: uppercase;
     color: white;
     white-space: nowrap;
@@ -1624,8 +1624,8 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 1em;
-    height: 1em;
+    width: 0.6em;
+    height: 0.85em;
     transform-style: preserve-3d;
     animation: matrixFlip 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
     animation-delay: var(--delay, 0ms);
