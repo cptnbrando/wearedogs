@@ -465,7 +465,10 @@ var meter, popset, Neptune, asm, infoInner, shader1, emulatorRun, _$synhc112, _$
                                 _0x13E73.src = _0x13E47;
                                 _0x13E1B.appendChild(_0x13E73)
                             }
-                            if (edge === false || isIE11 === false || chrome === false || opera === false || firefox === false) {
+                            if (NeptunP === "sega" || NeptunP === "segaCD" || NeptunP === "segaMS" || NeptunP === "segaGG") {
+                                load_asm = true;
+                                load_wasm = false;
+                            } else if (edge === false || isIE11 === false || chrome === false || opera === false || firefox === false) {
                                 load_wasm = true
                             } else {
                                 load_asm = true
@@ -479,7 +482,7 @@ var meter, popset, Neptune, asm, infoInner, shader1, emulatorRun, _$synhc112, _$
                                 }
                             };
                             if (load_asm === true || NeptunP === "arcade" || NeptunP === "sega32x" || NeptunP === "sega32x" && load_wasm == true || NeptunP === "arcade" && load_wasm == true || NeptunP === "cps3" || NeptunP === "cps3" && load_wasm == true) {
-                                load_proteus = load_proteus = "https://mem.neptunjs.com/njs/gga/" + neptunPlatform + N64Acurate + ".gge"
+                                load_proteus = "/neptun/cores/" + neptunPlatform + N64Acurate + ".gge"
                             } else {
                                 if (load_wasm === true) {
                                     //https://mem.neptunjs.com/njs/ggw/{neptunePlatform}{N64Acurate}.gge

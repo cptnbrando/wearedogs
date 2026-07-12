@@ -10,6 +10,8 @@
     HardDrive,
     Cloud,
     Settings2,
+    Maximize2,
+    Minimize2,
   } from "lucide-svelte";
   import rom2p from "./rom/2p.zip?url";
   import romConker from "./rom/conker-n64.zip?url";
@@ -74,10 +76,12 @@
 
   // States
   let currentGame = $state(null);
-  let activeTheme = $state("gbc"); // 'gbc' | 'psp' | 'gba'
+  let activeTheme = $state("gbc"); // 'gbc' | 'psp' | 'gba' | 'screen'
   let isEmuRunning = $derived(currentGame !== null);
   let localSaves = $state([]);
   let isSavingInfoVisible = $state(false);
+  let isFullscreen = $state(false);
+  let emulatorEl = $state(null);
 
   // Video settings
   let filterType = $state("composite");
@@ -165,7 +169,7 @@
     return null;
   }
 
-  // Trigger button KeyboardEvents
+  // Trigger button KeyboardEvents on the active target only to avoid duplicate events
   function triggerButton(btn, isPress) {
     if (!currentGame) return;
     const isN64 = currentGame.console === "n64";
@@ -183,18 +187,42 @@
     const canvas = document.querySelector("#emulator canvas");
     if (canvas) {
       canvas.dispatchEvent(eventObj);
+    } else {
+      window.dispatchEvent(eventObj);
     }
-    document.dispatchEvent(eventObj);
   }
 
-  // Touch Start / End shortcuts
+  // Mouse handlers with focus management and event prevention
+  function handleMouseDown(e, btn) {
+    e.preventDefault();
+    e.stopPropagation();
+    const canvas = document.querySelector("#emulator canvas");
+    if (canvas && document.activeElement !== canvas) {
+      canvas.focus();
+    }
+    triggerButton(btn, true);
+  }
+
+  function handleMouseUp(e, btn) {
+    e.preventDefault();
+    e.stopPropagation();
+    triggerButton(btn, false);
+  }
+
+  // Touch Start / End handlers with focus management
   function handleTouchStart(e, btn) {
     e.preventDefault();
+    e.stopPropagation();
+    const canvas = document.querySelector("#emulator canvas");
+    if (canvas && document.activeElement !== canvas) {
+      canvas.focus();
+    }
     triggerButton(btn, true);
   }
 
   function handleTouchEnd(e, btn) {
     e.preventDefault();
+    e.stopPropagation();
     triggerButton(btn, false);
   }
 
@@ -428,6 +456,36 @@
     alert("Cloud Sync connected! Uploading latest save states to R2 bucket...");
   }
 
+  // Toggle browser fullscreen for the play interface container
+  function toggleFullscreen() {
+    const playArea = document.querySelector(".play-interface");
+    if (!playArea) return;
+
+    if (!document.fullscreenElement) {
+      playArea.requestFullscreen().then(() => {
+        isFullscreen = true;
+      }).catch(() => {
+        isFullscreen = !isFullscreen;
+      });
+    } else {
+      document.exitFullscreen().then(() => {
+        isFullscreen = false;
+      }).catch(() => {
+        isFullscreen = false;
+      });
+    }
+  }
+
+  // Svelte 5 dynamic emulator DOM positioning effect
+  $effect(() => {
+    if (isEmuRunning && activeTheme && emulatorEl) {
+      const container = document.querySelector(`.console-${activeTheme} .screen-display-area`);
+      if (container && emulatorEl.parentElement !== container) {
+        container.appendChild(emulatorEl);
+      }
+    }
+  });
+
   // Lifecycle
   onMount(() => {
     // Check auto load
@@ -448,6 +506,14 @@
     }
 
     refreshSaves();
+
+    const onFullscreenChange = () => {
+      isFullscreen = document.fullscreenElement !== null;
+    };
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", onFullscreenChange);
+    };
   });
 
   onDestroy(() => {
@@ -572,329 +638,35 @@
             <option value="gbc">Gameboy Color</option>
             <option value="psp">PSP Layout</option>
             <option value="gba">GBA Horizontal</option>
+            <option value="screen">Screen Only</option>
           </select>
+          <button class="fullscreen-btn" onclick={toggleFullscreen} aria-label="Toggle Fullscreen">
+            {#if isFullscreen}
+              <Minimize2 size={14} />
+            {:else}
+              <Maximize2 size={14} />
+            {/if}
+          </button>
         </div>
       </header>
 
       <div class="console-body-wrapper">
-        {#if activeTheme === "gbc"}
-          <!-- GAMEBOY COLOR THEME (VERTICAL STACK) -->
-          <div class="console-gbc">
-            <div class="screen-bezel">
-              <span class="power-led"></span>
-              <div class="screen-display-area">
-                <div id="emulator" style="width: 100%; height: 100%;"></div>
-              </div>
-            </div>
+        <!-- Persistent Emulator Container -->
+        <div bind:this={emulatorEl} id="emulator" style="width: 100%; height: 100%;"></div>
 
-            <div class="controls-area">
-              <div class="dpad-buttons-row">
-                <!-- GBC Dpad -->
-                <div class="gbc-dpad">
-                  <div class="dpad-cross cross-h"></div>
-                  <div class="dpad-cross cross-v"></div>
-                  <!-- svelte-ignore a11y_no_static_element_interactions -->
-                  <div
-                    class="dpad-btn up"
-                    ontouchstart={(e) => handleTouchStart(e, "UP")}
-                    ontouchend={(e) => handleTouchEnd(e, "UP")}
-                    onmousedown={() => triggerButton("UP", true)}
-                    onmouseup={() => triggerButton("UP", false)}
-                    aria-label="Up"
-                  ></div>
-                  <!-- svelte-ignore a11y_no_static_element_interactions -->
-                  <div
-                    class="dpad-btn down"
-                    ontouchstart={(e) => handleTouchStart(e, "DOWN")}
-                    ontouchend={(e) => handleTouchEnd(e, "DOWN")}
-                    onmousedown={() => triggerButton("DOWN", true)}
-                    onmouseup={() => triggerButton("DOWN", false)}
-                    aria-label="Down"
-                  ></div>
-                  <!-- svelte-ignore a11y_no_static_element_interactions -->
-                  <div
-                    class="dpad-btn left"
-                    ontouchstart={(e) => handleTouchStart(e, "LEFT")}
-                    ontouchend={(e) => handleTouchEnd(e, "LEFT")}
-                    onmousedown={() => triggerButton("LEFT", true)}
-                    onmouseup={() => triggerButton("LEFT", false)}
-                    aria-label="Left"
-                  ></div>
-                  <!-- svelte-ignore a11y_no_static_element_interactions -->
-                  <div
-                    class="dpad-btn right"
-                    ontouchstart={(e) => handleTouchStart(e, "RIGHT")}
-                    ontouchend={(e) => handleTouchEnd(e, "RIGHT")}
-                    onmousedown={() => triggerButton("RIGHT", true)}
-                    onmouseup={() => triggerButton("RIGHT", false)}
-                    aria-label="Right"
-                  ></div>
-                </div>
-
-                <!-- GBC A/B Buttons -->
-                <div class="gbc-action-buttons">
-                  <!-- svelte-ignore a11y_no_static_element_interactions -->
-                  <div
-                    class="action-btn-circle"
-                    ontouchstart={(e) => handleTouchStart(e, "B")}
-                    ontouchend={(e) => handleTouchEnd(e, "B")}
-                    onmousedown={() => triggerButton("B", true)}
-                    onmouseup={() => triggerButton("B", false)}
-                    aria-label="Button B"
-                  >
-                    B
-                  </div>
-                  <!-- svelte-ignore a11y_no_static_element_interactions -->
-                  <div
-                    class="action-btn-circle"
-                    ontouchstart={(e) => handleTouchStart(e, "A")}
-                    ontouchend={(e) => handleTouchEnd(e, "A")}
-                    onmousedown={() => triggerButton("A", true)}
-                    onmouseup={() => triggerButton("A", false)}
-                    aria-label="Button A"
-                  >
-                    A
-                  </div>
-                </div>
-              </div>
-
-              <!-- Start / Select rubber keys -->
-              <div class="gbc-system-row">
-                <!-- svelte-ignore a11y_no_static_element_interactions -->
-                <div
-                  class="system-btn-capsule"
-                  data-label="SELECT"
-                  ontouchstart={(e) => handleTouchStart(e, "SELECT")}
-                  ontouchend={(e) => handleTouchEnd(e, "SELECT")}
-                  onmousedown={() => triggerButton("SELECT", true)}
-                  onmouseup={() => triggerButton("SELECT", false)}
-                  aria-label="Select"
-                ></div>
-                <!-- svelte-ignore a11y_no_static_element_interactions -->
-                <div
-                  class="system-btn-capsule"
-                  data-label="START"
-                  ontouchstart={(e) => handleTouchStart(e, "START")}
-                  ontouchend={(e) => handleTouchEnd(e, "START")}
-                  onmousedown={() => triggerButton("START", true)}
-                  onmouseup={() => triggerButton("START", false)}
-                  aria-label="Start"
-                ></div>
-              </div>
-            </div>
-
-            <!-- Speaker Grill design -->
-            <div class="speaker-grill">
-              <span class="grill-hole"></span>
-              <span class="grill-hole"></span>
-              <span class="grill-hole"></span>
-              <span class="grill-hole"></span>
-              <span class="grill-hole"></span>
+        <!-- GAMEBOY COLOR THEME (VERTICAL STACK) -->
+        <div class="console-gbc" style="display: {activeTheme === 'gbc' ? 'flex' : 'none'}">
+          <div class="screen-bezel">
+            <span class="power-led"></span>
+            <div class="screen-display-area">
+              <!-- Emulator is moved here dynamically by $effect -->
             </div>
           </div>
-        {:else if activeTheme === "psp"}
-          <!-- PSP THEME (HORIZONTAL SPLIT) -->
-          <div class="console-psp">
-            <!-- PSP L Shoulder button -->
-            <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <div
-              class="psp-shoulder left"
-              ontouchstart={(e) => handleTouchStart(e, "L")}
-              ontouchend={(e) => handleTouchEnd(e, "L")}
-              onmousedown={() => triggerButton("L", true)}
-              onmouseup={() => triggerButton("L", false)}
-              aria-label="L Shoulder"
-            >
-              L
-            </div>
 
-            <!-- Left Wing (Dpad & Analog) -->
-            <div class="left-wing">
-              <div class="psp-dpad">
-                <!-- svelte-ignore a11y_no_static_element_interactions -->
-                <div
-                  class="psp-dpad-btn up"
-                  ontouchstart={(e) => handleTouchStart(e, "UP")}
-                  ontouchend={(e) => handleTouchEnd(e, "UP")}
-                  onmousedown={() => triggerButton("UP", true)}
-                  onmouseup={() => triggerButton("UP", false)}
-                  aria-label="Dpad Up"
-                >
-                  ▲
-                </div>
-                <!-- svelte-ignore a11y_no_static_element_interactions -->
-                <div
-                  class="psp-dpad-btn down"
-                  ontouchstart={(e) => handleTouchStart(e, "DOWN")}
-                  ontouchend={(e) => handleTouchEnd(e, "DOWN")}
-                  onmousedown={() => triggerButton("DOWN", true)}
-                  onmouseup={() => triggerButton("DOWN", false)}
-                  aria-label="Dpad Down"
-                >
-                  ▼
-                </div>
-                <!-- svelte-ignore a11y_no_static_element_interactions -->
-                <div
-                  class="psp-dpad-btn left"
-                  ontouchstart={(e) => handleTouchStart(e, "LEFT")}
-                  ontouchend={(e) => handleTouchEnd(e, "LEFT")}
-                  onmousedown={() => triggerButton("LEFT", true)}
-                  onmouseup={() => triggerButton("LEFT", false)}
-                  aria-label="Dpad Left"
-                >
-                  ◀
-                </div>
-                <!-- svelte-ignore a11y_no_static_element_interactions -->
-                <div
-                  class="psp-dpad-btn right"
-                  ontouchstart={(e) => handleTouchStart(e, "RIGHT")}
-                  ontouchend={(e) => handleTouchEnd(e, "RIGHT")}
-                  onmousedown={() => triggerButton("RIGHT", true)}
-                  onmouseup={() => triggerButton("RIGHT", false)}
-                  aria-label="Dpad Right"
-                >
-                  ▶
-                </div>
-              </div>
-
-              <!-- Analog Nub -->
-              <!-- svelte-ignore a11y_no_static_element_interactions -->
-              <div
-                class="psp-analog"
-                bind:this={analogContainerEl}
-                ontouchstart={handleAnalogStart}
-                ontouchmove={handleAnalogMove}
-                ontouchend={handleAnalogEnd}
-                aria-label="Analog stick"
-              >
-                <div class="analog-cap" bind:this={analogNubEl}></div>
-              </div>
-            </div>
-
-            <!-- Center Screen -->
-            <div class="screen-center">
-              <div class="screen-display-area">
-                <div id="emulator" style="width: 100%; height: 100%;"></div>
-              </div>
-            </div>
-
-            <!-- Right Wing (Triangle/Circle/X/Square) -->
-            <div class="right-wing">
-              <div class="psp-action-buttons">
-                <!-- svelte-ignore a11y_no_static_element_interactions -->
-                <div
-                  class="psp-btn triangle"
-                  ontouchstart={(e) => handleTouchStart(e, "Y")}
-                  ontouchend={(e) => handleTouchEnd(e, "Y")}
-                  onmousedown={() => triggerButton("Y", true)}
-                  onmouseup={() => triggerButton("Y", false)}
-                  aria-label="Triangle"
-                >
-                  ▲
-                </div>
-                <!-- svelte-ignore a11y_no_static_element_interactions -->
-                <div
-                  class="psp-btn circle"
-                  ontouchstart={(e) => handleTouchStart(e, "A")}
-                  ontouchend={(e) => handleTouchEnd(e, "A")}
-                  onmousedown={() => triggerButton("A", true)}
-                  onmouseup={() => triggerButton("A", false)}
-                  aria-label="Circle"
-                >
-                  ●
-                </div>
-                <!-- svelte-ignore a11y_no_static_element_interactions -->
-                <div
-                  class="psp-btn cross"
-                  ontouchstart={(e) => handleTouchStart(e, "B")}
-                  ontouchend={(e) => handleTouchEnd(e, "B")}
-                  onmousedown={() => triggerButton("B", true)}
-                  onmouseup={() => triggerButton("B", false)}
-                  aria-label="Cross"
-                >
-                  ✖
-                </div>
-                <!-- svelte-ignore a11y_no_static_element_interactions -->
-                <div
-                  class="psp-btn square"
-                  ontouchstart={(e) => handleTouchStart(e, "X")}
-                  ontouchend={(e) => handleTouchEnd(e, "X")}
-                  onmousedown={() => triggerButton("X", true)}
-                  onmouseup={() => triggerButton("X", false)}
-                  aria-label="Square"
-                >
-                  ■
-                </div>
-              </div>
-            </div>
-
-            <!-- PSP R Shoulder button -->
-            <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <div
-              class="psp-shoulder right"
-              ontouchstart={(e) => handleTouchStart(e, "R")}
-              ontouchend={(e) => handleTouchEnd(e, "R")}
-              onmousedown={() => triggerButton("R", true)}
-              onmouseup={() => triggerButton("R", false)}
-              aria-label="R Shoulder"
-            >
-              R
-            </div>
-
-            <!-- PSP Bottom bar overlay -->
-            <div class="psp-bottom-bar">
-              <!-- svelte-ignore a11y_no_static_element_interactions -->
-              <button
-                class="psp-sys-btn"
-                ontouchstart={(e) => handleTouchStart(e, "SELECT")}
-                ontouchend={(e) => handleTouchEnd(e, "SELECT")}
-                onmousedown={() => triggerButton("SELECT", true)}
-                onmouseup={() => triggerButton("SELECT", false)}
-              >
-                SELECT
-              </button>
-              <!-- svelte-ignore a11y_no_static_element_interactions -->
-              <button
-                class="psp-sys-btn"
-                ontouchstart={(e) => handleTouchStart(e, "START")}
-                ontouchend={(e) => handleTouchEnd(e, "START")}
-                onmousedown={() => triggerButton("START", true)}
-                onmouseup={() => triggerButton("START", false)}
-              >
-                START
-              </button>
-            </div>
-          </div>
-        {:else if activeTheme === "gba"}
-          <!-- GAMEBOY ADVANCE (HORIZONTAL THEME) -->
-          <div class="console-gba">
-            <!-- GBA Shoulder Buttons -->
-            <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <div
-              class="gba-shoulder left"
-              ontouchstart={(e) => handleTouchStart(e, "L")}
-              ontouchend={(e) => handleTouchEnd(e, "L")}
-              onmousedown={() => triggerButton("L", true)}
-              onmouseup={() => triggerButton("L", false)}
-              aria-label="L shoulder"
-            >
-              L
-            </div>
-            <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <div
-              class="gba-shoulder right"
-              ontouchstart={(e) => handleTouchStart(e, "R")}
-              ontouchend={(e) => handleTouchEnd(e, "R")}
-              onmousedown={() => triggerButton("R", true)}
-              onmouseup={() => triggerButton("R", false)}
-              aria-label="R shoulder"
-            >
-              R
-            </div>
-
-            <!-- Left Wing -->
-            <div class="left-wing">
-              <div class="gba-dpad">
+          <div class="controls-area">
+            <div class="dpad-buttons-row">
+              <!-- GBC Dpad -->
+              <div class="gbc-dpad">
                 <div class="dpad-cross cross-h"></div>
                 <div class="dpad-cross cross-v"></div>
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -902,8 +674,8 @@
                   class="dpad-btn up"
                   ontouchstart={(e) => handleTouchStart(e, "UP")}
                   ontouchend={(e) => handleTouchEnd(e, "UP")}
-                  onmousedown={() => triggerButton("UP", true)}
-                  onmouseup={() => triggerButton("UP", false)}
+                  onmousedown={(e) => handleMouseDown(e, "UP")}
+                  onmouseup={(e) => handleMouseUp(e, "UP")}
                   aria-label="Up"
                 ></div>
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -911,8 +683,8 @@
                   class="dpad-btn down"
                   ontouchstart={(e) => handleTouchStart(e, "DOWN")}
                   ontouchend={(e) => handleTouchEnd(e, "DOWN")}
-                  onmousedown={() => triggerButton("DOWN", true)}
-                  onmouseup={() => triggerButton("DOWN", false)}
+                  onmousedown={(e) => handleMouseDown(e, "DOWN")}
+                  onmouseup={(e) => handleMouseUp(e, "DOWN")}
                   aria-label="Down"
                 ></div>
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -920,8 +692,8 @@
                   class="dpad-btn left"
                   ontouchstart={(e) => handleTouchStart(e, "LEFT")}
                   ontouchend={(e) => handleTouchEnd(e, "LEFT")}
-                  onmousedown={() => triggerButton("LEFT", true)}
-                  onmouseup={() => triggerButton("LEFT", false)}
+                  onmousedown={(e) => handleMouseDown(e, "LEFT")}
+                  onmouseup={(e) => handleMouseUp(e, "LEFT")}
                   aria-label="Left"
                 ></div>
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -929,31 +701,22 @@
                   class="dpad-btn right"
                   ontouchstart={(e) => handleTouchStart(e, "RIGHT")}
                   ontouchend={(e) => handleTouchEnd(e, "RIGHT")}
-                  onmousedown={() => triggerButton("RIGHT", true)}
-                  onmouseup={() => triggerButton("RIGHT", false)}
+                  onmousedown={(e) => handleMouseDown(e, "RIGHT")}
+                  onmouseup={(e) => handleMouseUp(e, "RIGHT")}
                   aria-label="Right"
                 ></div>
               </div>
-            </div>
 
-            <!-- Screen Center Frame -->
-            <div class="screen-center">
-              <div class="screen-display-area">
-                <div id="emulator" style="width: 100%; height: 100%;"></div>
-              </div>
-            </div>
-
-            <!-- Right Wing -->
-            <div class="right-wing">
-              <div class="gba-action-buttons">
+              <!-- GBC A/B Buttons -->
+              <div class="gbc-action-buttons">
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
                 <div
                   class="action-btn-circle"
                   ontouchstart={(e) => handleTouchStart(e, "B")}
                   ontouchend={(e) => handleTouchEnd(e, "B")}
-                  onmousedown={() => triggerButton("B", true)}
-                  onmouseup={() => triggerButton("B", false)}
-                  aria-label="B button"
+                  onmousedown={(e) => handleMouseDown(e, "B")}
+                  onmouseup={(e) => handleMouseUp(e, "B")}
+                  aria-label="Button B"
                 >
                   B
                 </div>
@@ -962,42 +725,360 @@
                   class="action-btn-circle"
                   ontouchstart={(e) => handleTouchStart(e, "A")}
                   ontouchend={(e) => handleTouchEnd(e, "A")}
-                  onmousedown={() => triggerButton("A", true)}
-                  onmouseup={() => triggerButton("A", false)}
-                  aria-label="A button"
+                  onmousedown={(e) => handleMouseDown(e, "A")}
+                  onmouseup={(e) => handleMouseUp(e, "A")}
+                  aria-label="Button A"
                 >
                   A
                 </div>
               </div>
             </div>
 
-            <!-- GBA System Buttons Select/Start -->
-            <div class="gba-system-buttons">
+            <!-- Start / Select rubber keys -->
+            <div class="gbc-system-row">
               <!-- svelte-ignore a11y_no_static_element_interactions -->
               <div
-                class="system-btn"
+                class="system-btn-capsule"
                 data-label="SELECT"
                 ontouchstart={(e) => handleTouchStart(e, "SELECT")}
                 ontouchend={(e) => handleTouchEnd(e, "SELECT")}
-                onmousedown={() => triggerButton("SELECT", true)}
-                onmouseup={() => triggerButton("SELECT", false)}
+                onmousedown={(e) => handleMouseDown(e, "SELECT")}
+                onmouseup={(e) => handleMouseUp(e, "SELECT")}
                 aria-label="Select"
               ></div>
               <!-- svelte-ignore a11y_no_static_element_interactions -->
               <div
-                class="system-btn"
+                class="system-btn-capsule"
                 data-label="START"
                 ontouchstart={(e) => handleTouchStart(e, "START")}
                 ontouchend={(e) => handleTouchEnd(e, "START")}
-                onmousedown={() => triggerButton("START", true)}
-                onmouseup={() => triggerButton("START", false)}
+                onmousedown={(e) => handleMouseDown(e, "START")}
+                onmouseup={(e) => handleMouseUp(e, "START")}
                 aria-label="Start"
               ></div>
             </div>
           </div>
-        {/if}
+
+          <!-- Speaker Grill design -->
+          <div class="speaker-grill">
+            <span class="grill-hole"></span>
+            <span class="grill-hole"></span>
+            <span class="grill-hole"></span>
+            <span class="grill-hole"></span>
+            <span class="grill-hole"></span>
+          </div>
+        </div>
+
+        <!-- PSP THEME (HORIZONTAL SPLIT) -->
+        <div class="console-psp" style="display: {activeTheme === 'psp' ? 'flex' : 'none'}">
+          <!-- PSP L Shoulder button -->
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <div
+            class="psp-shoulder left"
+            ontouchstart={(e) => handleTouchStart(e, "L")}
+            ontouchend={(e) => handleTouchEnd(e, "L")}
+            onmousedown={(e) => handleMouseDown(e, "L")}
+            onmouseup={(e) => handleMouseUp(e, "L")}
+            aria-label="L Shoulder"
+          >
+            L
+          </div>
+
+          <!-- Left Wing (Dpad & Analog) -->
+          <div class="left-wing">
+            <div class="psp-dpad">
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
+              <div
+                class="psp-dpad-btn up"
+                ontouchstart={(e) => handleTouchStart(e, "UP")}
+                ontouchend={(e) => handleTouchEnd(e, "UP")}
+                onmousedown={(e) => handleMouseDown(e, "UP")}
+                onmouseup={(e) => handleMouseUp(e, "UP")}
+                aria-label="Dpad Up"
+              >
+                ▲
+              </div>
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
+              <div
+                class="psp-dpad-btn down"
+                ontouchstart={(e) => handleTouchStart(e, "DOWN")}
+                ontouchend={(e) => handleTouchEnd(e, "DOWN")}
+                onmousedown={(e) => handleMouseDown(e, "DOWN")}
+                onmouseup={(e) => handleMouseUp(e, "DOWN")}
+                aria-label="Dpad Down"
+              >
+                ▼
+              </div>
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
+              <div
+                class="psp-dpad-btn left"
+                ontouchstart={(e) => handleTouchStart(e, "LEFT")}
+                ontouchend={(e) => handleTouchEnd(e, "LEFT")}
+                onmousedown={(e) => handleMouseDown(e, "LEFT")}
+                onmouseup={(e) => handleMouseUp(e, "LEFT")}
+                aria-label="Dpad Left"
+              >
+                ◀
+              </div>
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
+              <div
+                class="psp-dpad-btn right"
+                ontouchstart={(e) => handleTouchStart(e, "RIGHT")}
+                ontouchend={(e) => handleTouchEnd(e, "RIGHT")}
+                onmousedown={(e) => handleMouseDown(e, "RIGHT")}
+                onmouseup={(e) => handleMouseUp(e, "RIGHT")}
+                aria-label="Dpad Right"
+              >
+                ▶
+              </div>
+            </div>
+
+            <!-- Analog Nub -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div
+              class="psp-analog"
+              bind:this={analogContainerEl}
+              ontouchstart={handleAnalogStart}
+              ontouchmove={handleAnalogMove}
+              ontouchend={handleAnalogEnd}
+              aria-label="Analog stick"
+            >
+              <div class="analog-cap" bind:this={analogNubEl}></div>
+            </div>
+          </div>
+
+          <!-- Center Screen -->
+          <div class="screen-center">
+            <div class="screen-display-area">
+              <!-- Emulator is moved here dynamically by $effect -->
+            </div>
+          </div>
+
+          <!-- Right Wing (Triangle/Circle/X/Square) -->
+          <div class="right-wing">
+            <div class="psp-action-buttons">
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
+              <div
+                class="psp-btn triangle"
+                ontouchstart={(e) => handleTouchStart(e, "Y")}
+                ontouchend={(e) => handleTouchEnd(e, "Y")}
+                onmousedown={(e) => handleMouseDown(e, "Y")}
+                onmouseup={(e) => handleMouseUp(e, "Y")}
+                aria-label="Triangle"
+              >
+                ▲
+              </div>
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
+              <div
+                class="psp-btn circle"
+                ontouchstart={(e) => handleTouchStart(e, "A")}
+                ontouchend={(e) => handleTouchEnd(e, "A")}
+                onmousedown={(e) => handleMouseDown(e, "A")}
+                onmouseup={(e) => handleMouseUp(e, "A")}
+                aria-label="Circle"
+              >
+                ●
+              </div>
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
+              <div
+                class="psp-btn cross"
+                ontouchstart={(e) => handleTouchStart(e, "B")}
+                ontouchend={(e) => handleTouchEnd(e, "B")}
+                onmousedown={(e) => handleMouseDown(e, "B")}
+                onmouseup={(e) => handleMouseUp(e, "B")}
+                aria-label="Cross"
+              >
+                ✖
+              </div>
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
+              <div
+                class="psp-btn square"
+                ontouchstart={(e) => handleTouchStart(e, "X")}
+                ontouchend={(e) => handleTouchEnd(e, "X")}
+                onmousedown={(e) => handleMouseDown(e, "X")}
+                onmouseup={(e) => handleMouseUp(e, "X")}
+                aria-label="Square"
+              >
+                ■
+              </div>
+            </div>
+          </div>
+
+          <!-- PSP R Shoulder button -->
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <div
+            class="psp-shoulder right"
+            ontouchstart={(e) => handleTouchStart(e, "R")}
+            ontouchend={(e) => handleTouchEnd(e, "R")}
+            onmousedown={(e) => handleMouseDown(e, "R")}
+            onmouseup={(e) => handleMouseUp(e, "R")}
+            aria-label="R Shoulder"
+          >
+            R
+          </div>
+
+          <!-- PSP Bottom bar overlay -->
+          <div class="psp-bottom-bar">
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <button
+              class="psp-sys-btn"
+              ontouchstart={(e) => handleTouchStart(e, "SELECT")}
+              ontouchend={(e) => handleTouchEnd(e, "SELECT")}
+              onmousedown={(e) => handleMouseDown(e, "SELECT")}
+              onmouseup={(e) => handleMouseUp(e, "SELECT")}
+            >
+              SELECT
+            </button>
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <button
+              class="psp-sys-btn"
+              ontouchstart={(e) => handleTouchStart(e, "START")}
+              ontouchend={(e) => handleTouchEnd(e, "START")}
+              onmousedown={(e) => handleMouseDown(e, "START")}
+              onmouseup={(e) => handleMouseUp(e, "START")}
+            >
+              START
+            </button>
+          </div>
+        </div>
+
+        <!-- GAMEBOY ADVANCE (HORIZONTAL THEME) -->
+        <div class="console-gba" style="display: {activeTheme === 'gba' ? 'flex' : 'none'}">
+          <!-- GBA Shoulder Buttons -->
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <div
+            class="gba-shoulder left"
+            ontouchstart={(e) => handleTouchStart(e, "L")}
+            ontouchend={(e) => handleTouchEnd(e, "L")}
+            onmousedown={(e) => handleMouseDown(e, "L")}
+            onmouseup={(e) => handleMouseUp(e, "L")}
+            aria-label="L shoulder"
+          >
+            L
+          </div>
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <div
+            class="gba-shoulder right"
+            ontouchstart={(e) => handleTouchStart(e, "R")}
+            ontouchend={(e) => handleTouchEnd(e, "R")}
+            onmousedown={(e) => handleMouseDown(e, "R")}
+            onmouseup={(e) => handleMouseUp(e, "R")}
+            aria-label="R shoulder"
+          >
+            R
+          </div>
+
+          <!-- Left Wing -->
+          <div class="left-wing">
+            <div class="gba-dpad">
+              <div class="dpad-cross cross-h"></div>
+              <div class="dpad-cross cross-v"></div>
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
+              <div
+                class="dpad-btn up"
+                ontouchstart={(e) => handleTouchStart(e, "UP")}
+                ontouchend={(e) => handleTouchEnd(e, "UP")}
+                onmousedown={(e) => handleMouseDown(e, "UP")}
+                onmouseup={(e) => handleMouseUp(e, "UP")}
+                aria-label="Up"
+              ></div>
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
+              <div
+                class="dpad-btn down"
+                ontouchstart={(e) => handleTouchStart(e, "DOWN")}
+                ontouchend={(e) => handleTouchEnd(e, "DOWN")}
+                onmousedown={(e) => handleMouseDown(e, "DOWN")}
+                onmouseup={(e) => handleMouseUp(e, "DOWN")}
+                aria-label="Down"
+              ></div>
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
+              <div
+                class="dpad-btn left"
+                ontouchstart={(e) => handleTouchStart(e, "LEFT")}
+                ontouchend={(e) => handleTouchEnd(e, "LEFT")}
+                onmousedown={(e) => handleMouseDown(e, "LEFT")}
+                onmouseup={(e) => handleMouseUp(e, "LEFT")}
+                aria-label="Left"
+              ></div>
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
+              <div
+                class="dpad-btn right"
+                ontouchstart={(e) => handleTouchStart(e, "RIGHT")}
+                ontouchend={(e) => handleTouchEnd(e, "RIGHT")}
+                onmousedown={(e) => handleMouseDown(e, "RIGHT")}
+                onmouseup={(e) => handleMouseUp(e, "RIGHT")}
+                aria-label="Right"
+              ></div>
+            </div>
+          </div>
+
+          <!-- Screen Center Frame -->
+          <div class="screen-center">
+            <div class="screen-display-area">
+              <!-- Emulator is moved here dynamically by $effect -->
+            </div>
+          </div>
+
+          <!-- Right Wing -->
+          <div class="right-wing">
+            <div class="gba-action-buttons">
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
+              <div
+                class="action-btn-circle"
+                ontouchstart={(e) => handleTouchStart(e, "B")}
+                ontouchend={(e) => handleTouchEnd(e, "B")}
+                onmousedown={(e) => handleMouseDown(e, "B")}
+                onmouseup={(e) => handleMouseUp(e, "B")}
+                aria-label="B button"
+              >
+                B
+              </div>
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
+              <div
+                class="action-btn-circle"
+                ontouchstart={(e) => handleTouchStart(e, "A")}
+                ontouchend={(e) => handleTouchEnd(e, "A")}
+                onmousedown={(e) => handleMouseDown(e, "A")}
+                onmouseup={(e) => handleMouseUp(e, "A")}
+                aria-label="A button"
+              >
+                A
+              </div>
+            </div>
+          </div>
+
+          <!-- GBA System Buttons Select/Start -->
+          <div class="gba-system-buttons">
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div
+              class="system-btn"
+              data-label="SELECT"
+              ontouchstart={(e) => handleTouchStart(e, "SELECT")}
+              ontouchend={(e) => handleTouchEnd(e, "SELECT")}
+              onmousedown={(e) => handleMouseDown(e, "SELECT")}
+              onmouseup={(e) => handleMouseUp(e, "SELECT")}
+              aria-label="Select"
+            ></div>
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div
+              class="system-btn"
+              data-label="START"
+              ontouchstart={(e) => handleTouchStart(e, "START")}
+              ontouchend={(e) => handleTouchEnd(e, "START")}
+              onmousedown={(e) => handleMouseDown(e, "START")}
+              onmouseup={(e) => handleMouseUp(e, "START")}
+              aria-label="Start"
+            ></div>
+          </div>
+        </div>
+
+        <!-- SCREEN ONLY THEME (BEZEL-LESS SCREEN) -->
+        <div class="console-screen" style="display: {activeTheme === 'screen' ? 'flex' : 'none'}; width: 100%; height: 100%;">
+          <div class="screen-display-area" style="width: 100%; height: 100%;">
+            <!-- Emulator is moved here dynamically by $effect -->
+          </div>
+        </div>
       </div>
-    </div>
   {/if}
 </div>
 
