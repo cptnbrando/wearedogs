@@ -185,7 +185,7 @@
 
     {:else if usbState === "copying"}
       <div class="copying-slate">
-        <LoaderGlow />
+        {@render LoaderGlow()}
         <span class="status-label">Mounting block storage & flushing sector cache...</span>
         
         <div class="progress-bar-container">
@@ -208,12 +208,14 @@
   </div>
 </div>
 
-<!-- Simple visual glowing loader sub-component inside same file to follow rules -->
-<script>
-  function LoaderGlow() {
-    return null;
-  }
-</script>
+{#snippet LoaderGlow()}
+  <div class="flex flex-col items-center justify-center mb-4">
+    <div class="relative flex items-center justify-center">
+      <div class="absolute w-12 h-12 rounded-full bg-emerald-500/20 blur-md animate-pulse"></div>
+      <RefreshCw class="text-emerald-400 animate-spin relative z-10" size={28} />
+    </div>
+  </div>
+{/snippet}
 
 <style lang="scss">
   .usb-layout {
