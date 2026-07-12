@@ -60,6 +60,9 @@
     }
 
     async function checkLocalFile(file) {
+        if (streamUrl && streamUrl.startsWith("blob:")) {
+            URL.revokeObjectURL(streamUrl);
+        }
         if (!file) {
             streamUrl = "";
             return;
@@ -87,13 +90,14 @@
                 }
             }
 
-            // Fall back to the remote R2 URL with auth header
+            // Fall back to the remote R2 URL with auth header by fetching the video
             const res = await fetch(remoteUrl, {
-                method: "HEAD",
+                method: "GET",
                 headers: password ? { Authorization: `password=${password}` } : {},
             });
             if (res.ok) {
-                streamUrl = remoteUrl;
+                const blob = await res.blob();
+                streamUrl = URL.createObjectURL(blob);
             } else {
                 streamUrl = "";
                 showDownloadPrompt = true;
@@ -930,6 +934,10 @@
         isPlayingEpisode = false;
         isMaximized = false;
         stopRepeating();
+        if (streamUrl && streamUrl.startsWith("blob:")) {
+            URL.revokeObjectURL(streamUrl);
+        }
+        streamUrl = "";
         if (
             document.fullscreenElement &&
             document.fullscreenElement === playerContainerEl
@@ -1062,6 +1070,9 @@
         stopRepeating();
         if (controlsTimeout) clearTimeout(controlsTimeout);
         if (cursorTimeout) clearTimeout(cursorTimeout);
+        if (streamUrl && streamUrl.startsWith("blob:")) {
+            URL.revokeObjectURL(streamUrl);
+        }
         document.removeEventListener(
             "fullscreenchange",
             handleFullscreenChange,
