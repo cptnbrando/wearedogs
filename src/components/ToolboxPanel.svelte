@@ -20,6 +20,7 @@
     Scissors,
     Sparkles,
     RefreshCw,
+    FileText,
   } from "lucide-svelte";
   import SnakeApp from "./apps/SnakeApp.svelte";
   import DogsLogo from "./DogsLogo.svelte";
@@ -39,6 +40,7 @@
   import SoundStripper from "./apps/SoundStripper.svelte";
   import WindshieldWiper from "./apps/WindshieldWiper.svelte";
   import CatalyticConverter from "./apps/CatalyticConverter.svelte";
+  import ImageReader from "./apps/ImageReader.svelte";
   import AppCard from "./AppCard.svelte";
 
   const title = "Toolbox";
@@ -141,6 +143,12 @@
       title: "Canine Memes",
       desc: "Explore and share high-fidelity, hilarious dog memes.",
       icon: Smile,
+    },
+    {
+      id: "reader",
+      title: "Image Reader",
+      desc: "Extract editable text from uploaded images in any format.",
+      icon: FileText,
     },
     // RESCUE, GOPRO, DATAFLASH, CHANGELOG, AND SETTINGS MUST ALWAYS BE LAST IN THIS LIST
     {
@@ -352,6 +360,8 @@
         <SoundStripper />
       {:else if activeApp === "converter"}
         <CatalyticConverter />
+      {:else if activeApp === "reader"}
+        <ImageReader />
       {:else if activeApp === "windshieldwiper"}
         <WindshieldWiper onClose={() => (activeApp = null)} />
       {/if}
