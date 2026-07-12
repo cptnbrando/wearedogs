@@ -14,7 +14,18 @@
   let ThreeDCanvas = $state(null);
   let isDesktopOrLandscape = $state(false);
 
-  onMount(async () => {
+  // Lazy load the 3D canvas component ONLY when the page is active/visible
+  $effect(() => {
+    if (active && !ThreeDCanvas) {
+      import("./ThreeDCanvas.svelte").then((module) => {
+        ThreeDCanvas = module.default;
+      }).catch((err) => {
+        console.error("Failed to lazy load Threlte canvas:", err);
+      });
+    }
+  });
+
+  onMount(() => {
     const media = window.matchMedia(
       "(min-width: 1024px), (orientation: landscape)",
     );
@@ -23,13 +34,6 @@
       isDesktopOrLandscape = e.matches;
     };
     media.addEventListener("change", listener);
-
-    try {
-      const module = await import("./ThreeDCanvas.svelte");
-      ThreeDCanvas = module.default;
-    } catch (err) {
-      console.error("Failed to lazy load Threlte canvas:", err);
-    }
 
     return () => {
       media.removeEventListener("change", listener);

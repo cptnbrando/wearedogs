@@ -66,6 +66,17 @@
     }
   });
 
+  function preloadPanel(page) {
+    if (loadedPanels[page]) return;
+    const path = panelPathMap[page];
+    const loader = panelModules[path];
+    if (loader) {
+      loader().then((m) => {
+        loadedPanels[page] = m.default;
+      });
+    }
+  }
+
   let prevIsLandingPage = $state(true);
   $effect(() => {
     const current = isLandingPage;
@@ -395,6 +406,8 @@
       <!-- Store -->
       <button
         class="runic-btn border-neon-red"
+        onmouseenter={() => preloadPanel("store")}
+        ontouchstart={() => preloadPanel("store")}
         onclick={(e) => {
           e.stopPropagation();
           openPage("store");
@@ -409,6 +422,8 @@
       <button
         class="runic-btn border-neon-purple"
         class:rune-dancing={audioCore.isPlaying}
+        onmouseenter={() => preloadPanel("music")}
+        ontouchstart={() => preloadPanel("music")}
         onclick={(e) => {
           e.stopPropagation();
           openPage("music");
@@ -422,6 +437,8 @@
       <!-- App Launcher -->
       <button
         class="runic-btn border-neon-orange"
+        onmouseenter={() => preloadPanel("toolbox")}
+        ontouchstart={() => preloadPanel("toolbox")}
         onclick={(e) => {
           e.stopPropagation();
           openPage("toolbox");
@@ -448,6 +465,8 @@
       <!-- Map -->
       <button
         class="runic-btn border-neon-green"
+        onmouseenter={() => preloadPanel("map")}
+        ontouchstart={() => preloadPanel("map")}
         onclick={(e) => {
           e.stopPropagation();
           openPage("map");
