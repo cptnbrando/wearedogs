@@ -3,19 +3,18 @@
 <script>
   import { onMount } from "svelte";
   import { 
-    FileText, Copy, Download, Upload, X, Check, RefreshCw, Sliders, Play
+    FileText, Copy, Download, Upload, X, Check, RefreshCw, Sliders, Play, Sparkles
   } from "lucide-svelte";
+  import Tesseract from "tesseract.js";
 
   // App Reactive States
-  let imageFile = $state(null);
-  let imageUrl = $state("");
-  let ocrProgress = $state(0);
-  let ocrStatus = $state("Idle");
-  let extractedText = $state("");
+  let bulkFiles = $state([]); // array of { file, name, url, status, progress, text, error, sourceImage }
+  let activeFileIndex = $state(-1);
   let isProcessing = $state(false);
   let isDragging = $state(false);
-  let tesseractLoaded = $state(false);
   let errorMsg = $state("");
+  let ocrProgress = $state(0);
+  let ocrStatus = $state("Idle");
 
   // Mobile Tab Navigation State ('capture' | 'output')
   let activeMobileTab = $state("capture");
@@ -25,79 +24,93 @@
   let filterContrast = $state(130);   // range: 100 - 300%
   let filterBinarize = $state(128);   // range: 0 - 255. 0 means disabled.
 
-  // DOM elements & HTMLImageElement caching
+  // DOM elements
   let fileInputRef = $state(null);
   let canvasElement = $state(null);
-  let sourceImage = $state(null);
 
   // Clipboard copy temporary feedback
   let copyFeedback = $state(false);
+  let copyAllFeedback = $state(false);
 
-  // Derived metrics
+  // Derived active file references
+  let activeItem = $derived(activeFileIndex >= 0 && activeFileIndex < bulkFiles.length ? bulkFiles[activeFileIndex] : null);
+  let imageUrl = $derived(activeItem ? activeItem.url : "");
+  let sourceImage = $derived(activeItem ? activeItem.sourceImage : null);
+  let extractedText = $derived(activeItem ? activeItem.text : "");
+
+  // Text metrics derived from active file text
   let charCount = $derived(extractedText.length);
   let wordCount = $derived(extractedText.trim() === "" ? 0 : extractedText.trim().split(/\s+/).length);
-  let lineCount = $derived(extractedText.trim() === "" ? 0 : extractedText.split("\n").length);
 
-  // Reactively redraw the image when image filters change
+  // Reactively redraw the image when active image or filters change
   $effect(() => {
     if (sourceImage && canvasElement) {
       drawAndFilterImage();
     }
   });
 
-  // Dynamic Tesseract.js script loader to respect the Potato Target
-  function loadTesseract() {
-    return new Promise((resolve, reject) => {
-      if (window.Tesseract) {
-        tesseractLoaded = true;
-        resolve(window.Tesseract);
-        return;
-      }
-      ocrStatus = "Loading OCR library...";
-      const script = document.createElement("script");
-      script.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";
-      script.onload = () => {
-        tesseractLoaded = true;
-        ocrStatus = "OCR Engine ready.";
-        resolve(window.Tesseract);
-      };
-      script.onerror = () => {
-        ocrStatus = "Failed to load OCR library.";
-        reject(new Error("Failed to load Tesseract.js from CDN"));
-      };
-      document.head.appendChild(script);
-    });
-  }
+
 
   function handleFileChange(e) {
-    const file = e.target.files[0];
-    if (file) {
-      processFile(file);
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      processFiles(files);
     }
   }
 
-  function processFile(file) {
-    if (!file.type.startsWith("image/")) {
-      errorMsg = "Unsupported file format. Please upload a PNG, JPG, or WEBP image.";
+  function processFiles(files) {
+    errorMsg = "";
+    // Limit to 25 files at once to maintain performance
+    const filesList = Array.from(files).slice(0, 25);
+    
+    // Check for invalid file types
+    const invalidFiles = filesList.filter(f => !f.type.startsWith("image/"));
+    if (invalidFiles.length > 0) {
+      errorMsg = "Some files were skipped. Only image formats (.png, .jpg, .webp) are supported.";
+    }
+
+    const validFiles = filesList.filter(f => f.type.startsWith("image/"));
+    if (validFiles.length === 0) {
+      if (!errorMsg) errorMsg = "Please upload valid image files.";
       return;
     }
-    errorMsg = "";
-    imageFile = file;
-    ocrProgress = 0;
-    ocrStatus = "Idle";
-    extractedText = "";
-    activeMobileTab = "capture"; // Keep on capture tab when new image uploaded
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      imageUrl = event.target.result;
-      const img = new window.Image();
-      img.src = imageUrl;
-      img.onload = () => {
-        sourceImage = img;
+    const newItems = validFiles.map(file => ({
+      file,
+      name: file.name,
+      url: "",
+      status: "idle",
+      progress: 0,
+      text: "",
+      error: "",
+      sourceImage: null
+    }));
+
+    const startIdx = bulkFiles.length;
+    bulkFiles = [...bulkFiles, ...newItems];
+
+    if (activeFileIndex === -1) {
+      activeFileIndex = 0;
+    }
+
+    // Load URLs and HTMLImageElements reactively
+    newItems.forEach((item, index) => {
+      const targetIdx = startIdx + index;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        bulkFiles[targetIdx].url = event.target.result;
+        const img = new window.Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          bulkFiles[targetIdx].sourceImage = img;
+          // Trigger initial canvas draw if active
+          if (targetIdx === activeFileIndex) {
+            drawAndFilterImage();
+          }
+        };
       };
-    };
-    reader.readAsDataURL(file);
+      reader.readAsDataURL(item.file);
+    });
   }
 
   // Draw image to canvas and apply selected preprocessing filters
@@ -171,16 +184,20 @@
     }
   }
 
-  // Trigger OCR extraction
+  // Trigger OCR extraction on active file
   async function runOCR() {
-    if (!canvasElement || isProcessing) return;
+    if (!canvasElement || isProcessing || activeFileIndex === -1) return;
     isProcessing = true;
     errorMsg = "";
     ocrProgress = 0;
     ocrStatus = "Initializing engine...";
+    
+    if (activeItem) {
+      activeItem.status = "scanning";
+      activeItem.progress = 0;
+    }
 
     try {
-      const Tesseract = await loadTesseract();
       ocrStatus = "Starting scanning worker...";
       
       const { data: { text } } = await Tesseract.recognize(
@@ -191,31 +208,132 @@
             if (m.status === "recognizing text") {
               ocrStatus = `Reading symbols: ${Math.round(m.progress * 100)}%`;
               ocrProgress = m.progress * 100;
+              if (activeItem) activeItem.progress = ocrProgress;
             } else {
               ocrStatus = m.status.charAt(0).toUpperCase() + m.status.slice(1);
               ocrProgress = Math.max(ocrProgress, 12);
+              if (activeItem) activeItem.progress = ocrProgress;
             }
           }
         }
       );
 
-      extractedText = text || "No text was detected in the image.";
+      if (activeItem) {
+        activeItem.text = text || "No text detected.";
+        activeItem.status = "done";
+        activeItem.progress = 100;
+      }
+      
       ocrStatus = "Extraction completed successfully.";
       ocrProgress = 100;
-      
-      // Auto-navigate to output tab on mobile for immediate results feedback
       activeMobileTab = "output";
     } catch (err) {
       console.error(err);
       errorMsg = "Extraction failed: " + err.message;
       ocrStatus = "Scan error";
       ocrProgress = 0;
+      if (activeItem) {
+        activeItem.status = "error";
+        activeItem.error = err.message;
+      }
     } finally {
       isProcessing = false;
     }
   }
 
-  // Copy to clipboard
+  // Batch process all files sequentially
+  async function runBatchOCR() {
+    if (isProcessing || bulkFiles.length === 0) return;
+    isProcessing = true;
+    errorMsg = "";
+    ocrProgress = 0;
+
+    try {
+
+      for (let i = 0; i < bulkFiles.length; i++) {
+        const item = bulkFiles[i];
+        if (item.status === "done") continue; // Skip already completed files
+
+        activeFileIndex = i;
+        item.status = "scanning";
+        item.progress = 0;
+
+        // Briefly wait for Svelte reactivity to render canvas
+        await new Promise(r => setTimeout(r, 60));
+
+        try {
+          const { data: { text } } = await Tesseract.recognize(
+            canvasElement,
+            "eng",
+            {
+              logger: (m) => {
+                if (m.status === "recognizing text") {
+                  ocrStatus = `Batch [${i+1}/${bulkFiles.length}]: ${Math.round(m.progress * 100)}%`;
+                  ocrProgress = m.progress * 100;
+                  item.progress = ocrProgress;
+                } else {
+                  ocrStatus = `Batch [${i+1}/${bulkFiles.length}]: preparing...`;
+                }
+              }
+            }
+          );
+
+          item.text = text || "No text detected.";
+          item.status = "done";
+          item.progress = 100;
+        } catch (err) {
+          console.error(err);
+          item.status = "error";
+          item.error = err.message;
+        }
+      }
+
+      ocrStatus = "Batch scan completed.";
+      ocrProgress = 100;
+      activeMobileTab = "output";
+    } catch (err) {
+      console.error(err);
+      errorMsg = "Batch OCR failed: " + err.message;
+    } finally {
+      isProcessing = false;
+    }
+  }
+
+  // Alphanumeric density filter to strip junk background noise characters
+  function cleanText(rawText) {
+    if (!rawText) return "";
+    const lines = rawText.split("\n");
+    
+    const cleanedLines = lines.map(line => {
+      let l = line.trim();
+      if (l.length === 0) return "";
+      
+      // Calculate ratio of alphanumeric characters to overall characters in line
+      const alphaNum = (l.match(/[a-zA-Z0-9]/g) || []).length;
+      if (alphaNum / l.length < 0.35) {
+        // Discard background/noise lines (e.g. "py / <) Wi" or "\ ) A HN:")
+        return "";
+      }
+      
+      // Strip stray symbols surrounded by spaces
+      l = l.replace(/\s+[\W_]\s+/g, " ");
+      // Strip blocks of consecutive symbols
+      l = l.replace(/[\W_]{3,}/g, "");
+      
+      return l.trim();
+    }).filter(line => line.length > 0);
+
+    return cleanedLines.join("\n");
+  }
+
+  // Clean parsed text in active textbox
+  function cleanActiveText() {
+    if (activeItem && activeItem.text) {
+      activeItem.text = cleanText(activeItem.text);
+    }
+  }
+
+  // Copy active text
   async function copyToClipboard() {
     if (!extractedText) return;
     try {
@@ -229,14 +347,14 @@
     }
   }
 
-  // Save parsed file locally
+  // Save active text
   function downloadText() {
     if (!extractedText) return;
     const blob = new Blob([extractedText], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    const namePrefix = imageFile ? imageFile.name.substring(0, imageFile.name.lastIndexOf('.')) : "ocr-text";
+    const namePrefix = activeItem ? activeItem.name.substring(0, activeItem.name.lastIndexOf('.')) : "ocr-text";
     a.download = `${namePrefix}.txt`;
     document.body.appendChild(a);
     a.click();
@@ -244,16 +362,63 @@
     URL.revokeObjectURL(url);
   }
 
+  // Combined text derived from all bulkFiles
+  let combinedText = $derived(
+    bulkFiles
+      .map(item => `--- ${item.name} ---\n${item.text || "(No parsed text)"}\n`)
+      .join("\n")
+  );
+
+  // Copy combined text
+  async function copyAllToClipboard() {
+    if (bulkFiles.length === 0) return;
+    try {
+      await navigator.clipboard.writeText(combinedText);
+      copyAllFeedback = true;
+      setTimeout(() => {
+        copyAllFeedback = false;
+      }, 2000);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  // Download combined txt file
+  function downloadCombinedText() {
+    if (bulkFiles.length === 0) return;
+    const blob = new Blob([combinedText], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `combined-ocr-batch.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function removeFile(index) {
+    if (isProcessing) return;
+    bulkFiles = bulkFiles.filter((_, i) => i !== index);
+    if (activeFileIndex >= bulkFiles.length) {
+      activeFileIndex = bulkFiles.length - 1;
+    }
+  }
+
   function resetApp() {
-    imageFile = null;
-    imageUrl = "";
-    sourceImage = null;
+    bulkFiles = [];
+    activeFileIndex = -1;
     ocrProgress = 0;
     ocrStatus = "Idle";
-    extractedText = "";
     errorMsg = "";
     activeMobileTab = "capture";
     if (fileInputRef) fileInputRef.value = "";
+  }
+
+  function handleTextChange(e) {
+    if (activeItem) {
+      activeItem.text = e.target.value;
+    }
   }
 
   // Drag and drop handlers
@@ -269,9 +434,9 @@
   function handleDrop(e) {
     e.preventDefault();
     isDragging = false;
-    const file = e.dataTransfer.files[0];
-    if (file) {
-      processFile(file);
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      processFiles(files);
     }
   }
 </script>
@@ -290,9 +455,9 @@
       </div>
     </div>
     
-    {#if imageFile}
+    {#if bulkFiles.length > 0}
       <button class="reset-pill-btn flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition text-[10px] sm:text-[11px] text-white font-medium" onclick={resetApp}>
-        <X size={11} /> Clear
+        <X size={11} /> Clear All ({bulkFiles.length})
       </button>
     {/if}
   </header>
@@ -300,13 +465,13 @@
   <!-- Main Viewports Split Layout -->
   <div class="flex-grow flex flex-col sm:flex-row gap-3.5 overflow-hidden relative min-h-0">
     
-    <!-- LEFT PANEL: Image Input & Process Filters -->
+    <!-- LEFT PANEL: Image Input, Batch list, & Process Filters -->
     <div class="w-full sm:w-1/2 flex flex-col gap-3 min-h-0 flex-grow {activeMobileTab === 'capture' ? 'flex' : 'hidden'} sm:flex">
       
-      {#if !imageUrl}
-        <!-- Upload Slate -->
+      <!-- Upload Drop Zone -->
+      {#if bulkFiles.length === 0}
         <div 
-          class="flex-grow flex flex-col items-center justify-center p-5 border-2 border-dashed rounded-xl transition-all duration-200 text-center cursor-pointer min-h-[150px] sm:min-h-0 {isDragging ? 'border-red-500 bg-red-500/5' : 'border-white/10 hover:border-white/20 hover:bg-white/2'}"
+          class="flex-grow flex flex-col items-center justify-center p-5 border-2 border-dashed rounded-xl transition-all duration-200 text-center cursor-pointer min-h-[160px] sm:min-h-0 {isDragging ? 'border-red-500 bg-red-500/5' : 'border-white/10 hover:border-white/20 hover:bg-white/2'}"
           onclick={() => fileInputRef.click()}
           ondragover={handleDragOver}
           ondragleave={handleDragLeave}
@@ -317,6 +482,7 @@
             bind:this={fileInputRef}
             onchange={handleFileChange}
             accept="image/*"
+            multiple
             class="hidden" 
           />
           
@@ -324,16 +490,60 @@
             <Upload class="text-white/60" size={20} />
           </div>
           
-          <h3 class="text-xs font-bold text-white mb-0.5">Drag & drop or tap to upload</h3>
+          <h3 class="text-xs font-bold text-white mb-0.5">Drag & drop images or tap to upload</h3>
           <p class="text-[10px] text-white/40 max-w-[240px] mx-auto mb-2.5">
-            PNG, JPG, or WEBP. Local browser processing.
+            PNG, JPG, or WEBP. Upload up to 25 files at once for batch parsing.
           </p>
           
           <button class="select-btn-badge text-[10px] px-3.5 py-1 rounded bg-red-500 text-black font-extrabold shadow-md shadow-red-500/10">
-            CHOOSE FILE
+            SELECT FILES
           </button>
         </div>
       {:else}
+        <!-- Bulk List Badges Wrap Grid (no horizontal scrollbar violations) -->
+        <div class="flex flex-wrap gap-1.5 max-h-[85px] overflow-y-auto mb-1 border-b border-white/5 pb-2 flex-shrink-0">
+          {#each bulkFiles as item, idx}
+            <button 
+              class="flex items-center gap-1.5 px-2.5 py-1 rounded text-[10px] border font-mono transition-all {activeFileIndex === idx ? 'border-red-500 bg-red-500/10 text-white font-extrabold shadow shadow-red-500/5' : 'border-white/5 bg-white/1 text-white/50 hover:border-white/15'}"
+              onclick={() => {
+                if (!isProcessing) activeFileIndex = idx;
+              }}
+            >
+              <span class="truncate max-w-[85px]">{item.name}</span>
+              {#if item.status === 'done'}
+                <Check size={10} class="text-green-400" />
+              {:else if item.status === 'scanning'}
+                <RefreshCw size={10} class="text-red-400 animate-spin" />
+              {:else if item.status === 'error'}
+                <span class="text-red-500 text-[10px]">✕</span>
+              {/if}
+              <span 
+                class="text-[9px] hover:text-red-500 ml-1.5 opacity-40 hover:opacity-100 font-bold"
+                onclick={(e) => {
+                  e.stopPropagation();
+                  removeFile(idx);
+                }}
+              >✕</span>
+            </button>
+          {/each}
+          
+          <button 
+            class="flex items-center gap-1 px-2.5 py-1 rounded text-[10px] border border-dashed border-white/20 bg-transparent text-white/60 hover:text-white hover:border-white/40 font-mono transition-all"
+            onclick={() => fileInputRef.click()}
+            disabled={isProcessing}
+          >
+            + ADD
+          </button>
+          <input 
+            type="file" 
+            bind:this={fileInputRef}
+            onchange={handleFileChange}
+            accept="image/*"
+            multiple
+            class="hidden" 
+          />
+        </div>
+
         <!-- Preview Board with Canvas -->
         <div class="relative flex-grow flex items-center justify-center bg-black/40 border border-white/5 rounded-xl overflow-hidden min-h-[140px] sm:min-h-0">
           
@@ -398,17 +608,29 @@
               <span class="text-[9px] font-mono text-white/50">MONOCHROME</span>
             </label>
 
-            <button 
-              class="launch-ocr-btn flex items-center gap-1.5 text-[10px] font-extrabold tracking-wider bg-red-500 text-black px-3.5 py-1.5 rounded shadow-sm shadow-red-500/10 hover:shadow-red-500/25 transition disabled:opacity-50"
-              disabled={isProcessing}
-              onclick={runOCR}
-            >
-              {#if isProcessing}
-                <RefreshCw size={11} class="animate-spin" /> SCANNING
-              {:else}
-                <Play size={9} fill="currentColor" /> EXTRACT TEXT
+            <div class="flex gap-2">
+              {#if bulkFiles.length > 1}
+                <button 
+                  class="flex items-center gap-1.5 text-[10px] font-extrabold tracking-wider bg-white/5 border border-white/10 hover:bg-white/10 text-white px-3 py-1.5 rounded transition disabled:opacity-50"
+                  disabled={isProcessing}
+                  onclick={runBatchOCR}
+                >
+                  SCAN ALL ({bulkFiles.filter(item => item.status !== 'done').length})
+                </button>
               {/if}
-            </button>
+
+              <button 
+                class="launch-ocr-btn flex items-center gap-1.5 text-[10px] font-extrabold tracking-wider bg-red-500 text-black px-3.5 py-1.5 rounded shadow-sm shadow-red-500/10 hover:shadow-red-500/25 transition disabled:opacity-50"
+                disabled={isProcessing || activeFileIndex === -1}
+                onclick={runOCR}
+              >
+                {#if isProcessing}
+                  <RefreshCw size={11} class="animate-spin" /> SCANNING
+                {:else}
+                  <Play size={9} fill="currentColor" /> EXTRACT TEXT
+                {/if}
+              </button>
+            </div>
           </div>
         </div>
       {/if}
@@ -450,20 +672,36 @@
         </div>
 
         <!-- Terminal textarea -->
-        <textarea
-          bind:value={extractedText}
-          placeholder="Extracted text will appear here once scanning is finished."
-          class="flex-grow w-full p-3.5 bg-transparent resize-none border-none outline-none font-mono text-xs text-white/95 leading-relaxed placeholder:text-white/20 focus:ring-0 overflow-y-auto"
-          disabled={isProcessing}
-        ></textarea>
+        {#if activeFileIndex >= 0 && bulkFiles[activeFileIndex]}
+          <textarea
+            value={extractedText}
+            oninput={handleTextChange}
+            placeholder="Extracted text will appear here once scanning is finished."
+            class="flex-grow w-full p-3.5 bg-transparent resize-none border-none outline-none font-mono text-xs text-white/95 leading-relaxed placeholder:text-white/20 focus:ring-0 overflow-y-auto"
+            disabled={isProcessing}
+          ></textarea>
+        {:else}
+          <div class="flex-grow flex items-center justify-center text-white/20 text-xs font-mono p-4 text-center">
+            Upload an image to review transcription buffer
+          </div>
+        {/if}
 
         <!-- Actions Drawer -->
         {#if extractedText}
-          <div class="absolute bottom-2.5 right-2.5 flex items-center gap-1.5">
+          <div class="absolute bottom-2.5 right-2.5 flex items-center gap-1.5 flex-wrap justify-end">
+            <!-- Magic Junk Cleaner Tool -->
             <button 
-              class="action-pill-btn flex items-center gap-1 px-2.5 py-1 rounded bg-white/5 hover:bg-white/10 border border-white/10 transition text-[10px] text-white/80 hover:text-white font-medium"
+              class="action-pill-btn flex items-center gap-1 px-2 py-1 rounded bg-white/5 hover:bg-white/10 border border-white/10 transition text-[10px] text-white/80 hover:text-white font-medium"
+              onclick={cleanActiveText}
+              title="Strip noise and background symbols"
+            >
+              <Sparkles size={11} class="text-yellow-400" /> Clean Junk
+            </button>
+
+            <button 
+              class="action-pill-btn flex items-center gap-1 px-2 py-1 rounded bg-white/5 hover:bg-white/10 border border-white/10 transition text-[10px] text-white/80 hover:text-white font-medium"
               onclick={copyToClipboard}
-              title="Copy to clipboard"
+              title="Copy active file text"
             >
               {#if copyFeedback}
                 <Check size={11} class="text-green-400" /> Copied
@@ -475,13 +713,38 @@
             <button 
               class="action-pill-btn flex items-center gap-1 px-2.5 py-1 rounded bg-white/5 hover:bg-white/10 border border-white/10 transition text-[10px] text-white/80 hover:text-white font-medium"
               onclick={downloadText}
-              title="Save as TXT file"
+              title="Save active file TXT"
             >
               <Download size={11} /> Save
             </button>
           </div>
         {/if}
       </div>
+
+      <!-- Batch Combined Actions Console (shown when multiple files exist) -->
+      {#if bulkFiles.length > 1}
+        <div class="bg-white/2 border border-white/5 rounded-xl p-2.5 flex items-center justify-between text-[10px] font-mono flex-shrink-0">
+          <span class="text-white/40">BATCH BUFFER ACTIONS ({bulkFiles.length} FILES)</span>
+          <div class="flex gap-2">
+            <button 
+              class="action-pill-btn flex items-center gap-1 px-2.5 py-1 rounded bg-white/5 hover:bg-white/10 border border-white/10 transition text-[10px] text-white/80 hover:text-white font-medium"
+              onclick={copyAllToClipboard}
+            >
+              {#if copyAllFeedback}
+                <Check size={11} class="text-green-400" /> Copied All
+              {:else}
+                <Copy size={11} /> Copy All
+              {/if}
+            </button>
+            <button 
+              class="action-pill-btn flex items-center gap-1 px-2.5 py-1 rounded bg-white/5 hover:bg-white/10 border border-white/10 transition text-[10px] text-white/80 hover:text-white font-medium"
+              onclick={downloadCombinedText}
+            >
+              <Download size={11} /> Save All (.txt)
+            </button>
+          </div>
+        </div>
+      {/if}
     </div>
   </div>
 

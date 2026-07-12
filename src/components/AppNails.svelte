@@ -9,6 +9,7 @@
     Scissors,
     Trophy,
     RefreshCw,
+    FileText,
   } from "lucide-svelte";
 
   let { appId } = $props();
@@ -119,6 +120,13 @@
 {:else if appId === "settings"}
   <div class="settings-preview-mini">
     <Settings size={28} class="animate-spin-slow text-white/50" />
+  </div>
+{:else if appId === "reader"}
+  <div class="flex items-center justify-center h-full">
+    <FileText
+      size={28}
+      style="color: var(--color-neon-red, #ff3344); filter: drop-shadow(0 0 6px rgba(255, 51, 68, 0.4));"
+    />
   </div>
 {/if}
 
