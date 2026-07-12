@@ -1129,12 +1129,12 @@
     <!-- WORD 1: "We" -->
     {#key weGen}
       <h1 class="word" aria-label={currentWe}>
-        {#each toLetters(currentWe) as letter, i}
+        {#each toLetters(currentWe.toUpperCase()) as letter, i}
           <span
             class="letter"
             style="{letterStyle(
               i,
-              toLetters(currentWe).length,
+              toLetters(currentWe.toUpperCase()).length,
             )} --trans-delay: {i * 30}ms; color: {isFlagColors
               ? flagColors[0]
               : 'white'}; text-shadow: {isFlagColors
@@ -1150,12 +1150,12 @@
     <!-- WORD 2: "Are" -->
     {#key areGen}
       <h1 class="word" aria-label={currentAre}>
-        {#each toLetters(currentAre) as letter, i}
+        {#each toLetters(currentAre.toUpperCase()) as letter, i}
           <span
             class="letter"
             style="{letterStyle(
               i,
-              toLetters(currentAre).length,
+              toLetters(currentAre.toUpperCase()).length,
             )} --trans-delay: {i * 30}ms; color: {isFlagColors
               ? flagColors[1]
               : 'white'}; text-shadow: {isFlagColors
@@ -1171,12 +1171,12 @@
     <!-- WORD 3: "Dogs" -->
     {#key dogsGen}
       <h1 class="word" aria-label={currentDogs}>
-        {#each toLetters(currentDogs) as letter, i}
+        {#each toLetters(currentDogs.toUpperCase()) as letter, i}
           <span
             class="letter"
             style="{letterStyle(
               i,
-              toLetters(currentDogs).length,
+              toLetters(currentDogs.toUpperCase()).length,
             )} --trans-delay: {i * 30}ms; color: {isFlagColors
               ? flagColors[2]
               : 'white'}; text-shadow: {isFlagColors
@@ -1609,7 +1609,8 @@
     flex-wrap: nowrap;
     margin: 0;
     padding: 0;
-    font-size: clamp(3rem, 12vw, 9rem);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: clamp(3rem, 12vmin, 9rem);
     font-weight: 900;
     line-height: 1.05;
     letter-spacing: -0.02em;
@@ -1629,6 +1630,15 @@
       color 0.5s cubic-bezier(0.25, 1, 0.5, 1),
       text-shadow 0.5s cubic-bezier(0.25, 1, 0.5, 1);
     transition-delay: var(--trans-delay, 0ms);
+  }
+
+  @media (max-height: 500px) {
+    .word {
+      font-size: clamp(2rem, 9vh, 4rem);
+    }
+    .pronunciation {
+      margin-top: 1.25rem !important;
+    }
   }
 
   @keyframes matrixFlip {

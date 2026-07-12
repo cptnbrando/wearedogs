@@ -626,6 +626,24 @@
     }
   }
 
+  @media (max-height: 500px) {
+    .hieroglyphic-nav {
+      gap: 1rem;
+      top: calc(100% + 1.25rem);
+    }
+
+    .runic-btn {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+    }
+
+    .runic-btn :global(svg) {
+      width: 18px !important;
+      height: 18px !important;
+    }
+  }
+
   @keyframes runeDance {
     0%, 100% {
       transform: scale(1) rotate(0deg);
