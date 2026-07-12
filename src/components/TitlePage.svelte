@@ -629,18 +629,36 @@
   @media (max-height: 500px) {
     .hieroglyphic-nav {
       gap: 1rem;
-      top: calc(100% + 1.25rem);
+      top: calc(100% + 1rem);
     }
 
     .runic-btn {
-      width: 48px;
-      height: 48px;
-      border-radius: 12px;
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
     }
 
     .runic-btn :global(svg) {
-      width: 18px !important;
-      height: 18px !important;
+      width: 16px !important;
+      height: 16px !important;
+    }
+  }
+
+  @media (max-height: 350px) {
+    .hieroglyphic-nav {
+      gap: 0.75rem;
+      top: calc(100% + 0.5rem);
+    }
+
+    .runic-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+    }
+
+    .runic-btn :global(svg) {
+      width: 14px !important;
+      height: 14px !important;
     }
   }
 

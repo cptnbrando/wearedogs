@@ -1609,11 +1609,11 @@
     flex-wrap: nowrap;
     margin: 0;
     padding: 0;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-family: "Inconsolata", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     font-size: clamp(5rem, 18vmin, 15rem);
     font-weight: 900;
     line-height: 1.05;
-    letter-spacing: -0.02em;
+    gap: 0.18em;
     text-transform: uppercase;
     color: white;
     white-space: nowrap;
@@ -1634,10 +1634,19 @@
 
   @media (max-height: 500px) {
     .word {
-      font-size: clamp(3rem, 13vh, 6rem);
+      font-size: clamp(1.8rem, 11vh, 5rem);
     }
     .pronunciation {
-      margin-top: 1.25rem !important;
+      margin-top: 1rem !important;
+    }
+  }
+
+  @media (max-height: 350px) {
+    .word {
+      font-size: clamp(1.5rem, 10vh, 4rem);
+    }
+    .pronunciation {
+      margin-top: 0.5rem !important;
     }
   }
 
