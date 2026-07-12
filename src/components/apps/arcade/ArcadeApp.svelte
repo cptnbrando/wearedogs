@@ -20,6 +20,16 @@
   import romMarioN64 from "./rom/mario64-n64.zip?url";
   import romMoonwalker from "./rom/moonwalker-segagenesis.zip?url";
 
+  // Initialize obfuscated global variables to prevent ReferenceErrors in cores (e.g., Sega Genesis)
+  if (typeof window !== "undefined") {
+    for (let i = 0; i < 100; i++) {
+      const name = `_$af3208${String(i).padStart(2, "0")}`;
+      if (!(name in window)) {
+        window[name] = "";
+      }
+    }
+  }
+
   // Hoist constants to top of file
   const KEY_UP = 38;
   const KEY_DOWN = 40;
