@@ -1621,7 +1621,11 @@
   }
 
   .letter {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1em;
+    height: 1em;
     transform-style: preserve-3d;
     animation: matrixFlip 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
     animation-delay: var(--delay, 0ms);
