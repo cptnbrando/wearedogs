@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1783849782,
+    "firstCommitTimestamp": 1783893714,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 127570
+    "averageLinesAltered": 127612
   },
   "entries": [
     {
       "version": "1.0.1",
       "name": "Master",
       "date": "2026-07-12",
-      "timestamp": 1783849721,
+      "timestamp": 1783893652,
       "commits": [
         {
-          "hash": "5b3f218",
-          "message": "feat: implement GoPro video player component with advanced playback and remapping features",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/5b3f2182a10148451c88a564fa67515abc29678f",
-          "timestamp": 1783849782,
-          "linesChanged": 127570
+          "hash": "f5b8a01",
+          "message": "feat: implement DataTrain navigation layout and BattlePanel recording interface with audio visualization",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/f5b8a01285083b47470e410ac95693b5e2bf9de5",
+          "timestamp": 1783893714,
+          "linesChanged": 127612
         }
       ]
     },
