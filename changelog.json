@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1783920056,
+    "firstCommitTimestamp": 1783920928,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 125997
+    "averageLinesAltered": 126189
   },
   "entries": [
     {
       "version": "1.0.1",
       "name": "Master",
       "date": "2026-07-13",
-      "timestamp": 1783919988,
+      "timestamp": 1783920861,
       "commits": [
         {
-          "hash": "b29cce3",
-          "message": "fix mobile words",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/b29cce391c89d97c66c968c839a9ca00ba8535bc",
-          "timestamp": 1783920056,
-          "linesChanged": 125997
+          "hash": "a3568de",
+          "message": "slick fonts",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/a3568debb936d57e46b9613e1ed82bd088bf4046",
+          "timestamp": 1783920928,
+          "linesChanged": 126189
         }
       ]
     },
