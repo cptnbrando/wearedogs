@@ -33,100 +33,45 @@
   // Kits data definitions
   const KITS = [
     {
-      id: "canine",
-      name: "Canine Synth",
+      id: "canine_sfx",
+      name: "Canine & SFX",
       color: "#00bfff",
       glow: "rgba(0, 191, 255, 0.4)",
       sounds: [
         { id: "woof", type: "procedural", proceduralType: "woof", label: "Deep Woof", emoji: "🐕", key: "q", color: "pad-blue" },
         { id: "yip", type: "procedural", proceduralType: "yip", label: "Puppy Yip", emoji: "🐶", key: "w", color: "pad-cyan" },
         { id: "growl", type: "procedural", proceduralType: "growl", label: "Playful Growl", emoji: "🐺", key: "e", color: "pad-orange" },
-        { id: "husky", type: "procedural", proceduralType: "woof", options: { pitch: 1.3, speed: 1.1 }, label: "Husky Bark", emoji: "🦊", key: "r", color: "pad-blue" },
-        { id: "chihuahua", type: "procedural", proceduralType: "yip", options: { pitch: 1.5 }, label: "Chihuahua", emoji: "🐩", key: "t", color: "pad-cyan" },
-        { id: "guard", type: "procedural", proceduralType: "woof", options: { pitch: 0.7, speed: 0.8 }, label: "Guard Bark", emoji: "👹", key: "y", color: "pad-orange" },
-        { id: "growllow", type: "procedural", proceduralType: "growl", options: { pitch: 0.6, speed: 0.8 }, label: "Angry Growl", emoji: "🦁", key: "u", color: "pad-orange" },
-        { id: "boof", type: "procedural", proceduralType: "woof", options: { pitch: 0.5, speed: 0.7 }, label: "Boof", emoji: "🐻", key: "i", color: "pad-blue" },
-        { id: "squeak", type: "procedural", proceduralType: "yip", options: { pitch: 2.0, speed: 1.5 }, label: "Squeaky Toy", emoji: "🧸", key: "o", color: "pad-cyan" },
-        { id: "whistle", type: "procedural", proceduralType: "yip", options: { pitch: 3.5, speed: 0.8 }, label: "Dog Whistle", emoji: "😗", key: "p", color: "pad-cyan" },
-        { id: "bigbark", type: "procedural", proceduralType: "woof", options: { pitch: 0.9, speed: 1.0 }, label: "Big Bark", emoji: "🐕‍🦺", key: "a", color: "pad-blue" },
-        { id: "lilgrowl", type: "procedural", proceduralType: "growl", options: { pitch: 1.2 }, label: "Lil Growl", emoji: "🐈", key: "s", color: "pad-orange" },
-        { id: "subwoofer", type: "procedural", proceduralType: "woof", options: { pitch: 0.4, speed: 0.6 }, label: "Sub Woofer", emoji: "🔊", key: "d", color: "pad-blue" },
-        { id: "speedyip", type: "procedural", proceduralType: "yip", options: { pitch: 1.1, speed: 2.0 }, label: "Speedy Yip", emoji: "⚡", key: "f", color: "pad-cyan" },
-        { id: "slowbark", type: "procedural", proceduralType: "woof", options: { pitch: 0.8, speed: 0.5 }, label: "Slow Bark", emoji: "🐢", key: "g", color: "pad-blue" },
-        { id: "echobark", type: "procedural", proceduralType: "woof", options: { pitch: 1.0, speed: 0.3 }, label: "Echo Bark", emoji: "🌀", key: "h", color: "pad-blue" }
+        { id: "li-break", type: "file", url: "https://data.wearedogs.net/music/soundboard/loveisland-break.mp3", label: "LI Break", emoji: "🏝️", key: "r", color: "pad-pink" },
+        { id: "li-text", type: "file", url: "https://data.wearedogs.net/music/soundboard/loveisland-text.mp3", label: "LI Text", emoji: "💬", key: "t", color: "pad-pink" },
+        { id: "mc-large", type: "file", url: "https://data.wearedogs.net/music/soundboard/minecraft-large.mp3", label: "MC Large", emoji: "🧱", key: "y", color: "pad-blue" },
+        { id: "mc-medium", type: "file", url: "https://data.wearedogs.net/music/soundboard/minecraft-medium.mp3", label: "MC Medium", emoji: "🪵", key: "u", color: "pad-orange" },
+        { id: "mc-small", type: "file", url: "https://data.wearedogs.net/music/soundboard/minecraft-small.mp3", label: "MC Small", emoji: "🪨", key: "i", color: "pad-cyan" },
+        { id: "mc-tiny", type: "file", url: "https://data.wearedogs.net/music/soundboard/minecraft-tiny.mp3", label: "MC Tiny", emoji: "💎", key: "o", color: "pad-pink" },
+        { id: "tip-med", type: "file", url: "https://data.wearedogs.net/music/soundboard/tip-medium.mp3", label: "Tip Medium", emoji: "🪙", key: "p", color: "pad-orange" },
+        { id: "tip-small", type: "file", url: "https://data.wearedogs.net/music/soundboard/tip-small.mp3", label: "Tip Small", emoji: "💰", key: "a", color: "pad-orange" },
+        { id: "tip-tiny", type: "file", url: "https://data.wearedogs.net/music/soundboard/tip-tiny.mp3", label: "Tip Tiny", emoji: "💎", key: "s", color: "pad-cyan" }
       ]
     },
     {
-      id: "minecraft",
-      name: "Minecraft Blocks",
+      id: "kit2",
+      name: "Kit 2 (Empty)",
       color: "#00ff66",
       glow: "rgba(0, 255, 102, 0.4)",
-      sounds: [
-        { id: "mc-large", type: "file", url: "https://data.wearedogs.net/music/soundboard/minecraft-large.mp3", label: "MC Large", emoji: "🧱", key: "q", color: "pad-blue" },
-        { id: "mc-medium", type: "file", url: "https://data.wearedogs.net/music/soundboard/minecraft-medium.mp3", label: "MC Medium", emoji: "🪵", key: "w", color: "pad-orange" },
-        { id: "mc-small", type: "file", url: "https://data.wearedogs.net/music/soundboard/minecraft-small.mp3", label: "MC Small", emoji: "🪨", key: "e", color: "pad-cyan" },
-        { id: "mc-tiny", type: "file", url: "https://data.wearedogs.net/music/soundboard/minecraft-tiny.mp3", label: "MC Tiny", emoji: "💎", key: "r", color: "pad-pink" },
-        { id: "mc-large-slow", type: "file", url: "https://data.wearedogs.net/music/soundboard/minecraft-large.mp3", options: { pitch: 0.7, speed: 0.7 }, label: "MC Giant Block", emoji: "🏔️", key: "t", color: "pad-blue" },
-        { id: "mc-medium-fast", type: "file", url: "https://data.wearedogs.net/music/soundboard/minecraft-medium.mp3", options: { pitch: 1.5, speed: 1.5 }, label: "MC Wood Chop", emoji: "🪓", key: "y", color: "pad-orange" },
-        { id: "mc-small-pitch", type: "file", url: "https://data.wearedogs.net/music/soundboard/minecraft-small.mp3", options: { pitch: 1.8, speed: 1.2 }, label: "MC Pebble Kick", emoji: "👟", key: "u", color: "pad-cyan" },
-        { id: "mc-tiny-slow", type: "file", url: "https://data.wearedogs.net/music/soundboard/minecraft-tiny.mp3", options: { pitch: 0.5, speed: 0.8 }, label: "MC Giant Gem", emoji: "👑", key: "i", color: "pad-pink" },
-        { id: "mc-pro-grass", type: "procedural", proceduralType: "woof", options: { pitch: 2.2, speed: 2.0 }, label: "Procedural Grass", emoji: "🌱", key: "o", color: "pad-orange" },
-        { id: "mc-pro-stone", type: "procedural", proceduralType: "growl", options: { pitch: 0.3, speed: 1.5 }, label: "Procedural Stone", emoji: "⛰️", key: "p", color: "pad-blue" },
-        { id: "mc-pro-sand", type: "procedural", proceduralType: "growl", options: { pitch: 0.5, speed: 2.5 }, label: "Procedural Sand", emoji: "⏳", key: "a", color: "pad-cyan" },
-        { id: "mc-pro-gravel", type: "procedural", proceduralType: "growl", options: { pitch: 0.4, speed: 1.8 }, label: "Procedural Gravel", emoji: "🪰", key: "s", color: "pad-blue" },
-        { id: "mc-pro-anvil", type: "procedural", proceduralType: "yip", options: { pitch: 0.3, speed: 0.5 }, label: "Procedural Anvil", emoji: "⚓", key: "d", color: "pad-cyan" },
-        { id: "mc-pro-glass", type: "procedural", proceduralType: "yip", options: { pitch: 2.5, speed: 1.8 }, label: "Procedural Glass", emoji: "🍷", key: "f", color: "pad-pink" },
-        { id: "mc-pro-water", type: "procedural", proceduralType: "yip", options: { pitch: 0.8, speed: 0.3 }, label: "Procedural Splash", emoji: "💧", key: "g", color: "pad-blue" },
-        { id: "mc-pro-lava", type: "procedural", proceduralType: "growl", options: { pitch: 0.2, speed: 0.4 }, label: "Procedural Sizzle", emoji: "🔥", key: "h", color: "pad-orange" }
-      ]
+      sounds: []
     },
     {
-      id: "tips-island",
-      name: "Tips & Island",
+      id: "kit3",
+      name: "Kit 3 (Empty)",
       color: "#ff55bb",
       glow: "rgba(255, 85, 187, 0.4)",
-      sounds: [
-        { id: "li-break", type: "file", url: "https://data.wearedogs.net/music/soundboard/loveisland-break.mp3", label: "LI Break", emoji: "🏝️", key: "q", color: "pad-pink" },
-        { id: "li-text", type: "file", url: "https://data.wearedogs.net/music/soundboard/loveisland-text.mp3", label: "LI Text", emoji: "💬", key: "w", color: "pad-pink" },
-        { id: "tip-med", type: "file", url: "https://data.wearedogs.net/music/soundboard/tip-medium.mp3", label: "Tip Medium", emoji: "🪙", key: "e", color: "pad-orange" },
-        { id: "tip-small", type: "file", url: "https://data.wearedogs.net/music/soundboard/tip-small.mp3", label: "Tip Small", emoji: "💰", key: "r", color: "pad-orange" },
-        { id: "tip-tiny", type: "file", url: "https://data.wearedogs.net/music/soundboard/tip-tiny.mp3", label: "Tip Tiny", emoji: "💎", key: "t", color: "pad-cyan" },
-        { id: "li-break-fast", type: "file", url: "https://data.wearedogs.net/music/soundboard/loveisland-break.mp3", options: { pitch: 1.5, speed: 1.5 }, label: "LI Break Fast", emoji: "🏃‍♀️", key: "y", color: "pad-pink" },
-        { id: "li-text-slow", type: "file", url: "https://data.wearedogs.net/music/soundboard/loveisland-text.mp3", options: { pitch: 0.7, speed: 0.7 }, label: "LI Text Slow", emoji: "🐌", key: "u", color: "pad-pink" },
-        { id: "tip-med-slow", type: "file", url: "https://data.wearedogs.net/music/soundboard/tip-medium.mp3", options: { pitch: 0.6, speed: 0.6 }, label: "Tip Med Low", emoji: "📉", key: "i", color: "pad-orange" },
-        { id: "tip-small-fast", type: "file", url: "https://data.wearedogs.net/music/soundboard/tip-small.mp3", options: { pitch: 1.4, speed: 1.4 }, label: "Tip Small High", emoji: "📈", key: "o", color: "pad-orange" },
-        { id: "tip-tiny-pitch", type: "file", url: "https://data.wearedogs.net/music/soundboard/tip-tiny.mp3", options: { pitch: 1.8, speed: 1.8 }, label: "Tip Tiny High", emoji: "✨", key: "p", color: "pad-cyan" },
-        { id: "pro-island-drum", type: "procedural", proceduralType: "woof", options: { pitch: 0.3, speed: 1.5 }, label: "Island Tom", emoji: "🥁", key: "a", color: "pad-blue" },
-        { id: "pro-island-shaker", type: "procedural", proceduralType: "growl", options: { pitch: 2.5, speed: 3.0 }, label: "Island Shaker", emoji: "🌾", key: "s", color: "pad-blue" },
-        { id: "pro-island-whistle", type: "procedural", proceduralType: "yip", options: { pitch: 2.2, speed: 1.0 }, label: "Island Whistle", emoji: "🎽", key: "d", color: "pad-cyan" },
-        { id: "pro-island-wave", type: "procedural", proceduralType: "growl", options: { pitch: 0.1, speed: 0.2 }, label: "Ocean Breeze", emoji: "🌊", key: "f", color: "pad-blue" },
-        { id: "pro-island-rim", type: "procedural", proceduralType: "yip", options: { pitch: 1.8, speed: 2.5 }, label: "Island Rimshot", emoji: "🥢", key: "g", color: "pad-cyan" },
-        { id: "pro-island-gong", type: "procedural", proceduralType: "growl", options: { pitch: 0.15, speed: 0.3 }, label: "Island Gong", emoji: "🔔", key: "h", color: "pad-orange" }
-      ]
+      sounds: []
     },
     {
-      id: "arcade",
-      name: "Arcade SFX",
-      color: "#00bfff",
-      glow: "rgba(0, 191, 255, 0.4)",
-      sounds: [
-        { id: "arc-coin", type: "procedural", proceduralType: "coin", label: "Insert Coin", emoji: "👾", key: "q", color: "pad-cyan" },
-        { id: "arc-laser", type: "procedural", proceduralType: "laser", label: "Laser Beam", emoji: "🔫", key: "w", color: "pad-blue" },
-        { id: "arc-explosion", type: "procedural", proceduralType: "explosion", label: "Explosion", emoji: "💥", key: "e", color: "pad-orange" },
-        { id: "arc-jump", type: "procedural", proceduralType: "jump", label: "Retro Jump", emoji: "🦘", key: "r", color: "pad-cyan" },
-        { id: "arc-powerup", type: "procedural", proceduralType: "powerup", label: "Power Up", emoji: "⭐", key: "t", color: "pad-pink" },
-        { id: "arc-defeat", type: "procedural", proceduralType: "defeat", label: "Game Over", emoji: "💀", key: "y", color: "pad-orange" },
-        { id: "arc-warp", type: "procedural", proceduralType: "warp", label: "Teleport", emoji: "🌀", key: "u", color: "pad-blue" },
-        { id: "arc-zap", type: "procedural", proceduralType: "zap", label: "Zap!", emoji: "⚡", key: "i", color: "pad-cyan" },
-        { id: "arc-coin-double", type: "procedural", proceduralType: "coin", options: { speed: 2.0, pitch: 1.2 }, label: "Double Coin", emoji: "💰", key: "o", color: "pad-cyan" },
-        { id: "arc-laser-rapid", type: "procedural", proceduralType: "laser", options: { speed: 2.0 }, label: "Rapid Fire", emoji: "🛸", key: "p", color: "pad-blue" },
-        { id: "arc-explosion-low", type: "procedural", proceduralType: "explosion", options: { pitch: 0.5, speed: 0.6 }, label: "Big Bang", emoji: "🪐", key: "a", color: "pad-orange" },
-        { id: "arc-jump-high", type: "procedural", proceduralType: "jump", options: { pitch: 1.5 }, label: "High Jump", emoji: "🪁", key: "s", color: "pad-cyan" },
-        { id: "arc-powerup-fast", type: "procedural", proceduralType: "powerup", options: { speed: 1.5 }, label: "Speed Up", emoji: "🏎️", key: "d", color: "pad-pink" },
-        { id: "arc-defeat-deep", type: "procedural", proceduralType: "defeat", options: { pitch: 0.6 }, label: "Deep Defeat", emoji: "🩸", key: "f", color: "pad-orange" },
-        { id: "arc-warp-fast", type: "procedural", proceduralType: "warp", options: { speed: 2.0 }, label: "Hyperdrive", emoji: "☄️", key: "g", color: "pad-blue" },
-        { id: "arc-zap-tiny", type: "procedural", proceduralType: "zap", options: { pitch: 2.0, speed: 2.0 }, label: "Tiny Spark", emoji: "✨", key: "h", color: "pad-cyan" }
-      ]
+      id: "kit4",
+      name: "Kit 4 (Empty)",
+      color: "#ffcc00",
+      glow: "rgba(255, 204, 0, 0.4)",
+      sounds: []
     },
     {
       id: "custom",
