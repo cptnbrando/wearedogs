@@ -5,7 +5,8 @@ public/batman/*.mp4
 # !public/batman/batman1.mp4
 src/components/apps/arcade/rom/*
 
-# public/changelog.json
+public/changelog.json
+scripts/public/changelog.json
 
 TODO.md
 

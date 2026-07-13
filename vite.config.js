@@ -16,11 +16,6 @@ export default defineConfig({
   resolve: {
     conditions: ['browser'],
   },
-  test: {
-    globals: true,
-    environment: 'jsdom',
-    setupFiles: ['./vitest.setup.js'],
-  },
   server: {
     proxy: {
       '/api-worldcup': {
