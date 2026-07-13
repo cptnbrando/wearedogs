@@ -213,12 +213,12 @@
 
 <div class="qrgenerator-layout animated-pane">
   <!-- Header Bar -->
-  <header class="gen-header">
+  <!-- <header class="gen-header">
     <div class="header-branding">
       <span class="pulse-dot"></span>
       <h1>QR Code Generator</h1>
     </div>
-  </header>
+  </header> -->
 
   <!-- Workspace Grid -->
   <div class="workspace-grid">
@@ -396,7 +396,7 @@
   }
 
   /* ── Header ── */
-  .gen-header {
+  /* .gen-header {
     height: 52px;
     padding: 0 20px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
@@ -434,7 +434,7 @@
     letter-spacing: 0.05em;
     color: white;
     font-family: "Outfit", "Inter", sans-serif;
-  }
+  } */
 
   /* ── Workspace ── */
   .workspace-grid {
@@ -930,9 +930,9 @@
       border-left: 1px solid rgba(255, 255, 255, 0.05);
       border-right: 1px solid rgba(255, 255, 255, 0.05);
     }
-    .header-branding h1 {
+    /* .header-branding h1 {
       font-size: 1.25rem;
-    }
+    } */
     .config-label {
       font-size: 0.85rem;
     }

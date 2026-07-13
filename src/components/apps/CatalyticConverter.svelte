@@ -718,7 +718,7 @@
 </script>
 
 <div class="converter-app animated-pane">
-  <div class="app-header">
+  <!-- <div class="app-header">
     <div class="title-wrap">
       <span class="converter-flame-icon"><Flame size={24} /></span>
       <h2>Catalytic Converter</h2>
@@ -727,7 +727,7 @@
       a way to convert anything into anything. all data stays in your browser.
       batch file support.
     </p>
-  </div>
+  </div> -->
 
   <input
     type="file"

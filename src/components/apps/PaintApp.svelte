@@ -1,8 +1,15 @@
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <script>
-  import { 
-    Paintbrush, Eraser, Image, Sparkles, Check, X, Undo2, Redo2 
+  import {
+    Paintbrush,
+    Eraser,
+    Image,
+    Sparkles,
+    Check,
+    X,
+    Undo2,
+    Redo2,
   } from "lucide-svelte";
   import { onMount, onDestroy } from "svelte";
 
@@ -17,7 +24,7 @@
   // Creative features
   let brushMode = $state("normal"); // "normal" | "neon" | "rainbow" | "spray" | "eraser"
   let rainbowHue = 0;
-  
+
   // Undo/Redo Stacks
   let undoStack = $state([]);
   let redoStack = $state([]);
@@ -55,7 +62,10 @@
     const targetPhysicalHeight = newHeight * dpr;
 
     // Only resize if the dimensions actually changed
-    if (canvasRef.width === targetPhysicalWidth && canvasRef.height === targetPhysicalHeight) {
+    if (
+      canvasRef.width === targetPhysicalWidth &&
+      canvasRef.height === targetPhysicalHeight
+    ) {
       return;
     }
 
@@ -75,11 +85,17 @@
     canvasRef.style.height = `${newHeight}px`;
 
     ctx = canvasRef.getContext("2d");
-    
+
     if (tempCanvas && ctx) {
       // Draw old pixels exactly
       ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.drawImage(tempCanvas, 0, 0, targetPhysicalWidth, targetPhysicalHeight);
+      ctx.drawImage(
+        tempCanvas,
+        0,
+        0,
+        targetPhysicalWidth,
+        targetPhysicalHeight,
+      );
       ctx.scale(dpr, dpr);
     } else {
       ctx.scale(dpr, dpr);
@@ -96,7 +112,12 @@
 
   function saveHistory() {
     if (canvasRef && ctx) {
-      const snapshot = ctx.getImageData(0, 0, canvasRef.width, canvasRef.height);
+      const snapshot = ctx.getImageData(
+        0,
+        0,
+        canvasRef.width,
+        canvasRef.height,
+      );
       undoStack.push(snapshot);
       if (undoStack.length > 30) {
         undoStack.shift();
@@ -109,7 +130,10 @@
     if (undoStack.length > 0 && canvasRef && ctx) {
       const current = ctx.getImageData(0, 0, canvasRef.width, canvasRef.height);
       const previous = undoStack.pop();
-      if (previous.width === canvasRef.width && previous.height === canvasRef.height) {
+      if (
+        previous.width === canvasRef.width &&
+        previous.height === canvasRef.height
+      ) {
         redoStack.push(current);
         ctx.putImageData(previous, 0, 0);
       } else {
@@ -180,7 +204,7 @@
     const rect = canvasRef.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    
+
     applyBrushSettings(x, y);
     if (brushMode === "spray") {
       sprayDots(x, y);
@@ -195,7 +219,7 @@
     const rect = canvasRef.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    
+
     applyBrushSettings(x, y);
     if (brushMode === "spray") {
       sprayDots(x, y);
@@ -215,7 +239,7 @@
     const touch = e.touches[0];
     const x = touch.clientX - rect.left;
     const y = touch.clientY - rect.top;
-    
+
     applyBrushSettings(x, y);
     if (brushMode === "spray") {
       sprayDots(x, y);
@@ -233,7 +257,9 @@
     imgDragStartY = touch.clientY;
     imgDragStartValX = imgX;
     imgDragStartValY = imgY;
-    window.addEventListener("touchmove", handleImageTouchDrag, { passive: false });
+    window.addEventListener("touchmove", handleImageTouchDrag, {
+      passive: false,
+    });
     window.addEventListener("touchend", stopImageTouchDrag);
     window.addEventListener("touchcancel", stopImageTouchDrag);
   }
@@ -262,7 +288,7 @@
     const touch = e.touches[0];
     const x = touch.clientX - rect.left;
     const y = touch.clientY - rect.top;
-    
+
     applyBrushSettings(x, y);
     if (brushMode === "spray") {
       sprayDots(x, y);
@@ -290,8 +316,8 @@
       const img = new Image();
       img.onload = () => {
         let scale = 1;
-        const cw = canvasRef ? (canvasRef.width / dpr) : 420;
-        const ch = canvasRef ? (canvasRef.height / dpr) : 320;
+        const cw = canvasRef ? canvasRef.width / dpr : 420;
+        const ch = canvasRef ? canvasRef.height / dpr : 320;
         if (img.width > cw || img.height > ch) {
           scale = Math.min(cw / img.width, ch / img.height);
         }
@@ -393,31 +419,55 @@
 
 <div class="paint-layout animated-pane">
   <div class="paint-sidebar">
-    <h3>Sketch Pad</h3>
-    
+    <h3>Sketch</h3>
+
     {#if pastedImage}
       <div class="image-controls-box animated-pane">
         <span class="label">Image Controls</span>
-        
+
         <div class="control-item">
           <label for="img-scale-slider">
-            <span class="desktop-only-label">SCALE: </span>{imgScale.toFixed(2)}x
+            <span class="desktop-only-label">SCALE: </span>{imgScale.toFixed(
+              2,
+            )}x
           </label>
-          <input id="img-scale-slider" type="range" min="0.1" max="3.0" step="0.05" bind:value={imgScale} />
+          <input
+            id="img-scale-slider"
+            type="range"
+            min="0.1"
+            max="3.0"
+            step="0.05"
+            bind:value={imgScale}
+          />
         </div>
 
         <div class="control-item">
           <label for="img-rotate-slider">
             <span class="desktop-only-label">ROTATE: </span>{imgRotation}°
           </label>
-          <input id="img-rotate-slider" type="range" min="-180" max="180" step="5" bind:value={imgRotation} />
+          <input
+            id="img-rotate-slider"
+            type="range"
+            min="-180"
+            max="180"
+            step="5"
+            bind:value={imgRotation}
+          />
         </div>
 
         <div class="placement-actions">
-          <button class="action-btn stamp-btn" onclick={stampImage} title="Place Image">
+          <button
+            class="action-btn stamp-btn"
+            onclick={stampImage}
+            title="Place Image"
+          >
             <Check size={14} /> <span class="place-text">PLACE</span>
           </button>
-          <button class="action-btn cancel-btn" onclick={cancelImagePlacement} title="Cancel">
+          <button
+            class="action-btn cancel-btn"
+            onclick={cancelImagePlacement}
+            title="Cancel"
+          >
             <X size={14} /> <span class="cancel-text">CANCEL</span>
           </button>
         </div>
@@ -425,24 +475,24 @@
     {:else}
       <!-- Mobile Pagination Tab Bar -->
       <div class="mobile-tabs-bar">
-        <button 
-          class="tab-btn" 
-          class:active={activeTab === 'brush'} 
-          onclick={() => activeTab = 'brush'}
+        <button
+          class="tab-btn"
+          class:active={activeTab === "brush"}
+          onclick={() => (activeTab = "brush")}
         >
           Brush
         </button>
-        <button 
-          class="tab-btn" 
-          class:active={activeTab === 'modes'} 
-          onclick={() => activeTab = 'modes'}
+        <button
+          class="tab-btn"
+          class:active={activeTab === "modes"}
+          onclick={() => (activeTab = "modes")}
         >
           Modes
         </button>
-        <button 
-          class="tab-btn" 
-          class:active={activeTab === 'actions'} 
-          onclick={() => activeTab = 'actions'}
+        <button
+          class="tab-btn"
+          class:active={activeTab === "actions"}
+          onclick={() => (activeTab = "actions")}
         >
           Actions
         </button>
@@ -450,66 +500,81 @@
 
       <!-- Standard Brush Controls -->
       <div class="brush-settings animated-pane">
-        <div class="color-picker-box" class:hidden-mobile={activeTab !== 'brush'}>
+        <div
+          class="color-picker-box"
+          class:hidden-mobile={activeTab !== "brush"}
+        >
           <span class="label">BRUSH COLOR</span>
           <div class="colors-row">
-            {#each ['#00bfff', '#ff55bb', '#ffcc00', '#00ff66', '#ffffff'] as color}
+            {#each ["#00bfff", "#ff55bb", "#ffcc00", "#00ff66", "#ffffff"] as color}
               <span
                 class="color-dot"
-                class:active={strokeColor === color && brushMode !== 'eraser'}
+                class:active={strokeColor === color && brushMode !== "eraser"}
                 style="background: {color}"
-                onclick={() => { strokeColor = color; if (brushMode === 'eraser') brushMode = 'normal'; }}
+                onclick={() => {
+                  strokeColor = color;
+                  if (brushMode === "eraser") brushMode = "normal";
+                }}
               ></span>
             {/each}
           </div>
         </div>
 
-        <div class="brush-size-box" class:hidden-mobile={activeTab !== 'brush'}>
+        <div class="brush-size-box" class:hidden-mobile={activeTab !== "brush"}>
           <label for="brush-width-slider">
             <span class="desktop-only-label">BRUSH WIDTH: </span>{strokeWidth}px
           </label>
-          <input id="brush-width-slider" type="range" min="2" max="24" bind:value={strokeWidth} />
+          <input
+            id="brush-width-slider"
+            type="range"
+            min="2"
+            max="24"
+            bind:value={strokeWidth}
+          />
         </div>
 
-        <div class="brush-modes-box" class:hidden-mobile={activeTab !== 'modes'}>
+        <div
+          class="brush-modes-box"
+          class:hidden-mobile={activeTab !== "modes"}
+        >
           <span class="label">BRUSH TYPE</span>
           <div class="brush-modes-grid">
-            <button 
-              class="mode-btn" 
-              class:active={brushMode === 'normal'} 
-              onclick={() => brushMode = 'normal'}
+            <button
+              class="mode-btn"
+              class:active={brushMode === "normal"}
+              onclick={() => (brushMode = "normal")}
               title="Solid Brush"
             >
               <Paintbrush size={14} /> <span class="mode-text">Solid</span>
             </button>
-            <button 
-              class="mode-btn" 
-              class:active={brushMode === 'neon'} 
-              onclick={() => brushMode = 'neon'}
+            <button
+              class="mode-btn"
+              class:active={brushMode === "neon"}
+              onclick={() => (brushMode = "neon")}
               title="Neon Glow Effect"
             >
               <Sparkles size={14} /> <span class="mode-text">Neon</span>
             </button>
-            <button 
-              class="mode-btn" 
-              class:active={brushMode === 'rainbow'} 
-              onclick={() => brushMode = 'rainbow'}
+            <button
+              class="mode-btn"
+              class:active={brushMode === "rainbow"}
+              onclick={() => (brushMode = "rainbow")}
               title="Rainbow Hue Cycle"
             >
               🌈 <span class="mode-text">Rainbow</span>
             </button>
-            <button 
-              class="mode-btn" 
-              class:active={brushMode === 'spray'} 
-              onclick={() => brushMode = 'spray'}
+            <button
+              class="mode-btn"
+              class:active={brushMode === "spray"}
+              onclick={() => (brushMode = "spray")}
               title="Spray/Airbrush"
             >
               💨 <span class="mode-text">Spray</span>
             </button>
-            <button 
-              class="mode-btn" 
-              class:active={brushMode === 'eraser'} 
-              onclick={() => brushMode = 'eraser'}
+            <button
+              class="mode-btn"
+              class:active={brushMode === "eraser"}
+              onclick={() => (brushMode = "eraser")}
               title="Eraser"
             >
               <Eraser size={14} /> <span class="mode-text">Eraser</span>
@@ -517,31 +582,47 @@
           </div>
         </div>
 
-        <div class="history-actions" class:hidden-mobile={activeTab !== 'actions'}>
-          <button class="history-btn" onclick={undo} disabled={undoStack.length === 0} title="Undo">
+        <div
+          class="history-actions"
+          class:hidden-mobile={activeTab !== "actions"}
+        >
+          <button
+            class="history-btn"
+            onclick={undo}
+            disabled={undoStack.length === 0}
+            title="Undo"
+          >
             <Undo2 size={14} />
           </button>
-          <button class="history-btn" onclick={redo} disabled={redoStack.length === 0} title="Redo">
+          <button
+            class="history-btn"
+            onclick={redo}
+            disabled={redoStack.length === 0}
+            title="Redo"
+          >
             <Redo2 size={14} />
           </button>
         </div>
 
-        <div class="extra-actions" class:hidden-mobile={activeTab !== 'actions'}>
+        <div
+          class="extra-actions"
+          class:hidden-mobile={activeTab !== "actions"}
+        >
           <button class="import-btn" onclick={() => fileInputRef.click()}>
             <Image size={14} /> <span class="import-text">IMPORT</span>
           </button>
-          <input 
-            type="file" 
-            accept="image/*" 
-            bind:this={fileInputRef} 
-            onchange={handleFileChange} 
-            style="display: none;" 
+          <input
+            type="file"
+            accept="image/*"
+            bind:this={fileInputRef}
+            onchange={handleFileChange}
+            style="display: none;"
           />
         </div>
 
-        <button 
-          class="clear-canvas-btn" 
-          class:hidden-mobile={activeTab !== 'actions'} 
+        <button
+          class="clear-canvas-btn"
+          class:hidden-mobile={activeTab !== "actions"}
           onclick={clearCanvas}
         >
           CLEAR CANVAS
@@ -550,7 +631,11 @@
     {/if}
   </div>
 
-  <div bind:this={canvasContainerRef} class="canvas-container" onpaste={handlePaste}>
+  <div
+    bind:this={canvasContainerRef}
+    class="canvas-container"
+    onpaste={handlePaste}
+  >
     <canvas
       bind:this={canvasRef}
       onmousedown={startDraw}
@@ -565,7 +650,7 @@
 
     {#if pastedImage}
       <!-- svelte-ignore a11y_no_static_element_interactions -->
-      <div 
+      <div
         class="image-overlay"
         style="
           position: absolute;
@@ -574,18 +659,24 @@
           width: {pastedImage.width}px;
           height: {pastedImage.height}px;
           transform-origin: center center;
-          transform: translate({imgX - pastedImage.width/2}px, {imgY - pastedImage.height/2}px) scale({imgScale}) rotate({imgRotation}deg);
+          transform: translate({imgX - pastedImage.width / 2}px, {imgY -
+          pastedImage.height / 2}px) scale({imgScale}) rotate({imgRotation}deg);
           cursor: move;
           pointer-events: auto;
         "
         onmousedown={startImageDrag}
         ontouchstart={startImageTouchDrag}
       >
-        <img src={pastedImageUrl} alt="pasted" style="width: 100%; height: 100%; pointer-events: none; border: 2px dashed #ffcc00;" />
+        <img
+          src={pastedImageUrl}
+          alt="pasted"
+          style="width: 100%; height: 100%; pointer-events: none; border: 2px dashed #ffcc00;"
+        />
       </div>
     {/if}
   </div>
 </div>
+
 <style>
   .paint-layout {
     display: flex;
@@ -708,7 +799,8 @@
     border-bottom-color: #ffcc00;
   }
 
-  .brush-settings, .image-controls-box {
+  .brush-settings,
+  .image-controls-box {
     display: flex;
     flex-direction: column;
     align-items: stretch;
@@ -718,7 +810,8 @@
   }
 
   @media (max-width: 767px) and (orientation: portrait) {
-    .brush-settings, .image-controls-box {
+    .brush-settings,
+    .image-controls-box {
       flex-direction: row;
       flex-wrap: nowrap;
       align-items: center;
@@ -729,13 +822,17 @@
       scrollbar-width: none;
       -webkit-overflow-scrolling: touch;
     }
-    
-    .brush-settings::-webkit-scrollbar, .image-controls-box::-webkit-scrollbar {
+
+    .brush-settings::-webkit-scrollbar,
+    .image-controls-box::-webkit-scrollbar {
       display: none;
     }
   }
 
-  .color-picker-box, .brush-size-box, .brush-modes-box, .control-item {
+  .color-picker-box,
+  .brush-size-box,
+  .brush-modes-box,
+  .control-item {
     display: flex;
     flex-direction: column;
     align-items: stretch;
@@ -744,7 +841,10 @@
   }
 
   @media (max-width: 767px) and (orientation: portrait) {
-    .color-picker-box, .brush-size-box, .brush-modes-box, .control-item {
+    .color-picker-box,
+    .brush-size-box,
+    .brush-modes-box,
+    .control-item {
       flex-direction: row;
       align-items: center;
       gap: 6px;
@@ -806,14 +906,16 @@
     box-shadow: 0 0 10px rgba(255, 255, 255, 0.4);
   }
 
-  .brush-size-box label, .control-item label {
+  .brush-size-box label,
+  .control-item label {
     font-size: 0.65rem;
     font-weight: 700;
     color: rgba(255, 255, 255, 0.7);
     white-space: nowrap;
   }
 
-  .brush-size-box input[type="range"], .control-item input[type="range"] {
+  .brush-size-box input[type="range"],
+  .control-item input[type="range"] {
     width: 100%;
     accent-color: #ffcc00;
     background: rgba(255, 255, 255, 0.08);
@@ -823,7 +925,8 @@
   }
 
   @media (max-width: 767px) and (orientation: portrait) {
-    .brush-size-box input[type="range"], .control-item input[type="range"] {
+    .brush-size-box input[type="range"],
+    .control-item input[type="range"] {
       width: 90px;
     }
   }
@@ -1116,8 +1219,14 @@
   }
 
   @keyframes paneFadeIn {
-    0% { opacity: 0; transform: translateY(4px); }
-    100% { opacity: 1; transform: translateY(0); }
+    0% {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   .desktop-only-label {
@@ -1132,7 +1241,10 @@
 
   /* Inline visibility adjustments for mobile landscape */
   @media (max-width: 767px) and (orientation: landscape) {
-    .mode-text, .import-text, .place-text, .cancel-text {
+    .mode-text,
+    .import-text,
+    .place-text,
+    .cancel-text {
       display: none;
     }
   }

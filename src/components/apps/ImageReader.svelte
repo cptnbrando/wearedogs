@@ -465,7 +465,7 @@
   <header
     class="app-header-block flex items-center justify-between border-b border-white/5 pb-2.5 mb-3 flex-shrink-0"
   >
-    <div class="flex items-center gap-3">
+    <!-- <div class="flex items-center gap-3">
       <div
         class="header-icon-glow flex items-center justify-center w-8 h-8 rounded-lg bg-red-500/10 border border-red-500/20"
       >
@@ -482,7 +482,7 @@
           >OPTICAL CHARACTER EXTRACTOR</span
         >
       </div>
-    </div>
+    </div> -->
 
     {#if bulkFiles.length > 0}
       <button

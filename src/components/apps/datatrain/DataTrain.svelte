@@ -20,10 +20,10 @@
 <div class="datatrain-layout">
   <!-- Interactive Navigation Header -->
   <header class="datatrain-header">
-    <div class="header-brand">
+    <!-- <div class="header-brand">
       <div class="glow-pulse-circle"></div>
       <h2>DATA TRAIN</h2>
-    </div>
+    </div> -->
 
     <!-- Responsive Toggles Grid -->
     <div class="tab-scroller">

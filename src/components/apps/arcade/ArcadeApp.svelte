@@ -661,7 +661,7 @@
     <!-- SELECTION GRID SCREEN -->
     <div class="selection-screen">
       <div>
-        <h2>Dogs Retro Arcade</h2>
+        <h2>Arcade</h2>
         <p class="intro-text">
           Load vintage ROM games from local disk database.
         </p>

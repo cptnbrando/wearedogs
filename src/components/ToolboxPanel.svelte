@@ -20,6 +20,7 @@
     RefreshCw,
     FileText,
     Gamepad2,
+    Component,
   } from "lucide-svelte";
   import DogsLogo from "./DogsLogo.svelte";
   import AppCard from "./AppCard.svelte";
@@ -83,9 +84,7 @@
   });
 
   // Derive header title from the active app, falling back to the default
-  const panelTitle = $derived(
-    activeApp ? (apps.find((a) => a.id === activeApp)?.title ?? TITLE_DEFAULT) : TITLE_DEFAULT
-  );
+  const panelTitle = TITLE_DEFAULT;
 
   // Sync initial deep-linked app on mount
   $effect(() => {
@@ -108,7 +107,7 @@
   const apps = [
     {
       id: "blog",
-      title: "DOG BLOG",
+      title: "Dog Blog",
       desc: "Read articles about punk rock tech, development, and music.",
       icon: BookOpen,
     },
@@ -156,13 +155,13 @@
     },
     {
       id: "arcade",
-      title: "Retro Arcade",
+      title: "Arcade",
       desc: "Play retro consoles (GBA, N64, NDS, Genesis) with virtual touch gamepads.",
       icon: Gamepad2,
     },
     {
       id: "paint",
-      title: "Sketch Canvas",
+      title: "Sketch",
       desc: "Draw and paint illustrations on a canvas.",
       icon: Paintbrush,
     },
@@ -172,12 +171,12 @@
       desc: "Play high fidelity dog bark synthesizers.",
       icon: Volume2,
     },
-    {
+    /* {
       id: "memes",
       title: "Canine Memes",
       desc: "Explore and share high-fidelity, hilarious dog memes.",
       icon: Smile,
-    },
+    }, */
     {
       id: "reader",
       title: "Image Reader",
@@ -317,7 +316,28 @@
         >
           <DogsLogo size="panel" />
         </button>
-        <h1>{panelTitle}</h1>
+        {#if activeApp}
+          {@const appInfo = apps.find((a) => a.id === activeApp)}
+          {#if appInfo}
+            <div class="active-app-header-box">
+              <span class="app-indicator-icon flex items-center justify-center">
+                {#if appInfo.id === 'converter'}
+                  🔥
+                {:else}
+                  <appInfo.icon size={16} class={appInfo.id === 'stopwatch' ? 'animated-hourglass text-sky-400' : 'text-[#b455ff]'} />
+                {/if}
+              </span>
+              <h1>{appInfo.title}</h1>
+            </div>
+          {/if}
+        {:else}
+          <div class="active-app-header-box">
+            <span class="toolbox-header-logo flex items-center justify-center">
+              <Component size={16} />
+            </span>
+            <h1>TOOLBOX</h1>
+          </div>
+        {/if}
       </div>
 
       <button
@@ -681,6 +701,94 @@
     .panel-body {
       overflow-y: auto;
       overflow-x: hidden;
+    }
+  }
+  .active-app-header-box {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 6px 14px;
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    animation: boxFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  @keyframes boxFadeIn {
+    from {
+      opacity: 0;
+      transform: scale(0.96) translateX(-5px);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1) translateX(0);
+    }
+  }
+
+  .active-app-header-box h1 {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.9);
+    font-family: "Outfit", "Inter", sans-serif;
+  }
+
+  .toolbox-header-logo {
+    color: #ff5e00; /* Neon Orange */
+    filter: drop-shadow(0 0 4px rgba(255, 94, 0, 0.3));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .app-indicator-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    animation: indicatorIconFadeIn 0.3s ease-out;
+  }
+
+  @keyframes indicatorIconFadeIn {
+    from {
+      opacity: 0;
+      transform: scale(0.85);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  /* Animated Hourglass rotation */
+  :global(.animated-hourglass) {
+    animation: hourglass-flip 3s infinite ease-in-out;
+  }
+
+  @keyframes hourglass-flip {
+    0% { transform: rotate(0deg); }
+    45% { transform: rotate(0deg); }
+    55% { transform: rotate(180deg); }
+    100% { transform: rotate(180deg); }
+  }
+
+  /* Responsive styling for active app title */
+  @media (max-width: 640px) {
+    .active-app-header-box {
+      padding: 4px 10px;
+      gap: 10px;
+    }
+    .active-app-header-box h1 {
+      font-size: 0.8rem;
+      max-width: 120px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
   }
 </style>
