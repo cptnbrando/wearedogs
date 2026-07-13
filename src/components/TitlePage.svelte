@@ -91,6 +91,66 @@
   });
 
   $effect(() => {
+    if (activePage !== null || showInfo) {
+      document.body.style.overflow = "hidden";
+
+      const handleGlobalWheel = (e) => {
+        const backdrop = document.querySelector(".toolbox-panel-backdrop");
+        if (!backdrop) return;
+
+        let scrollContainer = null;
+
+        // Case 1: GoPro App is active
+        const gopro = document.querySelector(".gopro-layout");
+        if (gopro) {
+          const episodes = document.querySelector(".episodes-swipe-wrapper");
+          if (episodes && episodes.clientHeight > 0) {
+            scrollContainer = episodes;
+          }
+        }
+
+        // Case 2: Main launcher grid
+        if (!scrollContainer) {
+          const launcher = document.querySelector(".launcher-view");
+          if (launcher && launcher.clientHeight > 0) {
+            scrollContainer = launcher;
+          }
+        }
+
+        // Case 3: Other apps (like rescue, settings, changelog, soundboard)
+        if (!scrollContainer) {
+          const body = document.querySelector(".panel-body");
+          if (body) {
+            const scrollables = body.querySelectorAll("*");
+            for (const el of scrollables) {
+              const style = window.getComputedStyle(el);
+              if (
+                (style.overflowY === "auto" || style.overflowY === "scroll" || el.classList.contains("shows-list-flow")) &&
+                el.scrollHeight > el.clientHeight &&
+                el.clientHeight > 0
+              ) {
+                scrollContainer = el;
+                break;
+              }
+            }
+          }
+        }
+
+        if (scrollContainer && !scrollContainer.contains(e.target)) {
+          scrollContainer.scrollTop += e.deltaY;
+          e.preventDefault();
+        }
+      };
+
+      window.addEventListener("wheel", handleGlobalWheel, { passive: false });
+      return () => {
+        document.body.style.overflow = "";
+        window.removeEventListener("wheel", handleGlobalWheel);
+      };
+    }
+  });
+
+  $effect(() => {
     const handleOpenInfo = () => {
       showInfo = true;
       const currentState = history.state || {};

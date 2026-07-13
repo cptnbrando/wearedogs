@@ -914,7 +914,7 @@
             const epIndex = currentEpisodeIndex;
             setTimeout(() => {
                 const activeCard = document.querySelector(
-                    ".episode-card.active",
+                    ".episode-grid-card.active",
                 );
                 if (activeCard) {
                     activeCard.scrollIntoView({
