@@ -994,9 +994,6 @@
       textarea {
         font-size: 0.95rem;
       }
-      .app-header-block h2 {
-        font-size: 1.15rem;
-      }
     }
   }
 </style>

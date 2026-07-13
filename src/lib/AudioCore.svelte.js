@@ -283,8 +283,9 @@ export class AudioCore {
 
     const track = this.library[this.currentTrackIndex];
     const hasFetchError = track ? this.fetchErrors[track.id] : false;
+    const hasSrc = this.trackAudio.src || this.instAudio.src;
 
-    if ((!this.trackAudio.src && !this.isLoading) || hasFetchError) {
+    if ((!hasSrc && !this.isLoading) || hasFetchError) {
       await this.loadTrack(this.currentTrackIndex, true);
       return;
     }
