@@ -1095,11 +1095,13 @@
     .bpm-input::-webkit-outer-spin-button,
     .bpm-input::-webkit-inner-spin-button {
         -webkit-appearance: none;
+        appearance: none;
         margin: 0;
     }
 
     .bpm-input {
         -moz-appearance: textfield;
+        appearance: textfield;
     }
 
     .bpm-slider {
@@ -2835,6 +2837,7 @@
     line-height: 1.4;
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
@@ -3149,6 +3152,7 @@
     line-height: 1.3;
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
@@ -3247,6 +3251,7 @@
     .info-show-desc {
         font-size: 0.65rem !important;
         -webkit-line-clamp: 2 !important;
+        line-clamp: 2 !important;
     }
     
     .info-ep-title {
