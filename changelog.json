@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1783901368,
+    "firstCommitTimestamp": 1783902350,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 127903
+    "averageLinesAltered": 127906
   },
   "entries": [
     {
       "version": "1.0.1",
       "name": "Master",
       "date": "2026-07-13",
-      "timestamp": 1783901778,
+      "timestamp": 1783902292,
       "commits": [
         {
-          "hash": "eea37ea",
-          "message": "fix(gopro): revert blob fetches and object URL revocation, use query parameter authentication for video streams",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/eea37ea9fff6a034de26600835ff9c8fc7984ab0",
-          "timestamp": 1783901368,
-          "linesChanged": 127903
+          "hash": "6c82ed2",
+          "message": "fix(gopro): fetch remote video via GET with Authorization header matching check.txt, utilizing a simple blob URL for media stream playback",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/6c82ed2514107b8aab869a571568db8366353fb9",
+          "timestamp": 1783902350,
+          "linesChanged": 127906
         }
       ]
     },
