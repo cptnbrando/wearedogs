@@ -465,10 +465,7 @@ var meter, popset, Neptune, asm, infoInner, shader1, emulatorRun, _$synhc112, _$
                                 _0x13E73.src = _0x13E47;
                                 _0x13E1B.appendChild(_0x13E73)
                             }
-                            if (NeptunP === "sega" || NeptunP === "segaCD" || NeptunP === "segaMS" || NeptunP === "segaGG") {
-                                load_asm = true;
-                                load_wasm = false;
-                            } else if (edge === false || isIE11 === false || chrome === false || opera === false || firefox === false) {
+                            if (edge === false || isIE11 === false || chrome === false || opera === false || firefox === false) {
                                 load_wasm = true
                             } else {
                                 load_asm = true

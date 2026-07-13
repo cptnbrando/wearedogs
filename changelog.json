@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1783924805,
+    "firstCommitTimestamp": 1783927078,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 126353
+    "averageLinesAltered": 126427
   },
   "entries": [
     {
       "version": "1.0.1",
       "name": "Master",
       "date": "2026-07-13",
-      "timestamp": 1783924783,
+      "timestamp": 1783927031,
       "commits": [
         {
-          "hash": "92d464e",
-          "message": "Fix instrumental track pause, make Den Chai instrumental, remove unused CSS warning, hold vinyl rotation on pause",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/92d464ec45b633e2e19e7742c21de217a7d74978",
-          "timestamp": 1783924805,
-          "linesChanged": 126353
+          "hash": "c8a4c89",
+          "message": "arcade patch 1",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/c8a4c891fe1686211a6919cdc0c4e73a3a4282aa",
+          "timestamp": 1783927078,
+          "linesChanged": 126427
         }
       ]
     },
