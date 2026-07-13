@@ -1,5 +1,5 @@
 <script>
-  import { onMount, onDestroy } from "svelte";
+  import { onMount, onDestroy, untrack } from "svelte";
   import {
     Volume2,
     Activity,
@@ -526,6 +526,10 @@
 
   // CRT Oscilloscope waveform generator loop
   function startVisualizer() {
+    if (animationFrameId) {
+      cancelAnimationFrame(animationFrameId);
+    }
+    if (!canvasRef) return;
     canvasCtx = canvasRef.getContext("2d");
 
     function draw() {
@@ -742,32 +746,33 @@
 
   // Derived state to determine if we should stack elements (portrait) or use side-by-side (landscape)
   let isPortrait = $derived(containerWidth < 640);
+  let isMobileLandscape = $derived(!isPortrait && containerHeight < 450);
 
+  // Target base size of the OP-1 chassis
   let baseWidth = $derived(isPortrait ? 360 : 800);
-  let baseHeight = $derived(isPortrait ? 740 : 395);
+  let baseHeight = $derived(isPortrait ? 740 : (isMobileLandscape ? 310 : 395));
 
   // Scaling factor to fit completely in both width and height inside the panel container
   let scale = $derived.by(() => {
     if (!containerWidth || !containerHeight) return 1;
+    if (isMobileLandscape) {
+      // Full bleed width (no safety margins on sides)
+      const scaleX = containerWidth / baseWidth;
+      const scaleY = containerHeight / baseHeight;
+      return Math.min(scaleX, scaleY, 1.25);
+    }
     // Allow small 8px safety padding around the chassis
     const scaleX = (containerWidth - 16) / baseWidth;
     const scaleY = (containerHeight - 16) / baseHeight;
-
-    // On mobile landscape (short height container), we ignore vertical scale (scaleY)
-    // to keep the interface and buttons large and touch-friendly,
-    // and rely on vertical scroll (overflow-y: auto).
-    // We only scale based on width (scaleX) to prevent horizontal overflow.
-    if (!isPortrait && containerHeight < 450) {
-      return Math.min(scaleX, 1.25);
-    }
-
-    // Otherwise, scale to fit both width and height cleanly
-    const computed = Math.min(scaleX, scaleY);
-    return Math.min(computed, 1.25); // cap maximum upscale at 1.25x
+    return Math.min(scaleX, scaleY, 1.25); // cap maximum upscale at 1.25x
   });
 
-  onMount(() => {
-    startVisualizer();
+  $effect(() => {
+    if (canvasRef) {
+      untrack(() => {
+        startVisualizer();
+      });
+    }
   });
 
   onDestroy(() => {
@@ -790,6 +795,7 @@
 
 <div
   class="soundboard-layout animated-pane w-full h-full"
+  class:mobile-landscape-layout={isMobileLandscape}
   bind:clientWidth={containerWidth}
   bind:clientHeight={containerHeight}
 >
@@ -809,39 +815,41 @@
       <!-- Left Column: Screen + Knobs -->
       <div class="chassis-left flex flex-col justify-between gap-3">
         <!-- LCD Display screen (Waveform + Info indicators) -->
-        <div class="op1-screen-unit">
-          {#if isError}
-            <div class="screen-error-overlay">
-              <span class="error-msg">ERR: FETCH FAILED</span>
-              <span class="error-sub">CHECK CLOUD DATA</span>
+        {#if !isMobileLandscape}
+          <div class="op1-screen-unit">
+            {#if isError}
+              <div class="screen-error-overlay">
+                <span class="error-msg">ERR: FETCH FAILED</span>
+                <span class="error-sub">CHECK CLOUD DATA</span>
+              </div>
+            {/if}
+
+            <div class="screen-grid-details">
+              <span class="patch-name" style="color: {activeKit.color}"
+                >{activeKit.name.toUpperCase()}</span
+              >
+              <span class="cutoff-freq">FREQ: {Math.round(knobCutoff)}Hz</span>
+              <span class="pitch-pct">PITCH: {knobPitch.toFixed(2)}x</span>
             </div>
-          {/if}
 
-          <div class="screen-grid-details">
-            <span class="patch-name" style="color: {activeKit.color}"
-              >{activeKit.name.toUpperCase()}</span
-            >
-            <span class="cutoff-freq">FREQ: {Math.round(knobCutoff)}Hz</span>
-            <span class="pitch-pct">PITCH: {knobPitch.toFixed(2)}x</span>
+            <!-- Oscilloscope CRT Canvas -->
+            <canvas
+              bind:this={canvasRef}
+              width="400"
+              height="110"
+              class="CRT-canvas"
+            ></canvas>
+
+            <div class="screen-footer-hud">
+              <span class="hud-item"
+                ><Activity size={10} /> OP-1 ENGINE ACTIVE</span
+              >
+              <span class="hud-item"
+                ><Zap size={10} /> RATE: {knobSpeed.toFixed(2)}x</span
+              >
+            </div>
           </div>
-
-          <!-- Oscilloscope CRT Canvas -->
-          <canvas
-            bind:this={canvasRef}
-            width="400"
-            height="110"
-            class="CRT-canvas"
-          ></canvas>
-
-          <div class="screen-footer-hud">
-            <span class="hud-item"
-              ><Activity size={10} /> OP-1 ENGINE ACTIVE</span
-            >
-            <span class="hud-item"
-              ><Zap size={10} /> RATE: {knobSpeed.toFixed(2)}x</span
-            >
-          </div>
-        </div>
+        {/if}
 
         <!-- Kit Selector Presets Selector Row (looks like OP-1 preset buttons) -->
         <div
@@ -1061,6 +1069,10 @@
     background: #09090d;
     overflow-y: auto;
     overflow-x: hidden;
+  }
+
+  .soundboard-layout.mobile-landscape-layout {
+    padding: 0;
   }
 
   .chassis-scaler {

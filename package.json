@@ -1,7 +1,7 @@
 {
   "name": "wearedogs",
   "private": true,
-  "version": "1.0.1",
+  "version": "1.0.2",
   "type": "module",
   "scripts": {
     "dev": "vite --host",
@@ -46,6 +46,8 @@
     "anyway": "",
     "if you need batman you can run sh ./public/batman/download.sh": "toodle loo",
     "@breezystack/lamejs": "Used for catalytic converter to go to LAME mp3",
-    "fflate": "Needed for catalytic converter to open zip files"
+    "fflate": "Needed for catalytic converter to open zip files",
+    "@lottiefiles/dotlottie-wc": "Used for dog logo animation",
+    "tesseract.js": "Used for OCR image to text"
   }
 }
