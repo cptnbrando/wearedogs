@@ -1,5 +1,3 @@
-<!-- svelte-ignore a11y_click_events_have_key_events -->
-<!-- svelte-ignore a11y_no_static_element_interactions -->
 <script>
   import { onMount, onDestroy } from "svelte";
   import { 
@@ -461,6 +459,23 @@
     else if (knob === "cutoff") knobCutoff = 2000;
   }
 
+  // Keyboard controls for encoder knobs
+  function handleKnobKeydown(knob, e) {
+    if (e.key === "ArrowUp" || e.key === "ArrowRight") {
+      if (knob === "pitch") knobPitch = Math.min(2.0, knobPitch + 0.05);
+      else if (knob === "speed") knobSpeed = Math.min(2.0, knobSpeed + 0.05);
+      else if (knob === "volume") knobVolume = Math.min(1.0, knobVolume + 0.05);
+      else if (knob === "cutoff") knobCutoff = Math.min(10000, knobCutoff + 200);
+      e.preventDefault();
+    } else if (e.key === "ArrowDown" || e.key === "ArrowLeft") {
+      if (knob === "pitch") knobPitch = Math.max(0.5, knobPitch - 0.05);
+      else if (knob === "speed") knobSpeed = Math.max(0.5, knobSpeed - 0.05);
+      else if (knob === "volume") knobVolume = Math.max(0.0, knobVolume - 0.05);
+      else if (knob === "cutoff") knobCutoff = Math.max(200, knobCutoff - 200);
+      e.preventDefault();
+    }
+  }
+
   // Clicking and dragging encoders (knobs) handlers
   function startKnobDrag(knob, e) {
     activeDragKnob = knob;
@@ -562,7 +577,7 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<div class="soundboard-layout animated-pane w-full min-h-screen flex items-center justify-center p-3 sm:p-5 md:p-8 xl:p-12 2xl:p-16 bg-[#09090d]">
+<div class="soundboard-layout animated-pane w-full h-full flex items-center justify-center p-3 sm:p-5 md:p-6 bg-[#09090d]">
   <div class="op1-chassis w-full max-w-[620px] sm:max-w-[820px] md:max-w-[900px] lg:max-w-[1000px] xl:max-w-5xl 2xl:max-w-[1300px] flex flex-col sm:grid sm:grid-cols-12 gap-4 sm:gap-6 bg-[#18181f] border border-white/10 rounded-2xl md:rounded-3xl p-4 md:p-6 shadow-2xl">
     <!-- Left Column: Screen + Knobs -->
     <div class="chassis-left col-span-12 sm:col-span-5 flex flex-col gap-3">
@@ -606,9 +621,16 @@
         <!-- Knob 1: Pitch (Cyan) -->
         <div 
           class="encoder-slot"
+          role="slider"
+          aria-label="Pitch"
+          aria-valuemin="0.5"
+          aria-valuemax="2.0"
+          aria-valuenow={knobPitch}
+          tabindex="0"
           onmousedown={(e) => startKnobDrag("pitch", e)}
           ontouchstart={(e) => handleTouchStart("pitch", e)}
           ondblclick={() => resetKnob("pitch")}
+          onkeydown={(e) => handleKnobKeydown("pitch", e)}
         >
           <div class="knob-cap color-cyan" style="transform: rotate({(knobPitch - 1.25) * 180}deg)">
             <div class="notch"></div>
@@ -620,9 +642,16 @@
         <!-- Knob 2: Playback Speed (Green) -->
         <div 
           class="encoder-slot"
+          role="slider"
+          aria-label="Playback Speed"
+          aria-valuemin="0.5"
+          aria-valuemax="2.0"
+          aria-valuenow={knobSpeed}
+          tabindex="0"
           onmousedown={(e) => startKnobDrag("speed", e)}
           ontouchstart={(e) => handleTouchStart("speed", e)}
           ondblclick={() => resetKnob("speed")}
+          onkeydown={(e) => handleKnobKeydown("speed", e)}
         >
           <div class="knob-cap color-green" style="transform: rotate({(knobSpeed - 1.25) * 180}deg)">
             <div class="notch"></div>
@@ -634,9 +663,16 @@
         <!-- Knob 3: Master Volume (Orange) -->
         <div 
           class="encoder-slot"
+          role="slider"
+          aria-label="Master Volume"
+          aria-valuemin="0.0"
+          aria-valuemax="1.0"
+          aria-valuenow={knobVolume}
+          tabindex="0"
           onmousedown={(e) => startKnobDrag("volume", e)}
           ontouchstart={(e) => handleTouchStart("volume", e)}
           ondblclick={() => resetKnob("volume")}
+          onkeydown={(e) => handleKnobKeydown("volume", e)}
         >
           <div class="knob-cap color-orange" style="transform: rotate({(knobVolume - 0.5) * 270}deg)">
             <div class="notch"></div>
@@ -648,9 +684,16 @@
         <!-- Knob 4: Lowpass Cutoff (Pink) -->
         <div 
           class="encoder-slot"
+          role="slider"
+          aria-label="Lowpass Filter Cutoff"
+          aria-valuemin="200"
+          aria-valuemax="10000"
+          aria-valuenow={knobCutoff}
+          tabindex="0"
           onmousedown={(e) => startKnobDrag("cutoff", e)}
           ontouchstart={(e) => handleTouchStart("cutoff", e)}
           ondblclick={() => resetKnob("cutoff")}
+          onkeydown={(e) => handleKnobKeydown("cutoff", e)}
         >
           <div class="knob-cap color-pink" style="transform: rotate({((knobCutoff - 200) / 9800 - 0.5) * 270}deg)">
             <div class="notch"></div>
@@ -672,7 +715,8 @@
             {@const sound = activeKit.id === "custom" ? samplerStore.customClips[i] : activeKit.sounds[i]}
             
             {#if sound}
-              <div 
+              <button 
+                type="button"
                 class="pad-card {sound.color || ''} {activeKit.id === 'custom' ? 'custom-pad' : 'procedural-pad'}"
                 class:active={activePadIndex === i}
                 style="{activeKit.id === 'custom' ? `--pad-glow: ${sound.color}; border-color: ${sound.color}44` : ''}"
@@ -680,13 +724,22 @@
               >
                 <span class="pad-key">{sound.key.toUpperCase()}</span>
                 {#if activeKit.id === "custom"}
-                  <button class="delete-clip-btn" onclick={(e) => deleteClip(sound.id, e)} title="Delete Clip">✕</button>
+                  <span 
+                    role="button"
+                    tabindex="0"
+                    class="delete-clip-btn" 
+                    onclick={(e) => deleteClip(sound.id, e)}
+                    onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') deleteClip(sound.id, e); }}
+                    title="Delete Clip"
+                  >
+                    ✕
+                  </span>
                   <span class="pad-show-tag">{sound.show.replace(" S1", "")}</span>
                 {:else}
                   <span class="pad-emoji">{sound.emoji}</span>
                 {/if}
                 <span class="pad-label">{sound.label || sound.title}</span>
-              </div>
+              </button>
             {:else}
               <div class="pad-card empty-pad">
                 <span class="empty-dot"></span>
@@ -702,7 +755,7 @@
         {#if activeKit.id === "custom"}
           <div class="clip-counter">TOTAL CUSTOM PADS: {samplerStore.customClips.length}/16</div>
         {:else}
-          <div class="clip-counter">PRESET SOUNDS: 16/16</div>
+          <div class="clip-counter">PRESET SOUNDS: {activeKit.sounds.length}/16</div>
         {/if}
       </footer>
     </div>
