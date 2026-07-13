@@ -165,7 +165,7 @@
 <div class="wc-container flex flex-col w-full h-full overflow-hidden select-none">
   {#if isLoading}
     <div class="flex flex-col items-center justify-center grow gap-3 text-white/50 text-xs">
-      <RefreshCw size={36} class="animate-spin text-neon-gold" />
+      <RefreshCw size={36} class="animate-spin" style="color: var(--color-neon-gold, #e6b900)" />
       <p>Synchronizing fixtures and standings...</p>
     </div>
   {:else}
@@ -287,13 +287,7 @@
     color: white;
   }
 
-  .animate-float {
-    animation: trophyFloat 3s ease-in-out infinite alternate;
-  }
 
-  .text-neon-gold {
-    color: $color-neon-gold;
-  }
 
   .offline-badge {
     animation: pulseGlow 2s infinite alternate;

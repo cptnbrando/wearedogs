@@ -1,5 +1,5 @@
 <script>
-  import { onMount, onDestroy } from "svelte";
+  import { onMount, onDestroy, untrack } from "svelte";
   import {
     ArrowLeft,
     Award,
@@ -138,7 +138,9 @@
   $effect(() => {
     // Trigger typewriter step on target change
     const _t = currentTargetTitle;
-    stepTypewriter();
+    untrack(() => {
+      stepTypewriter();
+    });
     return () => clearTimeout(typewriterTimeout);
   });
 
@@ -165,6 +167,26 @@
       activeApp = null;
     }
   }
+
+  const appColors = {
+    blog: "#b455ff",
+    qrgenerator: "#00d7ff",
+    converter: "#ff5e00",
+    stopwatch: "#00ff66",
+    worldcup: "#e6b900",
+    soundstripper: "#ff007f",
+    windshieldwiper: "#00ffff",
+    snake: "#00ff66",
+    arcade: "#e6b900",
+    paint: "#ffcc00",
+    soundboard: "#ff55bb",
+    reader: "#ff3344",
+    gopro: "#ff55bb",
+    dataflash: "#00d7ff",
+    rescue: "#00bfff",
+    changelog: "#00ff66",
+    settings: "#ff3344",
+  };
 
   // CRITICAL: The changelog and settings apps MUST always remain next to each other at the bottom of the toolbox list, with settings last.
   const apps = [
@@ -366,44 +388,47 @@
   >
     <!-- Header -->
     <header class="panel-header">
-      <div class="brand">
-        <button
-          class="logo-btn"
-          onclick={() =>
-            window.dispatchEvent(
-              new CustomEvent(
-                audioCore.isPlaying ? "open-music-panel" : "open-info-panel",
-              ),
-            )}
-          aria-label="Open DOGS Info"
-        >
-          <DogsLogo size="panel" />
-        </button>
+      <button
+        class="logo-btn"
+        onclick={() =>
+          window.dispatchEvent(
+            new CustomEvent(
+              audioCore.isPlaying ? "open-music-panel" : "open-info-panel",
+            ),
+          )}
+        aria-label="Open DOGS Info"
+      >
+        <DogsLogo size="panel" />
+      </button>
 
-        <div class="active-app-header-box">
-          <span class="app-indicator-icon flex items-center justify-center">
-            {#if currentHeaderDetails.isEmoji}
-              🔥
-            {:else}
-              {@const IconComp = currentHeaderDetails.icon}
-              <IconComp size={16} class={currentHeaderDetails.id === 'stopwatch' ? 'animated-hourglass text-sky-400' : 'text-[#b455ff]'} />
-            {/if}
-          </span>
-          <div
-            class="header-scroll-container"
-            bind:clientWidth={headerContainerWidth}
-            class:overflowing={headerTextWidth > headerContainerWidth}
-            style="--scroll-dist: -{headerTextWidth - headerContainerWidth}px"
+      <div class="active-app-header-box">
+        <span class="app-indicator-icon flex items-center justify-center">
+          {#if currentHeaderDetails.isEmoji}
+            🔥
+          {:else}
+            {@const IconComp = currentHeaderDetails.icon}
+            {@const color = appColors[currentHeaderDetails.id] || '#b455ff'}
+            <IconComp
+              size={16}
+              style="color: {color}; filter: drop-shadow(0 0 5px {color}66);"
+              class={currentHeaderDetails.id === 'stopwatch' ? 'animated-hourglass' : ''}
+            />
+          {/if}
+        </span>
+        <div
+          class="header-scroll-container"
+          bind:clientWidth={headerContainerWidth}
+          class:overflowing={headerTextWidth > headerContainerWidth}
+          style="--scroll-dist: -{headerTextWidth - headerContainerWidth}px"
+        >
+          <h1
+            class="header-title-text"
+            bind:clientWidth={headerTextWidth}
+            class:animate-scroll={headerTextWidth > headerContainerWidth}
           >
-            <h1
-              class="header-title-text"
-              bind:clientWidth={headerTextWidth}
-              class:animate-scroll={headerTextWidth > headerContainerWidth}
-            >
-              <span class="invisible-dummy">{currentTargetTitle}</span>
-              <span class="typewriter-content">{displayedTitle}</span>
-            </h1>
-          </div>
+            <span class="invisible-dummy">{currentTargetTitle}</span>
+            <span class="typewriter-content">{displayedTitle}</span>
+          </h1>
         </div>
       </div>
 
@@ -581,21 +606,14 @@
     flex-shrink: 0;
   }
 
-  .brand {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    min-width: 0;
-    flex: 1;
-    margin-right: 16px;
-  }
-
   .active-app-header-box {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 8px;
     min-width: 0;
     flex: 1;
+    text-align: center;
   }
 
   .app-indicator-icon {
@@ -611,6 +629,12 @@
     min-width: 0;
     flex: 1;
     width: 100%;
+    display: flex;
+    justify-content: center;
+  }
+
+  .header-scroll-container.overflowing {
+    justify-content: flex-start;
   }
 
   .header-title-text {
@@ -878,7 +902,7 @@
     }
   }
 
-  .active-app-header-box h1 {
+  .header-title-text {
     margin: 0;
     font-size: 0.95rem;
     font-weight: 700;
@@ -888,13 +912,7 @@
     font-family: "Outfit", "Inter", sans-serif;
   }
 
-  .toolbox-header-logo {
-    color: #ff5e00; /* Neon Orange */
-    filter: drop-shadow(0 0 4px rgba(255, 94, 0, 0.3));
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
+
 
   .app-indicator-icon {
     display: flex;
@@ -933,12 +951,8 @@
       padding: 4px 10px;
       gap: 10px;
     }
-    .active-app-header-box h1 {
-      font-size: 0.8rem;
-      max-width: 120px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+    .header-title-text {
+      font-size: 0.9rem;
     }
   }
 </style>

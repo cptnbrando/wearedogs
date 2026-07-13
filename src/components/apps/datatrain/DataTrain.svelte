@@ -85,35 +85,7 @@
     }
   }
 
-  .header-brand {
-    display: flex;
-    align-items: center;
-    gap: 8px;
 
-    h2 {
-      margin: 0;
-      font-size: 0.9rem;
-      font-weight: 800;
-      letter-spacing: 0.08em;
-      color: white;
-      text-transform: uppercase;
-      text-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
-    }
-  }
-
-  .glow-pulse-circle {
-    width: 6px;
-    height: 6px;
-    background: #00f0ff;
-    border-radius: 50%;
-    box-shadow: 0 0 8px #00f0ff;
-    animation: flashCircle 1.2s infinite alternate;
-  }
-
-  @keyframes flashCircle {
-    0% { opacity: 0.4; }
-    100% { opacity: 1; }
-  }
 
   .tab-scroller {
     overflow-x: auto;
