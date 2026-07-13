@@ -60,9 +60,6 @@
     }
 
     async function checkLocalFile(file) {
-        if (streamUrl && streamUrl.startsWith("blob:")) {
-            URL.revokeObjectURL(streamUrl);
-        }
         if (!file) {
             streamUrl = "";
             return;
@@ -82,7 +79,7 @@
                 : (activeShowKey === "Batman Beyond" ? "/batman/" : "/");
 
             if (localFolder) {
-                const localPath = encodeURI(`${localFolder}${file}`);
+                const localPath = `${localFolder}${file}`;
                 const localRes = await fetch(localPath, { method: "HEAD" });
                 if (localRes.ok) {
                     streamUrl = localPath;
@@ -90,14 +87,11 @@
                 }
             }
 
-            // Fall back to the remote R2 URL with auth header by fetching the video
-            const res = await fetch(remoteUrl, {
-                method: "GET",
-                headers: password ? { Authorization: `password=${password}` } : {},
-            });
+            // Fall back to the remote R2 URL with password query param
+            const remoteUrlWithAuth = password ? `${remoteUrl}?password=${password}` : remoteUrl;
+            const res = await fetch(remoteUrlWithAuth, { method: "HEAD" });
             if (res.ok) {
-                const blob = await res.blob();
-                streamUrl = URL.createObjectURL(blob);
+                streamUrl = remoteUrlWithAuth;
             } else {
                 streamUrl = "";
                 showDownloadPrompt = true;
@@ -934,10 +928,6 @@
         isPlayingEpisode = false;
         isMaximized = false;
         stopRepeating();
-        if (streamUrl && streamUrl.startsWith("blob:")) {
-            URL.revokeObjectURL(streamUrl);
-        }
-        streamUrl = "";
         if (
             document.fullscreenElement &&
             document.fullscreenElement === playerContainerEl
@@ -1070,9 +1060,6 @@
         stopRepeating();
         if (controlsTimeout) clearTimeout(controlsTimeout);
         if (cursorTimeout) clearTimeout(cursorTimeout);
-        if (streamUrl && streamUrl.startsWith("blob:")) {
-            URL.revokeObjectURL(streamUrl);
-        }
         document.removeEventListener(
             "fullscreenchange",
             handleFullscreenChange,
