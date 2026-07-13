@@ -1622,6 +1622,15 @@
     cursor: pointer;
   }
 
+  @media (max-width: 767px) {
+    .word {
+      font-size: clamp(2.5rem, 12vmin, 5rem);
+    }
+    .words-wrapper {
+      row-gap: 1.2em;
+    }
+  }
+
   .letter {
     display: inline-flex;
     align-items: center;
