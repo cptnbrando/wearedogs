@@ -430,7 +430,7 @@
     const tag = document.activeElement?.tagName;
     if (tag === "INPUT" || tag === "TEXTAREA" || document.activeElement?.isContentEditable) return;
 
-    if (e.key === "Escape") {
+    if (e.key === "Escape" || e.key === "Backspace") {
       // If inside a toolbox sub-app, ToolboxPanel's Escape handler takes the first press
       // (app → grid). We only close the panel once the grid is showing (activeApp === null).
       if (activePage === "toolbox" && activeApp !== null) return;

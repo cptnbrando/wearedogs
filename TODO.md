@@ -31,6 +31,10 @@
 
 - BUG FIX: Music panel instrumental/vocals toggle button doesnt work. it just shakes, only vocals are accessible right now. also, if vocal mix can be fetched correctly, but instrumental fails the network, it must allow vocal play back and shake on toggling to instrumental. and vice versa. currently if one fails, the whole track is unplayable
 
+- There are way, way, way too many runes being used in this entire app
+- No no no no no no no
+- 
+
 # Music App
 
 - Multi-browser / window / device support. Something clever here. When I'm playing music in one tab, and i open wearedogs or localhost or 192.168.x.x etc, across all the music player should be synced up. one music auditory playback. changing the song on one tab changes it on the others. this should be synced across devices too... for now start with tabs and upon completing the task, give me some ideas on how we could do cross device sync without user accounts securely (maybe a bluetooth connection between the devices...?)
@@ -43,6 +47,9 @@
 - the key configure button in the video overlay covers too much of the screen and interface. remove it. it should be underneath the video
 - yeah something went wrong when vibecoding this component a lightyear ago.
 - i been to jail and i want more somedays im a bad man (ignore this line)
+- remove the corner arrows, blinking red dot, and episode info from a permanent video overlay. move them to the one that appears on hover.
+- put dogs logo and DOGS in the bottom right on permanent overlay, very greyed out white washed. yes it must animate if the music panel is playing also
+- the number keys still do not work at all anymore. they should quickly shift and move through the video Like they did before, Ressembling YouTube playback controls, like when I push the number key on a YouTube video, I quickly skip to it This must also adhere to the BPM rule that we once set before. If I hold the button, it will slowly correspond to the BPM, how long it stutters, shows a re-loop, re-play stutter effect. 
 
 
 # Arcade modifications

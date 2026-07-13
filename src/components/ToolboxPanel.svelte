@@ -83,8 +83,71 @@
     }
   });
 
-  // Derive header title from the active app, falling back to the default
-  const panelTitle = TITLE_DEFAULT;
+  let displayedTitle = $state("TOOLBOX");
+  let typewriterTimeout = null;
+
+  let headerContainerWidth = $state(0);
+  let headerTextWidth = $state(0);
+
+  // Derive the active header state (icon, title, etc) from active or focused app
+  const currentHeaderDetails = $derived.by(() => {
+    let appInfo = null;
+    if (activeApp) {
+      appInfo = apps.find((a) => a.id === activeApp);
+    } else if (focusedIdx >= 0 && focusedIdx < apps.length) {
+      appInfo = apps[focusedIdx];
+    }
+    
+    if (appInfo) {
+      return {
+        title: appInfo.title,
+        icon: appInfo.icon,
+        isEmoji: appInfo.id === 'converter',
+        id: appInfo.id
+      };
+    }
+    
+    return {
+      title: "TOOLBOX",
+      icon: Component,
+      isEmoji: false,
+      id: "toolbox"
+    };
+  });
+
+  const currentTargetTitle = $derived(currentHeaderDetails.title);
+
+  function stepTypewriter() {
+    clearTimeout(typewriterTimeout);
+    
+    const target = currentTargetTitle;
+    const current = displayedTitle;
+    
+    if (current === target) return;
+    
+    // Animate characters (backspace first, then type in)
+    if (target.startsWith(current)) {
+      displayedTitle = target.slice(0, current.length + 1);
+      typewriterTimeout = setTimeout(stepTypewriter, 35);
+    } else {
+      displayedTitle = current.slice(0, -1);
+      typewriterTimeout = setTimeout(stepTypewriter, 15);
+    }
+  }
+
+  $effect(() => {
+    // Trigger typewriter step on target change
+    const _t = currentTargetTitle;
+    stepTypewriter();
+    return () => clearTimeout(typewriterTimeout);
+  });
+
+  // Reset focus/hover when returning to the apps grid view
+  $effect(() => {
+    if (activeApp === null) {
+      focusedIdx = -1;
+    }
+  });
 
   // Sync initial deep-linked app on mount
   $effect(() => {
@@ -232,7 +295,7 @@
   }
 
   function handleKeydown(e) {
-    if (e.key === "Escape") {
+    if (e.key === "Escape" || e.key === "Backspace") {
       const tag = document.activeElement?.tagName;
       if (
         tag === "INPUT" ||
@@ -316,28 +379,32 @@
         >
           <DogsLogo size="panel" />
         </button>
-        {#if activeApp}
-          {@const appInfo = apps.find((a) => a.id === activeApp)}
-          {#if appInfo}
-            <div class="active-app-header-box">
-              <span class="app-indicator-icon flex items-center justify-center">
-                {#if appInfo.id === 'converter'}
-                  🔥
-                {:else}
-                  <appInfo.icon size={16} class={appInfo.id === 'stopwatch' ? 'animated-hourglass text-sky-400' : 'text-[#b455ff]'} />
-                {/if}
-              </span>
-              <h1>{appInfo.title}</h1>
-            </div>
-          {/if}
-        {:else}
-          <div class="active-app-header-box">
-            <span class="toolbox-header-logo flex items-center justify-center">
-              <Component size={16} />
-            </span>
-            <h1>TOOLBOX</h1>
+
+        <div class="active-app-header-box">
+          <span class="app-indicator-icon flex items-center justify-center">
+            {#if currentHeaderDetails.isEmoji}
+              🔥
+            {:else}
+              {@const IconComp = currentHeaderDetails.icon}
+              <IconComp size={16} class={currentHeaderDetails.id === 'stopwatch' ? 'animated-hourglass text-sky-400' : 'text-[#b455ff]'} />
+            {/if}
+          </span>
+          <div
+            class="header-scroll-container"
+            bind:clientWidth={headerContainerWidth}
+            class:overflowing={headerTextWidth > headerContainerWidth}
+            style="--scroll-dist: -{headerTextWidth - headerContainerWidth}px"
+          >
+            <h1
+              class="header-title-text"
+              bind:clientWidth={headerTextWidth}
+              class:animate-scroll={headerTextWidth > headerContainerWidth}
+            >
+              <span class="invisible-dummy">{currentTargetTitle}</span>
+              <span class="typewriter-content">{displayedTitle}</span>
+            </h1>
           </div>
-        {/if}
+        </div>
       </div>
 
       <button
@@ -354,7 +421,13 @@
       {#if activeApp === null}
         <!-- APPS LAUNCHER GRID VIEW -->
         <div class="launcher-view animated-pane">
-          <div class="apps-grid" bind:this={appsGridEl}>
+          <div 
+            class="apps-grid" 
+            bind:this={appsGridEl}
+            onmouseleave={() => {
+              if (!isKeyboardNav) focusedIdx = -1;
+            }}
+          >
             {#each apps as app, i}
               <AppCard
                 {app}
@@ -496,15 +569,54 @@
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     background: rgba(0, 0, 0, 0.2);
     flex-shrink: 0;
+    min-width: 0;
+  }
+
+  .logo-btn {
+    display: flex;
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    flex-shrink: 0;
   }
 
   .brand {
     display: flex;
     align-items: center;
     gap: 12px;
+    min-width: 0;
+    flex: 1;
+    margin-right: 16px;
   }
 
-  .brand h1 {
+  .active-app-header-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .app-indicator-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .header-scroll-container {
+    overflow: hidden;
+    white-space: nowrap;
+    min-width: 0;
+    flex: 1;
+    width: 100%;
+  }
+
+  .header-title-text {
+    display: inline-block;
+    position: relative;
+    white-space: nowrap;
     margin: 0;
     font-size: 1.1rem;
     font-weight: 700;
@@ -512,6 +624,44 @@
     text-transform: uppercase;
     color: rgba(255, 255, 255, 0.95);
     font-family: "Outfit", "Inter", sans-serif;
+  }
+
+  .invisible-dummy {
+    visibility: hidden;
+    display: inline-block;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .typewriter-content {
+    position: absolute;
+    left: 0;
+    top: 0;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+  }
+
+
+
+  @media (max-width: 768px) {
+    .header-scroll-container.overflowing {
+      mask-image: linear-gradient(to right, transparent, black 12px, black 90%, transparent);
+      -webkit-mask-image: linear-gradient(to right, transparent, black 12px, black 90%, transparent);
+    }
+
+    .header-title-text.animate-scroll {
+      animation: header-scroll-text 8s linear infinite alternate;
+    }
+  }
+
+  @keyframes header-scroll-text {
+    0%, 15% {
+      transform: translateX(0);
+    }
+    85%, 100% {
+      transform: translateX(var(--scroll-dist));
+    }
   }
 
   .close-btn {
