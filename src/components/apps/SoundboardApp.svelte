@@ -139,6 +139,46 @@
     }, clipDurationSec * 1000);
   }
 
+  // Play direct audio file
+  function playAudioFile(url) {
+    waveAmplitude = 0.8;
+    const audio = new Audio(url);
+    audio.crossOrigin = "anonymous";
+    audio.volume = knobVolume;
+    audio.playbackRate = knobSpeed * knobPitch;
+
+    if (typeof audio.preservesPitch !== "undefined") {
+      audio.preservesPitch = false;
+    }
+
+    initAudio();
+    if (audioCtx) {
+      try {
+        const source = audioCtx.createMediaElementSource(audio);
+        const filter = audioCtx.createBiquadFilter();
+        const gain = audioCtx.createGain();
+
+        source.connect(filter);
+        filter.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        filter.type = "lowpass";
+        filter.frequency.setValueAtTime(knobCutoff, audioCtx.currentTime);
+        gain.gain.setValueAtTime(knobVolume, audioCtx.currentTime);
+      } catch (err) {
+        audio.volume = knobVolume;
+      }
+    }
+
+    audio.play();
+    activeAudioElements.push(audio);
+
+    audio.onended = () => {
+      audio.remove();
+      activeAudioElements = activeAudioElements.filter(a => a !== audio);
+    };
+  }
+
   // Unified Launchpad triggers
   function triggerPad(idx) {
     activePadIndex = idx;
@@ -152,9 +192,13 @@
       playProcedural("yip");
     } else if (idx === 2) {
       playProcedural("growl");
+    } else if (idx === 3) {
+      playAudioFile("https://data.wearedogs.net/music/soundboard/loveisland-break.mp3");
+    } else if (idx === 4) {
+      playAudioFile("https://data.wearedogs.net/music/soundboard/loveisland-text.mp3");
     } else {
       // Custom clips from samplerStore
-      const customIdx = idx - 3;
+      const customIdx = idx - 5;
       if (customIdx >= 0 && customIdx < samplerStore.customClips.length) {
         const clip = samplerStore.customClips[customIdx];
         playCustomClip(clip);
@@ -239,15 +283,17 @@
   function handleKeydown(e) {
     const key = e.key.toLowerCase();
     
-    // Woof, Yip, Growl
+    // Woof, Yip, Growl, LI Break, LI Text
     if (key === "q") triggerPad(0);
     else if (key === "w") triggerPad(1);
     else if (key === "e") triggerPad(2);
+    else if (key === "r") triggerPad(3);
+    else if (key === "t") triggerPad(4);
     
     // Custom triggers mapped to keys in samplerStore
     const matchClipIdx = samplerStore.customClips.findIndex(c => c.key === key);
     if (matchClipIdx !== -1) {
-      triggerPad(matchClipIdx + 3);
+      triggerPad(matchClipIdx + 5);
     }
   }
 
@@ -362,163 +408,195 @@
 
 <div class="soundboard-layout animated-pane">
   <div class="op1-chassis">
-    <!-- LCD Display screen (Waveform + Info indicators) -->
-    <div class="op1-screen-unit">
-      <div class="screen-grid-details">
-        <span class="patch-name">CANINE SAMPLER SYNTH</span>
-        <span class="cutoff-freq">FREQ: {Math.round(knobCutoff)}Hz</span>
-        <span class="pitch-pct">PITCH: {knobPitch.toFixed(2)}x</span>
+    <!-- Left Column: Screen + Knobs -->
+    <div class="chassis-left flex flex-col gap-3">
+      <!-- LCD Display screen (Waveform + Info indicators) -->
+      <div class="op1-screen-unit">
+        <div class="screen-grid-details">
+          <span class="patch-name">CANINE SAMPLER SYNTH</span>
+          <span class="cutoff-freq">FREQ: {Math.round(knobCutoff)}Hz</span>
+          <span class="pitch-pct">PITCH: {knobPitch.toFixed(2)}x</span>
+        </div>
+
+        <!-- Oscilloscope CRT Canvas -->
+        <canvas bind:this={canvasRef} width="400" height="110" class=" CRT-canvas"></canvas>
+
+        <div class="screen-footer-hud">
+          <span class="hud-item"><Activity size={10} /> OP-1 ENGINE ACTIVE</span>
+          <span class="hud-item"><Zap size={10} /> RATE: {knobSpeed.toFixed(2)}x</span>
+        </div>
       </div>
 
-      <!-- Oscilloscope CRT Canvas -->
-      <canvas bind:this={canvasRef} width="400" height="110" class=" CRT-canvas"></canvas>
+      <!-- Encoders knobs row (Colored circles) -->
+      <div class="encoders-deck">
+        <!-- Knob 1: Pitch (Cyan) -->
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div 
+          class="encoder-slot"
+          onmousedown={(e) => startKnobDrag("pitch", e)}
+          ontouchstart={(e) => handleTouchStart("pitch", e)}
+          ondblclick={() => resetKnob("pitch")}
+        >
+          <div class="knob-cap color-cyan" style="transform: rotate({(knobPitch - 1.25) * 180}deg)">
+            <div class="notch"></div>
+          </div>
+          <span class="knob-title">PITCH</span>
+          <span class="knob-value">{knobPitch.toFixed(2)}x</span>
+        </div>
 
-      <div class="screen-footer-hud">
-        <span class="hud-item"><Activity size={10} /> OP-1 ENGINE ACTIVE</span>
-        <span class="hud-item"><Zap size={10} /> RATE: {knobSpeed.toFixed(2)}x</span>
+        <!-- Knob 2: Playback Speed (Green) -->
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div 
+          class="encoder-slot"
+          onmousedown={(e) => startKnobDrag("speed", e)}
+          ontouchstart={(e) => handleTouchStart("speed", e)}
+          ondblclick={() => resetKnob("speed")}
+        >
+          <div class="knob-cap color-green" style="transform: rotate({(knobSpeed - 1.25) * 180}deg)">
+            <div class="notch"></div>
+          </div>
+          <span class="knob-title">SPEED</span>
+          <span class="knob-value">{knobSpeed.toFixed(2)}x</span>
+        </div>
+
+        <!-- Knob 3: Master Volume (Orange) -->
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div 
+          class="encoder-slot"
+          onmousedown={(e) => startKnobDrag("volume", e)}
+          ontouchstart={(e) => handleTouchStart("volume", e)}
+          ondblclick={() => resetKnob("volume")}
+        >
+          <div class="knob-cap color-orange" style="transform: rotate({(knobVolume - 0.5) * 270}deg)">
+            <div class="notch"></div>
+          </div>
+          <span class="knob-title">VOL</span>
+          <span class="knob-value">{Math.round(knobVolume * 100)}%</span>
+        </div>
+
+        <!-- Knob 4: Lowpass Cutoff (Pink) -->
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div 
+          class="encoder-slot"
+          onmousedown={(e) => startKnobDrag("cutoff", e)}
+          ontouchstart={(e) => handleTouchStart("cutoff", e)}
+          ondblclick={() => resetKnob("cutoff")}
+        >
+          <div class="knob-cap color-pink" style="transform: rotate({((knobCutoff - 200) / 9800 - 0.5) * 270}deg)">
+            <div class="notch"></div>
+          </div>
+          <span class="knob-title">FILTER</span>
+          <span class="knob-value">{Math.round(knobCutoff)}Hz</span>
+        </div>
       </div>
     </div>
 
-    <!-- Encoders knobs row (Colored circles) -->
-    <div class="encoders-deck">
-      <!-- Knob 1: Pitch (Cyan) -->
-      <!-- svelte-ignore a11y_no_static_element_interactions -->
-      <div 
-        class="encoder-slot"
-        onmousedown={(e) => startKnobDrag("pitch", e)}
-        ontouchstart={(e) => handleTouchStart("pitch", e)}
-        ondblclick={() => resetKnob("pitch")}
-      >
-        <div class="knob-cap color-cyan" style="transform: rotate({(knobPitch - 1.25) * 180}deg)">
-          <div class="notch"></div>
+    <!-- Right Column: Launchpad + Footer -->
+    <div class="chassis-right flex flex-col justify-between gap-3">
+      <!-- Novation Launchpad Pad Matrix grid (4x4) -->
+      <div class="launchpad-grid-wrapper">
+        <div class="launchpad-tag">LAUNCHPAD SAMPLES GRID</div>
+        
+        <div class="launchpad-grid">
+          <!-- Pad 1: Deep Woof -->
+          <!-- svelte-ignore a11y_click_events_have_key_events -->
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <div 
+            class="pad-card procedural-pad pad-blue" 
+            class:active={activePadIndex === 0}
+            onclick={() => triggerPad(0)}
+          >
+            <span class="pad-key">Q</span>
+            <span class="pad-emoji">🐕</span>
+            <span class="pad-label">Deep Woof</span>
+          </div>
+
+          <!-- Pad 2: Puppy Yip -->
+          <!-- svelte-ignore a11y_click_events_have_key_events -->
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <div 
+            class="pad-card procedural-pad pad-cyan" 
+            class:active={activePadIndex === 1}
+            onclick={() => triggerPad(1)}
+          >
+            <span class="pad-key">W</span>
+            <span class="pad-emoji">🐶</span>
+            <span class="pad-label">Puppy Yip</span>
+          </div>
+
+          <!-- Pad 3: Playful Growl -->
+          <!-- svelte-ignore a11y_click_events_have_key_events -->
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <div 
+            class="pad-card procedural-pad pad-orange" 
+            class:active={activePadIndex === 2}
+            onclick={() => triggerPad(2)}
+          >
+            <span class="pad-key">E</span>
+            <span class="pad-emoji">🐺</span>
+            <span class="pad-label">Playful Growl</span>
+          </div>
+
+          <!-- Pad 4: LI Break -->
+          <!-- svelte-ignore a11y_click_events_have_key_events -->
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <div 
+            class="pad-card procedural-pad pad-pink" 
+            class:active={activePadIndex === 3}
+            onclick={() => triggerPad(3)}
+          >
+            <span class="pad-key">R</span>
+            <span class="pad-emoji">🏝️</span>
+            <span class="pad-label">LI Break</span>
+          </div>
+
+          <!-- Pad 5: LI Text -->
+          <!-- svelte-ignore a11y_click_events_have_key_events -->
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <div 
+            class="pad-card procedural-pad pad-pink" 
+            class:active={activePadIndex === 4}
+            onclick={() => triggerPad(4)}
+          >
+            <span class="pad-key">T</span>
+            <span class="pad-emoji">💬</span>
+            <span class="pad-label">LI Text</span>
+          </div>
+
+          <!-- Pads 6-16: Custom slices loaded from samplerStore -->
+          {#each Array(11) as _, i}
+            {@const customIdx = i}
+            {@const clip = samplerStore.customClips[customIdx]}
+            
+            {#if clip}
+              <!-- svelte-ignore a11y_click_events_have_key_events -->
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
+              <div 
+                class="pad-card custom-pad" 
+                class:active={activePadIndex === customIdx + 5}
+                style="--pad-glow: {clip.color}; border-color: {clip.color}44"
+                onclick={() => triggerPad(customIdx + 5)}
+              >
+                <span class="pad-key">{clip.key.toUpperCase()}</span>
+                <button class="delete-clip-btn" onclick={(e) => deleteClip(clip.id, e)} title="Delete Clip">✕</button>
+                <span class="pad-show-tag">{clip.show.replace(" S1", "")}</span>
+                <span class="pad-label">{clip.title}</span>
+              </div>
+            {:else}
+              <div class="pad-card empty-pad">
+                <span class="empty-dot"></span>
+              </div>
+            {/if}
+          {/each}
         </div>
-        <span class="knob-title">PITCH</span>
-        <span class="knob-value">{knobPitch.toFixed(2)}x</span>
       </div>
 
-      <!-- Knob 2: Playback Speed (Green) -->
-      <!-- svelte-ignore a11y_no_static_element_interactions -->
-      <div 
-        class="encoder-slot"
-        onmousedown={(e) => startKnobDrag("speed", e)}
-        ontouchstart={(e) => handleTouchStart("speed", e)}
-        ondblclick={() => resetKnob("speed")}
-      >
-        <div class="knob-cap color-green" style="transform: rotate({(knobSpeed - 1.25) * 180}deg)">
-          <div class="notch"></div>
-        </div>
-        <span class="knob-title">SPEED</span>
-        <span class="knob-value">{knobSpeed.toFixed(2)}x</span>
-      </div>
-
-      <!-- Knob 3: Master Volume (Orange) -->
-      <!-- svelte-ignore a11y_no_static_element_interactions -->
-      <div 
-        class="encoder-slot"
-        onmousedown={(e) => startKnobDrag("volume", e)}
-        ontouchstart={(e) => handleTouchStart("volume", e)}
-        ondblclick={() => resetKnob("volume")}
-      >
-        <div class="knob-cap color-orange" style="transform: rotate({(knobVolume - 0.5) * 270}deg)">
-          <div class="notch"></div>
-        </div>
-        <span class="knob-title">VOL</span>
-        <span class="knob-value">{Math.round(knobVolume * 100)}%</span>
-      </div>
-
-      <!-- Knob 4: Lowpass Cutoff (Pink) -->
-      <!-- svelte-ignore a11y_no_static_element_interactions -->
-      <div 
-        class="encoder-slot"
-        onmousedown={(e) => startKnobDrag("cutoff", e)}
-        ontouchstart={(e) => handleTouchStart("cutoff", e)}
-        ondblclick={() => resetKnob("cutoff")}
-      >
-        <div class="knob-cap color-pink" style="transform: rotate({((knobCutoff - 200) / 9800 - 0.5) * 270}deg)">
-          <div class="notch"></div>
-        </div>
-        <span class="knob-title">FILTER</span>
-        <span class="knob-value">{Math.round(knobCutoff)}Hz</span>
-      </div>
+      <!-- Sampler details footer -->
+      <footer class="op1-footer">
+        <div class="kb-badge"><Keyboard size={12} /> REMIX MAPPED TRIGGERS ENABLED</div>
+        <div class="clip-counter">TOTAL CUSTOM PADS: {samplerStore.customClips.length}/11</div>
+      </footer>
     </div>
-
-    <!-- Novation Launchpad Pad Matrix grid (4x4) -->
-    <div class="launchpad-grid-wrapper">
-      <div class="launchpad-tag">LAUNCHPAD SAMPLES GRID</div>
-      
-      <div class="launchpad-grid">
-        <!-- Pad 1: Deep Woof -->
-        <!-- svelte-ignore a11y_click_events_have_key_events -->
-        <!-- svelte-ignore a11y_no_static_element_interactions -->
-        <div 
-          class="pad-card procedural-pad pad-blue" 
-          class:active={activePadIndex === 0}
-          onclick={() => triggerPad(0)}
-        >
-          <span class="pad-key">Q</span>
-          <span class="pad-emoji">🐕</span>
-          <span class="pad-label">Deep Woof</span>
-        </div>
-
-        <!-- Pad 2: Puppy Yip -->
-        <!-- svelte-ignore a11y_click_events_have_key_events -->
-        <!-- svelte-ignore a11y_no_static_element_interactions -->
-        <div 
-          class="pad-card procedural-pad pad-cyan" 
-          class:active={activePadIndex === 1}
-          onclick={() => triggerPad(1)}
-        >
-          <span class="pad-key">W</span>
-          <span class="pad-emoji">🐶</span>
-          <span class="pad-label">Puppy Yip</span>
-        </div>
-
-        <!-- Pad 3: Playful Growl -->
-        <!-- svelte-ignore a11y_click_events_have_key_events -->
-        <!-- svelte-ignore a11y_no_static_element_interactions -->
-        <div 
-          class="pad-card procedural-pad pad-orange" 
-          class:active={activePadIndex === 2}
-          onclick={() => triggerPad(2)}
-        >
-          <span class="pad-key">E</span>
-          <span class="pad-emoji">🐺</span>
-          <span class="pad-label">Playful Growl</span>
-        </div>
-
-        <!-- Pads 4-16: Custom slices loaded from samplerStore -->
-        {#each Array(13) as _, i}
-          {@const customIdx = i}
-          {@const clip = samplerStore.customClips[customIdx]}
-          
-          {#if clip}
-            <!-- svelte-ignore a11y_click_events_have_key_events -->
-            <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <div 
-              class="pad-card custom-pad" 
-              class:active={activePadIndex === customIdx + 3}
-              style="--pad-glow: {clip.color}; border-color: {clip.color}44"
-              onclick={() => triggerPad(customIdx + 3)}
-            >
-              <span class="pad-key">{clip.key.toUpperCase()}</span>
-              <button class="delete-clip-btn" onclick={(e) => deleteClip(clip.id, e)} title="Delete Clip">✕</button>
-              <span class="pad-show-tag">{clip.show.replace(" S1", "")}</span>
-              <span class="pad-label">{clip.title}</span>
-            </div>
-          {:else}
-            <div class="pad-card empty-pad">
-              <span class="empty-dot"></span>
-            </div>
-          {/if}
-        {/each}
-      </div>
-    </div>
-
-    <!-- Sampler details footer -->
-    <footer class="op1-footer">
-      <div class="kb-badge"><Keyboard size={12} /> REMIX MAPPED TRIGGERS ENABLED</div>
-      <div class="clip-counter">TOTAL CUSTOM PADS: {samplerStore.customClips.length}/13</div>
-    </footer>
   </div>
 </div>
 
@@ -811,5 +889,109 @@
     display: flex;
     align-items: center;
     gap: 6px;
+  }
+
+  /* Love Island pad color styling */
+  .pad-pink:hover { border-color: #ff55bb; background: rgba(255, 85, 187, 0.04); }
+  .pad-pink.active { background: #ff55bb; color: black; box-shadow: 0 0 15px #ff55bb; }
+
+  /* ── Mobile Portrait Responsiveness ── */
+  @media (max-width: 480px) {
+    .soundboard-layout {
+      padding: 10px;
+    }
+    .op1-chassis {
+      padding: 12px;
+      gap: 12px;
+      border-radius: 16px;
+    }
+    .op1-screen-unit {
+      padding: 8px 10px;
+    }
+    .encoders-deck {
+      padding: 8px 0;
+    }
+    .encoder-slot {
+      min-width: 65px;
+      gap: 4px;
+    }
+    .knob-cap {
+      width: 32px;
+      height: 32px;
+    }
+    .knob-cap .notch {
+      height: 10px;
+    }
+    .knob-value {
+      font-size: 0.6rem;
+    }
+    .launchpad-grid {
+      gap: 8px;
+    }
+    .pad-card {
+      height: 52px;
+    }
+    .pad-emoji {
+      font-size: 1rem;
+    }
+    .pad-label {
+      font-size: 0.58rem;
+      max-width: 72px;
+    }
+  }
+
+  /* ── Mobile Landscape Responsiveness (Side-by-side) ── */
+  @media (max-height: 580px) and (orientation: landscape) {
+    .soundboard-layout {
+      padding: 8px;
+    }
+    .op1-chassis {
+      max-width: 820px;
+      display: grid;
+      grid-template-columns: 1fr 1.2fr;
+      gap: 10px;
+      padding: 10px;
+      border-radius: 16px;
+    }
+    .op1-screen-unit {
+      padding: 6px 10px;
+    }
+    .CRT-canvas {
+      height: 75px;
+    }
+    .encoders-deck {
+      padding: 6px 0;
+    }
+    .encoder-slot {
+      min-width: 60px;
+      gap: 3px;
+    }
+    .knob-cap {
+      width: 28px;
+      height: 28px;
+    }
+    .knob-cap .notch {
+      height: 9px;
+      top: 2px;
+    }
+    .knob-value {
+      font-size: 0.58rem;
+    }
+    .launchpad-grid {
+      gap: 6px;
+    }
+    .pad-card {
+      height: 48px;
+    }
+    .pad-emoji {
+      font-size: 0.9rem;
+    }
+    .pad-label {
+      font-size: 0.55rem;
+      max-width: 70px;
+    }
+    .op1-footer {
+      padding-top: 6px;
+    }
   }
 </style>

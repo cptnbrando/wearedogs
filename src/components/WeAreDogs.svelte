@@ -1610,7 +1610,7 @@
     flex-wrap: nowrap;
     margin: 0;
     padding: 0;
-    font-family: "Source Code Pro", ui-monospace, SFMono-Regular, Menlo, Monaco,
+    font-family: "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, Monaco,
       Consolas, "Liberation Mono", "Courier New", monospace;
     font-size: clamp(5rem, 18vmin, 15rem);
     font-weight: 900;

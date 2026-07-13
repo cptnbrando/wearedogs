@@ -66,3 +66,13 @@
 - Pictures for the victims. Really every listing should be openable into an investigator style case board, last known location, associates, facts, police reports, bodycam footage, social media clips, everything
 - ...
 
+
+# Toolbox apps menu mod
+
+- Only on mobile portrait, when there's only one column, add a bar to the top of the panel
+- When holding on this bar, letters appear below it. if the user then drags the hold to the letter, the toolbox scrolls to that letter app names
+- The letters displayed aren't the entire alphabet, they are dynamically read from the list of apps available
+- tapping on the bar will animate it open into a search bar
+- keyboard apperas, the user can search for apps as expected. it will remove the tiles and nails from the list that don't match the search bar
+
+
