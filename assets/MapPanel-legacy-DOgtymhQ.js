@@ -1,0 +1,1 @@
+System.register(["./vendor-legacy-CDEM_ks0.js","./BasePanel-legacy-B-Q27qZU.js"],function(e,n){var t,r;return e("default",function(e,n){var o=t(n,"isClosing",3,!1);r(e,{title:"World Map",get isClosing(){return o()},get onClose(){return n.onClose}})}),{setters:[function(e){t=e.er},function(e){r=e.default}],execute:function(){}}});
