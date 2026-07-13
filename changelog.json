@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1783900470,
+    "firstCommitTimestamp": 1783901368,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 127916
+    "averageLinesAltered": 127903
   },
   "entries": [
     {
       "version": "1.0.1",
       "name": "Master",
-      "date": "2026-07-12",
-      "timestamp": 1783900529,
+      "date": "2026-07-13",
+      "timestamp": 1783901778,
       "commits": [
         {
-          "hash": "651cef2",
-          "message": "fix(gopro): fetch remote videos via GET and attach password auth header, utilizing blob URL for playback and cleanup on change/destruction",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/651cef2d897febb1c4e12a3abdeead9b1df5f08d",
-          "timestamp": 1783900470,
-          "linesChanged": 127916
+          "hash": "eea37ea",
+          "message": "fix(gopro): revert blob fetches and object URL revocation, use query parameter authentication for video streams",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/eea37ea9fff6a034de26600835ff9c8fc7984ab0",
+          "timestamp": 1783901368,
+          "linesChanged": 127903
         }
       ]
     },
