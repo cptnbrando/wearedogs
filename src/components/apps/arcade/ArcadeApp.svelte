@@ -164,10 +164,40 @@
     }
   }
 
+  function getKeyboardEventInit(keyCode) {
+    switch (keyCode) {
+      case 38: return { key: "ArrowUp", code: "ArrowUp" };
+      case 40: return { key: "ArrowDown", code: "ArrowDown" };
+      case 37: return { key: "ArrowLeft", code: "ArrowLeft" };
+      case 39: return { key: "ArrowRight", code: "ArrowRight" };
+      case 75: return { key: "k", code: "KeyK" };
+      case 67: return { key: "c", code: "KeyC" };
+      case 81: return { key: "q", code: "KeyQ" };
+      case 69: return { key: "e", code: "KeyE" };
+      case 32: return { key: " ", code: "Space" };
+      case 13: return { key: "Enter", code: "Enter" };
+      case 87: return { key: "w", code: "KeyW" };
+      case 83: return { key: "s", code: "KeyS" };
+      case 65: return { key: "a", code: "KeyA" };
+      case 68: return { key: "d", code: "KeyD" };
+      case 73: return { key: "i", code: "KeyI" };
+      case 76: return { key: "l", code: "KeyL" };
+      case 85: return { key: "u", code: "KeyU" };
+      case 79: return { key: "o", code: "KeyO" };
+      case 88: return { key: "x", code: "KeyX" };
+      case 90: return { key: "z", code: "KeyZ" };
+      case 16: return { key: "Shift", code: "ShiftLeft" };
+      default: return { key: "", code: "" };
+    }
+  }
+
   function dispatchSynthesizedKey(type, keyCode) {
+    const extra = getKeyboardEventInit(keyCode);
     const eventObj = new KeyboardEvent(type, {
       keyCode: keyCode,
       which: keyCode,
+      key: extra.key,
+      code: extra.code,
       bubbles: true,
       cancelable: true,
     });
@@ -273,10 +303,19 @@
     const code = getKeyCode(btn, isN64);
     if (!code) return;
 
+    if (isPress && typeof navigator !== "undefined" && navigator.vibrate) {
+      try {
+        navigator.vibrate(15);
+      } catch (err) {}
+    }
+
     const eventName = isPress ? "keydown" : "keyup";
+    const extra = getKeyboardEventInit(code);
     const eventObj = new KeyboardEvent(eventName, {
       keyCode: code,
       which: code,
+      key: extra.key,
+      code: extra.code,
       bubbles: true,
       cancelable: true,
     });
@@ -396,16 +435,28 @@
 
   // Load game emulator setup
   function selectGame(game) {
+    const gameUrl = `/arcade/${game.id}`;
+
     // Check if emulator already run in this window session
     if (window.Neptune) {
       // Reload needed due to WebAssembly instances state pollution. Save autoload state first.
       localStorage.setItem("arcade-auto-load", game.id);
       localStorage.setItem("arcade-auto-theme", activeTheme);
+      history.replaceState(
+        { view: "toolbox", app: "arcade", game: game.id, depth: 3 },
+        "",
+        gameUrl
+      );
       window.location.reload();
       return;
     }
 
     currentGame = game;
+    history.pushState(
+      { view: "toolbox", app: "arcade", game: game.id, depth: 3 },
+      "",
+      gameUrl
+    );
 
     // Apply global NeptuneJS configs
     window.NepEmu = game.console;
@@ -433,6 +484,11 @@
 
   function handleBack() {
     // Navigate back to games selection
+    history.pushState(
+      { view: "toolbox", app: "arcade", depth: 2 },
+      "",
+      "/apps/arcade"
+    );
     if (window.Neptune) {
       window.location.reload();
     } else {
@@ -632,9 +688,22 @@
     const onFullscreenChange = () => {
       isFullscreen = document.fullscreenElement !== null;
     };
+    const handlePopState = (e) => {
+      const state = e.state;
+      if (currentGame && (!state || state.app !== "arcade" || !state.game)) {
+        if (window.Neptune) {
+          window.location.reload();
+        } else {
+          currentGame = null;
+        }
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+
     document.addEventListener("fullscreenchange", onFullscreenChange);
     return () => {
       document.removeEventListener("fullscreenchange", onFullscreenChange);
+      window.removeEventListener("popstate", handlePopState);
     };
   });
 

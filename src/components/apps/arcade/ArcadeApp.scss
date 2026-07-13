@@ -490,8 +490,11 @@
   /* Retro D-Pad */
   .gbc-dpad {
     position: relative;
-    width: 90px;
-    height: 90px;
+    width: 112px;
+    height: 112px;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
 
     .dpad-cross {
       position: absolute;
@@ -503,14 +506,14 @@
     }
 
     .cross-h {
-      width: 90px;
-      height: 28px;
+      width: 112px;
+      height: 35px;
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
     }
     
     .cross-v {
-      width: 28px;
-      height: 90px;
+      width: 35px;
+      height: 112px;
       box-shadow: inset 1px 0 0 rgba(255,255,255,0.08);
     }
 
@@ -523,11 +526,14 @@
       align-items: center;
       justify-content: center;
       outline: none;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
 
       &::after {
         content: "";
-        width: 12px;
-        height: 12px;
+        width: 15px;
+        height: 15px;
         border-radius: 50%;
         background: transparent;
         transition: background 0.1s ease;
@@ -538,16 +544,16 @@
       }
 
       &.up {
-        top: 0; left: 31px; width: 28px; height: 31px;
+        top: 0; left: 38px; width: 35px; height: 38px;
       }
       &.down {
-        bottom: 0; left: 31px; width: 28px; height: 31px;
+        bottom: 0; left: 38px; width: 35px; height: 38px;
       }
       &.left {
-        left: 0; top: 31px; width: 31px; height: 28px;
+        left: 0; top: 38px; width: 38px; height: 35px;
       }
       &.right {
-        right: 0; top: 31px; width: 31px; height: 28px;
+        right: 0; top: 38px; width: 38px; height: 35px;
       }
     }
   }
@@ -559,10 +565,13 @@
     transform: rotate(-25deg);
     position: relative;
     top: -5px;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
 
     .action-btn-circle {
-      width: 38px;
-      height: 38px;
+      width: 48px;
+      height: 48px;
       border-radius: 50%;
       background: #8b1c3d; // Dark Maroon Red
       border: 1px solid rgba(0, 0, 0, 0.4);
@@ -573,11 +582,13 @@
       align-items: center;
       justify-content: center;
       color: rgba(255, 255, 255, 0.85);
-      font-size: 0.85rem;
+      font-size: 0.95rem;
       font-weight: 800;
       cursor: pointer;
       outline: none;
       user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
       transition: transform 0.08s ease;
 
       &:active {
@@ -708,14 +719,17 @@
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     grid-template-rows: repeat(3, 1fr);
-    width: 90px;
-    height: 90px;
+    width: 112px;
+    height: 112px;
     position: relative;
     margin-top: 15px;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
 
     .psp-btn {
-      width: 28px;
-      height: 28px;
+      width: 35px;
+      height: 35px;
       border-radius: 50%;
       background: rgba(255, 255, 255, 0.04);
       border: 1px solid rgba(255, 255, 255, 0.1);
@@ -726,11 +740,13 @@
       align-items: center;
       justify-content: center;
       color: rgba(255, 255, 255, 0.85);
-      font-size: 0.7rem;
+      font-size: 0.8rem;
       font-weight: 800;
       cursor: pointer;
       outline: none;
       user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
       position: absolute;
       transition: all 0.1s ease;
 
@@ -741,16 +757,16 @@
       }
 
       &.triangle {
-        top: 0; left: 31px; color: #00d75f;
+        top: 0; left: 38px; color: #00d75f;
       }
       &.circle {
-        right: 0; top: 31px; color: #ff3344;
+        right: 0; top: 38px; color: #ff3344;
       }
       &.cross {
-        bottom: 0; left: 31px; color: #3b82f6;
+        bottom: 0; left: 38px; color: #3b82f6;
       }
       &.square {
-        left: 0; top: 31px; color: #eab308;
+        left: 0; top: 38px; color: #eab308;
       }
     }
   }
@@ -758,44 +774,50 @@
   /* PSP D-Pad */
   .psp-dpad {
     position: relative;
-    width: 84px;
-    height: 84px;
+    width: 105px;
+    height: 105px;
     margin-top: 10px;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
 
     .psp-dpad-btn {
       position: absolute;
       background: rgba(255, 255, 255, 0.04);
       border: 1px solid rgba(255, 255, 255, 0.08);
       color: rgba(255, 255, 255, 0.8);
-      font-size: 0.65rem;
+      font-size: 0.75rem;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
       outline: none;
       border-radius: 4px;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
 
       &:active {
         background: rgba(255, 255, 255, 0.15);
       }
 
       &.up {
-        top: 0; left: 28px; width: 28px; height: 30px;
+        top: 0; left: 35px; width: 35px; height: 37px;
         border-bottom: none;
         border-radius: 6px 6px 0 0;
       }
       &.down {
-        bottom: 0; left: 28px; width: 28px; height: 30px;
+        bottom: 0; left: 35px; width: 35px; height: 37px;
         border-top: none;
         border-radius: 0 0 6px 6px;
       }
       &.left {
-        left: 0; top: 28px; width: 30px; height: 28px;
+        left: 0; top: 35px; width: 37px; height: 35px;
         border-right: none;
         border-radius: 6px 0 0 6px;
       }
       &.right {
-        right: 0; top: 28px; width: 30px; height: 28px;
+        right: 0; top: 35px; width: 37px; height: 35px;
         border-left: none;
         border-radius: 0 6px 6px 0;
       }
@@ -973,8 +995,11 @@
   /* GBA D-Pad */
   .gba-dpad {
     position: relative;
-    width: 80px;
-    height: 80px;
+    width: 100px;
+    height: 100px;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
 
     .dpad-cross {
       position: absolute;
@@ -986,14 +1011,14 @@
     }
 
     .cross-h {
-      width: 80px;
-      height: 24px;
+      width: 100px;
+      height: 30px;
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
     }
     
     .cross-v {
-      width: 24px;
-      height: 80px;
+      width: 30px;
+      height: 100px;
       box-shadow: inset 1px 0 0 rgba(255,255,255,0.06);
     }
 
@@ -1006,11 +1031,14 @@
       align-items: center;
       justify-content: center;
       outline: none;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
 
       &::after {
         content: "";
-        width: 10px;
-        height: 10px;
+        width: 12px;
+        height: 12px;
         border-radius: 50%;
         background: transparent;
       }
@@ -1020,16 +1048,16 @@
       }
 
       &.up {
-        top: 0; left: 28px; width: 24px; height: 28px;
+        top: 0; left: 35px; width: 30px; height: 35px;
       }
       &.down {
-        bottom: 0; left: 28px; width: 24px; height: 28px;
+        bottom: 0; left: 35px; width: 30px; height: 35px;
       }
       &.left {
-        left: 0; top: 28px; width: 28px; height: 24px;
+        left: 0; top: 35px; width: 35px; height: 30px;
       }
       &.right {
-        right: 0; top: 28px; width: 28px; height: 24px;
+        right: 0; top: 35px; width: 35px; height: 30px;
       }
     }
   }
@@ -1040,10 +1068,13 @@
     gap: 12px;
     transform: rotate(-25deg);
     position: relative;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
 
     .action-btn-circle {
-      width: 34px;
-      height: 34px;
+      width: 43px;
+      height: 43px;
       border-radius: 50%;
       background: #8b1c3d;
       border: 1px solid rgba(0, 0, 0, 0.4);
@@ -1054,11 +1085,13 @@
       align-items: center;
       justify-content: center;
       color: rgba(255, 255, 255, 0.85);
-      font-size: 0.75rem;
+      font-size: 0.85rem;
       font-weight: 800;
       cursor: pointer;
       outline: none;
       user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
       transition: transform 0.08s ease;
 
       &:active {
@@ -1189,21 +1222,21 @@
     }
     
     .gbc-dpad {
-      width: 76px;
-      height: 76px;
-      .cross-h { width: 76px; height: 24px; }
-      .cross-v { width: 24px; height: 76px; }
-      .dpad-btn.up { left: 26px; width: 24px; }
-      .dpad-btn.down { left: 26px; width: 24px; }
-      .dpad-btn.left { top: 26px; height: 24px; }
-      .dpad-btn.right { top: 26px; height: 24px; }
+      width: 95px;
+      height: 95px;
+      .cross-h { width: 95px; height: 30px; }
+      .cross-v { width: 30px; height: 95px; }
+      .dpad-btn.up { left: 32px; width: 30px; }
+      .dpad-btn.down { left: 32px; width: 30px; }
+      .dpad-btn.left { top: 32px; height: 30px; }
+      .dpad-btn.right { top: 32px; height: 30px; }
     }
 
     .gbc-action-buttons {
       gap: 10px;
       .action-btn-circle {
-        width: 32px;
-        height: 32px;
+        width: 40px;
+        height: 40px;
       }
     }
   }
@@ -1221,28 +1254,28 @@
     }
     
     .psp-dpad {
-      width: 60px;
-      height: 60px;
+      width: 75px;
+      height: 75px;
       .psp-dpad-btn {
-        width: 20px;
-        height: 20px;
-        &.up { top: 0; left: 20px; width: 20px; height: 22px; }
-        &.down { bottom: 0; left: 20px; width: 20px; height: 22px; }
-        &.left { left: 0; top: 20px; width: 22px; height: 20px; }
-        &.right { right: 0; top: 20px; width: 22px; height: 20px; }
+        width: 25px;
+        height: 25px;
+        &.up { top: 0; left: 25px; width: 25px; height: 27px; }
+        &.down { bottom: 0; left: 25px; width: 25px; height: 27px; }
+        &.left { left: 0; top: 25px; width: 27px; height: 25px; }
+        &.right { right: 0; top: 25px; width: 27px; height: 25px; }
       }
     }
 
     .psp-action-buttons {
-      width: 64px;
-      height: 64px;
+      width: 80px;
+      height: 80px;
       .psp-btn {
-        width: 22px;
-        height: 22px;
-        &.triangle { left: 21px; }
-        &.cross { left: 21px; }
-        &.circle { top: 21px; }
-        &.square { top: 21px; }
+        width: 28px;
+        height: 28px;
+        &.triangle { left: 26px; }
+        &.cross { left: 26px; }
+        &.circle { top: 26px; }
+        &.square { top: 26px; }
       }
     }
 
@@ -1282,21 +1315,21 @@
     }
 
     .gba-dpad {
-      width: 64px;
-      height: 64px;
-      .dpad-cross.cross-h { width: 64px; height: 20px; }
-      .dpad-cross.cross-v { width: 20px; height: 64px; }
-      .dpad-btn.up { left: 22px; width: 20px; }
-      .dpad-btn.down { left: 22px; width: 20px; }
-      .dpad-btn.left { top: 22px; height: 20px; }
-      .dpad-btn.right { top: 22px; height: 20px; }
+      width: 80px;
+      height: 80px;
+      .dpad-cross.cross-h { width: 80px; height: 24px; }
+      .dpad-cross.cross-v { width: 24px; height: 80px; }
+      .dpad-btn.up { left: 28px; width: 24px; }
+      .dpad-btn.down { left: 28px; width: 24px; }
+      .dpad-btn.left { top: 28px; height: 24px; }
+      .dpad-btn.right { top: 28px; height: 24px; }
     }
 
     .gba-action-buttons {
       gap: 8px;
       .action-btn-circle {
-        width: 28px;
-        height: 28px;
+        width: 35px;
+        height: 35px;
       }
     }
 

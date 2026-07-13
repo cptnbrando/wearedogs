@@ -35,7 +35,8 @@ export const ARCADE_SLUGS = {
   'moonwalker': 'moonwalker',
   'conker': 'conker',
   'goldeneye': 'goldeneye',
-  'zelda': 'zelda'
+  'zelda': 'zelda',
+  'nintendogs': 'nintendogs'
 };
 
 // ---------------------------------------------------------------------------
