@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1783902350,
+    "firstCommitTimestamp": 1783903988,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 127906
+    "averageLinesAltered": 125414
   },
   "entries": [
     {
       "version": "1.0.1",
       "name": "Master",
       "date": "2026-07-13",
-      "timestamp": 1783902292,
+      "timestamp": 1783904006,
       "commits": [
         {
-          "hash": "6c82ed2",
-          "message": "fix(gopro): fetch remote video via GET with Authorization header matching check.txt, utilizing a simple blob URL for media stream playback",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/6c82ed2514107b8aab869a571568db8366353fb9",
-          "timestamp": 1783902350,
-          "linesChanged": 127906
+          "hash": "36b6821",
+          "message": "refactor: clean up redundant and unnecessary test file paths in jsconfig.json include list",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/36b6821364fb2d72fce55444beb7dc45d5c991e8",
+          "timestamp": 1783903988,
+          "linesChanged": 125414
         }
       ]
     },
