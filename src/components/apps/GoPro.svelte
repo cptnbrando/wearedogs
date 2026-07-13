@@ -49,6 +49,7 @@
     // Local file caching & pre-flight existence checks
     let streamUrl = $state("");
     let showDownloadPrompt = $state(false);
+    let isFetching = $state(false);
 
     // Seasons selection state
     let selectedSeasons = $state({}); // key: showKey, value: seasonNum
@@ -64,6 +65,7 @@
             streamUrl = "";
             return;
         }
+        isFetching = true;
         try {
             const remoteBase = activeShow.baseUrl || "";
             const remoteUrl = remoteBase ? `${remoteBase}${file}` : file;
@@ -101,6 +103,8 @@
             }
         } catch {
             streamUrl = "";
+        } finally {
+            isFetching = false;
         }
     }
 
@@ -848,10 +852,11 @@
             e.preventDefault();
             volume = Math.max(0, volume - 0.05);
             if (videoEl) videoEl.volume = volume;
-        } else if (e.key >= "0" && e.key <= "9") {
+        } else if ((e.key >= "0" && e.key <= "9") || (e.code && e.code >= "Numpad0" && e.code <= "Numpad9")) {
             e.preventDefault();
             if (e.repeat) return;
-            startRepeating(e.key);
+            const digit = e.key >= "0" && e.key <= "9" ? e.key : e.code.slice(6);
+            startRepeating(digit);
         } else if (e.key === "i" || e.key === "I") {
             e.preventDefault();
             skipIntro();
@@ -886,8 +891,16 @@
     function handleKeyup(e) {
         if (!isUnlocked) return;
         if (document.activeElement.tagName === "INPUT") return;
+        
+        let digit = null;
         if (e.key >= "0" && e.key <= "9") {
-            if (activeRepeatKey === e.key) {
+            digit = e.key;
+        } else if (e.code && e.code >= "Numpad0" && e.code <= "Numpad9") {
+            digit = e.code.slice(6);
+        }
+
+        if (digit !== null) {
+            if (activeRepeatKey === digit) {
                 stopRepeating();
             }
         }
@@ -1129,6 +1142,20 @@
                     onended={handleEpisodeEnded}
                     onerror={handleVideoError}
                 ></video>
+
+                {#if isFetching}
+                    <!-- svelte-ignore a11y_click_events_have_key_events -->
+                    <!-- svelte-ignore a11y_no_static_element_interactions -->
+                    <div 
+                        class="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-[100] pointer-events-auto"
+                        onclick={(e) => e.stopPropagation()}
+                    >
+                        <div class="w-12 h-12 rounded-full border-4 border-[#ff3344]/10 border-t-[#ff3344] animate-spin shadow-[0_0_15px_rgba(255,51,68,0.5)]"></div>
+                        <span class="mt-4 text-white text-xs sm:text-sm font-bold tracking-widest uppercase animate-pulse">
+                            Fetching Episode...
+                        </span>
+                    </div>
+                {/if}
 
                 {#if showDownloadPrompt}
                     <div class="download-prompt-overlay">

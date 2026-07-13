@@ -48,3 +48,23 @@ if (typeof globalThis.localStorage === 'undefined' || !globalThis.localStorage |
     key: (index) => Object.keys(store)[index] || null
   };
 }
+
+// Mock HTMLCanvasElement.prototype.getContext for jsdom
+if (typeof HTMLCanvasElement !== 'undefined') {
+  HTMLCanvasElement.prototype.getContext = function(type) {
+    if (type === '2d') {
+      return {
+        fillStyle: '',
+        fillRect: function() {},
+        fillText: function() {},
+        clearRect: function() {},
+        beginPath: function() {},
+        arc: function() {},
+        fill: function() {},
+        measureText: () => ({ width: 0 })
+      };
+    }
+    return null;
+  };
+}
+
