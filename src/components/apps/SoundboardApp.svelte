@@ -10,6 +10,7 @@
   let activePadIndex = $state(null);
   let activeOscillators = [];
   let activeAudioElements = [];
+  let isError = $state(false);
 
   // OP-1 Encoders (Knobs) state
   let knobPitch = $state(1.0); // 0.5 to 2.0
@@ -250,6 +251,15 @@
       audio.preservesPitch = false; // pitch shift with speed
     }
 
+    const triggerErrorAnimation = () => {
+      isError = true;
+      setTimeout(() => { isError = false; }, 1500);
+    };
+
+    audio.onerror = () => {
+      triggerErrorAnimation();
+    };
+
     // Set filter utilizing Web Audio (if possible/supported, otherwise direct player playback)
     initAudio();
     if (audioCtx) {
@@ -271,7 +281,9 @@
       }
     }
 
-    audio.play();
+    audio.play().catch(err => {
+      triggerErrorAnimation();
+    });
     activeAudioElements.push(audio);
 
     // Stop exactly at clip endpoint (taking rate into account)
@@ -300,6 +312,15 @@
       audio.preservesPitch = false;
     }
 
+    const triggerErrorAnimation = () => {
+      isError = true;
+      setTimeout(() => { isError = false; }, 1500);
+    };
+
+    audio.onerror = () => {
+      triggerErrorAnimation();
+    };
+
     initAudio();
     if (audioCtx) {
       try {
@@ -319,7 +340,9 @@
       }
     }
 
-    audio.play();
+    audio.play().catch(err => {
+      triggerErrorAnimation();
+    });
     activeAudioElements.push(audio);
 
     audio.onended = () => {
@@ -564,6 +587,26 @@
     window.removeEventListener("touchcancel", stopTouchDrag);
   }
 
+  // Container dimensions for auto-scaling
+  let containerWidth = $state(0);
+  let containerHeight = $state(0);
+
+  // Derived state to determine if we should stack elements (portrait) or use side-by-side (landscape)
+  let isPortrait = $derived(containerWidth < 640);
+
+  // Target base size of the OP-1 chassis
+  let baseWidth = $derived(isPortrait ? 360 : 800);
+  let baseHeight = $derived(isPortrait ? 600 : 350);
+
+  // Scaling factor to fit completely in both width and height inside the panel container
+  let scale = $derived.by(() => {
+    if (!containerWidth || !containerHeight) return 1;
+    // Allow small 8px safety padding around the chassis
+    const scaleX = (containerWidth - 16) / baseWidth;
+    const scaleY = (containerHeight - 16) / baseHeight;
+    return Math.min(scaleX, scaleY, 1.25); // cap maximum upscale at 1.25x
+  });
+
   onMount(() => {
     startVisualizer();
   });
@@ -577,205 +620,230 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<div class="soundboard-layout animated-pane w-full h-full flex items-center justify-center p-3 sm:p-5 md:p-6 bg-[#09090d]">
-  <div class="op1-chassis w-full max-w-[620px] sm:max-w-[820px] md:max-w-[900px] lg:max-w-[1000px] xl:max-w-5xl 2xl:max-w-[1300px] flex flex-col sm:grid sm:grid-cols-12 gap-4 sm:gap-6 bg-[#18181f] border border-white/10 rounded-2xl md:rounded-3xl p-4 md:p-6 shadow-2xl">
-    <!-- Left Column: Screen + Knobs -->
-    <div class="chassis-left col-span-12 sm:col-span-5 flex flex-col gap-3">
-      <!-- LCD Display screen (Waveform + Info indicators) -->
-      <div class="op1-screen-unit">
-        <div class="screen-grid-details">
-          <span class="patch-name" style="color: {activeKit.color}">{activeKit.name.toUpperCase()}</span>
-          <span class="cutoff-freq">FREQ: {Math.round(knobCutoff)}Hz</span>
-          <span class="pitch-pct">PITCH: {knobPitch.toFixed(2)}x</span>
-        </div>
-
-        <!-- Oscilloscope CRT Canvas -->
-        <canvas bind:this={canvasRef} width="400" height="110" class="CRT-canvas"></canvas>
-
-        <div class="screen-footer-hud">
-          <span class="hud-item"><Activity size={10} /> OP-1 ENGINE ACTIVE</span>
-          <span class="hud-item"><Zap size={10} /> RATE: {knobSpeed.toFixed(2)}x</span>
-        </div>
-      </div>
-
-      <!-- Kit Selector Presets Selector Row (looks like OP-1 preset buttons) -->
-      <div class="kit-selector-row flex justify-between items-center bg-black/40 border border-white/5 rounded-xl px-3 py-2">
-        <span class="kit-selector-label text-[10px] font-bold text-white/30 tracking-wider">PRESET KITS:</span>
-        <div class="flex gap-2">
-          {#each KITS as kit, i}
-            <button
-              class="kit-btn"
-              class:active={activeKitIndex === i}
-              style="--kit-color: {kit.color}; --kit-glow: {kit.glow}"
-              onclick={() => selectKit(i)}
-              title={kit.name}
-            >
-              {i + 1}
-            </button>
-          {/each}
-        </div>
-      </div>
-
-      <!-- Encoders knobs row (Colored circles) -->
-      <div class="encoders-deck">
-        <!-- Knob 1: Pitch (Cyan) -->
-        <div 
-          class="encoder-slot"
-          role="slider"
-          aria-label="Pitch"
-          aria-valuemin="0.5"
-          aria-valuemax="2.0"
-          aria-valuenow={knobPitch}
-          tabindex="0"
-          onmousedown={(e) => startKnobDrag("pitch", e)}
-          ontouchstart={(e) => handleTouchStart("pitch", e)}
-          ondblclick={() => resetKnob("pitch")}
-          onkeydown={(e) => handleKnobKeydown("pitch", e)}
-        >
-          <div class="knob-cap color-cyan" style="transform: rotate({(knobPitch - 1.25) * 180}deg)">
-            <div class="notch"></div>
+<div 
+  class="soundboard-layout animated-pane w-full h-full flex items-center justify-center p-3 bg-[#09090d] overflow-hidden"
+  bind:clientWidth={containerWidth}
+  bind:clientHeight={containerHeight}
+>
+  <div 
+    class="chassis-scaler" 
+    style="width: {baseWidth}px; height: {baseHeight}px; transform: scale({scale}); transform-origin: center center; flex-shrink: 0; display: flex; align-items: center; justify-content: center;"
+  >
+    <div 
+      class="op1-chassis w-full h-full"
+      class:grid-layout={!isPortrait}
+      class:chassis-error={isError}
+    >
+      <!-- Left Column: Screen + Knobs -->
+      <div class="chassis-left flex flex-col justify-between gap-3">
+        <!-- LCD Display screen (Waveform + Info indicators) -->
+        <div class="op1-screen-unit">
+          {#if isError}
+            <div class="screen-error-overlay">
+              <span class="error-msg">ERR: FETCH FAILED</span>
+              <span class="error-sub">CHECK CLOUD DATA</span>
+            </div>
+          {/if}
+          
+          <div class="screen-grid-details">
+            <span class="patch-name" style="color: {activeKit.color}">{activeKit.name.toUpperCase()}</span>
+            <span class="cutoff-freq">FREQ: {Math.round(knobCutoff)}Hz</span>
+            <span class="pitch-pct">PITCH: {knobPitch.toFixed(2)}x</span>
           </div>
-          <span class="knob-title">PITCH</span>
-          <span class="knob-value">{knobPitch.toFixed(2)}x</span>
-        </div>
 
-        <!-- Knob 2: Playback Speed (Green) -->
-        <div 
-          class="encoder-slot"
-          role="slider"
-          aria-label="Playback Speed"
-          aria-valuemin="0.5"
-          aria-valuemax="2.0"
-          aria-valuenow={knobSpeed}
-          tabindex="0"
-          onmousedown={(e) => startKnobDrag("speed", e)}
-          ontouchstart={(e) => handleTouchStart("speed", e)}
-          ondblclick={() => resetKnob("speed")}
-          onkeydown={(e) => handleKnobKeydown("speed", e)}
-        >
-          <div class="knob-cap color-green" style="transform: rotate({(knobSpeed - 1.25) * 180}deg)">
-            <div class="notch"></div>
+          <!-- Oscilloscope CRT Canvas -->
+          <canvas bind:this={canvasRef} width="400" height="110" class="CRT-canvas"></canvas>
+
+          <div class="screen-footer-hud">
+            <span class="hud-item"><Activity size={10} /> OP-1 ENGINE ACTIVE</span>
+            <span class="hud-item"><Zap size={10} /> RATE: {knobSpeed.toFixed(2)}x</span>
           </div>
-          <span class="knob-title">SPEED</span>
-          <span class="knob-value">{knobSpeed.toFixed(2)}x</span>
         </div>
 
-        <!-- Knob 3: Master Volume (Orange) -->
-        <div 
-          class="encoder-slot"
-          role="slider"
-          aria-label="Master Volume"
-          aria-valuemin="0.0"
-          aria-valuemax="1.0"
-          aria-valuenow={knobVolume}
-          tabindex="0"
-          onmousedown={(e) => startKnobDrag("volume", e)}
-          ontouchstart={(e) => handleTouchStart("volume", e)}
-          ondblclick={() => resetKnob("volume")}
-          onkeydown={(e) => handleKnobKeydown("volume", e)}
-        >
-          <div class="knob-cap color-orange" style="transform: rotate({(knobVolume - 0.5) * 270}deg)">
-            <div class="notch"></div>
-          </div>
-          <span class="knob-title">VOL</span>
-          <span class="knob-value">{Math.round(knobVolume * 100)}%</span>
-        </div>
-
-        <!-- Knob 4: Lowpass Cutoff (Pink) -->
-        <div 
-          class="encoder-slot"
-          role="slider"
-          aria-label="Lowpass Filter Cutoff"
-          aria-valuemin="200"
-          aria-valuemax="10000"
-          aria-valuenow={knobCutoff}
-          tabindex="0"
-          onmousedown={(e) => startKnobDrag("cutoff", e)}
-          ontouchstart={(e) => handleTouchStart("cutoff", e)}
-          ondblclick={() => resetKnob("cutoff")}
-          onkeydown={(e) => handleKnobKeydown("cutoff", e)}
-        >
-          <div class="knob-cap color-pink" style="transform: rotate({((knobCutoff - 200) / 9800 - 0.5) * 270}deg)">
-            <div class="notch"></div>
-          </div>
-          <span class="knob-title">FILTER</span>
-          <span class="knob-value">{Math.round(knobCutoff)}Hz</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Right Column: Launchpad + Footer -->
-    <div class="chassis-right col-span-12 sm:col-span-7 flex flex-col justify-between gap-3">
-      <!-- Novation Launchpad Pad Matrix grid (4x4) -->
-      <div class="launchpad-grid-wrapper">
-        <div class="launchpad-tag">LAUNCHPAD SAMPLES GRID ({activeKit.name.toUpperCase()})</div>
-        
-        <div class="launchpad-grid">
-          {#each Array(16) as _, i}
-            {@const sound = activeKit.id === "custom" ? samplerStore.customClips[i] : activeKit.sounds[i]}
-            
-            {#if sound}
-              <button 
-                type="button"
-                class="pad-card {sound.color || ''} {activeKit.id === 'custom' ? 'custom-pad' : 'procedural-pad'}"
-                class:active={activePadIndex === i}
-                style="{activeKit.id === 'custom' ? `--pad-glow: ${sound.color}; border-color: ${sound.color}44` : ''}"
-                onclick={() => triggerPad(i)}
+        <!-- Kit Selector Presets Selector Row (looks like OP-1 preset buttons) -->
+        <div class="kit-selector-row flex justify-between items-center bg-black/40 border border-white/5 rounded-xl px-3 py-2">
+          <span class="kit-selector-label text-[10px] font-bold text-white/30 tracking-wider">PRESET KITS:</span>
+          <div class="flex gap-2">
+            {#each KITS as kit, i}
+              <button
+                class="kit-btn"
+                class:active={activeKitIndex === i}
+                style="--kit-color: {kit.color}; --kit-glow: {kit.glow}"
+                onclick={() => selectKit(i)}
+                title={kit.name}
               >
-                <span class="pad-key">{sound.key.toUpperCase()}</span>
-                {#if activeKit.id === "custom"}
-                  <span 
-                    role="button"
-                    tabindex="0"
-                    class="delete-clip-btn" 
-                    onclick={(e) => deleteClip(sound.id, e)}
-                    onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') deleteClip(sound.id, e); }}
-                    title="Delete Clip"
-                  >
-                    ✕
-                  </span>
-                  <span class="pad-show-tag">{sound.show.replace(" S1", "")}</span>
-                {:else}
-                  <span class="pad-emoji">{sound.emoji}</span>
-                {/if}
-                <span class="pad-label">{sound.label || sound.title}</span>
+                {i + 1}
               </button>
-            {:else}
-              <div class="pad-card empty-pad">
-                <span class="empty-dot"></span>
-              </div>
-            {/if}
-          {/each}
+            {/each}
+          </div>
+        </div>
+
+        <!-- Encoders knobs row (Colored circles) -->
+        <div class="encoders-deck">
+          <!-- Knob 1: Pitch (Cyan) -->
+          <div 
+            class="encoder-slot"
+            role="slider"
+            aria-label="Pitch"
+            aria-valuemin="0.5"
+            aria-valuemax="2.0"
+            aria-valuenow={knobPitch}
+            tabindex="0"
+            onmousedown={(e) => startKnobDrag("pitch", e)}
+            ontouchstart={(e) => handleTouchStart("pitch", e)}
+            ondblclick={() => resetKnob("pitch")}
+            onkeydown={(e) => handleKnobKeydown("pitch", e)}
+          >
+            <div class="knob-cap color-cyan" style="transform: rotate({(knobPitch - 1.25) * 180}deg)">
+              <div class="notch"></div>
+            </div>
+            <span class="knob-title">PITCH</span>
+            <span class="knob-value">{knobPitch.toFixed(2)}x</span>
+          </div>
+
+          <!-- Knob 2: Playback Speed (Green) -->
+          <div 
+            class="encoder-slot"
+            role="slider"
+            aria-label="Playback Speed"
+            aria-valuemin="0.5"
+            aria-valuemax="2.0"
+            aria-valuenow={knobSpeed}
+            tabindex="0"
+            onmousedown={(e) => startKnobDrag("speed", e)}
+            ontouchstart={(e) => handleTouchStart("speed", e)}
+            ondblclick={() => resetKnob("speed")}
+            onkeydown={(e) => handleKnobKeydown("speed", e)}
+          >
+            <div class="knob-cap color-green" style="transform: rotate({(knobSpeed - 1.25) * 180}deg)">
+              <div class="notch"></div>
+            </div>
+            <span class="knob-title">SPEED</span>
+            <span class="knob-value">{knobSpeed.toFixed(2)}x</span>
+          </div>
+
+          <!-- Knob 3: Master Volume (Orange) -->
+          <div 
+            class="encoder-slot"
+            role="slider"
+            aria-label="Master Volume"
+            aria-valuemin="0.0"
+            aria-valuemax="1.0"
+            aria-valuenow={knobVolume}
+            tabindex="0"
+            onmousedown={(e) => startKnobDrag("volume", e)}
+            ontouchstart={(e) => handleTouchStart("volume", e)}
+            ondblclick={() => resetKnob("volume")}
+            onkeydown={(e) => handleKnobKeydown("volume", e)}
+          >
+            <div class="knob-cap color-orange" style="transform: rotate({(knobVolume - 0.5) * 270}deg)">
+              <div class="notch"></div>
+            </div>
+            <span class="knob-title">VOL</span>
+            <span class="knob-value">{Math.round(knobVolume * 100)}%</span>
+          </div>
+
+          <!-- Knob 4: Lowpass Cutoff (Pink) -->
+          <div 
+            class="encoder-slot"
+            role="slider"
+            aria-label="Lowpass Filter Cutoff"
+            aria-valuemin="200"
+            aria-valuemax="10000"
+            aria-valuenow={knobCutoff}
+            tabindex="0"
+            onmousedown={(e) => startKnobDrag("cutoff", e)}
+            ontouchstart={(e) => handleTouchStart("cutoff", e)}
+            ondblclick={() => resetKnob("cutoff")}
+            onkeydown={(e) => handleKnobKeydown("cutoff", e)}
+          >
+            <div class="knob-cap color-pink" style="transform: rotate({((knobCutoff - 200) / 9800 - 0.5) * 270}deg)">
+              <div class="notch"></div>
+            </div>
+            <span class="knob-title">FILTER</span>
+            <span class="knob-value">{Math.round(knobCutoff)}Hz</span>
+          </div>
         </div>
       </div>
 
-      <!-- Sampler details footer -->
-      <footer class="op1-footer">
-        <div class="kb-badge"><Keyboard size={12} /> REMIX MAPPED TRIGGERS ENABLED</div>
-        {#if activeKit.id === "custom"}
-          <div class="clip-counter">TOTAL CUSTOM PADS: {samplerStore.customClips.length}/16</div>
-        {:else}
-          <div class="clip-counter">PRESET SOUNDS: {activeKit.sounds.length}/16</div>
-        {/if}
-      </footer>
+      <!-- Right Column: Launchpad + Footer -->
+      <div class="chassis-right flex flex-col justify-between gap-3">
+        <!-- Novation Launchpad Pad Matrix grid (4x4) -->
+        <div class="launchpad-grid-wrapper">
+          <div class="launchpad-tag">LAUNCHPAD SAMPLES GRID ({activeKit.name.toUpperCase()})</div>
+          
+          <div class="launchpad-grid">
+            {#each Array(16) as _, i}
+              {@const sound = activeKit.id === "custom" ? samplerStore.customClips[i] : activeKit.sounds[i]}
+              
+              {#if sound}
+                <button 
+                  type="button"
+                  class="pad-card {sound.color || ''} {activeKit.id === 'custom' ? 'custom-pad' : 'procedural-pad'}"
+                  class:active={activePadIndex === i}
+                  style="{activeKit.id === 'custom' ? `--pad-glow: ${sound.color}; border-color: ${sound.color}44` : ''}"
+                  onclick={() => triggerPad(i)}
+                >
+                  <span class="pad-key">{sound.key.toUpperCase()}</span>
+                  {#if activeKit.id === "custom"}
+                    <span 
+                      role="button"
+                      tabindex="0"
+                      class="delete-clip-btn" 
+                      onclick={(e) => deleteClip(sound.id, e)}
+                      onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') deleteClip(sound.id, e); }}
+                      title="Delete Clip"
+                    >
+                      ✕
+                    </span>
+                    <span class="pad-show-tag">{sound.show.replace(" S1", "")}</span>
+                  {:else}
+                    <span class="pad-emoji">{sound.emoji}</span>
+                  {/if}
+                  <span class="pad-label">{sound.label || sound.title}</span>
+                </button>
+              {:else}
+                <div class="pad-card empty-pad">
+                  <span class="empty-dot"></span>
+                </div>
+              {/if}
+            {/each}
+          </div>
+        </div>
+
+        <!-- Sampler details footer -->
+        <footer class="op1-footer">
+          <div class="kb-badge"><Keyboard size={12} /> REMIX MAPPED TRIGGERS ENABLED</div>
+          {#if activeKit.id === "custom"}
+            <div class="clip-counter">TOTAL CUSTOM PADS: {samplerStore.customClips.length}/16</div>
+          {:else}
+            <div class="clip-counter">PRESET SOUNDS: {activeKit.sounds.length}/16</div>
+          {/if}
+        </footer>
+      </div>
     </div>
   </div>
 </div>
 
 <style>
   .soundboard-layout {
-    padding: 20px;
+    padding: 8px;
     height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
     background: #09090d;
+    overflow: hidden;
+  }
+
+  .chassis-scaler {
+    /* Scale container properties */
   }
 
   /* ── OP-1 Hardware Chassis ── */
   .op1-chassis {
     width: 100%;
-    max-width: 620px;
+    height: 100%;
     background: #18181f;
     border: 2px solid rgba(255, 255, 255, 0.08);
     border-radius: 24px;
@@ -785,7 +853,59 @@
     padding: 16px;
     display: flex;
     flex-direction: column;
+    gap: 12px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .op1-chassis.grid-layout {
+    display: grid;
+    grid-template-columns: 5fr 7fr;
     gap: 16px;
+    padding: 16px;
+  }
+
+  /* Chassis error state */
+  .chassis-error {
+    animation: chassis-shake 0.3s ease-in-out;
+    border-color: #ff3344 !important;
+    box-shadow: 0 0 30px rgba(255, 51, 68, 0.4) !important;
+  }
+
+  @keyframes chassis-shake {
+    0%, 100% { transform: translate(0, 0); }
+    20%, 60% { transform: translate(-4px, 2px); }
+    40%, 80% { transform: translate(4px, -2px); }
+  }
+
+  /* LCD Screen Error Overlay */
+  .screen-error-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(20, 5, 5, 0.95);
+    color: #ff3344;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    font-family: monospace;
+    border-radius: 12px;
+    border: 1px solid #ff3344;
+    animation: flash-error 0.5s infinite alternate;
+  }
+  @keyframes flash-error {
+    0% { opacity: 0.8; }
+    100% { opacity: 1; }
+  }
+  .error-msg {
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+  .error-sub {
+    font-size: 0.55rem;
+    opacity: 0.7;
+    margin-top: 2px;
   }
 
   /* ── LCD Screen ── */
@@ -1088,104 +1208,4 @@
   /* Love Island pad color styling */
   .pad-pink:hover { border-color: #ff55bb; background: rgba(255, 85, 187, 0.04); }
   .pad-pink.active { background: #ff55bb; color: black; box-shadow: 0 0 15px #ff55bb; }
-
-  /* ── Mobile Portrait Responsiveness ── */
-  @media (max-width: 480px) {
-    .soundboard-layout {
-      padding: 10px;
-    }
-    .op1-chassis {
-      padding: 12px;
-      gap: 12px;
-      border-radius: 16px;
-    }
-    .op1-screen-unit {
-      padding: 8px 10px;
-    }
-    .encoders-deck {
-      padding: 8px 0;
-    }
-    .encoder-slot {
-      min-width: 65px;
-      gap: 4px;
-    }
-    .knob-cap {
-      width: 32px;
-      height: 32px;
-    }
-    .knob-cap .notch {
-      height: 10px;
-    }
-    .knob-value {
-      font-size: 0.6rem;
-    }
-    .launchpad-grid {
-      gap: 8px;
-    }
-    .pad-card {
-      height: 52px;
-    }
-    .pad-emoji {
-      font-size: 1rem;
-    }
-    .pad-label {
-      font-size: 0.58rem;
-      max-width: 72px;
-    }
-  }
-
-  /* ── Mobile Landscape Responsiveness (Side-by-side) ── */
-  @media (max-height: 580px) and (orientation: landscape) {
-    .soundboard-layout {
-      padding: 8px;
-    }
-    .op1-chassis {
-      max-width: 820px;
-      display: grid;
-      grid-template-columns: 1fr 1.2fr;
-      gap: 10px;
-      padding: 10px;
-      border-radius: 16px;
-    }
-    .op1-screen-unit {
-      padding: 6px 10px;
-    }
-    .CRT-canvas {
-      height: 75px;
-    }
-    .encoders-deck {
-      padding: 6px 0;
-    }
-    .encoder-slot {
-      min-width: 60px;
-      gap: 3px;
-    }
-    .knob-cap {
-      width: 28px;
-      height: 28px;
-    }
-    .knob-cap .notch {
-      height: 9px;
-      top: 2px;
-    }
-    .knob-value {
-      font-size: 0.58rem;
-    }
-    .launchpad-grid {
-      gap: 6px;
-    }
-    .pad-card {
-      height: 48px;
-    }
-    .pad-emoji {
-      font-size: 0.9rem;
-    }
-    .pad-label {
-      font-size: 0.55rem;
-      max-width: 70px;
-    }
-    .op1-footer {
-      padding-top: 6px;
-    }
-  }
 </style>
