@@ -1,3 +1,5 @@
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
 <script>
   import { onMount, onDestroy } from "svelte";
   import { 
@@ -28,6 +30,120 @@
   let waveAmplitude = $state(0);
   let animationFrameId = null;
 
+  // Kits data definitions
+  const KITS = [
+    {
+      id: "canine",
+      name: "Canine Synth",
+      color: "#00bfff",
+      glow: "rgba(0, 191, 255, 0.4)",
+      sounds: [
+        { id: "woof", type: "procedural", proceduralType: "woof", label: "Deep Woof", emoji: "🐕", key: "q", color: "pad-blue" },
+        { id: "yip", type: "procedural", proceduralType: "yip", label: "Puppy Yip", emoji: "🐶", key: "w", color: "pad-cyan" },
+        { id: "growl", type: "procedural", proceduralType: "growl", label: "Playful Growl", emoji: "🐺", key: "e", color: "pad-orange" },
+        { id: "husky", type: "procedural", proceduralType: "woof", options: { pitch: 1.3, speed: 1.1 }, label: "Husky Bark", emoji: "🦊", key: "r", color: "pad-blue" },
+        { id: "chihuahua", type: "procedural", proceduralType: "yip", options: { pitch: 1.5 }, label: "Chihuahua", emoji: "🐩", key: "t", color: "pad-cyan" },
+        { id: "guard", type: "procedural", proceduralType: "woof", options: { pitch: 0.7, speed: 0.8 }, label: "Guard Bark", emoji: "👹", key: "y", color: "pad-orange" },
+        { id: "growllow", type: "procedural", proceduralType: "growl", options: { pitch: 0.6, speed: 0.8 }, label: "Angry Growl", emoji: "🦁", key: "u", color: "pad-orange" },
+        { id: "boof", type: "procedural", proceduralType: "woof", options: { pitch: 0.5, speed: 0.7 }, label: "Boof", emoji: "🐻", key: "i", color: "pad-blue" },
+        { id: "squeak", type: "procedural", proceduralType: "yip", options: { pitch: 2.0, speed: 1.5 }, label: "Squeaky Toy", emoji: "🧸", key: "o", color: "pad-cyan" },
+        { id: "whistle", type: "procedural", proceduralType: "yip", options: { pitch: 3.5, speed: 0.8 }, label: "Dog Whistle", emoji: "😗", key: "p", color: "pad-cyan" },
+        { id: "bigbark", type: "procedural", proceduralType: "woof", options: { pitch: 0.9, speed: 1.0 }, label: "Big Bark", emoji: "🐕‍🦺", key: "a", color: "pad-blue" },
+        { id: "lilgrowl", type: "procedural", proceduralType: "growl", options: { pitch: 1.2 }, label: "Lil Growl", emoji: "🐈", key: "s", color: "pad-orange" },
+        { id: "subwoofer", type: "procedural", proceduralType: "woof", options: { pitch: 0.4, speed: 0.6 }, label: "Sub Woofer", emoji: "🔊", key: "d", color: "pad-blue" },
+        { id: "speedyip", type: "procedural", proceduralType: "yip", options: { pitch: 1.1, speed: 2.0 }, label: "Speedy Yip", emoji: "⚡", key: "f", color: "pad-cyan" },
+        { id: "slowbark", type: "procedural", proceduralType: "woof", options: { pitch: 0.8, speed: 0.5 }, label: "Slow Bark", emoji: "🐢", key: "g", color: "pad-blue" },
+        { id: "echobark", type: "procedural", proceduralType: "woof", options: { pitch: 1.0, speed: 0.3 }, label: "Echo Bark", emoji: "🌀", key: "h", color: "pad-blue" }
+      ]
+    },
+    {
+      id: "minecraft",
+      name: "Minecraft Blocks",
+      color: "#00ff66",
+      glow: "rgba(0, 255, 102, 0.4)",
+      sounds: [
+        { id: "mc-large", type: "file", url: "https://data.wearedogs.net/music/soundboard/minecraft-large.mp3", label: "MC Large", emoji: "🧱", key: "q", color: "pad-blue" },
+        { id: "mc-medium", type: "file", url: "https://data.wearedogs.net/music/soundboard/minecraft-medium.mp3", label: "MC Medium", emoji: "🪵", key: "w", color: "pad-orange" },
+        { id: "mc-small", type: "file", url: "https://data.wearedogs.net/music/soundboard/minecraft-small.mp3", label: "MC Small", emoji: "🪨", key: "e", color: "pad-cyan" },
+        { id: "mc-tiny", type: "file", url: "https://data.wearedogs.net/music/soundboard/minecraft-tiny.mp3", label: "MC Tiny", emoji: "💎", key: "r", color: "pad-pink" },
+        { id: "mc-large-slow", type: "file", url: "https://data.wearedogs.net/music/soundboard/minecraft-large.mp3", options: { pitch: 0.7, speed: 0.7 }, label: "MC Giant Block", emoji: "🏔️", key: "t", color: "pad-blue" },
+        { id: "mc-medium-fast", type: "file", url: "https://data.wearedogs.net/music/soundboard/minecraft-medium.mp3", options: { pitch: 1.5, speed: 1.5 }, label: "MC Wood Chop", emoji: "🪓", key: "y", color: "pad-orange" },
+        { id: "mc-small-pitch", type: "file", url: "https://data.wearedogs.net/music/soundboard/minecraft-small.mp3", options: { pitch: 1.8, speed: 1.2 }, label: "MC Pebble Kick", emoji: "👟", key: "u", color: "pad-cyan" },
+        { id: "mc-tiny-slow", type: "file", url: "https://data.wearedogs.net/music/soundboard/minecraft-tiny.mp3", options: { pitch: 0.5, speed: 0.8 }, label: "MC Giant Gem", emoji: "👑", key: "i", color: "pad-pink" },
+        { id: "mc-pro-grass", type: "procedural", proceduralType: "woof", options: { pitch: 2.2, speed: 2.0 }, label: "Procedural Grass", emoji: "🌱", key: "o", color: "pad-orange" },
+        { id: "mc-pro-stone", type: "procedural", proceduralType: "growl", options: { pitch: 0.3, speed: 1.5 }, label: "Procedural Stone", emoji: "⛰️", key: "p", color: "pad-blue" },
+        { id: "mc-pro-sand", type: "procedural", proceduralType: "growl", options: { pitch: 0.5, speed: 2.5 }, label: "Procedural Sand", emoji: "⏳", key: "a", color: "pad-cyan" },
+        { id: "mc-pro-gravel", type: "procedural", proceduralType: "growl", options: { pitch: 0.4, speed: 1.8 }, label: "Procedural Gravel", emoji: "🪰", key: "s", color: "pad-blue" },
+        { id: "mc-pro-anvil", type: "procedural", proceduralType: "yip", options: { pitch: 0.3, speed: 0.5 }, label: "Procedural Anvil", emoji: "⚓", key: "d", color: "pad-cyan" },
+        { id: "mc-pro-glass", type: "procedural", proceduralType: "yip", options: { pitch: 2.5, speed: 1.8 }, label: "Procedural Glass", emoji: "🍷", key: "f", color: "pad-pink" },
+        { id: "mc-pro-water", type: "procedural", proceduralType: "yip", options: { pitch: 0.8, speed: 0.3 }, label: "Procedural Splash", emoji: "💧", key: "g", color: "pad-blue" },
+        { id: "mc-pro-lava", type: "procedural", proceduralType: "growl", options: { pitch: 0.2, speed: 0.4 }, label: "Procedural Sizzle", emoji: "🔥", key: "h", color: "pad-orange" }
+      ]
+    },
+    {
+      id: "tips-island",
+      name: "Tips & Island",
+      color: "#ff55bb",
+      glow: "rgba(255, 85, 187, 0.4)",
+      sounds: [
+        { id: "li-break", type: "file", url: "https://data.wearedogs.net/music/soundboard/loveisland-break.mp3", label: "LI Break", emoji: "🏝️", key: "q", color: "pad-pink" },
+        { id: "li-text", type: "file", url: "https://data.wearedogs.net/music/soundboard/loveisland-text.mp3", label: "LI Text", emoji: "💬", key: "w", color: "pad-pink" },
+        { id: "tip-med", type: "file", url: "https://data.wearedogs.net/music/soundboard/tip-medium.mp3", label: "Tip Medium", emoji: "🪙", key: "e", color: "pad-orange" },
+        { id: "tip-small", type: "file", url: "https://data.wearedogs.net/music/soundboard/tip-small.mp3", label: "Tip Small", emoji: "💰", key: "r", color: "pad-orange" },
+        { id: "tip-tiny", type: "file", url: "https://data.wearedogs.net/music/soundboard/tip-tiny.mp3", label: "Tip Tiny", emoji: "💎", key: "t", color: "pad-cyan" },
+        { id: "li-break-fast", type: "file", url: "https://data.wearedogs.net/music/soundboard/loveisland-break.mp3", options: { pitch: 1.5, speed: 1.5 }, label: "LI Break Fast", emoji: "🏃‍♀️", key: "y", color: "pad-pink" },
+        { id: "li-text-slow", type: "file", url: "https://data.wearedogs.net/music/soundboard/loveisland-text.mp3", options: { pitch: 0.7, speed: 0.7 }, label: "LI Text Slow", emoji: "🐌", key: "u", color: "pad-pink" },
+        { id: "tip-med-slow", type: "file", url: "https://data.wearedogs.net/music/soundboard/tip-medium.mp3", options: { pitch: 0.6, speed: 0.6 }, label: "Tip Med Low", emoji: "📉", key: "i", color: "pad-orange" },
+        { id: "tip-small-fast", type: "file", url: "https://data.wearedogs.net/music/soundboard/tip-small.mp3", options: { pitch: 1.4, speed: 1.4 }, label: "Tip Small High", emoji: "📈", key: "o", color: "pad-orange" },
+        { id: "tip-tiny-pitch", type: "file", url: "https://data.wearedogs.net/music/soundboard/tip-tiny.mp3", options: { pitch: 1.8, speed: 1.8 }, label: "Tip Tiny High", emoji: "✨", key: "p", color: "pad-cyan" },
+        { id: "pro-island-drum", type: "procedural", proceduralType: "woof", options: { pitch: 0.3, speed: 1.5 }, label: "Island Tom", emoji: "🥁", key: "a", color: "pad-blue" },
+        { id: "pro-island-shaker", type: "procedural", proceduralType: "growl", options: { pitch: 2.5, speed: 3.0 }, label: "Island Shaker", emoji: "🌾", key: "s", color: "pad-blue" },
+        { id: "pro-island-whistle", type: "procedural", proceduralType: "yip", options: { pitch: 2.2, speed: 1.0 }, label: "Island Whistle", emoji: "🎽", key: "d", color: "pad-cyan" },
+        { id: "pro-island-wave", type: "procedural", proceduralType: "growl", options: { pitch: 0.1, speed: 0.2 }, label: "Ocean Breeze", emoji: "🌊", key: "f", color: "pad-blue" },
+        { id: "pro-island-rim", type: "procedural", proceduralType: "yip", options: { pitch: 1.8, speed: 2.5 }, label: "Island Rimshot", emoji: "🥢", key: "g", color: "pad-cyan" },
+        { id: "pro-island-gong", type: "procedural", proceduralType: "growl", options: { pitch: 0.15, speed: 0.3 }, label: "Island Gong", emoji: "🔔", key: "h", color: "pad-orange" }
+      ]
+    },
+    {
+      id: "arcade",
+      name: "Arcade SFX",
+      color: "#00bfff",
+      glow: "rgba(0, 191, 255, 0.4)",
+      sounds: [
+        { id: "arc-coin", type: "procedural", proceduralType: "coin", label: "Insert Coin", emoji: "👾", key: "q", color: "pad-cyan" },
+        { id: "arc-laser", type: "procedural", proceduralType: "laser", label: "Laser Beam", emoji: "🔫", key: "w", color: "pad-blue" },
+        { id: "arc-explosion", type: "procedural", proceduralType: "explosion", label: "Explosion", emoji: "💥", key: "e", color: "pad-orange" },
+        { id: "arc-jump", type: "procedural", proceduralType: "jump", label: "Retro Jump", emoji: "🦘", key: "r", color: "pad-cyan" },
+        { id: "arc-powerup", type: "procedural", proceduralType: "powerup", label: "Power Up", emoji: "⭐", key: "t", color: "pad-pink" },
+        { id: "arc-defeat", type: "procedural", proceduralType: "defeat", label: "Game Over", emoji: "💀", key: "y", color: "pad-orange" },
+        { id: "arc-warp", type: "procedural", proceduralType: "warp", label: "Teleport", emoji: "🌀", key: "u", color: "pad-blue" },
+        { id: "arc-zap", type: "procedural", proceduralType: "zap", label: "Zap!", emoji: "⚡", key: "i", color: "pad-cyan" },
+        { id: "arc-coin-double", type: "procedural", proceduralType: "coin", options: { speed: 2.0, pitch: 1.2 }, label: "Double Coin", emoji: "💰", key: "o", color: "pad-cyan" },
+        { id: "arc-laser-rapid", type: "procedural", proceduralType: "laser", options: { speed: 2.0 }, label: "Rapid Fire", emoji: "🛸", key: "p", color: "pad-blue" },
+        { id: "arc-explosion-low", type: "procedural", proceduralType: "explosion", options: { pitch: 0.5, speed: 0.6 }, label: "Big Bang", emoji: "🪐", key: "a", color: "pad-orange" },
+        { id: "arc-jump-high", type: "procedural", proceduralType: "jump", options: { pitch: 1.5 }, label: "High Jump", emoji: "🪁", key: "s", color: "pad-cyan" },
+        { id: "arc-powerup-fast", type: "procedural", proceduralType: "powerup", options: { speed: 1.5 }, label: "Speed Up", emoji: "🏎️", key: "d", color: "pad-pink" },
+        { id: "arc-defeat-deep", type: "procedural", proceduralType: "defeat", options: { pitch: 0.6 }, label: "Deep Defeat", emoji: "🩸", key: "f", color: "pad-orange" },
+        { id: "arc-warp-fast", type: "procedural", proceduralType: "warp", options: { speed: 2.0 }, label: "Hyperdrive", emoji: "☄️", key: "g", color: "pad-blue" },
+        { id: "arc-zap-tiny", type: "procedural", proceduralType: "zap", options: { pitch: 2.0, speed: 2.0 }, label: "Tiny Spark", emoji: "✨", key: "h", color: "pad-cyan" }
+      ]
+    },
+    {
+      id: "custom",
+      name: "User Sampler",
+      color: "#ffcc00",
+      glow: "rgba(255, 204, 0, 0.4)",
+      sounds: []
+    }
+  ];
+
+  let activeKitIndex = $state(0);
+  let activeKit = $derived(KITS[activeKitIndex]);
+
+  function selectKit(idx) {
+    activeKitIndex = idx;
+  }
+
   function initAudio() {
     if (!audioCtx) {
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -35,7 +151,7 @@
   }
 
   // Play Procedural sound
-  function playProcedural(type) {
+  function playProcedural(type, options = {}) {
     initAudio();
     if (!audioCtx) return;
 
@@ -56,34 +172,120 @@
     filter.frequency.setValueAtTime(knobCutoff, now);
     gain.gain.setValueAtTime(knobVolume * 0.7, now);
 
-    const basePitch = knobPitch;
+    const basePitch = knobPitch * (options.pitch || 1.0);
+    const speed = knobSpeed * (options.speed || 1.0);
 
     if (type === "woof") {
       osc.type = "triangle";
       osc.frequency.setValueAtTime(140 * basePitch, now);
-      osc.frequency.exponentialRampToValueAtTime(60 * basePitch, now + 0.18 / knobSpeed);
+      osc.frequency.exponentialRampToValueAtTime(60 * basePitch, now + 0.18 / speed);
       
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.22 / knobSpeed);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.22 / speed);
       osc.start(now);
-      osc.stop(now + 0.22 / knobSpeed);
+      osc.stop(now + 0.22 / speed);
     } else if (type === "yip") {
       osc.type = "sine";
       osc.frequency.setValueAtTime(550 * basePitch, now);
-      osc.frequency.exponentialRampToValueAtTime(320 * basePitch, now + 0.1 / knobSpeed);
+      osc.frequency.exponentialRampToValueAtTime(320 * basePitch, now + 0.1 / speed);
       
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12 / knobSpeed);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12 / speed);
       osc.start(now);
-      osc.stop(now + 0.12 / knobSpeed);
-    } else {
-      // growl
+      osc.stop(now + 0.12 / speed);
+    } else if (type === "growl") {
       osc.type = "sawtooth";
       osc.frequency.setValueAtTime(180 * basePitch, now);
-      osc.frequency.linearRampToValueAtTime(250 * basePitch, now + 0.15 / knobSpeed);
-      osc.frequency.exponentialRampToValueAtTime(90 * basePitch, now + 0.45 / knobSpeed);
+      osc.frequency.linearRampToValueAtTime(250 * basePitch, now + 0.15 / speed);
+      osc.frequency.exponentialRampToValueAtTime(90 * basePitch, now + 0.45 / speed);
       
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.45 / knobSpeed);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.45 / speed);
       osc.start(now);
-      osc.stop(now + 0.45 / knobSpeed);
+      osc.stop(now + 0.45 / speed);
+    } else if (type === "coin") {
+      osc.type = "sine";
+      const duration = 0.3 / speed;
+      osc.frequency.setValueAtTime(987.77 * basePitch, now);
+      osc.frequency.setValueAtTime(1318.51 * basePitch, now + 0.08 / speed);
+      
+      gain.gain.setValueAtTime(knobVolume * 0.5, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
+      osc.start(now);
+      osc.stop(now + duration);
+    } else if (type === "laser") {
+      osc.type = "sawtooth";
+      const duration = 0.25 / speed;
+      osc.frequency.setValueAtTime(1200 * basePitch, now);
+      osc.frequency.exponentialRampToValueAtTime(100 * basePitch, now + duration);
+      
+      gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
+      osc.start(now);
+      osc.stop(now + duration);
+    } else if (type === "explosion") {
+      osc.type = "sawtooth";
+      const duration = 0.6 / speed;
+      osc.frequency.setValueAtTime(100 * basePitch, now);
+      osc.frequency.linearRampToValueAtTime(10 * basePitch, now + duration);
+      
+      filter.frequency.setValueAtTime(knobCutoff, now);
+      filter.frequency.exponentialRampToValueAtTime(50, now + duration);
+      
+      gain.gain.setValueAtTime(knobVolume * 0.8, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
+      osc.start(now);
+      osc.stop(now + duration);
+    } else if (type === "jump") {
+      osc.type = "triangle";
+      const duration = 0.2 / speed;
+      osc.frequency.setValueAtTime(150 * basePitch, now);
+      osc.frequency.exponentialRampToValueAtTime(600 * basePitch, now + duration);
+      
+      gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
+      osc.start(now);
+      osc.stop(now + duration);
+    } else if (type === "powerup") {
+      osc.type = "sine";
+      const duration = 0.45 / speed;
+      const t = 0.08 / speed;
+      osc.frequency.setValueAtTime(330 * basePitch, now);
+      osc.frequency.setValueAtTime(440 * basePitch, now + t);
+      osc.frequency.setValueAtTime(554 * basePitch, now + t * 2);
+      osc.frequency.setValueAtTime(660 * basePitch, now + t * 3);
+      osc.frequency.setValueAtTime(880 * basePitch, now + t * 4);
+      
+      gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
+      osc.start(now);
+      osc.stop(now + duration);
+    } else if (type === "defeat") {
+      osc.type = "triangle";
+      const duration = 0.5 / speed;
+      const t = 0.12 / speed;
+      osc.frequency.setValueAtTime(440 * basePitch, now);
+      osc.frequency.setValueAtTime(415 * basePitch, now + t);
+      osc.frequency.setValueAtTime(370 * basePitch, now + t * 2);
+      osc.frequency.setValueAtTime(293 * basePitch, now + t * 3);
+      osc.frequency.linearRampToValueAtTime(100 * basePitch, now + duration);
+      
+      gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
+      osc.start(now);
+      osc.stop(now + duration);
+    } else if (type === "warp") {
+      osc.type = "sine";
+      const duration = 0.45 / speed;
+      for (let i = 0; i < 20; i++) {
+        const stepTime = now + (i * 0.02) / speed;
+        const freq = (600 + Math.sin(i * 1.5) * 150) * basePitch;
+        osc.frequency.setValueAtTime(freq, stepTime);
+      }
+      gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
+      osc.start(now);
+      osc.stop(now + duration);
+    } else if (type === "zap") {
+      osc.type = "sawtooth";
+      const duration = 0.15 / speed;
+      osc.frequency.setValueAtTime(800 * basePitch, now);
+      osc.frequency.exponentialRampToValueAtTime(2000 * basePitch, now + duration);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
+      osc.start(now);
+      osc.stop(now + duration);
     }
 
     activeOscillators.push(osc);
@@ -140,12 +342,16 @@
   }
 
   // Play direct audio file
-  function playAudioFile(url) {
+  function playAudioFile(url, options = {}) {
     waveAmplitude = 0.8;
     const audio = new Audio(url);
     audio.crossOrigin = "anonymous";
+    
+    const pitchMultiplier = options.pitch || 1.0;
+    const speedMultiplier = options.speed || 1.0;
+    
     audio.volume = knobVolume;
-    audio.playbackRate = knobSpeed * knobPitch;
+    audio.playbackRate = knobSpeed * knobPitch * speedMultiplier * pitchMultiplier;
 
     if (typeof audio.preservesPitch !== "undefined") {
       audio.preservesPitch = false;
@@ -186,23 +392,16 @@
       if (activePadIndex === idx) activePadIndex = null;
     }, 250);
 
-    if (idx === 0) {
-      playProcedural("woof");
-    } else if (idx === 1) {
-      playProcedural("yip");
-    } else if (idx === 2) {
-      playProcedural("growl");
-    } else if (idx === 3) {
-      playAudioFile("https://data.wearedogs.net/music/soundboard/loveisland-break.mp3");
-    } else if (idx === 4) {
-      playAudioFile("https://data.wearedogs.net/music/soundboard/loveisland-text.mp3");
-    } else {
-      // Custom clips from samplerStore
-      const customIdx = idx - 5;
-      if (customIdx >= 0 && customIdx < samplerStore.customClips.length) {
-        const clip = samplerStore.customClips[customIdx];
-        playCustomClip(clip);
-      }
+    const sounds = activeKit.id === "custom" ? samplerStore.customClips : activeKit.sounds;
+    const sound = sounds[idx];
+    if (!sound) return;
+
+    if (activeKit.id === "custom") {
+      playCustomClip(sound);
+    } else if (sound.type === "procedural") {
+      playProcedural(sound.proceduralType, sound.options || {});
+    } else if (sound.type === "file") {
+      playAudioFile(sound.url, sound.options || {});
     }
   }
 
@@ -243,10 +442,10 @@
 
       // Draw Oscilloscope waveform
       canvasCtx.beginPath();
-      canvasCtx.strokeStyle = "#ff55bb"; // OP-1 pink
+      canvasCtx.strokeStyle = activeKit.color;
       canvasCtx.lineWidth = 2.5;
       canvasCtx.shadowBlur = 10;
-      canvasCtx.shadowColor = "#ff55bb";
+      canvasCtx.shadowColor = activeKit.color;
 
       const time = Date.now() * 0.015;
       
@@ -283,17 +482,29 @@
   function handleKeydown(e) {
     const key = e.key.toLowerCase();
     
-    // Woof, Yip, Growl, LI Break, LI Text
-    if (key === "q") triggerPad(0);
-    else if (key === "w") triggerPad(1);
-    else if (key === "e") triggerPad(2);
-    else if (key === "r") triggerPad(3);
-    else if (key === "t") triggerPad(4);
+    // Switch kits using keys 1-5
+    if (key === "1") {
+      selectKit(0);
+      return;
+    } else if (key === "2") {
+      selectKit(1);
+      return;
+    } else if (key === "3") {
+      selectKit(2);
+      return;
+    } else if (key === "4") {
+      selectKit(3);
+      return;
+    } else if (key === "5") {
+      selectKit(4);
+      return;
+    }
     
-    // Custom triggers mapped to keys in samplerStore
-    const matchClipIdx = samplerStore.customClips.findIndex(c => c.key === key);
-    if (matchClipIdx !== -1) {
-      triggerPad(matchClipIdx + 5);
+    // Dynamic keyboard triggering of sounds mapped to the key properties of the active kit
+    const currentSounds = activeKit.id === "custom" ? samplerStore.customClips : activeKit.sounds;
+    const matchIdx = currentSounds.findIndex(s => s.key === key);
+    if (matchIdx !== -1 && matchIdx < 16) {
+      triggerPad(matchIdx);
     }
   }
 
@@ -406,20 +617,20 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<div class="soundboard-layout animated-pane">
-  <div class="op1-chassis">
+<div class="soundboard-layout animated-pane w-full min-h-screen flex items-center justify-center p-3 sm:p-5 md:p-8 xl:p-12 2xl:p-16 bg-[#09090d]">
+  <div class="op1-chassis w-full max-w-[620px] sm:max-w-[820px] md:max-w-[900px] lg:max-w-[1000px] xl:max-w-5xl 2xl:max-w-[1300px] flex flex-col sm:grid sm:grid-cols-12 gap-4 sm:gap-6 bg-[#18181f] border border-white/10 rounded-2xl md:rounded-3xl p-4 md:p-6 shadow-2xl">
     <!-- Left Column: Screen + Knobs -->
-    <div class="chassis-left flex flex-col gap-3">
+    <div class="chassis-left col-span-12 sm:col-span-5 flex flex-col gap-3">
       <!-- LCD Display screen (Waveform + Info indicators) -->
       <div class="op1-screen-unit">
         <div class="screen-grid-details">
-          <span class="patch-name">CANINE SAMPLER SYNTH</span>
+          <span class="patch-name" style="color: {activeKit.color}">{activeKit.name.toUpperCase()}</span>
           <span class="cutoff-freq">FREQ: {Math.round(knobCutoff)}Hz</span>
           <span class="pitch-pct">PITCH: {knobPitch.toFixed(2)}x</span>
         </div>
 
         <!-- Oscilloscope CRT Canvas -->
-        <canvas bind:this={canvasRef} width="400" height="110" class=" CRT-canvas"></canvas>
+        <canvas bind:this={canvasRef} width="400" height="110" class="CRT-canvas"></canvas>
 
         <div class="screen-footer-hud">
           <span class="hud-item"><Activity size={10} /> OP-1 ENGINE ACTIVE</span>
@@ -427,10 +638,27 @@
         </div>
       </div>
 
+      <!-- Kit Selector Presets Selector Row (looks like OP-1 preset buttons) -->
+      <div class="kit-selector-row flex justify-between items-center bg-black/40 border border-white/5 rounded-xl px-3 py-2">
+        <span class="kit-selector-label text-[10px] font-bold text-white/30 tracking-wider">PRESET KITS:</span>
+        <div class="flex gap-2">
+          {#each KITS as kit, i}
+            <button
+              class="kit-btn"
+              class:active={activeKitIndex === i}
+              style="--kit-color: {kit.color}; --kit-glow: {kit.glow}"
+              onclick={() => selectKit(i)}
+              title={kit.name}
+            >
+              {i + 1}
+            </button>
+          {/each}
+        </div>
+      </div>
+
       <!-- Encoders knobs row (Colored circles) -->
       <div class="encoders-deck">
         <!-- Knob 1: Pitch (Cyan) -->
-        <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div 
           class="encoder-slot"
           onmousedown={(e) => startKnobDrag("pitch", e)}
@@ -445,7 +673,6 @@
         </div>
 
         <!-- Knob 2: Playback Speed (Green) -->
-        <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div 
           class="encoder-slot"
           onmousedown={(e) => startKnobDrag("speed", e)}
@@ -460,7 +687,6 @@
         </div>
 
         <!-- Knob 3: Master Volume (Orange) -->
-        <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div 
           class="encoder-slot"
           onmousedown={(e) => startKnobDrag("volume", e)}
@@ -475,7 +701,6 @@
         </div>
 
         <!-- Knob 4: Lowpass Cutoff (Pink) -->
-        <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div 
           class="encoder-slot"
           onmousedown={(e) => startKnobDrag("cutoff", e)}
@@ -492,95 +717,30 @@
     </div>
 
     <!-- Right Column: Launchpad + Footer -->
-    <div class="chassis-right flex flex-col justify-between gap-3">
+    <div class="chassis-right col-span-12 sm:col-span-7 flex flex-col justify-between gap-3">
       <!-- Novation Launchpad Pad Matrix grid (4x4) -->
       <div class="launchpad-grid-wrapper">
-        <div class="launchpad-tag">LAUNCHPAD SAMPLES GRID</div>
+        <div class="launchpad-tag">LAUNCHPAD SAMPLES GRID ({activeKit.name.toUpperCase()})</div>
         
         <div class="launchpad-grid">
-          <!-- Pad 1: Deep Woof -->
-          <!-- svelte-ignore a11y_click_events_have_key_events -->
-          <!-- svelte-ignore a11y_no_static_element_interactions -->
-          <div 
-            class="pad-card procedural-pad pad-blue" 
-            class:active={activePadIndex === 0}
-            onclick={() => triggerPad(0)}
-          >
-            <span class="pad-key">Q</span>
-            <span class="pad-emoji">🐕</span>
-            <span class="pad-label">Deep Woof</span>
-          </div>
-
-          <!-- Pad 2: Puppy Yip -->
-          <!-- svelte-ignore a11y_click_events_have_key_events -->
-          <!-- svelte-ignore a11y_no_static_element_interactions -->
-          <div 
-            class="pad-card procedural-pad pad-cyan" 
-            class:active={activePadIndex === 1}
-            onclick={() => triggerPad(1)}
-          >
-            <span class="pad-key">W</span>
-            <span class="pad-emoji">🐶</span>
-            <span class="pad-label">Puppy Yip</span>
-          </div>
-
-          <!-- Pad 3: Playful Growl -->
-          <!-- svelte-ignore a11y_click_events_have_key_events -->
-          <!-- svelte-ignore a11y_no_static_element_interactions -->
-          <div 
-            class="pad-card procedural-pad pad-orange" 
-            class:active={activePadIndex === 2}
-            onclick={() => triggerPad(2)}
-          >
-            <span class="pad-key">E</span>
-            <span class="pad-emoji">🐺</span>
-            <span class="pad-label">Playful Growl</span>
-          </div>
-
-          <!-- Pad 4: LI Break -->
-          <!-- svelte-ignore a11y_click_events_have_key_events -->
-          <!-- svelte-ignore a11y_no_static_element_interactions -->
-          <div 
-            class="pad-card procedural-pad pad-pink" 
-            class:active={activePadIndex === 3}
-            onclick={() => triggerPad(3)}
-          >
-            <span class="pad-key">R</span>
-            <span class="pad-emoji">🏝️</span>
-            <span class="pad-label">LI Break</span>
-          </div>
-
-          <!-- Pad 5: LI Text -->
-          <!-- svelte-ignore a11y_click_events_have_key_events -->
-          <!-- svelte-ignore a11y_no_static_element_interactions -->
-          <div 
-            class="pad-card procedural-pad pad-pink" 
-            class:active={activePadIndex === 4}
-            onclick={() => triggerPad(4)}
-          >
-            <span class="pad-key">T</span>
-            <span class="pad-emoji">💬</span>
-            <span class="pad-label">LI Text</span>
-          </div>
-
-          <!-- Pads 6-16: Custom slices loaded from samplerStore -->
-          {#each Array(11) as _, i}
-            {@const customIdx = i}
-            {@const clip = samplerStore.customClips[customIdx]}
+          {#each Array(16) as _, i}
+            {@const sound = activeKit.id === "custom" ? samplerStore.customClips[i] : activeKit.sounds[i]}
             
-            {#if clip}
-              <!-- svelte-ignore a11y_click_events_have_key_events -->
-              <!-- svelte-ignore a11y_no_static_element_interactions -->
+            {#if sound}
               <div 
-                class="pad-card custom-pad" 
-                class:active={activePadIndex === customIdx + 5}
-                style="--pad-glow: {clip.color}; border-color: {clip.color}44"
-                onclick={() => triggerPad(customIdx + 5)}
+                class="pad-card {sound.color || ''} {activeKit.id === 'custom' ? 'custom-pad' : 'procedural-pad'}"
+                class:active={activePadIndex === i}
+                style="{activeKit.id === 'custom' ? `--pad-glow: ${sound.color}; border-color: ${sound.color}44` : ''}"
+                onclick={() => triggerPad(i)}
               >
-                <span class="pad-key">{clip.key.toUpperCase()}</span>
-                <button class="delete-clip-btn" onclick={(e) => deleteClip(clip.id, e)} title="Delete Clip">✕</button>
-                <span class="pad-show-tag">{clip.show.replace(" S1", "")}</span>
-                <span class="pad-label">{clip.title}</span>
+                <span class="pad-key">{sound.key.toUpperCase()}</span>
+                {#if activeKit.id === "custom"}
+                  <button class="delete-clip-btn" onclick={(e) => deleteClip(sound.id, e)} title="Delete Clip">✕</button>
+                  <span class="pad-show-tag">{sound.show.replace(" S1", "")}</span>
+                {:else}
+                  <span class="pad-emoji">{sound.emoji}</span>
+                {/if}
+                <span class="pad-label">{sound.label || sound.title}</span>
               </div>
             {:else}
               <div class="pad-card empty-pad">
@@ -594,7 +754,11 @@
       <!-- Sampler details footer -->
       <footer class="op1-footer">
         <div class="kb-badge"><Keyboard size={12} /> REMIX MAPPED TRIGGERS ENABLED</div>
-        <div class="clip-counter">TOTAL CUSTOM PADS: {samplerStore.customClips.length}/11</div>
+        {#if activeKit.id === "custom"}
+          <div class="clip-counter">TOTAL CUSTOM PADS: {samplerStore.customClips.length}/16</div>
+        {:else}
+          <div class="clip-counter">PRESET SOUNDS: 16/16</div>
+        {/if}
       </footer>
     </div>
   </div>
@@ -797,6 +961,38 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  /* Kit Preset Buttons */
+  .kit-btn {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #252530;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.4);
+    font-family: monospace;
+    font-size: 0.65rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: inset 0 1px 2px rgba(255,255,255,0.05), 0 2px 4px rgba(0,0,0,0.3);
+  }
+
+  .kit-btn:hover {
+    color: white;
+    border-color: rgba(255, 255, 255, 0.3);
+    background: #303040;
+  }
+
+  .kit-btn.active {
+    background: var(--kit-color);
+    color: black;
+    border-color: var(--kit-color);
+    box-shadow: 0 0 12px var(--kit-glow);
   }
 
   /* Neon pad colors */
