@@ -1,7 +1,13 @@
 <script>
   import { onMount, onDestroy } from "svelte";
-  import { 
-    Volume2, Activity, Play, Trash2, Keyboard, Sliders, Zap
+  import {
+    Volume2,
+    Activity,
+    Play,
+    Trash2,
+    Keyboard,
+    Sliders,
+    Zap,
   } from "lucide-svelte";
   import { samplerStore } from "../../lib/samplerStore.svelte.js";
 
@@ -38,48 +44,144 @@
       color: "#00bfff",
       glow: "rgba(0, 191, 255, 0.4)",
       sounds: [
-        { id: "woof", type: "procedural", proceduralType: "woof", label: "Deep Woof", emoji: "🐕", key: "q", color: "pad-blue" },
-        { id: "yip", type: "procedural", proceduralType: "yip", label: "Puppy Yip", emoji: "🐶", key: "w", color: "pad-cyan" },
-        { id: "growl", type: "procedural", proceduralType: "growl", label: "Playful Growl", emoji: "🐺", key: "e", color: "pad-orange" },
-        { id: "li-break", type: "file", url: "https://data.wearedogs.net/music/soundboard/loveisland-break.mp3", label: "LI Break", emoji: "🏝️", key: "r", color: "pad-pink" },
-        { id: "li-text", type: "file", url: "https://data.wearedogs.net/music/soundboard/loveisland-text.mp3", label: "LI Text", emoji: "💬", key: "t", color: "pad-pink" },
-        { id: "mc-large", type: "file", url: "https://data.wearedogs.net/music/soundboard/minecraft-large.mp3", label: "MC Large", emoji: "🧱", key: "y", color: "pad-blue" },
-        { id: "mc-medium", type: "file", url: "https://data.wearedogs.net/music/soundboard/minecraft-medium.mp3", label: "MC Medium", emoji: "🪵", key: "u", color: "pad-orange" },
-        { id: "mc-small", type: "file", url: "https://data.wearedogs.net/music/soundboard/minecraft-small.mp3", label: "MC Small", emoji: "🪨", key: "i", color: "pad-cyan" },
-        { id: "mc-tiny", type: "file", url: "https://data.wearedogs.net/music/soundboard/minecraft-tiny.mp3", label: "MC Tiny", emoji: "💎", key: "o", color: "pad-pink" },
-        { id: "tip-med", type: "file", url: "https://data.wearedogs.net/music/soundboard/tip-medium.mp3", label: "Tip Medium", emoji: "🪙", key: "p", color: "pad-orange" },
-        { id: "tip-small", type: "file", url: "https://data.wearedogs.net/music/soundboard/tip-small.mp3", label: "Tip Small", emoji: "💰", key: "a", color: "pad-orange" },
-        { id: "tip-tiny", type: "file", url: "https://data.wearedogs.net/music/soundboard/tip-tiny.mp3", label: "Tip Tiny", emoji: "💎", key: "s", color: "pad-cyan" }
-      ]
+        {
+          id: "woof",
+          type: "procedural",
+          proceduralType: "woof",
+          label: "Deep Woof",
+          emoji: "🐕",
+          key: "q",
+          color: "pad-blue",
+        },
+        {
+          id: "yip",
+          type: "procedural",
+          proceduralType: "yip",
+          label: "Puppy Yip",
+          emoji: "🐶",
+          key: "w",
+          color: "pad-cyan",
+        },
+        {
+          id: "growl",
+          type: "procedural",
+          proceduralType: "growl",
+          label: "Playful Growl",
+          emoji: "🐺",
+          key: "e",
+          color: "pad-orange",
+        },
+        {
+          id: "li-break",
+          type: "file",
+          url: "https://data.wearedogs.net/music/soundboard/loveisland-break.mp3",
+          label: "LI Break",
+          emoji: "🏝️",
+          key: "r",
+          color: "pad-pink",
+        },
+        {
+          id: "li-text",
+          type: "file",
+          url: "https://data.wearedogs.net/music/soundboard/loveisland-text.mp3",
+          label: "LI Text",
+          emoji: "💬",
+          key: "t",
+          color: "pad-pink",
+        },
+        {
+          id: "mc-large",
+          type: "file",
+          url: "https://data.wearedogs.net/music/soundboard/minecraft-large.mp3",
+          label: "MC Large",
+          emoji: "🧱",
+          key: "y",
+          color: "pad-blue",
+        },
+        {
+          id: "mc-medium",
+          type: "file",
+          url: "https://data.wearedogs.net/music/soundboard/minecraft-medium.mp3",
+          label: "MC Medium",
+          emoji: "🪵",
+          key: "u",
+          color: "pad-orange",
+        },
+        {
+          id: "mc-small",
+          type: "file",
+          url: "https://data.wearedogs.net/music/soundboard/minecraft-small.mp3",
+          label: "MC Small",
+          emoji: "🪨",
+          key: "i",
+          color: "pad-cyan",
+        },
+        {
+          id: "mc-tiny",
+          type: "file",
+          url: "https://data.wearedogs.net/music/soundboard/minecraft-tiny.mp3",
+          label: "MC Tiny",
+          emoji: "💎",
+          key: "o",
+          color: "pad-pink",
+        },
+        {
+          id: "tip-med",
+          type: "file",
+          url: "https://data.wearedogs.net/music/soundboard/tip-medium.mp3",
+          label: "Tip Medium",
+          emoji: "🪙",
+          key: "p",
+          color: "pad-orange",
+        },
+        {
+          id: "tip-small",
+          type: "file",
+          url: "https://data.wearedogs.net/music/soundboard/tip-small.mp3",
+          label: "Tip Small",
+          emoji: "💰",
+          key: "a",
+          color: "pad-orange",
+        },
+        {
+          id: "tip-tiny",
+          type: "file",
+          url: "https://data.wearedogs.net/music/soundboard/tip-tiny.mp3",
+          label: "Tip Tiny",
+          emoji: "💎",
+          key: "s",
+          color: "pad-cyan",
+        },
+      ],
     },
     {
       id: "kit2",
       name: "Kit 2 (Empty)",
       color: "#00ff66",
       glow: "rgba(0, 255, 102, 0.4)",
-      sounds: []
+      sounds: [],
     },
     {
       id: "kit3",
       name: "Kit 3 (Empty)",
       color: "#ff55bb",
       glow: "rgba(255, 85, 187, 0.4)",
-      sounds: []
+      sounds: [],
     },
     {
       id: "kit4",
       name: "Kit 4 (Empty)",
       color: "#ffcc00",
       glow: "rgba(255, 204, 0, 0.4)",
-      sounds: []
+      sounds: [],
     },
     {
       id: "custom",
       name: "User Sampler",
       color: "#ffcc00",
       glow: "rgba(255, 204, 0, 0.4)",
-      sounds: []
-    }
+      sounds: [],
+    },
   ];
 
   let activeKitIndex = $state(0);
@@ -102,7 +204,7 @@
 
     // Trigger visualizer amplitude pulse
     waveAmplitude = 1.0;
-    
+
     const now = audioCtx.currentTime;
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
@@ -123,25 +225,37 @@
     if (type === "woof") {
       osc.type = "triangle";
       osc.frequency.setValueAtTime(140 * basePitch, now);
-      osc.frequency.exponentialRampToValueAtTime(60 * basePitch, now + 0.18 / speed);
-      
+      osc.frequency.exponentialRampToValueAtTime(
+        60 * basePitch,
+        now + 0.18 / speed,
+      );
+
       gain.gain.exponentialRampToValueAtTime(0.01, now + 0.22 / speed);
       osc.start(now);
       osc.stop(now + 0.22 / speed);
     } else if (type === "yip") {
       osc.type = "sine";
       osc.frequency.setValueAtTime(550 * basePitch, now);
-      osc.frequency.exponentialRampToValueAtTime(320 * basePitch, now + 0.1 / speed);
-      
+      osc.frequency.exponentialRampToValueAtTime(
+        320 * basePitch,
+        now + 0.1 / speed,
+      );
+
       gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12 / speed);
       osc.start(now);
       osc.stop(now + 0.12 / speed);
     } else if (type === "growl") {
       osc.type = "sawtooth";
       osc.frequency.setValueAtTime(180 * basePitch, now);
-      osc.frequency.linearRampToValueAtTime(250 * basePitch, now + 0.15 / speed);
-      osc.frequency.exponentialRampToValueAtTime(90 * basePitch, now + 0.45 / speed);
-      
+      osc.frequency.linearRampToValueAtTime(
+        250 * basePitch,
+        now + 0.15 / speed,
+      );
+      osc.frequency.exponentialRampToValueAtTime(
+        90 * basePitch,
+        now + 0.45 / speed,
+      );
+
       gain.gain.exponentialRampToValueAtTime(0.01, now + 0.45 / speed);
       osc.start(now);
       osc.stop(now + 0.45 / speed);
@@ -150,7 +264,7 @@
       const duration = 0.3 / speed;
       osc.frequency.setValueAtTime(987.77 * basePitch, now);
       osc.frequency.setValueAtTime(1318.51 * basePitch, now + 0.08 / speed);
-      
+
       gain.gain.setValueAtTime(knobVolume * 0.5, now);
       gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
       osc.start(now);
@@ -159,8 +273,11 @@
       osc.type = "sawtooth";
       const duration = 0.25 / speed;
       osc.frequency.setValueAtTime(1200 * basePitch, now);
-      osc.frequency.exponentialRampToValueAtTime(100 * basePitch, now + duration);
-      
+      osc.frequency.exponentialRampToValueAtTime(
+        100 * basePitch,
+        now + duration,
+      );
+
       gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
       osc.start(now);
       osc.stop(now + duration);
@@ -169,10 +286,10 @@
       const duration = 0.6 / speed;
       osc.frequency.setValueAtTime(100 * basePitch, now);
       osc.frequency.linearRampToValueAtTime(10 * basePitch, now + duration);
-      
+
       filter.frequency.setValueAtTime(knobCutoff, now);
       filter.frequency.exponentialRampToValueAtTime(50, now + duration);
-      
+
       gain.gain.setValueAtTime(knobVolume * 0.8, now);
       gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
       osc.start(now);
@@ -181,8 +298,11 @@
       osc.type = "triangle";
       const duration = 0.2 / speed;
       osc.frequency.setValueAtTime(150 * basePitch, now);
-      osc.frequency.exponentialRampToValueAtTime(600 * basePitch, now + duration);
-      
+      osc.frequency.exponentialRampToValueAtTime(
+        600 * basePitch,
+        now + duration,
+      );
+
       gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
       osc.start(now);
       osc.stop(now + duration);
@@ -195,7 +315,7 @@
       osc.frequency.setValueAtTime(554 * basePitch, now + t * 2);
       osc.frequency.setValueAtTime(660 * basePitch, now + t * 3);
       osc.frequency.setValueAtTime(880 * basePitch, now + t * 4);
-      
+
       gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
       osc.start(now);
       osc.stop(now + duration);
@@ -208,7 +328,7 @@
       osc.frequency.setValueAtTime(370 * basePitch, now + t * 2);
       osc.frequency.setValueAtTime(293 * basePitch, now + t * 3);
       osc.frequency.linearRampToValueAtTime(100 * basePitch, now + duration);
-      
+
       gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
       osc.start(now);
       osc.stop(now + duration);
@@ -227,7 +347,10 @@
       osc.type = "sawtooth";
       const duration = 0.15 / speed;
       osc.frequency.setValueAtTime(800 * basePitch, now);
-      osc.frequency.exponentialRampToValueAtTime(2000 * basePitch, now + duration);
+      osc.frequency.exponentialRampToValueAtTime(
+        2000 * basePitch,
+        now + duration,
+      );
       gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
       osc.start(now);
       osc.stop(now + duration);
@@ -241,14 +364,14 @@
   function playCustomClip(clip, padIdx = null) {
     // Trigger visualizer amplitude pulse
     waveAmplitude = 0.8;
-    
+
     // Create new Audio element for streaming
     const audio = new Audio(clip.videoUrl);
     audio.crossOrigin = "anonymous";
     audio.currentTime = clip.start;
     audio.volume = knobVolume;
     audio.playbackRate = knobSpeed * knobPitch;
-    
+
     if (typeof audio.preservesPitch !== "undefined") {
       audio.preservesPitch = false; // pitch shift with speed
     }
@@ -263,7 +386,9 @@
           failedPads = new Set(failedPads);
         }, 1500);
       }
-      setTimeout(() => { isError = false; }, 1500);
+      setTimeout(() => {
+        isError = false;
+      }, 1500);
     };
 
     audio.onerror = () => {
@@ -291,18 +416,18 @@
       }
     }
 
-    audio.play().catch(err => {
+    audio.play().catch((err) => {
       triggerErrorAnimation();
     });
     activeAudioElements.push(audio);
 
     // Stop exactly at clip endpoint (taking rate into account)
     const clipDurationSec = (clip.end - clip.start) / (knobSpeed * knobPitch);
-    
+
     const stopTimer = setTimeout(() => {
       audio.pause();
       audio.remove();
-      activeAudioElements = activeAudioElements.filter(a => a !== audio);
+      activeAudioElements = activeAudioElements.filter((a) => a !== audio);
     }, clipDurationSec * 1000);
   }
 
@@ -311,12 +436,13 @@
     waveAmplitude = 0.8;
     const audio = new Audio(url);
     audio.crossOrigin = "anonymous";
-    
+
     const pitchMultiplier = options.pitch || 1.0;
     const speedMultiplier = options.speed || 1.0;
-    
+
     audio.volume = knobVolume;
-    audio.playbackRate = knobSpeed * knobPitch * speedMultiplier * pitchMultiplier;
+    audio.playbackRate =
+      knobSpeed * knobPitch * speedMultiplier * pitchMultiplier;
 
     if (typeof audio.preservesPitch !== "undefined") {
       audio.preservesPitch = false;
@@ -332,7 +458,9 @@
           failedPads = new Set(failedPads);
         }, 1500);
       }
-      setTimeout(() => { isError = false; }, 1500);
+      setTimeout(() => {
+        isError = false;
+      }, 1500);
     };
 
     audio.onerror = () => {
@@ -358,14 +486,14 @@
       }
     }
 
-    audio.play().catch(err => {
+    audio.play().catch((err) => {
       triggerErrorAnimation();
     });
     activeAudioElements.push(audio);
 
     audio.onended = () => {
       audio.remove();
-      activeAudioElements = activeAudioElements.filter(a => a !== audio);
+      activeAudioElements = activeAudioElements.filter((a) => a !== audio);
     };
   }
 
@@ -376,7 +504,8 @@
       if (activePadIndex === idx) activePadIndex = null;
     }, 250);
 
-    const sounds = activeKit.id === "custom" ? samplerStore.customClips : activeKit.sounds;
+    const sounds =
+      activeKit.id === "custom" ? samplerStore.customClips : activeKit.sounds;
     const sound = sounds[idx];
     if (!sound) return;
 
@@ -398,13 +527,13 @@
   // CRT Oscilloscope waveform generator loop
   function startVisualizer() {
     canvasCtx = canvasRef.getContext("2d");
-    
+
     function draw() {
       if (!canvasRef) return;
-      
+
       const width = canvasRef.width;
       const height = canvasRef.height;
-      
+
       canvasCtx.fillStyle = "rgba(10, 10, 15, 0.2)"; // trailing decay
       canvasCtx.fillRect(0, 0, width, height);
 
@@ -432,15 +561,15 @@
       canvasCtx.shadowColor = activeKit.color;
 
       const time = Date.now() * 0.015;
-      
+
       for (let x = 0; x < width; x++) {
         // Multi-frequency synthesized sine waves scaled by waveAmplitude
         const scale1 = Math.sin(x * 0.05 + time) * 35;
         const scale2 = Math.cos(x * 0.12 - time * 0.5) * 15;
         const noise = (Math.random() - 0.5) * 4;
-        
-        const y = (height / 2) + (scale1 + scale2 + noise) * waveAmplitude;
-        
+
+        const y = height / 2 + (scale1 + scale2 + noise) * waveAmplitude;
+
         if (x === 0) {
           canvasCtx.moveTo(x, y);
         } else {
@@ -465,7 +594,7 @@
   // Keyboard controls key bindings
   function handleKeydown(e) {
     const key = e.key.toLowerCase();
-    
+
     // Switch kits using keys 1-5
     if (key === "1") {
       selectKit(0);
@@ -483,10 +612,11 @@
       selectKit(4);
       return;
     }
-    
+
     // Dynamic keyboard triggering of sounds mapped to the key properties of the active kit
-    const currentSounds = activeKit.id === "custom" ? samplerStore.customClips : activeKit.sounds;
-    const matchIdx = currentSounds.findIndex(s => s.key === key);
+    const currentSounds =
+      activeKit.id === "custom" ? samplerStore.customClips : activeKit.sounds;
+    const matchIdx = currentSounds.findIndex((s) => s.key === key);
     if (matchIdx !== -1 && matchIdx < 16) {
       triggerPad(matchIdx);
     }
@@ -506,7 +636,8 @@
       if (knob === "pitch") knobPitch = Math.min(2.0, knobPitch + 0.05);
       else if (knob === "speed") knobSpeed = Math.min(2.0, knobSpeed + 0.05);
       else if (knob === "volume") knobVolume = Math.min(1.0, knobVolume + 0.05);
-      else if (knob === "cutoff") knobCutoff = Math.min(10000, knobCutoff + 200);
+      else if (knob === "cutoff")
+        knobCutoff = Math.min(10000, knobCutoff + 200);
       e.preventDefault();
     } else if (e.key === "ArrowDown" || e.key === "ArrowLeft") {
       if (knob === "pitch") knobPitch = Math.max(0.5, knobPitch - 0.05);
@@ -521,7 +652,7 @@
   function startKnobDrag(knob, e) {
     activeDragKnob = knob;
     dragStartY = e.clientY;
-    
+
     if (knob === "pitch") dragStartVal = knobPitch;
     else if (knob === "speed") dragStartVal = knobSpeed;
     else if (knob === "volume") dragStartVal = knobVolume;
@@ -583,7 +714,7 @@
   function handleTouchMove(e) {
     if (!activeDragKnob) return;
     if (e.cancelable) e.preventDefault();
-    
+
     const touch = e.touches[0];
     const deltaY = dragStartY - touch.clientY; // drag up to increase
 
@@ -612,9 +743,8 @@
   // Derived state to determine if we should stack elements (portrait) or use side-by-side (landscape)
   let isPortrait = $derived(containerWidth < 640);
 
-  // Target base size of the OP-1 chassis
   let baseWidth = $derived(isPortrait ? 360 : 800);
-  let baseHeight = $derived(isPortrait ? 600 : 350);
+  let baseHeight = $derived(isPortrait ? 740 : 395);
 
   // Scaling factor to fit completely in both width and height inside the panel container
   let scale = $derived.by(() => {
@@ -622,7 +752,18 @@
     // Allow small 8px safety padding around the chassis
     const scaleX = (containerWidth - 16) / baseWidth;
     const scaleY = (containerHeight - 16) / baseHeight;
-    return Math.min(scaleX, scaleY, 1.25); // cap maximum upscale at 1.25x
+
+    // On mobile landscape (short height container), we ignore vertical scale (scaleY)
+    // to keep the interface and buttons large and touch-friendly,
+    // and rely on vertical scroll (overflow-y: auto).
+    // We only scale based on width (scaleX) to prevent horizontal overflow.
+    if (!isPortrait && containerHeight < 450) {
+      return Math.min(scaleX, 1.25);
+    }
+
+    // Otherwise, scale to fit both width and height cleanly
+    const computed = Math.min(scaleX, scaleY);
+    return Math.min(computed, 1.25); // cap maximum upscale at 1.25x
   });
 
   onMount(() => {
@@ -631,27 +772,40 @@
 
   onDestroy(() => {
     if (animationFrameId) cancelAnimationFrame(animationFrameId);
-    activeOscillators.forEach(o => { try { o.stop(); } catch(e) {} });
-    activeAudioElements.forEach(a => { try { a.pause(); a.remove(); } catch(e) {} });
+    activeOscillators.forEach((o) => {
+      try {
+        o.stop();
+      } catch (e) {}
+    });
+    activeAudioElements.forEach((a) => {
+      try {
+        a.pause();
+        a.remove();
+      } catch (e) {}
+    });
   });
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
 
-<div 
-  class="soundboard-layout animated-pane w-full h-full flex items-center justify-center p-3 bg-[#09090d] overflow-hidden"
+<div
+  class="soundboard-layout animated-pane w-full h-full"
   bind:clientWidth={containerWidth}
   bind:clientHeight={containerHeight}
 >
-  <div 
-    class="chassis-scaler" 
-    style="width: {baseWidth}px; height: {baseHeight}px; transform: scale({scale}); transform-origin: center center; flex-shrink: 0; display: flex; align-items: center; justify-content: center;"
+  <div
+    class="chassis-wrapper"
+    style="width: {baseWidth * scale}px; height: {baseHeight * scale}px; margin: auto; display: flex; align-items: center; justify-content: center; overflow: visible; flex-shrink: 0;"
   >
-    <div 
-      class="op1-chassis w-full h-full"
-      class:grid-layout={!isPortrait}
-      class:chassis-error={isError}
+    <div
+      class="chassis-scaler"
+      style="width: {baseWidth}px; height: {baseHeight}px; transform: scale({scale}); transform-origin: center center; flex-shrink: 0; display: flex;"
     >
+      <div
+        class="op1-chassis w-full h-full"
+        class:grid-layout={!isPortrait}
+        class:chassis-error={isError}
+      >
       <!-- Left Column: Screen + Knobs -->
       <div class="chassis-left flex flex-col justify-between gap-3">
         <!-- LCD Display screen (Waveform + Info indicators) -->
@@ -662,25 +816,41 @@
               <span class="error-sub">CHECK CLOUD DATA</span>
             </div>
           {/if}
-          
+
           <div class="screen-grid-details">
-            <span class="patch-name" style="color: {activeKit.color}">{activeKit.name.toUpperCase()}</span>
+            <span class="patch-name" style="color: {activeKit.color}"
+              >{activeKit.name.toUpperCase()}</span
+            >
             <span class="cutoff-freq">FREQ: {Math.round(knobCutoff)}Hz</span>
             <span class="pitch-pct">PITCH: {knobPitch.toFixed(2)}x</span>
           </div>
 
           <!-- Oscilloscope CRT Canvas -->
-          <canvas bind:this={canvasRef} width="400" height="110" class="CRT-canvas"></canvas>
+          <canvas
+            bind:this={canvasRef}
+            width="400"
+            height="110"
+            class="CRT-canvas"
+          ></canvas>
 
           <div class="screen-footer-hud">
-            <span class="hud-item"><Activity size={10} /> OP-1 ENGINE ACTIVE</span>
-            <span class="hud-item"><Zap size={10} /> RATE: {knobSpeed.toFixed(2)}x</span>
+            <span class="hud-item"
+              ><Activity size={10} /> OP-1 ENGINE ACTIVE</span
+            >
+            <span class="hud-item"
+              ><Zap size={10} /> RATE: {knobSpeed.toFixed(2)}x</span
+            >
           </div>
         </div>
 
         <!-- Kit Selector Presets Selector Row (looks like OP-1 preset buttons) -->
-        <div class="kit-selector-row flex justify-between items-center bg-black/40 border border-white/5 rounded-xl px-3 py-2">
-          <span class="kit-selector-label text-[10px] font-bold text-white/30 tracking-wider">PRESET KITS:</span>
+        <div
+          class="kit-selector-row flex justify-between items-center bg-black/40 border border-white/5 rounded-xl px-3 py-2"
+        >
+          <span
+            class="kit-selector-label text-[10px] font-bold text-white/30 tracking-wider"
+            >PRESET KITS:</span
+          >
           <div class="flex gap-2">
             {#each KITS as kit, i}
               <button
@@ -699,7 +869,7 @@
         <!-- Encoders knobs row (Colored circles) -->
         <div class="encoders-deck">
           <!-- Knob 1: Pitch (Cyan) -->
-          <div 
+          <div
             class="encoder-slot"
             role="slider"
             aria-label="Pitch"
@@ -712,7 +882,10 @@
             ondblclick={() => resetKnob("pitch")}
             onkeydown={(e) => handleKnobKeydown("pitch", e)}
           >
-            <div class="knob-cap color-cyan" style="transform: rotate({(knobPitch - 1.25) * 180}deg)">
+            <div
+              class="knob-cap color-cyan"
+              style="transform: rotate({(knobPitch - 1.25) * 180}deg)"
+            >
               <div class="notch"></div>
             </div>
             <span class="knob-title">PITCH</span>
@@ -720,7 +893,7 @@
           </div>
 
           <!-- Knob 2: Playback Speed (Green) -->
-          <div 
+          <div
             class="encoder-slot"
             role="slider"
             aria-label="Playback Speed"
@@ -733,7 +906,10 @@
             ondblclick={() => resetKnob("speed")}
             onkeydown={(e) => handleKnobKeydown("speed", e)}
           >
-            <div class="knob-cap color-green" style="transform: rotate({(knobSpeed - 1.25) * 180}deg)">
+            <div
+              class="knob-cap color-green"
+              style="transform: rotate({(knobSpeed - 1.25) * 180}deg)"
+            >
               <div class="notch"></div>
             </div>
             <span class="knob-title">SPEED</span>
@@ -741,7 +917,7 @@
           </div>
 
           <!-- Knob 3: Master Volume (Orange) -->
-          <div 
+          <div
             class="encoder-slot"
             role="slider"
             aria-label="Master Volume"
@@ -754,7 +930,10 @@
             ondblclick={() => resetKnob("volume")}
             onkeydown={(e) => handleKnobKeydown("volume", e)}
           >
-            <div class="knob-cap color-orange" style="transform: rotate({(knobVolume - 0.5) * 270}deg)">
+            <div
+              class="knob-cap color-orange"
+              style="transform: rotate({(knobVolume - 0.5) * 270}deg)"
+            >
               <div class="notch"></div>
             </div>
             <span class="knob-title">VOL</span>
@@ -762,7 +941,7 @@
           </div>
 
           <!-- Knob 4: Lowpass Cutoff (Pink) -->
-          <div 
+          <div
             class="encoder-slot"
             role="slider"
             aria-label="Lowpass Filter Cutoff"
@@ -775,7 +954,11 @@
             ondblclick={() => resetKnob("cutoff")}
             onkeydown={(e) => handleKnobKeydown("cutoff", e)}
           >
-            <div class="knob-cap color-pink" style="transform: rotate({((knobCutoff - 200) / 9800 - 0.5) * 270}deg)">
+            <div
+              class="knob-cap color-pink"
+              style="transform: rotate({((knobCutoff - 200) / 9800 - 0.5) *
+                270}deg)"
+            >
               <div class="notch"></div>
             </div>
             <span class="knob-title">FILTER</span>
@@ -788,19 +971,28 @@
       <div class="chassis-right flex flex-col justify-between gap-3">
         <!-- Novation Launchpad Pad Matrix grid (4x4) -->
         <div class="launchpad-grid-wrapper">
-          <div class="launchpad-tag">LAUNCHPAD SAMPLES GRID ({activeKit.name.toUpperCase()})</div>
-          
+          <div class="launchpad-tag">
+            LAUNCHPAD SAMPLES GRID ({activeKit.name.toUpperCase()})
+          </div>
+
           <div class="launchpad-grid">
             {#each Array(16) as _, i}
-              {@const sound = activeKit.id === "custom" ? samplerStore.customClips[i] : activeKit.sounds[i]}
-              
+              {@const sound =
+                activeKit.id === "custom"
+                  ? samplerStore.customClips[i]
+                  : activeKit.sounds[i]}
+
               {#if sound}
-                <button 
+                <button
                   type="button"
-                  class="pad-card {sound.color || ''} {activeKit.id === 'custom' ? 'custom-pad' : 'procedural-pad'}"
+                  class="pad-card {sound.color || ''} {activeKit.id === 'custom'
+                    ? 'custom-pad'
+                    : 'procedural-pad'}"
                   class:active={activePadIndex === i}
                   class:pad-error={failedPads.has(i)}
-                  style="{activeKit.id === 'custom' ? `--pad-glow: ${sound.color}; border-color: ${sound.color}44` : ''}"
+                  style={activeKit.id === "custom"
+                    ? `--pad-glow: ${sound.color}; border-color: ${sound.color}44`
+                    : ""}
                   onclick={() => triggerPad(i)}
                 >
                   <span class="pad-key">{sound.key.toUpperCase()}</span>
@@ -809,17 +1001,22 @@
                     <span class="pad-label">ERROR</span>
                   {:else}
                     {#if activeKit.id === "custom"}
-                      <span 
+                      <span
                         role="button"
                         tabindex="0"
-                        class="delete-clip-btn" 
+                        class="delete-clip-btn"
                         onclick={(e) => deleteClip(sound.id, e)}
-                        onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') deleteClip(sound.id, e); }}
+                        onkeydown={(e) => {
+                          if (e.key === "Enter" || e.key === " ")
+                            deleteClip(sound.id, e);
+                        }}
                         title="Delete Clip"
                       >
                         ✕
                       </span>
-                      <span class="pad-show-tag">{sound.show.replace(" S1", "")}</span>
+                      <span class="pad-show-tag"
+                        >{sound.show.replace(" S1", "")}</span
+                      >
                     {:else}
                       <span class="pad-emoji">{sound.emoji}</span>
                     {/if}
@@ -837,15 +1034,20 @@
 
         <!-- Sampler details footer -->
         <footer class="op1-footer">
-          <div class="kb-badge"><Keyboard size={12} /> REMIX MAPPED TRIGGERS ENABLED</div>
+          <div class="kb-badge"><Keyboard size={12} /> TRIGGERS ENABLED</div>
           {#if activeKit.id === "custom"}
-            <div class="clip-counter">TOTAL CUSTOM PADS: {samplerStore.customClips.length}/16</div>
+            <div class="clip-counter">
+              TOTAL CUSTOM PADS: {samplerStore.customClips.length}/16
+            </div>
           {:else}
-            <div class="clip-counter">PRESET SOUNDS: {activeKit.sounds.length}/16</div>
+            <div class="clip-counter">
+              PRESET SOUNDS: {activeKit.sounds.length}/16
+            </div>
           {/if}
         </footer>
       </div>
     </div>
+  </div>
   </div>
 </div>
 
@@ -857,7 +1059,8 @@
     align-items: center;
     justify-content: center;
     background: #09090d;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
   }
 
   .chassis-scaler {
@@ -871,14 +1074,16 @@
     background: #18181f;
     border: 2px solid rgba(255, 255, 255, 0.08);
     border-radius: 24px;
-    box-shadow: 
+    box-shadow:
       0 30px 70px rgba(0, 0, 0, 0.8),
       inset 0 1px 0 rgba(255, 255, 255, 0.05);
     padding: 16px;
     display: flex;
     flex-direction: column;
     gap: 12px;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    transition:
+      border-color 0.2s,
+      box-shadow 0.2s;
   }
 
   .op1-chassis.grid-layout {
@@ -896,9 +1101,16 @@
   }
 
   @keyframes chassis-shake {
-    0%, 100% { transform: translate(0, 0); }
-    25% { transform: translate(-2px, 1px); }
-    75% { transform: translate(2px, -1px); }
+    0%,
+    100% {
+      transform: translate(0, 0);
+    }
+    25% {
+      transform: translate(-2px, 1px);
+    }
+    75% {
+      transform: translate(2px, -1px);
+    }
   }
 
   /* LCD Screen Error Banner overlaying only visualizer area */
@@ -925,8 +1137,12 @@
     text-align: center;
   }
   @keyframes flash-error {
-    0% { opacity: 0.85; }
-    100% { opacity: 1; }
+    0% {
+      opacity: 0.85;
+    }
+    100% {
+      opacity: 1;
+    }
   }
   .error-msg {
     font-size: 0.72rem;
@@ -943,7 +1159,9 @@
   .pad-card.pad-error {
     border-color: #ff3344 !important;
     background: rgba(255, 51, 68, 0.1) !important;
-    box-shadow: inset 0 0 10px rgba(255, 51, 68, 0.2), 0 0 10px rgba(255, 51, 68, 0.15) !important;
+    box-shadow:
+      inset 0 0 10px rgba(255, 51, 68, 0.2),
+      0 0 10px rgba(255, 51, 68, 0.15) !important;
     color: #ff3344 !important;
   }
 
@@ -1022,7 +1240,7 @@
     height: 38px;
     border-radius: 50%;
     position: relative;
-    box-shadow: 
+    box-shadow:
       0 4px 8px rgba(0, 0, 0, 0.4),
       inset 0 1px 0 rgba(255, 255, 255, 0.2);
     display: flex;
@@ -1040,10 +1258,18 @@
   }
 
   /* OP-1 Knobs Colors */
-  .color-cyan { background: #00bfff; }
-  .color-green { background: #00ff66; }
-  .color-orange { background: #ffcc00; }
-  .color-pink { background: #ff55bb; }
+  .color-cyan {
+    background: #00bfff;
+  }
+  .color-green {
+    background: #00ff66;
+  }
+  .color-orange {
+    background: #ffcc00;
+  }
+  .color-pink {
+    background: #ff55bb;
+  }
 
   .knob-title {
     font-size: 0.58rem;
@@ -1136,7 +1362,9 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: inset 0 1px 2px rgba(255,255,255,0.05), 0 2px 4px rgba(0,0,0,0.3);
+    box-shadow:
+      inset 0 1px 2px rgba(255, 255, 255, 0.05),
+      0 2px 4px rgba(0, 0, 0, 0.3);
   }
 
   .kit-btn:hover {
@@ -1153,14 +1381,35 @@
   }
 
   /* Neon pad colors */
-  .pad-blue:hover { border-color: #0077ff; background: rgba(0, 119, 255, 0.04); }
-  .pad-blue.active { background: #0077ff; color: black; box-shadow: 0 0 15px #0077ff; }
+  .pad-blue:hover {
+    border-color: #0077ff;
+    background: rgba(0, 119, 255, 0.04);
+  }
+  .pad-blue.active {
+    background: #0077ff;
+    color: black;
+    box-shadow: 0 0 15px #0077ff;
+  }
 
-  .pad-cyan:hover { border-color: #00bfff; background: rgba(0, 191, 255, 0.04); }
-  .pad-cyan.active { background: #00bfff; color: black; box-shadow: 0 0 15px #00bfff; }
+  .pad-cyan:hover {
+    border-color: #00bfff;
+    background: rgba(0, 191, 255, 0.04);
+  }
+  .pad-cyan.active {
+    background: #00bfff;
+    color: black;
+    box-shadow: 0 0 15px #00bfff;
+  }
 
-  .pad-orange:hover { border-color: #ffcc00; background: rgba(255, 204, 0, 0.04); }
-  .pad-orange.active { background: #ffcc00; color: black; box-shadow: 0 0 15px #ffcc00; }
+  .pad-orange:hover {
+    border-color: #ffcc00;
+    background: rgba(255, 204, 0, 0.04);
+  }
+  .pad-orange.active {
+    background: #ffcc00;
+    color: black;
+    box-shadow: 0 0 15px #ffcc00;
+  }
 
   /* Custom pad */
   .custom-pad {
@@ -1180,7 +1429,9 @@
     box-shadow: 0 0 20px var(--pad-glow);
   }
 
-  .custom-pad.active .pad-label, .custom-pad.active .pad-show-tag, .custom-pad.active .pad-key {
+  .custom-pad.active .pad-label,
+  .custom-pad.active .pad-show-tag,
+  .custom-pad.active .pad-key {
     color: black;
   }
 
@@ -1245,6 +1496,13 @@
   }
 
   /* Love Island pad color styling */
-  .pad-pink:hover { border-color: #ff55bb; background: rgba(255, 85, 187, 0.04); }
-  .pad-pink.active { background: #ff55bb; color: black; box-shadow: 0 0 15px #ff55bb; }
+  .pad-pink:hover {
+    border-color: #ff55bb;
+    background: rgba(255, 85, 187, 0.04);
+  }
+  .pad-pink.active {
+    background: #ff55bb;
+    color: black;
+    box-shadow: 0 0 15px #ff55bb;
+  }
 </style>
