@@ -18,7 +18,7 @@
     Trash2,
     Loader2,
   } from "lucide-svelte";
-  import { convertImage, convertAudio, convertVideo } from "./convert.js";
+  import { convertImage, convertAudio, convertVideo, convertAudioToVideo } from "./convert.js";
   import * as fflate from "fflate";
 
   // State variables
@@ -68,11 +68,27 @@
   // Available output formats based on detected type
   const formatMap = {
     image: ["png", "jpg", "webp", "avif", "svg"],
-    audio: ["mp3", "wav", "m4a", "aac", "webm"],
-    video: ["mp4", "mov", "mkv", "avi"],
+    audio: ["mp3", "wav", "m4a", "aac", "webm", "mp4", "mov", "mkv", "avi"],
+    video: ["mp4", "mov", "mkv", "avi", "mp3", "wav", "m4a", "aac", "webm"],
   };
 
   let availableFormats = $derived(fileType ? formatMap[fileType] || [] : []);
+
+  let formatGroups = $derived(
+    fileType === "image"
+      ? [{ name: "Image Formats", color: "#ff5e00", formats: ["png", "jpg", "webp", "avif", "svg"] }]
+      : fileType === "audio"
+        ? [
+            { name: "Audio Formats", color: "#00ffff", formats: ["mp3", "wav", "m4a", "aac", "webm"] },
+            { name: "Video Formats", color: "#a855f7", formats: ["mp4", "mov", "mkv", "avi"] },
+          ]
+        : fileType === "video"
+          ? [
+              { name: "Video Formats", color: "#a855f7", formats: ["mp4", "mov", "mkv", "avi"] },
+              { name: "Audio Formats", color: "#00ffff", formats: ["mp3", "wav", "m4a", "aac", "webm"] },
+            ]
+          : []
+  );
 
   const notices = [
     "Refining Format Molecules",
@@ -129,17 +145,10 @@
   function handleKeydown(e) {
     if (conversionStatus !== "idle" || !file) return;
 
-    // Numbers 1-5 to select formats
-    if (e.key === "1" && availableFormats[0]) {
-      outputFormat = availableFormats[0];
-    } else if (e.key === "2" && availableFormats[1]) {
-      outputFormat = availableFormats[1];
-    } else if (e.key === "3" && availableFormats[2]) {
-      outputFormat = availableFormats[2];
-    } else if (e.key === "4" && availableFormats[3]) {
-      outputFormat = availableFormats[3];
-    } else if (e.key === "5" && availableFormats[4]) {
-      outputFormat = availableFormats[4];
+    // Numbers 1-9 to select formats
+    const num = parseInt(e.key);
+    if (!isNaN(num) && num >= 1 && num <= 9 && availableFormats[num - 1]) {
+      outputFormat = availableFormats[num - 1];
     } else if (e.key === "Enter" && outputFormat) {
       startConversion();
     }
@@ -252,6 +261,15 @@
       inputFormat = ext;
       previewUrl = URL.createObjectURL(file);
       outputFormat = inputFormat === "mp4" ? "mov" : "mp4";
+
+      // Decode audio track from video in background if present
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+      } catch (err) {
+        console.warn("Failed to decode audio track from video (might have no audio):", err);
+      }
     } else {
       fileType = "unsupported";
       errorMessage =
@@ -365,6 +383,7 @@
         const originalBase = file.name.substring(0, file.name.lastIndexOf("."));
         convertedFileName = `${originalBase}.${outputFormat}`;
       } else if (fileType === "audio") {
+        const isTargetVideo = ["mp4", "mov", "mkv", "avi"].includes(outputFormat);
         if (!audioBuffer) {
           try {
             const arrayBuffer = await file.arrayBuffer();
@@ -375,17 +394,55 @@
             console.error("Failed to decode audio data on-the-fly:", err);
           }
         }
-        convertedBlob = await convertAudio(
-          file,
-          audioBuffer,
-          outputFormat,
-          audioSampleRate,
-          compression,
-        );
+        if (isTargetVideo) {
+          clearInterval(interval);
+          if (!audioBuffer) {
+            throw new Error("Failed to decode audio data for video encoding.");
+          }
+          convertedBlob = await convertAudioToVideo(
+            audioBuffer,
+            outputFormat,
+            (pct) => {
+              progress = pct;
+            }
+          );
+        } else {
+          convertedBlob = await convertAudio(
+            file,
+            audioBuffer,
+            outputFormat,
+            audioSampleRate,
+            compression,
+          );
+        }
         const originalBase = file.name.substring(0, file.name.lastIndexOf("."));
         convertedFileName = `${originalBase}_converted.${outputFormat}`;
       } else if (fileType === "video") {
-        convertedBlob = await convertVideo(file, outputFormat);
+        const isTargetAudio = ["mp3", "wav", "m4a", "aac", "webm"].includes(outputFormat);
+        if (isTargetAudio) {
+          if (!audioBuffer) {
+            try {
+              const arrayBuffer = await file.arrayBuffer();
+              audioContext = new (window.AudioContext ||
+                window.webkitAudioContext)();
+              audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+            } catch (err) {
+              console.error("Failed to decode video audio track on-the-fly:", err);
+            }
+          }
+          if (!audioBuffer) {
+            throw new Error("No audio track detected in this video file.");
+          }
+          convertedBlob = await convertAudio(
+            file,
+            audioBuffer,
+            outputFormat,
+            audioSampleRate,
+            compression,
+          );
+        } else {
+          convertedBlob = await convertVideo(file, outputFormat);
+        }
         const originalBase = file.name.substring(0, file.name.lastIndexOf("."));
         convertedFileName = `${originalBase}_converted.${outputFormat}`;
       }
@@ -600,28 +657,64 @@
 
         let resultBlob;
         if (item.fileType === "image") {
+          const tempUrl = URL.createObjectURL(item.file);
           resultBlob = await convertImage(
-            item.file,
+            tempUrl,
             item.outputFormat,
             item.targetWidth || 800,
             item.targetHeight || 600,
             item.quality,
-            item.compression,
           );
-        } else if (item.fileType === "audio") {
-          resultBlob = await convertAudio(
-            item.file,
-            item.outputFormat,
-            item.audioBitrate,
-            item.audioSampleRate,
-            (p) => {
-              item.progress = Math.round(10 + p * 0.85);
-            },
-          );
-        } else if (item.fileType === "video") {
-          resultBlob = await convertVideo(item.file, item.outputFormat, (p) => {
-            item.progress = Math.round(10 + p * 0.85);
-          });
+          URL.revokeObjectURL(tempUrl);
+        } else if (item.fileType === "audio" || item.fileType === "video") {
+          const isTargetVideo = ["mp4", "mov", "mkv", "avi"].includes(item.outputFormat);
+          const isTargetAudio = ["mp3", "wav", "m4a", "aac", "webm"].includes(item.outputFormat);
+
+          let bulkAudioBuffer = null;
+          if (isTargetVideo || isTargetAudio) {
+            try {
+              const arrayBuffer = await item.file.arrayBuffer();
+              const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+              bulkAudioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+              audioCtx.close();
+            } catch (err) {
+              console.warn("Failed to decode audio track during batch conversion:", err);
+            }
+          }
+
+          if (item.fileType === "audio" && isTargetVideo) {
+            if (!bulkAudioBuffer) {
+              throw new Error("Failed to decode audio track for video encoding.");
+            }
+            resultBlob = await convertAudioToVideo(
+              bulkAudioBuffer,
+              item.outputFormat,
+              (p) => {
+                item.progress = Math.round(10 + p * 0.85);
+              }
+            );
+          } else if (item.fileType === "video" && isTargetAudio) {
+            if (!bulkAudioBuffer) {
+              throw new Error("No audio track detected in this video file.");
+            }
+            resultBlob = await convertAudio(
+              item.file,
+              bulkAudioBuffer,
+              item.outputFormat,
+              item.audioSampleRate || "keep",
+              item.compression || 15,
+            );
+          } else if (item.fileType === "audio") {
+            resultBlob = await convertAudio(
+              item.file,
+              bulkAudioBuffer,
+              item.outputFormat,
+              item.audioSampleRate || "keep",
+              item.compression || 15,
+            );
+          } else if (item.fileType === "video") {
+            resultBlob = await convertVideo(item.file, item.outputFormat);
+          }
         }
 
         item.convertedBlob = resultBlob;
@@ -1491,28 +1584,39 @@
 
           <!-- Right Column -->
           <div class="sm:col-span-6 flex flex-col justify-between gap-5 h-full">
-            <div class="selection-section">
+            <div class="selection-section flex flex-col gap-4">
               <h3>Select Output Format</h3>
-              <div
-                class="format-options-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 gap-2 md:gap-3"
-              >
-                {#each availableFormats as format, index}
-                  <button
-                    class="format-opt-btn"
-                    class:selected={outputFormat === format}
-                    onclick={() => (outputFormat = format)}
+              
+              {#each formatGroups as group}
+                <div>
+                  <div 
+                    class="text-[11px] font-bold uppercase tracking-wider mb-2 font-mono"
+                    style="color: {group.color};"
                   >
-                    <span class="format-num">{index + 1}</span>
-                    <span class="format-label">{format.toUpperCase()}</span>
-                  </button>
-                {/each}
-              </div>
+                    {group.name}
+                  </div>
+                  <div class="format-options-grid grid grid-cols-2 sm:grid-cols-3 gap-2 md:gap-3">
+                    {#each availableFormats as format, index}
+                      {#if group.formats.includes(format)}
+                        <button
+                          class="format-opt-btn"
+                          class:selected={outputFormat === format}
+                          onclick={() => (outputFormat = format)}
+                        >
+                          <span class="format-num">{index + 1}</span>
+                          <span class="format-label">{format.toUpperCase()}</span>
+                        </button>
+                      {/if}
+                    {/each}
+                  </div>
+                </div>
+              {/each}
 
               <div
-                class="shortcut-tip flex items-center justify-center gap-1.5 mt-4 text-[10px] text-white/30 font-mono"
+                class="shortcut-tip flex items-center justify-center gap-1.5 mt-2 text-[10px] text-white/30 font-mono"
               >
                 <Keyboard size={12} />
-                <span>Press [1-5] to select, [Enter] to convert</span>
+                <span>Press [1-9] to select, [Enter] to convert</span>
               </div>
             </div>
 

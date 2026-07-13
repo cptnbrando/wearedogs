@@ -287,3 +287,120 @@ export async function convertVideo(file, outputFormat) {
   return new Blob([await file.arrayBuffer()], { type: mimeType });
 }
 
+/**
+ * Converts an AudioBuffer into a video Blob (black screen with audio).
+ * @param {AudioBuffer} audioBuffer
+ * @param {string} outputFormat - 'mp4' | 'mov' | 'mkv' | 'avi'
+ * @param {function} [onProgress] - progress callback
+ * @returns {Promise<Blob>}
+ */
+export function convertAudioToVideo(audioBuffer, outputFormat, onProgress) {
+  return new Promise((resolve, reject) => {
+    try {
+      const canvas = document.createElement("canvas");
+      canvas.width = 640;
+      canvas.height = 480;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "black";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const fps = 10;
+      const canvasStream = canvas.captureStream(fps);
+
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      const audioCtx = new AudioCtx();
+      const dest = audioCtx.createMediaStreamDestination();
+
+      const source = audioCtx.createBufferSource();
+      source.buffer = audioBuffer;
+      source.connect(dest);
+
+      const combinedStream = new MediaStream([
+        ...canvasStream.getVideoTracks(),
+        ...dest.stream.getAudioTracks()
+      ]);
+
+      let mimeType = "video/webm";
+      if (outputFormat === "mp4") {
+        if (MediaRecorder.isTypeSupported("video/mp4")) {
+          mimeType = "video/mp4";
+        } else if (MediaRecorder.isTypeSupported("video/mp4;codecs=avc1,aac")) {
+          mimeType = "video/mp4;codecs=avc1,aac";
+        }
+      } else {
+        if (MediaRecorder.isTypeSupported("video/webm")) {
+          mimeType = "video/webm";
+        }
+      }
+
+      const options = { mimeType };
+      const mediaRecorder = new MediaRecorder(combinedStream, options);
+      const chunks = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) {
+          chunks.push(e.data);
+        }
+      };
+
+      let progressInterval;
+      const duration = audioBuffer.duration;
+      const startTime = Date.now();
+
+      // Periodically redraw black frame to keep the canvas stream alive
+      let frameCount = 0;
+      const drawInterval = setInterval(() => {
+        ctx.fillStyle = "black";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        ctx.fillStyle = frameCount % 2 === 0 ? "#000000" : "#000001";
+        ctx.fillRect(0, 0, 1, 1);
+        frameCount++;
+      }, 1000 / fps);
+
+      mediaRecorder.onstop = () => {
+        clearInterval(progressInterval);
+        clearInterval(drawInterval);
+        audioCtx.close();
+        
+        canvasStream.getTracks().forEach((t) => t.stop());
+        dest.stream.getTracks().forEach((t) => t.stop());
+
+        const blob = new Blob(chunks, { type: mimeType });
+        resolve(blob);
+      };
+
+      mediaRecorder.onerror = (err) => {
+        clearInterval(progressInterval);
+        clearInterval(drawInterval);
+        audioCtx.close();
+        canvasStream.getTracks().forEach((t) => t.stop());
+        dest.stream.getTracks().forEach((t) => t.stop());
+        reject(err);
+      };
+
+      mediaRecorder.start();
+      source.start(0);
+
+      if (onProgress) {
+        progressInterval = setInterval(() => {
+          const elapsed = (Date.now() - startTime) / 1000;
+          let pct = Math.min(99, Math.round((elapsed / duration) * 100));
+          if (isNaN(pct)) pct = 0;
+          onProgress(pct);
+        }, 200);
+      }
+
+      source.onended = () => {
+        if (mediaRecorder.state !== "inactive") {
+          mediaRecorder.stop();
+        }
+      };
+
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
+
+
