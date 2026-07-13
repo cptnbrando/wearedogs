@@ -65,7 +65,7 @@
     soundstripper: "./apps/SoundStripper.svelte",
     converter: "./apps/CatalyticConverter.svelte",
     reader: "./apps/ImageReader.svelte",
-    windshieldwiper: "./apps/WindshieldWiper.svelte"
+    windshieldwiper: "./apps/WindshieldWiper.svelte",
   };
 
   // Lazy loaded app components caching
@@ -97,21 +97,21 @@
     } else if (focusedIdx >= 0 && focusedIdx < apps.length) {
       appInfo = apps[focusedIdx];
     }
-    
+
     if (appInfo) {
       return {
         title: appInfo.title,
         icon: appInfo.icon,
-        isEmoji: appInfo.id === 'converter',
-        id: appInfo.id
+        isEmoji: appInfo.id === "converter",
+        id: appInfo.id,
       };
     }
-    
+
     return {
       title: "TOOLBOX",
       icon: Component,
       isEmoji: false,
-      id: "toolbox"
+      id: "toolbox",
     };
   });
 
@@ -119,12 +119,12 @@
 
   function stepTypewriter() {
     clearTimeout(typewriterTimeout);
-    
+
     const target = currentTargetTitle;
     const current = displayedTitle;
-    
+
     if (current === target) return;
-    
+
     // Animate characters (backspace first, then type in)
     if (target.startsWith(current)) {
       displayedTitle = target.slice(0, current.length + 1);
@@ -407,11 +407,13 @@
             🔥
           {:else}
             {@const IconComp = currentHeaderDetails.icon}
-            {@const color = appColors[currentHeaderDetails.id] || '#b455ff'}
+            {@const color = appColors[currentHeaderDetails.id] || "#b455ff"}
             <IconComp
               size={16}
               style="color: {color}; filter: drop-shadow(0 0 5px {color}66);"
-              class={currentHeaderDetails.id === 'stopwatch' ? 'animated-hourglass' : ''}
+              class={currentHeaderDetails.id === "stopwatch"
+                ? "animated-hourglass"
+                : ""}
             />
           {/if}
         </span>
@@ -446,8 +448,8 @@
       {#if activeApp === null}
         <!-- APPS LAUNCHER GRID VIEW -->
         <div class="launcher-view animated-pane">
-          <div 
-            class="apps-grid" 
+          <div
+            class="apps-grid"
             bind:this={appsGridEl}
             onmouseleave={() => {
               if (!isKeyboardNav) focusedIdx = -1;
@@ -666,12 +668,22 @@
     align-items: center;
   }
 
-
-
   @media (max-width: 768px) {
     .header-scroll-container.overflowing {
-      mask-image: linear-gradient(to right, transparent, black 12px, black 90%, transparent);
-      -webkit-mask-image: linear-gradient(to right, transparent, black 12px, black 90%, transparent);
+      mask-image: linear-gradient(
+        to right,
+        transparent,
+        black 12px,
+        black 90%,
+        transparent
+      );
+      -webkit-mask-image: linear-gradient(
+        to right,
+        transparent,
+        black 12px,
+        black 90%,
+        transparent
+      );
     }
 
     .header-title-text.animate-scroll {
@@ -680,10 +692,12 @@
   }
 
   @keyframes header-scroll-text {
-    0%, 15% {
+    0%,
+    15% {
       transform: translateX(0);
     }
-    85%, 100% {
+    85%,
+    100% {
       transform: translateX(var(--scroll-dist));
     }
   }
@@ -801,7 +815,9 @@
   }
 
   @keyframes appSpinner {
-    to { transform: rotate(360deg); }
+    to {
+      transform: rotate(360deg);
+    }
   }
 
   /* ── Mobile Layout Full Screen & App Grid ── */
@@ -880,7 +896,8 @@
   .active-app-header-box {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 0px;
+    max-width: 92.5%;
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.08);
     padding: 6px 14px;
@@ -912,8 +929,6 @@
     font-family: "Outfit", "Inter", sans-serif;
   }
 
-
-
   .app-indicator-icon {
     display: flex;
     align-items: center;
@@ -939,10 +954,18 @@
   }
 
   @keyframes hourglass-flip {
-    0% { transform: rotate(0deg); }
-    45% { transform: rotate(0deg); }
-    55% { transform: rotate(180deg); }
-    100% { transform: rotate(180deg); }
+    0% {
+      transform: rotate(0deg);
+    }
+    45% {
+      transform: rotate(0deg);
+    }
+    55% {
+      transform: rotate(180deg);
+    }
+    100% {
+      transform: rotate(180deg);
+    }
   }
 
   /* Responsive styling for active app title */
@@ -950,9 +973,11 @@
     .active-app-header-box {
       padding: 4px 10px;
       gap: 10px;
+      max-width: 220px;
+      margin: 0 auto;
     }
     .header-title-text {
-      font-size: 0.9rem;
+      font-size: 0.8rem;
     }
   }
 </style>

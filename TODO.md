@@ -50,6 +50,7 @@
 - remove the corner arrows, blinking red dot, and episode info from a permanent video overlay. move them to the one that appears on hover.
 - put dogs logo and DOGS in the bottom right on permanent overlay, very greyed out white washed. yes it must animate if the music panel is playing also
 - the number keys still do not work at all anymore. they should quickly shift and move through the video Like they did before, Ressembling YouTube playback controls, like when I push the number key on a YouTube video, I quickly skip to it This must also adhere to the BPM rule that we once set before. If I hold the button, it will slowly correspond to the BPM, how long it stutters, shows a re-loop, re-play stutter effect. 
+- The episodes and shows should all have 
 
 
 # Arcade modifications
