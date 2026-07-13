@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1783932152,
+    "firstCommitTimestamp": 1783932473,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 126938
+    "averageLinesAltered": 126952
   },
   "entries": [
     {
-      "version": "1.0.1",
+      "version": "1.0.3",
       "name": "Master",
       "date": "2026-07-13",
-      "timestamp": 1783932301,
+      "timestamp": 1783932416,
       "commits": [
         {
-          "hash": "e0aa253",
-          "message": "soundboard sizes",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/e0aa253033119c0b657140f5690513d153f9978e",
-          "timestamp": 1783932152,
-          "linesChanged": 126938
+          "hash": "0ce42b9",
+          "message": "feat: implement SoundboardApp and TitlePage with new dependencies for audio and asset processing",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/0ce42b96edc5fa3ba637dc391ab6d79cdb966cd0",
+          "timestamp": 1783932473,
+          "linesChanged": 126952
         }
       ]
     },
