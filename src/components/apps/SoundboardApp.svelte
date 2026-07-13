@@ -11,6 +11,7 @@
   let activeOscillators = [];
   let activeAudioElements = [];
   let isError = $state(false);
+  let failedPads = $state(new Set());
 
   // OP-1 Encoders (Knobs) state
   let knobPitch = $state(1.0); // 0.5 to 2.0
@@ -236,7 +237,8 @@
   }
 
   // Play Video audio slice
-  function playCustomClip(clip) {
+  // Play Video audio slice
+  function playCustomClip(clip, padIdx = null) {
     // Trigger visualizer amplitude pulse
     waveAmplitude = 0.8;
     
@@ -253,6 +255,14 @@
 
     const triggerErrorAnimation = () => {
       isError = true;
+      if (padIdx !== null) {
+        failedPads.add(padIdx);
+        failedPads = new Set(failedPads);
+        setTimeout(() => {
+          failedPads.delete(padIdx);
+          failedPads = new Set(failedPads);
+        }, 1500);
+      }
       setTimeout(() => { isError = false; }, 1500);
     };
 
@@ -297,7 +307,7 @@
   }
 
   // Play direct audio file
-  function playAudioFile(url, options = {}) {
+  function playAudioFile(url, options = {}, padIdx = null) {
     waveAmplitude = 0.8;
     const audio = new Audio(url);
     audio.crossOrigin = "anonymous";
@@ -314,6 +324,14 @@
 
     const triggerErrorAnimation = () => {
       isError = true;
+      if (padIdx !== null) {
+        failedPads.add(padIdx);
+        failedPads = new Set(failedPads);
+        setTimeout(() => {
+          failedPads.delete(padIdx);
+          failedPads = new Set(failedPads);
+        }, 1500);
+      }
       setTimeout(() => { isError = false; }, 1500);
     };
 
@@ -363,11 +381,11 @@
     if (!sound) return;
 
     if (activeKit.id === "custom") {
-      playCustomClip(sound);
+      playCustomClip(sound, idx);
     } else if (sound.type === "procedural") {
       playProcedural(sound.proceduralType, sound.options || {});
     } else if (sound.type === "file") {
-      playAudioFile(sound.url, sound.options || {});
+      playAudioFile(sound.url, sound.options || {}, idx);
     }
   }
 
@@ -781,26 +799,32 @@
                   type="button"
                   class="pad-card {sound.color || ''} {activeKit.id === 'custom' ? 'custom-pad' : 'procedural-pad'}"
                   class:active={activePadIndex === i}
+                  class:pad-error={failedPads.has(i)}
                   style="{activeKit.id === 'custom' ? `--pad-glow: ${sound.color}; border-color: ${sound.color}44` : ''}"
                   onclick={() => triggerPad(i)}
                 >
                   <span class="pad-key">{sound.key.toUpperCase()}</span>
-                  {#if activeKit.id === "custom"}
-                    <span 
-                      role="button"
-                      tabindex="0"
-                      class="delete-clip-btn" 
-                      onclick={(e) => deleteClip(sound.id, e)}
-                      onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') deleteClip(sound.id, e); }}
-                      title="Delete Clip"
-                    >
-                      ✕
-                    </span>
-                    <span class="pad-show-tag">{sound.show.replace(" S1", "")}</span>
+                  {#if failedPads.has(i)}
+                    <span class="pad-emoji">⚠️</span>
+                    <span class="pad-label">ERROR</span>
                   {:else}
-                    <span class="pad-emoji">{sound.emoji}</span>
+                    {#if activeKit.id === "custom"}
+                      <span 
+                        role="button"
+                        tabindex="0"
+                        class="delete-clip-btn" 
+                        onclick={(e) => deleteClip(sound.id, e)}
+                        onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') deleteClip(sound.id, e); }}
+                        title="Delete Clip"
+                      >
+                        ✕
+                      </span>
+                      <span class="pad-show-tag">{sound.show.replace(" S1", "")}</span>
+                    {:else}
+                      <span class="pad-emoji">{sound.emoji}</span>
+                    {/if}
+                    <span class="pad-label">{sound.label || sound.title}</span>
                   {/if}
-                  <span class="pad-label">{sound.label || sound.title}</span>
                 </button>
               {:else}
                 <div class="pad-card empty-pad">
@@ -866,22 +890,24 @@
 
   /* Chassis error state */
   .chassis-error {
-    animation: chassis-shake 0.3s ease-in-out;
+    animation: chassis-shake 0.25s ease-in-out;
     border-color: #ff3344 !important;
-    box-shadow: 0 0 30px rgba(255, 51, 68, 0.4) !important;
+    box-shadow: 0 0 20px rgba(255, 51, 68, 0.2) !important;
   }
 
   @keyframes chassis-shake {
     0%, 100% { transform: translate(0, 0); }
-    20%, 60% { transform: translate(-4px, 2px); }
-    40%, 80% { transform: translate(4px, -2px); }
+    25% { transform: translate(-2px, 1px); }
+    75% { transform: translate(2px, -1px); }
   }
 
-  /* LCD Screen Error Overlay */
+  /* LCD Screen Error Banner overlaying only visualizer area */
   .screen-error-overlay {
     position: absolute;
-    inset: 0;
-    background: rgba(20, 5, 5, 0.95);
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(15, 5, 5, 0.92);
     color: #ff3344;
     display: flex;
     flex-direction: column;
@@ -889,23 +915,36 @@
     justify-content: center;
     z-index: 10;
     font-family: monospace;
-    border-radius: 12px;
+    border-radius: 8px;
     border: 1px solid #ff3344;
+    padding: 6px 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
     animation: flash-error 0.5s infinite alternate;
+    pointer-events: none;
+    width: 75%;
+    text-align: center;
   }
   @keyframes flash-error {
-    0% { opacity: 0.8; }
+    0% { opacity: 0.85; }
     100% { opacity: 1; }
   }
   .error-msg {
-    font-size: 0.85rem;
+    font-size: 0.72rem;
     font-weight: 700;
     letter-spacing: 0.05em;
   }
   .error-sub {
-    font-size: 0.55rem;
+    font-size: 0.5rem;
     opacity: 0.7;
-    margin-top: 2px;
+    margin-top: 1px;
+  }
+
+  /* Pad Error State */
+  .pad-card.pad-error {
+    border-color: #ff3344 !important;
+    background: rgba(255, 51, 68, 0.1) !important;
+    box-shadow: inset 0 0 10px rgba(255, 51, 68, 0.2), 0 0 10px rgba(255, 51, 68, 0.15) !important;
+    color: #ff3344 !important;
   }
 
   /* ── LCD Screen ── */
