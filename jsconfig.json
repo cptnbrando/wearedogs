@@ -34,9 +34,6 @@
   "include": [
     "src/**/*.d.ts",
     "src/**/*.js",
-    "src/**/*.svelte",
-    "src/components/.test/SwipeTabNav.test.js",
-    "src/components/.test/TitlePage.test.js",
-    "src/components/.test/SwipeTabNav.test.js"
+    "src/**/*.svelte"
   ]
 }
