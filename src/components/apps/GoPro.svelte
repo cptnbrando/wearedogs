@@ -87,11 +87,14 @@
                 }
             }
 
-            // Fall back to the remote R2 URL with password query param
-            const remoteUrlWithAuth = password ? `${remoteUrl}?password=${password}` : remoteUrl;
-            const res = await fetch(remoteUrlWithAuth, { method: "HEAD" });
+            // Fall back to the remote R2 URL with auth header by fetching the video
+            const res = await fetch(remoteUrl, {
+                method: "GET",
+                headers: password ? { Authorization: `password=${password}` } : {},
+            });
             if (res.ok) {
-                streamUrl = remoteUrlWithAuth;
+                const blob = await res.blob();
+                streamUrl = URL.createObjectURL(blob);
             } else {
                 streamUrl = "";
                 showDownloadPrompt = true;
