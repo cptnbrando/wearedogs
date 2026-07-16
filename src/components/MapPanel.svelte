@@ -145,29 +145,15 @@
           class="world-svg"
           xmlns="http://www.w3.org/2000/svg"
         >
-          <!-- Grid Overlay -->
-          <defs>
-            <pattern
-              id="map-grid"
-              width="40"
-              height="40"
-              patternUnits="userSpaceOnUse"
-            >
-              <path
-                d="M 40 0 L 0 0 0 40"
-                fill="none"
-                stroke="rgba(255, 51, 68, 0.05)"
-                stroke-width="0.7"
-              />
-            </pattern>
-          </defs>
-          <rect
-            x="30.767"
-            y="241.591"
-            width="784.077"
-            height="458.627"
-            fill="url(#map-grid)"
-          />
+
+          <!-- Ocean Labels -->
+          <text x="400" y="265" class="ocean-label" text-anchor="middle">ARCTIC OCEAN</text>
+          <text x="90" y="380" class="ocean-label" text-anchor="middle">NORTH PACIFIC OCEAN</text>
+          <text x="110" y="540" class="ocean-label" text-anchor="middle">SOUTH PACIFIC OCEAN</text>
+          <text x="320" y="370" class="ocean-label" text-anchor="middle">NORTH ATLANTIC OCEAN</text>
+          <text x="340" y="530" class="ocean-label" text-anchor="middle">SOUTH ATLANTIC OCEAN</text>
+          <text x="580" y="500" class="ocean-label" text-anchor="middle">INDIAN OCEAN</text>
+          <text x="400" y="675" class="ocean-label" text-anchor="middle">SOUTHERN OCEAN</text>
 
           <!-- Detailed world map borders outline -->
           <path
@@ -1798,10 +1784,26 @@
     background: #040408;
   }
 
-  .continent-path {
-    fill: rgba(255, 255, 255, 0.02);
-    stroke: rgba(255, 255, 255, 0.07);
-    stroke-width: 1.2;
+  .world-svg path {
+    fill: rgba(255, 255, 255, 0.08);
+    stroke: rgba(255, 255, 255, 0.22);
+    stroke-width: 0.7;
+    transition: all 0.2s ease;
+  }
+
+  .world-svg path:hover {
+    fill: rgba(255, 255, 255, 0.22);
+    stroke: rgba(255, 255, 255, 0.45);
+  }
+
+  .ocean-label {
+    font-family: monospace;
+    font-size: 6.5px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    fill: rgba(255, 255, 255, 0.18);
+    pointer-events: none;
+    user-select: none;
   }
 
   /* Pins */
