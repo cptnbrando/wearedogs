@@ -349,7 +349,9 @@
   }
 
   function scrollFocusedPostIntoView() {
-    const el = document.querySelector(`.post-card[data-index="${focusedPostIdx}"]`);
+    const el = document.querySelector(
+      `.post-card[data-index="${focusedPostIdx}"]`,
+    );
     if (el) {
       el.scrollIntoView({ block: "nearest", behavior: "smooth" });
     }

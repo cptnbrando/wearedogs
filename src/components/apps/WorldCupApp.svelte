@@ -1,15 +1,22 @@
 <script>
   import { onMount } from "svelte";
   import { fade } from "svelte/transition";
-  import { Trophy, Search, RefreshCw, AlertCircle, Grid, List } from "lucide-svelte";
+  import {
+    Trophy,
+    Search,
+    RefreshCw,
+    AlertCircle,
+    Grid,
+    List,
+  } from "lucide-svelte";
   import SwipeTabNav from "../SwipeTabNav.svelte";
 
   const wcTabs = [
     { id: "bracket", label: "Bracket", icon: Trophy },
     { id: "standings", label: "Standings", icon: Grid },
-    { id: "teams", label: "Teams", icon: List }
+    { id: "teams", label: "Teams", icon: List },
   ];
-  
+
   // Decoupled logic & components
   import { WorldCupController } from "../../lib/worldcup.js";
   import TournamentHub from "./worldcup/TournamentHub.svelte";
@@ -18,7 +25,10 @@
   import TeamStatusGrid from "./worldcup/TeamStatusGrid.svelte";
 
   // Hoisted constants
-  const IS_DEV = typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+  const IS_DEV =
+    typeof window !== "undefined" &&
+    (window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1");
   const API_BASE = IS_DEV ? "/api-worldcup" : "https://worldcup26.ir";
 
   // Svelte 5 state variables
@@ -32,14 +42,24 @@
 
   // Derived properties
   let standings = $derived(controller ? controller.calculateStandings() : {});
-  let thirdPlaceStandings = $derived(controller ? controller.getThirdPlaceStandings(standings) : []);
+  let thirdPlaceStandings = $derived(
+    controller ? controller.getThirdPlaceStandings(standings) : [],
+  );
   let teamStatuses = $derived(controller ? controller.getTeamStatuses() : {});
-  let bracketMatches = $derived(controller ? controller.getBracketMatches() : { r32: [], r16: [], qf: [], sf: [], third: null, final: null });
+  let bracketMatches = $derived(
+    controller
+      ? controller.getBracketMatches()
+      : { r32: [], r16: [], qf: [], sf: [], third: null, final: null },
+  );
 
   let currentMatch = $derived(getCurrentMatch());
   let currentStage = $derived.by(() => {
     if (!currentMatch) return "group";
-    return currentMatch.type === "group" ? "group" : currentMatch.type === "final" || currentMatch.type === "third" ? "finals" : currentMatch.type;
+    return currentMatch.type === "group"
+      ? "group"
+      : currentMatch.type === "final" || currentMatch.type === "third"
+        ? "finals"
+        : currentMatch.type;
   });
 
   /**
@@ -49,9 +69,11 @@
    */
   function getCurrentMatch() {
     if (!controller) return null;
-    const live = controller.games.find(g => g.finished !== "TRUE" && g.time_elapsed !== "notstarted");
+    const live = controller.games.find(
+      (g) => g.finished !== "TRUE" && g.time_elapsed !== "notstarted",
+    );
     if (live) return live;
-    const unfinished = controller.games.find(g => g.finished !== "TRUE");
+    const unfinished = controller.games.find((g) => g.finished !== "TRUE");
     return unfinished || controller.games[controller.games.length - 1];
   }
 
@@ -61,12 +83,14 @@
    */
   function jumpToCurrentMatch() {
     if (!controller || !currentMatch) return;
-    
+
     if (currentMatch.type === "group") {
       activeTab = "standings";
       searchQuery = "";
       setTimeout(() => {
-        const groupEl = document.getElementById(`group-card-${currentMatch.group}`);
+        const groupEl = document.getElementById(
+          `group-card-${currentMatch.group}`,
+        );
         if (groupEl) {
           groupEl.scrollIntoView({ behavior: "smooth", block: "center" });
           groupEl.classList.add("highlight-flash");
@@ -75,11 +99,16 @@
       }, 100);
     } else {
       activeTab = "bracket";
-      selectedRoundMobile = currentMatch.type === "third" ? "final" : currentMatch.type;
+      selectedRoundMobile =
+        currentMatch.type === "third" ? "final" : currentMatch.type;
       setTimeout(() => {
         const cardEl = document.getElementById(`match-card-${currentMatch.id}`);
         if (cardEl) {
-          cardEl.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+          cardEl.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+            inline: "center",
+          });
           cardEl.classList.add("searched-glow");
           setTimeout(() => cardEl.classList.remove("searched-glow"), 3000);
         }
@@ -103,13 +132,23 @@
     }
     try {
       const [resTeams, resGames, resGroups] = await Promise.all([
-        fetch(`${API_BASE}/get/teams`).then(r => r.json()).catch(() => null),
-        fetch(`${API_BASE}/get/games`).then(r => r.json()).catch(() => null),
-        fetch(`${API_BASE}/get/groups`).then(r => r.json()).catch(() => null)
+        fetch(`${API_BASE}/get/teams`)
+          .then((r) => r.json())
+          .catch(() => null),
+        fetch(`${API_BASE}/get/games`)
+          .then((r) => r.json())
+          .catch(() => null),
+        fetch(`${API_BASE}/get/groups`)
+          .then((r) => r.json())
+          .catch(() => null),
       ]);
 
       if (resTeams?.teams && resGames?.games && resGroups?.groups) {
-        controller = new WorldCupController(resGames.games, resTeams.teams, resGroups.groups);
+        controller = new WorldCupController(
+          resGames.games,
+          resTeams.teams,
+          resGroups.groups,
+        );
         isOffline = false;
       } else {
         useFallback();
@@ -162,10 +201,18 @@
   }
 </script>
 
-<div class="wc-container flex flex-col w-full h-full overflow-hidden select-none">
+<div
+  class="wc-container flex flex-col w-full h-full overflow-hidden select-none"
+>
   {#if isLoading}
-    <div class="flex flex-col items-center justify-center grow gap-3 text-white/50 text-xs">
-      <RefreshCw size={36} class="animate-spin" style="color: var(--color-neon-gold, #e6b900)" />
+    <div
+      class="flex flex-col items-center justify-center grow gap-3 text-white/50 text-xs"
+    >
+      <RefreshCw
+        size={36}
+        class="animate-spin"
+        style="color: var(--color-neon-gold, #e6b900)"
+      />
       <p>Synchronizing fixtures and standings...</p>
     </div>
   {:else}
@@ -173,7 +220,9 @@
       <!-- Left Sidebar (Branding + Timeline Progress) -->
       <div class="wc-left-sidebar flex flex-col shrink-0">
         <!-- Sub Header with Controls -->
-        <header class="flex justify-between items-center p-4 bg-black/25 border-b border-white/5 shrink-0">
+        <header
+          class="flex justify-between items-center p-4 bg-black/25 border-b border-white/5 shrink-0"
+        >
           <!-- <div class="flex items-center gap-3">
             <div class="text-neon-gold animate-float flex items-center justify-center">
               <Trophy size={24} />
@@ -185,13 +234,15 @@
           </div> -->
           <div class="flex items-center gap-3">
             {#if isOffline}
-              <span class="offline-badge text-[9px] font-extrabold tracking-wider bg-red-500/10 border border-red-500/30 text-red-500 px-2 py-1 rounded flex items-center gap-1">
+              <span
+                class="offline-badge text-[9px] font-extrabold tracking-wider bg-red-500/10 border border-red-500/30 text-red-500 px-2 py-1 rounded flex items-center gap-1"
+              >
                 <AlertCircle size={12} /> CACHE LOADED
               </span>
             {/if}
-            <button 
+            <button
               class="refresh-btn bg-white/3 border border-white/8 hover:bg-white/8 hover:border-white/20 text-white/75 hover:text-white rounded-lg px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all duration-200"
-              onclick={handleRefresh} 
+              onclick={handleRefresh}
               disabled={isRefreshing}
             >
               <RefreshCw size={12} class={isRefreshing ? "animate-spin" : ""} />
@@ -201,33 +252,38 @@
         </header>
 
         <!-- Tournament Hub Timeline Banner -->
-        <TournamentHub 
-          {currentStage} 
-          {currentMatch} 
-          {controller} 
-          onJumpToMatch={jumpToCurrentMatch} 
+        <TournamentHub
+          {currentStage}
+          {currentMatch}
+          {controller}
+          onJumpToMatch={jumpToCurrentMatch}
         />
       </div>
 
       <!-- Right Main Content Area -->
       <div class="wc-main-content flex flex-col grow overflow-hidden">
         <!-- Navigation Tab Bar -->
-        <div class="wc-navigation-bar flex flex-col sm:flex-row justify-between items-stretch sm:items-center px-4 py-2 bg-black/15 border-b border-white/3 shrink-0 gap-3">
+        <div
+          class="wc-navigation-bar flex flex-col sm:flex-row justify-between items-stretch sm:items-center px-4 py-2 bg-black/15 border-b border-white/3 shrink-0 gap-3"
+        >
           <SwipeTabNav tabs={wcTabs} bind:activeTab />
 
           <!-- Search Box -->
           <div class="relative flex items-center w-full sm:max-w-[200px]">
-            <Search size={12} class="absolute left-2.5 text-white/35 pointer-events-none" />
-            <input 
-              type="text" 
-              placeholder="Search team..." 
+            <Search
+              size={12}
+              class="absolute left-2.5 text-white/35 pointer-events-none"
+            />
+            <input
+              type="text"
+              placeholder="Search team..."
               bind:value={searchQuery}
               class="w-full bg-white/4 border border-white/8 rounded-lg pl-8 pr-7 py-1 text-[11px] text-white focus:outline-none focus:border-red-500/50 focus:bg-black/30 transition-all duration-200"
             />
             {#if searchQuery}
-              <button 
-                class="absolute right-2 bg-transparent border-none text-white/40 hover:text-white cursor-pointer text-[10px] p-0.5" 
-                onclick={() => searchQuery = ""}
+              <button
+                class="absolute right-2 bg-transparent border-none text-white/40 hover:text-white cursor-pointer text-[10px] p-0.5"
+                onclick={() => (searchQuery = "")}
               >
                 ✕
               </button>
@@ -237,7 +293,7 @@
 
         <!-- Main Content Area with Touch Swiping -->
         <!-- svelte-ignore a11y_no_static_element_interactions -->
-        <div 
+        <div
           class="grow overflow-hidden flex flex-col"
           ontouchstart={handleTouchStart}
           ontouchend={(e) => {
@@ -246,31 +302,35 @@
           }}
         >
           {#if activeTab === "bracket"}
-            <div in:fade={{ duration: 120, delay: 120 }} out:fade={{ duration: 120 }} class="flex flex-col grow overflow-hidden">
-              <KnockoutBracket 
-                {controller} 
-                bind:searchQuery 
-                {bracketMatches} 
-                {teamStatuses} 
-                bind:selectedRoundMobile 
+            <div
+              in:fade={{ duration: 120, delay: 120 }}
+              out:fade={{ duration: 120 }}
+              class="flex flex-col grow overflow-hidden"
+            >
+              <KnockoutBracket
+                {controller}
+                bind:searchQuery
+                {bracketMatches}
+                {teamStatuses}
+                bind:selectedRoundMobile
                 {currentMatch}
               />
             </div>
           {:else if activeTab === "standings"}
-            <div in:fade={{ duration: 120, delay: 120 }} out:fade={{ duration: 120 }} class="flex flex-col grow overflow-y-auto">
-              <GroupStage 
-                {standings} 
-                {thirdPlaceStandings} 
-                {searchQuery} 
-              />
+            <div
+              in:fade={{ duration: 120, delay: 120 }}
+              out:fade={{ duration: 120 }}
+              class="flex flex-col grow overflow-y-auto"
+            >
+              <GroupStage {standings} {thirdPlaceStandings} {searchQuery} />
             </div>
           {:else if activeTab === "teams"}
-            <div in:fade={{ duration: 120, delay: 120 }} out:fade={{ duration: 120 }} class="flex flex-col grow overflow-y-auto">
-              <TeamStatusGrid 
-                {controller} 
-                {teamStatuses} 
-                {searchQuery} 
-              />
+            <div
+              in:fade={{ duration: 120, delay: 120 }}
+              out:fade={{ duration: 120 }}
+              class="flex flex-col grow overflow-y-auto"
+            >
+              <TeamStatusGrid {controller} {teamStatuses} {searchQuery} />
             </div>
           {/if}
         </div>
@@ -278,6 +338,7 @@
     </div>
   {/if}
 </div>
+
 <style lang="scss">
   @use "../../styles/variables" as *;
 
@@ -287,13 +348,9 @@
     color: white;
   }
 
-
-
   .offline-badge {
     animation: pulseGlow 2s infinite alternate;
   }
-
-
 
   /* ── SwipeTabNav Integration Theme ── */
   :global(.wc-navigation-bar .swipe-tab-nav) {

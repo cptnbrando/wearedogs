@@ -2,7 +2,15 @@
   import { themeManager } from "../../lib/themeManager.svelte.js";
   import { settingsManager } from "../../lib/settingsManager.svelte.js";
   import themesData from "../../lib/themes.json";
-  import { Settings, Check, Shuffle, Disc3, BoomBox, Save, Music } from "lucide-svelte";
+  import {
+    Settings,
+    Check,
+    Shuffle,
+    Disc3,
+    BoomBox,
+    Save,
+    Music,
+  } from "lucide-svelte";
 
   let themes = themeManager.getThemesList();
   let activeThemeId = $derived(themeManager.currentThemeId);
@@ -25,10 +33,30 @@
   }
 
   const decks = [
-    { id: "vinyl", name: "Vinyl Disc", desc: "Classic high-fidelity analog record player", icon: Disc3 },
-    { id: "cassette", name: "Cassette Tape", desc: "Retro magnetic tape with rotating spools", icon: BoomBox },
-    { id: "floppy", name: "Floppy Disk", desc: "3.5\" diskette with sliding shutter & active LED", icon: Save },
-    { id: "musicbox", name: "Music Box", desc: "Mechanical wind-up music box with vibrating comb", icon: Music },
+    {
+      id: "vinyl",
+      name: "Vinyl Disc",
+      desc: "Classic high-fidelity analog record player",
+      icon: Disc3,
+    },
+    {
+      id: "cassette",
+      name: "Cassette Tape",
+      desc: "Retro magnetic tape with rotating spools",
+      icon: BoomBox,
+    },
+    {
+      id: "floppy",
+      name: "Floppy Disk",
+      desc: '3.5" diskette with sliding shutter & active LED',
+      icon: Save,
+    },
+    {
+      id: "musicbox",
+      name: "Music Box",
+      desc: "Mechanical wind-up music box with vibrating comb",
+      icon: Music,
+    },
   ];
 
   let activeDeckId = $derived(settingsManager.musicDeckModel);
@@ -52,12 +80,12 @@
   <main class="settings-body scroll-container">
     <section class="settings-section">
       <h3 class="section-title">Select Theme Profile</h3>
-      
+
       <div class="themes-grid">
         {#each themes as theme}
           {@const isSelected = activeThemeId === theme.id}
           {@const colors = getThemeColors(theme.id)}
-          
+
           <!-- svelte-ignore a11y_click_events_have_key_events -->
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <div
@@ -76,7 +104,7 @@
                 {/each}
               </div>
             {/if}
-            
+
             <div class="theme-info">
               <span class="theme-name">{theme.name}</span>
               {#if isSelected}
@@ -92,12 +120,12 @@
 
     <section class="settings-section mt-8">
       <h3 class="section-title">Select Music Deck</h3>
-      
+
       <div class="decks-grid">
         {#each decks as deck}
           {@const DeckIcon = deck.icon}
           {@const isSelected = activeDeckId === deck.id}
-          
+
           <!-- svelte-ignore a11y_click_events_have_key_events -->
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <div
@@ -108,7 +136,7 @@
             <div class="deck-icon-box">
               <DeckIcon size={24} class="text-white/80" />
             </div>
-            
+
             <div class="theme-info deck-info">
               <div class="flex flex-col">
                 <span class="theme-name">{deck.name}</span>
@@ -126,6 +154,7 @@
     </section>
   </main>
 </div>
+
 <style lang="scss">
   @use "../../styles/variables" as *;
 
@@ -291,8 +320,14 @@
   }
 
   @keyframes paneFadeIn {
-    0% { opacity: 0; transform: translateY(10px); }
-    100% { opacity: 1; transform: translateY(0); }
+    0% {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   .decks-grid {

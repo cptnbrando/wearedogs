@@ -2,13 +2,24 @@
   import { onMount, onDestroy } from "svelte";
   import QRCode from "qrcode";
   import jsQR from "jsqr";
-  import { 
-    Upload, Play, Square, RefreshCw, Camera, Download, FileText, CheckCircle, Clock, Zap, Cpu, Sliders 
+  import {
+    Upload,
+    Play,
+    Square,
+    RefreshCw,
+    Camera,
+    Download,
+    FileText,
+    CheckCircle,
+    Clock,
+    Zap,
+    Cpu,
+    Sliders,
   } from "lucide-svelte";
 
   // App States: 'idle' | 'transmit' | 'receive' | 'complete'
   let transferMode = $state("idle"); // 'idle' | 'transmit' | 'receive'
-  
+
   // Transmitter State
   let transmitterCanvas = $state(null);
   let textInput = $state("");
@@ -23,10 +34,10 @@
   // Clarity Configuration: 'low' (compatibility) | 'balanced' | 'high' (density)
   let clarityMode = $state("balanced"); // 'low' | 'balanced' | 'high'
   let chunkSize = $derived(
-    clarityMode === "low" ? 90 : clarityMode === "high" ? 300 : 180
+    clarityMode === "low" ? 90 : clarityMode === "high" ? 300 : 180,
   );
   let qrScale = $derived(
-    clarityMode === "low" ? 8 : clarityMode === "high" ? 4 : 6
+    clarityMode === "low" ? 8 : clarityMode === "high" ? 4 : 6,
   );
 
   // Device Specifications State
@@ -35,7 +46,7 @@
     dpr: 1,
     browser: "Unknown",
     network: "Unknown",
-    hasCamera: false
+    hasCamera: false,
   });
 
   // Receiver State
@@ -46,16 +57,18 @@
   let scanInterval = null;
   let loopbackActive = $state(false);
   let loopbackFrameRequest = null;
-  
+
   // Received packets buffer
   let receivedFileId = $state("");
   let receivedFileName = $state("");
   let receivedFileType = $state("");
   let rxBuffer = $state([]); // Array of strings (base64 chunks)
   let rxCount = $derived(rxBuffer.filter(Boolean).length);
-  let rxProgress = $derived(rxTotal > 0 ? Math.round((rxCount / rxTotal) * 100) : 0);
+  let rxProgress = $derived(
+    rxTotal > 0 ? Math.round((rxCount / rxTotal) * 100) : 0,
+  );
   let rxTotal = $state(0);
-  
+
   // Stats
   let transferStartTime = $state(null);
   let transferDuration = $state(0); // in ms
@@ -78,17 +91,17 @@
     if (typeof window !== "undefined") {
       const width = window.screen.width;
       const height = window.screen.height;
-      
+
       let browserName = "Unknown Browser";
       const ua = navigator.userAgent;
       if (ua.indexOf("Firefox") > -1) browserName = "Firefox";
       else if (ua.indexOf("Chrome") > -1) browserName = "Chrome";
       else if (ua.indexOf("Safari") > -1) browserName = "Safari";
-      
+
       let cameraDetected = false;
       try {
         const devices = await navigator.mediaDevices.enumerateDevices();
-        cameraDetected = devices.some(d => d.kind === "videoinput");
+        cameraDetected = devices.some((d) => d.kind === "videoinput");
       } catch (e) {
         console.warn("Could not list video devices", e);
       }
@@ -98,7 +111,7 @@
         dpr: window.devicePixelRatio || 1,
         browser: browserName,
         network: navigator.onLine ? "Online" : "Offline",
-        hasCamera: cameraDetected
+        hasCamera: cameraDetected,
       };
     }
   }
@@ -107,19 +120,22 @@
   function playSuccessChime() {
     try {
       const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      const notes = [261.63, 329.63, 392.00, 523.25]; // C4, E4, G4, C5
+      const notes = [261.63, 329.63, 392.0, 523.25]; // C4, E4, G4, C5
       notes.forEach((freq, idx) => {
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.connect(gain);
         gain.connect(audioCtx.destination);
-        
+
         osc.type = "sine";
         osc.frequency.setValueAtTime(freq, audioCtx.currentTime + idx * 0.1);
-        
+
         gain.gain.setValueAtTime(0.3, audioCtx.currentTime + idx * 0.1);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + idx * 0.1 + 0.3);
-        
+        gain.gain.exponentialRampToValueAtTime(
+          0.01,
+          audioCtx.currentTime + idx * 0.1 + 0.3,
+        );
+
         osc.start(audioCtx.currentTime + idx * 0.1);
         osc.stop(audioCtx.currentTime + idx * 0.1 + 0.3);
       });
@@ -151,17 +167,20 @@
     let payload = "";
     let fileName = "text_message.txt";
     let fileType = "text/plain";
-    
+
     if (uploadedFile) {
       fileName = uploadedFile.name;
       fileType = uploadedFile.type || "application/octet-stream";
-      
+
       const reader = new FileReader();
-      reader.onload = function(e) {
+      reader.onload = function (e) {
         const binary = e.target.result;
         // Convert to base64
         const base64 = btoa(
-          new Uint8Array(binary).reduce((data, byte) => data + String.fromCharCode(byte), "")
+          new Uint8Array(binary).reduce(
+            (data, byte) => data + String.fromCharCode(byte),
+            "",
+          ),
         );
         generatePackets(base64, fileName, fileType);
       };
@@ -177,14 +196,16 @@
     currentFileId = Math.floor(1000 + Math.random() * 9000).toString();
     const cleanName = btoa(name); // safe encode filename
     const total = Math.ceil(base64Payload.length / chunkSize);
-    
+
     const packets = [];
     for (let i = 0; i < total; i++) {
       const start = i * chunkSize;
       const end = Math.min(start + chunkSize, base64Payload.length);
       const chunk = base64Payload.slice(start, end);
       // Format: QRF|[fileId]|[fileType]|[fileName]|[index]|[total]|[chunk]
-      packets.push(`QRF|${currentFileId}|${type}|${cleanName}|${i}|${total}|${chunk}`);
+      packets.push(
+        `QRF|${currentFileId}|${type}|${cleanName}|${i}|${total}|${chunk}`,
+      );
     }
     txPackets = packets;
     currentFrameIndex = 0;
@@ -192,12 +213,12 @@
 
   // Transmitter Core Loop
   let txInterval = null;
-  
+
   function startTransmission() {
     if (txPackets.length === 0) return;
     transmitterStatus = "countdown";
     countdown = 3;
-    
+
     const countTimer = setInterval(() => {
       countdown--;
       if (countdown <= 0) {
@@ -212,9 +233,9 @@
     if (txInterval) clearInterval(txInterval);
     txInterval = setInterval(() => {
       if (transmitterStatus !== "playing") return;
-      
+
       renderQRFrame();
-      
+
       currentFrameIndex++;
       if (currentFrameIndex >= txPackets.length) {
         currentFrameIndex = 0; // loop forever so camera has time to catch up
@@ -226,19 +247,19 @@
     if (!transmitterCanvas || txPackets.length === 0) return;
     const packet = txPackets[currentFrameIndex];
     QRCode.toCanvas(
-      transmitterCanvas, 
-      packet, 
-      { 
-        margin: 2, 
+      transmitterCanvas,
+      packet,
+      {
+        margin: 2,
         scale: qrScale,
         color: {
           dark: "#000000",
-          light: "#ffffff"
-        }
-      }, 
+          light: "#ffffff",
+        },
+      },
       (err) => {
         if (err) console.error(err);
-      }
+      },
     );
   }
 
@@ -263,7 +284,7 @@
   async function startCamera() {
     try {
       cameraStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" }
+        video: { facingMode: "environment" },
       });
       if (receiverVideo) {
         receiverVideo.srcObject = cameraStream;
@@ -274,14 +295,16 @@
       }
     } catch (err) {
       console.error("Camera access failed:", err);
-      alert("webcam access denied or unavailable. You can use the local loopback demo instead.");
+      alert(
+        "webcam access denied or unavailable. You can use the local loopback demo instead.",
+      );
     }
   }
 
   function stopCamera() {
     isCameraActive = false;
     if (cameraStream) {
-      cameraStream.getTracks().forEach(track => track.stop());
+      cameraStream.getTracks().forEach((track) => track.stop());
       cameraStream = null;
     }
     if (scanInterval) {
@@ -295,14 +318,25 @@
     if (scanInterval) clearInterval(scanInterval);
     scanInterval = setInterval(() => {
       if (!isCameraActive || !receiverVideo || !receiverCanvas) return;
-      
+
       const ctx = receiverCanvas.getContext("2d");
       receiverCanvas.width = receiverVideo.videoWidth;
       receiverCanvas.height = receiverVideo.videoHeight;
-      
+
       if (receiverCanvas.width > 0 && receiverCanvas.height > 0) {
-        ctx.drawImage(receiverVideo, 0, 0, receiverCanvas.width, receiverCanvas.height);
-        const imgData = ctx.getImageData(0, 0, receiverCanvas.width, receiverCanvas.height);
+        ctx.drawImage(
+          receiverVideo,
+          0,
+          0,
+          receiverCanvas.width,
+          receiverCanvas.height,
+        );
+        const imgData = ctx.getImageData(
+          0,
+          0,
+          receiverCanvas.width,
+          receiverCanvas.height,
+        );
         const code = jsQR(imgData.data, imgData.width, imgData.height);
         if (code) {
           processDecodedQR(code.data);
@@ -327,31 +361,44 @@
 
   function runLoopbackFrame() {
     if (!loopbackActive) return;
-    
+
     // Copy the transmitter's canvas content directly to the reader
     if (transmitterCanvas && transmitterStatus === "playing") {
       const ctx = transmitterCanvas.getContext("2d");
-      const imgData = ctx.getImageData(0, 0, transmitterCanvas.width, transmitterCanvas.height);
+      const imgData = ctx.getImageData(
+        0,
+        0,
+        transmitterCanvas.width,
+        transmitterCanvas.height,
+      );
       const code = jsQR(imgData.data, imgData.width, imgData.height);
       if (code) {
         processDecodedQR(code.data);
       }
     }
-    
+
     loopbackFrameRequest = requestAnimationFrame(runLoopbackFrame);
   }
 
   // Packet Decoder
   function processDecodedQR(qrText) {
     if (!qrText.startsWith("QRF|")) return;
-    
+
     const parts = qrText.split("|");
     if (parts.length < 7) return;
-    
-    const [_, fileId, fileType, encodedName, frameIndexStr, totalFramesStr, chunkData] = parts;
+
+    const [
+      _,
+      fileId,
+      fileType,
+      encodedName,
+      frameIndexStr,
+      totalFramesStr,
+      chunkData,
+    ] = parts;
     const frameIndex = parseInt(frameIndexStr);
     const total = parseInt(totalFramesStr);
-    
+
     // Check if we are receiving a new transmission
     if (receivedFileId !== fileId) {
       // Start of a new download
@@ -362,17 +409,17 @@
       } catch {
         receivedFileName = "downloaded_file";
       }
-      
+
       rxTotal = total;
       rxBuffer = new Array(total).fill(null);
       transferStartTime = Date.now();
       transferDuration = 0;
     }
-    
+
     // Store in buffer if we haven't already received it
     if (rxBuffer[frameIndex] === null) {
       rxBuffer[frameIndex] = chunkData;
-      
+
       // Check if complete
       if (rxBuffer.filter(Boolean).length === rxTotal) {
         completeTransfer();
@@ -383,10 +430,10 @@
   function completeTransfer() {
     transferDuration = Date.now() - transferStartTime;
     playSuccessChime();
-    
+
     // Reassemble payload
     const assembledBase64 = rxBuffer.join("");
-    
+
     // Convert base64 back to binary Blob
     try {
       const binaryStr = atob(assembledBase64);
@@ -395,18 +442,18 @@
       for (let i = 0; i < len; i++) {
         bytes[i] = binaryStr.charCodeAt(i);
       }
-      
+
       finalFileBlob = new Blob([bytes], { type: receivedFileType });
       finalFileSize = finalFileBlob.size;
-      
+
       // Calculate statistics
       const secs = transferDuration / 1000 || 0.1;
       averageSpeed = Math.round(finalFileSize / secs);
-      
+
       // Stop looping transmitters or loopback modes
       loopbackActive = false;
       if (loopbackFrameRequest) cancelAnimationFrame(loopbackFrameRequest);
-      
+
       transferMode = "complete";
       transmitterStatus = "done";
       if (txInterval) {
@@ -457,7 +504,9 @@
     <div class="specs-grid">
       <div class="spec-node">
         <span class="node-title">Screen specs</span>
-        <span class="node-val">{deviceSpecs.screenSize} ({deviceSpecs.dpr}x dpr)</span>
+        <span class="node-val"
+          >{deviceSpecs.screenSize} ({deviceSpecs.dpr}x dpr)</span
+        >
       </div>
       <div class="spec-node">
         <span class="node-title">Browser</span>
@@ -465,11 +514,17 @@
       </div>
       <div class="spec-node">
         <span class="node-title">Link state</span>
-        <span class="node-val" class:online-glow={deviceSpecs.network === "Online"}>{deviceSpecs.network}</span>
+        <span
+          class="node-val"
+          class:online-glow={deviceSpecs.network === "Online"}
+          >{deviceSpecs.network}</span
+        >
       </div>
       <div class="spec-node">
         <span class="node-title">Optics (Camera)</span>
-        <span class="node-val">{deviceSpecs.hasCamera ? "Ready" : "None detected"}</span>
+        <span class="node-val"
+          >{deviceSpecs.hasCamera ? "Ready" : "None detected"}</span
+        >
       </div>
     </div>
 
@@ -480,24 +535,33 @@
         <span class="control-label">ADJUST DISPATCH CLARITY</span>
       </div>
       <div class="toggles-row">
-        <button 
-          class="clarity-btn" 
+        <button
+          class="clarity-btn"
           class:active={clarityMode === "low"}
-          onclick={() => { clarityMode = "low"; prepareChunks(); }}
+          onclick={() => {
+            clarityMode = "low";
+            prepareChunks();
+          }}
         >
           LOW (Sparse QR / Easy Scan)
         </button>
-        <button 
-          class="clarity-btn" 
+        <button
+          class="clarity-btn"
           class:active={clarityMode === "balanced"}
-          onclick={() => { clarityMode = "balanced"; prepareChunks(); }}
+          onclick={() => {
+            clarityMode = "balanced";
+            prepareChunks();
+          }}
         >
           BALANCED (Standard)
         </button>
-        <button 
-          class="clarity-btn" 
+        <button
+          class="clarity-btn"
           class:active={clarityMode === "high"}
-          onclick={() => { clarityMode = "high"; prepareChunks(); }}
+          onclick={() => {
+            clarityMode = "high";
+            prepareChunks();
+          }}
         >
           HIGH (Dense QR / Max Speed)
         </button>
@@ -507,19 +571,19 @@
 
   <!-- Top bar mode toggles -->
   <div class="view-toggles-bar">
-    <button 
-      class="mode-switch-btn" 
+    <button
+      class="mode-switch-btn"
       class:active={transferMode === "idle" || transferMode === "transmit"}
-      onclick={() => { 
-        transferMode = "idle"; 
+      onclick={() => {
+        transferMode = "idle";
         stopCamera();
         loopbackActive = false;
       }}
     >
       Transmitter Screen
     </button>
-    <button 
-      class="mode-switch-btn" 
+    <button
+      class="mode-switch-btn"
       class:active={transferMode === "receive" || transferMode === "complete"}
       onclick={() => {
         transferMode = "receive";
@@ -533,19 +597,29 @@
   <!-- Workspace Grid -->
   <div class="workspace-grid">
     <!-- Transmitter Workspace -->
-    <div class="pane tx-pane" class:active-view={transferMode === "idle" || transferMode === "transmit"} class:faded={transferMode === "receive" || transferMode === "complete"}>
-      <div class="pane-indicator"><Zap size={11} /> SCANNER TRANSMITTER DOCK</div>
+    <div
+      class="pane tx-pane"
+      class:active-view={transferMode === "idle" || transferMode === "transmit"}
+      class:faded={transferMode === "receive" || transferMode === "complete"}
+    >
+      <div class="pane-indicator">
+        <Zap size={11} /> SCANNER TRANSMITTER DOCK
+      </div>
 
       <div class="panel-card input-block">
         <div class="uploader-fields">
           <label class="dropzone-label">
             <Upload size={18} class="text-cyan" />
             <span>Select File to Dispatch</span>
-            <input type="file" onchange={handleFileSelect} class="hidden-input" />
+            <input
+              type="file"
+              onchange={handleFileSelect}
+              class="hidden-input"
+            />
           </label>
           <div class="divider">OR</div>
-          <textarea 
-            placeholder="Type short text message to flash..." 
+          <textarea
+            placeholder="Type short text message to flash..."
             bind:value={textInput}
             oninput={handleTextInput}
             class="text-input-field"
@@ -555,30 +629,46 @@
         {#if uploadedFile}
           <div class="file-descriptor">
             <FileText size={13} class="text-green-400" />
-            <span class="file-details">{uploadedFile.name} ({formatBytes(uploadedFile.size)})</span>
-            <button class="clear-btn" onclick={() => { uploadedFile = null; txPackets = []; }}>✕</button>
+            <span class="file-details"
+              >{uploadedFile.name} ({formatBytes(uploadedFile.size)})</span
+            >
+            <button
+              class="clear-btn"
+              onclick={() => {
+                uploadedFile = null;
+                txPackets = [];
+              }}>✕</button
+            >
           </div>
         {/if}
       </div>
 
       <div class="panel-card engine-controls">
         <div class="slider-group">
-          <label for="velocity-range" class="control-label">DISPATCH VELOCITY: {framesPerSecond} FPS</label>
-          <input 
+          <label for="velocity-range" class="control-label"
+            >DISPATCH VELOCITY: {framesPerSecond} FPS</label
+          >
+          <input
             id="velocity-range"
-            type="range" 
-            min="5" 
-            max="30" 
-            step="1" 
+            type="range"
+            min="5"
+            max="30"
+            step="1"
             bind:value={framesPerSecond}
-            onchange={() => { if (transmitterStatus === "playing") runTxLoop(); }}
+            onchange={() => {
+              if (transmitterStatus === "playing") runTxLoop();
+            }}
             class="clarity-slider"
           />
         </div>
 
         <div class="buttons-row">
           {#if transmitterStatus === "ready" || transmitterStatus === "done"}
-            <button class="action-btn start" onclick={startTransmission} disabled={txPackets.length === 0}>
+            <button
+              class="action-btn start"
+              onclick={startTransmission}
+              disabled={txPackets.length === 0}
+            >
               <Play size={13} /> Start Flashing
             </button>
           {:else if transmitterStatus === "playing"}
@@ -586,12 +676,22 @@
               <Square size={13} /> Pause Flash
             </button>
           {:else if transmitterStatus === "paused"}
-            <button class="action-btn start" onclick={() => { transmitterStatus = "playing"; runTxLoop(); }}>
+            <button
+              class="action-btn start"
+              onclick={() => {
+                transmitterStatus = "playing";
+                runTxLoop();
+              }}
+            >
               <Play size={13} /> Resume Flash
             </button>
           {/if}
-          
-          <button class="action-btn reset" onclick={stopTransmission} disabled={transmitterStatus === "ready"}>
+
+          <button
+            class="action-btn reset"
+            onclick={stopTransmission}
+            disabled={transmitterStatus === "ready"}
+          >
             <RefreshCw size={13} /> Clear
           </button>
         </div>
@@ -606,8 +706,13 @@
           </div>
         {/if}
 
-        <canvas bind:this={transmitterCanvas} width="320" height="320" class="qrcode-output-canvas"></canvas>
-        
+        <canvas
+          bind:this={transmitterCanvas}
+          width="320"
+          height="320"
+          class="qrcode-output-canvas"
+        ></canvas>
+
         <div class="projection-meta">
           <span>PACKETS: {txPackets.length}</span>
           <span>FRAME: {currentFrameIndex + 1} / {txPackets.length || 1}</span>
@@ -616,8 +721,15 @@
     </div>
 
     <!-- Scanner Workspace -->
-    <div class="pane rx-pane" class:active-view={transferMode === "receive" || transferMode === "complete"} class:faded={transferMode === "idle" || transferMode === "transmit"}>
-      <div class="pane-indicator"><Camera size={11} /> SCANNER RECEIVER DOCK</div>
+    <div
+      class="pane rx-pane"
+      class:active-view={transferMode === "receive" ||
+        transferMode === "complete"}
+      class:faded={transferMode === "idle" || transferMode === "transmit"}
+    >
+      <div class="pane-indicator">
+        <Camera size={11} /> SCANNER RECEIVER DOCK
+      </div>
 
       <div class="receiver-controls">
         <div class="btn-group">
@@ -636,21 +748,22 @@
           </button>
         </div>
 
-        <button 
+        <button
           class="loopback-btn"
           class:active={loopbackActive}
           onclick={toggleLoopback}
         >
-          <Cpu size={13} /> {loopbackActive ? "Loopback Connected" : "Local Bus Loopback (60fps)"}
+          <Cpu size={13} />
+          {loopbackActive ? "Loopback Connected" : "Local Bus Loopback (60fps)"}
         </button>
       </div>
 
       <!-- Viewfinder Feed screen -->
       <div class="viewfinder-window">
         <canvas bind:this={receiverCanvas} class="analyzer-canvas"></canvas>
-        
+
         <!-- svelte-ignore a11y_media_has_caption -->
-        <video 
+        <video
           bind:this={receiverVideo}
           class="live-viewfinder"
           class:hidden={loopbackActive || !isCameraActive}
@@ -660,12 +773,16 @@
           <div class="virtual-hud">
             <div class="scanner-sweep-bar"></div>
             <span>LOCAL LOOPBACK BUS ENGAGED</span>
-            <small>Transmitting visual packets inside browser frame memory.</small>
+            <small
+              >Transmitting visual packets inside browser frame memory.</small
+            >
           </div>
         {:else if !isCameraActive}
           <div class="virtual-hud offline">
             <span>OPTICAL PORT INACTIVE</span>
-            <small>Wake your camera or launch the Local Bus Loopback above to sync.</small>
+            <small
+              >Wake your camera or launch the Local Bus Loopback above to sync.</small
+            >
           </div>
         {/if}
       </div>
@@ -674,12 +791,14 @@
       <div class="reassembly-dashboard">
         <div class="progress-info-row">
           <div class="file-labels">
-            <span class="name">{receivedFileName || "Waiting for signal..."}</span>
+            <span class="name"
+              >{receivedFileName || "Waiting for signal..."}</span
+            >
             {#if rxTotal > 0}
               <span class="count">{rxCount} / {rxTotal} packets synced</span>
             {/if}
           </div>
-          
+
           <div class="progressbar-track">
             <div class="progressbar-fill" style="width: {rxProgress}%"></div>
             <span class="pct-val">{rxProgress}%</span>
@@ -689,16 +808,14 @@
         <!-- Packet Grid visual map -->
         <div class="grid-card">
           {#if rxTotal === 0}
-            <div class="grid-status-alert">
-              🔴 WAITING ON DATA TRANSMISSION
-            </div>
+            <div class="grid-status-alert">🔴 WAITING ON DATA TRANSMISSION</div>
           {:else}
             <div class="packet-grid">
               {#each rxBuffer as packet, idx}
-                <div 
-                  class="packet-cell" 
+                <div
+                  class="packet-cell"
                   class:filled={packet !== null}
-                  title="Chunk {idx+1}"
+                  title="Chunk {idx + 1}"
                 ></div>
               {/each}
             </div>
@@ -714,12 +831,14 @@
       <div class="dialog-card">
         <div class="check-badge"><CheckCircle size={36} /></div>
         <h2>Visual Sync Complete</h2>
-        <p class="file-meta-label">{receivedFileName} ({formatBytes(finalFileSize)})</p>
-        
+        <p class="file-meta-label">
+          {receivedFileName} ({formatBytes(finalFileSize)})
+        </p>
+
         <div class="dialog-stats">
           <div class="stat-cell">
             <span class="title"><Clock size={11} /> TIME SPENT</span>
-            <span class="val">{((transferDuration) / 1000).toFixed(2)}s</span>
+            <span class="val">{(transferDuration / 1000).toFixed(2)}s</span>
           </div>
           <div class="stat-cell">
             <span class="title"><Zap size={11} /> AVERAGE RATE</span>
@@ -731,9 +850,7 @@
           <button class="confirm" onclick={triggerDownload}>
             <Download size={13} /> Download File
           </button>
-          <button class="dismiss" onclick={resetReceiver}>
-            Done
-          </button>
+          <button class="dismiss" onclick={resetReceiver}> Done </button>
         </div>
       </div>
     </div>
@@ -798,7 +915,7 @@
     font-weight: 700;
     color: #e2e8f0;
     white-space: nowrap;
-    
+
     &.online-glow {
       color: #00f0ff;
       text-shadow: 0 0 8px rgba(0, 240, 255, 0.4);
@@ -1164,7 +1281,7 @@
     background: white;
     border-radius: 6px;
     padding: 6px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
   }
 
   .projection-meta {
@@ -1312,8 +1429,12 @@
   }
 
   @keyframes scanBar {
-    0% { top: 0%; }
-    100% { top: 100%; }
+    0% {
+      top: 0%;
+    }
+    100% {
+      top: 100%;
+    }
   }
 
   /* ── Reassembly specs ── */
@@ -1424,7 +1545,7 @@
   .completion-dialog-curtain {
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.8);
+    background: rgba(0, 0, 0, 0.8);
     backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
@@ -1475,8 +1596,8 @@
   }
 
   .stat-cell {
-    background: rgba(255,255,255,0.02);
-    border: 1px solid rgba(255,255,255,0.05);
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: 6px;
     padding: 8px;
     display: flex;
@@ -1486,7 +1607,7 @@
     .title {
       font-size: 0.55rem;
       font-weight: 700;
-      color: rgba(255,255,255,0.3);
+      color: rgba(255, 255, 255, 0.3);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1531,12 +1652,12 @@
     }
 
     .dismiss {
-      background: rgba(255,255,255,0.05);
+      background: rgba(255, 255, 255, 0.05);
       color: #cbd5e1;
-      border: 1px solid rgba(255,255,255,0.08);
+      border: 1px solid rgba(255, 255, 255, 0.08);
 
       &:hover {
-        background: rgba(255,255,255,0.08);
+        background: rgba(255, 255, 255, 0.08);
         color: white;
       }
     }

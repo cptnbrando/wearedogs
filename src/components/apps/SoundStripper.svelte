@@ -2,10 +2,19 @@
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <script>
   import { onDestroy, onMount } from "svelte";
-  import { 
-    Upload, Play, Pause, Download, Volume2, 
-    Settings2, Scissors, Waves, HelpCircle, 
-    RefreshCw, Check, ArrowLeft 
+  import {
+    Upload,
+    Play,
+    Pause,
+    Download,
+    Volume2,
+    Settings2,
+    Scissors,
+    Waves,
+    HelpCircle,
+    RefreshCw,
+    Check,
+    ArrowLeft,
   } from "lucide-svelte";
   import { SoundStripperEngine } from "../../lib/SoundStripperEngine.js";
   import BaseApp from "./BaseApp.svelte";
@@ -31,7 +40,7 @@
   let delayMs = $state(0);
   let bleedVolume = $state(1.0);
   let mode = $state("spectral"); // "spectral" or "phase"
-  let hpfFrequency = $state(0);  // 0 (Bypass), 80, 120 (Hz)
+  let hpfFrequency = $state(0); // 0 (Bypass), 80, 120 (Hz)
 
   // Waveform visualization data
   let mixWaveformData = $state(null);
@@ -68,7 +77,8 @@
   // Decode file to AudioBuffer
   async function decodeAudioFile(file) {
     if (!audioContext) {
-      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      const AudioContextClass =
+        window.AudioContext || window.webkitAudioContext;
       audioContext = new AudioContextClass();
     }
     const arrayBuffer = await file.arrayBuffer();
@@ -109,7 +119,9 @@
       playStartOffset = 0;
     } catch (e) {
       console.error(e);
-      alert("Error decoding recording file. Ensure it is a valid audio file (WAV/MP3).");
+      alert(
+        "Error decoding recording file. Ensure it is a valid audio file (WAV/MP3).",
+      );
       mixFile = null;
       mixFileName = "";
       mixBuffer = null;
@@ -132,7 +144,9 @@
       instWaveformData = generateWaveformData(instBuffer);
     } catch (e) {
       console.error(e);
-      alert("Error decoding backing track. Ensure it is a valid audio file (WAV/MP3).");
+      alert(
+        "Error decoding backing track. Ensure it is a valid audio file (WAV/MP3).",
+      );
       instFile = null;
       instFileName = "";
       instBuffer = null;
@@ -160,7 +174,8 @@
       alignmentMessage = `Successfully aligned! Offset: ${delayMs > 0 ? "+" : ""}${delayMs} ms`;
     } catch (e) {
       console.error(e);
-      alignmentMessage = "Error aligning tracks automatically. Adjust offset manually.";
+      alignmentMessage =
+        "Error aligning tracks automatically. Adjust offset manually.";
     } finally {
       isAligning = false;
     }
@@ -177,7 +192,7 @@
     try {
       activeEngine = new SoundStripperEngine(mixBuffer, instBuffer);
       const delaySamples = (delayMs / 1000) * mixBuffer.sampleRate;
-      
+
       const result = await activeEngine.process(
         delaySamples,
         bleedVolume,
@@ -185,7 +200,7 @@
         hpfFrequency,
         (progress) => {
           processProgress = progress;
-        }
+        },
       );
 
       if (!activeEngine.cancelFlag) {
@@ -210,11 +225,11 @@
       const url = URL.createObjectURL(wavBlob);
       const a = document.createElement("a");
       a.href = url;
-      
+
       // Filename decoration
       const originalNameWithoutExt = mixFileName.replace(/\.[^/.]+$/, "");
       a.download = `${originalNameWithoutExt}_acapella.wav`;
-      
+
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -245,7 +260,8 @@
     if (!buffer) return;
 
     if (!audioContext) {
-      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      const AudioContextClass =
+        window.AudioContext || window.webkitAudioContext;
       audioContext = new AudioContextClass();
     }
 
@@ -276,7 +292,7 @@
       if (!isPlaying) return;
       const elapsed = audioContext.currentTime - playStartTime;
       currentTime = playStartOffset + elapsed;
-      
+
       if (currentTime >= buffer.duration) {
         isPlaying = false;
         currentTime = 0;
@@ -315,7 +331,7 @@
     const pct = clickX / rect.width;
     const targetBuffer = getActiveBuffer();
     if (!targetBuffer) return;
-    
+
     playStartOffset = pct * targetBuffer.duration;
     currentTime = playStartOffset;
 
@@ -337,7 +353,10 @@
 
   // Micro adjustments sliders values
   function adjustDelay(amount) {
-    delayMs = Math.max(-2000, Math.min(2000, Math.round((delayMs + amount) * 10) / 10));
+    delayMs = Math.max(
+      -2000,
+      Math.min(2000, Math.round((delayMs + amount) * 10) / 10),
+    );
     processedBuffer = null;
   }
 
@@ -392,7 +411,7 @@
       const instPoints = instWaveformData;
 
       // Translate delayMs into pixel offset shifting inst track
-      const shiftPx = ((delayMs / 1000) / mixBuffer.duration) * w;
+      const shiftPx = (delayMs / 1000 / mixBuffer.duration) * w;
 
       ctx.beginPath();
       for (let i = 0; i < instPoints.length; i++) {
@@ -412,7 +431,11 @@
     } else {
       ctx.fillStyle = "rgba(255, 255, 255, 0.25)";
       ctx.font = "10px sans-serif";
-      ctx.fillText("Awaiting backing track upload...", w * 0.5 - 70, h * 0.75 + 4);
+      ctx.fillText(
+        "Awaiting backing track upload...",
+        w * 0.5 - 70,
+        h * 0.75 + 4,
+      );
     }
 
     // Render timeline indicator cursor
@@ -452,43 +475,64 @@
   }
 </script>
 
-<BaseApp title="Sound Stripper" description="Acapella extraction and audio bleed cancellation console" themeColor="#ff007f">
+<BaseApp
+  title="Sound Stripper"
+  description="Acapella extraction and audio bleed cancellation console"
+  themeColor="#ff007f"
+>
   <div class="stripper-console">
     <!-- Viewport 1-5 Responsive Layout Engine Grid -->
     <div class="stripper-grid">
-      
       <!-- LEFT SECTION: Uploaders & Param Tuning grouped in a responsive panel -->
       <div class="left-panel">
-        
         <!-- Column 1: Uploaders (stacked vertically on desktop/mobile) -->
         <div class="upload-column flex flex-col gap-3">
           <!-- Dropzone Box File 1 -->
           <div class="control-box border-neon-cyan relative">
-            <h3 class="box-title text-neon-cyan"><Scissors size={14} class="mr-2 inline" /> 1. Upload Mix</h3>
+            <h3 class="box-title text-neon-cyan">
+              <Scissors size={14} class="mr-2 inline" /> 1. Upload Mix
+            </h3>
             <p class="box-desc">Mix file with vocals + backing bleed</p>
-            
-            <label 
-              class="upload-dropzone" 
+
+            <label
+              class="upload-dropzone"
               class:loading={isDecodingMix}
               ondragover={handleDragOver}
               ondrop={async (e) => {
                 e.preventDefault();
-                if (e.dataTransfer.files[0]) await handleMixUpload(e.dataTransfer.files[0]);
+                if (e.dataTransfer.files[0])
+                  await handleMixUpload(e.dataTransfer.files[0]);
               }}
             >
-              <input type="file" accept="audio/*" class="hidden" onchange={async (e) => {
-                if (e.target.files[0]) await handleMixUpload(e.target.files[0]);
-              }} />
+              <input
+                type="file"
+                accept="audio/*"
+                class="hidden"
+                onchange={async (e) => {
+                  if (e.target.files[0])
+                    await handleMixUpload(e.target.files[0]);
+                }}
+              />
               {#if isDecodingMix}
-                <RefreshCw size={18} class="animate-spin text-neon-cyan mb-1.5" />
+                <RefreshCw
+                  size={18}
+                  class="animate-spin text-neon-cyan mb-1.5"
+                />
                 <span class="text-[11px]">Decoding audio...</span>
               {:else if mixBuffer}
                 <Check size={18} class="text-neon-cyan mb-1.5" />
-                <span class="text-[11px] font-semibold text-white truncate max-w-full px-1.5">{mixFileName}</span>
-                <span class="text-[9px] text-white/50">{formatTime(mixBuffer.duration)} | {mixBuffer.sampleRate}Hz</span>
+                <span
+                  class="text-[11px] font-semibold text-white truncate max-w-full px-1.5"
+                  >{mixFileName}</span
+                >
+                <span class="text-[9px] text-white/50"
+                  >{formatTime(mixBuffer.duration)} | {mixBuffer.sampleRate}Hz</span
+                >
               {:else}
                 <Upload size={18} class="text-white/30 mb-1.5" />
-                <span class="text-[11px] font-medium text-white/70">Recording Mix</span>
+                <span class="text-[11px] font-medium text-white/70"
+                  >Recording Mix</span
+                >
                 <span class="text-[9px] text-white/40">MP3 / WAV</span>
               {/if}
             </label>
@@ -496,31 +540,50 @@
 
           <!-- Dropzone Box File 2 -->
           <div class="control-box border-neon-pink">
-            <h3 class="box-title text-neon-pink"><Waves size={14} class="mr-2 inline" /> 2. Upload Backing</h3>
+            <h3 class="box-title text-neon-pink">
+              <Waves size={14} class="mr-2 inline" /> 2. Upload Backing
+            </h3>
             <p class="box-desc">Clean reference backing track</p>
-            
-            <label 
-              class="upload-dropzone" 
+
+            <label
+              class="upload-dropzone"
               class:loading={isDecodingInst}
               ondragover={handleDragOver}
               ondrop={async (e) => {
                 e.preventDefault();
-                if (e.dataTransfer.files[0]) await handleInstUpload(e.dataTransfer.files[0]);
+                if (e.dataTransfer.files[0])
+                  await handleInstUpload(e.dataTransfer.files[0]);
               }}
             >
-              <input type="file" accept="audio/*" class="hidden" onchange={async (e) => {
-                if (e.target.files[0]) await handleInstUpload(e.target.files[0]);
-              }} />
+              <input
+                type="file"
+                accept="audio/*"
+                class="hidden"
+                onchange={async (e) => {
+                  if (e.target.files[0])
+                    await handleInstUpload(e.target.files[0]);
+                }}
+              />
               {#if isDecodingInst}
-                <RefreshCw size={18} class="animate-spin text-neon-pink mb-1.5" />
+                <RefreshCw
+                  size={18}
+                  class="animate-spin text-neon-pink mb-1.5"
+                />
                 <span class="text-[11px]">Decoding audio...</span>
               {:else if instBuffer}
                 <Check size={18} class="text-neon-pink mb-1.5" />
-                <span class="text-[11px] font-semibold text-white truncate max-w-full px-1.5">{instFileName}</span>
-                <span class="text-[9px] text-white/50">{formatTime(instBuffer.duration)} | {instBuffer.sampleRate}Hz</span>
+                <span
+                  class="text-[11px] font-semibold text-white truncate max-w-full px-1.5"
+                  >{instFileName}</span
+                >
+                <span class="text-[9px] text-white/50"
+                  >{formatTime(instBuffer.duration)} | {instBuffer.sampleRate}Hz</span
+                >
               {:else}
                 <Upload size={18} class="text-white/30 mb-1.5" />
-                <span class="text-[11px] font-medium text-white/70">Backing Track</span>
+                <span class="text-[11px] font-medium text-white/70"
+                  >Backing Track</span
+                >
                 <span class="text-[9px] text-white/40">MP3 / WAV</span>
               {/if}
             </label>
@@ -530,24 +593,42 @@
         <!-- Column 2: Tuning sliders console (Only enabled when files uploaded) -->
         <div class="control-box border-neon-gold">
           <div class="flex justify-between items-center mb-2">
-            <h3 class="box-title text-neon-gold"><Settings2 size={14} class="mr-2 inline" /> 3. Bleed Alignment Tuning</h3>
-            <button class="help-toggle" onclick={() => showHelp = !showHelp} aria-label="Show DSP explanation">
+            <h3 class="box-title text-neon-gold">
+              <Settings2 size={14} class="mr-2 inline" /> 3. Bleed Alignment Tuning
+            </h3>
+            <button
+              class="help-toggle"
+              onclick={() => (showHelp = !showHelp)}
+              aria-label="Show DSP explanation"
+            >
               <HelpCircle size={15} />
             </button>
           </div>
 
           {#if showHelp}
             <div class="help-box animated-pane">
-              <p><strong>Auto-Align:</strong> Downsamples signals and estimates speaker-to-microphone delay using cross-correlation.</p>
-              <p><strong>Bleed Gain:</strong> Adjusts scale multiplier of reference track subtraction to account for room volume differences.</p>
-              <p><strong>Spectral Stripping:</strong> Uses STFT/FFT spectral subtraction. Best for microphone recordings with wall reverb.</p>
-              <p><strong>Phase Cancellation:</strong> Sample-level subtraction. Requires perfect delay alignment and is best for clean digital stems.</p>
+              <p>
+                <strong>Auto-Align:</strong> Downsamples signals and estimates speaker-to-microphone
+                delay using cross-correlation.
+              </p>
+              <p>
+                <strong>Bleed Gain:</strong> Adjusts scale multiplier of reference
+                track subtraction to account for room volume differences.
+              </p>
+              <p>
+                <strong>Spectral Stripping:</strong> Uses STFT/FFT spectral subtraction.
+                Best for microphone recordings with wall reverb.
+              </p>
+              <p>
+                <strong>Phase Cancellation:</strong> Sample-level subtraction. Requires
+                perfect delay alignment and is best for clean digital stems.
+              </p>
             </div>
           {/if}
 
           <div class="align-panel">
-            <button 
-              class="align-btn border-neon-gold" 
+            <button
+              class="align-btn border-neon-gold"
               disabled={!mixBuffer || !instBuffer || isAligning}
               onclick={runAutoAlign}
             >
@@ -558,7 +639,9 @@
               {/if}
             </button>
             {#if alignmentMessage}
-              <div class="alignment-status text-neon-gold">{alignmentMessage}</div>
+              <div class="alignment-status text-neon-gold">
+                {alignmentMessage}
+              </div>
             {/if}
           </div>
 
@@ -566,23 +649,41 @@
           <div class="slider-field mt-3">
             <div class="slider-labels">
               <span>Delay Offset:</span>
-              <span class="val font-mono">{delayMs > 0 ? "+" : ""}{delayMs} ms</span>
+              <span class="val font-mono"
+                >{delayMs > 0 ? "+" : ""}{delayMs} ms</span
+              >
             </div>
             <div class="flex gap-2 items-center">
-              <button class="adj-btn" disabled={!mixBuffer || !instBuffer} onclick={() => adjustDelay(-10)}>-10ms</button>
-              <button class="adj-btn" disabled={!mixBuffer || !instBuffer} onclick={() => adjustDelay(-0.1)}>-0.1ms</button>
-              <input 
-                type="range" 
-                min="-2000" 
-                max="2000" 
-                step="0.1" 
-                class="stripper-slider" 
+              <button
+                class="adj-btn"
+                disabled={!mixBuffer || !instBuffer}
+                onclick={() => adjustDelay(-10)}>-10ms</button
+              >
+              <button
+                class="adj-btn"
+                disabled={!mixBuffer || !instBuffer}
+                onclick={() => adjustDelay(-0.1)}>-0.1ms</button
+              >
+              <input
+                type="range"
+                min="-2000"
+                max="2000"
+                step="0.1"
+                class="stripper-slider"
                 disabled={!mixBuffer || !instBuffer}
                 bind:value={delayMs}
-                oninput={() => processedBuffer = null}
+                oninput={() => (processedBuffer = null)}
               />
-              <button class="adj-btn" disabled={!mixBuffer || !instBuffer} onclick={() => adjustDelay(0.1)}>+0.1ms</button>
-              <button class="adj-btn" disabled={!mixBuffer || !instBuffer} onclick={() => adjustDelay(10)}>+10ms</button>
+              <button
+                class="adj-btn"
+                disabled={!mixBuffer || !instBuffer}
+                onclick={() => adjustDelay(0.1)}>+0.1ms</button
+              >
+              <button
+                class="adj-btn"
+                disabled={!mixBuffer || !instBuffer}
+                onclick={() => adjustDelay(10)}>+10ms</button
+              >
             </div>
           </div>
 
@@ -592,37 +693,45 @@
               <span>Bleed Volume Multiplier:</span>
               <span class="val font-mono">{bleedVolume.toFixed(2)}x</span>
             </div>
-            <input 
-              type="range" 
-              min="0.0" 
-              max="3.0" 
-              step="0.02" 
-              class="stripper-slider" 
+            <input
+              type="range"
+              min="0.0"
+              max="3.0"
+              step="0.02"
+              class="stripper-slider"
               disabled={!mixBuffer || !instBuffer}
               bind:value={bleedVolume}
-              oninput={() => processedBuffer = null}
+              oninput={() => (processedBuffer = null)}
             />
           </div>
 
           <!-- DSP Processing Settings (Mode & Cutoffs) -->
-          <div class="flex flex-wrap gap-4 items-center justify-between border-t border-white/5 mt-3 pt-3">
+          <div
+            class="flex flex-wrap gap-4 items-center justify-between border-t border-white/5 mt-3 pt-3"
+          >
             <!-- Mode Switcher -->
             <div class="flex flex-col gap-1">
               <span class="field-title">Stripper Mode</span>
               <div class="toggle-group">
-                <button 
-                  class="toggle-opt" 
+                <button
+                  class="toggle-opt"
                   class:active={mode === "spectral"}
                   disabled={!mixBuffer || !instBuffer}
-                  onclick={() => { mode = "spectral"; processedBuffer = null; }}
+                  onclick={() => {
+                    mode = "spectral";
+                    processedBuffer = null;
+                  }}
                 >
                   Spectral
                 </button>
-                <button 
-                  class="toggle-opt" 
+                <button
+                  class="toggle-opt"
                   class:active={mode === "phase"}
                   disabled={!mixBuffer || !instBuffer}
-                  onclick={() => { mode = "phase"; processedBuffer = null; }}
+                  onclick={() => {
+                    mode = "phase";
+                    processedBuffer = null;
+                  }}
                 >
                   Phase
                 </button>
@@ -633,27 +742,36 @@
             <div class="flex flex-col gap-1">
               <span class="field-title">Voice High-Pass Clean</span>
               <div class="toggle-group">
-                <button 
-                  class="toggle-opt" 
+                <button
+                  class="toggle-opt"
                   class:active={hpfFrequency === 0}
                   disabled={!mixBuffer || !instBuffer}
-                  onclick={() => { hpfFrequency = 0; processedBuffer = null; }}
+                  onclick={() => {
+                    hpfFrequency = 0;
+                    processedBuffer = null;
+                  }}
                 >
                   Bypass
                 </button>
-                <button 
-                  class="toggle-opt" 
+                <button
+                  class="toggle-opt"
                   class:active={hpfFrequency === 80}
                   disabled={!mixBuffer || !instBuffer}
-                  onclick={() => { hpfFrequency = 80; processedBuffer = null; }}
+                  onclick={() => {
+                    hpfFrequency = 80;
+                    processedBuffer = null;
+                  }}
                 >
                   80Hz
                 </button>
-                <button 
-                  class="toggle-opt" 
+                <button
+                  class="toggle-opt"
                   class:active={hpfFrequency === 120}
                   disabled={!mixBuffer || !instBuffer}
-                  onclick={() => { hpfFrequency = 120; processedBuffer = null; }}
+                  onclick={() => {
+                    hpfFrequency = 120;
+                    processedBuffer = null;
+                  }}
                 >
                   120Hz
                 </button>
@@ -665,38 +783,43 @@
 
       <!-- RIGHT SECTION: Waveform Alignment Graph, Processing, & Custom Playback Player -->
       <div class="stripper-workspace flex flex-col gap-4">
-        
         <!-- Multi-Track visual Waveform Display -->
-        <div class="waveform-box flex-grow flex flex-col border border-white/5 bg-[#09090f] rounded-xl overflow-hidden p-2 min-h-[140px]">
-          <canvas 
-            bind:this={canvasElement} 
-            width="600" 
-            height="180" 
+        <div
+          class="waveform-box flex-grow flex flex-col border border-white/5 bg-[#09090f] rounded-xl overflow-hidden p-2 min-h-[140px]"
+        >
+          <canvas
+            bind:this={canvasElement}
+            width="600"
+            height="180"
             class="w-full flex-grow block rounded-lg cursor-pointer"
             onclick={handleSeek}
           ></canvas>
         </div>
 
         <!-- Render Playback and Extract console -->
-        <div class="output-preview-box border-neon-gold bg-black/40 rounded-xl p-3 flex flex-col gap-3">
-          
-          <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <div
+          class="output-preview-box border-neon-gold bg-black/40 rounded-xl p-3 flex flex-col gap-3"
+        >
+          <div
+            class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3"
+          >
             <!-- Extraction action trigger -->
-            <button 
+            <button
               class="process-btn text-neon-pink border-neon-pink flex-grow sm:flex-grow-0"
               disabled={!mixBuffer || !instBuffer || isProcessing}
               onclick={runProcess}
             >
               {#if isProcessing}
-                <RefreshCw size={16} class="animate-spin mr-2 inline" /> Processing ({processProgress}%)
+                <RefreshCw size={16} class="animate-spin mr-2 inline" /> Processing
+                ({processProgress}%)
               {:else}
                 Strip Bleed Audio
               {/if}
             </button>
 
             <!-- Export Download WAV -->
-            <button 
-              class="download-btn border-neon-green" 
+            <button
+              class="download-btn border-neon-green"
               disabled={!processedBuffer || isProcessing}
               onclick={handleDownload}
             >
@@ -707,38 +830,49 @@
           <!-- Progress loading bar (processing state only) -->
           {#if isProcessing}
             <div class="w-full bg-white/5 rounded-full h-1.5 overflow-hidden">
-              <div class="bg-gradient-to-r from-neon-pink to-neon-gold h-full transition-all duration-150" style="width: {processProgress}%"></div>
+              <div
+                class="bg-gradient-to-r from-neon-pink to-neon-gold h-full transition-all duration-150"
+                style="width: {processProgress}%"
+              ></div>
             </div>
           {/if}
 
           <!-- CUSTOM AUDIO PLAYER -->
-          <div class="custom-player flex flex-col gap-2.5 border-t border-white/5 pt-3 mt-1" class:disabled={!mixBuffer}>
+          <div
+            class="custom-player flex flex-col gap-2.5 border-t border-white/5 pt-3 mt-1"
+            class:disabled={!mixBuffer}
+          >
             <!-- Playback Switcher Source A/B Tabs -->
             <div class="flex flex-wrap items-center gap-2 justify-between">
-              <div class="toggle-group max-w-full overflow-x-auto whitespace-nowrap">
-                <button 
-                  class="toggle-opt" 
+              <div
+                class="toggle-group max-w-full overflow-x-auto whitespace-nowrap"
+              >
+                <button
+                  class="toggle-opt"
                   class:active={playbackSource === "mix"}
                   disabled={!mixBuffer}
                   onclick={() => handleSourceChange("mix")}
                 >
                   Original
                 </button>
-                <button 
-                  class="toggle-opt" 
+                <button
+                  class="toggle-opt"
                   class:active={playbackSource === "inst"}
                   disabled={!instBuffer}
                   onclick={() => handleSourceChange("inst")}
                 >
                   Backing
                 </button>
-                <button 
-                  class="toggle-opt" 
+                <button
+                  class="toggle-opt"
                   class:active={playbackSource === "processed"}
                   disabled={!processedBuffer}
                 >
                   {#if processedBuffer}
-                    Acapella <Check size={10} class="inline ml-1 text-neon-green" />
+                    Acapella <Check
+                      size={10}
+                      class="inline ml-1 text-neon-green"
+                    />
                   {:else}
                     Acapella
                   {/if}
@@ -752,18 +886,27 @@
             </div>
 
             <!-- Custom Playback Slider -->
-            <div class="player-timeline" onclick={mixBuffer ? handleSeek : null}>
-              <div class="timeline-bar bg-white/5 w-full h-2 rounded-full cursor-pointer relative overflow-hidden">
-                <div 
-                  class="play-progress bg-neon-gold h-full rounded-full" 
-                  style="width: {duration > 0 ? (currentTime / duration) * 100 : 0}%"
+            <div
+              class="player-timeline"
+              onclick={mixBuffer ? handleSeek : null}
+            >
+              <div
+                class="timeline-bar bg-white/5 w-full h-2 rounded-full cursor-pointer relative overflow-hidden"
+              >
+                <div
+                  class="play-progress bg-neon-gold h-full rounded-full"
+                  style="width: {duration > 0
+                    ? (currentTime / duration) * 100
+                    : 0}%"
                 ></div>
               </div>
             </div>
 
             <!-- Player Controls -->
-            <div class="flex items-center gap-4 justify-center sm:justify-start">
-              <button 
+            <div
+              class="flex items-center gap-4 justify-center sm:justify-start"
+            >
+              <button
                 class="play-btn-circle border border-white/10 text-white hover:bg-white/5 transition-all"
                 disabled={!mixBuffer}
                 onclick={handlePlayPause}
@@ -775,21 +918,22 @@
                   <Play size={18} class="fill-white ml-0.5" />
                 {/if}
               </button>
-              
+
               <span class="text-xs text-white/30 italic hidden sm:inline">
                 {#if isPlaying}
-                  Listening to: {playbackSource === "mix" ? "Original Mix" : (playbackSource === "inst" ? "Backing Track" : "Cleaned Acapella")}
+                  Listening to: {playbackSource === "mix"
+                    ? "Original Mix"
+                    : playbackSource === "inst"
+                      ? "Backing Track"
+                      : "Cleaned Acapella"}
                 {:else}
                   Playback paused
                 {/if}
               </span>
             </div>
           </div>
-
         </div>
-
       </div>
-
     </div>
   </div>
 </BaseApp>
@@ -815,13 +959,13 @@
     gap: 16px;
     flex-grow: 1;
     min-height: 0;
-    
+
     // Viewport 3: Tablet multi-column
     @media (min-width: 768px) {
       grid-template-columns: 320px 1fr;
       height: 100%;
     }
-    
+
     // Viewport 4-5: Desktop / TV consoles
     @media (min-width: 1024px) {
       grid-template-columns: 636px 1fr;
@@ -859,11 +1003,15 @@
 
     &.border-neon-cyan {
       border-color: rgba(0, 215, 255, 0.2);
-      &:hover { border-color: rgba(0, 215, 255, 0.5); }
+      &:hover {
+        border-color: rgba(0, 215, 255, 0.5);
+      }
     }
     &.border-neon-pink {
       border-color: rgba(255, 0, 127, 0.2);
-      &:hover { border-color: rgba(255, 0, 127, 0.5); }
+      &:hover {
+        border-color: rgba(255, 0, 127, 0.5);
+      }
     }
     &.border-neon-gold {
       border-color: rgba(230, 185, 0, 0.2);
@@ -996,7 +1144,7 @@
       box-shadow: 0 0 8px rgba(230, 185, 0, 0.4);
       cursor: pointer;
     }
-    
+
     &::-moz-range-thumb {
       width: 14px;
       height: 14px;
@@ -1102,7 +1250,9 @@
 
     p {
       margin: 0 0 6px 0;
-      &:last-child { margin: 0; }
+      &:last-child {
+        margin: 0;
+      }
     }
   }
 
@@ -1192,7 +1342,13 @@
   }
 
   @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(4px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 </style>

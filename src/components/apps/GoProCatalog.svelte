@@ -7,7 +7,7 @@
         activeShowKey = $bindable(),
         currentEpisodeIndex = $bindable(),
         selectedSeasons = $bindable(),
-        playEpisode
+        playEpisode,
     } = $props();
 
     // Derived states
@@ -17,18 +17,22 @@
             meta: { actors: [], facts: "" },
         },
     );
-    
+
     let seasons = $derived(getSeasonsForShow(activeShowKey));
-    let activeSeason = $derived(selectedSeasons[activeShowKey] || seasons[0] || 1);
-    
+    let activeSeason = $derived(
+        selectedSeasons[activeShowKey] || seasons[0] || 1,
+    );
+
     // Active season episodes
     let activeSeasonEpisodes = $derived(
-        activeShow.episodes.filter((ep) => getEpisodeSeason(ep) === activeSeason)
+        activeShow.episodes.filter(
+            (ep) => getEpisodeSeason(ep) === activeSeason,
+        ),
     );
 
     // Selected episode details
     let currentEpisode = $derived(
-        activeShow.episodes[currentEpisodeIndex] || { title: "", file: "" }
+        activeShow.episodes[currentEpisodeIndex] || { title: "", file: "" },
     );
 
     function getEpisodeSeason(ep) {
@@ -81,7 +85,6 @@
         handleSeasonSwipe();
     }
 
-
     function handleSeasonSwipe() {
         const threshold = 50;
         const currentIdx = seasons.indexOf(activeSeason);
@@ -110,13 +113,19 @@
             <p class="info-show-desc">{activeShow.meta.facts}</p>
             <div class="info-cast">
                 <span class="cast-label"><Users size={12} /> Cast:</span>
-                <span class="cast-text-list">{activeShow.meta.actors.join(", ")}</span>
+                <span class="cast-text-list"
+                    >{activeShow.meta.actors.join(", ")}</span
+                >
             </div>
         </div>
-        
+
         <div class="episode-info-section">
             <span class="info-tag"><Play size={12} /> Selected Episode</span>
-            <span class="info-ep-number">Season {getEpisodeSeason(currentEpisode)} - Episode {activeShow.episodes.indexOf(currentEpisode) + 1}</span>
+            <span class="info-ep-number"
+                >Season {getEpisodeSeason(currentEpisode)} - Episode {activeShow.episodes.indexOf(
+                    currentEpisode,
+                ) + 1}</span
+            >
             <h2 class="info-ep-title">{currentEpisode.title}</h2>
             <div class="info-ep-stats">
                 <span class="stat-pill">★ {activeShow.meta.score}</span>
@@ -140,10 +149,14 @@
                         class:bean={showKey === "Mr. Bean"}
                         onclick={() => switchShow(showKey)}
                     >
-                        <span class="show-card-icon">{catalog[showKey].symbol || "📺"}</span>
+                        <span class="show-card-icon"
+                            >{catalog[showKey].symbol || "📺"}</span
+                        >
                         <div class="show-card-info">
                             <span class="show-card-name">{showKey}</span>
-                            <span class="show-card-count">{catalog[showKey].episodes.length} Episodes</span>
+                            <span class="show-card-count"
+                                >{catalog[showKey].episodes.length} Episodes</span
+                            >
                         </div>
                     </button>
                 {/each}
@@ -154,7 +167,7 @@
         <div class="episodes-main-container">
             <div class="episodes-selector-header">
                 <span class="sidebar-header-title">Episodes List</span>
-                
+
                 {#if seasons.length > 1}
                     <div class="season-swiper-indicator">
                         <span class="swipe-hint">Swipe to change season</span>
@@ -163,7 +176,8 @@
                                 <button
                                     class="season-pill-btn"
                                     class:active={activeSeason === s}
-                                    onclick={() => (selectedSeasons[activeShowKey] = s)}
+                                    onclick={() =>
+                                        (selectedSeasons[activeShowKey] = s)}
                                 >
                                     S{s}
                                 </button>
@@ -189,16 +203,23 @@
                         <div
                             class="episode-grid-card"
                             class:active={currentEpisodeIndex === actualIndex}
-                            onclick={() => playEpisode(activeShowKey, actualIndex)}
+                            onclick={() =>
+                                playEpisode(activeShowKey, actualIndex)}
                         >
                             <div class="card-thumbnail-box">
-                                <span class="card-number">{(seasonIdx + 1).toString().padStart(2, "0")}</span>
+                                <span class="card-number"
+                                    >{(seasonIdx + 1)
+                                        .toString()
+                                        .padStart(2, "0")}</span
+                                >
                                 <div class="card-play-overlay">
                                     <Play size={20} fill="currentColor" />
                                 </div>
                             </div>
                             <div class="card-details">
-                                <span class="card-ep-label">Episode {seasonIdx + 1}</span>
+                                <span class="card-ep-label"
+                                    >Episode {seasonIdx + 1}</span
+                                >
                                 <h3 class="card-title">{ep.title}</h3>
                             </div>
                         </div>
@@ -208,4 +229,3 @@
         </div>
     </div>
 </div>
-

@@ -8,10 +8,25 @@
 
   // Data Train Tabs
   const tabs = [
-    { id: "qr", label: "QR Train", icon: Zap, desc: "Visual Flash data transfer" },
-    { id: "bluetooth", label: "Blue Train", icon: Bluetooth, desc: "Web Bluetooth peer transfer" },
+    {
+      id: "qr",
+      label: "QR Train",
+      icon: Zap,
+      desc: "Visual Flash data transfer",
+    },
+    {
+      id: "bluetooth",
+      label: "Blue Train",
+      icon: Bluetooth,
+      desc: "Web Bluetooth peer transfer",
+    },
     { id: "usb", label: "USB Train", icon: Usb, desc: "WebUSB device storage" },
-    { id: "air", label: "Air Train", icon: Share2, desc: "Nearby WebRTC P2P direct share" }
+    {
+      id: "air",
+      label: "Air Train",
+      icon: Share2,
+      desc: "Nearby WebRTC P2P direct share",
+    },
   ];
 
   let activeTab = $state("qr");
@@ -29,10 +44,10 @@
     <div class="tab-scroller">
       <div class="tabs-grid">
         {#each tabs as tab}
-          <button 
-            class="tab-link-btn" 
+          <button
+            class="tab-link-btn"
             class:active={activeTab === tab.id}
-            onclick={() => activeTab = tab.id}
+            onclick={() => (activeTab = tab.id)}
             title={tab.desc}
           >
             <tab.icon size={13} class="tab-icon-svg" />
@@ -85,13 +100,11 @@
     }
   }
 
-
-
   .tab-scroller {
     overflow-x: auto;
     scrollbar-width: none;
     -ms-overflow-style: none;
-    
+
     &::-webkit-scrollbar {
       display: none;
     }
@@ -128,7 +141,6 @@
       box-shadow: 0 0 10px rgba(0, 240, 255, 0.1);
     }
   }
-
 
   .btn-text {
     font-size: 0.72rem;

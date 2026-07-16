@@ -145,15 +145,28 @@
           class="world-svg"
           xmlns="http://www.w3.org/2000/svg"
         >
-
           <!-- Ocean Labels -->
-          <text x="400" y="265" class="ocean-label" text-anchor="middle">ARCTIC OCEAN</text>
-          <text x="90" y="380" class="ocean-label" text-anchor="middle">NORTH PACIFIC OCEAN</text>
-          <text x="110" y="540" class="ocean-label" text-anchor="middle">SOUTH PACIFIC OCEAN</text>
-          <text x="320" y="370" class="ocean-label" text-anchor="middle">NORTH ATLANTIC OCEAN</text>
-          <text x="340" y="530" class="ocean-label" text-anchor="middle">SOUTH ATLANTIC OCEAN</text>
-          <text x="580" y="500" class="ocean-label" text-anchor="middle">INDIAN OCEAN</text>
-          <text x="400" y="675" class="ocean-label" text-anchor="middle">SOUTHERN OCEAN</text>
+          <text x="400" y="265" class="ocean-label" text-anchor="middle"
+            >ARCTIC OCEAN</text
+          >
+          <text x="90" y="380" class="ocean-label" text-anchor="middle"
+            >NORTH PACIFIC OCEAN</text
+          >
+          <text x="110" y="540" class="ocean-label" text-anchor="middle"
+            >SOUTH PACIFIC OCEAN</text
+          >
+          <text x="320" y="370" class="ocean-label" text-anchor="middle"
+            >NORTH ATLANTIC OCEAN</text
+          >
+          <text x="340" y="530" class="ocean-label" text-anchor="middle"
+            >SOUTH ATLANTIC OCEAN</text
+          >
+          <text x="580" y="500" class="ocean-label" text-anchor="middle"
+            >INDIAN OCEAN</text
+          >
+          <text x="400" y="675" class="ocean-label" text-anchor="middle"
+            >SOUTHERN OCEAN</text
+          >
 
           <!-- Detailed world map borders outline -->
           <path

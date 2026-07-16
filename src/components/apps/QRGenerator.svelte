@@ -3,8 +3,16 @@
 <script>
   import { onMount } from "svelte";
   import QRCode from "qrcode";
-  import { 
-    QrCode, Copy, Download, Upload, Image, X, Check, AlertCircle, RefreshCw
+  import {
+    QrCode,
+    Copy,
+    Download,
+    Upload,
+    Image,
+    X,
+    Check,
+    AlertCircle,
+    RefreshCw,
   } from "lucide-svelte";
 
   // App States
@@ -12,7 +20,7 @@
   let qrSize = $state(512); // Default size 512px
   let logoSrc = $state(null); // DataURL of center logo
   let logoName = $state("");
-  let logoScale = $state(0.20); // Default scale: 20% of QR size
+  let logoScale = $state(0.2); // Default scale: 20% of QR size
 
   // DOM bindings
   let canvasElement = $state(null);
@@ -113,8 +121,8 @@
         margin: 0,
         color: {
           dark: "#000000",
-          light: "#ffffff"
-        }
+          light: "#ffffff",
+        },
       },
       (err) => {
         if (err) {
@@ -144,23 +152,43 @@
 
             // 1. Draw rounded container background (white to isolate modules)
             ctx.fillStyle = "#ffffff";
-            drawRoundedRect(ctx, cx - containerWidth / 2, cy - containerHeight / 2, containerWidth, containerHeight, radius);
+            drawRoundedRect(
+              ctx,
+              cx - containerWidth / 2,
+              cy - containerHeight / 2,
+              containerWidth,
+              containerHeight,
+              radius,
+            );
             ctx.fill();
 
             // 2. Draw actual logo image inside container
             ctx.save();
             ctx.beginPath();
-            drawRoundedRect(ctx, cx - logoWidth / 2, cy - logoHeight / 2, logoWidth, logoHeight, radius * 0.85);
+            drawRoundedRect(
+              ctx,
+              cx - logoWidth / 2,
+              cy - logoHeight / 2,
+              logoWidth,
+              logoHeight,
+              radius * 0.85,
+            );
             ctx.closePath();
             ctx.clip();
-            ctx.drawImage(img, cx - logoWidth / 2, cy - logoHeight / 2, logoWidth, logoHeight);
+            ctx.drawImage(
+              img,
+              cx - logoWidth / 2,
+              cy - logoHeight / 2,
+              logoWidth,
+              logoHeight,
+            );
             ctx.restore();
           };
           img.onerror = () => {
             showToast("Failed to load center logo image.", "error");
           };
         }
-      }
+      },
     );
   }
 
@@ -174,7 +202,7 @@
           return;
         }
         await navigator.clipboard.write([
-          new ClipboardItem({ "image/png": blob })
+          new ClipboardItem({ "image/png": blob }),
         ]);
         showToast("QR Code copied to clipboard!", "success");
       }, "image/png");
@@ -193,13 +221,15 @@
       let hostname = "qrcode";
       try {
         if (urlText.trim()) {
-          const parsed = new URL(urlText.startsWith("http") ? urlText : "http://" + urlText);
+          const parsed = new URL(
+            urlText.startsWith("http") ? urlText : "http://" + urlText,
+          );
           hostname = parsed.hostname.replace("www.", "") || "qrcode";
         }
       } catch (e) {
         hostname = "qrcode";
       }
-      
+
       a.download = `qr-${hostname}-${qrSize}px.png`;
       a.href = url;
       a.click();
@@ -222,7 +252,6 @@
 
   <!-- Workspace Grid -->
   <div class="workspace-grid">
-    
     <!-- LEFT PANEL: Controls -->
     <div class="panel controls-panel">
       <div class="panel-tag"><QrCode size={12} /> CONFIGURATION PANEL</div>
@@ -231,15 +260,17 @@
       <div class="config-group">
         <label for="url-input" class="config-label">Target Link / URL</label>
         <div class="input-wrapper">
-          <input 
+          <input
             id="url-input"
-            type="text" 
-            bind:value={urlText} 
-            placeholder="Type a web link or text..." 
-            class="neon-input" 
+            type="text"
+            bind:value={urlText}
+            placeholder="Type a web link or text..."
+            class="neon-input"
           />
           {#if urlText}
-            <button class="clear-input-btn" onclick={() => urlText = ""}>✕</button>
+            <button class="clear-input-btn" onclick={() => (urlText = "")}
+              >✕</button
+            >
           {/if}
         </div>
       </div>
@@ -250,12 +281,12 @@
           <span class="config-label">QR Resolution</span>
           <span class="value-badge">{qrSize} x {qrSize} px</span>
         </div>
-        <input 
-          type="range" 
-          min="128" 
-          max="1024" 
-          step="16" 
-          bind:value={qrSize} 
+        <input
+          type="range"
+          min="128"
+          max="1024"
+          step="16"
+          bind:value={qrSize}
           class="gen-slider"
         />
         <div class="slider-ticks">
@@ -268,27 +299,31 @@
       <!-- Logo Selection Group -->
       <div class="config-group">
         <span class="config-label">Center Logo (Optional)</span>
-        
+
         <!-- Drag & Drop Zone -->
-        <div 
-          class="dropzone" 
+        <div
+          class="dropzone"
           class:dragging={isDragging}
           ondragover={handleDragOver}
           ondragleave={handleDragLeave}
           ondrop={handleDrop}
           onclick={() => fileInputRef.click()}
         >
-          <input 
-            type="file" 
-            accept="image/*" 
-            bind:this={fileInputRef} 
-            onchange={handleFileChange} 
-            class="hidden-file-input" 
+          <input
+            type="file"
+            accept="image/*"
+            bind:this={fileInputRef}
+            onchange={handleFileChange}
+            class="hidden-file-input"
           />
-          
+
           {#if logoSrc}
             <div class="logo-preview-box" onclick={(e) => e.stopPropagation()}>
-              <img src={logoSrc} alt="Uploaded logo" class="uploaded-logo-thumb" />
+              <img
+                src={logoSrc}
+                alt="Uploaded logo"
+                class="uploaded-logo-thumb"
+              />
               <div class="logo-meta">
                 <span class="logo-name-text">{logoName}</span>
                 <button class="remove-logo-btn" onclick={removeLogo}>
@@ -299,7 +334,9 @@
           {:else}
             <div class="upload-prompt">
               <Upload size={22} class="upload-icon" />
-              <span class="prompt-text">Drag & Drop Image or Click to Browse</span>
+              <span class="prompt-text"
+                >Drag & Drop Image or Click to Browse</span
+              >
               <span class="formats-text">PNG, JPG, SVG, WEBP</span>
             </div>
           {/if}
@@ -313,12 +350,12 @@
             <span class="config-label">Logo Ratio (Center Size)</span>
             <span class="value-badge">{Math.round(logoScale * 100)}%</span>
           </div>
-          <input 
-            type="range" 
-            min="0.10" 
-            max="0.25" 
-            step="0.01" 
-            bind:value={logoScale} 
+          <input
+            type="range"
+            min="0.10"
+            max="0.25"
+            step="0.01"
+            bind:value={logoScale}
             class="gen-slider"
           />
           <div class="slider-ticks">
@@ -327,19 +364,22 @@
           </div>
         </div>
       {/if}
-
     </div>
 
     <!-- RIGHT PANEL: Live Preview & Actions -->
-    <div class="panel preview-panel flex flex-col justify-between items-center h-full p-4 md:p-6 overflow-hidden gap-4">
+    <div
+      class="panel preview-panel flex flex-col justify-between items-center h-full p-4 md:p-6 overflow-hidden gap-4"
+    >
       <div class="panel-tag"><Image size={12} /> LIVE EXPORT PREVIEW</div>
 
       <!-- Preview Frame -->
-      <div class="preview-stage-container flex flex-col items-center justify-center flex-1 min-h-0 w-full gap-4">
+      <div
+        class="preview-stage-container flex flex-col items-center justify-center flex-1 min-h-0 w-full gap-4"
+      >
         <div class="preview-neon-frame aspect-square w-full">
           <canvas bind:this={canvasElement} class="qr-preview-canvas"></canvas>
         </div>
-        
+
         <!-- Diagnostic specifications -->
         <div class="spec-footer-stats">
           <div class="stat-bubble">
@@ -362,14 +402,12 @@
         <button class="gen-action-btn copy-btn" onclick={copyToClipboard}>
           <Copy size={16} /> Copy to Clipboard
         </button>
-        
+
         <button class="gen-action-btn download-btn" onclick={downloadQRCode}>
           <Download size={16} /> Download PNG
         </button>
       </div>
-
     </div>
-
   </div>
 
   <!-- Toast Notification Overlay -->
@@ -384,6 +422,7 @@
     </div>
   {/if}
 </div>
+
 <style>
   .qrgenerator-layout {
     display: flex;
@@ -577,7 +616,8 @@
     min-height: 100px;
   }
 
-  .dropzone:hover, .dropzone.dragging {
+  .dropzone:hover,
+  .dropzone.dragging {
     background: rgba(0, 215, 255, 0.03);
     border-color: #00d7ff;
   }
@@ -687,7 +727,7 @@
     border: 1px solid rgba(255, 255, 255, 0.06);
     padding: 12px; /* Small neon box padding */
     border-radius: 16px;
-    box-shadow: 
+    box-shadow:
       0 20px 50px rgba(0, 0, 0, 0.5),
       0 0 25px rgba(0, 215, 255, 0.02);
     display: flex;
@@ -703,7 +743,7 @@
 
   .preview-neon-frame:hover {
     border-color: rgba(0, 215, 255, 0.3);
-    box-shadow: 
+    box-shadow:
       0 20px 50px rgba(0, 0, 0, 0.6),
       0 0 35px rgba(0, 215, 255, 0.08);
   }
@@ -716,7 +756,7 @@
     max-height: 100%;
     object-fit: contain;
     background: #ffffff; /* White surrounding background */
-    padding: 10px;        /* Surrounding whitespace border */
+    padding: 10px; /* Surrounding whitespace border */
     border-radius: 8px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.35);
   }
@@ -815,7 +855,7 @@
     gap: 8px;
     font-size: 0.78rem;
     font-weight: 700;
-    box-shadow: 
+    box-shadow:
       0 10px 30px rgba(0, 0, 0, 0.5),
       0 0 15px rgba(0, 215, 255, 0.08);
     backdrop-filter: blur(10px);
@@ -831,8 +871,14 @@
   }
 
   @keyframes toastIn {
-    0% { transform: translate(-50%, 15px); opacity: 0; }
-    100% { transform: translate(-50%, 0); opacity: 1; }
+    0% {
+      transform: translate(-50%, 15px);
+      opacity: 0;
+    }
+    100% {
+      transform: translate(-50%, 0);
+      opacity: 1;
+    }
   }
 
   /* ── Animation Helpers ── */
@@ -841,8 +887,14 @@
   }
 
   @keyframes fadeIn {
-    0% { opacity: 0; transform: translateY(4px); }
-    100% { opacity: 1; transform: translateY(0); }
+    0% {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   /* ── Responsive Viewports ── */

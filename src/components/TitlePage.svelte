@@ -37,7 +37,7 @@
     music: "./MusicPanel.svelte",
     store: "./StorePanel.svelte",
     map: "./MapPanel.svelte",
-    info: "./InfoPanel.svelte"
+    info: "./InfoPanel.svelte",
   };
 
   // Lazy loaded panel components caching
@@ -125,7 +125,9 @@
             for (const el of scrollables) {
               const style = window.getComputedStyle(el);
               if (
-                (style.overflowY === "auto" || style.overflowY === "scroll" || el.classList.contains("shows-list-flow")) &&
+                (style.overflowY === "auto" ||
+                  style.overflowY === "scroll" ||
+                  el.classList.contains("shows-list-flow")) &&
                 el.scrollHeight > el.clientHeight &&
                 el.clientHeight > 0
               ) {
@@ -216,7 +218,11 @@
       activePage = "store";
       isClosing = false;
       history.pushState({ view: "store", depth: 1 }, "", "/store");
-      history.pushState({ view: "store", campaignId: params.campaignId, depth: 2 }, "", `/store/campaign/${params.campaignId}`);
+      history.pushState(
+        { view: "store", campaignId: params.campaignId, depth: 2 },
+        "",
+        `/store/campaign/${params.campaignId}`,
+      );
       depth = 2;
       return;
     }
@@ -226,7 +232,11 @@
       activePage = "store";
       isClosing = false;
       history.pushState({ view: "store", depth: 1 }, "", "/store");
-      history.pushState({ view: "store", productId: params.productId, depth: 2 }, "", `/store/product/${params.productId}`);
+      history.pushState(
+        { view: "store", productId: params.productId, depth: 2 },
+        "",
+        `/store/product/${params.productId}`,
+      );
       depth = 2;
       return;
     }
@@ -367,7 +377,11 @@
 
       // If state is null, it could be a hashchange on the current panel page.
       // Do not close the page if the pathname still matches the active page URL prefix.
-      if (state === null && activePage && window.location.pathname.startsWith(panelToUrl(activePage))) {
+      if (
+        state === null &&
+        activePage &&
+        window.location.pathname.startsWith(panelToUrl(activePage))
+      ) {
         return;
       }
 
@@ -462,7 +476,12 @@
   function handleKeydown(e) {
     // Guard: don't steal keys from actual text inputs
     const tag = document.activeElement?.tagName;
-    if (tag === "INPUT" || tag === "TEXTAREA" || document.activeElement?.isContentEditable) return;
+    if (
+      tag === "INPUT" ||
+      tag === "TEXTAREA" ||
+      document.activeElement?.isContentEditable
+    )
+      return;
 
     if (e.key === "Escape" || e.key === "Backspace") {
       // If inside a toolbox sub-app, ToolboxPanel's Escape handler takes the first press
@@ -475,10 +494,19 @@
     // Homepage shortcuts — only when no panel is open
     if (activePage !== null) return;
 
-    if (e.key === ",") { e.preventDefault(); openPage("store"); }
-    else if (e.key === ".") { e.preventDefault(); openPage("music"); }
-    else if (e.key === "/") { e.preventDefault(); openPage("toolbox"); }
-    else if (e.key === "'" || e.key === "\'") { e.preventDefault(); openPage("map"); }
+    if (e.key === ",") {
+      e.preventDefault();
+      openPage("store");
+    } else if (e.key === ".") {
+      e.preventDefault();
+      openPage("music");
+    } else if (e.key === "/") {
+      e.preventDefault();
+      openPage("toolbox");
+    } else if (e.key === "'" || e.key === "'") {
+      e.preventDefault();
+      openPage("map");
+    }
   }
 </script>
 
@@ -585,7 +613,9 @@
         {isClosing}
         currentLang={activeLang}
         onClose={closePage}
-        onHoverLang={(code) => { activeLang = code; }}
+        onHoverLang={(code) => {
+          activeLang = code;
+        }}
         onSelectLang={(code) => {
           activeLang = code;
           if (weAreDogsRef) weAreDogsRef.forceLanguage(code);
@@ -625,7 +655,11 @@
 {#if showInfo}
   {#if loadedPanels.info}
     {@const Panel = loadedPanels.info}
-    <Panel onClose={() => { if (showInfo) history.back(); }} />
+    <Panel
+      onClose={() => {
+        if (showInfo) history.back();
+      }}
+    />
   {:else}
     <div class="panel-loading-spinner" aria-label="Loading..."></div>
   {/if}
@@ -765,7 +799,8 @@
   }
 
   @keyframes runeDance {
-    0%, 100% {
+    0%,
+    100% {
       transform: scale(1) rotate(0deg);
     }
     25% {
@@ -806,6 +841,8 @@
   }
 
   @keyframes panelSpinner {
-    to { transform: rotate(360deg); }
+    to {
+      transform: rotate(360deg);
+    }
   }
 </style>

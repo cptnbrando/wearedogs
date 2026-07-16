@@ -10,7 +10,9 @@
 
   // Lazy load TitlePage as well to ensure maximum code-splitting
   let TitlePage = $state(null);
-  import("./components/TitlePage.svelte").then((m) => { TitlePage = m.default; });
+  import("./components/TitlePage.svelte").then((m) => {
+    TitlePage = m.default;
+  });
 
   // Lazy loaded DogsMain component
   let DogsMainComponent = $state(null);
@@ -64,7 +66,9 @@
         mainContainer.removeEventListener("scroll", handleScrollPreload);
       }
     };
-    mainContainer?.addEventListener("scroll", handleScrollPreload, { passive: true });
+    mainContainer?.addEventListener("scroll", handleScrollPreload, {
+      passive: true,
+    });
 
     // Idle fallback to preload if user remains inactive
     if (typeof requestIdleCallback !== "undefined") {
@@ -186,10 +190,18 @@
   >
     {#if DogsMainComponent}
       {@const Main = DogsMainComponent}
-      <Main isFlagColors={weAreDogsColored} active={!isLandingPage} {activePage} />
+      <Main
+        isFlagColors={weAreDogsColored}
+        active={!isLandingPage}
+        {activePage}
+      />
     {:else}
-      <div class="w-full h-full flex items-center justify-center bg-transparent pointer-events-none">
-        <div class="text-white/20 text-xs font-mono tracking-widest uppercase animate-pulse">
+      <div
+        class="w-full h-full flex items-center justify-center bg-transparent pointer-events-none"
+      >
+        <div
+          class="text-white/20 text-xs font-mono tracking-widest uppercase animate-pulse"
+        >
           Initializing 3D Visualizer...
         </div>
       </div>

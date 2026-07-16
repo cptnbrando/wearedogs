@@ -1,13 +1,32 @@
 <script>
-  import { X, Bookmark, Trash2, Sliders, ArrowLeft, ArrowRight, Download, Upload, RotateCcw } from "lucide-svelte";
-  
-  let { isOpen = $bindable(false), showKey, episodeTitle, duration = 100 } = $props();
+  import {
+    X,
+    Bookmark,
+    Trash2,
+    Sliders,
+    ArrowLeft,
+    ArrowRight,
+    Download,
+    Upload,
+    RotateCcw,
+  } from "lucide-svelte";
+
+  let {
+    isOpen = $bindable(false),
+    showKey,
+    episodeTitle,
+    duration = 100,
+  } = $props();
 
   // Load mappings from localStorage per episode or use default percentages (1 = 10%, 2 = 20%, etc.)
-  let keyMappings = $state(Array(10).fill(0).map((_, i) => ({
-    key: i.toString(),
-    time: Math.round(duration * (i === 0 ? 0 : i * 10) / 100)
-  })));
+  let keyMappings = $state(
+    Array(10)
+      .fill(0)
+      .map((_, i) => ({
+        key: i.toString(),
+        time: Math.round((duration * (i === 0 ? 0 : i * 10)) / 100),
+      })),
+  );
 
   const storageKey = $derived(`gopro_remapper_${showKey}_${episodeTitle}`);
 
@@ -36,15 +55,20 @@
   }
 
   function resetToDefaults() {
-    keyMappings = Array(10).fill(0).map((_, i) => ({
-      key: i.toString(),
-      time: Math.round(duration * (i === 0 ? 0 : i * 10) / 100)
-    }));
+    keyMappings = Array(10)
+      .fill(0)
+      .map((_, i) => ({
+        key: i.toString(),
+        time: Math.round((duration * (i === 0 ? 0 : i * 10)) / 100),
+      }));
     saveMappings();
   }
 
   function nudge(index, amount) {
-    keyMappings[index].time = Math.max(0, Math.min(duration, keyMappings[index].time + amount));
+    keyMappings[index].time = Math.max(
+      0,
+      Math.min(duration, keyMappings[index].time + amount),
+    );
     saveMappings();
   }
 
@@ -55,10 +79,15 @@
   }
 
   function exportBindings() {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(keyMappings));
-    const downloadAnchor = document.createElement('a');
+    const dataStr =
+      "data:text/json;charset=utf-8," +
+      encodeURIComponent(JSON.stringify(keyMappings));
+    const downloadAnchor = document.createElement("a");
     downloadAnchor.setAttribute("href", dataStr);
-    downloadAnchor.setAttribute("download", `gopro_keybinds_${showKey}_${episodeTitle}.json`);
+    downloadAnchor.setAttribute(
+      "download",
+      `gopro_keybinds_${showKey}_${episodeTitle}.json`,
+    );
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
@@ -91,25 +120,34 @@
       <h2>0-9 Keys Remapper</h2>
       <button onclick={() => (isOpen = false)} class="close-drawer">✕</button>
     </div>
-    <div class="drawer-body flex flex-col gap-4 max-h-[85vh] overflow-y-auto p-4 font-sans text-white">
-      <p class="text-[10px] text-white/50 leading-relaxed uppercase tracking-wider">
+    <div
+      class="drawer-body flex flex-col gap-4 max-h-[85vh] overflow-y-auto p-4 font-sans text-white"
+    >
+      <p
+        class="text-[10px] text-white/50 leading-relaxed uppercase tracking-wider"
+      >
         Remap keys 0-9 to custom frame timestamps for this episode.
       </p>
 
       <div class="flex flex-col gap-2">
         {#each keyMappings as mapping, i}
-          <div class="flex items-center justify-between bg-white/[0.02] border border-white/5 p-2 rounded-lg gap-2 text-xs">
-            <span class="font-mono font-bold text-cyan-400 bg-white/5 px-2 py-0.5 rounded">Key {mapping.key}</span>
-            
+          <div
+            class="flex items-center justify-between bg-white/[0.02] border border-white/5 p-2 rounded-lg gap-2 text-xs"
+          >
+            <span
+              class="font-mono font-bold text-cyan-400 bg-white/5 px-2 py-0.5 rounded"
+              >Key {mapping.key}</span
+            >
+
             <div class="flex items-center gap-1">
-              <button 
+              <button
                 class="bg-white/5 hover:bg-white/10 px-1.5 py-0.5 rounded text-[10px] font-bold"
                 onclick={() => nudge(i, -1)}
                 title="Nudge back 1s"
               >
                 ◀ -1s
               </button>
-              <input 
+              <input
                 type="number"
                 min="0"
                 max={duration}
@@ -117,7 +155,7 @@
                 onchange={saveMappings}
                 class="w-16 bg-black/40 border border-white/10 text-center text-xs text-white rounded outline-none px-1"
               />
-              <button 
+              <button
                 class="bg-white/5 hover:bg-white/10 px-1.5 py-0.5 rounded text-[10px] font-bold"
                 onclick={() => nudge(i, 1)}
                 title="Nudge forward 1s"
@@ -125,7 +163,9 @@
                 +1s ▶
               </button>
             </div>
-            <span class="text-[10px] text-white/40 font-mono w-12 text-right">{formatTime(mapping.time)}</span>
+            <span class="text-[10px] text-white/40 font-mono w-12 text-right"
+              >{formatTime(mapping.time)}</span
+            >
           </div>
         {/each}
       </div>
@@ -133,18 +173,25 @@
       <!-- Action buttons -->
       <div class="flex flex-col gap-2 mt-2 pt-3 border-t border-white/5">
         <div class="flex gap-2">
-          <button 
+          <button
             class="flex-1 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded text-xs font-bold flex items-center justify-center gap-1"
             onclick={exportBindings}
           >
             <Upload size={12} /> Export JSON
           </button>
-          <label class="flex-1 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded text-xs font-bold flex items-center justify-center gap-1 cursor-pointer text-center">
+          <label
+            class="flex-1 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded text-xs font-bold flex items-center justify-center gap-1 cursor-pointer text-center"
+          >
             <Download size={12} /> Import JSON
-            <input type="file" accept=".json" onchange={handleImport} class="hidden" />
+            <input
+              type="file"
+              accept=".json"
+              onchange={handleImport}
+              class="hidden"
+            />
           </label>
         </div>
-        <button 
+        <button
           class="w-full py-1.5 bg-red-600/20 border border-red-500/20 hover:bg-red-600/30 text-red-400 rounded text-xs font-bold flex items-center justify-center gap-1"
           onclick={resetToDefaults}
         >

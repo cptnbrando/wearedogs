@@ -1,6 +1,15 @@
 <script>
   import { onMount } from "svelte";
-  import { Usb, RefreshCw, CheckCircle, AlertCircle, Folder, HardDrive, File, Play } from "lucide-svelte";
+  import {
+    Usb,
+    RefreshCw,
+    CheckCircle,
+    AlertCircle,
+    Folder,
+    HardDrive,
+    File,
+    Play,
+  } from "lucide-svelte";
 
   // App States: 'disconnected' | 'connected' | 'copying' | 'complete'
   let usbState = $state("disconnected");
@@ -15,7 +24,7 @@
 
   const partitions = [
     { label: "DOGG-DRIVE-D:", format: "FAT32", capacity: "14.9 GB Free" },
-    { label: "RAP-MASS-STORE-E:", format: "exFAT", capacity: "118.2 GB Free" }
+    { label: "RAP-MASS-STORE-E:", format: "exFAT", capacity: "118.2 GB Free" },
   ];
   let activePartitionIndex = $state(0);
 
@@ -24,7 +33,7 @@
     "/backups",
     "/freestyles",
     "/documents",
-    "/sys/dogs"
+    "/sys/dogs",
   ];
 
   onMount(() => {
@@ -76,18 +85,21 @@
   function playChime() {
     try {
       const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      const notes = [329.63, 392.00, 523.25, 659.25]; // E4, G4, C5, E5
+      const notes = [329.63, 392.0, 523.25, 659.25]; // E4, G4, C5, E5
       notes.forEach((freq, idx) => {
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.connect(gain);
         gain.connect(audioCtx.destination);
-        
+
         osc.type = "sine";
         osc.frequency.setValueAtTime(freq, audioCtx.currentTime + idx * 0.08);
         gain.gain.setValueAtTime(0.2, audioCtx.currentTime + idx * 0.08);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + idx * 0.08 + 0.3);
-        
+        gain.gain.exponentialRampToValueAtTime(
+          0.01,
+          audioCtx.currentTime + idx * 0.08 + 0.3,
+        );
+
         osc.start(audioCtx.currentTime + idx * 0.08);
         osc.stop(audioCtx.currentTime + idx * 0.08 + 0.3);
       });
@@ -116,13 +128,15 @@
       <div class="unconnected-slate">
         <Usb class="text-neutral-500 mb-2 animate-bounce" size={32} />
         <h3>USB BUS NOT DETECTED</h3>
-        <p>Connect a physical USB mass storage device or virtual volume to synchronize.</p>
-        
+        <p>
+          Connect a physical USB mass storage device or virtual volume to
+          synchronize.
+        </p>
+
         <button class="connect-btn" onclick={triggerWebUsbConnect}>
           Connect USB Device
         </button>
       </div>
-
     {:else if usbState === "connected"}
       <div class="connected-slate">
         <div class="header-pill">
@@ -132,23 +146,29 @@
 
         <!-- Target Volume & Directory selector -->
         <div class="partition-block">
-          <label for="partition-select" class="field-label">TARGET LOGICAL MOUNT</label>
-          <select 
+          <label for="partition-select" class="field-label"
+            >TARGET LOGICAL MOUNT</label
+          >
+          <select
             id="partition-select"
-            class="usb-select" 
+            class="usb-select"
             bind:value={activePartitionIndex}
           >
             {#each partitions as part, idx}
-              <option value={idx}>{part.label} ({part.capacity}) - {part.format}</option>
+              <option value={idx}
+                >{part.label} ({part.capacity}) - {part.format}</option
+              >
             {/each}
           </select>
         </div>
 
         <div class="directory-block">
-          <label for="directory-select" class="field-label">TARGET DIRECTORY</label>
-          <select 
+          <label for="directory-select" class="field-label"
+            >TARGET DIRECTORY</label
+          >
+          <select
             id="directory-select"
-            class="usb-select" 
+            class="usb-select"
             bind:value={selectedFolder}
           >
             {#each folders as folder}
@@ -163,45 +183,54 @@
             <button class="select-file-btn" onclick={() => fileInputEl.click()}>
               <File size={16} />
               <span>Choose File to Write</span>
-              <input 
+              <input
                 bind:this={fileInputEl}
-                type="file" 
-                onchange={handleFileSelect} 
-                class="hidden-input" 
+                type="file"
+                onchange={handleFileSelect}
+                class="hidden-input"
               />
             </button>
           {:else}
             <div class="staged-file">
-              <span class="name">{selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)</span>
-              <button class="clear" onclick={() => selectedFile = null}>✕</button>
+              <span class="name"
+                >{selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)</span
+              >
+              <button class="clear" onclick={() => (selectedFile = null)}
+                >✕</button
+              >
             </div>
 
             <button class="write-btn" onclick={startCopying}>
-              Mount & Write to {partitions[activePartitionIndex].label}{selectedFolder}
+              Mount & Write to {partitions[activePartitionIndex]
+                .label}{selectedFolder}
             </button>
           {/if}
         </div>
       </div>
-
     {:else if usbState === "copying"}
       <div class="copying-slate">
         {@render LoaderGlow()}
-        <span class="status-label">Mounting block storage & flushing sector cache...</span>
-        
+        <span class="status-label"
+          >Mounting block storage & flushing sector cache...</span
+        >
+
         <div class="progress-bar-container">
           <div class="progress-fill" style="width: {progress}%"></div>
           <span class="pct">{progress}%</span>
         </div>
-        
+
         <small>Flashing block indices...</small>
       </div>
-
     {:else if usbState === "complete"}
       <div class="complete-slate">
         <CheckCircle class="text-green-400 mb-2" size={36} />
         <h3>Sector Sync Complete</h3>
-        <p class="summary">{selectedFile?.name} successfully written to {partitions[activePartitionIndex].label}{selectedFolder}</p>
-        
+        <p class="summary">
+          {selectedFile?.name} successfully written to {partitions[
+            activePartitionIndex
+          ].label}{selectedFolder}
+        </p>
+
         <button class="dismiss-btn" onclick={resetUsb}>Eject Device</button>
       </div>
     {/if}
@@ -211,8 +240,13 @@
 {#snippet LoaderGlow()}
   <div class="flex flex-col items-center justify-center mb-4">
     <div class="relative flex items-center justify-center">
-      <div class="absolute w-12 h-12 rounded-full bg-emerald-500/20 blur-md animate-pulse"></div>
-      <RefreshCw class="text-emerald-400 animate-spin relative z-10" size={28} />
+      <div
+        class="absolute w-12 h-12 rounded-full bg-emerald-500/20 blur-md animate-pulse"
+      ></div>
+      <RefreshCw
+        class="text-emerald-400 animate-spin relative z-10"
+        size={28}
+      />
     </div>
   </div>
 {/snippet}
@@ -333,7 +367,7 @@
 
   .usb-select {
     width: 100%;
-    background: rgba(0,0,0,0.25);
+    background: rgba(0, 0, 0, 0.25);
     border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 6px;
     padding: 8px 10px;
@@ -355,8 +389,8 @@
   }
 
   .select-file-btn {
-    background: rgba(255,255,255,0.01);
-    border: 1px dashed rgba(255,255,255,0.15);
+    background: rgba(255, 255, 255, 0.01);
+    border: 1px dashed rgba(255, 255, 255, 0.15);
     border-radius: 6px;
     padding: 20px 10px;
     cursor: pointer;

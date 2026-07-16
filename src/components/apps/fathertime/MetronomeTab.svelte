@@ -1,11 +1,18 @@
 <script>
   import { onMount, onDestroy } from "svelte";
-  import { Play, Pause, ChevronLeft, ChevronRight, Volume2, Radio } from "lucide-svelte";
+  import {
+    Play,
+    Pause,
+    ChevronLeft,
+    ChevronRight,
+    Volume2,
+    Radio,
+  } from "lucide-svelte";
   import { Metronome } from "../../../lib/metronome.svelte.js";
   import MetronomeVisual from "./MetronomeVisual.svelte";
 
   let { metronome } = $props();
-  
+
   // Local UI states matching metronome scheduler
   let isPlaying = $derived(metronome.isPlaying);
   let bpm = $state(120);
@@ -18,7 +25,7 @@
   // Animation variables
   let activeBeatIndex = $state(-1);
   let activeSubIndex = $state(-1);
-  
+
   // Tap tempo buffer
   let lastTapTime = 0;
   let tapIntervals = [];
@@ -31,12 +38,14 @@
     const now = Date.now();
     if (lastTapTime > 0) {
       const interval = now - lastTapTime;
-      if (interval < 2500) { // Max interval is 2.5s (~24 BPM)
+      if (interval < 2500) {
+        // Max interval is 2.5s (~24 BPM)
         tapIntervals.push(interval);
         if (tapIntervals.length > 4) tapIntervals.shift();
-        
+
         // Calculate average
-        const avg = tapIntervals.reduce((a, b) => a + b, 0) / tapIntervals.length;
+        const avg =
+          tapIntervals.reduce((a, b) => a + b, 0) / tapIntervals.length;
         const newBpm = Math.round(60000 / avg);
         if (newBpm >= 30 && newBpm <= 300) {
           bpm = newBpm;
@@ -75,14 +84,14 @@
   // Pendulum animation loop
   function animatePendulum(timestamp) {
     if (!animStartTime) animStartTime = timestamp;
-    
+
     if (isPlaying) {
       // Angular frequency = 2 * PI * frequency
       // One full oscillation (left to right and back) takes (60 / BPM) * 2 seconds
       // So frequency = BPM / 120
       const freq = bpm / 120;
       const t = (timestamp - animStartTime) / 1000;
-      
+
       // Calculate angle: oscillates between -30 and +30 degrees
       pendulumAngle = Math.sin(2 * Math.PI * freq * t) * 32;
     } else {
@@ -98,7 +107,7 @@
     metronome.onBeatCallback = (details) => {
       activeBeatIndex = details.beatIndex - 1;
       activeSubIndex = details.subIndex;
-      
+
       // Clear visual highlights after short delay
       setTimeout(() => {
         if (activeBeatIndex === details.beatIndex - 1) {
@@ -114,23 +123,32 @@
   });
 </script>
 
-<div class="metronome-tab animated-pane flex flex-col md:flex-row items-center gap-6 justify-around h-full p-4 md:p-6 w-full max-w-4xl mx-auto">
-  
+<div
+  class="metronome-tab animated-pane flex flex-col md:flex-row items-center gap-6 justify-around h-full p-4 md:p-6 w-full max-w-4xl mx-auto"
+>
   <!-- Left Side: Metronome Visual (hidden on 2xl where sidebar renders it instead) -->
-  <div class="flex 2xl:hidden flex-col items-center justify-center flex-shrink-0">
-    <MetronomeVisual bpm={bpm} isPlaying={isPlaying} />
+  <div
+    class="flex 2xl:hidden flex-col items-center justify-center flex-shrink-0"
+  >
+    <MetronomeVisual {bpm} {isPlaying} />
   </div>
 
   <!-- Right Side: Config Controls Dashboard -->
   <div class="flex-1 max-w-md w-full flex flex-col justify-between">
     <div class="w-full text-center md:text-left mb-4">
-      <h2 class="text-xs uppercase tracking-widest text-violet-400 font-bold mb-1">Mechanical Metronome</h2>
-      <p class="text-[10px] text-white/40">Synchronized rhythm scheduler & oscillator</p>
+      <h2
+        class="text-xs uppercase tracking-widest text-violet-400 font-bold mb-1"
+      >
+        Mechanical Metronome
+      </h2>
+      <p class="text-[10px] text-white/40">
+        Synchronized rhythm scheduler & oscillator
+      </p>
     </div>
 
     <!-- BPM Dial Display -->
     <div class="flex items-center justify-center gap-4 my-2 select-none">
-      <button 
+      <button
         class="p-2 border border-white/10 bg-white/3 hover:bg-white/8 rounded-xl text-white/80 transition-colors"
         onclick={() => incrementBpm(-1)}
         aria-label="Decrease BPM by 1"
@@ -138,10 +156,16 @@
         <ChevronLeft size={16} />
       </button>
       <div class="text-center w-28">
-        <span class="font-mono text-5xl font-black text-violet-400 tracking-tighter">{bpm}</span>
-        <span class="text-[9px] text-white/30 block uppercase tracking-widest font-bold">BPM</span>
+        <span
+          class="font-mono text-5xl font-black text-violet-400 tracking-tighter"
+          >{bpm}</span
+        >
+        <span
+          class="text-[9px] text-white/30 block uppercase tracking-widest font-bold"
+          >BPM</span
+        >
       </div>
-      <button 
+      <button
         class="p-2 border border-white/10 bg-white/3 hover:bg-white/8 rounded-xl text-white/80 transition-colors"
         onclick={() => incrementBpm(1)}
         aria-label="Increase BPM by 1"
@@ -151,17 +175,17 @@
     </div>
 
     <!-- BPM Slider -->
-    <input 
-      type="range" 
-      min="30" 
-      max="280" 
-      bind:value={bpm} 
+    <input
+      type="range"
+      min="30"
+      max="280"
+      bind:value={bpm}
       class="w-full accent-violet-400 cursor-pointer h-1 rounded-lg bg-white/10 mb-4"
       aria-label="BPM slider range"
     />
 
     <!-- Tap Tempo Button -->
-    <button 
+    <button
       class="w-full py-2 bg-white/4 border border-white/8 hover:bg-white/8 rounded-xl text-xs font-bold text-white/70 hover:text-white transition-all uppercase tracking-wider mb-6 flex items-center justify-center gap-1.5"
       onclick={handleTapTempo}
     >
@@ -171,13 +195,16 @@
 
     <!-- Settings Grid -->
     <div class="grid grid-cols-2 gap-3 mb-6 text-xs text-white/70">
-      
       <!-- Time Signature Selector -->
       <div class="flex flex-col gap-1">
-        <label for="time-sig-select" class="text-[9px] font-bold text-white/45 uppercase tracking-wider">Time Signature</label>
-        <select 
+        <label
+          for="time-sig-select"
+          class="text-[9px] font-bold text-white/45 uppercase tracking-wider"
+          >Time Signature</label
+        >
+        <select
           id="time-sig-select"
-          bind:value={timeSignature} 
+          bind:value={timeSignature}
           class="select-field"
         >
           <option value={2}>2/4 (Duple)</option>
@@ -190,10 +217,14 @@
 
       <!-- Subdivision Selector -->
       <div class="flex flex-col gap-1">
-        <label for="subdivision-select" class="text-[9px] font-bold text-white/45 uppercase tracking-wider">Subdivision</label>
-        <select 
+        <label
+          for="subdivision-select"
+          class="text-[9px] font-bold text-white/45 uppercase tracking-wider"
+          >Subdivision</label
+        >
+        <select
           id="subdivision-select"
-          bind:value={subdivision} 
+          bind:value={subdivision}
           class="select-field"
         >
           <option value={1}>Quarter Notes</option>
@@ -205,10 +236,14 @@
 
       <!-- Sound Selector -->
       <div class="flex flex-col gap-1">
-        <label for="click-sound-select" class="text-[9px] font-bold text-white/45 uppercase tracking-wider">Click Sound</label>
-        <select 
+        <label
+          for="click-sound-select"
+          class="text-[9px] font-bold text-white/45 uppercase tracking-wider"
+          >Click Sound</label
+        >
+        <select
           id="click-sound-select"
-          bind:value={soundType} 
+          bind:value={soundType}
           class="select-field"
         >
           <option value="woodblock">Classic Woodblock</option>
@@ -220,12 +255,12 @@
 
       <!-- Swing Selector -->
       <div class="flex flex-col gap-1">
-        <label for="swing-select" class="text-[9px] font-bold text-white/45 uppercase tracking-wider">Swing (Subdivisions)</label>
-        <select 
-          id="swing-select"
-          bind:value={swing} 
-          class="select-field"
+        <label
+          for="swing-select"
+          class="text-[9px] font-bold text-white/45 uppercase tracking-wider"
+          >Swing (Subdivisions)</label
         >
+        <select id="swing-select" bind:value={swing} class="select-field">
           <option value={0}>Straight (0%)</option>
           <option value={30}>Light Swing (30%)</option>
           <option value={60}>Medium Swing (60%)</option>
@@ -237,11 +272,17 @@
     <!-- Beat indicators visual display -->
     <div class="flex gap-2 justify-center mb-6">
       {#each Array(timeSignature) as _, idx}
-        <div 
+        <div
           class="w-6 h-6 rounded-full border flex items-center justify-center text-[9px] font-bold transition-all duration-100
-            {activeBeatIndex === idx ? 'bg-violet-500 text-white border-violet-500 scale-110' : ''}
-            {activeBeatIndex !== idx && idx === 0 ? 'border-violet-500/30 text-violet-400' : ''}
-            {activeBeatIndex !== idx && idx !== 0 ? 'border-white/10 text-white/30' : ''}"
+            {activeBeatIndex === idx
+            ? 'bg-violet-500 text-white border-violet-500 scale-110'
+            : ''}
+            {activeBeatIndex !== idx && idx === 0
+            ? 'border-violet-500/30 text-violet-400'
+            : ''}
+            {activeBeatIndex !== idx && idx !== 0
+            ? 'border-white/10 text-white/30'
+            : ''}"
         >
           {idx + 1}
         </div>
@@ -250,7 +291,7 @@
 
     <!-- Toggle Buttons -->
     <div class="flex items-center gap-3 w-full justify-center">
-      <button 
+      <button
         class="control-btn play-btn"
         class:active={isPlaying}
         onclick={toggleMetronome}
@@ -265,13 +306,17 @@
         {/if}
       </button>
 
-      <button 
+      <button
         class="control-btn bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 hover:text-white"
         onclick={() => (vibrate = !vibrate)}
-        aria-label={vibrate ? "Disable vibration click" : "Enable vibration click"}
+        aria-label={vibrate
+          ? "Disable vibration click"
+          : "Enable vibration click"}
       >
         <Volume2 size={15} />
-        <span class="text-xs font-semibold ml-1.5">{vibrate ? "VIBE ON" : "VIBE OFF"}</span>
+        <span class="text-xs font-semibold ml-1.5"
+          >{vibrate ? "VIBE ON" : "VIBE OFF"}</span
+        >
       </button>
     </div>
   </div>

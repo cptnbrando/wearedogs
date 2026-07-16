@@ -882,7 +882,7 @@
                   </div>
                 {:else}
                   <!-- Dynamic Deck Media Model -->
-                  {#if settingsManager.musicDeckModel === 'vinyl'}
+                  {#if settingsManager.musicDeckModel === "vinyl"}
                     <!-- Vinyl view clicker -->
                     <!-- svelte-ignore a11y_click_events_have_key_events -->
                     <!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
@@ -893,10 +893,7 @@
                       tabindex="0"
                       aria-label="Open tracklist"
                     >
-                      <div
-                        class="vinyl-record"
-                        class:spinning={isAnimating}
-                      >
+                      <div class="vinyl-record" class:spinning={isAnimating}>
                         <div class="groove g1"></div>
                         <div class="groove g2"></div>
                         <div class="groove g3"></div>
@@ -917,12 +914,9 @@
                         </div>
                         <div class="spindle"></div>
                       </div>
-                      <div
-                        class="tonearm"
-                        class:playing={isAnimating}
-                      ></div>
+                      <div class="tonearm" class:playing={isAnimating}></div>
                     </div>
-                  {:else if settingsManager.musicDeckModel === 'cassette'}
+                  {:else if settingsManager.musicDeckModel === "cassette"}
                     {@const leftSpoolRatio =
                       audioCore.duration > 0
                         ? (1 - audioCore.currentTime / audioCore.duration) *
@@ -977,7 +971,7 @@
                         </div>
                       </div>
                     </div>
-                  {:else if settingsManager.musicDeckModel === 'floppy'}
+                  {:else if settingsManager.musicDeckModel === "floppy"}
                     <!-- Floppy Disk view clicker -->
                     <!-- svelte-ignore a11y_click_events_have_key_events -->
                     <!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
@@ -991,27 +985,42 @@
                       <div class="floppy-disk">
                         <div class="floppy-corner"></div>
                         <div class="floppy-write-protect"></div>
-                        
+
                         <div class="floppy-label bg-slate-100 text-slate-900">
                           <div class="floppy-label-stripe bg-red-600"></div>
-                          <div class="floppy-label-stripe-blue bg-blue-600"></div>
+                          <div
+                            class="floppy-label-stripe-blue bg-blue-600"
+                          ></div>
                           <div class="floppy-label-content">
-                            <div class="floppy-song truncate font-mono">{currentTrack.title}</div>
-                            <div class="floppy-artist truncate font-mono">{currentTrack.artist || 'WEAREDOGS'}</div>
+                            <div class="floppy-song truncate font-mono">
+                              {currentTrack.title}
+                            </div>
+                            <div class="floppy-artist truncate font-mono">
+                              {currentTrack.artist || "WEAREDOGS"}
+                            </div>
                           </div>
                         </div>
 
                         <div class="floppy-shutter-door bg-zinc-700">
-                          <div class="floppy-shutter-slider bg-zinc-400" class:open={isAnimating}></div>
+                          <div
+                            class="floppy-shutter-slider bg-zinc-400"
+                            class:open={isAnimating}
+                          ></div>
                           <div class="floppy-shutter-opening bg-zinc-950">
-                            <div class="floppy-magnetic-disc bg-zinc-900" class:spinning={isAnimating}></div>
+                            <div
+                              class="floppy-magnetic-disc bg-zinc-900"
+                              class:spinning={isAnimating}
+                            ></div>
                           </div>
                         </div>
 
-                        <div class="floppy-drive-led" class:active={isAnimating}></div>
+                        <div
+                          class="floppy-drive-led"
+                          class:active={isAnimating}
+                        ></div>
                       </div>
                     </div>
-                  {:else if settingsManager.musicDeckModel === 'musicbox'}
+                  {:else if settingsManager.musicDeckModel === "musicbox"}
                     <!-- Music Box view clicker -->
                     <!-- svelte-ignore a11y_click_events_have_key_events -->
                     <!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
@@ -1023,16 +1032,30 @@
                       aria-label="Open tracklist"
                     >
                       <div class="music-box">
-                        <div class="music-box-key" class:spinning={isAnimating}></div>
-                        
-                        <div class="music-box-interior border border-amber-900/40">
+                        <div
+                          class="music-box-key"
+                          class:spinning={isAnimating}
+                        ></div>
+
+                        <div
+                          class="music-box-interior border border-amber-900/40"
+                        >
                           <div class="music-box-gears">
-                            <div class="music-box-gear gear-1" class:spinning={isAnimating}></div>
-                            <div class="music-box-gear gear-2" class:spinning={isAnimating}></div>
+                            <div
+                              class="music-box-gear gear-1"
+                              class:spinning={isAnimating}
+                            ></div>
+                            <div
+                              class="music-box-gear gear-2"
+                              class:spinning={isAnimating}
+                            ></div>
                           </div>
 
                           <div class="music-box-drum-wrap">
-                            <div class="music-box-drum bg-gradient-to-r from-amber-600 via-amber-500 to-amber-700" class:spinning={isAnimating}>
+                            <div
+                              class="music-box-drum bg-gradient-to-r from-amber-600 via-amber-500 to-amber-700"
+                              class:spinning={isAnimating}
+                            >
                               <div class="music-box-pins">
                                 <div class="pin pin-1"></div>
                                 <div class="pin pin-2"></div>
@@ -1046,9 +1069,11 @@
 
                           <div class="music-box-comb">
                             {#each Array(10) as _, idx}
-                              <div 
-                                class="comb-tooth" 
-                                class:vibrating={isAnimating && idx % 3 === (Math.floor(audioCore.currentTime * 4) % 3)}
+                              <div
+                                class="comb-tooth"
+                                class:vibrating={isAnimating &&
+                                  idx % 3 ===
+                                    Math.floor(audioCore.currentTime * 4) % 3}
                               ></div>
                             {/each}
                           </div>
@@ -2155,7 +2180,7 @@
     background: #020617;
     border: 1px solid #334155;
     border-radius: 1px;
-    
+
     @media (min-width: 640px) {
       bottom: 10px;
       left: 10px;
@@ -2172,7 +2197,7 @@
     position: relative;
     display: flex;
     flex-direction: column;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
 
     @media (min-width: 640px) {
       height: 80px;
@@ -2356,7 +2381,7 @@
     align-items: center;
 
     &::before {
-      content: '';
+      content: "";
       width: 12px;
       height: 12px;
       border-radius: 50%;
@@ -2366,9 +2391,9 @@
       left: -6px;
       box-shadow: 0 0 4px rgba(245, 158, 11, 0.4);
     }
-    
+
     &::after {
-      content: '';
+      content: "";
       width: 12px;
       height: 3px;
       background: #b45309;
@@ -2490,16 +2515,30 @@
     overflow: hidden;
 
     &::after {
-      content: '';
+      content: "";
       position: absolute;
       top: 0;
       left: -100%;
       width: 200%;
       height: 100%;
-      background: repeating-linear-gradient(90deg, transparent, transparent 12px, #fef08a 14px, #f59e0b 15px, transparent 17px);
-      
+      background: repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 12px,
+        #fef08a 14px,
+        #f59e0b 15px,
+        transparent 17px
+      );
+
       @media (min-width: 640px) {
-        background: repeating-linear-gradient(90deg, transparent, transparent 15px, #fef08a 17px, #f59e0b 18px, transparent 20px);
+        background: repeating-linear-gradient(
+          90deg,
+          transparent,
+          transparent 15px,
+          #fef08a 17px,
+          #f59e0b 18px,
+          transparent 20px
+        );
       }
     }
 

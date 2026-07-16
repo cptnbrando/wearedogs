@@ -550,7 +550,8 @@
         >
           {#each bulkFiles as item, idx}
             <div
-              class="flex items-center rounded text-[10px] border font-mono transition-all {activeFileIndex === idx
+              class="flex items-center rounded text-[10px] border font-mono transition-all {activeFileIndex ===
+              idx
                 ? 'border-red-500 bg-red-500/10 text-white shadow shadow-red-500/5'
                 : 'border-white/5 bg-white/1 text-white/50 hover:border-white/15'}"
               role="listitem"
@@ -571,7 +572,7 @@
                   <span class="text-red-500 text-[10px]">✕</span>
                 {/if}
               </button>
-              
+
               <button
                 type="button"
                 class="px-2 py-1 text-[9px] hover:text-red-500 opacity-40 hover:opacity-100 font-bold border-l border-white/5 bg-transparent cursor-pointer transition-colors outline-none"

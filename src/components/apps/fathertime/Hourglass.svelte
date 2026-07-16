@@ -2,10 +2,7 @@
   import { onMount, onDestroy } from "svelte";
   import * as THREE from "three";
 
-  let {
-    now = new Date(),
-    currentMode = $bindable("minute")
-  } = $props();
+  let { now = new Date(), currentMode = $bindable("minute") } = $props();
 
   // Canvas and Three.js state
   let containerEl = $state();
@@ -43,18 +40,18 @@
     small: {
       radius: 0.08,
       color: 0x7dd3fc,
-      mass: 1.0
+      mass: 1.0,
     },
     medium: {
       radius: 0.15,
       color: 0xc084fc,
-      mass: 1.6
+      mass: 1.6,
     },
     large: {
       radius: 0.26,
       color: 0xff55bb,
-      mass: 2.8
-    }
+      mass: 2.8,
+    },
   };
 
   /**
@@ -81,9 +78,12 @@
     const min = d.getMinutes();
     const hr = d.getHours(); // 0 to 23
 
-    let smallTop = 60, smallBottom = 0;
-    let mediumTop = 0, mediumBottom = 0;
-    let largeTop = 0, largeBottom = 0;
+    let smallTop = 60,
+      smallBottom = 0;
+    let mediumTop = 0,
+      mediumBottom = 0;
+    let largeTop = 0,
+      largeBottom = 0;
 
     if (mode === "minute") {
       smallBottom = sec;
@@ -93,7 +93,8 @@
       smallTop = 60 - sec;
       mediumBottom = min;
       mediumTop = 60 - min;
-    } else { // day
+    } else {
+      // day
       smallBottom = sec;
       smallTop = 60 - sec;
       mediumBottom = min;
@@ -110,8 +111,8 @@
       for (let i = 0; i < count; i++) {
         // Spawn randomly distributed inside the target bulb volume
         let py = isTop
-          ? (1.2 + Math.random() * (BULB_HEIGHT - 1.4))
-          : (-1.2 - Math.random() * (BULB_HEIGHT - 1.4));
+          ? 1.2 + Math.random() * (BULB_HEIGHT - 1.4)
+          : -1.2 - Math.random() * (BULB_HEIGHT - 1.4);
         const rMax = Math.max(0.1, glassRadiusAt(py) - config.radius - 0.05);
         const theta = Math.random() * Math.PI * 2;
         const r = Math.random() * rMax;
@@ -122,14 +123,14 @@
           type,
           radius: config.radius,
           color: config.color,
-          mass: config.mass
+          mass: config.mass,
         });
       }
     };
 
     spawnGroup("small", smallTop, topIsPositiveY);
     spawnGroup("small", smallBottom, !topIsPositiveY);
-    
+
     if (mode === "hour" || mode === "day") {
       spawnGroup("medium", mediumTop, topIsPositiveY);
       spawnGroup("medium", mediumBottom, !topIsPositiveY);
@@ -147,11 +148,11 @@
         pos: new THREE.Vector3(
           (Math.random() - 0.5) * 0.08,
           yOffset,
-          (Math.random() - 0.5) * 0.08
+          (Math.random() - 0.5) * 0.08,
         ),
         vel: new THREE.Vector3(0, -0.06 - Math.random() * 0.04, 0),
         color: targetColor,
-        active: true
+        active: true,
       });
     }
 
@@ -166,7 +167,7 @@
 
   function recreateInstancedMesh() {
     if (!scene || !frameGroup) return;
-    
+
     if (instancedMesh) {
       frameGroup.remove(instancedMesh);
       instancedMesh.dispose();
@@ -181,7 +182,7 @@
       const particleGeo = new THREE.DodecahedronGeometry(0.12, 0);
       const particleMat = new THREE.MeshStandardMaterial({
         roughness: 0.9,
-        metalness: 0.05
+        metalness: 0.05,
       });
       instancedMesh = new THREE.InstancedMesh(particleGeo, particleMat, count);
       frameGroup.add(instancedMesh);
@@ -190,21 +191,25 @@
     const trickleGeo = new THREE.BoxGeometry(0.04, 0.04, 0.04);
     const trickleMat = new THREE.MeshBasicMaterial({
       transparent: true,
-      opacity: 0.65
+      opacity: 0.65,
     });
-    trickleMesh = new THREE.InstancedMesh(trickleGeo, trickleMat, TRICKLE_COUNT);
+    trickleMesh = new THREE.InstancedMesh(
+      trickleGeo,
+      trickleMat,
+      TRICKLE_COUNT,
+    );
     frameGroup.add(trickleMesh);
   }
 
   function teleportGrains(type, toTop) {
     const isBaseOrientation = Math.cos(currentGroupRotation) >= 0;
     const targetTop = isBaseOrientation ? toTop : !toTop;
-    
-    particles.forEach(p => {
+
+    particles.forEach((p) => {
       if (p.type === type) {
         let py = targetTop
-          ? (1.2 + Math.random() * (BULB_HEIGHT - 1.4))
-          : (-1.2 - Math.random() * (BULB_HEIGHT - 1.4));
+          ? 1.2 + Math.random() * (BULB_HEIGHT - 1.4)
+          : -1.2 - Math.random() * (BULB_HEIGHT - 1.4);
         const rMax = Math.max(0.1, glassRadiusAt(py) - p.radius - 0.05);
         const theta = Math.random() * Math.PI * 2;
         const r = Math.random() * rMax;
@@ -217,13 +222,15 @@
   function teleportOneGrain(type, toTop) {
     const isBaseOrientation = Math.cos(currentGroupRotation) >= 0;
     const targetTop = isBaseOrientation ? toTop : !toTop;
-    
-    const grain = particles.find(p => p.type === type && (targetTop ? p.pos.y < 0 : p.pos.y > 0));
+
+    const grain = particles.find(
+      (p) => p.type === type && (targetTop ? p.pos.y < 0 : p.pos.y > 0),
+    );
     if (grain) {
       grain.pos.set(
         (Math.random() - 0.5) * 0.05,
         targetTop ? 0.22 : -0.22,
-        (Math.random() - 0.5) * 0.05
+        (Math.random() - 0.5) * 0.05,
       );
       grain.vel.set(0, targetTop ? 0.05 : -0.05, 0);
     }
@@ -264,7 +271,9 @@
     const date = now.getDate();
 
     if (lastSec === -1) {
-      lastSec = sec; lastMin = min; lastHr = hr;
+      lastSec = sec;
+      lastMin = min;
+      lastHr = hr;
       return;
     }
     if (isFlipping) return;
@@ -275,19 +284,25 @@
     if (mode === "minute" && min !== boundaryMin) {
       boundaryMin = min;
       triggerFlip();
-      lastSec = sec; lastMin = min; lastHr = hr;
+      lastSec = sec;
+      lastMin = min;
+      lastHr = hr;
       return;
     }
     if (mode === "hour" && hr !== boundaryHr) {
       boundaryHr = hr;
       triggerFlip();
-      lastSec = sec; lastMin = min; lastHr = hr;
+      lastSec = sec;
+      lastMin = min;
+      lastHr = hr;
       return;
     }
     if (mode === "day" && date !== boundaryDay) {
       boundaryDay = date;
       triggerFlip();
-      lastSec = sec; lastMin = min; lastHr = hr;
+      lastSec = sec;
+      lastMin = min;
+      lastHr = hr;
       return;
     }
 
@@ -321,18 +336,20 @@
    * Run one step of gravity, funnel forces, collisions, and particle stacking.
    */
   function runPhysicsStep(localGravX, localGravY, localGravZ) {
-    const topIsPositiveY = (localGravY < 0);
-    const topGrainsCount = particles.filter(p => topIsPositiveY ? p.pos.y > 0.1 : p.pos.y < -0.1).length;
-    const hasTopGrains = (topGrainsCount > 0);
+    const topIsPositiveY = localGravY < 0;
+    const topGrainsCount = particles.filter((p) =>
+      topIsPositiveY ? p.pos.y > 0.1 : p.pos.y < -0.1,
+    ).length;
+    const hasTopGrains = topGrainsCount > 0;
 
     // 1. Particle velocities & gravity & funnel
-    particles.forEach(p => {
+    particles.forEach((p) => {
       p.vel.x += localGravX * p.mass;
       p.vel.y += localGravY * p.mass;
       p.vel.z += localGravZ * p.mass;
 
       // Funnel draw force towards center vertical axis for top grains
-      const isTopBulb = topIsPositiveY ? (p.pos.y > 0.1) : (p.pos.y < -0.1);
+      const isTopBulb = topIsPositiveY ? p.pos.y > 0.1 : p.pos.y < -0.1;
       if (isTopBulb) {
         p.vel.x += -p.pos.x * 0.014;
         p.vel.z += -p.pos.z * 0.014;
@@ -367,12 +384,13 @@
 
       // Neck Gate block
       const gateY = localGravY < 0 ? 0.06 : -0.06;
-      const isCrossingGate = localGravY < 0
-        ? (p.pos.y - p.vel.y > gateY && p.pos.y <= gateY)
-        : (p.pos.y - p.vel.y < gateY && p.pos.y >= gateY);
+      const isCrossingGate =
+        localGravY < 0
+          ? p.pos.y - p.vel.y > gateY && p.pos.y <= gateY
+          : p.pos.y - p.vel.y < gateY && p.pos.y >= gateY;
 
       if (isCrossingGate) {
-        const rad = Math.sqrt(p.pos.x*p.pos.x + p.pos.z*p.pos.z);
+        const rad = Math.sqrt(p.pos.x * p.pos.x + p.pos.z * p.pos.z);
         if (gateOpenCount > 0 && rad < 0.28) {
           gateOpenCount--;
         } else {
@@ -383,7 +401,7 @@
     });
 
     // 2. Trickle stream particles update
-    trickleParticles.forEach(p => {
+    trickleParticles.forEach((p) => {
       p.vel.x += localGravX * 1.5;
       p.vel.y += localGravY * 1.5;
       p.vel.z += localGravZ * 1.5;
@@ -400,13 +418,13 @@
         p.pos.z = rMax * (p.pos.z / (r || 1)) * 0.98;
       }
 
-      const isBottom = localGravY < 0 ? (p.pos.y < -1.8) : (p.pos.y > 1.8);
+      const isBottom = localGravY < 0 ? p.pos.y < -1.8 : p.pos.y > 1.8;
       if (isBottom) {
         if (hasTopGrains && !isFlipping) {
           p.pos.set(
             (Math.random() - 0.5) * 0.08,
             localGravY < 0 ? 0.15 : -0.15,
-            (Math.random() - 0.5) * 0.08
+            (Math.random() - 0.5) * 0.08,
           );
           p.vel.set(0, localGravY < 0 ? -0.06 : 0.06, 0);
           p.active = true;
@@ -426,7 +444,7 @@
           const dx = p2.pos.x - p1.pos.x;
           const dy = p2.pos.y - p1.pos.y;
           const dz = p2.pos.z - p1.pos.z;
-          const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+          const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
           const minDist = p1.radius + p2.radius;
 
           if (dist < minDist) {
@@ -468,13 +486,14 @@
     if (!renderer || !scene || !canvas) return;
 
     let gravityY = -0.0095;
-    
+
     if (isFlipping) {
       const elapsed = timestamp - flipStartTime;
       const progress = Math.min(1.0, elapsed / flipDuration);
       const ease = 1 - Math.pow(1 - progress, 3);
-      currentGroupRotation = startRotation + (targetRotation - startRotation) * ease;
-      
+      currentGroupRotation =
+        startRotation + (targetRotation - startRotation) * ease;
+
       if (frameGroup) {
         frameGroup.rotation.x = currentGroupRotation;
       }
@@ -575,7 +594,7 @@
     renderer = new THREE.WebGLRenderer({
       canvas: canvas,
       antialias: true,
-      alpha: true
+      alpha: true,
     });
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -595,10 +614,15 @@
     const capMat = new THREE.MeshStandardMaterial({
       color: 0x181822,
       roughness: 0.55,
-      metalness: 0.5
+      metalness: 0.5,
     });
-    const capGeo = new THREE.CylinderGeometry(CAP_RADIUS + 0.15, CAP_RADIUS + 0.15, 0.4, 24);
-    
+    const capGeo = new THREE.CylinderGeometry(
+      CAP_RADIUS + 0.15,
+      CAP_RADIUS + 0.15,
+      0.4,
+      24,
+    );
+
     const topCap = new THREE.Mesh(capGeo, capMat);
     topCap.position.y = BULB_HEIGHT + 0.2;
     frameGroup.add(topCap);
@@ -611,18 +635,23 @@
     const pillarMat = new THREE.MeshStandardMaterial({
       color: 0x888899,
       roughness: 0.12,
-      metalness: 0.95
+      metalness: 0.95,
     });
-    const pillarGeo = new THREE.CylinderGeometry(0.08, 0.08, BULB_HEIGHT * 2 + 0.4, 12);
+    const pillarGeo = new THREE.CylinderGeometry(
+      0.08,
+      0.08,
+      BULB_HEIGHT * 2 + 0.4,
+      12,
+    );
 
     const angles = [0, (Math.PI * 2) / 3, (Math.PI * 4) / 3];
     const rOffset = CAP_RADIUS - 0.05;
-    angles.forEach(angle => {
+    angles.forEach((angle) => {
       const pillar = new THREE.Mesh(pillarGeo, pillarMat);
       pillar.position.set(
         Math.cos(angle) * rOffset,
         0,
-        Math.sin(angle) * rOffset
+        Math.sin(angle) * rOffset,
       );
       frameGroup.add(pillar);
     });
@@ -642,7 +671,7 @@
       opacity: 0.16,
       roughness: 0.05,
       metalness: 0.1,
-      side: THREE.DoubleSide
+      side: THREE.DoubleSide,
     });
     const glassMesh = new THREE.Mesh(glassGeo, glassMat);
     frameGroup.add(glassMesh);
@@ -690,7 +719,7 @@
 
   onDestroy(() => {
     containerEl?.removeEventListener("wheel", handleWheel);
-    
+
     if (animationId) {
       cancelAnimationFrame(animationId);
       const canvas = canvasEl;
@@ -758,7 +787,9 @@
     border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: 20px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-    transition: background 0.3s ease, box-shadow 0.3s ease;
+    transition:
+      background 0.3s ease,
+      box-shadow 0.3s ease;
     user-select: none;
     overflow: hidden;
   }
@@ -768,9 +799,15 @@
     box-shadow: 0 12px 35px rgba(0, 0, 0, 0.45);
   }
 
-  .hourglass-widget.minute-mode { --accent: #7dd3fc; }
-  .hourglass-widget.hour-mode   { --accent: #60a5fa; }
-  .hourglass-widget.day-mode    { --accent: #c084fc; }
+  .hourglass-widget.minute-mode {
+    --accent: #7dd3fc;
+  }
+  .hourglass-widget.hour-mode {
+    --accent: #60a5fa;
+  }
+  .hourglass-widget.day-mode {
+    --accent: #c084fc;
+  }
 
   canvas {
     display: block;
@@ -815,11 +852,26 @@
     white-space: nowrap;
   }
 
-  .dot-key { line-height: 1; }
-  .s-key { color: #fcd34d; font-size: 6px; }
-  .l-key { color: #60a5fa; font-size: 10px; }
+  .dot-key {
+    line-height: 1;
+  }
+  .s-key {
+    color: #fcd34d;
+    font-size: 6px;
+  }
+  .l-key {
+    color: #60a5fa;
+    font-size: 10px;
+  }
 
-  .day-mode .s-key { color: #818cf8; }
-  .day-mode .l-key { color: #c084fc; }
-  .minute-mode .s-key { color: #7dd3fc; font-size: 8px; }
+  .day-mode .s-key {
+    color: #818cf8;
+  }
+  .day-mode .l-key {
+    color: #c084fc;
+  }
+  .minute-mode .s-key {
+    color: #7dd3fc;
+    font-size: 8px;
+  }
 </style>

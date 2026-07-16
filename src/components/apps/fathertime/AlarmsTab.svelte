@@ -21,7 +21,13 @@
       } else {
         // Sample default alarm
         alarms = [
-          { id: 1, time: "07:30", label: "Morning Wakeup", active: true, days: [true, true, true, true, true, false, false] }
+          {
+            id: 1,
+            time: "07:30",
+            label: "Morning Wakeup",
+            active: true,
+            days: [true, true, true, true, true, false, false],
+          },
         ];
         saveAlarms();
       }
@@ -45,7 +51,7 @@
       time: newAlarmTime,
       label: newAlarmLabel || "Alarm",
       active: true,
-      days: [...newAlarmDays]
+      days: [...newAlarmDays],
     };
     alarms.push(newAlarm);
     alarms.sort((a, b) => a.time.localeCompare(b.time));
@@ -54,7 +60,7 @@
   }
 
   function deleteAlarm(id) {
-    alarms = alarms.filter(a => a.id !== id);
+    alarms = alarms.filter((a) => a.id !== id);
     saveAlarms();
   }
 
@@ -76,14 +82,18 @@
       const currentHours = now.getHours().toString().padStart(2, "0");
       const currentMins = now.getMinutes().toString().padStart(2, "0");
       const currentHHMM = `${currentHours}:${currentMins}`;
-      
+
       // JavaScript getDay(): 0 = Sunday, 1 = Monday, ..., 6 = Saturday
       // Our days array mapping: 0 = Mon, 1 = Tue, ..., 5 = Sat, 6 = Sun
       let dayIndex = now.getDay() - 1;
       if (dayIndex === -1) dayIndex = 6; // Sunday index fix
 
-      alarms.forEach(alarm => {
-        if (alarm.active && alarm.time === currentHHMM && alarm.days[dayIndex]) {
+      alarms.forEach((alarm) => {
+        if (
+          alarm.active &&
+          alarm.time === currentHHMM &&
+          alarm.days[dayIndex]
+        ) {
           // If we haven't checked/fired this exact alarm recently
           if (!alarm.lastFiredDate || alarm.lastFiredDate !== now.getDate()) {
             fireAlarm(alarm);
@@ -122,7 +132,10 @@
 
         osc.frequency.setValueAtTime(freq, alarmSoundCtx.currentTime);
         gainNode.gain.setValueAtTime(0.5, alarmSoundCtx.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, alarmSoundCtx.currentTime + 0.25);
+        gainNode.gain.exponentialRampToValueAtTime(
+          0.001,
+          alarmSoundCtx.currentTime + 0.25,
+        );
 
         osc.start();
         osc.stop(alarmSoundCtx.currentTime + 0.3);
@@ -157,7 +170,7 @@
       label: `Snooze: ${current.label}`,
       active: true,
       days: [true, true, true, true, true, true, true], // Trigger today
-      isSnoozeOnly: true
+      isSnoozeOnly: true,
     };
 
     alarms.push(snoozeAlarmObj);
@@ -176,37 +189,42 @@
   });
 </script>
 
-<div class="alarms-tab animated-pane flex flex-col p-4 md:p-6 w-full max-w-3xl mx-auto gap-4 relative">
-  
+<div
+  class="alarms-tab animated-pane flex flex-col p-4 md:p-6 w-full max-w-3xl mx-auto gap-4 relative"
+>
   <!-- Add Alarm Box -->
   <div class="border border-white/5 bg-black/25 p-4 rounded-xl w-full">
-    <h3 class="text-xs font-bold text-white uppercase tracking-wider mb-3 flex items-center gap-1.5">
+    <h3
+      class="text-xs font-bold text-white uppercase tracking-wider mb-3 flex items-center gap-1.5"
+    >
       <AlarmClock size={14} class="text-red-400" />
       Create New Alarm
     </h3>
-    
+
     <div class="flex flex-col md:flex-row items-center gap-4">
       <div class="flex items-center gap-3 w-full md:w-auto">
-        <input 
-          type="time" 
-          bind:value={newAlarmTime} 
+        <input
+          type="time"
+          bind:value={newAlarmTime}
           class="alarm-time-input"
           aria-label="Alarm time input"
         />
-        <input 
-          type="text" 
-          placeholder="Alarm Tag Label" 
-          bind:value={newAlarmLabel} 
+        <input
+          type="text"
+          placeholder="Alarm Tag Label"
+          bind:value={newAlarmLabel}
           class="alarm-label-input"
           aria-label="Alarm text tag"
         />
       </div>
 
       <!-- Day Toggles -->
-      <div class="flex items-center gap-1.5 w-full md:w-auto justify-center md:justify-start">
+      <div
+        class="flex items-center gap-1.5 w-full md:w-auto justify-center md:justify-start"
+      >
         {#each DAY_LABELS as label, idx}
-          <button 
-            class="day-btn" 
+          <button
+            class="day-btn"
             class:active={newAlarmDays[idx]}
             onclick={() => toggleDay(idx)}
             aria-label={`Toggle alarm for ${label}`}
@@ -216,7 +234,7 @@
         {/each}
       </div>
 
-      <button 
+      <button
         class="add-alarm-btn w-full md:w-auto md:ml-auto"
         onclick={addAlarm}
       >
@@ -227,30 +245,43 @@
   </div>
 
   <!-- Alarms List -->
-  <div class="flex-1 w-full overflow-y-auto border border-white/5 bg-black/25 rounded-xl p-4 scroll-container relative min-h-[140px]">
+  <div
+    class="flex-1 w-full overflow-y-auto border border-white/5 bg-black/25 rounded-xl p-4 scroll-container relative min-h-[140px]"
+  >
     {#if alarms.length === 0}
-      <div class="absolute inset-0 flex items-center justify-center text-xs text-white/30 italic">
+      <div
+        class="absolute inset-0 flex items-center justify-center text-xs text-white/30 italic"
+      >
         No alarms set. Set a time and click ADD above.
       </div>
     {:else}
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {#each alarms as alarm (alarm.id)}
-          <div class="alarm-card flex flex-col justify-between p-3 rounded-lg border border-white/5 bg-white/2" class:dim={!alarm.active}>
+          <div
+            class="alarm-card flex flex-col justify-between p-3 rounded-lg border border-white/5 bg-white/2"
+            class:dim={!alarm.active}
+          >
             <div class="flex items-start justify-between">
               <div>
-                <span class="alarm-time-display font-mono text-2xl font-bold">{alarm.time}</span>
-                <p class="text-[10px] text-white/40 mt-0.5 truncate max-w-[150px]">{alarm.label}</p>
+                <span class="alarm-time-display font-mono text-2xl font-bold"
+                  >{alarm.time}</span
+                >
+                <p
+                  class="text-[10px] text-white/40 mt-0.5 truncate max-w-[150px]"
+                >
+                  {alarm.label}
+                </p>
               </div>
               <div class="flex items-center gap-2">
-                <button 
-                  class="toggle-switch" 
-                  class:on={alarm.active} 
+                <button
+                  class="toggle-switch"
+                  class:on={alarm.active}
                   onclick={() => toggleAlarmActive(alarm)}
                   aria-label="Toggle alarm status"
                 >
                   <span class="switch-handle"></span>
                 </button>
-                <button 
+                <button
                   class="p-1 hover:text-red-400 text-white/40 transition-colors"
                   onclick={() => deleteAlarm(alarm.id)}
                   aria-label="Delete alarm"
@@ -263,8 +294,11 @@
             <!-- Active days layout -->
             <div class="flex gap-1.5 mt-3 border-t border-white/5 pt-2">
               {#each DAY_LABELS as label, idx}
-                <span class="text-[8px] font-bold w-4 h-4 rounded-full flex items-center justify-center border
-                      {alarm.days[idx] ? 'text-red-400 border-red-500/30' : 'text-white/20 border-transparent'}"
+                <span
+                  class="text-[8px] font-bold w-4 h-4 rounded-full flex items-center justify-center border
+                      {alarm.days[idx]
+                    ? 'text-red-400 border-red-500/30'
+                    : 'text-white/20 border-transparent'}"
                 >
                   {label}
                 </span>
@@ -278,26 +312,33 @@
 
   <!-- Alarm Fired Overlay -->
   {#if activeAlarmFired}
-    <div class="alarm-alert-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md">
-      <div class="alarm-modal p-8 border border-red-500/25 bg-[#0f0f15] rounded-2xl flex flex-col items-center max-w-sm w-full mx-4 shadow-2xl shadow-red-500/10">
-        <div class="pulse-alarm-icon w-16 h-16 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center mb-6">
+    <div
+      class="alarm-alert-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md"
+    >
+      <div
+        class="alarm-modal p-8 border border-red-500/25 bg-[#0f0f15] rounded-2xl flex flex-col items-center max-w-sm w-full mx-4 shadow-2xl shadow-red-500/10"
+      >
+        <div
+          class="pulse-alarm-icon w-16 h-16 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center mb-6"
+        >
           <Bell size={32} class="text-red-400 animate-bounce" />
         </div>
-        
-        <span class="font-mono text-5xl font-extrabold text-white tracking-widest mb-2">{activeAlarmFired.time}</span>
-        <h4 class="text-xs uppercase tracking-wider text-red-400 font-bold mb-6">{activeAlarmFired.label}</h4>
+
+        <span
+          class="font-mono text-5xl font-extrabold text-white tracking-widest mb-2"
+          >{activeAlarmFired.time}</span
+        >
+        <h4
+          class="text-xs uppercase tracking-wider text-red-400 font-bold mb-6"
+        >
+          {activeAlarmFired.label}
+        </h4>
 
         <div class="flex gap-4 w-full">
-          <button 
-            class="alarm-action-btn snooze w-1/2"
-            onclick={snoozeAlarm}
-          >
+          <button class="alarm-action-btn snooze w-1/2" onclick={snoozeAlarm}>
             SNOOZE
           </button>
-          <button 
-            class="alarm-action-btn stop w-1/2"
-            onclick={stopAlarm}
-          >
+          <button class="alarm-action-btn stop w-1/2" onclick={stopAlarm}>
             STOP
           </button>
         </div>
@@ -384,7 +425,9 @@
   }
 
   .alarm-card {
-    transition: opacity 0.2s ease, border-color 0.2s ease;
+    transition:
+      opacity 0.2s ease,
+      border-color 0.2s ease;
   }
 
   .alarm-card.dim {

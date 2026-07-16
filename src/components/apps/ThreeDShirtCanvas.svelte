@@ -76,18 +76,22 @@
       map: texture,
       roughness: 0.7,
       metalness: 0.1,
-      color: 0x222222
+      color: 0x222222,
     });
     const baseMaterial = new THREE.MeshStandardMaterial({
       roughness: 0.7,
       metalness: 0.1,
-      color: 0x222222
+      color: 0x222222,
     });
 
     // Torso (Cylinder)
     const torsoGeom = new THREE.CylinderGeometry(1.2, 1.2, 2.5, 32);
     // Apply front material just to a specific part, or just wrap around
-    const torso = new THREE.Mesh(torsoGeom, [baseMaterial, frontMaterial, baseMaterial]);
+    const torso = new THREE.Mesh(torsoGeom, [
+      baseMaterial,
+      frontMaterial,
+      baseMaterial,
+    ]);
     shirtGroup.add(torso);
 
     // Left Sleeve
@@ -120,12 +124,12 @@
     // 5. Animation Loop
     function animate() {
       animationFrameId = requestAnimationFrame(animate);
-      
+
       // Gentle auto-rotation when not dragging
       if (!isDragging) {
         shirtGroup.rotation.y += 0.005;
       }
-      
+
       renderer.render(scene, camera);
     }
     animate();
@@ -142,7 +146,7 @@
 
     const deltaMove = {
       x: e.clientX - previousMousePosition.x,
-      y: e.clientY - previousMousePosition.y
+      y: e.clientY - previousMousePosition.y,
     };
 
     shirtGroup.rotation.y += deltaMove.x * 0.005;
@@ -158,7 +162,10 @@
   function handleTouchStart(e) {
     if (e.touches.length === 1) {
       isDragging = true;
-      previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      previousMousePosition = {
+        x: e.touches[0].clientX,
+        y: e.touches[0].clientY,
+      };
     }
   }
 
@@ -167,13 +174,16 @@
 
     const deltaMove = {
       x: e.touches[0].clientX - previousMousePosition.x,
-      y: e.touches[0].clientY - previousMousePosition.y
+      y: e.touches[0].clientY - previousMousePosition.y,
     };
 
     shirtGroup.rotation.y += deltaMove.x * 0.008;
     shirtGroup.rotation.x += deltaMove.y * 0.008;
 
-    previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    previousMousePosition = {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY,
+    };
   }
 
   // Handle resize
@@ -190,7 +200,10 @@
   $effect(() => {
     if (shirtGroup && productTitle) {
       // Find the mesh with multiple materials (the torso)
-      const torso = shirtGroup.children.find(child => child.geometry.type === "CylinderGeometry" && child.position.x === 0);
+      const torso = shirtGroup.children.find(
+        (child) =>
+          child.geometry.type === "CylinderGeometry" && child.position.x === 0,
+      );
       if (torso && Array.isArray(torso.material)) {
         // Dispose old texture
         if (torso.material[1].map) torso.material[1].map.dispose();
@@ -216,8 +229,8 @@
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div 
-  bind:this={containerEl} 
+<div
+  bind:this={containerEl}
   class="w-full h-full cursor-grab active:cursor-grabbing relative overflow-hidden"
   onmousedown={handleMouseDown}
   onmousemove={handleMouseMove}
@@ -227,7 +240,9 @@
   ontouchmove={handleTouchMove}
   ontouchend={handleMouseUp}
 >
-  <div class="absolute bottom-2 left-2 text-[10px] text-white/40 select-none pointer-events-none">
+  <div
+    class="absolute bottom-2 left-2 text-[10px] text-white/40 select-none pointer-events-none"
+  >
     DRAG TO ROTATE 360°
   </div>
 </div>

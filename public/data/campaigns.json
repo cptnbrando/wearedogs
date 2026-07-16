@@ -12,12 +12,28 @@
       "https://images.unsplash.com/photo-1534361960057-19889db9621e?w=800&q=80"
     ],
     "milestones": [
-      { "label": "Medical Supplies Archive", "percentage": 25, "achieved": true },
-      { "label": "Concrete Foundation Layout", "percentage": 50, "achieved": true },
-      { "label": "Frame & Roof Construction", "percentage": 75, "achieved": false },
-      { "label": "Quarantine HVAC Installation", "percentage": 100, "achieved": false }
+      {
+        "label": "Medical Supplies Archive",
+        "percentage": 25,
+        "achieved": true
+      },
+      {
+        "label": "Concrete Foundation Layout",
+        "percentage": 50,
+        "achieved": true
+      },
+      {
+        "label": "Frame & Roof Construction",
+        "percentage": 75,
+        "achieved": false
+      },
+      {
+        "label": "Quarantine HVAC Installation",
+        "percentage": 100,
+        "achieved": false
+      }
     ],
-    "cashAppUrl": "https://cash.app/$wearedogsoutpost"
+    "cashAppUrl": "https://cash.app/$cptnbrando"
   },
   {
     "id": "c2",
@@ -32,11 +48,23 @@
       "https://images.unsplash.com/photo-1596492784531-6e6eb5ea9993?w=800&q=80"
     ],
     "milestones": [
-      { "label": "Clinic Van Lease & Wrap", "percentage": 30, "achieved": true },
-      { "label": "Surgical Gear & Vaccines", "percentage": 65, "achieved": false },
-      { "label": "3-Week Operation Launch", "percentage": 100, "achieved": false }
+      {
+        "label": "Clinic Van Lease & Wrap",
+        "percentage": 30,
+        "achieved": true
+      },
+      {
+        "label": "Surgical Gear & Vaccines",
+        "percentage": 65,
+        "achieved": false
+      },
+      {
+        "label": "3-Week Operation Launch",
+        "percentage": 100,
+        "achieved": false
+      }
     ],
-    "cashAppUrl": "https://cash.app/$wearedogsroadtrip"
+    "cashAppUrl": "https://cash.app/$cptnbrando"
   },
   {
     "id": "c3",
@@ -51,9 +79,17 @@
       "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=800&q=80"
     ],
     "milestones": [
-      { "label": "15 Protective K9 Vests", "percentage": 50, "achieved": true },
-      { "label": "GPS Collars & Booties Delivery", "percentage": 100, "achieved": true }
+      {
+        "label": "15 Protective K9 Vests",
+        "percentage": 50,
+        "achieved": true
+      },
+      {
+        "label": "GPS Collars & Booties Delivery",
+        "percentage": 100,
+        "achieved": true
+      }
     ],
-    "cashAppUrl": "https://cash.app/$wearedogsrescue"
+    "cashAppUrl": "https://cash.app/$cptnbrando"
   }
 ]

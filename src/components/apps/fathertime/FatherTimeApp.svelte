@@ -1,16 +1,16 @@
 <script>
   import { onMount } from "svelte";
-  import { 
-    Hourglass as HourglassIcon, 
-    Watch, 
-    Timer as TimerIcon, 
-    AlarmClock, 
-    Globe, 
-    Server, 
-    History as HistoryIcon, 
-    Music, 
+  import {
+    Hourglass as HourglassIcon,
+    Watch,
+    Timer as TimerIcon,
+    AlarmClock,
+    Globe,
+    Server,
+    History as HistoryIcon,
+    Music,
     Mic,
-    Home
+    Home,
   } from "lucide-svelte";
 
   // Tab Views
@@ -44,13 +44,18 @@
     { id: "servers", label: "Servers", icon: Server },
     { id: "history", label: "History", icon: HistoryIcon },
     { id: "metronome", label: "Metronome", icon: Music },
-    { id: "tuner", label: "Tuning Fork", icon: Mic }
+    { id: "tuner", label: "Tuning Fork", icon: Mic },
   ];
 
   function updateClock() {
     nowDate = new Date();
     digitalTime = nowDate.toLocaleTimeString("en-US", { hour12: true });
-    digitalDate = nowDate.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
+    digitalDate = nowDate.toLocaleDateString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
   }
 
   onMount(() => {
@@ -67,18 +72,18 @@
     const target = e.target;
     // Prevent swipes from interrupting input components (sliders, selectors, maps)
     if (
-      target.closest('input[type="range"]') || 
-      target.closest('select') || 
-      target.closest('button') || 
-      target.closest('canvas') ||
-      target.closest('.scroll-container') ||
-      target.closest('.input-wheel') ||
-      target.closest('svg') ||
-      target.closest('path')
+      target.closest('input[type="range"]') ||
+      target.closest("select") ||
+      target.closest("button") ||
+      target.closest("canvas") ||
+      target.closest(".scroll-container") ||
+      target.closest(".input-wheel") ||
+      target.closest("svg") ||
+      target.closest("path")
     ) {
       return;
     }
-    
+
     if (e.touches && e.touches.length > 0) {
       touchStartX = e.touches[0].clientX;
       touchStartY = e.touches[0].clientY;
@@ -87,17 +92,17 @@
 
   function handleTouchEnd(e) {
     if (!touchStartX) return;
-    
+
     if (e.changedTouches && e.changedTouches.length > 0) {
       const deltaX = e.changedTouches[0].clientX - touchStartX;
       const deltaY = e.changedTouches[0].clientY - touchStartY;
-      
+
       touchStartX = 0;
       touchStartY = 0;
 
       // Swipe threshold check (mostly horizontal swipe)
       if (Math.abs(deltaX) > 85 && Math.abs(deltaY) < 55) {
-        const currentIdx = TABS_CONFIG.findIndex(t => t.id === activeTab);
+        const currentIdx = TABS_CONFIG.findIndex((t) => t.id === activeTab);
         if (currentIdx !== -1) {
           if (deltaX < 0 && currentIdx < TABS_CONFIG.length - 1) {
             // Swiped left -> Go to next tab
@@ -112,10 +117,13 @@
   }
 </script>
 
-<div class="fathertime-app border-white/5 bg-[#07070b]/90 backdrop-blur-md rounded-2xl w-full h-full flex flex-col md:flex-row overflow-hidden relative shadow-2xl">
-  
+<div
+  class="fathertime-app border-white/5 bg-[#07070b]/90 backdrop-blur-md rounded-2xl w-full h-full flex flex-col md:flex-row overflow-hidden relative shadow-2xl"
+>
   <!-- Left Side-rail Navigation (Visible on Tablet & Desktop) -->
-  <nav class="hidden md:flex flex-col w-48 border-r border-white/5 bg-black/30 p-4 shrink-0 justify-between select-none">
+  <nav
+    class="hidden md:flex flex-col w-48 border-r border-white/5 bg-black/30 p-4 shrink-0 justify-between select-none"
+  >
     <div>
       <!-- <div class="flex items-center gap-2 px-2 py-1 mb-6 border-b border-white/5 pb-4">
         <HourglassIcon class="text-sky-400 animate-spin-slow" size={20} />
@@ -127,8 +135,8 @@
 
       <div class="flex flex-col gap-1">
         {#each TABS_CONFIG as tab}
-          <button 
-            class="sidebar-nav-btn text-xs" 
+          <button
+            class="sidebar-nav-btn text-xs"
             class:active={activeTab === tab.id}
             onclick={() => (activeTab = tab.id)}
             role="tab"
@@ -143,25 +151,35 @@
 
     <!-- Clock Widget inside sidebar -->
     <div class="border border-white/5 bg-white/2 rounded-xl p-3 text-center">
-      <span class="font-mono text-xs font-extrabold text-sky-400 leading-none">{digitalTime}</span>
-      <span class="text-[8px] text-white/30 block mt-1 uppercase font-bold">{digitalDate}</span>
+      <span class="font-mono text-xs font-extrabold text-sky-400 leading-none"
+        >{digitalTime}</span
+      >
+      <span class="text-[8px] text-white/30 block mt-1 uppercase font-bold"
+        >{digitalDate}</span
+      >
     </div>
   </nav>
 
   <!-- Top bar (Visible on Mobile Landscape) -->
-  <div class="md:hidden flex items-center justify-between border-b border-white/5 bg-black/40 px-4 py-2.5 select-none shrink-0 w-full">
+  <div
+    class="md:hidden flex items-center justify-between border-b border-white/5 bg-black/40 px-4 py-2.5 select-none shrink-0 w-full"
+  >
     <!-- <div class="flex items-center gap-2">
       <HourglassIcon class="text-sky-400" size={15} />
       <span class="text-[11px] font-extrabold uppercase text-white tracking-widest">Father Time</span>
     </div> -->
-    <div class="text-right font-mono text-[10px] text-sky-400 font-bold">{digitalTime}</div>
+    <div class="text-right font-mono text-[10px] text-sky-400 font-bold">
+      {digitalTime}
+    </div>
   </div>
 
   <!-- Mobile Horizontal Scrollable Tab Bar (Visible on Mobile Viewports instead of vertical list) -->
-  <div class="md:hidden flex overflow-x-auto scrollbar-none border-b border-white/5 bg-black/20 py-1.5 px-2 select-none gap-1 shrink-0 w-full">
+  <div
+    class="md:hidden flex overflow-x-auto scrollbar-none border-b border-white/5 bg-black/20 py-1.5 px-2 select-none gap-1 shrink-0 w-full"
+  >
     {#each TABS_CONFIG as tab}
-      <button 
-        class="mobile-nav-btn text-[10px]" 
+      <button
+        class="mobile-nav-btn text-[10px]"
         class:active={activeTab === tab.id}
         onclick={() => (activeTab = tab.id)}
         role="tab"
@@ -174,45 +192,77 @@
   </div>
 
   <!-- Main Viewport Container -->
-  <main 
+  <main
     class="flex-grow overflow-y-auto scrollbar-none p-4 md:p-6 w-full flex flex-col justify-between"
     ontouchstart={handleTouchStart}
     ontouchend={handleTouchEnd}
   >
-    
     <!-- TV/Ultra-wide 2xl Master-Detail layout override: -->
     <!-- Displays hourglass clock AND active tab side-by-side to fill empty spaces -->
-    <div class="hidden 2xl:flex gap-6 w-full h-full items-stretch justify-between">
-      
+    <div
+      class="hidden 2xl:flex gap-6 w-full h-full items-stretch justify-between"
+    >
       <!-- Persistent dashboard info panel -->
-      <div class="w-80 border border-white/5 bg-black/25 rounded-2xl p-5 flex flex-col justify-between select-none">
-        <div class="text-center flex flex-col items-center justify-center min-h-[280px]">
+      <div
+        class="w-80 border border-white/5 bg-black/25 rounded-2xl p-5 flex flex-col justify-between select-none"
+      >
+        <div
+          class="text-center flex flex-col items-center justify-center min-h-[280px]"
+        >
           {#if activeTab === "metronome"}
-            <MetronomeVisual bpm={sharedMetronome.bpm} isPlaying={sharedMetronome.isPlaying} />
+            <MetronomeVisual
+              bpm={sharedMetronome.bpm}
+              isPlaying={sharedMetronome.isPlaying}
+            />
           {:else}
             <Hourglass now={nowDate} bind:currentMode={hourglassMode} />
           {/if}
-          <h2 class="text-lg font-black text-white uppercase tracking-widest mt-4">Father Time</h2>
-          <p class="text-[10px] text-white/40 tracking-wider">Universal chronometer & audio suites</p>
-          
-          <div class="mt-8 border border-sky-400/20 bg-sky-400/5 p-4 rounded-xl w-full">
-            <span class="font-mono text-2xl font-black text-sky-400 block tracking-widest">{digitalTime}</span>
-            <span class="text-[9px] text-white/40 mt-1 uppercase font-bold block">{digitalDate}</span>
+          <h2
+            class="text-lg font-black text-white uppercase tracking-widest mt-4"
+          >
+            Father Time
+          </h2>
+          <p class="text-[10px] text-white/40 tracking-wider">
+            Universal chronometer & audio suites
+          </p>
+
+          <div
+            class="mt-8 border border-sky-400/20 bg-sky-400/5 p-4 rounded-xl w-full"
+          >
+            <span
+              class="font-mono text-2xl font-black text-sky-400 block tracking-widest"
+              >{digitalTime}</span
+            >
+            <span
+              class="text-[9px] text-white/40 mt-1 uppercase font-bold block"
+              >{digitalDate}</span
+            >
           </div>
         </div>
 
-        <div class="text-[8px] text-white/20 text-center tracking-wider uppercase">
+        <div
+          class="text-[8px] text-white/20 text-center tracking-wider uppercase"
+        >
           Strata 1 Synced | wearedogs Node
         </div>
       </div>
 
       <!-- Active Tab Component (fills the rest of screen) -->
-      <div class="flex-1 border border-white/5 bg-black/15 rounded-2xl p-2 relative overflow-hidden">
+      <div
+        class="flex-1 border border-white/5 bg-black/15 rounded-2xl p-2 relative overflow-hidden"
+      >
         {#if activeTab === "hourglass"}
-          <div class="flex flex-col items-center justify-center h-full text-center p-6">
+          <div
+            class="flex flex-col items-center justify-center h-full text-center p-6"
+          >
             <Hourglass now={nowDate} bind:currentMode={hourglassMode} />
-            <h3 class="font-bold text-white text-sm mt-4">Universal Sands of Time</h3>
-            <p class="text-[10px] text-white/40 max-w-xs mt-1">Simulated granular sand particles falling and shifting in perfect alignment with physical timeline seconds.</p>
+            <h3 class="font-bold text-white text-sm mt-4">
+              Universal Sands of Time
+            </h3>
+            <p class="text-[10px] text-white/40 max-w-xs mt-1">
+              Simulated granular sand particles falling and shifting in perfect
+              alignment with physical timeline seconds.
+            </p>
           </div>
         {:else}
           {#if activeTab === "stopwatch"}<StopwatchTab />{/if}
@@ -221,23 +271,37 @@
           {#if activeTab === "worldclock"}<WorldClockTab />{/if}
           {#if activeTab === "servers"}<TimeServersTab />{/if}
           {#if activeTab === "history"}<HistoryTab />{/if}
-          {#if activeTab === "metronome"}<MetronomeTab metronome={sharedMetronome} />{/if}
+          {#if activeTab === "metronome"}<MetronomeTab
+              metronome={sharedMetronome}
+            />{/if}
           {#if activeTab === "tuner"}<TuningForkTab />{/if}
         {/if}
       </div>
     </div>
 
     <!-- Standard responsive single-tab layout for mobile & desktop views -->
-    <div class="2xl:hidden w-full h-full flex flex-col items-stretch justify-center relative overflow-hidden">
+    <div
+      class="2xl:hidden w-full h-full flex flex-col items-stretch justify-center relative overflow-hidden"
+    >
       {#if activeTab === "hourglass"}
-        <div class="flex flex-col items-center justify-center text-center p-6 h-full select-none">
+        <div
+          class="flex flex-col items-center justify-center text-center p-6 h-full select-none"
+        >
           <Hourglass now={nowDate} bind:currentMode={hourglassMode} />
           <h3 class="font-bold text-white text-sm mt-4">Sands of Time</h3>
-          <p class="text-[10px] text-white/40 max-w-xs mt-1">Particles settle dynamically every second. Click the glass to physically rotate it.</p>
-          
-          <div class="mt-6 border border-white/5 bg-white/2 rounded-xl py-2 px-5 text-center font-mono">
+          <p class="text-[10px] text-white/40 max-w-xs mt-1">
+            Particles settle dynamically every second. Click the glass to
+            physically rotate it.
+          </p>
+
+          <div
+            class="mt-6 border border-white/5 bg-white/2 rounded-xl py-2 px-5 text-center font-mono"
+          >
             <span class="text-xl font-bold text-sky-400">{digitalTime}</span>
-            <span class="text-[8px] text-white/30 block uppercase tracking-wider">{digitalDate}</span>
+            <span
+              class="text-[8px] text-white/30 block uppercase tracking-wider"
+              >{digitalDate}</span
+            >
           </div>
         </div>
       {:else}
@@ -247,7 +311,9 @@
         {#if activeTab === "worldclock"}<WorldClockTab />{/if}
         {#if activeTab === "servers"}<TimeServersTab />{/if}
         {#if activeTab === "history"}<HistoryTab />{/if}
-        {#if activeTab === "metronome"}<MetronomeTab metronome={sharedMetronome} />{/if}
+        {#if activeTab === "metronome"}<MetronomeTab
+            metronome={sharedMetronome}
+          />{/if}
         {#if activeTab === "tuner"}<TuningForkTab />{/if}
       {/if}
     </div>
@@ -322,7 +388,11 @@
   }
 
   @keyframes spinSlow {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
   }
 </style>

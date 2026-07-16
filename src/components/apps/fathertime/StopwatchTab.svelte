@@ -28,7 +28,7 @@
     laps.unshift({
       id: laps.length + 1,
       duration: currentLapDuration,
-      total: timeElapsed
+      total: timeElapsed,
     });
     lastLapTime = timeElapsed;
   }
@@ -53,7 +53,7 @@
     if (laps.length < 2) return { fastestId: null, slowestId: null };
     let fastest = laps[0];
     let slowest = laps[0];
-    laps.forEach(l => {
+    laps.forEach((l) => {
       if (l.duration < fastest.duration) fastest = l;
       if (l.duration > slowest.duration) slowest = l;
     });
@@ -65,20 +65,30 @@
   });
 </script>
 
-<div class="stopwatch-tab animated-pane flex flex-col items-center justify-between h-full p-4 md:p-6 w-full max-w-2xl mx-auto">
+<div
+  class="stopwatch-tab animated-pane flex flex-col items-center justify-between h-full p-4 md:p-6 w-full max-w-2xl mx-auto"
+>
   <div class="w-full text-center">
-    <h2 class="text-xs uppercase tracking-widest text-emerald-400 font-bold mb-1">Stopwatch</h2>
-    <p class="text-[10px] text-white/40 mb-6">Lap & split time performance logger</p>
+    <h2
+      class="text-xs uppercase tracking-widest text-emerald-400 font-bold mb-1"
+    >
+      Stopwatch
+    </h2>
+    <p class="text-[10px] text-white/40 mb-6">
+      Lap & split time performance logger
+    </p>
   </div>
 
   <!-- Giant Display -->
-  <div class="stopwatch-display font-mono text-5xl sm:text-6xl md:text-7xl font-black text-emerald-400 tracking-wider my-6 select-none">
+  <div
+    class="stopwatch-display font-mono text-5xl sm:text-6xl md:text-7xl font-black text-emerald-400 tracking-wider my-6 select-none"
+  >
     {formatTime(timeElapsed)}
   </div>
 
   <!-- Controls -->
   <div class="flex items-center gap-4 my-4 w-full justify-center">
-    <button 
+    <button
       class="control-btn bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 hover:text-white"
       onclick={resetStopwatch}
       aria-label="Reset stopwatch"
@@ -87,7 +97,7 @@
       <span class="hidden sm:inline text-xs font-semibold ml-1.5">RESET</span>
     </button>
 
-    <button 
+    <button
       class="control-btn play-btn"
       class:active={timerActive}
       onclick={toggleStopwatch}
@@ -102,7 +112,7 @@
       {/if}
     </button>
 
-    <button 
+    <button
       class="control-btn bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 hover:text-white"
       disabled={!timerActive}
       onclick={recordLap}
@@ -115,34 +125,50 @@
   </div>
 
   <!-- Laps Table -->
-  <div class="flex-1 w-full overflow-y-auto mt-6 border border-white/5 bg-black/25 rounded-xl scroll-container relative min-h-[140px]">
+  <div
+    class="flex-1 w-full overflow-y-auto mt-6 border border-white/5 bg-black/25 rounded-xl scroll-container relative min-h-[140px]"
+  >
     {#if laps.length === 0}
-      <div class="absolute inset-0 flex items-center justify-center text-xs text-white/30 italic">
+      <div
+        class="absolute inset-0 flex items-center justify-center text-xs text-white/30 italic"
+      >
         No laps logged yet. Press START, then LAP.
       </div>
     {:else}
       <div class="w-full flex flex-col divide-y divide-white/5 text-xs">
-        <div class="flex items-center py-2.5 px-4 font-bold text-white/40 border-b border-white/5 bg-white/2">
+        <div
+          class="flex items-center py-2.5 px-4 font-bold text-white/40 border-b border-white/5 bg-white/2"
+        >
           <span class="w-16">LAP</span>
           <span class="flex-1 text-right">LAP DURATION</span>
           <span class="flex-1 text-right">TOTAL TIME</span>
         </div>
         {#each laps as lap (lap.id)}
-          <div 
+          <div
             class="flex items-center py-2.5 px-4 font-mono transition-colors duration-150 hover:bg-white/2"
             class:text-emerald-400={lap.id === lapStats.fastestId}
             class:text-red-400={lap.id === lapStats.slowestId}
           >
-            <span class="w-16 font-bold text-white/50">#{lap.id.toString().padStart(2, "0")}</span>
+            <span class="w-16 font-bold text-white/50"
+              >#{lap.id.toString().padStart(2, "0")}</span
+            >
             <span class="flex-1 text-right font-medium">
               {formatTime(lap.duration)}
               {#if lap.id === lapStats.fastestId}
-                <span class="text-[9px] font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded ml-1.5">FASTEST</span>
+                <span
+                  class="text-[9px] font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded ml-1.5"
+                  >FASTEST</span
+                >
               {:else if lap.id === lapStats.slowestId}
-                <span class="text-[9px] font-bold bg-red-500/10 px-1.5 py-0.5 rounded ml-1.5">SLOWEST</span>
+                <span
+                  class="text-[9px] font-bold bg-red-500/10 px-1.5 py-0.5 rounded ml-1.5"
+                  >SLOWEST</span
+                >
               {/if}
             </span>
-            <span class="flex-1 text-right text-white/60">{formatTime(lap.total)}</span>
+            <span class="flex-1 text-right text-white/60"
+              >{formatTime(lap.total)}</span
+            >
           </div>
         {/each}
       </div>

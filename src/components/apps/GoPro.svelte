@@ -78,14 +78,14 @@
             const remoteUrl = remoteBase ? `${remoteBase}${file}` : file;
 
             const password =
-                currentPassword ||
-                localStorage.getItem("gopro_password") ||
-                "";
+                currentPassword || localStorage.getItem("gopro_password") || "";
 
             // First, try a local HEAD check (serves cached/locally hosted copies)
             const localFolder = activeShow.baseUrl
                 ? null
-                : (activeShowKey === "Batman Beyond" ? "/batman/" : "/");
+                : activeShowKey === "Batman Beyond"
+                  ? "/batman/"
+                  : "/";
 
             if (localFolder) {
                 const localPath = `${localFolder}${file}`;
@@ -99,7 +99,9 @@
             // Fall back to the remote R2 URL with auth header by fetching the video
             const res = await fetch(remoteUrl, {
                 method: "GET",
-                headers: password ? { Authorization: `password=${password}` } : {},
+                headers: password
+                    ? { Authorization: `password=${password}` }
+                    : {},
             });
             if (res.ok) {
                 const blob = await res.blob();
@@ -859,10 +861,18 @@
             e.preventDefault();
             volume = Math.max(0, volume - 0.05);
             if (videoEl) videoEl.volume = volume;
-        } else if ((e.key >= "0" && e.key <= "9") || (e.code && e.code.startsWith("Numpad") && e.code.length === 7)) {
+        } else if (
+            (e.key >= "0" && e.key <= "9") ||
+            (e.code && e.code.startsWith("Numpad") && e.code.length === 7)
+        ) {
             e.preventDefault();
             if (e.repeat) return;
-            const digit = (e.key >= "0" && e.key <= "9") ? e.key : (e.code ? e.code.replace(/^\D+/, "") : null);
+            const digit =
+                e.key >= "0" && e.key <= "9"
+                    ? e.key
+                    : e.code
+                      ? e.code.replace(/^\D+/, "")
+                      : null;
             if (digit !== null) {
                 startRepeating(digit);
             }
@@ -900,7 +910,7 @@
     function handleKeyup(e) {
         if (!isUnlocked) return;
         if (document.activeElement.tagName === "INPUT") return;
-        
+
         let digit = null;
         if (e.key >= "0" && e.key <= "9") {
             digit = e.key;
@@ -1155,12 +1165,16 @@
                 {#if isFetching}
                     <!-- svelte-ignore a11y_click_events_have_key_events -->
                     <!-- svelte-ignore a11y_no_static_element_interactions -->
-                    <div 
+                    <div
                         class="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-[100] pointer-events-auto"
                         onclick={(e) => e.stopPropagation()}
                     >
-                        <div class="w-12 h-12 rounded-full border-4 border-[#ff3344]/10 border-t-[#ff3344] animate-spin shadow-[0_0_15px_rgba(255,51,68,0.5)]"></div>
-                        <span class="mt-4 text-white text-xs sm:text-sm font-bold tracking-widest uppercase animate-pulse">
+                        <div
+                            class="w-12 h-12 rounded-full border-4 border-[#ff3344]/10 border-t-[#ff3344] animate-spin shadow-[0_0_15px_rgba(255,51,68,0.5)]"
+                        ></div>
+                        <span
+                            class="mt-4 text-white text-xs sm:text-sm font-bold tracking-widest uppercase animate-pulse"
+                        >
                             Fetching Episode...
                         </span>
                     </div>
@@ -1194,7 +1208,9 @@
 
                 <!-- Top Floating Overlay HUD -->
                 <div class="player-overlay-top" class:hidden={!controlsVisible}>
-                    <div class="flex gap-2 font-sans text-xs items-center relative z-50">
+                    <div
+                        class="flex gap-2 font-sans text-xs items-center relative z-50"
+                    >
                         <button
                             class="episodes-menu-btn flex items-center gap-1 bg-black/60 hover:bg-black/85 border border-white/10 hover:border-white/30 px-2 py-1 rounded text-white transition-all font-mono tracking-wider font-bold"
                             onclick={(e) => {
@@ -1204,11 +1220,11 @@
                         >
                             📺 CHOOSE SHOW / EPISODE
                         </button>
-                        
+
                         {#if isEpisodesMenuOpen}
                             <!-- svelte-ignore a11y_click_events_have_key_events -->
                             <!-- svelte-ignore a11y_no_static_element_interactions -->
-                            <div 
+                            <div
                                 class="episodes-dropdown absolute top-8 left-0 z-50 bg-zinc-950/98 border border-zinc-800 rounded-xl p-4 w-[420px] max-h-[500px] overflow-y-auto shadow-[0_10px_35px_rgba(0,0,0,0.9)]"
                                 onclick={(e) => e.stopPropagation()}
                             >
@@ -1279,7 +1295,8 @@
                                         .toString()
                                         .padStart(2, "0")}
                                 </span>
-                                <span class="hud-indicator-ep-separator">-</span>
+                                <span class="hud-indicator-ep-separator">-</span
+                                >
                                 <span class="hud-indicator-ep-details">
                                     {currentEpisodeDetails.title}
                                 </span>
@@ -1380,28 +1397,47 @@
                     </div>
 
                     <!-- Overlay controls row (Netflix/Youtube style) -->
-                    <div class="overlay-controls-row flex items-center justify-between mt-3 px-2">
+                    <div
+                        class="overlay-controls-row flex items-center justify-between mt-3 px-2"
+                    >
                         <div class="flex items-center gap-3">
-                            <button class="overlay-ctrl-btn p-1 text-white/70 hover:text-white hover:scale-105 transition-all" onclick={togglePlay} title="Play/Pause">
+                            <button
+                                class="overlay-ctrl-btn p-1 text-white/70 hover:text-white hover:scale-105 transition-all"
+                                onclick={togglePlay}
+                                title="Play/Pause"
+                            >
                                 {#if isPlaying}
                                     <Pause size={16} fill="currentColor" />
                                 {:else}
                                     <Play size={16} fill="currentColor" />
                                 {/if}
                             </button>
-                            <button class="overlay-ctrl-btn p-1 text-white/70 hover:text-white hover:scale-105 transition-all" onclick={prevEpisode} title="Previous Episode">
+                            <button
+                                class="overlay-ctrl-btn p-1 text-white/70 hover:text-white hover:scale-105 transition-all"
+                                onclick={prevEpisode}
+                                title="Previous Episode"
+                            >
                                 <SkipBack size={16} />
                             </button>
-                            <button class="overlay-ctrl-btn p-1 text-white/70 hover:text-white hover:scale-105 transition-all" onclick={nextEpisode} title="Next Episode">
+                            <button
+                                class="overlay-ctrl-btn p-1 text-white/70 hover:text-white hover:scale-105 transition-all"
+                                onclick={nextEpisode}
+                                title="Next Episode"
+                            >
                                 <SkipForward size={16} />
                             </button>
-                            
+
                             <!-- Volume control -->
-                            <div class="flex items-center gap-1.5 ml-2 group/vol">
-                                <button class="overlay-ctrl-btn p-1 text-white/70 hover:text-white hover:scale-105 transition-all" onclick={() => {
-                                    isMuted = !isMuted;
-                                    if (videoEl) videoEl.muted = isMuted;
-                                }}>
+                            <div
+                                class="flex items-center gap-1.5 ml-2 group/vol"
+                            >
+                                <button
+                                    class="overlay-ctrl-btn p-1 text-white/70 hover:text-white hover:scale-105 transition-all"
+                                    onclick={() => {
+                                        isMuted = !isMuted;
+                                        if (videoEl) videoEl.muted = isMuted;
+                                    }}
+                                >
                                     {#if isMuted || volume === 0}
                                         <VolumeX size={16} />
                                     {:else if volume < 0.5}
@@ -1421,9 +1457,13 @@
                                 />
                             </div>
                         </div>
-                        
+
                         <div class="flex items-center gap-2">
-                            <button class="overlay-ctrl-btn p-1 text-white/70 hover:text-white hover:scale-105 transition-all" onclick={toggleFullscreen} title="Fullscreen">
+                            <button
+                                class="overlay-ctrl-btn p-1 text-white/70 hover:text-white hover:scale-105 transition-all"
+                                onclick={toggleFullscreen}
+                                title="Fullscreen"
+                            >
                                 {#if isFullscreen}
                                     <Minimize size={16} />
                                 {:else}
@@ -1447,456 +1487,441 @@
                 </div>
 
                 <!-- Permanent greyed out branding overlay in bottom right -->
-                <div class="dogs-brand-overlay absolute bottom-3 right-4 flex items-center gap-1.5 opacity-20 pointer-events-none select-none z-10 transition-all duration-300">
+                <div
+                    class="dogs-brand-overlay absolute bottom-3 right-4 flex items-center gap-1.5 opacity-20 pointer-events-none select-none z-10 transition-all duration-300"
+                >
                     <div class={audioCore.isPlaying ? "animate-pulse" : ""}>
                         <DogsLogo size="16" />
                     </div>
-                    <span class="text-[11px] font-mono tracking-widest font-bold text-white">DOGS</span>
+                    <span
+                        class="text-[11px] font-mono tracking-widest font-bold text-white"
+                        >DOGS</span
+                    >
                 </div>
             </div>
 
             <!-- LOWER DECK: Controls Panel Tray -->
             <div class="theater-lower-deck">
-                    <!-- Controls Panel Tray -->
-                    <!-- svelte-ignore a11y_no_static_element_interactions -->
+                <!-- Controls Panel Tray -->
+                <!-- svelte-ignore a11y_no_static_element_interactions -->
+                <div
+                    class="player-controls-panel"
+                    class:expanded={isControlsExpanded}
+                    ontouchstart={handleTouchStart}
+                    ontouchend={handleTouchEnd}
+                    onmouseenter={() => {
+                        if (controlsTimeout) clearTimeout(controlsTimeout);
+                        controlsVisible = true;
+                    }}
+                    onmouseleave={resetControlsTimer}
+                >
+                    <!-- Minimal Controls Row -->
                     <div
-                        class="player-controls-panel"
-                        class:expanded={isControlsExpanded}
-                        ontouchstart={handleTouchStart}
-                        ontouchend={handleTouchEnd}
-                        onmouseenter={() => {
-                            if (controlsTimeout) clearTimeout(controlsTimeout);
-                            controlsVisible = true;
-                        }}
-                        onmouseleave={resetControlsTimer}
+                        class="minimal-controls-row flex items-center justify-between gap-3 w-full"
                     >
-                        <!-- Minimal Controls Row -->
-                        <div
-                            class="minimal-controls-row flex items-center justify-between gap-3 w-full"
-                        >
-                            <div class="flex items-center gap-3">
-                                <button
-                                    class="btn-circular play-toggle flex-shrink-0"
-                                    onclick={togglePlay}
-                                    title="Play/Pause"
-                                >
-                                    {#if isPlaying}
-                                        <Pause size={14} fill="currentColor" />
-                                    {:else}
-                                        <Play size={14} fill="currentColor" />
-                                    {/if}
-                                </button>
-                                <span class="text-xs font-mono text-white/60">
-                                    {formatTime(currentTime)} / {formatTime(duration)}
-                                </span>
-                            </div>
-
+                        <div class="flex items-center gap-3">
                             <button
-                                class="arrow-toggle-btn text-white/50 hover:text-white flex-shrink-0 text-[10px] w-6 h-6 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-all"
-                                onclick={() =>
-                                    (isControlsExpanded = !isControlsExpanded)}
-                                title={isControlsExpanded
-                                    ? "Collapse Controls"
-                                    : "Expand Controls"}
+                                class="btn-circular play-toggle flex-shrink-0"
+                                onclick={togglePlay}
+                                title="Play/Pause"
                             >
-                                {#if isControlsExpanded}
-                                    ▼
+                                {#if isPlaying}
+                                    <Pause size={14} fill="currentColor" />
                                 {:else}
-                                    ▲
+                                    <Play size={14} fill="currentColor" />
                                 {/if}
+                            </button>
+                            <span class="text-xs font-mono text-white/60">
+                                {formatTime(currentTime)} / {formatTime(
+                                    duration,
+                                )}
+                            </span>
+                        </div>
+
+                        <button
+                            class="arrow-toggle-btn text-white/50 hover:text-white flex-shrink-0 text-[10px] w-6 h-6 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-all"
+                            onclick={() =>
+                                (isControlsExpanded = !isControlsExpanded)}
+                            title={isControlsExpanded
+                                ? "Collapse Controls"
+                                : "Expand Controls"}
+                        >
+                            {#if isControlsExpanded}
+                                ▼
+                            {:else}
+                                ▲
+                            {/if}
+                        </button>
+                    </div>
+
+                    {#if isControlsExpanded}
+                        <!-- Tabs Navigation Header -->
+                        <div
+                            class="controls-navigation-tabs mt-2 flex items-center justify-between"
+                        >
+                            <div class="flex gap-2">
+                                <button
+                                    class="control-tab-btn"
+                                    class:active={activeControlPage === 0}
+                                    onclick={() => (activeControlPage = 0)}
+                                >
+                                    PLAYBACK
+                                </button>
+                                <button
+                                    class="control-tab-btn"
+                                    class:active={activeControlPage === 1}
+                                    onclick={() => (activeControlPage = 1)}
+                                >
+                                    FILTERS
+                                </button>
+                                <button
+                                    class="control-tab-btn"
+                                    class:active={activeControlPage === 2}
+                                    onclick={() => (activeControlPage = 2)}
+                                >
+                                    SAMPLER
+                                </button>
+                            </div>
+                            <button
+                                class="exit-player-btn bg-white/5 hover:bg-white/10 border border-white/10 px-2 py-1 rounded text-white text-[11px] font-sans transition-all flex items-center gap-1"
+                                onclick={() => (isRemapperOpen = true)}
+                            >
+                                ⚙️ Key Remap
                             </button>
                         </div>
 
-                        {#if isControlsExpanded}
-                            <!-- Tabs Navigation Header -->
-                            <div class="controls-navigation-tabs mt-2 flex items-center justify-between">
-                                <div class="flex gap-2">
-                                    <button
-                                        class="control-tab-btn"
-                                        class:active={activeControlPage === 0}
-                                        onclick={() => (activeControlPage = 0)}
-                                    >
-                                        PLAYBACK
-                                    </button>
-                                    <button
-                                        class="control-tab-btn"
-                                        class:active={activeControlPage === 1}
-                                        onclick={() => (activeControlPage = 1)}
-                                    >
-                                        FILTERS
-                                    </button>
-                                    <button
-                                        class="control-tab-btn"
-                                        class:active={activeControlPage === 2}
-                                        onclick={() => (activeControlPage = 2)}
-                                    >
-                                        SAMPLER
-                                    </button>
-                                </div>
-                                <button
-                                    class="exit-player-btn bg-white/5 hover:bg-white/10 border border-white/10 px-2 py-1 rounded text-white text-[11px] font-sans transition-all flex items-center gap-1"
-                                    onclick={() => (isRemapperOpen = true)}
-                                >
-                                    ⚙️ Key Remap
-                                </button>
-                            </div>
-
-                            <!-- Paginated content wrapper (Strictly identical height/width) -->
-                            <div class="control-page-content-wrapper">
-                                {#if activeControlPage === 0}
-                                    <!-- PLAYBACK PAGE -->
+                        <!-- Paginated content wrapper (Strictly identical height/width) -->
+                        <div class="control-page-content-wrapper">
+                            {#if activeControlPage === 0}
+                                <!-- PLAYBACK PAGE -->
+                                <div class="control-page-pane page-playback">
                                     <div
-                                        class="control-page-pane page-playback"
+                                        class="playback-main-row flex items-center justify-between gap-4 w-full"
                                     >
                                         <div
-                                            class="playback-main-row flex items-center justify-between gap-4 w-full"
+                                            class="play-btn-group flex items-center gap-2"
                                         >
-                                            <div
-                                                class="play-btn-group flex items-center gap-2"
-                                            >
-                                                <button
-                                                    class="btn-circular"
-                                                    onclick={prevEpisode}
-                                                    title="Prev Episode"
-                                                >
-                                                    ⏮
-                                                </button>
-                                                <button
-                                                    class="btn-circular play-toggle"
-                                                    onclick={togglePlay}
-                                                    title="Play/Pause"
-                                                >
-                                                    {#if isPlaying}
-                                                        <Pause
-                                                            size={18}
-                                                            fill="currentColor"
-                                                        />
-                                                    {:else}
-                                                        <Play
-                                                            size={18}
-                                                            fill="currentColor"
-                                                        />
-                                                    {/if}
-                                                </button>
-                                                <button
-                                                    class="btn-circular"
-                                                    onclick={nextEpisode}
-                                                    title="Next Episode"
-                                                >
-                                                    ⏭
-                                                </button>
-                                                <button
-                                                    class="btn-circular"
-                                                    onclick={() =>
-                                                        seekRelative(-10)}
-                                                    title="Back 10s"
-                                                >
-                                                    -10s
-                                                </button>
-                                                <button
-                                                    class="btn-circular"
-                                                    onclick={() =>
-                                                        seekRelative(10)}
-                                                    title="Forward 10s"
-                                                >
-                                                    +10s
-                                                </button>
-                                            </div>
-
-                                            <div
-                                                class="volume-slider-box flex items-center gap-2"
-                                            >
-                                                <Volume2
-                                                    size={16}
-                                                    class="vol-icon"
-                                                />
-                                                <input
-                                                    type="range"
-                                                    min="0"
-                                                    max="1"
-                                                    step="0.05"
-                                                    value={volume}
-                                                    oninput={handleVolumeChange}
-                                                    class="volume-slider"
-                                                />
-                                                <button
-                                                    class="btn-circular fullscreen-toggle"
-                                                    onclick={toggleFullscreen}
-                                                    title="Toggle Fullscreen"
-                                                >
-                                                    {#if isFullscreen || isMaximized}
-                                                        <Minimize size={16} />
-                                                    {:else}
-                                                        <Maximize size={16} />
-                                                    {/if}
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        <div
-                                            class="playback-sub-row flex flex-wrap items-center justify-between gap-3 w-full"
-                                        >
-                                            <div class="speed-group flex gap-1">
-                                                {#each [1, 2, 3, 4] as rate}
-                                                    <button
-                                                        class="speed-btn"
-                                                        class:active={playbackRate ===
-                                                            rate}
-                                                        onclick={() =>
-                                                            handleRateChange(
-                                                                rate,
-                                                            )}
-                                                    >
-                                                        {rate}x
-                                                    </button>
-                                                {/each}
-                                            </div>
-
-                                            <div
-                                                class="loop-group flex items-center gap-2"
-                                            >
-                                                <button
-                                                    class="loop-btn"
-                                                    class:active={loopMode ===
-                                                        "episode"}
-                                                    onclick={() =>
-                                                        (loopMode =
-                                                            loopMode ===
-                                                            "episode"
-                                                                ? "none"
-                                                                : "episode")}
-                                                    title="Repeat Episode"
-                                                >
-                                                    🔁 Loop Ep
-                                                </button>
-                                                <button
-                                                    class="loop-btn"
-                                                    class:active={loopMode ===
-                                                        "season"}
-                                                    onclick={() =>
-                                                        (loopMode =
-                                                            loopMode ===
-                                                            "season"
-                                                                ? "none"
-                                                                : "season")}
-                                                    title="Repeat Season"
-                                                >
-                                                    🔂 Season
-                                                </button>
-                                                <button
-                                                    class="loop-btn"
-                                                    class:active={loopMode ===
-                                                        "shuffle"}
-                                                    onclick={() =>
-                                                        (loopMode =
-                                                            loopMode ===
-                                                            "shuffle"
-                                                                ? "none"
-                                                                : "shuffle")}
-                                                    title="Shuffle Play"
-                                                >
-                                                    🔀 Shuffle
-                                                </button>
-                                            </div>
-
-                                            <div
-                                                class="autoskip-toggles flex items-center gap-3"
-                                            >
-                                                <label
-                                                    class="flex items-center gap-1.5 cursor-pointer text-[10px] font-bold text-white/50 select-none"
-                                                >
-                                                    <input
-                                                        type="checkbox"
-                                                        bind:checked={
-                                                            autoSkipIntro
-                                                        }
-                                                        class="accent-cyan-500 rounded cursor-pointer w-3.5 h-3.5"
-                                                    />
-                                                    <span>Skip Intro</span>
-                                                </label>
-                                                <label
-                                                    class="flex items-center gap-1.5 cursor-pointer text-[10px] font-bold text-white/50 select-none"
-                                                >
-                                                    <input
-                                                        type="checkbox"
-                                                        bind:checked={
-                                                            autoSkipOutro
-                                                        }
-                                                        class="accent-cyan-500 rounded cursor-pointer w-3.5 h-3.5"
-                                                    />
-                                                    <span>Skip Outro</span>
-                                                </label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                {:else if activeControlPage === 1}
-                                    <!-- FILTERS PAGE -->
-                                    <div
-                                        class="control-page-pane page-filters grid-filters"
-                                    >
-                                        <div class="filter-panel-box">
-                                            <span class="box-tag"
-                                                ><Tv size={12} /> VIDEO FILTERS</span
-                                            >
-                                            <div class="filter-selector-row">
-                                                {#each ["normal", "grayscale", "monochrome", "highcontrast", "cyberpunk", "nightvision"] as f}
-                                                    <button
-                                                        class="filter-select-btn"
-                                                        class:active={activeVideoFilter ===
-                                                            f}
-                                                        onclick={() =>
-                                                            (activeVideoFilter =
-                                                                f)}
-                                                    >
-                                                        {f}
-                                                    </button>
-                                                {/each}
-                                            </div>
-                                        </div>
-
-                                        <div class="filter-panel-box">
-                                            <span class="box-tag"
-                                                ><Radio size={12} /> AUDIO SYNTH
-                                                EFFECTS</span
-                                            >
-                                            <div class="filter-selector-row">
-                                                {#each ["normal", "funny", "vocal", "reverb"] as f}
-                                                    <button
-                                                        class="filter-select-btn"
-                                                        class:active={activeAudioFilter ===
-                                                            f}
-                                                        onclick={() =>
-                                                            (activeAudioFilter =
-                                                                f)}
-                                                    >
-                                                        {f === "funny"
-                                                            ? "funny mic"
-                                                            : f === "vocal"
-                                                              ? "vocal boost"
-                                                              : f}
-                                                    </button>
-                                                {/each}
-                                            </div>
-                                        </div>
-                                    </div>
-                                {:else if activeControlPage === 2}
-                                    <!-- SAMPLER PAGE -->
-                                    <div
-                                        class="control-page-pane page-sampler sampler-clipper-box"
-                                    >
-                                        <div class="clipper-header-row">
-                                            <span class="clipper-tag"
-                                                ><Music size={12} /> SAMPLER WORKBENCH</span
-                                            >
-                                            <div class="bpm-control-box">
-                                                <span class="bpm-label"
-                                                    >BPM</span
-                                                >
-                                                <input
-                                                    type="number"
-                                                    min={BPM_MIN}
-                                                    max={BPM_MAX}
-                                                    bind:value={bpm}
-                                                    onblur={handleBpmBlur}
-                                                    class="bpm-input"
-                                                />
-                                                <input
-                                                    type="range"
-                                                    min={BPM_MIN}
-                                                    max={BPM_MAX}
-                                                    step="1"
-                                                    bind:value={bpm}
-                                                    class="bpm-slider"
-                                                />
-                                            </div>
                                             <button
-                                                class="loop-selection-btn"
-                                                class:active={isClipLoopActive}
-                                                onclick={() =>
-                                                    (isClipLoopActive =
-                                                        !isClipLoopActive)}
+                                                class="btn-circular"
+                                                onclick={prevEpisode}
+                                                title="Prev Episode"
                                             >
-                                                🔁 Loop Selection
+                                                ⏮
+                                            </button>
+                                            <button
+                                                class="btn-circular play-toggle"
+                                                onclick={togglePlay}
+                                                title="Play/Pause"
+                                            >
+                                                {#if isPlaying}
+                                                    <Pause
+                                                        size={18}
+                                                        fill="currentColor"
+                                                    />
+                                                {:else}
+                                                    <Play
+                                                        size={18}
+                                                        fill="currentColor"
+                                                    />
+                                                {/if}
+                                            </button>
+                                            <button
+                                                class="btn-circular"
+                                                onclick={nextEpisode}
+                                                title="Next Episode"
+                                            >
+                                                ⏭
+                                            </button>
+                                            <button
+                                                class="btn-circular"
+                                                onclick={() =>
+                                                    seekRelative(-10)}
+                                                title="Back 10s"
+                                            >
+                                                -10s
+                                            </button>
+                                            <button
+                                                class="btn-circular"
+                                                onclick={() => seekRelative(10)}
+                                                title="Forward 10s"
+                                            >
+                                                +10s
                                             </button>
                                         </div>
 
-                                        <div class="clipper-main-controls">
-                                            <div class="endpoint-set-group">
-                                                <button
-                                                    class="clip-action-btn"
-                                                    onclick={setClipA}
-                                                    >Set Start [A]</button
-                                                >
-                                                <div class="nudge-group">
-                                                    <button
-                                                        class="nudge-btn"
-                                                        onclick={() =>
-                                                            adjustClipStart(
-                                                                -0.05,
-                                                            )}
-                                                        title="Nudge start back 50ms"
-                                                        >-.05s</button
-                                                    >
-                                                    <button
-                                                        class="nudge-btn"
-                                                        onclick={() =>
-                                                            adjustClipStart(
-                                                                0.05,
-                                                            )}
-                                                        title="Nudge start forward 50ms"
-                                                        >+.05s</button
-                                                    >
-                                                </div>
-                                            </div>
-
-                                            <div class="endpoint-set-group">
-                                                <button
-                                                    class="clip-action-btn"
-                                                    onclick={setClipB}
-                                                    >Set End [B]</button
-                                                >
-                                                <div class="nudge-group">
-                                                    <button
-                                                        class="nudge-btn"
-                                                        onclick={() =>
-                                                            adjustClipEnd(
-                                                                -0.05,
-                                                            )}
-                                                        title="Nudge end back 50ms"
-                                                        >-.05s</button
-                                                    >
-                                                    <button
-                                                        class="nudge-btn"
-                                                        onclick={() =>
-                                                            adjustClipEnd(0.05)}
-                                                        title="Nudge end forward 50ms"
-                                                        >+.05s</button
-                                                    >
-                                                </div>
-                                            </div>
-
-                                            <div class="sampler-export-group">
-                                                <input
-                                                    type="text"
-                                                    placeholder="Clip name..."
-                                                    bind:value={clipName}
-                                                    class="clip-name-input"
-                                                />
-                                                <button
-                                                    class="send-sampler-btn"
-                                                    disabled={clipEnd <=
-                                                        clipStart}
-                                                    onclick={sendToSoundboard}
-                                                >
-                                                    <Music size={14} /> Export
-                                                </button>
-                                            </div>
+                                        <div
+                                            class="volume-slider-box flex items-center gap-2"
+                                        >
+                                            <Volume2
+                                                size={16}
+                                                class="vol-icon"
+                                            />
+                                            <input
+                                                type="range"
+                                                min="0"
+                                                max="1"
+                                                step="0.05"
+                                                value={volume}
+                                                oninput={handleVolumeChange}
+                                                class="volume-slider"
+                                            />
+                                            <button
+                                                class="btn-circular fullscreen-toggle"
+                                                onclick={toggleFullscreen}
+                                                title="Toggle Fullscreen"
+                                            >
+                                                {#if isFullscreen || isMaximized}
+                                                    <Minimize size={16} />
+                                                {:else}
+                                                    <Maximize size={16} />
+                                                {/if}
+                                            </button>
                                         </div>
                                     </div>
-                                {/if}
-                            </div>
-                        {/if}
-                    </div>
+
+                                    <div
+                                        class="playback-sub-row flex flex-wrap items-center justify-between gap-3 w-full"
+                                    >
+                                        <div class="speed-group flex gap-1">
+                                            {#each [1, 2, 3, 4] as rate}
+                                                <button
+                                                    class="speed-btn"
+                                                    class:active={playbackRate ===
+                                                        rate}
+                                                    onclick={() =>
+                                                        handleRateChange(rate)}
+                                                >
+                                                    {rate}x
+                                                </button>
+                                            {/each}
+                                        </div>
+
+                                        <div
+                                            class="loop-group flex items-center gap-2"
+                                        >
+                                            <button
+                                                class="loop-btn"
+                                                class:active={loopMode ===
+                                                    "episode"}
+                                                onclick={() =>
+                                                    (loopMode =
+                                                        loopMode === "episode"
+                                                            ? "none"
+                                                            : "episode")}
+                                                title="Repeat Episode"
+                                            >
+                                                🔁 Loop Ep
+                                            </button>
+                                            <button
+                                                class="loop-btn"
+                                                class:active={loopMode ===
+                                                    "season"}
+                                                onclick={() =>
+                                                    (loopMode =
+                                                        loopMode === "season"
+                                                            ? "none"
+                                                            : "season")}
+                                                title="Repeat Season"
+                                            >
+                                                🔂 Season
+                                            </button>
+                                            <button
+                                                class="loop-btn"
+                                                class:active={loopMode ===
+                                                    "shuffle"}
+                                                onclick={() =>
+                                                    (loopMode =
+                                                        loopMode === "shuffle"
+                                                            ? "none"
+                                                            : "shuffle")}
+                                                title="Shuffle Play"
+                                            >
+                                                🔀 Shuffle
+                                            </button>
+                                        </div>
+
+                                        <div
+                                            class="autoskip-toggles flex items-center gap-3"
+                                        >
+                                            <label
+                                                class="flex items-center gap-1.5 cursor-pointer text-[10px] font-bold text-white/50 select-none"
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    bind:checked={autoSkipIntro}
+                                                    class="accent-cyan-500 rounded cursor-pointer w-3.5 h-3.5"
+                                                />
+                                                <span>Skip Intro</span>
+                                            </label>
+                                            <label
+                                                class="flex items-center gap-1.5 cursor-pointer text-[10px] font-bold text-white/50 select-none"
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    bind:checked={autoSkipOutro}
+                                                    class="accent-cyan-500 rounded cursor-pointer w-3.5 h-3.5"
+                                                />
+                                                <span>Skip Outro</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            {:else if activeControlPage === 1}
+                                <!-- FILTERS PAGE -->
+                                <div
+                                    class="control-page-pane page-filters grid-filters"
+                                >
+                                    <div class="filter-panel-box">
+                                        <span class="box-tag"
+                                            ><Tv size={12} /> VIDEO FILTERS</span
+                                        >
+                                        <div class="filter-selector-row">
+                                            {#each ["normal", "grayscale", "monochrome", "highcontrast", "cyberpunk", "nightvision"] as f}
+                                                <button
+                                                    class="filter-select-btn"
+                                                    class:active={activeVideoFilter ===
+                                                        f}
+                                                    onclick={() =>
+                                                        (activeVideoFilter = f)}
+                                                >
+                                                    {f}
+                                                </button>
+                                            {/each}
+                                        </div>
+                                    </div>
+
+                                    <div class="filter-panel-box">
+                                        <span class="box-tag"
+                                            ><Radio size={12} /> AUDIO SYNTH EFFECTS</span
+                                        >
+                                        <div class="filter-selector-row">
+                                            {#each ["normal", "funny", "vocal", "reverb"] as f}
+                                                <button
+                                                    class="filter-select-btn"
+                                                    class:active={activeAudioFilter ===
+                                                        f}
+                                                    onclick={() =>
+                                                        (activeAudioFilter = f)}
+                                                >
+                                                    {f === "funny"
+                                                        ? "funny mic"
+                                                        : f === "vocal"
+                                                          ? "vocal boost"
+                                                          : f}
+                                                </button>
+                                            {/each}
+                                        </div>
+                                    </div>
+                                </div>
+                            {:else if activeControlPage === 2}
+                                <!-- SAMPLER PAGE -->
+                                <div
+                                    class="control-page-pane page-sampler sampler-clipper-box"
+                                >
+                                    <div class="clipper-header-row">
+                                        <span class="clipper-tag"
+                                            ><Music size={12} /> SAMPLER WORKBENCH</span
+                                        >
+                                        <div class="bpm-control-box">
+                                            <span class="bpm-label">BPM</span>
+                                            <input
+                                                type="number"
+                                                min={BPM_MIN}
+                                                max={BPM_MAX}
+                                                bind:value={bpm}
+                                                onblur={handleBpmBlur}
+                                                class="bpm-input"
+                                            />
+                                            <input
+                                                type="range"
+                                                min={BPM_MIN}
+                                                max={BPM_MAX}
+                                                step="1"
+                                                bind:value={bpm}
+                                                class="bpm-slider"
+                                            />
+                                        </div>
+                                        <button
+                                            class="loop-selection-btn"
+                                            class:active={isClipLoopActive}
+                                            onclick={() =>
+                                                (isClipLoopActive =
+                                                    !isClipLoopActive)}
+                                        >
+                                            🔁 Loop Selection
+                                        </button>
+                                    </div>
+
+                                    <div class="clipper-main-controls">
+                                        <div class="endpoint-set-group">
+                                            <button
+                                                class="clip-action-btn"
+                                                onclick={setClipA}
+                                                >Set Start [A]</button
+                                            >
+                                            <div class="nudge-group">
+                                                <button
+                                                    class="nudge-btn"
+                                                    onclick={() =>
+                                                        adjustClipStart(-0.05)}
+                                                    title="Nudge start back 50ms"
+                                                    >-.05s</button
+                                                >
+                                                <button
+                                                    class="nudge-btn"
+                                                    onclick={() =>
+                                                        adjustClipStart(0.05)}
+                                                    title="Nudge start forward 50ms"
+                                                    >+.05s</button
+                                                >
+                                            </div>
+                                        </div>
+
+                                        <div class="endpoint-set-group">
+                                            <button
+                                                class="clip-action-btn"
+                                                onclick={setClipB}
+                                                >Set End [B]</button
+                                            >
+                                            <div class="nudge-group">
+                                                <button
+                                                    class="nudge-btn"
+                                                    onclick={() =>
+                                                        adjustClipEnd(-0.05)}
+                                                    title="Nudge end back 50ms"
+                                                    >-.05s</button
+                                                >
+                                                <button
+                                                    class="nudge-btn"
+                                                    onclick={() =>
+                                                        adjustClipEnd(0.05)}
+                                                    title="Nudge end forward 50ms"
+                                                    >+.05s</button
+                                                >
+                                            </div>
+                                        </div>
+
+                                        <div class="sampler-export-group">
+                                            <input
+                                                type="text"
+                                                placeholder="Clip name..."
+                                                bind:value={clipName}
+                                                class="clip-name-input"
+                                            />
+                                            <button
+                                                class="send-sampler-btn"
+                                                disabled={clipEnd <= clipStart}
+                                                onclick={sendToSoundboard}
+                                            >
+                                                <Music size={14} /> Export
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            {/if}
+                        </div>
+                    {/if}
+                </div>
             </div>
         </div>
 
@@ -2043,4 +2068,3 @@
         />
     {/if}
 </div>
-

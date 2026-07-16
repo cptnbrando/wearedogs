@@ -282,7 +282,7 @@
 
   <div class="snake-board-container">
     <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div 
+    <div
       class="snake-board"
       ontouchstart={handleTouchStart}
       ontouchend={handleTouchEnd}
