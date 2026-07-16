@@ -14,6 +14,15 @@ export class AudioCore {
   instGainNode = null;
   analyser = $state(null);
 
+  // Sync state
+  tabId = Math.random().toString(36).substring(2, 11);
+  channel = null;
+  masterTabId = null;
+  isSyncing = false;
+
+  // Shuffle queue state
+  shuffledQueue = [];
+
   // Reactive Svelte 5 Runes States
   isPlaying = $state(false);
   currentTime = $state(0);
@@ -43,7 +52,127 @@ export class AudioCore {
     !this.instFailed[this.library[this.currentTrackIndex]?.id]
   );
 
-  constructor() { }
+  constructor() {
+    if (typeof window !== "undefined" && typeof BroadcastChannel !== "undefined") {
+      this.channel = new BroadcastChannel("wearedogs_music_sync");
+      this.channel.onmessage = (e) => this.handleSyncMessage(e.data);
+
+      // Ping to find existing master after small delay
+      setTimeout(() => {
+        this.broadcast({ type: "ping" });
+      }, 500);
+    }
+  }
+
+  broadcast(data) {
+    if (this.channel) {
+      data.uuid = this.tabId;
+      this.channel.postMessage(data);
+    }
+  }
+
+  broadcastState(type = "state_change") {
+    this.broadcast({
+      type,
+      masterTabId: this.masterTabId,
+      trackIndex: this.currentTrackIndex,
+      isPlaying: this.isPlaying,
+      isInstrumental: this.isInstrumental,
+      currentTime: this.currentTime,
+      duration: this.duration
+    });
+  }
+
+  handleSyncMessage(msg) {
+    if (!msg || msg.uuid === this.tabId) return;
+
+    this.isSyncing = true;
+    try {
+      switch (msg.type) {
+        case "ping":
+          if (this.isPlaying && this.masterTabId === this.tabId) {
+            this.broadcastState("pong");
+          }
+          break;
+        case "pong":
+        case "state_change":
+          this.masterTabId = msg.masterTabId;
+          this.isInstrumental = msg.isInstrumental;
+          if (this.currentTrackIndex !== msg.trackIndex) {
+            this.currentTrackIndex = msg.trackIndex;
+            const isSelfMaster = this.masterTabId === this.tabId;
+            this.loadTrack(msg.trackIndex, isSelfMaster && msg.isPlaying);
+          } else {
+            const isSelfMaster = this.masterTabId === this.tabId;
+            this.isPlaying = msg.isPlaying;
+            if (isSelfMaster) {
+              if (msg.isPlaying) {
+                this.play(msg.currentTime);
+              } else {
+                this.pause();
+              }
+            } else {
+              this.currentTime = msg.currentTime;
+              if (this.trackAudio && !this.trackAudio.paused) this.trackAudio.pause();
+              if (this.instAudio && !this.instAudio.paused) this.instAudio.pause();
+            }
+          }
+          break;
+        case "time_update":
+          if (this.masterTabId !== this.tabId) {
+            this.currentTime = msg.currentTime;
+            this.duration = msg.duration;
+            this.isPlaying = msg.isPlaying;
+          }
+          break;
+        case "cmd_play":
+          this.masterTabId = this.tabId;
+          this.play(msg.currentTime);
+          break;
+        case "cmd_pause":
+          this.pause();
+          break;
+        case "cmd_seek":
+          this.seek(msg.currentTime);
+          break;
+        case "cmd_next":
+          this.nextTrack();
+          break;
+        case "cmd_prev":
+          this.prevTrack();
+          break;
+      }
+    } catch (e) {
+      console.warn("Failed to process sync message:", e);
+    } finally {
+      this.isSyncing = false;
+    }
+  }
+
+  shuffleArray(array) {
+    const arr = [...array];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  initShuffleQueue() {
+    const indices = Array.from({ length: this.library.length }, (_, i) => i);
+    const filtered = indices.filter(idx => idx !== this.currentTrackIndex);
+    this.shuffledQueue = this.shuffleArray(filtered);
+  }
+
+  setShuffle(val) {
+    this.isShuffled = val;
+    if (val) {
+      this.initShuffleQueue();
+    } else {
+      this.shuffledQueue = [];
+    }
+  }
+
 
   async getAudioSource(url, type) {
     if (!url) return "";
@@ -238,6 +367,10 @@ export class AudioCore {
       this.play(0);
     }
     this.updateMediaSession();
+
+    if (!this.isSyncing) {
+      this.broadcastState("state_change");
+    }
   }
 
   play(offset = this.currentTime) {
@@ -245,26 +378,38 @@ export class AudioCore {
     this.initContext();
     this.activeAudioType = "music";
 
+    if (!this.isSyncing) {
+      this.masterTabId = this.tabId;
+    }
+
     this.applyCrossfade();
     this.applyVolume();
 
-    // Set current time of HTML Audio elements
-    if (this.trackAudio.src) this.trackAudio.currentTime = offset;
-    if (this.instAudio && this.instAudio.src) {
-      this.instAudio.currentTime = offset;
-    }
+    const isSelfMaster = (!this.masterTabId || this.masterTabId === this.tabId);
 
-    // Play — only play elements that have a loaded source
-    if (this.trackAudio.src) {
-      this.trackAudio.play().catch(e => console.error("Error playing trackAudio:", e));
-    }
-    if (this.instAudio && this.instAudio.src) {
-      this.instAudio.play().catch(e => console.error("Error playing instAudio:", e));
+    // Set current time of HTML Audio elements
+    if (isSelfMaster) {
+      if (this.trackAudio.src) this.trackAudio.currentTime = offset;
+      if (this.instAudio && this.instAudio.src) {
+        this.instAudio.currentTime = offset;
+      }
+
+      // Play — only play elements that have a loaded source
+      if (this.trackAudio.src) {
+        this.trackAudio.play().catch(e => console.error("Error playing trackAudio:", e));
+      }
+      if (this.instAudio && this.instAudio.src) {
+        this.instAudio.play().catch(e => console.error("Error playing instAudio:", e));
+      }
     }
 
     this.isPlaying = true;
     this.startProgressTimer();
     this.updateMediaSession();
+
+    if (!this.isSyncing) {
+      this.broadcastState("state_change");
+    }
   }
 
   pause() {
@@ -273,6 +418,10 @@ export class AudioCore {
     if (this.instAudio) this.instAudio.pause();
     this.isPlaying = false;
     this.updateMediaSession();
+
+    if (!this.isSyncing) {
+      this.broadcastState("state_change");
+    }
   }
 
   async togglePlay() {
@@ -291,8 +440,13 @@ export class AudioCore {
     }
 
     if (this.isPlaying) {
-      this.pause();
+      if (this.masterTabId && this.masterTabId !== this.tabId) {
+        this.broadcast({ type: "cmd_pause" });
+      } else {
+        this.pause();
+      }
     } else {
+      this.masterTabId = this.tabId;
       this.play(this.currentTime);
     }
     this.updateMediaSession();
@@ -300,12 +454,15 @@ export class AudioCore {
 
   prevTrack() {
     if (this.currentTime > 3) {
-      this.currentTime = 0;
-      this.play(0);
+      this.seek(0);
+      return;
+    }
+    if (this.masterTabId && this.masterTabId !== this.tabId) {
+      this.broadcast({ type: "cmd_prev" });
       return;
     }
     const idx = this.isShuffled
-      ? Math.floor(Math.random() * this.library.length)
+      ? (this.shuffledQueue.length > 0 ? this.shuffledQueue.shift() : Math.floor(Math.random() * this.library.length))
       : this.currentTrackIndex > 0
         ? this.currentTrackIndex - 1
         : this.library.length - 1;
@@ -313,52 +470,89 @@ export class AudioCore {
   }
 
   nextTrack() {
-    const idx = this.isShuffled
-      ? Math.floor(Math.random() * this.library.length)
-      : this.currentTrackIndex < this.library.length - 1
+    if (this.masterTabId && this.masterTabId !== this.tabId) {
+      this.broadcast({ type: "cmd_next" });
+      return;
+    }
+    let idx;
+    if (this.isShuffled) {
+      if (this.shuffledQueue.length === 0) {
+        if (this.repeatMode === 1) {
+          this.initShuffleQueue();
+        } else {
+          this.pause();
+          this.seek(0);
+          return;
+        }
+      }
+      idx = this.shuffledQueue.length > 0 ? this.shuffledQueue.shift() : 0;
+    } else {
+      idx = this.currentTrackIndex < this.library.length - 1
         ? this.currentTrackIndex + 1
         : 0;
+    }
     this.loadTrack(idx, this.isPlaying);
+  }
+
+  seek(val) {
+    this.currentTime = val;
+    const isSelfMaster = (!this.masterTabId || this.masterTabId === this.tabId);
+    if (isSelfMaster) {
+      if (this.trackAudio && this.trackAudio.src) this.trackAudio.currentTime = val;
+      if (this.instAudio && this.instAudio.src) this.instAudio.currentTime = val;
+      this.broadcastState("state_change");
+    } else {
+      this.broadcast({ type: "cmd_seek", currentTime: val });
+    }
   }
 
   startProgressTimer() {
     clearInterval(this.progressInterval);
     this.progressInterval = setInterval(() => {
       if (this.isPlaying && this.trackAudio) {
-        const track = this.library[this.currentTrackIndex];
-        const isInstOnly = track && !track.src && track.instrumental;
-        // For inst-only tracks, drive time from instAudio; otherwise from trackAudio
-        const primaryAudio = (isInstOnly && this.instAudio?.src) ? this.instAudio : this.trackAudio;
-        this.currentTime = primaryAudio.currentTime;
+        const isSelfMaster = (!this.masterTabId || this.masterTabId === this.tabId);
 
-        // Keep instrumental in sync with the main track (within 50ms tolerance)
-        if (!isInstOnly && this.instAudio && this.instAudio.src && !this.instAudio.paused) {
-          const diff = Math.abs(this.instAudio.currentTime - this.trackAudio.currentTime);
-          if (diff > 0.05) {
-            this.instAudio.currentTime = this.trackAudio.currentTime;
+        if (isSelfMaster) {
+          const track = this.library[this.currentTrackIndex];
+          const isInstOnly = track && !track.src && track.instrumental;
+          const primaryAudio = (isInstOnly && this.instAudio?.src) ? this.instAudio : this.trackAudio;
+          this.currentTime = primaryAudio.currentTime;
+
+          // Keep instrumental in sync with the main track (within 50ms tolerance)
+          if (!isInstOnly && this.instAudio && this.instAudio.src && !this.instAudio.paused) {
+            const diff = Math.abs(this.instAudio.currentTime - this.trackAudio.currentTime);
+            if (diff > 0.05) {
+              this.instAudio.currentTime = this.trackAudio.currentTime;
+            }
           }
-        }
 
-        if (this.currentTime >= this.duration) {
-          clearInterval(this.progressInterval);
-          this.onEnded();
+          if (this.currentTime >= this.duration) {
+            clearInterval(this.progressInterval);
+            this.onEnded();
+          }
+
+          // Broadcast time update to follower tabs
+          this.broadcast({
+            type: "time_update",
+            currentTime: this.currentTime,
+            duration: this.duration,
+            isPlaying: this.isPlaying
+          });
         }
       }
     }, 150);
   }
 
-
   onEnded() {
     if (this.repeatMode === 2) {
-      this.currentTime = 0;
-      this.isPlaying = false;
+      this.seek(0);
       this.play(0);
-    } else if (this.repeatMode === 1 || this.currentTrackIndex < this.library.length - 1) {
+    } else if (this.repeatMode === 1 || this.currentTrackIndex < this.library.length - 1 || this.isShuffled) {
       this.nextTrack();
     } else {
       this.isPlaying = false;
       this.pause();
-      this.currentTime = 0;
+      this.seek(0);
     }
     this.updateMediaSession();
   }
@@ -387,6 +581,10 @@ export class AudioCore {
     this.isInstrumental = isInst;
     this.userPrefersInstrumental = isInst;
     this.applyCrossfade();
+
+    if (!this.isSyncing) {
+      this.broadcastState("state_change");
+    }
     return true;
   }
 
@@ -437,38 +635,17 @@ export class AudioCore {
       navigator.mediaSession.setActionHandler("previoustrack", () => this.prevTrack());
       navigator.mediaSession.setActionHandler("nexttrack", () => this.nextTrack());
       navigator.mediaSession.setActionHandler("seekto", (details) => {
-        this.currentTime = details.seekTime;
-        if (this.trackAudio) {
-          this.trackAudio.currentTime = details.seekTime;
-        }
-        if (this.instAudio && this.instAudio.src) {
-          this.instAudio.currentTime = details.seekTime;
-        }
-        this.updateMediaSessionPositionState();
+        this.seek(details.seekTime);
       });
       navigator.mediaSession.setActionHandler("seekbackward", (details) => {
         const offset = details.seekOffset || 10;
         const newTime = Math.max(0, this.currentTime - offset);
-        this.currentTime = newTime;
-        if (this.trackAudio) {
-          this.trackAudio.currentTime = newTime;
-        }
-        if (this.instAudio && this.instAudio.src) {
-          this.instAudio.currentTime = newTime;
-        }
-        this.updateMediaSessionPositionState();
+        this.seek(newTime);
       });
       navigator.mediaSession.setActionHandler("seekforward", (details) => {
         const offset = details.seekOffset || 10;
         const newTime = Math.min(this.duration, this.currentTime + offset);
-        this.currentTime = newTime;
-        if (this.trackAudio) {
-          this.trackAudio.currentTime = newTime;
-        }
-        if (this.instAudio && this.instAudio.src) {
-          this.instAudio.currentTime = newTime;
-        }
-        this.updateMediaSessionPositionState();
+        this.seek(newTime);
       });
     }
   }
@@ -511,3 +688,4 @@ export class AudioCore {
 }
 
 export const audioCore = new AudioCore();
+

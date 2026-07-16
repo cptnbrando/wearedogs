@@ -75,6 +75,7 @@
   let showMobileTracklist = $state(false);
   let isBouncing = $state(false);
   let vinylLoaded = $state(false);
+  let isVinylView = $state(true);
   let showVolumeSlider = $state(false);
   let volumePopoverEl = $state(null);
 
@@ -85,6 +86,29 @@
   let visualizerEngine = null;
   let tracklistHistoryPushed = false;
   let hasMusicPlayed = $state(false);
+
+  // Generate deterministic peaks for the current track to show a mock waveform
+  let waveformPeaks = $derived.by(() => {
+    const trackId = currentTrack?.id || "default";
+    const peaks = [];
+    let hash = 0;
+    for (let i = 0; i < trackId.length; i++) {
+      hash = trackId.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    for (let i = 0; i < 60; i++) {
+      const pseudoRandom = Math.abs(Math.sin(hash + i)) * 80 + 20; // 20% to 100% height
+      peaks.push(pseudoRandom);
+    }
+    return peaks;
+  });
+
+  // If on mobile and kaleidoscope is turned on while tracks page is active, close tracks page
+  $effect(() => {
+    const isMobile = window.innerWidth <= 640;
+    if (isMobile && showVisualizer && activePresetIdx === 0 && showMobileTracklist) {
+      showMobileTracklist = false;
+    }
+  });
 
   // Track if music starts playing to flip hasMusicPlayed to true
   $effect(() => {
@@ -589,11 +613,12 @@
 
     const knobRect = knobEl.getBoundingClientRect();
 
-    // Directly use viewport CSS pixels, shifting to the left-bottom of the fader knob
-    const x = knobRect.left + knobRect.width * 0.15;
-    const y = window.innerHeight - (knobRect.top + knobRect.height * 0.85);
+    // Center coordinates on the fader knob
+    const x = knobRect.left + knobRect.width / 2;
+    const y = window.innerHeight - (knobRect.top + knobRect.height / 2);
     return { x, y };
   }
+
 
   function initThreeFx() {
     if (!faderFxCanvas) return;
@@ -811,8 +836,8 @@
               class:scale-95={showMobileTracklist}
               class:pointer-events-none={showMobileTracklist}
             >
-              <!-- Vinyl disc OR Visualizer (Exactly same dimensions!) -->
-              <div class="vinyl-wrapper relative">
+              <!-- Vinyl disc OR Cassette OR Visualizer -->
+              <div class="vinyl-wrapper relative overflow-hidden">
                 {#if showVisualizer && !isFullscreenVisualizer}
                   <!-- Compact Visualizer Container -->
                   <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -851,45 +876,96 @@
                     <Maximize2 size={16} class="text-white/20" />
                   </div>
                 {:else}
-                  <!-- Vinyl disc button to toggle tracklist on mobile -->
-                  <!-- svelte-ignore a11y_click_events_have_key_events -->
-                  <!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
-                  <div
-                    class="vinyl-record-clicker cursor-pointer w-full h-full"
-                    onclick={handleRecordClick}
-                    role="button"
-                    tabindex="0"
-                    aria-label="Open tracklist"
-                  >
+                  <!-- Toggleable Vinyl OR Cassette Model -->
+                  {#if isVinylView}
+                    <!-- Vinyl view clicker -->
+                    <!-- svelte-ignore a11y_click_events_have_key_events -->
+                    <!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
                     <div
-                      class="vinyl-record"
-                      class:spinning={audioCore.isPlaying}
+                      class="vinyl-record-clicker cursor-pointer w-full h-full"
+                      onclick={handleRecordClick}
+                      role="button"
+                      tabindex="0"
+                      aria-label="Open tracklist"
                     >
-                      <div class="groove g1"></div>
-                      <div class="groove g2"></div>
-                      <div class="groove g3"></div>
-                      <div class="groove g4"></div>
-                      <div class="record-label">
-                        <img
-                          src={audioCore.fetchErrors[currentTrack.id] ||
-                          !currentTrack.cover
-                            ? ERROR_COVER
-                            : currentTrack.cover}
-                          alt={currentTrack.album}
-                          loading="lazy"
-                          class="record-art"
-                          class:loaded={vinylLoaded}
-                          onload={() => (vinylLoaded = true)}
-                          onerror={handleCoverError}
-                        />
+                      <div
+                        class="vinyl-record"
+                        class:spinning={audioCore.isPlaying}
+                      >
+                        <div class="groove g1"></div>
+                        <div class="groove g2"></div>
+                        <div class="groove g3"></div>
+                        <div class="groove g4"></div>
+                        <div class="record-label">
+                          <img
+                            src={audioCore.fetchErrors[currentTrack.id] ||
+                            !currentTrack.cover
+                              ? ERROR_COVER
+                              : currentTrack.cover}
+                            alt={currentTrack.album}
+                            loading="lazy"
+                            class="record-art"
+                            class:loaded={vinylLoaded}
+                            onload={() => (vinylLoaded = true)}
+                            onerror={handleCoverError}
+                          />
+                        </div>
+                        <div class="spindle"></div>
                       </div>
-                      <div class="spindle"></div>
+                      <div
+                        class="tonearm"
+                        class:playing={audioCore.isPlaying}
+                      ></div>
                     </div>
+                  {:else}
+                    <!-- Cassette view clicker -->
+                    <!-- svelte-ignore a11y_click_events_have_key_events -->
+                    <!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
                     <div
-                      class="tonearm"
-                      class:playing={audioCore.isPlaying}
-                    ></div>
-                  </div>
+                      class="cassette-container-clicker cursor-pointer w-full h-full flex items-center justify-center p-4 relative"
+                      onclick={handleRecordClick}
+                      role="button"
+                      tabindex="0"
+                      aria-label="Open tracklist"
+                    >
+                      {@const leftSpoolRatio = audioCore.duration > 0 ? (1 - (audioCore.currentTime / audioCore.duration)) * 0.45 + 0.25 : 0.48}
+                      {@const rightSpoolRatio = audioCore.duration > 0 ? (audioCore.currentTime / audioCore.duration) * 0.45 + 0.25 : 0.48}
+                      <div class="cassette-tape">
+                        <div class="cassette-label bg-gradient-to-r from-purple-800 to-pink-700">
+                          <span class="cassette-track-title">{currentTrack.title}</span>
+                          <span class="cassette-brand">WEAREDOGS AUDIO</span>
+                        </div>
+                        <div class="cassette-window bg-zinc-950/80">
+                          <div class="spindle-left bg-zinc-900" class:spinning={audioCore.isPlaying}></div>
+                          <div
+                            class="tape-roll-left bg-amber-950/70"
+                            class:spinning={audioCore.isPlaying}
+                            style="width: {leftSpoolRatio * 46}px; height: {leftSpoolRatio * 46}px;"
+                          ></div>
+                          <div class="spindle-right bg-zinc-900" class:spinning={audioCore.isPlaying}></div>
+                          <div
+                            class="tape-roll-right bg-amber-950/70"
+                            class:spinning={audioCore.isPlaying}
+                            style="width: {rightSpoolRatio * 46}px; height: {rightSpoolRatio * 46}px;"
+                          ></div>
+                        </div>
+                      </div>
+                    </div>
+                  {/if}
+                {/if}
+
+                <!-- Model view toggle button -->
+                {#if !showVisualizer}
+                  <button
+                    class="model-toggle-btn absolute top-2 right-2 bg-black/60 border border-white/10 hover:border-white/30 text-[9px] tracking-widest font-mono font-bold px-2 py-1 rounded text-white z-20 flex items-center gap-1 transition-all"
+                    onclick={(e) => {
+                      e.stopPropagation();
+                      isVinylView = !isVinylView;
+                    }}
+                    title="Toggle vinyl or cassette"
+                  >
+                    {isVinylView ? "CASSETTE" : "VINYL"}
+                  </button>
                 {/if}
               </div>
 
@@ -963,22 +1039,29 @@
               <!-- Seek bar -->
               <div class="progress-row">
                 <span class="ptime">{fmtTime(audioCore.currentTime)}</span>
-                <div class="progress-wrap">
-                  <div
-                    class="progress-fill"
-                    style="width:{audioCore.duration > 0
-                      ? (audioCore.currentTime / audioCore.duration) * 100
-                      : 0}%"
-                  ></div>
+                <div class="progress-wrap waveform-slider-wrap relative h-9 flex items-end">
+                  <!-- Waveform bars -->
+                  <div class="waveform-bars flex items-end justify-between absolute inset-0 pointer-events-none px-1 h-full">
+                    {#each waveformPeaks as peak, idx}
+                      {@const progress = audioCore.duration > 0 ? (audioCore.currentTime / audioCore.duration) : 0}
+                      {@const barProgress = idx / 60}
+                      <span
+                        class="waveform-bar transition-colors duration-100 rounded-t"
+                        class:active={barProgress <= progress}
+                        style="height: {peak}%; width: 3px;"
+                      ></span>
+                    {/each}
+                  </div>
+
                   <input
                     type="range"
-                    class="seek-input"
+                    class="seek-input absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                     min="0"
                     max={audioCore.duration || 100}
                     step="0.1"
                     value={audioCore.currentTime}
                     oninput={(e) => {
-                      audioCore.currentTime = parseFloat(e.target.value);
+                      audioCore.seek(parseFloat(e.target.value));
                     }}
                     onchange={(e) => {
                       audioCore.play(parseFloat(e.target.value));
@@ -988,6 +1071,7 @@
                 </div>
                 <span class="ptime">{fmtTime(audioCore.duration)}</span>
               </div>
+
 
               <!-- Player main buttons -->
               <div class="controls-row">
@@ -1767,4 +1851,163 @@
     pointer-events: none;
     z-index: 99999;
   }
+
+  /* ── Cassette Tape Visual ── */
+  .cassette-tape {
+    width: 200px;
+    height: 125px;
+    background: linear-gradient(135deg, #1f1f23 0%, #0d0d0f 100%);
+    border: 3px solid #2d2d34;
+    border-radius: 10px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+    box-sizing: border-box;
+    
+    @media (min-width: 640px) {
+      width: 240px;
+      height: 150px;
+      border-width: 4px;
+      padding: 12px;
+    }
+  }
+
+  .cassette-label {
+    width: 100%;
+    height: 38px;
+    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-family: monospace;
+    font-weight: bold;
+    padding: 2px;
+    box-sizing: border-box;
+    text-transform: uppercase;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    
+    @media (min-width: 640px) {
+      height: 46px;
+    }
+  }
+
+  .cassette-track-title {
+    font-size: 9px;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 90%;
+    
+    @media (min-width: 640px) {
+      font-size: 11px;
+    }
+  }
+
+  .cassette-brand {
+    font-size: 7px;
+    opacity: 0.8;
+    margin-top: 1px;
+    letter-spacing: 0.1em;
+    
+    @media (min-width: 640px) {
+      font-size: 8px;
+      margin-top: 2px;
+    }
+  }
+
+  .cassette-window {
+    width: 110px;
+    height: 40px;
+    border: 2px solid #3f3f46;
+    border-radius: 5px;
+    position: relative;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    margin-top: 6px;
+    overflow: hidden;
+    
+    @media (min-width: 640px) {
+      width: 130px;
+      height: 48px;
+      margin-top: 8px;
+    }
+  }
+
+  .spindle-left, .spindle-right {
+    width: 18px;
+    height: 18px;
+    border: 3px dashed #71717a;
+    border-radius: 50%;
+    box-sizing: border-box;
+    z-index: 5;
+    
+    @media (min-width: 640px) {
+      width: 22px;
+      height: 22px;
+      border-width: 4px;
+    }
+    
+    &.spinning {
+      animation: rotate-spindle 4s linear infinite;
+    }
+  }
+
+  .tape-roll-left, .tape-roll-right {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    border-radius: 50%;
+    z-index: 1;
+    opacity: 0.85;
+    
+    &.spinning {
+      animation: rotate-spindle 6s linear infinite;
+    }
+  }
+
+  .tape-roll-left {
+    left: 12px;
+    transform: translate(0, -50%);
+    @media (min-width: 640px) {
+      left: 16px;
+    }
+  }
+
+  .tape-roll-right {
+    right: 12px;
+    transform: translate(0, -50%);
+    @media (min-width: 640px) {
+      right: 16px;
+    }
+  }
+
+  @keyframes rotate-spindle {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  /* ── Waveform seek slider styling ── */
+  .waveform-slider-wrap {
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+  }
+
+  .waveform-bar {
+    background-color: rgba(255, 255, 255, 0.15);
+    
+    &.active {
+      background: linear-gradient(180deg, #ff007f 0%, #00f0ff 100%);
+      box-shadow: 0 0 4px rgba(0, 240, 255, 0.3);
+    }
+  }
 </style>
+
