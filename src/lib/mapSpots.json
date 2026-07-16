@@ -1,56 +1,125 @@
 [
   {
+    "id": "chicken-and-the-wolf",
+    "name": "Chicken and the Wolf",
+    "cityName": "New York",
+    "category": "restaurants",
+    "subCategory": "Bars",
+    "rating": 4.9,
+    "mapsUrl": "https://maps.google.com/?q=Chicken+and+the+Wolf+New+York",
+    "description": "Legendary Nashville hot chicken sandwiches, tenders, and loaded fries.",
+    "images": [
+      "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=500&q=80",
+      "https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=500&q=80"
+    ],
+    "reviews": [
+      { "user": "Marcus G.", "text": "The heat levels are wild! Insanely crispy skin and juicy tenders.", "rating": 5 },
+      { "user": "Chloe B.", "text": "Wolf Hot level literally set my tongue on fire. 10/10 will do again.", "rating": 4.8 }
+    ],
+    "directions": "MTA L Train to Bedford Ave Station, walk 2 blocks north to Berry Street."
+  },
+  {
+    "id": "oppa-house-bbq",
+    "name": "Oppa House BBQ",
+    "cityName": "Tokyo",
+    "category": "restaurants",
+    "subCategory": "Mexican",
+    "rating": 4.8,
+    "mapsUrl": "https://maps.google.com/?q=Oppa+House+BBQ+Tokyo",
+    "description": "Authentic charcoal tabletop Korean BBQ featuring premium Wagyu beef and local side dishes.",
+    "images": [
+      "https://images.unsplash.com/photo-1544025162-d76694265947?w=500&q=80",
+      "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=500&q=80"
+    ],
+    "reviews": [
+      { "user": "Kenji T.", "text": "Tabletop grilling experience was incredible. Premium cuts are super soft.", "rating": 5 },
+      { "user": "Yuki M.", "text": "Best beef short ribs in the district. Cozy, authentic smoky vibe.", "rating": 4.6 }
+    ],
+    "directions": "JR Yamanote Line to Shibuya Station, walk 5 minutes toward the alleyways near Hachiko."
+  },
+  {
     "id": "brandos-espresso",
     "name": "Brando's Espresso Bar",
+    "cityName": "London",
     "category": "restaurants",
     "subCategory": "Coffee Shops",
-    "rating": 2.5,
-    "mapsUrl": "https://maps.google.com/?q=Brando's+Espresso+Bar",
-    "description": "Premium roasted coffee, dog friendly treats."
+    "rating": 4.5,
+    "mapsUrl": "https://maps.google.com/?q=Brando's+Espresso+London",
+    "description": "Premium double-roasted coffee and pup cups on a cozy outdoor terrace.",
+    "images": [
+      "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=500&q=80"
+    ],
+    "reviews": [
+      { "user": "Arthur P.", "text": "Strongest flat white in the neighborhood. Dogs are welcomed warmly.", "rating": 4.5 }
+    ],
+    "directions": "Underground to Covent Garden Station, walk 3 minutes past the plaza."
   },
   {
     "id": "doggie-pub",
-    "name": "Doggie Pub",
+    "name": "Doggie Pub & Lounge",
+    "cityName": "Sydney",
     "category": "restaurants",
     "subCategory": "Bars",
-    "rating": 2.5,
-    "mapsUrl": "https://maps.google.com/?q=Doggie+Pub",
-    "description": "Cold barks on tap, outdoor dog runs."
+    "rating": 4.2,
+    "mapsUrl": "https://maps.google.com/?q=Doggie+Pub+Sydney",
+    "description": "Local craft beers on tap with a wide outdoor yard for dogs to run.",
+    "images": [
+      "https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=500&q=80"
+    ],
+    "reviews": [
+      { "user": "AussieDave", "text": "Great place to grab a pint while the dogs play in the sandbox.", "rating": 4 }
+    ],
+    "directions": "Take Ferry to Circular Quay, walk 10 minutes south down George St."
   },
   {
     "id": "bella-doggy-pasta",
     "name": "Bella Doggy Pasta",
+    "cityName": "London",
     "category": "restaurants",
     "subCategory": "Italian",
-    "rating": 2.5,
-    "mapsUrl": "https://maps.google.com/?q=Bella+Doggy+Pasta",
-    "description": "Famous spaghetti and meatballs for you and your companion."
-  },
-  {
-    "id": "el-barko-taco",
-    "name": "El Barko Taco",
-    "category": "restaurants",
-    "subCategory": "Mexican",
-    "rating": 2.5,
-    "mapsUrl": "https://maps.google.com/?q=El+Barko+Taco",
-    "description": "Crunchy canine tacos and fresh salsas."
+    "rating": 4.6,
+    "mapsUrl": "https://maps.google.com/?q=Bella+Doggy+Pasta+London",
+    "description": "Authentic handmade Italian spaghetti and companion-safe dog marinara pasta.",
+    "images": [
+      "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=500&q=80"
+    ],
+    "reviews": [
+      { "user": "Guiseppe S.", "text": "Tastes like home! Extremely friendly staff who loves our golden retriever.", "rating": 5 }
+    ],
+    "directions": "Underground to King's Cross Station, walk towards Regent's canal."
   },
   {
     "id": "howl-arena",
     "name": "The Howl Arena",
+    "cityName": "Tokyo",
     "category": "concert-halls",
     "subCategory": null,
-    "rating": 2.5,
-    "mapsUrl": "https://maps.google.com/?q=The+Howl+Arena",
-    "description": "Grand amphitheater hosting seasonal barks and symphonies."
+    "rating": 4.7,
+    "mapsUrl": "https://maps.google.com/?q=Tokyo+Dome",
+    "description": "State-of-the-art amphitheater hosting high-fidelity dog symphonies and sound art.",
+    "images": [
+      "https://images.unsplash.com/photo-1506157786151-b8491531f063?w=500&q=80"
+    ],
+    "reviews": [
+      { "user": "Haru K.", "text": "The acoustic engineering is spectacular. Visual projections match the music.", "rating": 5 }
+    ],
+    "directions": "Metro Mita Line to Suidobashi Station, exit towards Tokyo Dome City."
   },
   {
     "id": "pee-hydrant-park",
     "name": "Pee-On-Fire-Hydrant Park",
+    "cityName": "Sydney",
     "category": "free-shit",
     "subCategory": null,
-    "rating": 2.5,
-    "mapsUrl": "https://maps.google.com/?q=Pee-On-Fire-Hydrant+Park",
-    "description": "Over 50 pristine red hydrants. Zero admission cost."
+    "rating": 5.0,
+    "mapsUrl": "https://maps.google.com/?q=Centennial+Park+Sydney",
+    "description": "Pristine fields with over 50 mock fire hydrants. Zero admission cost.",
+    "images": [
+      "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=500&q=80"
+    ],
+    "reviews": [
+      { "user": "Bella's Mom", "text": "Absolute heaven for dogs. Clean grass, fresh water bowls everywhere.", "rating": 5 }
+    ],
+    "directions": "Take Bus 352 to Centennial Park gates, walk towards the middle playground."
   }
 ]
