@@ -862,6 +862,8 @@
                   class="relative w-full aspect-video bg-black/40 border border-zinc-800 rounded-2xl overflow-hidden shadow-lg group max-h-[200px] sm:max-h-[260px] md:max-h-[320px] lg:max-h-[360px] xl:max-h-[400px]"
                   ontouchstart={handleTouchStart}
                   ontouchend={handleTouchEnd}
+                  role="region"
+                  aria-label="Campaign Media Showcase"
                 >
                   {#key activeImageIdx}
                     {#if currentMediaItem}
@@ -874,6 +876,7 @@
                               direction: scrollDirection,
                             }}
                             src={currentMediaItem.url}
+                            title="Fundraiser video player"
                             class="absolute inset-0 w-full h-full"
                             style="border: none;"
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
