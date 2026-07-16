@@ -169,16 +169,6 @@
       });
   }
 
-  let milestoneScrollContainer = $state(null);
-
-  function handleRightSideWheel(e) {
-    if (window.innerWidth < 640) return;
-    if (milestoneScrollContainer) {
-      milestoneScrollContainer.scrollTop += e.deltaY;
-      e.preventDefault();
-    }
-  }
-
   // Load products and campaigns on mount
   onMount(async () => {
     try {
@@ -993,8 +983,7 @@
 
               <!-- Right Side: Details & Milestone Progression (Col 5) -->
               <div
-                class="sm:col-span-5 flex flex-col justify-between bg-zinc-900/20 border border-zinc-800/60 p-4 sm:p-5 lg:p-6 rounded-2xl sm:sticky sm:top-1.5 md:top-2 lg:top-2.5 sm:overflow-hidden"
-                onwheel={handleRightSideWheel}
+                class="sm:col-span-5 flex flex-col justify-between bg-zinc-900/20 border border-zinc-800/60 p-4 sm:p-5 lg:p-6 rounded-2xl"
               >
                 <div>
                   <div
@@ -1092,10 +1081,7 @@
                         class="text-[9px] text-zinc-500 tracking-widest uppercase font-bold"
                         >MILESTONE TARGETS</span
                       >
-                      <div
-                        bind:this={milestoneScrollContainer}
-                        class="flex flex-col gap-2 sm:max-h-[110px] sm:overflow-y-auto pr-1 pb-4"
-                      >
+                      <div class="flex flex-col gap-2 pb-4">
                         {#each selectedCampaign.milestones as milestone}
                           {@const isAchieved =
                             progressPct >= milestone.percentage}
