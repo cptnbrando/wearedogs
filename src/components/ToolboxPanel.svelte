@@ -21,6 +21,7 @@
     FileText,
     Gamepad2,
     Component,
+    Search,
   } from "lucide-svelte";
   import DogsLogo from "./DogsLogo.svelte";
   import AppCard from "./AppCard.svelte";
@@ -66,6 +67,7 @@
     converter: "./apps/CatalyticConverter.svelte",
     reader: "./apps/ImageReader.svelte",
     windshieldwiper: "./apps/WindshieldWiper.svelte",
+    missingcreatures: "./apps/MissingCreatures.svelte",
   };
 
   // Lazy loaded app components caching
@@ -255,6 +257,12 @@
       title: "Dog Soundboard",
       desc: "Play high fidelity dog bark synthesizers.",
       icon: Volume2,
+    },
+    {
+      id: "missingcreatures",
+      title: "Missing Creatures",
+      desc: "Investigate cryptids and global missing anomalies.",
+      icon: Search,
     },
     /* {
       id: "memes",
