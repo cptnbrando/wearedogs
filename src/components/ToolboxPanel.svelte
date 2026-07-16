@@ -86,6 +86,7 @@
   });
 
   let displayedTitle = $state("TOOLBOX");
+  let dummyTitle = $state("TOOLBOX");
   let typewriterTimeout = null;
 
   let headerContainerWidth = $state(0);
@@ -125,15 +126,24 @@
     const target = currentTargetTitle;
     const current = displayedTitle;
 
-    if (current === target) return;
+    if (current === target) {
+      dummyTitle = target;
+      return;
+    }
 
     // Animate characters (backspace first, then type in)
     if (target.startsWith(current)) {
+      dummyTitle = target;
       displayedTitle = target.slice(0, current.length + 1);
-      typewriterTimeout = setTimeout(stepTypewriter, 35);
+      typewriterTimeout = setTimeout(stepTypewriter, 24);
     } else {
       displayedTitle = current.slice(0, -1);
-      typewriterTimeout = setTimeout(stepTypewriter, 15);
+      if (displayedTitle === "") {
+        // Only update dummyTitle (which shifts container width and center)
+        // after the old name has been fully backspaced / deleted.
+        dummyTitle = target;
+      }
+      typewriterTimeout = setTimeout(stepTypewriter, 10);
     }
   }
 
@@ -410,7 +420,7 @@
       </button>
 
       <div class="active-app-header-box">
-        <span class="app-indicator-icon flex items-center justify-center">
+        <span class="app-indicator-icon flex items-center justify-center w-6 mr-1.5 shrink-0">
           {#if currentHeaderDetails.isEmoji}
             🔥
           {:else}
@@ -436,10 +446,11 @@
             bind:clientWidth={headerTextWidth}
             class:animate-scroll={headerTextWidth > headerContainerWidth}
           >
-            <span class="invisible-dummy">{currentTargetTitle}</span>
+            <span class="invisible-dummy">{dummyTitle}</span>
             <span class="typewriter-content">{displayedTitle}</span>
           </h1>
         </div>
+        <div class="w-6 ml-1.5 shrink-0 pointer-events-none"></div>
       </div>
 
       <button
