@@ -22,11 +22,6 @@
   import DogsLogo from "./DogsLogo.svelte";
   import { audioCore } from "../lib/AudioCore.svelte.js";
   import countryStats from "../lib/countryStats.js";
-  import ExplorerTab from "./stats/ExplorerTab.svelte";
-  import MapTab from "./stats/MapTab.svelte";
-  import ComparisonTab from "./stats/ComparisonTab.svelte";
-  import AnimalsTab from "./stats/AnimalsTab.svelte";
-  import ThemesTab from "./stats/ThemesTab.svelte";
 
   let {
     isClosing = false,
@@ -37,6 +32,33 @@
   } = $props();
 
   let activeTab = $state("explorer");
+
+  // 1. Tell Vite to code-split and load all .svelte tabs inside stats/
+  const tabModules = import.meta.glob("./stats/*.svelte");
+
+  // 2. Map tab ids to their relative paths from this file
+  const tabPathMap = {
+    explorer: "./stats/ExplorerTab.svelte",
+    map: "./stats/MapTab.svelte",
+    comparison: "./stats/ComparisonTab.svelte",
+    animals: "./stats/AnimalsTab.svelte",
+    themes: "./stats/ThemesTab.svelte"
+  };
+
+  // Lazy loaded tab components caching
+  let loadedTabs = $state({});
+
+  $effect(() => {
+    if (activeTab && !loadedTabs[activeTab]) {
+      const path = tabPathMap[activeTab];
+      const loader = tabModules[path];
+      if (loader) {
+        loader().then((m) => {
+          loadedTabs[activeTab] = m.default;
+        });
+      }
+    }
+  });
 
   const userLocale =
     typeof navigator !== "undefined" ? navigator.language : "en";
@@ -503,39 +525,36 @@
         ontouchstart={handleTouchStart}
         ontouchend={handleTouchEnd}
       >
-        {#if activeTab === "explorer"}
+        {#if loadedTabs[activeTab]}
+          {@const Tab = loadedTabs[activeTab]}
           <div in:fade={{ duration: 120, delay: 120 }} out:fade={{ duration: 120 }}>
-            <ExplorerTab
-              {allLangItems}
-              bind:currentLang
-              {handleHover}
-              {handleSelect}
-            />
+            {#if activeTab === "explorer"}
+              <Tab
+                {allLangItems}
+                bind:currentLang
+                {handleHover}
+                {handleSelect}
+              />
+            {:else if activeTab === "map"}
+              <Tab
+                {activeColor}
+                {activeLangItem}
+                {activeCountries}
+                {enrichedCountryStats}
+                {countryColorsMap}
+                {countryLanguagesMap}
+                {handleCountrySelect}
+              />
+            {:else if activeTab === "comparison"}
+              <Tab {enrichedCountryStats} />
+            {:else if activeTab === "animals"}
+              <Tab {allLangItems} />
+            {:else if activeTab === "themes"}
+              <Tab {allLangItems} {onSelectLang} />
+            {/if}
           </div>
-        {:else if activeTab === "map"}
-          <div in:fade={{ duration: 120, delay: 120 }} out:fade={{ duration: 120 }}>
-            <MapTab
-              {activeColor}
-              {activeLangItem}
-              {activeCountries}
-              {enrichedCountryStats}
-              {countryColorsMap}
-              {countryLanguagesMap}
-              {handleCountrySelect}
-            />
-          </div>
-        {:else if activeTab === "comparison"}
-          <div in:fade={{ duration: 120, delay: 120 }} out:fade={{ duration: 120 }}>
-            <ComparisonTab {enrichedCountryStats} />
-          </div>
-        {:else if activeTab === "animals"}
-          <div in:fade={{ duration: 120, delay: 120 }} out:fade={{ duration: 120 }}>
-            <AnimalsTab {allLangItems} />
-          </div>
-        {:else if activeTab === "themes"}
-          <div in:fade={{ duration: 120, delay: 120 }} out:fade={{ duration: 120 }}>
-            <ThemesTab {allLangItems} {onSelectLang} />
-          </div>
+        {:else}
+          <div class="tab-loading-spinner" aria-label="Loading..."></div>
         {/if}
       </main>
 

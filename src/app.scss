@@ -53,7 +53,7 @@ body {
 
 /* Firefox standard styling */
 * {
-    scrollbar-width: thin;
+    scrollbar-width: none;
     scrollbar-color: var(--color-neon-red, #ff3344) var(--bg-app, #050508);
 }
 

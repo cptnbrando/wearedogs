@@ -12,12 +12,6 @@
     ChevronDown,
   } from "lucide-svelte";
   import WeAreDogs from "./WeAreDogs.svelte";
-  import StatsPanel from "./StatsPanel.svelte";
-  import ToolboxPanel from "./ToolboxPanel.svelte";
-  import MusicPanel from "./MusicPanel.svelte";
-  import StorePanel from "./StorePanel.svelte";
-  import MapPanel from "./MapPanel.svelte";
-  import InfoPanel from "./InfoPanel.svelte";
   import { parsePath, panelToUrl, appToUrl } from "../lib/router.svelte.js";
   import { audioCore } from "../lib/AudioCore.svelte.js";
 
@@ -33,6 +27,56 @@
   let activeApp = $state(null);
   let textIsPaused = $state(false);
 
+  // 1. Tell Vite to code-split all sibling panel components in this directory
+  const panelModules = import.meta.glob("./*.svelte");
+
+  // 2. Map panel keys to their relative paths from this file
+  const panelPathMap = {
+    stats: "./StatsPanel.svelte",
+    toolbox: "./ToolboxPanel.svelte",
+    music: "./MusicPanel.svelte",
+    store: "./StorePanel.svelte",
+    map: "./MapPanel.svelte",
+    info: "./InfoPanel.svelte"
+  };
+
+  // Lazy loaded panel components caching
+  let loadedPanels = $state({});
+
+  $effect(() => {
+    if (activePage && !loadedPanels[activePage]) {
+      const path = panelPathMap[activePage];
+      const loader = panelModules[path];
+      if (loader) {
+        loader().then((m) => {
+          loadedPanels[activePage] = m.default;
+        });
+      }
+    }
+  });
+
+  $effect(() => {
+    if (showInfo && !loadedPanels.info) {
+      const loader = panelModules["./InfoPanel.svelte"];
+      if (loader) {
+        loader().then((m) => {
+          loadedPanels.info = m.default;
+        });
+      }
+    }
+  });
+
+  function preloadPanel(page) {
+    if (loadedPanels[page]) return;
+    const path = panelPathMap[page];
+    const loader = panelModules[path];
+    if (loader) {
+      loader().then((m) => {
+        loadedPanels[page] = m.default;
+      });
+    }
+  }
+
   let prevIsLandingPage = $state(true);
   $effect(() => {
     const current = isLandingPage;
@@ -44,6 +88,66 @@
 
   $effect(() => {
     locale.set(activeLang);
+  });
+
+  $effect(() => {
+    if (activePage !== null || showInfo) {
+      document.body.style.overflow = "hidden";
+
+      const handleGlobalWheel = (e) => {
+        const backdrop = document.querySelector(".toolbox-panel-backdrop");
+        if (!backdrop) return;
+
+        let scrollContainer = null;
+
+        // Case 1: GoPro App is active
+        const gopro = document.querySelector(".gopro-layout");
+        if (gopro) {
+          const episodes = document.querySelector(".episodes-swipe-wrapper");
+          if (episodes && episodes.clientHeight > 0) {
+            scrollContainer = episodes;
+          }
+        }
+
+        // Case 2: Main launcher grid
+        if (!scrollContainer) {
+          const launcher = document.querySelector(".launcher-view");
+          if (launcher && launcher.clientHeight > 0) {
+            scrollContainer = launcher;
+          }
+        }
+
+        // Case 3: Other apps (like rescue, settings, changelog, soundboard)
+        if (!scrollContainer) {
+          const body = document.querySelector(".panel-body");
+          if (body) {
+            const scrollables = body.querySelectorAll("*");
+            for (const el of scrollables) {
+              const style = window.getComputedStyle(el);
+              if (
+                (style.overflowY === "auto" || style.overflowY === "scroll" || el.classList.contains("shows-list-flow")) &&
+                el.scrollHeight > el.clientHeight &&
+                el.clientHeight > 0
+              ) {
+                scrollContainer = el;
+                break;
+              }
+            }
+          }
+        }
+
+        if (scrollContainer && !scrollContainer.contains(e.target)) {
+          scrollContainer.scrollTop += e.deltaY;
+          e.preventDefault();
+        }
+      };
+
+      window.addEventListener("wheel", handleGlobalWheel, { passive: false });
+      return () => {
+        document.body.style.overflow = "";
+        window.removeEventListener("wheel", handleGlobalWheel);
+      };
+    }
   });
 
   $effect(() => {
@@ -79,6 +183,7 @@
   let deepLinkGoProShow = $state(null);
   let deepLinkGoProEp = $state(null);
   let deepLinkBlogPostSlug = $state(null);
+  let deepLinkArcadeGame = $state(null);
 
   // ---------------------------------------------------------------------------
   // URL Routing — parse deep-link on first mount
@@ -124,6 +229,17 @@
       openPage("toolbox");
       setTimeout(() => {
         deepLinkApp = null;
+      }, 400);
+      return;
+    }
+
+    if (params.type === "arcade-game") {
+      deepLinkApp = "arcade";
+      deepLinkArcadeGame = params.game;
+      openPage("toolbox");
+      setTimeout(() => {
+        deepLinkApp = null;
+        deepLinkArcadeGame = null;
       }, 400);
       return;
     }
@@ -314,7 +430,7 @@
     const tag = document.activeElement?.tagName;
     if (tag === "INPUT" || tag === "TEXTAREA" || document.activeElement?.isContentEditable) return;
 
-    if (e.key === "Escape") {
+    if (e.key === "Escape" || e.key === "Backspace") {
       // If inside a toolbox sub-app, ToolboxPanel's Escape handler takes the first press
       // (app → grid). We only close the panel once the grid is showing (activeApp === null).
       if (activePage === "toolbox" && activeApp !== null) return;
@@ -350,6 +466,8 @@
       <!-- Store -->
       <button
         class="runic-btn border-neon-red"
+        onmouseenter={() => preloadPanel("store")}
+        ontouchstart={() => preloadPanel("store")}
         onclick={(e) => {
           e.stopPropagation();
           openPage("store");
@@ -364,6 +482,8 @@
       <button
         class="runic-btn border-neon-purple"
         class:rune-dancing={audioCore.isPlaying}
+        onmouseenter={() => preloadPanel("music")}
+        ontouchstart={() => preloadPanel("music")}
         onclick={(e) => {
           e.stopPropagation();
           openPage("music");
@@ -377,6 +497,8 @@
       <!-- App Launcher -->
       <button
         class="runic-btn border-neon-orange"
+        onmouseenter={() => preloadPanel("toolbox")}
+        ontouchstart={() => preloadPanel("toolbox")}
         onclick={(e) => {
           e.stopPropagation();
           openPage("toolbox");
@@ -403,6 +525,8 @@
       <!-- Map -->
       <button
         class="runic-btn border-neon-green"
+        onmouseenter={() => preloadPanel("map")}
+        ontouchstart={() => preloadPanel("map")}
         onclick={(e) => {
           e.stopPropagation();
           openPage("map");
@@ -417,49 +541,52 @@
 </WeAreDogs>
 
 <!-- Overlay Panels -->
-{#if activePage === "stats"}
-  <StatsPanel
-    {isClosing}
-    currentLang={activeLang}
-    onClose={closePage}
-    onHoverLang={(code) => {
-      activeLang = code;
-    }}
-    onSelectLang={(code) => {
-      activeLang = code;
-      if (weAreDogsRef) {
-        weAreDogsRef.forceLanguage(code);
-      }
-    }}
-  />
-{:else if activePage === "networking"}
+{#if activePage === "networking"}
   <NetworkingPanel {isClosing} onClose={closePage} />
-{:else if activePage === "toolbox"}
-  <ToolboxPanel
-    {isClosing}
-    onClose={closePage}
-    bind:activeApp
-    initialApp={deepLinkApp}
-    goProShow={deepLinkGoProShow}
-    goProEpisode={deepLinkGoProEp}
-    bind:blogPostSlug={deepLinkBlogPostSlug}
-    bind:depth
-    isFlagColors={weAreDogsColored}
-  />
-{:else if activePage === "music"}
-  <MusicPanel {isClosing} onClose={closePage} {initialTrackId} />
-{:else if activePage === "store"}
-  <StorePanel {isClosing} onClose={closePage} />
-{:else if activePage === "map"}
-  <MapPanel {isClosing} onClose={closePage} />
+{:else if activePage}
+  {#if loadedPanels[activePage]}
+    {@const Panel = loadedPanels[activePage]}
+    {#if activePage === "stats"}
+      <Panel
+        {isClosing}
+        currentLang={activeLang}
+        onClose={closePage}
+        onHoverLang={(code) => { activeLang = code; }}
+        onSelectLang={(code) => {
+          activeLang = code;
+          if (weAreDogsRef) weAreDogsRef.forceLanguage(code);
+        }}
+      />
+    {:else if activePage === "toolbox"}
+      <Panel
+        {isClosing}
+        onClose={closePage}
+        bind:activeApp
+        initialApp={deepLinkApp}
+        goProShow={deepLinkGoProShow}
+        goProEpisode={deepLinkGoProEp}
+        bind:blogPostSlug={deepLinkBlogPostSlug}
+        bind:depth
+        isFlagColors={weAreDogsColored}
+        {deepLinkArcadeGame}
+      />
+    {:else if activePage === "music"}
+      <Panel {isClosing} onClose={closePage} {initialTrackId} />
+    {:else if activePage === "store" || activePage === "map"}
+      <Panel {isClosing} onClose={closePage} />
+    {/if}
+  {:else}
+    <div class="panel-loading-spinner" aria-label="Loading..."></div>
+  {/if}
 {/if}
 
 {#if showInfo}
-  <InfoPanel
-    onClose={() => {
-      if (showInfo) history.back();
-    }}
-  />
+  {#if loadedPanels.info}
+    {@const Panel = loadedPanels.info}
+    <Panel onClose={() => { if (showInfo) history.back(); }} />
+  {:else}
+    <div class="panel-loading-spinner" aria-label="Loading..."></div>
+  {/if}
 {/if}
 
 <style>
@@ -559,6 +686,42 @@
     }
   }
 
+  @media (max-height: 500px) {
+    .hieroglyphic-nav {
+      gap: 1rem;
+      top: calc(100% + 1rem);
+    }
+
+    .runic-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+    }
+
+    .runic-btn :global(svg) {
+      width: 16px !important;
+      height: 16px !important;
+    }
+  }
+
+  @media (max-height: 350px) {
+    .hieroglyphic-nav {
+      gap: 0.75rem;
+      top: calc(100% + 0.5rem);
+    }
+
+    .runic-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+    }
+
+    .runic-btn :global(svg) {
+      width: 14px !important;
+      height: 14px !important;
+    }
+  }
+
   @keyframes runeDance {
     0%, 100% {
       transform: scale(1) rotate(0deg);
@@ -575,5 +738,32 @@
     animation: runeDance 1s ease-in-out infinite;
     color: #a000eb !important;
     filter: drop-shadow(0 0 8px rgba(160, 0, 237, 0.6));
+  }
+
+  /* Panel lazy-load spinner */
+  .panel-loading-spinner {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  .panel-loading-spinner::after {
+    content: "";
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 3px solid rgba(255, 255, 255, 0.1);
+    border-top-color: rgba(255, 255, 255, 0.7);
+    animation: panelSpinner 0.7s linear infinite;
+  }
+
+  @keyframes panelSpinner {
+    to { transform: rotate(360deg); }
   }
 </style>

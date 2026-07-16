@@ -4,7 +4,7 @@
   import { onMount } from "svelte";
   import DogDisplay from "./DogDisplay.svelte";
 
-  let { isFlagColors = false } = $props();
+  let { isFlagColors = false, active = false } = $props();
 
   let models = $state([]);
   let selectedModelId = $state("");
@@ -12,6 +12,7 @@
     models.find((m) => m.id === selectedModelId) || models[0],
   );
   let isDragging = $state(false);
+  let hasInitialized = false;
 
   // Fisher-Yates Shuffle algorithm
   function shuffle(array) {
@@ -23,43 +24,53 @@
     return newArr;
   }
 
-  onMount(async () => {
-    try {
-      const res = await fetch("/3d/models.json");
-      const data = await res.json();
-      if (data && data.length > 0) {
-        models = shuffle(data);
-        selectedModelId = models[0].id;
-      }
-
-      // Easily set to test dog models & animations here
-      // selectedModelId = "gromit";
-
-      // Dynamically fetch file sizes in the background
-      models.forEach(async (model) => {
-        if (model.path) {
+  // Fetch file size only for the selected model when it changes
+  $effect(() => {
+    if (selectedModel && !selectedModel.fileSize && selectedModel.path) {
+      const model = models.find((m) => m.id === selectedModelId);
+      if (model && !model.fileSize) {
+        (async () => {
           try {
             const headRes = await fetch(model.path, { method: "HEAD" });
             const size = headRes.headers.get("content-length");
             if (size) {
               const bytes = parseInt(size, 10);
-              let sizeStr = "";
-              if (bytes >= 1048576) {
-                sizeStr = (bytes / 1048576).toFixed(1) + "mb";
-              } else {
-                sizeStr = Math.round(bytes / 1024) + "kb";
-              }
-              model.fileSize = sizeStr;
+              model.fileSize =
+                bytes >= 1048576
+                  ? (bytes / 1048576).toFixed(1) + "mb"
+                  : Math.round(bytes / 1024) + "kb";
             }
           } catch (err) {
             console.warn(`Could not fetch size for ${model.name}:`, err);
           }
-        }
-      });
-    } catch (err) {
-      console.error("Failed to load models list:", err);
+        })();
+      }
     }
+  });
 
+  // Only initialize models when the page becomes active — no fetch on cold load
+  $effect(() => {
+    if (!active || hasInitialized) return;
+    hasInitialized = true;
+    (async () => {
+      try {
+        const res = await fetch("/3d/models.json");
+        const data = await res.json();
+        if (data && data.length > 0) {
+          models = shuffle(data);
+          selectedModelId = models[0].id;
+        }
+
+        // Easily set to test dog models & animations here
+        const DEFAULT_MODEL = "dug";
+        selectedModelId = DEFAULT_MODEL;
+      } catch (err) {
+        console.error("Failed to load models list:", err);
+      }
+    })();
+  });
+
+  onMount(() => {
     const handleGlobalKeydown = (e) => {
       if (
         document.activeElement &&

@@ -117,13 +117,13 @@
   <!-- Left Side-rail Navigation (Visible on Tablet & Desktop) -->
   <nav class="hidden md:flex flex-col w-48 border-r border-white/5 bg-black/30 p-4 shrink-0 justify-between select-none">
     <div>
-      <div class="flex items-center gap-2 px-2 py-1 mb-6 border-b border-white/5 pb-4">
+      <!-- <div class="flex items-center gap-2 px-2 py-1 mb-6 border-b border-white/5 pb-4">
         <HourglassIcon class="text-sky-400 animate-spin-slow" size={20} />
         <div>
           <h1 class="text-xs font-black uppercase text-white tracking-widest leading-none">Father Time</h1>
           <span class="text-[8px] font-bold text-sky-400/60 uppercase tracking-widest mt-0.5 block">Timekeeper App</span>
         </div>
-      </div>
+      </div> -->
 
       <div class="flex flex-col gap-1">
         {#each TABS_CONFIG as tab}
@@ -150,10 +150,10 @@
 
   <!-- Top bar (Visible on Mobile Landscape) -->
   <div class="md:hidden flex items-center justify-between border-b border-white/5 bg-black/40 px-4 py-2.5 select-none shrink-0 w-full">
-    <div class="flex items-center gap-2">
+    <!-- <div class="flex items-center gap-2">
       <HourglassIcon class="text-sky-400" size={15} />
       <span class="text-[11px] font-extrabold uppercase text-white tracking-widest">Father Time</span>
-    </div>
+    </div> -->
     <div class="text-right font-mono text-[10px] text-sky-400 font-bold">{digitalTime}</div>
   </div>
 

@@ -28,6 +28,7 @@
     Share2,
     Check,
     AlertTriangle,
+    Swords,
   } from "lucide-svelte";
   import { audioCore } from "../lib/AudioCore.svelte.js";
   import { VisualizerEngine } from "../lib/visualizer/VisualizerEngine.js";
@@ -44,6 +45,7 @@
     { id: "samples", label: "Samples", icon: Mic2 },
     { id: "playlists", label: "Playlists", icon: Radio },
     { id: "radio", label: "Radio", icon: BoomBox },
+    { id: "battle", label: "Battle", icon: Swords },
   ];
 
   const ERROR_COVER = "/img/error_cover.png";
@@ -59,6 +61,17 @@
   // Tab: 'songs' | 'samples' | 'playlists' | 'radio'
   let activeTab = $state("songs");
   let sortBy = $state("default"); // 'default' | 'artist' | 'album' | 'year' | 'filename' | 'genre' | 'season'
+
+  // Lazy loaded BattlePanel component caching
+  let loadedBattlePanel = $state(null);
+
+  $effect(() => {
+    if (activeTab === "battle" && !loadedBattlePanel) {
+      import("./music/BattlePanel.svelte").then((m) => {
+        loadedBattlePanel = m.default;
+      });
+    }
+  });
   let showMobileTracklist = $state(false);
   let isBouncing = $state(false);
   let vinylLoaded = $state(false);
@@ -166,7 +179,6 @@
       altCover: "https://data.wearedogs.net/img/covers/2026/yg.jpg",
       src: "https://data.wearedogs.net/music/2026/HOLLYWOOD.mp3",
       instrumental: "https://data.wearedogs.net/music/2026/HOLLYWOOD-free.mp3",
-      hasInstrumental: true,
       dateAdded: "2026-06-24T03:00:00-05:00",
       year: 2026,
       genre: "Hip-Hop",
@@ -181,7 +193,6 @@
       altCover: "https://data.wearedogs.net/img/covers/2026/mj.jpg",
       src: "https://data.wearedogs.net/music/2026/Chicago.mp3",
       instrumental: "https://data.wearedogs.net/music/2026/Chicago-free.mp3",
-      hasInstrumental: true,
       dateAdded: "2026-06-24T03:00:00-05:00",
       year: 2014,
       genre: "Pop",
@@ -196,7 +207,6 @@
       altCover: "https://data.wearedogs.net/img/covers/2026/zd.jpg",
       src: "https://data.wearedogs.net/music/2026/Pourin.mp3",
       instrumental: "",
-      hasInstrumental: false,
       dateAdded: "2026-07-07T018:12:00-05:00",
       year: 2026,
       genre: "Electronic",
@@ -207,11 +217,10 @@
       title: "Den Chai",
       artist: "The Buddha-Bar Lounge",
       album: "Den Chai",
-      cover: "/img/covers/buddha.webp",
-      altCover: "",
-      src: "https://data.wearedogs.net/music/2026/DENCHAI.mp3",
-      instrumental: "",
-      hasInstrumental: false,
+      cover: "https://data.wearedogs.net/img/covers/2026/buddha.webp",
+      altCover: "https://data.wearedogs.net/img/covers/2026/buddha.png",
+      src: "",
+      instrumental: "https://data.wearedogs.net/music/2026/DENCHAI.mp3",
       dateAdded: "2026-07-07T22:34:00-05:00",
       year: 2008,
       genre: "Lounge",
@@ -227,11 +236,38 @@
       altCover: "https://data.wearedogs.net/img/covers/2026/rainbow.png",
       src: "https://data.wearedogs.net/music/2026/rainbow.mp3",
       instrumental: "https://data.wearedogs.net/music/2026/rainbow-free.mp3",
-      hasInstrumental: true,
       dateAdded: "2026-07-08T16:35:00-05:00",
       year: 2010,
       genre: "Hip-Hop",
       attrib: "https://dasracist.bandcamp.com/album/shut-up-dude",
+    },
+    {
+      id: "hipsong",
+      title: "Hip Song",
+      artist: "Toby Fox / Trevor Alan Gomes",
+      album: "Deltarune",
+      cover: "https://data.wearedogs.net/img/covers/2026/deltarune.webp",
+      altCover: "https://data.wearedogs.net/img/covers/2026/deltarune.png",
+      src: "https://data.wearedogs.net/music/2026/shop.mp3",
+      instrumental: "https://data.wearedogs.net/music/2026/shop-free.mp3",
+      dateAdded: "2026-07-09T01:22:00-05:00",
+      year: 2021,
+      genre: "Video Game",
+      attrib: "https://deltarune.com/",
+    },
+    {
+      id: "sleepless",
+      title: "Sleepless",
+      artist: "deadmau5",
+      album: "> album title goes here <",
+      cover: "https://data.wearedogs.net/img/covers/2026/sleepless.webp",
+      altCover: "https://data.wearedogs.net/img/covers/2026/sleepless.png",
+      src: "",
+      instrumental: "https://data.wearedogs.net/music/2026/sleepless.mp3",
+      dateAdded: "2026-07-12T04:22:00-05:00",
+      year: 2026,
+      genre: "Electronic",
+      attrib: "https://deadmau5.com/",
     },
   ];
 
@@ -312,6 +348,10 @@
       if (idx !== -1) {
         audioCore.loadTrack(idx, true);
       }
+    } else if (!audioCore.hasPickedRandomTrack) {
+      audioCore.hasPickedRandomTrack = true;
+      const randomIdx = Math.floor(Math.random() * library.length);
+      audioCore.loadTrack(randomIdx, false);
     }
   });
 
@@ -831,7 +871,10 @@
                       <div class="groove g4"></div>
                       <div class="record-label">
                         <img
-                          src={(audioCore.fetchErrors[currentTrack.id] || !currentTrack.cover) ? ERROR_COVER : currentTrack.cover}
+                          src={audioCore.fetchErrors[currentTrack.id] ||
+                          !currentTrack.cover
+                            ? ERROR_COVER
+                            : currentTrack.cover}
                           alt={currentTrack.album}
                           loading="lazy"
                           class="record-art"
@@ -1192,7 +1235,9 @@
                     {/if}
                   </div>
                   <img
-                    src={(audioCore.fetchErrors[track.id] || !track.cover) ? ERROR_COVER : track.cover}
+                    src={audioCore.fetchErrors[track.id] || !track.cover
+                      ? ERROR_COVER
+                      : track.cover}
                     alt={track.album}
                     loading="lazy"
                     class="tr-art"
@@ -1225,7 +1270,7 @@
                         <a
                           href={track.attrib}
                           target="_blank"
-                          onclick={(e) => e.stopPropagation()}>Merch</a
+                          onclick={(e) => e.stopPropagation()}>i</a
                         >
                       </span>
                     {/if}
@@ -1347,6 +1392,19 @@
             <div class="wip-tape">COMING SOON</div>
             <p>Live radio feeds will appear here once connected.</p>
           </div>
+        </div>
+      {:else if activeTab === "battle"}
+        <div
+          class="tab-scroll scroll-y"
+          in:fade={{ duration: 120, delay: 120 }}
+          out:fade={{ duration: 120 }}
+        >
+          {#if loadedBattlePanel}
+            {@const Panel = loadedBattlePanel}
+            <Panel {audioCore} />
+          {:else}
+            <div class="app-loading-spinner" aria-label="Loading..."></div>
+          {/if}
         </div>
       {/if}
     </div>

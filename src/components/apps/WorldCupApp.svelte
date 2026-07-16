@@ -165,7 +165,7 @@
 <div class="wc-container flex flex-col w-full h-full overflow-hidden select-none">
   {#if isLoading}
     <div class="flex flex-col items-center justify-center grow gap-3 text-white/50 text-xs">
-      <RefreshCw size={36} class="animate-spin text-neon-gold" />
+      <RefreshCw size={36} class="animate-spin" style="color: var(--color-neon-gold, #e6b900)" />
       <p>Synchronizing fixtures and standings...</p>
     </div>
   {:else}
@@ -174,7 +174,7 @@
       <div class="wc-left-sidebar flex flex-col shrink-0">
         <!-- Sub Header with Controls -->
         <header class="flex justify-between items-center p-4 bg-black/25 border-b border-white/5 shrink-0">
-          <div class="flex items-center gap-3">
+          <!-- <div class="flex items-center gap-3">
             <div class="text-neon-gold animate-float flex items-center justify-center">
               <Trophy size={24} />
             </div>
@@ -182,7 +182,7 @@
               <h3 class="m-0 text-sm font-extrabold tracking-wider uppercase text-white">FIFA World Cup 2026</h3>
               <p class="m-0 text-[10px] text-white/45">Live Standings, Bracket & Teams (48 Teams)</p>
             </div>
-          </div>
+          </div> -->
           <div class="flex items-center gap-3">
             {#if isOffline}
               <span class="offline-badge text-[9px] font-extrabold tracking-wider bg-red-500/10 border border-red-500/30 text-red-500 px-2 py-1 rounded flex items-center gap-1">
@@ -287,13 +287,7 @@
     color: white;
   }
 
-  .animate-float {
-    animation: trophyFloat 3s ease-in-out infinite alternate;
-  }
 
-  .text-neon-gold {
-    color: $color-neon-gold;
-  }
 
   .offline-badge {
     animation: pulseGlow 2s infinite alternate;

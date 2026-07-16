@@ -8,6 +8,9 @@
     Hourglass,
     Scissors,
     Trophy,
+    RefreshCw,
+    FileText,
+    Gamepad,
   } from "lucide-svelte";
 
   let { appId } = $props();
@@ -78,6 +81,14 @@
       style="color: var(--color-neon-pink, #ff007f); filter: drop-shadow(0 0 6px rgba(255, 0, 127, 0.4));"
     />
   </div>
+{:else if appId === "converter"}
+  <div class="flex items-center justify-center h-full">
+    <RefreshCw
+      size={28}
+      style="color: var(--color-neon-orange, #ff5e00); filter: drop-shadow(0 0 6px rgba(255, 94, 0, 0.4));"
+      class="animate-spin-slow"
+    />
+  </div>
 {:else if appId === "windshieldwiper"}
   <div class="flex items-center justify-center h-full relative overflow-hidden">
     <div class="wiper-icon-container">
@@ -110,6 +121,20 @@
 {:else if appId === "settings"}
   <div class="settings-preview-mini">
     <Settings size={28} class="animate-spin-slow text-white/50" />
+  </div>
+{:else if appId === "reader"}
+  <div class="flex items-center justify-center h-full">
+    <FileText
+      size={28}
+      style="color: var(--color-neon-red, #ff3344); filter: drop-shadow(0 0 6px rgba(255, 51, 68, 0.4));"
+    />
+  </div>
+{:else if appId === "arcade"}
+  <div class="flex items-center justify-center h-full">
+    <Gamepad
+      size={28}
+      style="color: var(--color-neon-gold, #e6b900); filter: drop-shadow(0 0 6px rgba(230, 185, 0, 0.4));"
+    />
   </div>
 {/if}
 
@@ -512,8 +537,19 @@
 
   :global(.app-card:hover) :global(.wiper-blade-animate),
   :global(.app-card.focused) :global(.wiper-blade-animate) {
-    animation: wiper-sweep 1s ease-in-out infinite alternate;
     stroke: #00ffff;
     filter: drop-shadow(0 0 4px rgba(0, 255, 255, 0.8));
+  }
+
+  :global(.animate-spin-slow) {
+    animation: spin-slow 8s linear infinite;
+  }
+  @keyframes spin-slow {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
   }
 </style>

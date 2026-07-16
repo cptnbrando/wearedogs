@@ -675,7 +675,7 @@
   }
 </script>
 
-<BaseApp {appName} {activeTab} onClose={() => onClose()}>
+<BaseApp title={appName} {activeTab} onClose={() => onClose()}>
   <div class="wiper-layout flex flex-col h-full overflow-hidden select-none">
     
     <!-- Workspace Area -->

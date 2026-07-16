@@ -49,6 +49,7 @@
     // Local file caching & pre-flight existence checks
     let streamUrl = $state("");
     let showDownloadPrompt = $state(false);
+    let isFetching = $state(false);
 
     // Seasons selection state
     let selectedSeasons = $state({}); // key: showKey, value: seasonNum
@@ -64,40 +65,46 @@
             streamUrl = "";
             return;
         }
+        isFetching = true;
         try {
-            if (file.startsWith("https://data.wearedogs.net/vid")) {
-                const password =
-                    currentPassword ||
-                    localStorage.getItem("gopro_password") ||
-                    "";
-                const res = await fetch(file, {
-                    headers: {
-                        Authorization: `password=${password}`,
-                    },
-                });
-                if (res.ok) {
-                    const blob = await res.blob();
-                    streamUrl = URL.createObjectURL(blob);
-                } else {
-                    streamUrl = "";
-                    showDownloadPrompt = true;
+            const remoteBase = activeShow.baseUrl || "";
+            const remoteUrl = remoteBase ? `${remoteBase}${file}` : file;
+
+            const password =
+                currentPassword ||
+                localStorage.getItem("gopro_password") ||
+                "";
+
+            // First, try a local HEAD check (serves cached/locally hosted copies)
+            const localFolder = activeShow.baseUrl
+                ? null
+                : (activeShowKey === "Batman Beyond" ? "/batman/" : "/");
+
+            if (localFolder) {
+                const localPath = `${localFolder}${file}`;
+                const localRes = await fetch(localPath, { method: "HEAD" });
+                if (localRes.ok) {
+                    streamUrl = localPath;
+                    return;
                 }
-                return;
             }
-            const folder = activeShowKey === "Batman Beyond" ? "/batman/" : "/";
 
-            // Check for the standard file name first (e.g. S01 E01 - Rebirth, Part 1 of 2.ia.mp4)
-            let path = `${folder}${file}`;
-            let res = await fetch(encodeURI(path), { method: "HEAD" });
+            // Fall back to the remote R2 URL with auth header by fetching the video
+            const res = await fetch(remoteUrl, {
+                method: "GET",
+                headers: password ? { Authorization: `password=${password}` } : {},
+            });
             if (res.ok) {
-                streamUrl = encodeURI(path);
-                return;
+                const blob = await res.blob();
+                streamUrl = URL.createObjectURL(blob);
+            } else {
+                streamUrl = "";
+                showDownloadPrompt = true;
             }
-
-            // If local file is not present, use the remote URL directly
-            streamUrl = file;
         } catch {
             streamUrl = "";
+        } finally {
+            isFetching = false;
         }
     }
 
@@ -113,7 +120,8 @@
     }
 
     $effect(() => {
-        if (currentEpisode && currentEpisode.file) {
+        // Only fetch the video URL once the user has actively selected an episode to play.
+        if (isPlayingEpisode && currentEpisode && currentEpisode.file) {
             showDownloadPrompt = false;
             checkLocalFile(currentEpisode.file);
         }
@@ -844,10 +852,11 @@
             e.preventDefault();
             volume = Math.max(0, volume - 0.05);
             if (videoEl) videoEl.volume = volume;
-        } else if (e.key >= "0" && e.key <= "9") {
+        } else if ((e.key >= "0" && e.key <= "9") || (e.code && e.code >= "Numpad0" && e.code <= "Numpad9")) {
             e.preventDefault();
             if (e.repeat) return;
-            startRepeating(e.key);
+            const digit = e.key >= "0" && e.key <= "9" ? e.key : e.code.slice(6);
+            startRepeating(digit);
         } else if (e.key === "i" || e.key === "I") {
             e.preventDefault();
             skipIntro();
@@ -882,8 +891,16 @@
     function handleKeyup(e) {
         if (!isUnlocked) return;
         if (document.activeElement.tagName === "INPUT") return;
+        
+        let digit = null;
         if (e.key >= "0" && e.key <= "9") {
-            if (activeRepeatKey === e.key) {
+            digit = e.key;
+        } else if (e.code && e.code >= "Numpad0" && e.code <= "Numpad9") {
+            digit = e.code.slice(6);
+        }
+
+        if (digit !== null) {
+            if (activeRepeatKey === digit) {
                 stopRepeating();
             }
         }
@@ -897,7 +914,7 @@
             const epIndex = currentEpisodeIndex;
             setTimeout(() => {
                 const activeCard = document.querySelector(
-                    ".episode-card.active",
+                    ".episode-grid-card.active",
                 );
                 if (activeCard) {
                     activeCard.scrollIntoView({
@@ -1018,7 +1035,7 @@
         }
     }
 
-    onMount(async () => {
+    onMount(() => {
         const savedPassword = localStorage.getItem("gopro_password");
         if (savedPassword) {
             currentPassword = savedPassword;
@@ -1026,21 +1043,6 @@
         }
         loadCheckpoints();
         document.addEventListener("fullscreenchange", handleFullscreenChange);
-
-        try {
-            const res = await fetch("/videos.json");
-            if (res.ok) {
-                const data = await res.json();
-                if (data && typeof data === "object") {
-                    catalog = data;
-                }
-            }
-        } catch (e) {
-            console.warn(
-                "Failed to fetch dynamic video catalog, using cached backup:",
-                e,
-            );
-        }
     });
 
     // Swipe gesture support for controls tabs
@@ -1140,6 +1142,20 @@
                     onended={handleEpisodeEnded}
                     onerror={handleVideoError}
                 ></video>
+
+                {#if isFetching}
+                    <!-- svelte-ignore a11y_click_events_have_key_events -->
+                    <!-- svelte-ignore a11y_no_static_element_interactions -->
+                    <div 
+                        class="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-[100] pointer-events-auto"
+                        onclick={(e) => e.stopPropagation()}
+                    >
+                        <div class="w-12 h-12 rounded-full border-4 border-[#ff3344]/10 border-t-[#ff3344] animate-spin shadow-[0_0_15px_rgba(255,51,68,0.5)]"></div>
+                        <span class="mt-4 text-white text-xs sm:text-sm font-bold tracking-widest uppercase animate-pulse">
+                            Fetching Episode...
+                        </span>
+                    </div>
+                {/if}
 
                 {#if showDownloadPrompt}
                     <div class="download-prompt-overlay">

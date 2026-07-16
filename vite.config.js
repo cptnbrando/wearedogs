@@ -16,11 +16,6 @@ export default defineConfig({
   resolve: {
     conditions: ['browser'],
   },
-  test: {
-    globals: true,
-    environment: 'jsdom',
-    setupFiles: ['./vitest.setup.js'],
-  },
   server: {
     proxy: {
       '/api-worldcup': {
@@ -41,9 +36,8 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          if (id.includes('node_modules')) {
-            return 'vendor';
-          }
+          if (id.includes('tesseract.js')) return 'chunk-tesseract';
+          if (id.includes('node_modules')) return 'vendor';
         }
       }
     }

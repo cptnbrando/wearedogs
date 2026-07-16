@@ -28,11 +28,20 @@ export class AudioCore {
   repeatMode = $state(1); // 0 = Off, 1 = Repeat All, 2 = Repeat One
   activeAudioType = $state("music"); // 'music' | 'video'
   fetchErrors = $state({});
+  /** Per-track instrumental load failures — set when inst fetch fails but vocal succeeds */
+  instFailed = $state({});
 
   progressInterval = null;
   library = [];
   activeTrackBlobUrl = null;
   activeInstBlobUrl = null;
+  hasPickedRandomTrack = false;
+
+  // True when the currently loaded track has an instrumental URL AND it loaded successfully
+  trackHasInstrumental = $derived(
+    !!(this.library[this.currentTrackIndex]?.instrumental) &&
+    !this.instFailed[this.library[this.currentTrackIndex]?.id]
+  );
 
   constructor() { }
 
@@ -85,10 +94,25 @@ export class AudioCore {
 
     // Bind event listeners for ending and duration changes
     this.trackAudio.addEventListener("ended", () => {
-      this.onEnded();
+      // Only handle ended from trackAudio if it has a src (not inst-only tracks)
+      if (this.trackAudio.src) this.onEnded();
     });
     this.trackAudio.addEventListener("durationchange", () => {
-      this.duration = this.trackAudio.duration;
+      if (this.trackAudio.src && !isNaN(this.trackAudio.duration)) {
+        this.duration = this.trackAudio.duration;
+      }
+    });
+    this.instAudio.addEventListener("ended", () => {
+      // Handle ended from instAudio for inst-only tracks
+      const track = this.library[this.currentTrackIndex];
+      if (track && !track.src && track.instrumental) this.onEnded();
+    });
+    this.instAudio.addEventListener("durationchange", () => {
+      // Update duration from instAudio only for inst-only tracks
+      const track = this.library[this.currentTrackIndex];
+      if (track && !track.src && !isNaN(this.instAudio.duration)) {
+        this.duration = this.instAudio.duration;
+      }
     });
 
     // Create gain nodes for crossfading
@@ -116,15 +140,11 @@ export class AudioCore {
 
     this.currentTrackIndex = index;
     const track = this.library[index];
-    
-    // Clear failed track state on attempt to retry
-    delete this.fetchErrors[track.id];
 
-    if (track && track.hasInstrumental) {
-      this.isInstrumental = this.userPrefersInstrumental || false;
-    } else {
-      this.isInstrumental = (track && (track.id === "rain" || track.id === "denchai"));
-    }
+    // Clear all error state on retry
+    delete this.fetchErrors[track.id];
+    delete this.instFailed[track.id];
+
     this.currentTime = 0;
     this.isLoading = true;
 
@@ -133,22 +153,59 @@ export class AudioCore {
       try { await this.audioCtx.resume(); } catch (e) { }
     }
 
+    if (this.activeTrackBlobUrl) {
+      URL.revokeObjectURL(this.activeTrackBlobUrl);
+      this.activeTrackBlobUrl = null;
+    }
+    if (this.activeInstBlobUrl) {
+      URL.revokeObjectURL(this.activeInstBlobUrl);
+      this.activeInstBlobUrl = null;
+    }
+
+    // --- Fetch vocal track (required) ---
     let loadFailed = false;
+    let resolvedTrackSrc = "";
     try {
-      if (this.activeTrackBlobUrl) {
-        URL.revokeObjectURL(this.activeTrackBlobUrl);
-        this.activeTrackBlobUrl = null;
-      }
-      if (this.activeInstBlobUrl) {
-        URL.revokeObjectURL(this.activeInstBlobUrl);
-        this.activeInstBlobUrl = null;
-      }
+      resolvedTrackSrc = await this.getAudioSource(track.src, "track");
+    } catch (err) {
+      console.error("Error loading vocal track:", err);
+      this.isPlaying = false;
+      this.fetchErrors[track.id] = true;
+      loadFailed = true;
+    }
 
-      const resolvedTrackSrc = await this.getAudioSource(track.src, "track");
-      const resolvedInstSrc = track.instrumental ? await this.getAudioSource(track.instrumental, "inst") : "";
+    // --- Fetch instrumental (optional — failure only disables that side) ---
+    let resolvedInstSrc = "";
+    if (!loadFailed && track.instrumental) {
+      try {
+        resolvedInstSrc = await this.getAudioSource(track.instrumental, "inst");
+      } catch (err) {
+        console.warn("Instrumental fetch failed, disabling inst side:", err);
+        this.instFailed[track.id] = true;
+        resolvedInstSrc = "";
+      }
+    }
 
-      this.trackAudio.src = resolvedTrackSrc;
-      this.trackAudio.load();
+    // Set isInstrumental: if only inst loaded (no vocal src), force inst mode.
+    // If both available, respect user preference. Otherwise vocal mode.
+    const instAvailable = !!(track.instrumental && resolvedInstSrc && !this.instFailed[track.id]);
+    if (!track.src && instAvailable) {
+      // Inst-only track (e.g. sleepless) — always instrumental
+      this.isInstrumental = true;
+    } else if (instAvailable) {
+      this.isInstrumental = this.userPrefersInstrumental || false;
+    } else {
+      this.isInstrumental = false;
+    }
+
+    if (!loadFailed) {
+      if (resolvedTrackSrc) {
+        this.trackAudio.src = resolvedTrackSrc;
+        this.trackAudio.load();
+      } else {
+        this.trackAudio.removeAttribute("src");
+        this.trackAudio.load();
+      }
       if (resolvedInstSrc) {
         this.instAudio.src = resolvedInstSrc;
         this.instAudio.load();
@@ -157,30 +214,25 @@ export class AudioCore {
         this.instAudio.load();
       }
 
-      // Wait briefly for metadata to resolve duration
+      // For inst-only tracks, resolve duration from instAudio; otherwise trackAudio
+      const durationSource = resolvedTrackSrc ? this.trackAudio : this.instAudio;
       await new Promise((resolve) => {
         const handler = () => {
-          this.duration = this.trackAudio.duration;
-          this.trackAudio.removeEventListener("loadedmetadata", handler);
+          this.duration = durationSource.duration;
+          durationSource.removeEventListener("loadedmetadata", handler);
           resolve();
         };
-        if (this.trackAudio.readyState >= 1) {
-          this.duration = this.trackAudio.duration;
+        if (durationSource.readyState >= 1) {
+          this.duration = durationSource.duration;
           resolve();
         } else {
-          this.trackAudio.addEventListener("loadedmetadata", handler);
-          // Safety timeout
+          durationSource.addEventListener("loadedmetadata", handler);
           setTimeout(resolve, 1500);
         }
       });
-    } catch (err) {
-      console.error("Error loading track channels:", err);
-      this.isPlaying = false;
-      this.fetchErrors[track.id] = true;
-      loadFailed = true;
-    } finally {
-      this.isLoading = false;
     }
+
+    this.isLoading = false;
 
     if (!loadFailed && autoplay) {
       this.play(0);
@@ -197,13 +249,15 @@ export class AudioCore {
     this.applyVolume();
 
     // Set current time of HTML Audio elements
-    this.trackAudio.currentTime = offset;
+    if (this.trackAudio.src) this.trackAudio.currentTime = offset;
     if (this.instAudio && this.instAudio.src) {
       this.instAudio.currentTime = offset;
     }
 
-    // Play
-    this.trackAudio.play().catch(e => console.error("Error playing trackAudio:", e));
+    // Play — only play elements that have a loaded source
+    if (this.trackAudio.src) {
+      this.trackAudio.play().catch(e => console.error("Error playing trackAudio:", e));
+    }
     if (this.instAudio && this.instAudio.src) {
       this.instAudio.play().catch(e => console.error("Error playing instAudio:", e));
     }
@@ -229,8 +283,9 @@ export class AudioCore {
 
     const track = this.library[this.currentTrackIndex];
     const hasFetchError = track ? this.fetchErrors[track.id] : false;
+    const hasSrc = this.trackAudio.src || this.instAudio.src;
 
-    if ((!this.trackAudio.src && !this.isLoading) || hasFetchError) {
+    if ((!hasSrc && !this.isLoading) || hasFetchError) {
       await this.loadTrack(this.currentTrackIndex, true);
       return;
     }
@@ -270,10 +325,14 @@ export class AudioCore {
     clearInterval(this.progressInterval);
     this.progressInterval = setInterval(() => {
       if (this.isPlaying && this.trackAudio) {
-        this.currentTime = this.trackAudio.currentTime;
+        const track = this.library[this.currentTrackIndex];
+        const isInstOnly = track && !track.src && track.instrumental;
+        // For inst-only tracks, drive time from instAudio; otherwise from trackAudio
+        const primaryAudio = (isInstOnly && this.instAudio?.src) ? this.instAudio : this.trackAudio;
+        this.currentTime = primaryAudio.currentTime;
 
         // Keep instrumental in sync with the main track (within 50ms tolerance)
-        if (this.instAudio && this.instAudio.src && !this.instAudio.paused) {
+        if (!isInstOnly && this.instAudio && this.instAudio.src && !this.instAudio.paused) {
           const diff = Math.abs(this.instAudio.currentTime - this.trackAudio.currentTime);
           if (diff > 0.05) {
             this.instAudio.currentTime = this.trackAudio.currentTime;
@@ -287,6 +346,7 @@ export class AudioCore {
       }
     }, 150);
   }
+
 
   onEnded() {
     if (this.repeatMode === 2) {
@@ -320,9 +380,10 @@ export class AudioCore {
 
   setCrossfade(isInst) {
     const track = this.library[this.currentTrackIndex];
-    if (track && !track.hasInstrumental) {
-      return false; // indicates locked
-    }
+    // Block toggle to instrumental if: no instrumental URL, or the inst fetch failed
+    if (isInst && (!track?.instrumental || this.instFailed[track?.id])) return false;
+    // Block toggle to vocal if: no vocal src (inst-only track)
+    if (!isInst && track && !track.src) return false;
     this.isInstrumental = isInst;
     this.userPrefersInstrumental = isInst;
     this.applyCrossfade();

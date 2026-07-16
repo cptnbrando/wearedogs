@@ -142,12 +142,32 @@
     }
   };
 
+  // Cache for loaded GLTF models to avoid refetching when navigating in circles
+  const gltfCache = new Map();
+
   const loadGlb = (path) => {
     isGlbLoading = true;
     loadedModel = null;
     mixer = null;
     modelCenter = new THREE.Vector3(0, 0, 0);
     modelScale = 1.0;
+
+    if (gltfCache.has(path)) {
+      const gltf = gltfCache.get(path);
+      const modelScene = gltf.scene;
+      processModel(modelScene);
+      loadedModel = modelScene;
+      isGlbLoading = false;
+
+      if (gltf.animations && gltf.animations.length > 0) {
+        mixer = new THREE.AnimationMixer(modelScene);
+        gltf.animations.forEach((clip) => {
+          mixer.clipAction(clip).play();
+        });
+      }
+      return;
+    }
+
     const loader = new GLTFLoader();
     const dracoLoader = new DRACOLoader();
     dracoLoader.setDecoderPath(
@@ -157,6 +177,7 @@
     loader.load(
       path,
       (gltf) => {
+        gltfCache.set(path, gltf);
         const modelScene = gltf.scene;
         processModel(modelScene);
         loadedModel = modelScene;

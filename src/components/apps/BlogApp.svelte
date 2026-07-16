@@ -379,7 +379,7 @@
   class="blog-app-container w-full h-full text-white flex flex-col font-sans select-none overflow-hidden relative"
 >
   <!-- Master Layout Header -->
-  <div
+  <!-- <div
     class="blog-header shrink-0 px-4 py-3 border-b border-white/5 bg-black/40 backdrop-blur-md flex items-center justify-between z-10"
   >
     <div class="flex items-center gap-2">
@@ -398,7 +398,7 @@
         <span class="font-mono">BACK_TO_LOGS</span>
       </button>
     {/if}
-  </div>
+  </div> -->
 
   <!-- Content Pane (Conditional Render for Dedicated Full Pages) -->
   <div class="blog-content-pane flex-grow min-h-0 relative w-full h-full">

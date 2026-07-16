@@ -1,7 +1,7 @@
 {
   "name": "wearedogs",
   "private": true,
-  "version": "1.0.1",
+  "version": "1.0.2",
   "type": "module",
   "scripts": {
     "dev": "vite --host",
@@ -9,32 +9,30 @@
     "preview": "vite preview",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist",
-    "changelog": "node scripts/compile-changelog.js",
-    "test": "vitest"
+    "changelog": "node scripts/compile-changelog.js"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^7.1.2",
     "@tailwindcss/vite": "^4.3.0",
-    "@testing-library/jest-dom": "^6.6.3",
-    "@testing-library/svelte": "^5.2.4",
     "@vitejs/plugin-legacy": "^8.0.2",
     "gh-pages": "^6.3.0",
-    "jsdom": "^26.0.0",
     "sass-embedded": "^1.100.0",
     "svelte": "^5.55.5",
     "tailwindcss": "^4.3.0",
     "terser": "^5.48.0",
-    "vite": "^8.0.12",
-    "vitest": "^3.0.7"
+    "vite": "^8.0.12"
   },
   "dependencies": {
+    "@breezystack/lamejs": "^1.2.3",
     "@lottiefiles/dotlottie-wc": "^0.9.19",
     "@threlte/core": "^8.0.1",
     "@threlte/extras": "^9.0.0",
+    "fflate": "^0.8.3",
     "jsqr": "^1.4.0",
     "lucide-svelte": "^1.0.1",
     "qrcode": "^1.5.4",
     "svelte-i18n": "^4.0.1",
+    "tesseract.js": "^7.0.0",
     "three": "^0.184.0"
   },
   "blahblahblah": {
@@ -46,6 +44,10 @@
     "i just watch the warning come and go": "all fucking day",
     "...": "...",
     "anyway": "",
-    "if you need batman you can run sh ./public/batman/download.sh": "toodle loo"
+    "if you need batman you can run sh ./public/batman/download.sh": "toodle loo",
+    "@breezystack/lamejs": "Used for catalytic converter to go to LAME mp3",
+    "fflate": "Needed for catalytic converter to open zip files",
+    "@lottiefiles/dotlottie-wc": "Used for dog logo animation",
+    "tesseract.js": "Used for OCR image to text"
   }
 }

@@ -12,14 +12,14 @@
   class="base-app-layout animated-pane"
   style="--app-theme-color: {themeColor}"
 >
-  <div class="app-header">
+  <!-- <div class="app-header">
     <div class="title-section">
       <h2>{title}</h2>
       {#if description}
         <p class="description">{description}</p>
       {/if}
     </div>
-  </div>
+  </div> -->
 
   <div class="app-body">
     {#if children}
@@ -61,7 +61,7 @@
     overflow-y: auto;
   }
 
-  .app-header {
+  /* .app-header {
     margin-bottom: 24px;
     flex-shrink: 0;
     border-left: 3px solid var(--app-theme-color);
@@ -83,7 +83,7 @@
     color: rgba(255, 255, 255, 0.45);
     margin: 6px 0 0 0;
     font-family: "Inter", sans-serif;
-  }
+  } */
 
   .app-body {
     flex-grow: 1;
@@ -225,9 +225,9 @@
       justify-content: flex-start;
       align-items: stretch;
     }
-    h2 {
+    /* h2 {
       font-size: 1.25rem;
-    }
+    } */
     .wip-hazard-tape {
       font-size: 1rem;
       padding: 8px 20px;

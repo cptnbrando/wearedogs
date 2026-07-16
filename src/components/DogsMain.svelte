@@ -6,7 +6,7 @@
   import { audioCore } from "../lib/AudioCore.svelte.js";
 
   // Props mapping the flag colors toggle state
-  let { isFlagColors = false, active = false } = $props();
+  let { isFlagColors = false, active = false, activePage = null } = $props();
 
   let activeLandscapeTab = $state("cards"); // 'cards' or 'skeleton'
 
@@ -14,7 +14,18 @@
   let ThreeDCanvas = $state(null);
   let isDesktopOrLandscape = $state(false);
 
-  onMount(async () => {
+  // Lazy load the 3D canvas component ONLY when the page is active/visible
+  $effect(() => {
+    if (active && !ThreeDCanvas) {
+      import("./ThreeDCanvas.svelte").then((module) => {
+        ThreeDCanvas = module.default;
+      }).catch((err) => {
+        console.error("Failed to lazy load Threlte canvas:", err);
+      });
+    }
+  });
+
+  onMount(() => {
     const media = window.matchMedia(
       "(min-width: 1024px), (orientation: landscape)",
     );
@@ -23,13 +34,6 @@
       isDesktopOrLandscape = e.matches;
     };
     media.addEventListener("change", listener);
-
-    try {
-      const module = await import("./ThreeDCanvas.svelte");
-      ThreeDCanvas = module.default;
-    } catch (err) {
-      console.error("Failed to lazy load Threlte canvas:", err);
-    }
 
     return () => {
       media.removeEventListener("change", listener);
@@ -58,7 +62,7 @@
   >
     <!-- Top Section: Dictionary entry -->
     <div
-      class="dict-container w-full max-lg:landscape:w-[46%] lg:w-full max-w-[650px] mt-4 max-lg:landscape:mt-0 lg:mt-0 pointer-events-auto max-lg:landscape:my-auto"
+      class="dict-container w-full max-lg:landscape:w-[46%] lg:w-full max-w-[650px] mt-2 max-sm:mt-0 max-lg:landscape:mt-0 lg:mt-0 pointer-events-auto max-lg:landscape:my-auto"
     >
       <div class="flex items-center gap-2.5 md:gap-3.5">
         <button
@@ -100,10 +104,10 @@
 
       <!-- Inline 3D Canvas for mobile portrait viewports -->
       <div
-        class="block landscape:hidden lg:hidden w-full h-[44vh] relative z-0"
+        class="block landscape:hidden lg:hidden w-full h-[40vh] relative z-0"
       >
-        {#if !isDesktopOrLandscape && ThreeDCanvas}
-          <ThreeDCanvas {isFlagColors} />
+        {#if !isDesktopOrLandscape && ThreeDCanvas && activePage === null}
+          <ThreeDCanvas {isFlagColors} {active} />
         {:else}
           <div class="w-full h-full bg-transparent pointer-events-none">
             <div
@@ -118,75 +122,47 @@
 
     <!-- Bottom Section: Info Cards & Mailto button -->
     <div
-      class="company-section w-full max-lg:landscape:w-[48%] lg:w-full flex flex-col justify-between max-lg:landscape:h-full gap-3 max-lg:landscape:gap-0 md:gap-6 mb-4 landscape:mb-0 lg:mb-0 pointer-events-none"
+      class="company-section w-full max-lg:landscape:w-[48%] lg:w-full flex flex-col justify-between max-lg:landscape:h-full gap-2 max-lg:landscape:gap-0 md:gap-6 mb-2 max-sm:mb-16 landscape:mb-0 lg:mb-0 pointer-events-none"
     >
       <!-- Info content wrapper: hidden when skeleton is active on mobile landscape -->
       <div
-        class="flex flex-col gap-3 max-lg:landscape:gap-1.5 md:gap-6 w-full max-lg:landscape:my-auto pointer-events-auto"
+        class="flex flex-col gap-2 max-lg:landscape:gap-1.5 md:gap-6 w-full max-lg:landscape:my-auto pointer-events-auto"
         class:landscape:max-lg:hidden={activeLandscapeTab === "skeleton"}
       >
         <div class="cards-grid">
-          <!-- Headquarters -->
+          <!-- Founding Info Card -->
           <div
-            class="info-card flex flex-col rounded-xl md:rounded-2xl bg-[#f8f9fa] border border-black/5 hover:border-black/10 hover:shadow-lg transition-all duration-300"
+            class="info-card flex items-center justify-center gap-2.5 rounded-xl md:rounded-2xl bg-[#f8f9fa] border border-black/5 hover:border-black/10 hover:shadow-lg transition-all duration-300"
           >
+            <span class="text-base md:text-lg pointer-events-none">📅</span>
             <span
-              class="text-[10px] md:text-xs uppercase tracking-wider text-black/40 font-bold mb-1 md:mb-2"
-              >Headquarters</span
-            >
-            <span
-              class="card-value text-base md:text-lg lg:text-xl font-bold text-black"
-              >Dallas, TX</span
+              class="card-value text-xs sm:text-sm md:text-base font-bold text-black"
+              >formed in 2026</span
             >
           </div>
 
-          <!-- Established -->
-          <div
-            class="info-card flex flex-col rounded-xl md:rounded-2xl bg-[#f8f9fa] border border-black/5 hover:border-black/10 hover:shadow-lg transition-all duration-300"
-          >
-            <span
-              class="card-title text-[10px] md:text-xs uppercase tracking-wider text-black/40 font-bold mb-1 md:mb-2"
-              >Established</span
-            >
-            <span
-              class="card-value text-base md:text-lg lg:text-xl font-bold text-black"
-              >Formed in 2026</span
-            >
-          </div>
-
-          <!-- Expertise -->
-          <div
-            class="info-card specializing-card flex flex-col rounded-xl md:rounded-2xl bg-[#f8f9fa] border border-black/5 hover:border-black/10 hover:shadow-lg transition-all duration-300"
-          >
-            <span
-              class="card-title text-[10px] md:text-xs uppercase tracking-wider text-black/40 font-bold mb-1 md:mb-2"
-              >Specializing In</span
-            >
-            <div class="flex flex-wrap gap-1 md:gap-1.5">
-              <span
-                class="badge px-2 py-0.5 bg-black text-white text-[9px] md:text-[10px] font-semibold rounded-full uppercase tracking-wider"
-                >Web Design</span
-              >
-              <span
-                class="badge px-2 py-0.5 bg-black text-white text-[9px] md:text-[10px] font-semibold rounded-full uppercase tracking-wider"
-                >App Dev</span
-              >
-              <span
-                class="badge px-2 py-0.5 bg-black text-white text-[9px] md:text-[10px] font-semibold rounded-full uppercase tracking-wider"
-                >AI Consultation</span
-              >
-            </div>
-          </div>
-        </div>
-
-        <div class="flex justify-start">
+          <!-- Email Link Card -->
           <a
             href="mailto:brando@wearedogs.net?subject=Hello%20There!&body=BARK%20BARK%20BARK%20BARK%20BARK%20BARK%20BARK"
-            class="contact-btn"
+            class="info-card contact-card flex items-center justify-center gap-2 rounded-xl md:rounded-2xl bg-[#f8f9fa] border border-black/5 hover:border-black/10 hover:shadow-lg transition-all duration-300"
           >
-            <Mail size={16} />
-            Contact Us Today
+            <Mail size={16} class="text-black" />
+            <span
+              class="card-value text-xs sm:text-sm md:text-base font-bold text-black"
+              >email us</span
+            >
           </a>
+
+          <!-- Location Info Box (spans full width underneath) -->
+          <div
+            class="info-card full-width-card flex items-center justify-center gap-2.5 rounded-xl md:rounded-2xl bg-[#f8f9fa] border border-black/5 hover:border-black/10 hover:shadow-lg transition-all duration-300"
+          >
+            <span class="text-base md:text-lg pointer-events-none">🏙️</span>
+            <span
+              class="card-value text-xs sm:text-sm md:text-base font-bold text-black"
+              >somewhere between Oklahoma and Texas</span
+            >
+          </div>
         </div>
       </div>
 
@@ -225,8 +201,8 @@
     class="canvas-layer hidden landscape:block lg:block w-full max-lg:landscape:w-[50%] lg:w-[45%] h-[35vh] max-lg:landscape:h-full lg:h-full absolute bottom-0 max-lg:landscape:top-0 lg:top-0 right-0 z-0"
     class:landscape:max-lg:hidden={activeLandscapeTab === "cards"}
   >
-    {#if isDesktopOrLandscape && ThreeDCanvas}
-      <ThreeDCanvas {isFlagColors} />
+    {#if isDesktopOrLandscape && ThreeDCanvas && activePage === null}
+      <ThreeDCanvas {isFlagColors} {active} />
     {:else}
       <!-- Minimal CSS skeleton fallback loading states -->
       <div
@@ -243,42 +219,20 @@
 </div>
 
 <style>
-  /* Contact Button */
-  .contact-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.75rem 1.5rem;
-    background: #000000;
-    color: #ffffff;
-    font-weight: 700;
-    border-radius: 0.75rem;
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    box-shadow:
-      0 4px 6px -1px rgba(0, 0, 0, 0.1),
-      0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  /* Contact Card */
+  .contact-card {
+    cursor: pointer;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    font-size: 0.75rem;
-    cursor: pointer;
-    text-decoration: none;
-  }
-  @media (min-width: 768px) {
-    .contact-btn {
-      font-size: 0.875rem;
-    }
-  }
-  .contact-btn:hover {
-    transform: scale(1.02);
-    background: #111111;
-    box-shadow:
-      0 10px 15px -3px rgba(0, 0, 0, 0.1),
-      0 4px 6px -2px rgba(0, 0, 0, 0.05);
   }
 
-  /* Color highlights for active color mode */
-  :global(.wad-colored) .contact-btn {
+  .contact-card :global(svg) {
+    stroke: #000000;
+    transition: stroke 0.3s ease;
+  }
+
+  /* Color highlights for active color mode on contact-card */
+  :global(.wad-colored) .contact-card {
     background: var(
       --color-neon-purple,
       var(--color-neon-red, #ff3344)
@@ -286,7 +240,14 @@
     border-color: transparent !important;
     box-shadow: 0 0 15px rgba(var(--color-neon-purple-rgb, 255, 51, 68), 0.35) !important;
   }
-  :global(.wad-colored) .contact-btn:hover {
+  :global(.wad-colored) .contact-card .card-value {
+    color: #ffffff !important;
+  }
+  :global(.wad-colored) .contact-card :global(svg) {
+    stroke: #ffffff !important;
+  }
+
+  :global(.wad-colored) .contact-card:hover {
     background: var(
       --color-neon-purple,
       var(--color-neon-red, #ff3344)
@@ -296,20 +257,17 @@
   }
 
   /* Default theme uses neon red scrollbar color when active */
-  :global(html[data-theme="default"]) :global(.wad-colored) .contact-btn {
+  :global(html[data-theme="default"]) :global(.wad-colored) .contact-card {
     background: #d61a2c !important;
     box-shadow: 0 0 15px rgba(214, 26, 44, 0.35) !important;
     border-color: transparent !important;
   }
-  :global(html[data-theme="default"]) :global(.wad-colored) .contact-btn:hover {
+  :global(html[data-theme="default"])
+    :global(.wad-colored)
+    .contact-card:hover {
     background: #d61a2c !important;
     opacity: 0.9;
     box-shadow: 0 0 25px rgba(214, 26, 44, 0.5) !important;
-  }
-
-  /* Default theme badges/chips use darker neon red when active */
-  :global(html[data-theme="default"]) .wad-colored .badge {
-    background-color: #d61a2c !important;
   }
 
   /* Dictionary Highlight & Theme transitions */
@@ -329,6 +287,8 @@
   /* Chic Card hover styling */
   .info-card {
     transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    text-decoration: none;
+    text-align: center;
   }
 
   .info-card:hover {
@@ -345,14 +305,6 @@
       rgba(var(--color-neon-purple-rgb, 255, 51, 68), 0.12);
   }
 
-  .wad-colored .badge {
-    background-color: var(
-      --color-neon-purple,
-      --color-neon-red,
-      #ff3344
-    ) !important;
-  }
-
   /* Grid layout rules with orientation override */
   .cards-grid {
     display: grid;
@@ -360,51 +312,32 @@
     gap: 0.625rem; /* gap-2.5 */
     width: 100%;
   }
-  .specializing-card {
+
+  .full-width-card {
     grid-column: span 2 / span 2;
   }
 
   /* Cards padding and responsiveness */
   .info-card {
-    padding: 0.75rem; /* p-3 */
+    padding: 1.125rem 0.75rem;
     transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   @media (min-width: 768px) {
     .cards-grid {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 1rem;
     }
-    .specializing-card {
-      grid-column: span 1 / span 1;
-    }
     .info-card {
-      padding: 1.5rem; /* p-6 */
-    }
-    .specializing-card {
-      padding: 1.25rem; /* p-5 */
+      padding: 1.75rem 1.5rem;
     }
   }
 
   @media (max-width: 1023px) and (orientation: landscape) {
     .cards-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 0.375rem; /* gap-1.5 */
     }
-    .specializing-card {
-      grid-column: span 2 / span 2;
-    }
     .info-card {
-      padding: 0.375rem 0.625rem; /* py-1.5 px-2.5 */
-    }
-  }
-
-  @media (min-width: 1024px) {
-    .cards-grid {
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-    }
-    .specializing-card {
-      grid-column: span 2 / span 2;
+      padding: 0.75rem 0.625rem;
     }
   }
 

@@ -25,7 +25,7 @@
 </script>
 
 <div class="settings-layout animated-pane">
-  <header class="settings-header">
+  <!-- <header class="settings-header">
     <div class="title-block">
       <Settings class="text-neon-red animate-spin-slow" size={24} />
       <div>
@@ -33,7 +33,7 @@
         <p class="description">Configure site-wide visual themes and UI aesthetics.</p>
       </div>
     </div>
-  </header>
+  </header> -->
 
   <main class="settings-body scroll-container">
     <section class="settings-section">
@@ -89,7 +89,7 @@
     background: rgba(0, 0, 0, 0.1);
   }
 
-  .settings-header {
+  /* .settings-header {
     padding: 16px 20px;
     border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
   }
@@ -113,7 +113,7 @@
     margin: 2px 0 0 0;
     font-size: 0.72rem;
     color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
-  }
+  } */
 
   .settings-body {
     flex-grow: 1;

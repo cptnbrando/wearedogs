@@ -1,7 +1,5 @@
 <script>
   import { onMount } from "svelte";
-  import TitlePage from "./components/TitlePage.svelte";
-  import DogsMain from "./components/DogsMain.svelte";
   import { themeManager } from "./lib/themeManager.svelte.js";
 
   // Bindable states from TitlePage to control scroll locking
@@ -9,6 +7,27 @@
   let showInfo = $state(false);
   let weAreDogsColored = $state(false);
   let isLandingPage = $state(true);
+
+  // Lazy load TitlePage as well to ensure maximum code-splitting
+  let TitlePage = $state(null);
+  import("./components/TitlePage.svelte").then((m) => { TitlePage = m.default; });
+
+  // Lazy loaded DogsMain component
+  let DogsMainComponent = $state(null);
+
+  const loadDogsMain = () => {
+    if (DogsMainComponent) return;
+    import("./components/DogsMain.svelte").then((m) => {
+      DogsMainComponent = m.default;
+    });
+  };
+
+  // Preload when scrolling shifts page state
+  $effect(() => {
+    if (!isLandingPage) {
+      loadDogsMain();
+    }
+  });
 
   let mainContainer = $state();
 
@@ -37,6 +56,22 @@
 
     // Delay slightly to ensure elements are rendered and sized
     setTimeout(checkInitialPath, 50);
+
+    // Scroll listener to preload DogsMain earlier (as soon as user scrolls)
+    const handleScrollPreload = () => {
+      if (mainContainer && mainContainer.scrollTop > 10) {
+        loadDogsMain();
+        mainContainer.removeEventListener("scroll", handleScrollPreload);
+      }
+    };
+    mainContainer?.addEventListener("scroll", handleScrollPreload, { passive: true });
+
+    // Idle fallback to preload if user remains inactive
+    if (typeof requestIdleCallback !== "undefined") {
+      requestIdleCallback(loadDogsMain, { timeout: 15000 });
+    } else {
+      setTimeout(loadDogsMain, 4000);
+    }
 
     const handleScroll = () => {
       if (!mainContainer || activePage !== null || showInfo) return;
@@ -134,18 +169,30 @@
     id="landing-page"
     class="w-full h-dvh snap-start snap-always relative flex items-center justify-center overflow-hidden"
   >
-    <TitlePage
-      bind:activePage
-      bind:showInfo
-      bind:weAreDogsColored
-      {isLandingPage}
-    />
+    {#if TitlePage}
+      {@const Page = TitlePage}
+      <Page
+        bind:activePage
+        bind:showInfo
+        bind:weAreDogsColored
+        {isLandingPage}
+      />
+    {/if}
   </div>
 
   <div
     id="info-page"
     class="w-full h-dvh snap-start snap-always relative overflow-hidden"
   >
-    <DogsMain isFlagColors={weAreDogsColored} active={!isLandingPage} />
+    {#if DogsMainComponent}
+      {@const Main = DogsMainComponent}
+      <Main isFlagColors={weAreDogsColored} active={!isLandingPage} {activePage} />
+    {:else}
+      <div class="w-full h-full flex items-center justify-center bg-transparent pointer-events-none">
+        <div class="text-white/20 text-xs font-mono tracking-widest uppercase animate-pulse">
+          Initializing 3D Visualizer...
+        </div>
+      </div>
+    {/if}
   </div>
 </main>
