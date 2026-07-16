@@ -8,12 +8,9 @@
   let { isClosing = false, onClose } = $props();
 
   const CITIES = [
-    { name: "New York", x: 220, y: 110, zoomX: 160, zoomY: 70, zoomW: 120, zoomH: 90 },
-    { name: "London", x: 390, y: 80, zoomX: 350, zoomY: 50, zoomW: 100, zoomH: 80 },
-    { name: "Tokyo", x: 710, y: 120, zoomX: 660, zoomY: 80, zoomW: 100, zoomH: 80 },
-    { name: "Sydney", x: 730, y: 360, zoomX: 680, zoomY: 310, zoomW: 120, zoomH: 90 },
-    { name: "Rio de Janeiro", x: 260, y: 280, zoomX: 200, zoomY: 230, zoomW: 120, zoomH: 100 },
-    { name: "Cape Town", x: 440, y: 360, zoomX: 390, zoomY: 310, zoomW: 120, zoomH: 100 }
+    { name: "Tulsa OK", x: 225, y: 140, zoomX: 180, zoomY: 100, zoomW: 100, zoomH: 80 },
+    { name: "Dallas TX", x: 220, y: 155, zoomX: 170, zoomY: 115, zoomW: 100, zoomH: 80 },
+    { name: "Rochester NY", x: 245, y: 110, zoomX: 200, zoomY: 70, zoomW: 100, zoomH: 80 }
   ];
 
   let selectedCity = $state(null);
@@ -151,177 +148,257 @@
 
     <!-- Directory Listings Side -->
     <div class="directory-side">
-      <!-- Category Selection Tabs -->
-      <div class="category-tabs">
-        <button
-          class="cat-tab"
-          class:active={activeCategory === "restaurants"}
-          onclick={() => { activeCategory = "restaurants"; activeSubCategory = "Coffee Shops"; }}
-        >
-          <UtensilsCrossed size={14} />
-          <span>Restaurants</span>
-        </button>
-        <button
-          class="cat-tab"
-          class:active={activeCategory === "concert-halls"}
-          onclick={() => activeCategory = "concert-halls"}
-        >
-          <Music size={14} />
-          <span>Concert Halls</span>
-        </button>
-        <button
-          class="cat-tab"
-          class:active={activeCategory === "free-shit"}
-          onclick={() => activeCategory = "free-shit"}
-        >
-          <Sparkles size={14} />
-          <span>Free Shit</span>
-        </button>
-      </div>
-
-      <!-- Sub-categories Row (only for restaurants) -->
-      {#if activeCategory === "restaurants"}
-        <div class="sub-category-row">
-          {#each ["Coffee Shops", "Bars", "Italian", "Mexican"] as sub}
-            <button
-              class="sub-pill"
-              class:active={activeSubCategory === sub}
-              onclick={() => activeSubCategory = sub}
-            >
-              {#if sub === "Coffee Shops"}<Coffee size={10} />
-              {:else if sub === "Bars"}<Wine size={10} />
-              {/if}
-              <span>{sub}</span>
-            </button>
-          {/each}
-        </div>
-      {/if}
-
-      <!-- Directory List -->
-      <div class="spots-list scroll-container">
-        {#each filteredSpots as spot}
-          {@const isExpanded = selectedSpot?.id === spot.id}
-          <!-- svelte-ignore a11y_click_events_have_key_events -->
-          <!-- svelte-ignore a11y_no_static_element_interactions -->
-          <div 
-            class="spot-card animated-pane cursor-pointer"
-            class:active-card={isExpanded}
-            onclick={() => {
-              if (isExpanded) {
+      {#if selectedSpot}
+        <!-- Full-on review page! -->
+        <div class="full-review-page flex flex-col h-full bg-zinc-950 text-white relative">
+          <!-- Back button -->
+          <div class="p-3 border-b border-white/5 flex items-center justify-between z-10 shrink-0">
+            <button 
+              class="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-white font-bold transition-colors"
+              onclick={() => {
                 selectedSpot = null;
                 if (typeof window !== "undefined") window.location.hash = "/map";
-              } else {
+              }}
+            >
+              ← BACK TO DIRECTORY
+            </button>
+            <span class="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">{selectedSpot.cityName}</span>
+          </div>
+
+          <!-- Content scroll container -->
+          <div class="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
+            <div>
+              <h2 class="text-xl font-black tracking-tight">{selectedSpot.name}</h2>
+              <p class="text-xs text-zinc-400 mt-1">{selectedSpot.description}</p>
+            </div>
+
+            <!-- Custom Stars and Yelp/Google/DOGS scores -->
+            <div class="bg-black/40 border border-white/5 rounded-xl p-3 flex flex-col gap-2">
+              <div class="text-[9px] font-mono text-zinc-500 uppercase tracking-widest">⭐ REVIEW SCORES</div>
+              <div class="grid grid-cols-3 gap-2 text-center">
+                <div class="bg-white/5 rounded-lg p-2 flex flex-col justify-center items-center">
+                  <span class="text-[9px] text-zinc-500 font-mono">GOOGLE</span>
+                  <span class="text-sm font-black text-yellow-500 mt-0.5">
+                    {selectedSpot.googleScore || "4.8"}/5
+                  </span>
+                </div>
+                <div class="bg-white/5 rounded-lg p-2 flex flex-col justify-center items-center">
+                  <span class="text-[9px] text-zinc-500 font-mono">YELP</span>
+                  <span class="text-sm font-black text-red-400 mt-0.5">
+                    {selectedSpot.yelpScore || "4.5"}/5
+                  </span>
+                </div>
+                <div class="bg-white/5 rounded-lg p-2 flex flex-col justify-center items-center">
+                  <span class="text-[9px] text-zinc-500 font-mono">DOGS</span>
+                  <span class="text-sm font-black text-blue-400 mt-0.5">
+                    {selectedSpot.dogsScore || "5/5"}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Dining Recommendations: Best dishes, best times to eat -->
+            <div class="bg-black/40 border border-white/5 rounded-xl p-3 flex flex-col gap-2">
+              <div class="text-[9px] font-mono text-zinc-500 uppercase tracking-widest">ℹ️ RECOMMENDATIONS</div>
+              <div class="flex flex-col gap-2 text-xs">
+                {#if selectedSpot.bestDishes}
+                  <div>
+                    <strong class="text-zinc-300">🔥 Best Dishes:</strong>
+                    <p class="text-zinc-400 mt-0.5 leading-relaxed">{selectedSpot.bestDishes}</p>
+                  </div>
+                {/if}
+                {#if selectedSpot.bestTimes}
+                  <div>
+                    <strong class="text-zinc-300">⏰ Best Times to Eat:</strong>
+                    <p class="text-zinc-400 mt-0.5 leading-relaxed">{selectedSpot.bestTimes}</p>
+                  </div>
+                {/if}
+                {#if selectedSpot.moreInfo}
+                  <div>
+                    <strong class="text-zinc-300">📝 More Info:</strong>
+                    <p class="text-zinc-400 mt-0.5 leading-relaxed">{selectedSpot.moreInfo}</p>
+                  </div>
+                {/if}
+              </div>
+            </div>
+
+            <!-- Image Carousel -->
+            {#if selectedSpot.images && selectedSpot.images.length > 0}
+              <div class="relative w-full aspect-video bg-black/40 rounded-lg overflow-hidden border border-white/5 group">
+                <img src={selectedSpot.images[selectedSpotImgIdx]} alt={selectedSpot.name} class="w-full h-full object-cover" />
+                
+                {#if selectedSpot.images.length > 1}
+                  <button 
+                    class="absolute left-2 top-1/2 -translate-y-1/2 bg-black/75 hover:bg-black text-white text-[10px] w-6 h-6 rounded-full flex items-center justify-center border border-white/10 transition-colors"
+                    onclick={() => {
+                      selectedSpotImgIdx = (selectedSpotImgIdx - 1 + selectedSpot.images.length) % selectedSpot.images.length;
+                    }}
+                  >
+                    ◀
+                  </button>
+                  <button 
+                    class="absolute right-2 top-1/2 -translate-y-1/2 bg-black/75 hover:bg-black text-white text-[10px] w-6 h-6 rounded-full flex items-center justify-center border border-white/10 transition-colors"
+                    onclick={() => {
+                      selectedSpotImgIdx = (selectedSpotImgIdx + 1) % selectedSpot.images.length;
+                    }}
+                  >
+                    ▶
+                  </button>
+                {/if}
+              </div>
+            {/if}
+
+            <!-- Address and clickable directions -->
+            <div class="bg-black/40 border border-white/5 rounded-xl p-3 flex flex-col gap-2">
+              <div class="text-[9px] font-mono text-zinc-500 uppercase tracking-widest">📍 LOCATION & DIRECTIONS</div>
+              {#if selectedSpot.address}
+                <div class="text-xs text-zinc-300">{selectedSpot.address}</div>
+              {/if}
+              <div class="flex gap-2 mt-1">
+                <a 
+                  href={selectedSpot.mapsUrl || `https://maps.google.com/?q=${encodeURIComponent(selectedSpot.address || selectedSpot.name)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  class="flex-1 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-[10px] rounded-lg text-center transition-all flex items-center justify-center gap-1"
+                >
+                  <ExternalLink size={10} /> Google Maps
+                </a>
+                <a 
+                  href={`maps://?q=${encodeURIComponent(selectedSpot.address || selectedSpot.name)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  class="flex-1 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-[10px] rounded-lg text-center transition-all flex items-center justify-center gap-1"
+                >
+                  <ExternalLink size={10} /> Apple Maps
+                </a>
+              </div>
+            </div>
+
+            <!-- User Reviews -->
+            {#if selectedSpot.reviews && selectedSpot.reviews.length > 0}
+              <div class="flex flex-col gap-2">
+                <div class="text-[9px] font-mono text-zinc-500 uppercase tracking-widest">💬 VISITORS AND ONLINE FEEDBACK</div>
+                {#each selectedSpot.reviews as r}
+                  <div class="bg-black/20 border border-white/5 rounded-lg p-2.5 flex flex-col gap-1 text-xs">
+                    <div class="flex justify-between items-center text-[10px] font-mono">
+                      <span class="text-zinc-400 font-bold">{r.user}</span>
+                      <span class="text-yellow-500">★ {r.rating}</span>
+                    </div>
+                    <p class="text-zinc-400 italic">"{r.text}"</p>
+                  </div>
+                {/each}
+              </div>
+            {/if}
+
+            <button 
+              class="w-full py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs text-white font-bold flex items-center justify-center gap-1.5 transition-all"
+              onclick={() => {
+                const link = `${window.location.origin}${window.location.pathname}#/map?spot=${selectedSpot.id}`;
+                navigator.clipboard.writeText(link);
+                alert("Shareable spot link copied to clipboard!");
+              }}
+            >
+              🔗 COPY SHAREABLE LINK
+            </button>
+          </div>
+        </div>
+      {:else}
+        <!-- Category Selection Tabs -->
+        <div class="category-tabs">
+          <button
+            class="cat-tab"
+            class:active={activeCategory === "restaurants"}
+            onclick={() => { activeCategory = "restaurants"; activeSubCategory = "Coffee Shops"; }}
+          >
+            <UtensilsCrossed size={14} />
+            <span>Restaurants</span>
+          </button>
+          <button
+            class="cat-tab"
+            class:active={activeCategory === "concert-halls"}
+            onclick={() => activeCategory = "concert-halls"}
+          >
+            <Music size={14} />
+            <span>Concert Halls</span>
+          </button>
+          <button
+            class="cat-tab"
+            class:active={activeCategory === "free-shit"}
+            onclick={() => activeCategory = "free-shit"}
+          >
+            <Sparkles size={14} />
+            <span>Free Shit</span>
+          </button>
+        </div>
+
+        <!-- Sub-categories Row (only for restaurants) -->
+        {#if activeCategory === "restaurants"}
+          <div class="sub-category-row">
+            {#each ["Coffee Shops", "Bars", "Italian", "Mexican"] as sub}
+              <button
+                class="sub-pill"
+                class:active={activeSubCategory === sub}
+                onclick={() => activeSubCategory = sub}
+              >
+                {#if sub === "Coffee Shops"}<Coffee size={10} />
+                {:else if sub === "Bars"}<Wine size={10} />
+                {/if}
+                <span>{sub}</span>
+              </button>
+            {/each}
+          </div>
+        {/if}
+
+        <!-- Directory List -->
+        <div class="spots-list scroll-container">
+          {#each filteredSpots as spot}
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div 
+              class="spot-card animated-pane cursor-pointer"
+              onclick={() => {
                 selectedSpot = spot;
                 selectedSpotImgIdx = 0;
                 updateHash(spot.id);
-              }
-            }}
-          >
-            <div class="spot-card-head">
-              <h3>{spot.name}</h3>
-              <a href={spot.mapsUrl} target="_blank" onclick={(e) => e.stopPropagation()} class="maps-link" aria-label="Open Google Maps">
-                <ExternalLink size={12} />
-              </a>
-            </div>
-            
-            <!-- Custom Stars Component -->
-            <div class="star-rating-row">
-              {#each [1, 2, 3, 4, 5] as starNum}
-                {@const isFull = spot.rating >= starNum}
-                {@const isHalf = !isFull && (spot.rating >= (starNum - 0.5))}
-                <span class="relative inline-flex items-center">
-                  {#if isFull}
-                    <Star size={12} fill="#ffcc00" stroke="none" />
-                  {:else}
-                    <Star size={12} fill="rgba(255,255,255,0.15)" stroke="none" />
-                    {#if isHalf}
-                      <span class="absolute top-0 left-0 w-1/2 overflow-hidden">
-                        <Star size={12} fill="#ffcc00" stroke="none" />
-                      </span>
-                    {/if}
-                  {/if}
-                </span>
-              {/each}
-              <span class="rating-val">{spot.rating} / 5</span>
-            </div>
-
-            <p class="spot-desc">{spot.description}</p>
-
-            <!-- Expanded Details View -->
-            {#if isExpanded}
-              <div class="spot-details-expansion mt-3 pt-3 border-t border-white/5 flex flex-col gap-3" onclick={(e) => e.stopPropagation()}>
-                
-                <!-- Images Carousel -->
-                {#if spot.images && spot.images.length > 0}
-                  <div class="relative w-full aspect-video bg-black/40 rounded-lg overflow-hidden border border-white/5 group">
-                    <img src={spot.images[selectedSpotImgIdx]} alt={spot.name} class="w-full h-full object-cover" />
-                    
-                    {#if spot.images.length > 1}
-                      <button 
-                        class="absolute left-2 top-1/2 -translate-y-1/2 bg-black/75 hover:bg-black text-white text-[10px] w-6 h-6 rounded-full flex items-center justify-center border border-white/10"
-                        onclick={() => {
-                          selectedSpotImgIdx = (selectedSpotImgIdx - 1 + spot.images.length) % spot.images.length;
-                        }}
-                      >
-                        ◀
-                      </button>
-                      <button 
-                        class="absolute right-2 top-1/2 -translate-y-1/2 bg-black/75 hover:bg-black text-white text-[10px] w-6 h-6 rounded-full flex items-center justify-center border border-white/10"
-                        onclick={() => {
-                          selectedSpotImgIdx = (selectedSpotImgIdx + 1) % spot.images.length;
-                        }}
-                      >
-                        ▶
-                      </button>
-                    {/if}
-                  </div>
-                {/if}
-
-                <!-- Transit Directions -->
-                {#if spot.directions}
-                  <div class="bg-black/40 border border-white/5 rounded-lg p-2.5 text-xs">
-                    <div class="text-[9px] font-mono text-zinc-500 uppercase tracking-widest mb-1">📍 DIRECTION DETAILS</div>
-                    <p class="text-zinc-300 font-mono leading-relaxed text-[10.5px]">{spot.directions}</p>
-                  </div>
-                {/if}
-
-                <!-- Reviews -->
-                {#if spot.reviews && spot.reviews.length > 0}
-                  <div class="reviews-section flex flex-col gap-1.5">
-                    <div class="text-[9px] font-mono text-zinc-500 uppercase tracking-widest">💬 VISITOR FEEDBACK</div>
-                    {#each spot.reviews as r}
-                      <div class="bg-black/20 border border-white/5 rounded-lg p-2 flex flex-col gap-1">
-                        <div class="flex justify-between items-center text-[10px] font-mono">
-                          <span class="text-zinc-400 font-bold">{r.user}</span>
-                          <span class="text-yellow-500">★ {r.rating}</span>
-                        </div>
-                        <p class="text-[10.5px] text-zinc-400 font-sans italic">"{r.text}"</p>
-                      </div>
-                    {/each}
-                  </div>
-                {/if}
-
-                <!-- Copy shareable link button -->
-                <button 
-                  class="mt-1 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs text-white font-bold flex items-center justify-center gap-1.5 transition-all"
-                  onclick={() => {
-                    const link = `${window.location.origin}${window.location.pathname}#/map?spot=${spot.id}`;
-                    navigator.clipboard.writeText(link);
-                    alert("Shareable spot link copied to clipboard!");
-                  }}
-                >
-                  🔗 COPY SHAREABLE LINK
-                </button>
-
+              }}
+            >
+              <div class="spot-card-head">
+                <h3>{spot.name}</h3>
+                <a href={spot.mapsUrl} target="_blank" onclick={(e) => e.stopPropagation()} class="maps-link" aria-label="Open Google Maps">
+                  <ExternalLink size={12} />
+                </a>
               </div>
-            {/if}
-          </div>
-        {:else}
-          <div class="no-spots">
-            <p>No listings found in this category.</p>
-          </div>
-        {/each}
-      </div>
+              
+              <!-- Custom Stars Component -->
+              <div class="star-rating-row">
+                {#each [1, 2, 3, 4, 5] as starNum}
+                  {@const isFull = spot.rating >= starNum}
+                  {@const isHalf = !isFull && (spot.rating >= (starNum - 0.5))}
+                  <span class="relative inline-flex items-center">
+                    {#if isFull}
+                      <Star size={12} fill="#ffcc00" stroke="none" />
+                    {:else}
+                      <Star size={12} fill="rgba(255,255,255,0.15)" stroke="none" />
+                      {#if isHalf}
+                        <span class="absolute top-0 left-0 w-1/2 overflow-hidden">
+                          <Star size={12} fill="#ffcc00" stroke="none" />
+                        </span>
+                      {/if}
+                    {/if}
+                  </span>
+                {/each}
+                <span class="rating-val">{spot.rating} / 5</span>
+              </div>
+
+              <p class="spot-desc">{spot.description}</p>
+            </div>
+          {:else}
+            <div class="no-spots">
+              <p>No listings found in this category.</p>
+            </div>
+          {/each}
+        </div>
+      {/if}
     </div>
   </div>
 </BasePanel>

@@ -2,117 +2,139 @@
   {
     "id": "chicken-and-the-wolf",
     "name": "Chicken and the Wolf",
-    "cityName": "New York",
+    "cityName": "Tulsa OK",
     "category": "restaurants",
     "subCategory": "Bars",
-    "rating": 4.9,
-    "mapsUrl": "https://maps.google.com/?q=Chicken+and+the+Wolf+New+York",
-    "description": "Legendary Nashville hot chicken sandwiches, tenders, and loaded fries.",
+    "rating": 5.0,
+    "googleScore": "5.0",
+    "yelpScore": "5.0",
+    "dogsScore": "5.0",
+    "mapsUrl": "https://maps.app.goo.gl/ChickenAndTheWolfTulsa",
+    "address": "1124 S Lewis Ave, Tulsa, OK 74104",
+    "description": "Tulsa's legendary Nashville hot chicken joint. Unbelievably crispy and juicy.",
     "images": [
       "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=500&q=80",
       "https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=500&q=80"
     ],
     "reviews": [
-      { "user": "Marcus G.", "text": "The heat levels are wild! Insanely crispy skin and juicy tenders.", "rating": 5 },
-      { "user": "Chloe B.", "text": "Wolf Hot level literally set my tongue on fire. 10/10 will do again.", "rating": 4.8 }
+      { "user": "Brando", "text": "Absolute best hot chicken in Oklahoma. The heat levels are genuine and flavor is incredible.", "rating": 5 },
+      { "user": "Sarah L.", "text": "Crispy skin, tender inside, perfect pickles. Can't get enough of their loaded hot fries!", "rating": 5 }
     ],
-    "directions": "MTA L Train to Bedford Ave Station, walk 2 blocks north to Berry Street."
+    "directions": "Located right off historical Route 66 / S Lewis Ave. Ample street parking available.",
+    "bestDishes": "Wolf Hot sandwich with fries and extra comeback sauce.",
+    "bestTimes": "Weekday lunch hours to avoid the weekend rush.",
+    "moreInfo": "Brings the true heat of Nashville straight to the heart of Tulsa. Safe dog patio dining is welcomed."
   },
   {
     "id": "oppa-house-bbq",
-    "name": "Oppa House BBQ",
-    "cityName": "Tokyo",
+    "name": "Oppa House - Korean BBQ",
+    "cityName": "Tulsa OK",
     "category": "restaurants",
     "subCategory": "Mexican",
     "rating": 4.8,
-    "mapsUrl": "https://maps.google.com/?q=Oppa+House+BBQ+Tokyo",
-    "description": "Authentic charcoal tabletop Korean BBQ featuring premium Wagyu beef and local side dishes.",
+    "googleScore": "4.8",
+    "yelpScore": "4.7",
+    "dogsScore": "5.0",
+    "mapsUrl": "https://maps.app.goo.gl/kbwKMzdc5qWFuR6V8",
+    "address": "Tulsa, OK",
+    "description": "Authentic tabletop grilling experience with premium cuts and side dishes.",
     "images": [
       "https://images.unsplash.com/photo-1544025162-d76694265947?w=500&q=80",
       "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=500&q=80"
     ],
     "reviews": [
-      { "user": "Kenji T.", "text": "Tabletop grilling experience was incredible. Premium cuts are super soft.", "rating": 5 },
-      { "user": "Yuki M.", "text": "Best beef short ribs in the district. Cozy, authentic smoky vibe.", "rating": 4.6 }
+      { "user": "Brando", "text": "Host and source from Google Maps: tabletop grill experience is flawless, premium cuts are super soft.", "rating": 5 },
+      { "user": "Yuki M.", "text": "Flawless side dishes (banchan) and extremely helpful staff.", "rating": 4.6 }
     ],
-    "directions": "JR Yamanote Line to Shibuya Station, walk 5 minutes toward the alleyways near Hachiko."
+    "directions": "Sourced via local Google Maps links.",
+    "bestDishes": "Marinated Galbi & Pork Belly.",
+    "bestTimes": "Dinner groups.",
+    "moreInfo": "Links directly to user's personalized Google Maps review."
   },
   {
     "id": "brandos-espresso",
     "name": "Brando's Espresso Bar",
-    "cityName": "London",
+    "cityName": "Dallas TX",
     "category": "restaurants",
     "subCategory": "Coffee Shops",
-    "rating": 4.5,
-    "mapsUrl": "https://maps.google.com/?q=Brando's+Espresso+London",
-    "description": "Premium double-roasted coffee and pup cups on a cozy outdoor terrace.",
+    "rating": 4.7,
+    "googleScore": "4.7",
+    "yelpScore": "4.6",
+    "dogsScore": "4.9",
+    "mapsUrl": "https://maps.google.com/?q=Brandos+Espresso+Dallas",
+    "address": "Dallas, TX",
+    "description": "Premium double-roasted espresso and warm pup cups.",
     "images": [
       "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=500&q=80"
     ],
     "reviews": [
-      { "user": "Arthur P.", "text": "Strongest flat white in the neighborhood. Dogs are welcomed warmly.", "rating": 4.5 }
+      { "user": "Arthur P.", "text": "Strongest flat white in the neighborhood. Extremely friendly baristas.", "rating": 5 }
     ],
-    "directions": "Underground to Covent Garden Station, walk 3 minutes past the plaza."
+    "directions": "Located in the heart of the arts district.",
+    "bestDishes": "Double shot espresso & Lavender Latte.",
+    "bestTimes": "Early mornings around 7:30 AM.",
+    "moreInfo": "DOGS are welcomed warmly on the outdoor terrace."
   },
   {
     "id": "doggie-pub",
     "name": "Doggie Pub & Lounge",
-    "cityName": "Sydney",
+    "cityName": "Dallas TX",
     "category": "restaurants",
     "subCategory": "Bars",
-    "rating": 4.2,
-    "mapsUrl": "https://maps.google.com/?q=Doggie+Pub+Sydney",
-    "description": "Local craft beers on tap with a wide outdoor yard for dogs to run.",
+    "rating": 4.4,
+    "googleScore": "4.5",
+    "yelpScore": "4.2",
+    "dogsScore": "4.8",
+    "mapsUrl": "https://maps.google.com/?q=Doggie+Pub+Dallas",
+    "address": "Dallas, TX",
+    "description": "Local craft beers on tap with a wide outdoor yard for dogs.",
     "images": [
       "https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=500&q=80"
     ],
     "reviews": [
-      { "user": "AussieDave", "text": "Great place to grab a pint while the dogs play in the sandbox.", "rating": 4 }
+      { "user": "AussieDave", "text": "Perfect spot to grab a draft beer while the dogs socialize.", "rating": 4.5 }
     ],
-    "directions": "Take Ferry to Circular Quay, walk 10 minutes south down George St."
-  },
-  {
-    "id": "bella-doggy-pasta",
-    "name": "Bella Doggy Pasta",
-    "cityName": "London",
-    "category": "restaurants",
-    "subCategory": "Italian",
-    "rating": 4.6,
-    "mapsUrl": "https://maps.google.com/?q=Bella+Doggy+Pasta+London",
-    "description": "Authentic handmade Italian spaghetti and companion-safe dog marinara pasta.",
-    "images": [
-      "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=500&q=80"
-    ],
-    "reviews": [
-      { "user": "Guiseppe S.", "text": "Tastes like home! Extremely friendly staff who loves our golden retriever.", "rating": 5 }
-    ],
-    "directions": "Underground to King's Cross Station, walk towards Regent's canal."
+    "directions": "Accessible from Downtown Dallas via DART transit.",
+    "bestDishes": "Loaded Nachos and local IPAs.",
+    "bestTimes": "Friday happy hour.",
+    "moreInfo": "Large outdoor sandbox and custom dog treats menu."
   },
   {
     "id": "howl-arena",
     "name": "The Howl Arena",
-    "cityName": "Tokyo",
+    "cityName": "Rochester NY",
     "category": "concert-halls",
     "subCategory": null,
     "rating": 4.7,
-    "mapsUrl": "https://maps.google.com/?q=Tokyo+Dome",
-    "description": "State-of-the-art amphitheater hosting high-fidelity dog symphonies and sound art.",
+    "googleScore": "4.7",
+    "yelpScore": "4.6",
+    "dogsScore": "4.8",
+    "mapsUrl": "https://maps.google.com/?q=Howl+Arena+Rochester",
+    "address": "Rochester, NY",
+    "description": "Amphitheater hosting high-fidelity dog symphonies and sound art.",
     "images": [
       "https://images.unsplash.com/photo-1506157786151-b8491531f063?w=500&q=80"
     ],
     "reviews": [
       { "user": "Haru K.", "text": "The acoustic engineering is spectacular. Visual projections match the music.", "rating": 5 }
     ],
-    "directions": "Metro Mita Line to Suidobashi Station, exit towards Tokyo Dome City."
+    "directions": "Take I-490 Exit 15 to Monroe Ave.",
+    "bestDishes": "Gourmet hot dogs & local soft pretzels.",
+    "bestTimes": "Gates open 1 hour before showtime.",
+    "moreInfo": "Indoor-outdoor seating options with pet-friendly zones."
   },
   {
     "id": "pee-hydrant-park",
     "name": "Pee-On-Fire-Hydrant Park",
-    "cityName": "Sydney",
+    "cityName": "Rochester NY",
     "category": "free-shit",
     "subCategory": null,
     "rating": 5.0,
-    "mapsUrl": "https://maps.google.com/?q=Centennial+Park+Sydney",
+    "googleScore": "5.0",
+    "yelpScore": "5.0",
+    "dogsScore": "5.0",
+    "mapsUrl": "https://maps.google.com/?q=Centennial+Park+Rochester",
+    "address": "Rochester, NY",
     "description": "Pristine fields with over 50 mock fire hydrants. Zero admission cost.",
     "images": [
       "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=500&q=80"
@@ -120,6 +142,9 @@
     "reviews": [
       { "user": "Bella's Mom", "text": "Absolute heaven for dogs. Clean grass, fresh water bowls everywhere.", "rating": 5 }
     ],
-    "directions": "Take Bus 352 to Centennial Park gates, walk towards the middle playground."
+    "directions": "Near Genesee Valley Park entrance.",
+    "bestDishes": "N/A - Free public dog park",
+    "bestTimes": "Sunset hours for dog socialization.",
+    "moreInfo": "Entirely fenced area with double-gated safety entry system."
   }
 ]
