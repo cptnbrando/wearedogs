@@ -78,6 +78,7 @@
   let vinylLoaded = $state(false);
   let showVolumeSlider = $state(false);
   let volumePopoverEl = $state(null);
+  let isAnimating = $derived(audioCore.isPlaying && !isClosing);
 
   let showVisualizer = $state(false);
   let activePresetIdx = $state(0);
@@ -133,7 +134,7 @@
   // Manage Visualizer instantiation and destruction
   $effect(() => {
     const analyser = audioCore.analyser; // track dependency
-    if (showVisualizer && canvasEl) {
+    if (showVisualizer && canvasEl && !isClosing) {
       // Re-instantiate engine when analyser becomes available or changes
       visualizerEngine = new VisualizerEngine(canvasEl, analyser);
       visualizerEngine.init(currentShader);
@@ -894,7 +895,7 @@
                     >
                       <div
                         class="vinyl-record"
-                        class:spinning={audioCore.isPlaying}
+                        class:spinning={isAnimating}
                       >
                         <div class="groove g1"></div>
                         <div class="groove g2"></div>
@@ -918,7 +919,7 @@
                       </div>
                       <div
                         class="tonearm"
-                        class:playing={audioCore.isPlaying}
+                        class:playing={isAnimating}
                       ></div>
                     </div>
                   {:else if settingsManager.musicDeckModel === 'cassette'}
@@ -955,21 +956,21 @@
                         <div class="cassette-window bg-zinc-950/80">
                           <div
                             class="spindle-left bg-zinc-900"
-                            class:spinning={audioCore.isPlaying}
+                            class:spinning={isAnimating}
                           ></div>
                           <div
                             class="tape-roll-left bg-amber-950/70"
-                            class:spinning={audioCore.isPlaying}
+                            class:spinning={isAnimating}
                             style="width: {leftSpoolRatio *
                               46}px; height: {leftSpoolRatio * 46}px;"
                           ></div>
                           <div
                             class="spindle-right bg-zinc-900"
-                            class:spinning={audioCore.isPlaying}
+                            class:spinning={isAnimating}
                           ></div>
                           <div
                             class="tape-roll-right bg-amber-950/70"
-                            class:spinning={audioCore.isPlaying}
+                            class:spinning={isAnimating}
                             style="width: {rightSpoolRatio *
                               46}px; height: {rightSpoolRatio * 46}px;"
                           ></div>
@@ -1001,13 +1002,13 @@
                         </div>
 
                         <div class="floppy-shutter-door bg-zinc-700">
-                          <div class="floppy-shutter-slider bg-zinc-400" class:open={audioCore.isPlaying}></div>
+                          <div class="floppy-shutter-slider bg-zinc-400" class:open={isAnimating}></div>
                           <div class="floppy-shutter-opening bg-zinc-950">
-                            <div class="floppy-magnetic-disc bg-zinc-900" class:spinning={audioCore.isPlaying}></div>
+                            <div class="floppy-magnetic-disc bg-zinc-900" class:spinning={isAnimating}></div>
                           </div>
                         </div>
 
-                        <div class="floppy-drive-led" class:active={audioCore.isPlaying}></div>
+                        <div class="floppy-drive-led" class:active={isAnimating}></div>
                       </div>
                     </div>
                   {:else if settingsManager.musicDeckModel === 'musicbox'}
@@ -1022,16 +1023,16 @@
                       aria-label="Open tracklist"
                     >
                       <div class="music-box">
-                        <div class="music-box-key" class:spinning={audioCore.isPlaying}></div>
+                        <div class="music-box-key" class:spinning={isAnimating}></div>
                         
                         <div class="music-box-interior border border-amber-900/40">
                           <div class="music-box-gears">
-                            <div class="music-box-gear gear-1" class:spinning={audioCore.isPlaying}></div>
-                            <div class="music-box-gear gear-2" class:spinning={audioCore.isPlaying}></div>
+                            <div class="music-box-gear gear-1" class:spinning={isAnimating}></div>
+                            <div class="music-box-gear gear-2" class:spinning={isAnimating}></div>
                           </div>
 
                           <div class="music-box-drum-wrap">
-                            <div class="music-box-drum bg-gradient-to-r from-amber-600 via-amber-500 to-amber-700" class:spinning={audioCore.isPlaying}>
+                            <div class="music-box-drum bg-gradient-to-r from-amber-600 via-amber-500 to-amber-700" class:spinning={isAnimating}>
                               <div class="music-box-pins">
                                 <div class="pin pin-1"></div>
                                 <div class="pin pin-2"></div>
@@ -1047,7 +1048,7 @@
                             {#each Array(10) as _, idx}
                               <div 
                                 class="comb-tooth" 
-                                class:vibrating={audioCore.isPlaying && idx % 3 === (Math.floor(audioCore.currentTime * 4) % 3)}
+                                class:vibrating={isAnimating && idx % 3 === (Math.floor(audioCore.currentTime * 4) % 3)}
                               ></div>
                             {/each}
                           </div>

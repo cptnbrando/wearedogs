@@ -95,6 +95,7 @@
       
       <div class="decks-grid">
         {#each decks as deck}
+          {@const DeckIcon = deck.icon}
           {@const isSelected = activeDeckId === deck.id}
           
           <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -105,7 +106,7 @@
             onclick={() => selectDeck(deck.id)}
           >
             <div class="deck-icon-box">
-              <svelte:component this={deck.icon} size={24} class="text-white/80" />
+              <DeckIcon size={24} class="text-white/80" />
             </div>
             
             <div class="theme-info deck-info">
