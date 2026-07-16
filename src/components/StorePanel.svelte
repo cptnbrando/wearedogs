@@ -1,5 +1,5 @@
 <script>
-  import { onMount, untrack } from "svelte";
+  import { onMount, onDestroy, untrack } from "svelte";
   import { fade, fly } from "svelte/transition";
   import BasePanel from "./BasePanel.svelte";
   import ThreeDShirtCanvas from "./apps/ThreeDShirtCanvas.svelte";
@@ -26,6 +26,7 @@
   let campaigns = $state([]);
   let cart = $state([]);
   let isCartOpen = $state(false);
+  let cartHistoryPushed = $state(false);
   let selectedProduct = $state(null);
   let selectedCampaign = $state(null);
   let currentStoreMode = $state("merch"); // "merch" or "fundraising"
@@ -316,7 +317,59 @@
     saveCart();
     isCartOpen = false;
   }
+
+  // Sync cart drawer state with browser history (back button closes cart)
+  $effect(() => {
+    if (isCartOpen) {
+      if (!history.state?.cartOpen && !cartHistoryPushed) {
+        const nextDepth = depth + 1;
+        history.pushState(
+          {
+            view: "store",
+            cartOpen: true,
+            productId: selectedProduct?.id || null,
+            campaignId: selectedCampaign?.id || null,
+            depth: nextDepth,
+          },
+          "",
+        );
+        cartHistoryPushed = true;
+        depth = nextDepth;
+      }
+    } else {
+      if (cartHistoryPushed) {
+        history.back();
+        cartHistoryPushed = false;
+        depth = Math.max(1, depth - 1);
+      }
+    }
+  });
+
+  onDestroy(() => {
+    if (cartHistoryPushed) {
+      history.back();
+      cartHistoryPushed = false;
+    }
+  });
+
+  function handlePopState(e) {
+    if (!e.state?.cartOpen && isCartOpen) {
+      isCartOpen = false;
+      cartHistoryPushed = false;
+      if (e.state?.depth !== undefined) {
+        depth = e.state.depth;
+      }
+    } else if (e.state?.cartOpen && !isCartOpen) {
+      isCartOpen = true;
+      cartHistoryPushed = true;
+      if (e.state?.depth !== undefined) {
+        depth = e.state.depth;
+      }
+    }
+  }
 </script>
+
+<svelte:window onpopstate={handlePopState} />
 
 <BasePanel title="DOGS SHOP" {isClosing} {onClose}>
   <div
