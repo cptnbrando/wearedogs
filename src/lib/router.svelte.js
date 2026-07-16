@@ -78,6 +78,16 @@ export function parsePath(path) {
     return { type: 'music-track', trackId: s1 };
   }
 
+  // /store/campaign/c1
+  if (s0 === 'store' && s1 === 'campaign' && parts.length === 3) {
+    return { type: 'store-campaign', campaignId: s2 };
+  }
+
+  // /store/product/1
+  if (s0 === 'store' && s1 === 'product' && parts.length === 3) {
+    return { type: 'store-product', productId: s2 };
+  }
+
   // /stats  /map  /store  /networking
   if (parts.length === 1 && VALID_PANELS.has(s0)) {
     return { type: 'panel', panel: s0 };

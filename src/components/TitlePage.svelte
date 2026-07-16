@@ -184,6 +184,8 @@
   let deepLinkGoProEp = $state(null);
   let deepLinkBlogPostSlug = $state(null);
   let deepLinkArcadeGame = $state(null);
+  let deepLinkStoreCampaignId = $state(null);
+  let deepLinkStoreProductId = $state(null);
 
   // ---------------------------------------------------------------------------
   // URL Routing — parse deep-link on first mount
@@ -206,6 +208,26 @@
       // Language is a preference, not a navigation step — set and stay at home.
       activeLang = params.lang;
       setTimeout(() => weAreDogsRef?.forceLanguage(params.lang), 0);
+      return;
+    }
+
+    if (params.type === "store-campaign") {
+      deepLinkStoreCampaignId = params.campaignId;
+      activePage = "store";
+      isClosing = false;
+      history.pushState({ view: "store", depth: 1 }, "", "/store");
+      history.pushState({ view: "store", campaignId: params.campaignId, depth: 2 }, "", `/store/campaign/${params.campaignId}`);
+      depth = 2;
+      return;
+    }
+
+    if (params.type === "store-product") {
+      deepLinkStoreProductId = params.productId;
+      activePage = "store";
+      isClosing = false;
+      history.pushState({ view: "store", depth: 1 }, "", "/store");
+      history.pushState({ view: "store", productId: params.productId, depth: 2 }, "", `/store/product/${params.productId}`);
+      depth = 2;
       return;
     }
 
@@ -381,6 +403,11 @@
 
       if (targetView === "toolbox" && targetApp === "blog") {
         deepLinkBlogPostSlug = state?.slug || null;
+      }
+
+      if (targetView === "store") {
+        deepLinkStoreCampaignId = state?.campaignId || null;
+        deepLinkStoreProductId = state?.productId || null;
       }
 
       isClosing = false;
@@ -579,7 +606,15 @@
       />
     {:else if activePage === "music"}
       <Panel {isClosing} onClose={closePage} {initialTrackId} />
-    {:else if activePage === "store" || activePage === "map"}
+    {:else if activePage === "store"}
+      <Panel
+        {isClosing}
+        onClose={closePage}
+        bind:depth
+        bind:initialCampaignId={deepLinkStoreCampaignId}
+        bind:initialProductId={deepLinkStoreProductId}
+      />
+    {:else if activePage === "map"}
       <Panel {isClosing} onClose={closePage} />
     {/if}
   {:else}

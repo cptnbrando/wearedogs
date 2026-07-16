@@ -11,9 +11,16 @@
     Minus,
     Check,
     X,
+    Share2,
   } from "lucide-svelte";
 
-  let { isClosing = false, onClose } = $props();
+  let {
+    isClosing = false,
+    onClose,
+    initialCampaignId = $bindable(null),
+    initialProductId = $bindable(null),
+    depth = $bindable(0)
+  } = $props();
 
   let products = $state([]);
   let campaigns = $state([]);
@@ -41,6 +48,109 @@
     "5XL",
     "6XL",
   ];
+
+  // Resolve initial deep links on mount after data is loaded
+  $effect(() => {
+    if (products.length > 0 && initialProductId) {
+      const matched = products.find((p) => p.id === initialProductId);
+      if (matched && (!selectedProduct || selectedProduct.id !== initialProductId)) {
+        selectedProduct = matched;
+        currentStoreMode = "merch";
+      }
+    } else if (!initialProductId && selectedProduct !== null) {
+      selectedProduct = null;
+    }
+  });
+
+  $effect(() => {
+    if (campaigns.length > 0 && initialCampaignId) {
+      const matched = campaigns.find((c) => c.id === initialCampaignId);
+      if (matched && (!selectedCampaign || selectedCampaign.id !== initialCampaignId)) {
+        selectedCampaign = matched;
+        currentStoreMode = "fundraising";
+        activeImageIdx = 0;
+      }
+    } else if (!initialCampaignId && selectedCampaign !== null) {
+      selectedCampaign = null;
+    }
+  });
+
+  // Navigation handlers that update URL history
+  function selectProduct(product) {
+    selectedProduct = product;
+    initialProductId = product.id;
+    currentStoreMode = "merch";
+    depth = 2;
+    history.pushState(
+      { view: "store", productId: product.id, depth: 2 },
+      "",
+      `/store/product/${product.id}`
+    );
+  }
+
+  function deselectProduct() {
+    selectedProduct = null;
+    initialProductId = null;
+    if (history.state?.productId) {
+      history.back();
+    } else if (window.location.pathname.includes("/store/product/")) {
+      history.replaceState(
+        { view: "store", depth: 1 },
+        "",
+        "/store"
+      );
+      depth = 1;
+    }
+  }
+
+  function selectCampaign(campaign) {
+    selectedCampaign = campaign;
+    initialCampaignId = campaign.id;
+    currentStoreMode = "fundraising";
+    activeImageIdx = 0;
+    depth = 2;
+    history.pushState(
+      { view: "store", campaignId: campaign.id, depth: 2 },
+      "",
+      `/store/campaign/${campaign.id}`
+    );
+  }
+
+  function deselectCampaign() {
+    selectedCampaign = null;
+    initialCampaignId = null;
+    if (history.state?.campaignId) {
+      history.back();
+    } else if (window.location.pathname.includes("/store/campaign/")) {
+      history.replaceState(
+        { view: "store", depth: 1 },
+        "",
+        "/store"
+      );
+      depth = 1;
+    }
+  }
+
+  // Share system
+  let showCopiedAlert = $state(false);
+  let copyTimeout = null;
+
+  function handleShare(type, id, e) {
+    if (e) e.stopPropagation();
+    const shareUrl = `${window.location.origin}/store/${type}/${id}`;
+    navigator.clipboard
+      .writeText(shareUrl)
+      .then(() => {
+        showCopiedAlert = true;
+        if (copyTimeout) clearTimeout(copyTimeout);
+        copyTimeout = setTimeout(() => {
+          showCopiedAlert = false;
+        }, 2000);
+      })
+      .catch((err) => {
+        console.error("Failed to copy link:", err);
+      });
+  }
 
   // Load products and campaigns on mount
   onMount(async () => {
@@ -194,14 +304,14 @@
         {#if currentStoreMode === "merch" && selectedProduct}
           <button
             class="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors duration-200 text-sm font-semibold cursor-pointer"
-            onclick={() => (selectedProduct = null)}
+            onclick={deselectProduct}
           >
             <ArrowLeft size={16} /> BACK TO CATALOG
           </button>
         {:else if currentStoreMode === "fundraising" && selectedCampaign}
           <button
             class="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors duration-200 text-sm font-semibold cursor-pointer"
-            onclick={() => (selectedCampaign = null)}
+            onclick={deselectCampaign}
           >
             <ArrowLeft size={16} /> BACK TO CAMPAIGNS
           </button>
@@ -217,7 +327,7 @@
               class:text-zinc-400={currentStoreMode !== "merch"}
               onclick={() => {
                 currentStoreMode = "merch";
-                selectedProduct = null;
+                deselectProduct();
               }}
             >
               MERCHANDISE
@@ -229,7 +339,7 @@
               class:text-zinc-400={currentStoreMode !== "fundraising"}
               onclick={() => {
                 currentStoreMode = "fundraising";
-                selectedCampaign = null;
+                deselectCampaign();
               }}
             >
               FUNDRAISERS
@@ -284,7 +394,7 @@
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
                 <div
                   class="aspect-square bg-black/20 border-b border-zinc-800/60 flex flex-col items-center justify-center relative cursor-pointer"
-                  onclick={() => product.inStock && (selectedProduct = product)}
+                  onclick={() => product.inStock && selectProduct(product)}
                 >
                   <div
                     class="w-24 h-24 text-zinc-700 group-hover:text-zinc-500 transition-colors duration-300 flex items-center justify-center"
@@ -366,7 +476,7 @@
                     <button
                       class="px-3 py-1 bg-white text-black font-bold text-xs rounded hover:bg-zinc-200 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer disabled:cursor-not-allowed"
                       disabled={!product.inStock}
-                      onclick={() => (selectedProduct = product)}
+                      onclick={() => selectProduct(product)}
                     >
                       VIEW
                     </button>
@@ -398,10 +508,19 @@
                   >
                     {selectedProduct.title}
                   </h1>
-                  <span
-                    class="text-lg sm:text-xl lg:text-2xl text-red-500 font-black shrink-0"
-                    >{selectedProduct.price}</span
-                  >
+                  <div class="flex items-center gap-2 shrink-0">
+                    <span
+                      class="text-lg sm:text-xl lg:text-2xl text-red-500 font-black"
+                      >{selectedProduct.price}</span
+                    >
+                    <button
+                      onclick={(e) => handleShare("product", selectedProduct.id, e)}
+                      class="p-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-850 hover:border-zinc-700 rounded-lg text-zinc-400 hover:text-white transition-all cursor-pointer"
+                      title="Copy Share Link"
+                    >
+                      <Share2 size={16} />
+                    </button>
+                  </div>
                 </div>
 
                 <div class="mt-3 sm:mt-4 pb-4 border-b border-zinc-800/80">
@@ -488,10 +607,7 @@
                   <!-- svelte-ignore a11y_no_static_element_interactions -->
                   <div
                     class="bg-zinc-900/40 border border-zinc-800 hover:border-zinc-700 rounded-xl p-4 flex flex-col justify-between cursor-pointer transition-all duration-300 group"
-                    onclick={() => {
-                      selectedCampaign = campaign;
-                      activeImageIdx = 0;
-                    }}
+                    onclick={() => selectCampaign(campaign)}
                   >
                     <div>
                       <div
@@ -503,7 +619,7 @@
                           class="w-full h-full object-cover group-hover:scale-103 transition-transform duration-300"
                         />
                         <span
-                          class="absolute top-2 left-2 px-1.5 py-0.5 bg-red-600 text-white font-bold font-mono text-[9px] tracking-widest uppercase rounded"
+                          class="absolute top-2 left-2 px-1.5 py-0.5 bg-emerald-600 text-white font-bold font-mono text-[9px] tracking-widest uppercase rounded"
                           >ACTIVE</span
                         >
                       </div>
@@ -555,10 +671,7 @@
                   <!-- svelte-ignore a11y_no_static_element_interactions -->
                   <div
                     class="bg-zinc-900/20 border border-zinc-900 hover:border-zinc-800 rounded-xl p-4 flex flex-col justify-between cursor-pointer transition-all duration-300 group"
-                    onclick={() => {
-                      selectedCampaign = campaign;
-                      activeImageIdx = 0;
-                    }}
+                    onclick={() => selectCampaign(campaign)}
                   >
                     <div>
                       <div
@@ -570,8 +683,8 @@
                           class="w-full h-full object-cover"
                         />
                         <span
-                          class="absolute top-2 left-2 px-1.5 py-0.5 bg-emerald-600 text-white font-bold font-mono text-[9px] tracking-widest uppercase rounded"
-                          >SUCCESS</span
+                          class="absolute top-2 left-2 px-1.5 py-0.5 bg-orange-600 text-white font-bold font-mono text-[9px] tracking-widest uppercase rounded"
+                          >COMPLETED</span
                         >
                       </div>
                       <h3
@@ -620,11 +733,14 @@
               <div
                 class="relative w-full aspect-video bg-black/40 border border-zinc-800 rounded-2xl overflow-hidden shadow-lg group max-h-[200px] sm:max-h-[260px] md:max-h-[320px] lg:max-h-[360px] xl:max-h-[400px]"
               >
-                <img
-                  src={selectedCampaign.images[activeImageIdx]}
-                  alt={selectedCampaign.title}
-                  class="w-full h-full object-cover transition-all duration-300"
-                />
+                {#key activeImageIdx}
+                  <img
+                    transition:fade={{ duration: 250 }}
+                    src={selectedCampaign.images[activeImageIdx]}
+                    alt={selectedCampaign.title}
+                    class="absolute inset-0 w-full h-full object-cover"
+                  />
+                {/key}
 
                 <!-- Navigation Chevrons -->
                 <button
@@ -690,17 +806,32 @@
                   class="flex justify-between items-start gap-3 border-b border-zinc-850 pb-4"
                 >
                   <div>
-                    <span
-                      class="px-2 py-0.5 bg-red-600/10 border border-red-500/30 text-red-500 font-bold font-mono text-[9px] tracking-widest uppercase rounded"
-                    >
-                      {selectedCampaign.status}
-                    </span>
+                    {#if selectedCampaign.status === "active"}
+                      <span
+                        class="px-2 py-0.5 bg-emerald-600/10 border border-emerald-500/30 text-emerald-400 font-bold font-mono text-[9px] tracking-widest uppercase rounded"
+                      >
+                        ACTIVE
+                      </span>
+                    {:else}
+                      <span
+                        class="px-2 py-0.5 bg-orange-600/10 border border-orange-500/30 text-orange-400 font-bold font-mono text-[9px] tracking-widest uppercase rounded"
+                      >
+                        COMPLETED
+                      </span>
+                    {/if}
                     <h1
                       class="text-xl sm:text-2xl font-extrabold tracking-wider mt-2 uppercase"
                     >
                       {selectedCampaign.title}
                     </h1>
                   </div>
+                  <button
+                    onclick={(e) => handleShare("campaign", selectedCampaign.id, e)}
+                    class="p-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-850 hover:border-zinc-700 rounded-lg text-zinc-400 hover:text-white transition-all cursor-pointer mt-5 shrink-0"
+                    title="Copy Share Link"
+                  >
+                    <Share2 size={16} />
+                  </button>
                 </div>
 
                 <div class="mt-3 sm:mt-4 pb-4">
@@ -735,7 +866,7 @@
                   <!-- Cash App Link button -->
                   <div class="mb-4">
                     <a
-                      href={selectedCampaign.cashAppUrl}
+                      href="https://cash.app/$cptnbrando"
                       target="_blank"
                       rel="noopener noreferrer"
                       class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-black font-black rounded-xl text-xs tracking-widest transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-emerald-900/25 cursor-pointer"
@@ -914,6 +1045,16 @@
             </button>
           </div>
         {/if}
+      </div>
+    {/if}
+
+    <!-- TOAST NOTIFICATION -->
+    {#if showCopiedAlert}
+      <div
+        transition:fade={{ duration: 150 }}
+        class="absolute bottom-6 left-1/2 -translate-x-1/2 bg-zinc-950/90 text-red-500 font-extrabold text-[10px] sm:text-xs uppercase tracking-widest px-4 py-2.5 rounded-xl shadow-2xl border border-red-500/40 z-50 flex items-center gap-2"
+      >
+        <span>✓ SHARE LINK COPIED</span>
       </div>
     {/if}
   </div>
