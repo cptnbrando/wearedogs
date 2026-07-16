@@ -732,6 +732,18 @@
                     ></div>
                   </div>
 
+                  <!-- Cash App Link button -->
+                  <div class="mb-4">
+                    <a
+                      href={selectedCampaign.cashAppUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-black font-black rounded-xl text-xs tracking-widest transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-emerald-900/25 cursor-pointer"
+                    >
+                      🟢 SECURE DONATE VIA CASH APP
+                    </a>
+                  </div>
+
                   <div class="mt-2 flex flex-col gap-2">
                     <span
                       class="text-[9px] text-zinc-500 tracking-widest uppercase font-bold"
@@ -768,18 +780,6 @@
                     {/each}
                   </div>
                 </div>
-              </div>
-
-              <!-- Cash App Link button -->
-              <div class="mt-6 pt-6 border-t border-zinc-800/85">
-                <a
-                  href={selectedCampaign.cashAppUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-black font-black rounded-xl text-xs tracking-widest transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-emerald-900/25 cursor-pointer"
-                >
-                  🟢 SECURE DONATE VIA CASH APP
-                </a>
               </div>
             </div>
           </div>
