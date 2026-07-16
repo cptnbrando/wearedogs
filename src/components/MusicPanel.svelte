@@ -31,6 +31,7 @@
     Swords,
   } from "lucide-svelte";
   import { audioCore } from "../lib/AudioCore.svelte.js";
+  import { settingsManager } from "../lib/settingsManager.svelte.js";
   import { VisualizerEngine } from "../lib/visualizer/VisualizerEngine.js";
   import DogsLogo from "./DogsLogo.svelte";
   import { PRESETS, NO_SIGNAL_PRESET } from "../lib/visualizer/presets.js";
@@ -75,7 +76,6 @@
   let showMobileTracklist = $state(false);
   let isBouncing = $state(false);
   let vinylLoaded = $state(false);
-  let isVinylView = $state(true);
   let showVolumeSlider = $state(false);
   let volumePopoverEl = $state(null);
 
@@ -105,7 +105,12 @@
   // If on mobile and kaleidoscope is turned on while tracks page is active, close tracks page
   $effect(() => {
     const isMobile = window.innerWidth <= 640;
-    if (isMobile && showVisualizer && activePresetIdx === 0 && showMobileTracklist) {
+    if (
+      isMobile &&
+      showVisualizer &&
+      activePresetIdx === 0 &&
+      showMobileTracklist
+    ) {
       showMobileTracklist = false;
     }
   });
@@ -224,7 +229,7 @@
     {
       id: "rain",
       title: "Pourin Rain (feat. Skratch Bastid)",
-      artist: "Zed's Dead",
+      artist: "Zeds Dead",
       album:
         "Return to the Return (of the Spectrum of Intergalactic Happiness)",
       cover: "https://data.wearedogs.net/img/covers/2026/zd.webp",
@@ -619,7 +624,6 @@
     return { x, y };
   }
 
-
   function initThreeFx() {
     if (!faderFxCanvas) return;
 
@@ -876,8 +880,8 @@
                     <Maximize2 size={16} class="text-white/20" />
                   </div>
                 {:else}
-                  <!-- Toggleable Vinyl OR Cassette Model -->
-                  {#if isVinylView}
+                  <!-- Dynamic Deck Media Model -->
+                  {#if settingsManager.musicDeckModel === 'vinyl'}
                     <!-- Vinyl view clicker -->
                     <!-- svelte-ignore a11y_click_events_have_key_events -->
                     <!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
@@ -917,9 +921,18 @@
                         class:playing={audioCore.isPlaying}
                       ></div>
                     </div>
-                  {:else}
-                    {@const leftSpoolRatio = audioCore.duration > 0 ? (1 - (audioCore.currentTime / audioCore.duration)) * 0.45 + 0.25 : 0.48}
-                    {@const rightSpoolRatio = audioCore.duration > 0 ? (audioCore.currentTime / audioCore.duration) * 0.45 + 0.25 : 0.48}
+                  {:else if settingsManager.musicDeckModel === 'cassette'}
+                    {@const leftSpoolRatio =
+                      audioCore.duration > 0
+                        ? (1 - audioCore.currentTime / audioCore.duration) *
+                            0.45 +
+                          0.25
+                        : 0.48}
+                    {@const rightSpoolRatio =
+                      audioCore.duration > 0
+                        ? (audioCore.currentTime / audioCore.duration) * 0.45 +
+                          0.25
+                        : 0.48}
                     <!-- Cassette view clicker -->
                     <!-- svelte-ignore a11y_click_events_have_key_events -->
                     <!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
@@ -931,41 +944,117 @@
                       aria-label="Open tracklist"
                     >
                       <div class="cassette-tape">
-                        <div class="cassette-label bg-gradient-to-r from-purple-800 to-pink-700">
-                          <span class="cassette-track-title">{currentTrack.title}</span>
+                        <div
+                          class="cassette-label bg-gradient-to-r from-purple-800 to-pink-700"
+                        >
+                          <span class="cassette-track-title"
+                            >{currentTrack.title}</span
+                          >
                           <span class="cassette-brand">WEAREDOGS AUDIO</span>
                         </div>
                         <div class="cassette-window bg-zinc-950/80">
-                          <div class="spindle-left bg-zinc-900" class:spinning={audioCore.isPlaying}></div>
+                          <div
+                            class="spindle-left bg-zinc-900"
+                            class:spinning={audioCore.isPlaying}
+                          ></div>
                           <div
                             class="tape-roll-left bg-amber-950/70"
                             class:spinning={audioCore.isPlaying}
-                            style="width: {leftSpoolRatio * 46}px; height: {leftSpoolRatio * 46}px;"
+                            style="width: {leftSpoolRatio *
+                              46}px; height: {leftSpoolRatio * 46}px;"
                           ></div>
-                          <div class="spindle-right bg-zinc-900" class:spinning={audioCore.isPlaying}></div>
+                          <div
+                            class="spindle-right bg-zinc-900"
+                            class:spinning={audioCore.isPlaying}
+                          ></div>
                           <div
                             class="tape-roll-right bg-amber-950/70"
                             class:spinning={audioCore.isPlaying}
-                            style="width: {rightSpoolRatio * 46}px; height: {rightSpoolRatio * 46}px;"
+                            style="width: {rightSpoolRatio *
+                              46}px; height: {rightSpoolRatio * 46}px;"
                           ></div>
                         </div>
                       </div>
                     </div>
-                  {/if}
-                {/if}
+                  {:else if settingsManager.musicDeckModel === 'floppy'}
+                    <!-- Floppy Disk view clicker -->
+                    <!-- svelte-ignore a11y_click_events_have_key_events -->
+                    <!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
+                    <div
+                      class="floppy-container-clicker cursor-pointer w-full h-full flex items-center justify-center p-4 relative"
+                      onclick={handleRecordClick}
+                      role="button"
+                      tabindex="0"
+                      aria-label="Open tracklist"
+                    >
+                      <div class="floppy-disk">
+                        <div class="floppy-corner"></div>
+                        <div class="floppy-write-protect"></div>
+                        
+                        <div class="floppy-label bg-slate-100 text-slate-900">
+                          <div class="floppy-label-stripe bg-red-600"></div>
+                          <div class="floppy-label-stripe-blue bg-blue-600"></div>
+                          <div class="floppy-label-content">
+                            <div class="floppy-song truncate font-mono">{currentTrack.title}</div>
+                            <div class="floppy-artist truncate font-mono">{currentTrack.artist || 'WEAREDOGS'}</div>
+                          </div>
+                        </div>
 
-                <!-- Model view toggle button -->
-                {#if !showVisualizer}
-                  <button
-                    class="model-toggle-btn absolute top-2 right-2 bg-black/60 border border-white/10 hover:border-white/30 text-[9px] tracking-widest font-mono font-bold px-2 py-1 rounded text-white z-20 flex items-center gap-1 transition-all"
-                    onclick={(e) => {
-                      e.stopPropagation();
-                      isVinylView = !isVinylView;
-                    }}
-                    title="Toggle vinyl or cassette"
-                  >
-                    {isVinylView ? "CASSETTE" : "VINYL"}
-                  </button>
+                        <div class="floppy-shutter-door bg-zinc-700">
+                          <div class="floppy-shutter-slider bg-zinc-400" class:open={audioCore.isPlaying}></div>
+                          <div class="floppy-shutter-opening bg-zinc-950">
+                            <div class="floppy-magnetic-disc bg-zinc-900" class:spinning={audioCore.isPlaying}></div>
+                          </div>
+                        </div>
+
+                        <div class="floppy-drive-led" class:active={audioCore.isPlaying}></div>
+                      </div>
+                    </div>
+                  {:else if settingsManager.musicDeckModel === 'musicbox'}
+                    <!-- Music Box view clicker -->
+                    <!-- svelte-ignore a11y_click_events_have_key_events -->
+                    <!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
+                    <div
+                      class="musicbox-container-clicker cursor-pointer w-full h-full flex items-center justify-center p-4 relative"
+                      onclick={handleRecordClick}
+                      role="button"
+                      tabindex="0"
+                      aria-label="Open tracklist"
+                    >
+                      <div class="music-box">
+                        <div class="music-box-key" class:spinning={audioCore.isPlaying}></div>
+                        
+                        <div class="music-box-interior border border-amber-900/40">
+                          <div class="music-box-gears">
+                            <div class="music-box-gear gear-1" class:spinning={audioCore.isPlaying}></div>
+                            <div class="music-box-gear gear-2" class:spinning={audioCore.isPlaying}></div>
+                          </div>
+
+                          <div class="music-box-drum-wrap">
+                            <div class="music-box-drum bg-gradient-to-r from-amber-600 via-amber-500 to-amber-700" class:spinning={audioCore.isPlaying}>
+                              <div class="music-box-pins">
+                                <div class="pin pin-1"></div>
+                                <div class="pin pin-2"></div>
+                                <div class="pin pin-3"></div>
+                                <div class="pin pin-4"></div>
+                                <div class="pin pin-5"></div>
+                                <div class="pin pin-6"></div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div class="music-box-comb">
+                            {#each Array(10) as _, idx}
+                              <div 
+                                class="comb-tooth" 
+                                class:vibrating={audioCore.isPlaying && idx % 3 === (Math.floor(audioCore.currentTime * 4) % 3)}
+                              ></div>
+                            {/each}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  {/if}
                 {/if}
               </div>
 
@@ -1039,11 +1128,18 @@
               <!-- Seek bar -->
               <div class="progress-row">
                 <span class="ptime">{fmtTime(audioCore.currentTime)}</span>
-                <div class="progress-wrap waveform-slider-wrap relative h-9 flex items-end">
+                <div
+                  class="progress-wrap waveform-slider-wrap relative h-9 flex items-end"
+                >
                   <!-- Waveform bars -->
-                  <div class="waveform-bars flex items-end justify-between absolute inset-0 pointer-events-none px-1 h-full">
+                  <div
+                    class="waveform-bars flex items-end justify-between absolute inset-0 pointer-events-none px-1 h-full"
+                  >
                     {#each waveformPeaks as peak, idx}
-                      {@const progress = audioCore.duration > 0 ? (audioCore.currentTime / audioCore.duration) : 0}
+                      {@const progress =
+                        audioCore.duration > 0
+                          ? audioCore.currentTime / audioCore.duration
+                          : 0}
                       {@const barProgress = idx / 60}
                       <span
                         class="waveform-bar transition-colors duration-100 rounded-t"
@@ -1071,7 +1167,6 @@
                 </div>
                 <span class="ptime">{fmtTime(audioCore.duration)}</span>
               </div>
-
 
               <!-- Player main buttons -->
               <div class="controls-row">
@@ -1867,7 +1962,7 @@
     padding: 10px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
     box-sizing: border-box;
-    
+
     @media (min-width: 640px) {
       width: 240px;
       height: 150px;
@@ -1891,7 +1986,7 @@
     box-sizing: border-box;
     text-transform: uppercase;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
-    
+
     @media (min-width: 640px) {
       height: 46px;
     }
@@ -1904,7 +1999,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: 90%;
-    
+
     @media (min-width: 640px) {
       font-size: 11px;
     }
@@ -1915,7 +2010,7 @@
     opacity: 0.8;
     margin-top: 1px;
     letter-spacing: 0.1em;
-    
+
     @media (min-width: 640px) {
       font-size: 8px;
       margin-top: 2px;
@@ -1933,7 +2028,7 @@
     align-items: center;
     margin-top: 6px;
     overflow: hidden;
-    
+
     @media (min-width: 640px) {
       width: 130px;
       height: 48px;
@@ -1941,33 +2036,35 @@
     }
   }
 
-  .spindle-left, .spindle-right {
+  .spindle-left,
+  .spindle-right {
     width: 18px;
     height: 18px;
     border: 3px dashed #71717a;
     border-radius: 50%;
     box-sizing: border-box;
     z-index: 5;
-    
+
     @media (min-width: 640px) {
       width: 22px;
       height: 22px;
       border-width: 4px;
     }
-    
+
     &.spinning {
       animation: rotate-spindle 4s linear infinite;
     }
   }
 
-  .tape-roll-left, .tape-roll-right {
+  .tape-roll-left,
+  .tape-roll-right {
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
     border-radius: 50%;
     z-index: 1;
     opacity: 0.85;
-    
+
     &.spinning {
       animation: rotate-spindle 6s linear infinite;
     }
@@ -1990,8 +2087,12 @@
   }
 
   @keyframes rotate-spindle {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
   }
 
   /* ── Waveform seek slider styling ── */
@@ -2003,11 +2104,506 @@
 
   .waveform-bar {
     background-color: rgba(255, 255, 255, 0.15);
-    
+
     &.active {
       background: linear-gradient(180deg, #ff007f 0%, #00f0ff 100%);
       box-shadow: 0 0 4px rgba(0, 240, 255, 0.3);
     }
   }
-</style>
 
+  /* ── Floppy Disk Visual ── */
+  .floppy-disk {
+    width: 160px;
+    height: 160px;
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    border: 3px solid #334155;
+    border-radius: 8px;
+    position: relative;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.65);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 8px;
+    box-sizing: border-box;
+    clip-path: polygon(0 0, 88% 0, 100% 12%, 100% 100%, 0 100%);
+
+    @media (min-width: 640px) {
+      width: 190px;
+      height: 190px;
+      border-width: 4px;
+      padding: 10px;
+    }
+  }
+
+  .floppy-corner {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 20px;
+    height: 20px;
+    background: transparent;
+    z-index: 10;
+  }
+
+  .floppy-write-protect {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    width: 10px;
+    height: 10px;
+    background: #020617;
+    border: 1px solid #334155;
+    border-radius: 1px;
+    
+    @media (min-width: 640px) {
+      bottom: 10px;
+      left: 10px;
+      width: 12px;
+      height: 12px;
+    }
+  }
+
+  .floppy-label {
+    width: 100%;
+    height: 65px;
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+
+    @media (min-width: 640px) {
+      height: 80px;
+    }
+  }
+
+  .floppy-label-stripe {
+    height: 6px;
+    width: 100%;
+  }
+
+  .floppy-label-stripe-blue {
+    height: 3px;
+    width: 100%;
+  }
+
+  .floppy-label-content {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 4px;
+    background: #f8fafc;
+  }
+
+  .floppy-song {
+    font-size: 8px;
+    font-weight: 800;
+    color: #0f172a;
+    width: 90%;
+    text-align: center;
+    text-transform: uppercase;
+
+    @media (min-width: 640px) {
+      font-size: 10px;
+    }
+  }
+
+  .floppy-artist {
+    font-size: 7px;
+    color: #475569;
+    width: 90%;
+    text-align: center;
+    margin-top: 1px;
+    text-transform: uppercase;
+
+    @media (min-width: 640px) {
+      font-size: 8px;
+      margin-top: 2px;
+    }
+  }
+
+  .floppy-shutter-door {
+    width: 60px;
+    height: 40px;
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-radius: 3px;
+    overflow: hidden;
+    border: 1px solid #1e293b;
+
+    @media (min-width: 640px) {
+      width: 72px;
+      height: 48px;
+      bottom: 10px;
+    }
+  }
+
+  .floppy-shutter-slider {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, #64748b 0%, #cbd5e1 50%, #64748b 100%);
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 3;
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+
+    &.open {
+      transform: translateX(32px);
+      @media (min-width: 640px) {
+        transform: translateX(38px);
+      }
+    }
+  }
+
+  .floppy-shutter-opening {
+    width: 24px;
+    height: 32px;
+    position: absolute;
+    left: 8px;
+    top: 4px;
+    z-index: 1;
+    border-radius: 2px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    @media (min-width: 640px) {
+      width: 28px;
+      height: 38px;
+      left: 10px;
+      top: 5px;
+    }
+  }
+
+  .floppy-magnetic-disc {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px dashed #475569;
+
+    &.spinning {
+      animation: floppy-spin 2s linear infinite;
+    }
+
+    @media (min-width: 640px) {
+      width: 24px;
+      height: 24px;
+    }
+  }
+
+  .floppy-drive-led {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #dc2626;
+    box-shadow: 0 0 3px #dc2626;
+
+    &.active {
+      animation: floppy-led-blink 0.4s ease-in-out infinite alternate;
+    }
+
+    @media (min-width: 640px) {
+      bottom: 10px;
+      right: 10px;
+      width: 7px;
+      height: 7px;
+    }
+  }
+
+  /* ── Music Box Visual ── */
+  .music-box {
+    width: 160px;
+    height: 110px;
+    background: linear-gradient(135deg, #78350f 0%, #451a03 100%);
+    border: 3px solid #d97706;
+    border-radius: 10px;
+    position: relative;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    box-sizing: border-box;
+
+    @media (min-width: 640px) {
+      width: 190px;
+      height: 130px;
+      border-width: 4px;
+      padding: 8px;
+    }
+  }
+
+  .music-box-key {
+    position: absolute;
+    left: -18px;
+    top: calc(50% - 13px);
+    width: 15px;
+    height: 26px;
+    z-index: -1;
+    transform-origin: right center;
+    display: flex;
+    align-items: center;
+
+    &::before {
+      content: '';
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 2px.5 solid #f59e0b;
+      background: transparent;
+      position: absolute;
+      left: -6px;
+      box-shadow: 0 0 4px rgba(245, 158, 11, 0.4);
+    }
+    
+    &::after {
+      content: '';
+      width: 12px;
+      height: 3px;
+      background: #b45309;
+      position: absolute;
+      right: 0;
+    }
+
+    &.spinning {
+      animation: key-spin 3s linear infinite;
+    }
+
+    @media (min-width: 640px) {
+      left: -22px;
+      top: calc(50% - 15px);
+      width: 18px;
+      height: 30px;
+
+      &::before {
+        width: 14px;
+        height: 14px;
+        border-width: 3px;
+        left: -8px;
+      }
+      &::after {
+        width: 14px;
+        height: 4px;
+      }
+    }
+  }
+
+  .music-box-interior {
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.55);
+    border-radius: 6px;
+    overflow: hidden;
+    position: relative;
+    padding: 6px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .music-box-gears {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    width: 40px;
+    height: 40px;
+  }
+
+  .music-box-gear {
+    border-radius: 50%;
+    border: 2px dashed #d97706;
+    background: transparent;
+    position: absolute;
+
+    &.gear-1 {
+      width: 22px;
+      height: 22px;
+      top: 2px;
+      left: 2px;
+
+      &.spinning {
+        animation: gear-rotate 5s linear infinite;
+      }
+    }
+
+    &.gear-2 {
+      width: 14px;
+      height: 14px;
+      top: 16px;
+      left: 18px;
+
+      &.spinning {
+        animation: gear-rotate-reverse 4.2s linear infinite;
+      }
+    }
+
+    @media (min-width: 640px) {
+      &.gear-1 {
+        width: 26px;
+        height: 26px;
+      }
+      &.gear-2 {
+        width: 18px;
+        height: 18px;
+        top: 18px;
+        left: 22px;
+      }
+    }
+  }
+
+  .music-box-drum-wrap {
+    width: 70px;
+    height: 32px;
+    position: absolute;
+    top: 50%;
+    right: 14px;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+
+    @media (min-width: 640px) {
+      width: 90px;
+      height: 38px;
+      right: 18px;
+    }
+  }
+
+  .music-box-drum {
+    width: 100%;
+    height: 12px;
+    border-radius: 6px;
+    border: 1px solid #d97706;
+    position: relative;
+    background: linear-gradient(180deg, #d97706 0%, #b45309 50%, #78350f 100%);
+    overflow: hidden;
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 200%;
+      height: 100%;
+      background: repeating-linear-gradient(90deg, transparent, transparent 12px, #fef08a 14px, #f59e0b 15px, transparent 17px);
+      
+      @media (min-width: 640px) {
+        background: repeating-linear-gradient(90deg, transparent, transparent 15px, #fef08a 17px, #f59e0b 18px, transparent 20px);
+      }
+    }
+
+    &.spinning::after {
+      animation: drum-roll 2.2s linear infinite;
+    }
+
+    @media (min-width: 640px) {
+      height: 16px;
+      border-radius: 8px;
+    }
+  }
+
+  .music-box-comb {
+    position: absolute;
+    bottom: 6px;
+    right: 18px;
+    display: flex;
+    gap: 2.5px;
+
+    @media (min-width: 640px) {
+      bottom: 8px;
+      right: 22px;
+      gap: 3.5px;
+    }
+  }
+
+  .comb-tooth {
+    width: 3px;
+    height: 18px;
+    background: linear-gradient(180deg, #cbd5e1 0%, #475569 100%);
+    border-radius: 0.5px;
+    transform-origin: top center;
+
+    &.vibrating {
+      animation: tooth-vibrate 0.12s ease-in-out infinite alternate;
+    }
+
+    @media (min-width: 640px) {
+      width: 4px;
+      height: 24px;
+      border-radius: 1px;
+    }
+  }
+
+  /* ── Keyframes ── */
+  @keyframes floppy-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes floppy-led-blink {
+    from {
+      background: #22c55e;
+      box-shadow: 0 0 5px #22c55e;
+    }
+    to {
+      background: #166534;
+      box-shadow: 0 0 1px #166534;
+    }
+  }
+
+  @keyframes key-spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes gear-rotate {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes gear-rotate-reverse {
+    from {
+      transform: rotate(360deg);
+    }
+    to {
+      transform: rotate(0deg);
+    }
+  }
+
+  @keyframes drum-roll {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(50%);
+    }
+  }
+
+  @keyframes tooth-vibrate {
+    0% {
+      transform: scaleY(1);
+    }
+    100% {
+      transform: scaleY(0.85) skewX(2deg);
+    }
+  }
+</style>
