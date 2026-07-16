@@ -98,7 +98,7 @@ function run() {
         try {
             const pkg = JSON.parse(fs.readFileSync(PACKAGE_PATH, 'utf-8'));
             version = pkg.version || '1.0.0';
-        } catch {}
+        } catch { }
 
         // If the latest entry in changelog already has this version, increment the patch version
         if (data.entries.length > 0 && data.entries[0].version === version) {
@@ -123,7 +123,7 @@ function run() {
                 .split('-')
                 .map(word => word.charAt(0).toUpperCase() + word.slice(1))
                 .join(' ');
-        } catch {}
+        } catch { }
 
         const now = new Date();
         const newEntry = {
@@ -167,8 +167,8 @@ function run() {
     }
 
     const avgDurationSeconds = totalCommitsCount > 1 ? totalDuration / (totalCommitsCount - 1) : 0;
-    const avgInnerDurationSeconds = innerDurations.length > 0 
-        ? innerDurations.reduce((a, b) => a + b, 0) / innerDurations.length 
+    const avgInnerDurationSeconds = innerDurations.length > 0
+        ? innerDurations.reduce((a, b) => a + b, 0) / innerDurations.length
         : 0;
 
     const avgLinesAltered = totalCommitsCount > 0 ? (linesAlteredSum / totalCommitsCount) : 0;
@@ -184,7 +184,7 @@ function run() {
 
     // Ensure the output directory exists
     const dir = path.dirname(CHANGELOG_PATH);
-    if (!fs.existsSync(dir)){
+    if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
     }
 
