@@ -19,34 +19,61 @@
   const CITIES = [
     {
       name: "Tulsa OK",
-      x: 203,
-      y: 407,
-      zoomX: 153,
-      zoomY: 367,
+      x: 181,
+      y: 418,
+      zoomX: 131,
+      zoomY: 378,
       zoomW: 100,
       zoomH: 80,
+      lat: 36.1540,
+      lng: -95.9928,
+      population: "413,000",
+      history: "Settled by the Creek Nation in 1836. Became the 'Oil Capital of the World' after major oil strikes in 1901.",
+      stateBird: "Scissor-tailed Flycatcher",
+      stateFlower: "Oklahoma Rose"
     },
     {
       name: "Dallas TX",
-      x: 202,
-      y: 416,
-      zoomX: 152,
-      zoomY: 376,
+      x: 178,
+      y: 430,
+      zoomX: 128,
+      zoomY: 390,
       zoomW: 100,
       zoomH: 80,
+      lat: 32.7767,
+      lng: -96.7970,
+      population: "1.3 Million",
+      history: "Founded in 1841. Developed as a major cotton and oil center, now a leading financial and transportation hub.",
+      stateBird: "Northern Mockingbird",
+      stateFlower: "Bluebonnet"
     },
     {
       name: "Rochester NY",
-      x: 232,
-      y: 380,
-      zoomX: 182,
-      zoomY: 340,
+      x: 242,
+      y: 412,
+      zoomX: 192,
+      zoomY: 372,
       zoomW: 100,
       zoomH: 80,
+      lat: 43.1566,
+      lng: -77.6088,
+      population: "211,000",
+      history: "Incorporated in 1834. Became a pioneer in flour milling (the Flour City) and later optics and imaging (the Flower City).",
+      stateBird: "Eastern Bluebird",
+      stateFlower: "Rose"
     },
   ];
 
+  const STAR_COLORS = {
+    "platinum": "#f1f5f9",
+    "gold": "#fbbf24",
+    "silver": "#94a3b8",
+    "bronze": "#b45309",
+    "blood-red": "#991b1b"
+  };
+
   let selectedCity = $state(null);
+  let temporaryZoom = $state(false);
   let activeCategory = $state("restaurants"); // 'restaurants' | 'concert-halls' | 'free-shit'
   let activeSubCategory = $state("Coffee Shops"); // only for restaurants: 'Coffee Shops', 'Bars', 'Italian', 'Mexican'
 
@@ -60,6 +87,7 @@
   const mapH = spring(458.627, { stiffness: 0.1, damping: 0.8 });
 
   function selectCity(city) {
+    temporaryZoom = false; // Manual selection overrides temporary zoom
     if (selectedCity?.name === city.name) {
       // Toggle back to default
       selectedCity = null;
@@ -76,10 +104,102 @@
     }
   }
 
+  function findClosestLocation() {
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser.");
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        let closestCity = null;
+        let minDistance = Infinity;
+
+        for (const city of CITIES) {
+          if (city.lat === undefined || city.lng === undefined) continue;
+          const dLat = city.lat - latitude;
+          const dLng = city.lng - longitude;
+          const distance = Math.sqrt(dLat * dLat + dLng * dLng);
+          if (distance < minDistance) {
+            minDistance = distance;
+            closestCity = city;
+          }
+        }
+
+        if (closestCity) {
+          selectCity(closestCity);
+          alert(`Found closest location: ${closestCity.name}`);
+        }
+      },
+      (error) => {
+        console.error("Error getting location:", error);
+        alert("Unable to retrieve your location. Please select a city manually.");
+      }
+    );
+  }
+
+  function getRatingTier(rating) {
+    if (rating === 5) return "platinum";
+    if (rating > 4) return "gold";
+    if (rating > 3) return "silver";
+    if (rating > 2) return "bronze";
+    return "blood-red";
+  }
+
   function updateHash(spotId) {
     if (typeof window !== "undefined") {
       const url = `${window.location.pathname}${window.location.search}#/map?spot=${spotId}`;
+      if (!window.location.hash.includes(`spot=${spotId}`)) {
+        history.pushState(history.state, "", url);
+      }
+    }
+  }
+
+  function selectSpotCard(spot) {
+    selectedSpot = spot;
+    selectedSpotImgIdx = 0;
+    updateHash(spot.id);
+
+    // Zoom in to the spot's city if not already zoomed in
+    const city = CITIES.find((c) => c.name === spot.cityName);
+    if (city) {
+      if (!selectedCity) {
+        // Zoom in temporarily
+        selectedCity = city;
+        temporaryZoom = true;
+        mapX.set(city.zoomX);
+        mapY.set(city.zoomY);
+        mapW.set(city.zoomW);
+        mapH.set(city.zoomH);
+      }
+    }
+  }
+
+  function leaveSpotReview() {
+    selectedSpot = null;
+    if (typeof window !== "undefined") {
+      const url = `${window.location.pathname}${window.location.search}#/map`;
       history.replaceState(history.state, "", url);
+    }
+
+    // Zoom back out if the zoom was temporary
+    if (temporaryZoom) {
+      selectedCity = null;
+      mapX.set(30.767);
+      mapY.set(241.591);
+      mapW.set(784.077);
+      mapH.set(458.627);
+      temporaryZoom = false;
+    }
+  }
+
+  function handleBackClick() {
+    if (typeof window !== "undefined" && window.location.hash.includes("spot=")) {
+      // If we got here via hashing/history, use browser back to keep history stack correct
+      history.back();
+    } else {
+      leaveSpotReview();
     }
   }
 
@@ -91,15 +211,47 @@
       const spot = mapSpots.find((s) => s.id === spotId);
       if (spot) {
         selectedSpot = spot;
+        // Don't auto-override manual selections, but zoom if needed
         const city = CITIES.find((c) => c.name === spot.cityName);
-        if (city) selectCity(city);
-        activeCategory = spot.category;
-        if (spot.subCategory) activeSubCategory = spot.subCategory;
+        if (city && !selectedCity) {
+          selectedCity = city;
+          temporaryZoom = true;
+          mapX.set(city.zoomX);
+          mapY.set(city.zoomY);
+          mapW.set(city.zoomW);
+          mapH.set(city.zoomH);
+        }
+      }
+    } else {
+      if (selectedSpot) {
+        // Leave the listing
+        selectedSpot = null;
+        if (temporaryZoom) {
+          selectedCity = null;
+          mapX.set(30.767);
+          mapY.set(241.591);
+          mapW.set(784.077);
+          mapH.set(458.627);
+          temporaryZoom = false;
+        }
       }
     }
   }
 
   onMount(() => {
+    // If deep-linked directly to a spot card, seed history stack with the base map directory
+    // so that hitting back takes the user to the list rather than exiting the map panel.
+    if (typeof window !== "undefined" && window.location.hash.includes("spot=")) {
+      const match = window.location.hash.match(/spot=([^&]+)/);
+      if (match) {
+        const spotId = match[1];
+        const baseUrl = `${window.location.pathname}${window.location.search}#/map`;
+        history.replaceState(history.state, "", baseUrl);
+        const spotUrl = `${window.location.pathname}${window.location.search}#/map?spot=${spotId}`;
+        history.pushState(history.state, "", spotUrl);
+      }
+    }
+
     handleHashChange();
     window.addEventListener("hashchange", handleHashChange);
     return () => {
@@ -107,18 +259,24 @@
     };
   });
 
-  // Filter listings based on active selections
+  // Filter listings based on active selections (no more categories or subcategories filter)
   let filteredSpots = $derived.by(() => {
     return mapSpots.filter((spot) => {
       if (selectedCity && spot.cityName !== selectedCity.name) return false;
-      if (spot.category !== activeCategory) return false;
-      if (
-        activeCategory === "restaurants" &&
-        spot.subCategory !== activeSubCategory
-      )
-        return false;
       return true;
     });
+  });
+
+  // Group filtered spots by cityName (when no city is selected)
+  let groupedSpots = $derived.by(() => {
+    const groups = {};
+    for (const spot of filteredSpots) {
+      if (!groups[spot.cityName]) {
+        groups[spot.cityName] = [];
+      }
+      groups[spot.cityName].push(spot);
+    }
+    return groups;
   });
 </script>
 
@@ -137,6 +295,13 @@
             <span>{city.name}</span>
           </button>
         {/each}
+        <button
+          class="city-btn find-location-btn"
+          onclick={findClosestLocation}
+        >
+          <Sparkles size={12} />
+          <span>Find Location</span>
+        </button>
       </div>
 
       <div class="svg-container">
@@ -146,25 +311,25 @@
           xmlns="http://www.w3.org/2000/svg"
         >
           <!-- Ocean Labels -->
-          <text x="400" y="265" class="ocean-label" text-anchor="middle"
+          <text x="450" y="243" class="ocean-label" text-anchor="middle"
             >ARCTIC OCEAN</text
           >
-          <text x="90" y="380" class="ocean-label" text-anchor="middle"
+          <text x="70" y="380" class="ocean-label" text-anchor="middle"
             >NORTH PACIFIC OCEAN</text
           >
-          <text x="110" y="540" class="ocean-label" text-anchor="middle"
+          <text x="85" y="520" class="ocean-label" text-anchor="middle"
             >SOUTH PACIFIC OCEAN</text
           >
-          <text x="320" y="370" class="ocean-label" text-anchor="middle"
+          <text x="320" y="420" class="ocean-label" text-anchor="middle"
             >NORTH ATLANTIC OCEAN</text
           >
-          <text x="340" y="530" class="ocean-label" text-anchor="middle"
+          <text x="360" y="530" class="ocean-label" text-anchor="middle"
             >SOUTH ATLANTIC OCEAN</text
           >
-          <text x="580" y="500" class="ocean-label" text-anchor="middle"
+          <text x="585" y="540" class="ocean-label" text-anchor="middle"
             >INDIAN OCEAN</text
           >
-          <text x="400" y="675" class="ocean-label" text-anchor="middle"
+          <text x="450" y="660" class="ocean-label" text-anchor="middle"
             >SOUTHERN OCEAN</text
           >
 
@@ -1386,13 +1551,7 @@
           >
             <button
               class="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-white font-bold transition-colors"
-              onclick={() => {
-                selectedSpot = null;
-                if (typeof window !== "undefined") {
-                  const url = `${window.location.pathname}${window.location.search}#/map`;
-                  history.replaceState(history.state, "", url);
-                }
-              }}
+              onclick={handleBackClick}
             >
               ← BACK TO DIRECTORY
             </button>
@@ -1411,43 +1570,6 @@
               <p class="text-xs text-zinc-400 mt-1">
                 {selectedSpot.description}
               </p>
-            </div>
-
-            <!-- Custom Stars and Yelp/Google/DOGS scores -->
-            <div
-              class="bg-black/40 border border-white/5 rounded-xl p-3 flex flex-col gap-2"
-            >
-              <div
-                class="text-[9px] font-mono text-zinc-500 uppercase tracking-widest"
-              >
-                ⭐ REVIEW SCORES
-              </div>
-              <div class="grid grid-cols-3 gap-2 text-center">
-                <div
-                  class="bg-white/5 rounded-lg p-2 flex flex-col justify-center items-center"
-                >
-                  <span class="text-[9px] text-zinc-500 font-mono">GOOGLE</span>
-                  <span class="text-sm font-black text-yellow-500 mt-0.5">
-                    {selectedSpot.googleScore || "4.8"}/5
-                  </span>
-                </div>
-                <div
-                  class="bg-white/5 rounded-lg p-2 flex flex-col justify-center items-center"
-                >
-                  <span class="text-[9px] text-zinc-500 font-mono">YELP</span>
-                  <span class="text-sm font-black text-red-400 mt-0.5">
-                    {selectedSpot.yelpScore || "4.5"}/5
-                  </span>
-                </div>
-                <div
-                  class="bg-white/5 rounded-lg p-2 flex flex-col justify-center items-center"
-                >
-                  <span class="text-[9px] text-zinc-500 font-mono">DOGS</span>
-                  <span class="text-sm font-black text-blue-400 mt-0.5">
-                    {selectedSpot.dogsScore || "5/5"}
-                  </span>
-                </div>
-              </div>
             </div>
 
             <!-- Dining Recommendations: Best dishes, best times to eat -->
@@ -1555,27 +1677,46 @@
               </div>
             </div>
 
-            <!-- User Reviews -->
-            {#if selectedSpot.reviews && selectedSpot.reviews.length > 0}
-              <div class="flex flex-col gap-2">
+            <!-- DOGS Review -->
+            {#if selectedSpot.review}
+              {@const tier = getRatingTier(selectedSpot.review.rating)}
+              <div
+                class="border rounded-xl p-3.5 flex flex-col gap-2.5 transition-all duration-300"
+                class:border-platinum={tier === 'platinum'}
+                class:border-gold={tier === 'gold'}
+                class:border-silver={tier === 'silver'}
+                class:border-bronze={tier === 'bronze'}
+                class:border-blood-red={tier === 'blood-red'}
+              >
                 <div
-                  class="text-[9px] font-mono text-zinc-500 uppercase tracking-widest"
+                  class="text-[9px] font-mono uppercase tracking-widest flex justify-between items-center"
                 >
-                  💬 VISITORS AND ONLINE FEEDBACK
-                </div>
-                {#each selectedSpot.reviews as r}
-                  <div
-                    class="bg-black/20 border border-white/5 rounded-lg p-2.5 flex flex-col gap-1 text-xs"
+                  <span class="font-black"
+                    class:rating-platinum={tier === 'platinum'}
+                    class:rating-gold={tier === 'gold'}
+                    class:rating-silver={tier === 'silver'}
+                    class:rating-bronze={tier === 'bronze'}
+                    class:rating-blood-red={tier === 'blood-red'}
                   >
-                    <div
-                      class="flex justify-between items-center text-[10px] font-mono"
-                    >
-                      <span class="text-zinc-400 font-bold">{r.user}</span>
-                      <span class="text-yellow-500">★ {r.rating}</span>
-                    </div>
-                    <p class="text-zinc-400 italic">"{r.text}"</p>
-                  </div>
-                {/each}
+                    🐕 DOGS REVIEW
+                  </span>
+                  <span
+                    class="font-black font-mono text-[10px]"
+                    class:rating-platinum={tier === 'platinum'}
+                    class:rating-gold={tier === 'gold'}
+                    class:rating-silver={tier === 'silver'}
+                    class:rating-bronze={tier === 'bronze'}
+                    class:rating-blood-red={tier === 'blood-red'}
+                  >
+                    ★ {selectedSpot.review.rating} / 5
+                  </span>
+                </div>
+                <p class="text-xs text-zinc-350 italic leading-relaxed">
+                  "{selectedSpot.review.text}"
+                </p>
+                <div class="text-[9px] text-zinc-500 font-mono self-end">
+                  — Reviewed by {selectedSpot.review.author}
+                </div>
               </div>
             {/if}
 
@@ -1592,115 +1733,187 @@
           </div>
         </div>
       {:else}
-        <!-- Category Selection Tabs -->
-        <div class="category-tabs">
-          <button
-            class="cat-tab"
-            class:active={activeCategory === "restaurants"}
-            onclick={() => {
-              activeCategory = "restaurants";
-              activeSubCategory = "Coffee Shops";
-            }}
-          >
-            <UtensilsCrossed size={14} />
-            <span>Restaurants</span>
-          </button>
-          <button
-            class="cat-tab"
-            class:active={activeCategory === "concert-halls"}
-            onclick={() => (activeCategory = "concert-halls")}
-          >
-            <Music size={14} />
-            <span>Concert Halls</span>
-          </button>
-          <button
-            class="cat-tab"
-            class:active={activeCategory === "free-shit"}
-            onclick={() => (activeCategory = "free-shit")}
-          >
-            <Sparkles size={14} />
-            <span>Free Shit</span>
-          </button>
-        </div>
-
-        <!-- Sub-categories Row (only for restaurants) -->
-        {#if activeCategory === "restaurants"}
-          <div class="sub-category-row">
-            {#each ["Coffee Shops", "Bars", "Italian", "Mexican"] as sub}
-              <button
-                class="sub-pill"
-                class:active={activeSubCategory === sub}
-                onclick={() => (activeSubCategory = sub)}
-              >
-                {#if sub === "Coffee Shops"}<Coffee size={10} />
-                {:else if sub === "Bars"}<Wine size={10} />
-                {/if}
-                <span>{sub}</span>
-              </button>
-            {/each}
+        {#if selectedCity && !selectedSpot}
+          <!-- City Info Card -->
+          <div class="bg-black/30 border border-white/5 rounded-xl p-3 flex flex-col gap-2 mb-3 text-xs leading-relaxed">
+            <div class="flex justify-between items-center border-b border-white/5 pb-1.5">
+              <span class="font-black text-sm text-red-500">{selectedCity.name} Info</span>
+              <span class="text-[10px] font-mono text-zinc-500">Pop: {selectedCity.population}</span>
+            </div>
+            <div class="text-zinc-400">
+              <p class="mb-2"><strong>History:</strong> {selectedCity.history}</p>
+              <div class="grid grid-cols-2 gap-2 text-[10px] font-mono text-zinc-500 pt-1 border-t border-white/5">
+                <div>🐦 Bird: {selectedCity.stateBird}</div>
+                <div>🌸 Flower: {selectedCity.stateFlower}</div>
+              </div>
+            </div>
           </div>
         {/if}
 
         <!-- Directory List -->
         <div class="spots-list scroll-container">
-          {#each filteredSpots as spot}
-            <!-- svelte-ignore a11y_click_events_have_key_events -->
-            <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <div
-              class="spot-card animated-pane cursor-pointer"
-              onclick={() => {
-                selectedSpot = spot;
-                selectedSpotImgIdx = 0;
-                updateHash(spot.id);
-              }}
-            >
-              <div class="spot-card-head">
-                <h3>{spot.name}</h3>
-                <a
-                  href={spot.mapsUrl}
-                  target="_blank"
-                  onclick={(e) => e.stopPropagation()}
-                  class="maps-link"
-                  aria-label="Open Google Maps"
-                >
-                  <ExternalLink size={12} />
-                </a>
-              </div>
+          {#if selectedCity}
+            <!-- If city selected, just list the spots -->
+            {#each filteredSpots as spot}
+              {@const tier = getRatingTier(spot.rating)}
+              {@const starColor = STAR_COLORS[tier]}
+              <!-- svelte-ignore a11y_click_events_have_key_events -->
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
+              <div
+                class="spot-card animated-pane cursor-pointer"
+                onclick={() => selectSpotCard(spot)}
+              >
+                <div class="spot-card-head">
+                  <div>
+                    <h3 class="inline">{spot.name}</h3>
+                    <span class="text-[10px] text-zinc-500 font-mono ml-2 lowercase">
+                      ({spot.category}, {spot.subCategory})
+                    </span>
+                  </div>
+                  <a
+                    href={spot.mapsUrl}
+                    target="_blank"
+                    onclick={(e) => e.stopPropagation()}
+                    class="maps-link"
+                    aria-label="Open Google Maps"
+                  >
+                    <ExternalLink size={12} />
+                  </a>
+                </div>
 
-              <!-- Custom Stars Component -->
-              <div class="star-rating-row">
-                {#each [1, 2, 3, 4, 5] as starNum}
-                  {@const isFull = spot.rating >= starNum}
-                  {@const isHalf = !isFull && spot.rating >= starNum - 0.5}
-                  <span class="relative inline-flex items-center">
-                    {#if isFull}
-                      <Star size={12} fill="#ffcc00" stroke="none" />
-                    {:else}
-                      <Star
-                        size={12}
-                        fill="rgba(255,255,255,0.15)"
-                        stroke="none"
-                      />
-                      {#if isHalf}
-                        <span
-                          class="absolute top-0 left-0 w-1/2 overflow-hidden"
-                        >
-                          <Star size={12} fill="#ffcc00" stroke="none" />
-                        </span>
+                <!-- Custom Stars Component -->
+                <div class="star-rating-row">
+                  {#each [1, 2, 3, 4, 5] as starNum}
+                    {@const isFull = spot.rating >= starNum}
+                    {@const isHalf = !isFull && spot.rating >= starNum - 0.5}
+                    <span class="relative inline-flex items-center"
+                      class:star-glow-platinum={tier === 'platinum'}
+                      class:star-glow-gold={tier === 'gold'}
+                      class:star-glow-silver={tier === 'silver'}
+                    >
+                      {#if isFull}
+                        <Star size={12} fill={starColor} stroke="none" />
+                      {:else}
+                        <Star
+                          size={12}
+                          fill="rgba(255,255,255,0.15)"
+                          stroke="none"
+                        />
+                        {#if isHalf}
+                          <span
+                            class="absolute top-0 left-0 w-1/2 overflow-hidden"
+                          >
+                            <Star size={12} fill={starColor} stroke="none" />
+                          </span>
+                        {/if}
                       {/if}
-                    {/if}
+                    </span>
+                  {/each}
+                  <span
+                    class="rating-val"
+                    class:rating-platinum={tier === 'platinum'}
+                    class:rating-gold={tier === 'gold'}
+                    class:rating-silver={tier === 'silver'}
+                    class:rating-bronze={tier === 'bronze'}
+                    class:rating-blood-red={tier === 'blood-red'}
+                  >
+                    {spot.rating} / 5
                   </span>
-                {/each}
-                <span class="rating-val">{spot.rating} / 5</span>
-              </div>
+                </div>
 
-              <p class="spot-desc">{spot.description}</p>
-            </div>
+                <p class="spot-desc">{spot.description}</p>
+              </div>
+            {:else}
+              <div class="no-spots">
+                <p>No listings found in this category.</p>
+              </div>
+            {/each}
           {:else}
-            <div class="no-spots">
-              <p>No listings found in this category.</p>
-            </div>
-          {/each}
+            <!-- If no city selected, group by city with headers -->
+            {#each Object.keys(groupedSpots) as cityName}
+              <div class="city-header-section mb-4">
+                <div class="city-group-title flex items-center gap-1.5 text-xs font-black tracking-widest text-zinc-500 uppercase py-2 border-b border-white/5 mb-2">
+                  <MapPin size={10} /> {cityName}
+                </div>
+                <div class="flex flex-col gap-2">
+                  {#each groupedSpots[cityName] as spot}
+                    {@const tier = getRatingTier(spot.rating)}
+                    {@const starColor = STAR_COLORS[tier]}
+                    <!-- svelte-ignore a11y_click_events_have_key_events -->
+                    <!-- svelte-ignore a11y_no_static_element_interactions -->
+                    <div
+                      class="spot-card animated-pane cursor-pointer"
+                      onclick={() => selectSpotCard(spot)}
+                    >
+                      <div class="spot-card-head">
+                        <div>
+                          <h3 class="inline">{spot.name}</h3>
+                          <span class="text-[10px] text-zinc-500 font-mono ml-2 lowercase">
+                            ({spot.category}, {spot.subCategory})
+                          </span>
+                        </div>
+                        <a
+                          href={spot.mapsUrl}
+                          target="_blank"
+                          onclick={(e) => e.stopPropagation()}
+                          class="maps-link"
+                          aria-label="Open Google Maps"
+                        >
+                          <ExternalLink size={12} />
+                        </a>
+                      </div>
+
+                      <!-- Custom Stars Component -->
+                      <div class="star-rating-row">
+                        {#each [1, 2, 3, 4, 5] as starNum}
+                          {@const isFull = spot.rating >= starNum}
+                          {@const isHalf = !isFull && spot.rating >= starNum - 0.5}
+                          <span class="relative inline-flex items-center"
+                            class:star-glow-platinum={tier === 'platinum'}
+                            class:star-glow-gold={tier === 'gold'}
+                            class:star-glow-silver={tier === 'silver'}
+                          >
+                            {#if isFull}
+                              <Star size={12} fill={starColor} stroke="none" />
+                            {:else}
+                              <Star
+                                size={12}
+                                fill="rgba(255,255,255,0.15)"
+                                stroke="none"
+                              />
+                              {#if isHalf}
+                                <span
+                                  class="absolute top-0 left-0 w-1/2 overflow-hidden"
+                                >
+                                  <Star size={12} fill={starColor} stroke="none" />
+                                </span>
+                              {/if}
+                            {/if}
+                          </span>
+                        {/each}
+                        <span
+                          class="rating-val"
+                          class:rating-platinum={tier === 'platinum'}
+                          class:rating-gold={tier === 'gold'}
+                          class:rating-silver={tier === 'silver'}
+                          class:rating-bronze={tier === 'bronze'}
+                          class:rating-blood-red={tier === 'blood-red'}
+                        >
+                          {spot.rating} / 5
+                        </span>
+                      </div>
+
+                      <p class="spot-desc">{spot.description}</p>
+                    </div>
+                  {/each}
+                </div>
+              </div>
+            {:else}
+              <div class="no-spots">
+                <p>No listings found in this category.</p>
+              </div>
+            {/each}
+          {/if}
         </div>
       {/if}
     </div>
@@ -1721,8 +1934,19 @@
   @media (max-width: 900px) {
     .map-explorer-layout {
       grid-template-columns: 1fr;
-      grid-template-rows: 240px 1fr;
-      overflow-y: auto;
+      grid-template-rows: 170px 1fr; /* 30% shorter than 240px */
+      overflow: hidden; /* Static map, prevent overall scroll shifting map up */
+      height: 100%;
+      padding: 0;
+      gap: 0;
+    }
+    .map-canvas-side {
+      border: none;
+      border-radius: 0;
+    }
+    .directory-side {
+      height: 100%;
+      overflow: hidden;
     }
   }
 
@@ -1782,6 +2006,18 @@
     border-color: rgba(255, 51, 68, 0.4);
     background: rgba(255, 51, 68, 0.08);
     box-shadow: 0 0 10px rgba(255, 51, 68, 0.15);
+  }
+
+  .find-location-btn {
+    border-color: rgba(239, 68, 68, 0.4);
+    background: rgba(239, 68, 68, 0.08);
+    color: #f87171;
+  }
+
+  .find-location-btn:hover {
+    background: rgba(239, 68, 68, 0.16);
+    color: #ef4444;
+    border-color: rgba(239, 68, 68, 0.6);
   }
 
   .svg-container {
@@ -1872,69 +2108,6 @@
     overflow: hidden;
   }
 
-  .category-tabs {
-    display: flex;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 8px;
-    padding: 2px;
-  }
-
-  .cat-tab {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    padding: 8px;
-    background: transparent;
-    border: none;
-    color: rgba(255, 255, 255, 0.45);
-    font-size: 0.8rem;
-    font-weight: 600;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-
-  .cat-tab:hover {
-    color: white;
-  }
-
-  .cat-tab.active {
-    color: white;
-    background: rgba(255, 255, 255, 0.08);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  }
-
-  .sub-category-row {
-    display: flex;
-    gap: 6px;
-    padding: 0.6rem 0;
-    overflow-x: auto;
-  }
-
-  .sub-pill {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 10px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    background: rgba(255, 255, 255, 0.02);
-    color: rgba(255, 255, 255, 0.45);
-    border-radius: 20px;
-    font-size: 0.7rem;
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-
-  .sub-pill:hover,
-  .sub-pill.active {
-    color: white;
-    border-color: rgba(255, 255, 255, 0.15);
-    background: rgba(255, 255, 255, 0.06);
-  }
-
   /* Spots List */
   .spots-list {
     flex: 1;
@@ -2010,5 +2183,81 @@
     text-align: center;
     color: rgba(255, 255, 255, 0.35);
     font-size: 0.8rem;
+  }
+
+  /* Tiered Rating Typography & Glows */
+  .rating-platinum {
+    background: linear-gradient(135deg, #f1f5f9 0%, #ffffff 50%, #cbd5e1 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.7));
+    font-weight: 900;
+  }
+  .rating-gold {
+    color: #fbbf24;
+    filter: drop-shadow(0 0 3px rgba(251, 191, 36, 0.4));
+    font-weight: 800;
+  }
+  .rating-silver {
+    color: #94a3b8;
+    filter: drop-shadow(0 0 2px rgba(148, 163, 184, 0.3));
+    font-weight: 700;
+  }
+  .rating-bronze {
+    color: #d97706; /* amber-600 */
+    font-weight: 700;
+  }
+  .rating-blood-red {
+    color: #ef4444; /* red-500 */
+    font-weight: 900;
+    text-shadow: 0 0 5px rgba(239, 68, 68, 0.3);
+  }
+
+  /* Tiered Rating Borders */
+  .border-platinum {
+    border-color: rgba(241, 245, 249, 0.4);
+    background: radial-gradient(circle at 10% 20%, rgba(255, 255, 255, 0.08) 0%, transparent 80%), rgba(5, 5, 8, 0.4);
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.1), inset 0 0 10px rgba(255, 255, 255, 0.05);
+    animation: pulseGlow 3s infinite ease-in-out;
+  }
+  .border-gold {
+    border-color: rgba(251, 191, 36, 0.3);
+    background: radial-gradient(circle at 10% 20%, rgba(251, 191, 36, 0.04) 0%, transparent 70%), rgba(5, 5, 8, 0.4);
+    box-shadow: 0 0 10px rgba(251, 191, 36, 0.05);
+  }
+  .border-silver {
+    border-color: rgba(148, 163, 184, 0.2);
+    background: rgba(5, 5, 8, 0.4);
+  }
+  .border-bronze {
+    border-color: rgba(217, 119, 6, 0.15);
+    background: rgba(5, 5, 8, 0.4);
+  }
+  .border-blood-red {
+    border-color: rgba(239, 68, 68, 0.25);
+    background: radial-gradient(circle at 10% 20%, rgba(239, 68, 68, 0.03) 0%, transparent 60%), rgba(5, 5, 8, 0.4);
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.05);
+  }
+
+  /* Star glowing class effects */
+  .star-glow-platinum {
+    filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.8));
+  }
+  .star-glow-gold {
+    filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.5));
+  }
+  .star-glow-silver {
+    filter: drop-shadow(0 0 2px rgba(148, 163, 184, 0.3));
+  }
+
+  @keyframes pulseGlow {
+    0%, 100% {
+      box-shadow: 0 0 15px rgba(255, 255, 255, 0.08), inset 0 0 10px rgba(255, 255, 255, 0.03);
+      border-color: rgba(241, 245, 249, 0.3);
+    }
+    50% {
+      box-shadow: 0 0 22px rgba(255, 255, 255, 0.18), inset 0 0 15px rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.65);
+    }
   }
 </style>

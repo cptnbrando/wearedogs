@@ -3,148 +3,71 @@
     "id": "chicken-and-the-wolf",
     "name": "Chicken and the Wolf",
     "cityName": "Tulsa OK",
-    "category": "restaurants",
-    "subCategory": "Bars",
+    "category": "restaurant",
+    "subCategory": "american",
     "rating": 5.0,
-    "googleScore": "5.0",
-    "yelpScore": "5.0",
-    "dogsScore": "5.0",
     "mapsUrl": "https://maps.app.goo.gl/ChickenAndTheWolfTulsa",
-    "address": "1124 S Lewis Ave, Tulsa, OK 74104",
+    "address": "3136 E 11th St, Tulsa, OK 74104",
     "description": "Tulsa's legendary Nashville hot chicken joint. Unbelievably crispy and juicy.",
     "images": [
       "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=500&q=80",
       "https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=500&q=80"
     ],
-    "reviews": [
-      { "user": "Brando", "text": "Absolute best hot chicken in Oklahoma. The heat levels are genuine and flavor is incredible.", "rating": 5 },
-      { "user": "Sarah L.", "text": "Crispy skin, tender inside, perfect pickles. Can't get enough of their loaded hot fries!", "rating": 5 }
-    ],
+    "review": {
+      "author": "CaptainBrando!",
+      "text": "THE BEST CHICKEN SANDWICH IN THE WORLD 🌏 Crispy fries and crispy, juicy, thick as a brick chicken. Perfection. Never going to chick fil a again. A medium OG chicken sandwich, regular fries with some extra comeback sauce, and a coop 66. Heavenly experience. The cure for depression. Dine in otherwise the fries will lose their glorious crispy exterior. And they ain't playing with the spice level! Hot is hot!",
+      "rating": 5.0
+    },
     "directions": "Located right off historical Route 66 / S Lewis Ave. Ample street parking available.",
-    "bestDishes": "Wolf Hot sandwich with fries and extra comeback sauce.",
+    "bestDishes": "OG Chicken Sandwich, medium spice, a side of regular fries and comeback sauce. A Coop 66. Eat in store, otherwise the fries get soggy quickly.",
     "bestTimes": "Weekday lunch hours to avoid the weekend rush.",
     "moreInfo": "Brings the true heat of Nashville straight to the heart of Tulsa. Safe dog patio dining is welcomed."
   },
   {
     "id": "oppa-house-bbq",
-    "name": "Oppa House - Korean BBQ",
+    "name": "Oppa House Korean BBQ and Hot Pot",
     "cityName": "Tulsa OK",
-    "category": "restaurants",
-    "subCategory": "Mexican",
-    "rating": 4.8,
-    "googleScore": "4.8",
-    "yelpScore": "4.7",
-    "dogsScore": "5.0",
+    "category": "restaurant",
+    "subCategory": "korean",
+    "rating": 5.0,
     "mapsUrl": "https://maps.app.goo.gl/kbwKMzdc5qWFuR6V8",
-    "address": "Tulsa, OK",
-    "description": "Authentic tabletop grilling experience with premium cuts and side dishes.",
+    "address": "7001 S Garnett Rd, Broken Arrow, OK 74012",
+    "description": "Authentic tabletop grilling experience with premium cuts and hot pot options.",
     "images": [
       "https://images.unsplash.com/photo-1544025162-d76694265947?w=500&q=80",
       "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=500&q=80"
     ],
-    "reviews": [
-      { "user": "Brando", "text": "Host and source from Google Maps: tabletop grill experience is flawless, premium cuts are super soft.", "rating": 5 },
-      { "user": "Yuki M.", "text": "Flawless side dishes (banchan) and extremely helpful staff.", "rating": 4.6 }
-    ],
+    "review": {
+      "author": "CaptainBrando!",
+      "text": "Magnificent experience. I've been to a lot of hot pots, but I like this one the most. Delicious broth and bbq, with a lot of included extras! The chicken wings were SO luxurious and complimentary in the all-you-can-eat! 🍗 And the spicy pork bulgogi? Absolutely delicious! The churros were surprisingly excellent. And the hand pulled fresh ramen noodles? Just, damn! If this were heaven I'd eat here every day. Wow, blown away! Insane that I only paid around 30 per person for so much food! Great service great flavors great seats great time. This the best game in town.",
+      "rating": 5.0
+    },
     "directions": "Sourced via local Google Maps links.",
     "bestDishes": "Marinated Galbi & Pork Belly.",
     "bestTimes": "Dinner groups.",
     "moreInfo": "Links directly to user's personalized Google Maps review."
   },
   {
-    "id": "brandos-espresso",
-    "name": "Brando's Espresso Bar",
-    "cityName": "Dallas TX",
-    "category": "restaurants",
-    "subCategory": "Coffee Shops",
-    "rating": 4.7,
-    "googleScore": "4.7",
-    "yelpScore": "4.6",
-    "dogsScore": "4.9",
-    "mapsUrl": "https://maps.google.com/?q=Brandos+Espresso+Dallas",
-    "address": "Dallas, TX",
-    "description": "Premium double-roasted espresso and warm pup cups.",
-    "images": [
-      "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=500&q=80"
-    ],
-    "reviews": [
-      { "user": "Arthur P.", "text": "Strongest flat white in the neighborhood. Extremely friendly baristas.", "rating": 5 }
-    ],
-    "directions": "Located in the heart of the arts district.",
-    "bestDishes": "Double shot espresso & Lavender Latte.",
-    "bestTimes": "Early mornings around 7:30 AM.",
-    "moreInfo": "DOGS are welcomed warmly on the outdoor terrace."
-  },
-  {
-    "id": "doggie-pub",
-    "name": "Doggie Pub & Lounge",
-    "cityName": "Dallas TX",
-    "category": "restaurants",
-    "subCategory": "Bars",
-    "rating": 4.4,
-    "googleScore": "4.5",
-    "yelpScore": "4.2",
-    "dogsScore": "4.8",
-    "mapsUrl": "https://maps.google.com/?q=Doggie+Pub+Dallas",
-    "address": "Dallas, TX",
-    "description": "Local craft beers on tap with a wide outdoor yard for dogs.",
+    "id": "the-colony",
+    "name": "The Colony",
+    "cityName": "Tulsa OK",
+    "category": "bar",
+    "subCategory": "dive bar",
+    "rating": 4.0,
+    "mapsUrl": "https://maps.app.goo.gl/ColonyBarTulsa",
+    "address": "2809 S Harvard Ave, Tulsa, OK 74114",
+    "description": "Tulsa's historic Midtown dive bar and live music venue. Cozy pub interior and active outdoor patio.",
     "images": [
       "https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=500&q=80"
     ],
-    "reviews": [
-      { "user": "AussieDave", "text": "Perfect spot to grab a draft beer while the dogs socialize.", "rating": 4.5 }
-    ],
-    "directions": "Accessible from Downtown Dallas via DART transit.",
-    "bestDishes": "Loaded Nachos and local IPAs.",
-    "bestTimes": "Friday happy hour.",
-    "moreInfo": "Large outdoor sandbox and custom dog treats menu."
-  },
-  {
-    "id": "howl-arena",
-    "name": "The Howl Arena",
-    "cityName": "Rochester NY",
-    "category": "concert-halls",
-    "subCategory": null,
-    "rating": 4.7,
-    "googleScore": "4.7",
-    "yelpScore": "4.6",
-    "dogsScore": "4.8",
-    "mapsUrl": "https://maps.google.com/?q=Howl+Arena+Rochester",
-    "address": "Rochester, NY",
-    "description": "Amphitheater hosting high-fidelity dog symphonies and sound art.",
-    "images": [
-      "https://images.unsplash.com/photo-1506157786151-b8491531f063?w=500&q=80"
-    ],
-    "reviews": [
-      { "user": "Haru K.", "text": "The acoustic engineering is spectacular. Visual projections match the music.", "rating": 5 }
-    ],
-    "directions": "Take I-490 Exit 15 to Monroe Ave.",
-    "bestDishes": "Gourmet hot dogs & local soft pretzels.",
-    "bestTimes": "Gates open 1 hour before showtime.",
-    "moreInfo": "Indoor-outdoor seating options with pet-friendly zones."
-  },
-  {
-    "id": "pee-hydrant-park",
-    "name": "Pee-On-Fire-Hydrant Park",
-    "cityName": "Rochester NY",
-    "category": "free-shit",
-    "subCategory": null,
-    "rating": 5.0,
-    "googleScore": "5.0",
-    "yelpScore": "5.0",
-    "dogsScore": "5.0",
-    "mapsUrl": "https://maps.google.com/?q=Centennial+Park+Rochester",
-    "address": "Rochester, NY",
-    "description": "Pristine fields with over 50 mock fire hydrants. Zero admission cost.",
-    "images": [
-      "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=500&q=80"
-    ],
-    "reviews": [
-      { "user": "Bella's Mom", "text": "Absolute heaven for dogs. Clean grass, fresh water bowls everywhere.", "rating": 5 }
-    ],
-    "directions": "Near Genesee Valley Park entrance.",
-    "bestDishes": "N/A - Free public dog park",
-    "bestTimes": "Sunset hours for dog socialization.",
-    "moreInfo": "Entirely fenced area with double-gated safety entry system."
+    "review": {
+      "author": "CaptainBrando!",
+      "text": "$4 shot and a beer. Artists bleeding on a stage. Always good folk on the patio.",
+      "rating": 4.0
+    },
+    "directions": "Midtown Tulsa on S Harvard Ave.",
+    "bestDishes": "$4 shot and a beer combo.",
+    "bestTimes": "Nightly after 9:00 PM for live local music.",
+    "moreInfo": "Great patio space and intimate live band settings."
   }
 ]
