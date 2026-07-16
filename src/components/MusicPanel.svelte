@@ -299,6 +299,20 @@
       genre: "Electronic",
       attrib: "https://deadmau5.com/",
     },
+    {
+      id: "skitzo",
+      title: "Skitzo (feat. Young Thug)",
+      artist: "Travis Scott",
+      album: "UTOPIA",
+      cover: "https://data.wearedogs.net/img/covers/2026/utopia.webp",
+      altCover: "https://data.wearedogs.net/img/covers/2026/utopia.png",
+      src: "https://data.wearedogs.net/music/2026/skitzo.mp3",
+      instrumental: "https://data.wearedogs.net/music/2026/skitzo-free.mp3",
+      dateAdded: "2026-07-16T01:56:00-05:00",
+      year: 2023,
+      genre: "Hip-Hop",
+      attrib: "https://shop.travisscott.com/",
+    },
   ];
 
   // Derive sort values
