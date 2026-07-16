@@ -866,20 +866,36 @@
                   {#key activeImageIdx}
                     {#if currentMediaItem}
                       {#if currentMediaItem.type === "video"}
-                        <video
-                          in:slideIn={{ duration: 300, direction: scrollDirection }}
-                          out:slideOut={{
-                            duration: 300,
-                            direction: scrollDirection,
-                          }}
-                          src={currentMediaItem.url}
-                          class="absolute inset-0 w-full h-full object-cover"
-                          controls
-                          autoplay
-                          muted
-                          loop
-                          playsinline
-                        ></video>
+                        {#if currentMediaItem.url.includes("youtube.com") || currentMediaItem.url.includes("youtu.be")}
+                          <iframe
+                            in:slideIn={{ duration: 300, direction: scrollDirection }}
+                            out:slideOut={{
+                              duration: 300,
+                              direction: scrollDirection,
+                            }}
+                            src={currentMediaItem.url}
+                            class="absolute inset-0 w-full h-full"
+                            style="border: none;"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                            referrerpolicy="strict-origin-when-cross-origin"
+                            allowfullscreen
+                          ></iframe>
+                        {:else}
+                          <video
+                            in:slideIn={{ duration: 300, direction: scrollDirection }}
+                            out:slideOut={{
+                              duration: 300,
+                              direction: scrollDirection,
+                            }}
+                            src={currentMediaItem.url}
+                            class="absolute inset-0 w-full h-full object-cover"
+                            controls
+                            autoplay
+                            muted
+                            loop
+                            playsinline
+                          ></video>
+                        {/if}
                       {:else}
                         <img
                           in:slideIn={{ duration: 300, direction: scrollDirection }}
@@ -1040,17 +1056,33 @@
                       ></div>
                     </div>
 
+                    <!-- GoFundMe Link button (if exists) -->
+                    {#if selectedCampaign.goFundMeUrl}
+                      <div class="mb-3">
+                        <a
+                          href={selectedCampaign.goFundMeUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="w-full py-3.5 bg-orange-600 hover:bg-orange-500 text-white font-black rounded-xl text-xs tracking-widest transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-orange-900/20 cursor-pointer text-center"
+                        >
+                          🧡 SECURE DONATE VIA GOFUNDME
+                        </a>
+                      </div>
+                    {/if}
+
                     <!-- Cash App Link button -->
-                    <div class="mb-4">
-                      <a
-                        href="https://cash.app/$cptnbrando"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-black font-black rounded-xl text-xs tracking-widest transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-emerald-900/25 cursor-pointer"
-                      >
-                        🟢 SECURE DONATE VIA CASH APP
-                      </a>
-                    </div>
+                    {#if selectedCampaign.cashAppUrl}
+                      <div class="mb-4">
+                        <a
+                          href={selectedCampaign.cashAppUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-black font-black rounded-xl text-xs tracking-widest transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-emerald-900/25 cursor-pointer text-center"
+                        >
+                          🟢 SECURE DONATE VIA CASH APP ({selectedCampaign.cashAppUrl.substring(selectedCampaign.cashAppUrl.lastIndexOf('/') + 1)})
+                        </a>
+                      </div>
+                    {/if}
 
                     <div class="mt-2 flex flex-col gap-2">
                       <span

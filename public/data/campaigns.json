@@ -1,42 +1,43 @@
 [
   {
     "id": "police-injustice",
-    "title": "POLICE INJUSTICE LEGAL FUND",
+    "title": "HELP RUSTY FIGHT UNJUST ARREST & CDL LOSS",
     "status": "active",
-    "goal": "$50,000",
-    "raised": "$12,450",
-    "description": "Raising funds to support legal representation, advocacy, and community support for victims of police injustice and systemic misconduct. Every contribution directly funds defense attorneys, public education, and family aid.",
+    "goal": "$75,000",
+    "raised": "$65,489",
+    "description": "On May 31, 2024, CDL driver Rusty Moore was unlawfully arrested by the Little Falls Police Department and Minnesota State Troopers. This traffic stop went viral, drawing millions of views. The arrest caused him to miss his daughter's graduation, lose his job, and face a lifetime revocation of his Commercial Driver's License (CDL). Rusty is appealing this decision in the Minnesota Court of Appeals. This fundraiser helps support his civil rights attorney legal fees, ongoing car expenses (including mandatory interlock device fees), medical costs, and basic living expenses while fighting for accountability and justice against police misconduct.",
     "images": [
-      "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=800&q=80",
-      "https://images.unsplash.com/photo-1453728013993-6d66e9c9123a?w=800&q=80"
+      "https://images.gofundme.com/zaNfO9prpQPONWaqI7A1Grjmdrk=/720x405/https://i.ytimg.com/vi/UX2qzJDbhXI/0.jpg",
+      "https://d2g8igdw686xgo.cloudfront.net/90366263_1745371447330003_r.png"
     ],
     "media": [
-      { "type": "video", "url": "/vid/blog/2607/shake.mp4", "thumbnail": "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=800&q=80" },
-      { "type": "image", "url": "https://images.unsplash.com/photo-1453728013993-6d66e9c9123a?w=800&q=80" }
+      { "type": "video", "url": "https://www.youtube.com/embed/UX2qzJDbhXI", "thumbnail": "https://images.gofundme.com/zaNfO9prpQPONWaqI7A1Grjmdrk=/720x405/https://i.ytimg.com/vi/UX2qzJDbhXI/0.jpg" },
+      { "type": "image", "url": "https://d2g8igdw686xgo.cloudfront.net/90366263_1745371447330003_r.png" }
     ],
     "milestones": [
       {
-        "label": "Case File Intake & Review",
-        "percentage": 10,
-        "achieved": true
-      },
-      {
-        "label": "Defense Counsel Retainer",
+        "label": "Initial Legal Defense Counsel",
         "percentage": 25,
         "achieved": true
       },
       {
-        "label": "Expert Witness Fees",
+        "label": "Court of Appeals Filing",
         "percentage": 50,
-        "achieved": false
+        "achieved": true
       },
       {
-        "label": "Trial Advocacy & PR Support",
+        "label": "Civil Rights Litigation Fees",
+        "percentage": 75,
+        "achieved": true
+      },
+      {
+        "label": "Full CDL Reinstatement appeal",
         "percentage": 100,
         "achieved": false
       }
     ],
-    "cashAppUrl": "https://cash.app/$cptnbrando"
+    "cashAppUrl": "https://cash.app/$roaddawg4128",
+    "goFundMeUrl": "https://www.gofundme.com/f/help-rusty-fight-unjust-arrest-cdl-loss"
   },
   {
     "id": "dogs-startup-costs",
