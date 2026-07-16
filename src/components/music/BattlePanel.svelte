@@ -4,6 +4,7 @@
     Mic, Square, Play, Pause, Flame, Search, Swords, UploadCloud, Volume2, Trash2, Check, AlertCircle 
   } from "lucide-svelte";
   import mockFreestyles from "./mockFreestyles.json";
+  import { BattleEngine } from "./BattleEngine.js";
 
   // Svelte 5 props
   let { audioCore } = $props();
@@ -24,17 +25,9 @@
   let votedIds = $state([]);
   let searchInputRef = $state(null);
 
-  // Audio recording nodes
-  let mediaRecorder = null;
-  let audioStream = null;
-  let micAudioCtx = null;
-  let micAnalyser = null;
-  let micSource = null;
-  let recordTimer = null;
-  
-  // Waveform canvas
+  // BattleEngine instance
+  let battleEngine = null;
   let canvasEl = $state(null);
-  let animationFrameId = null;
 
   // Selected beat tracking
   let selectedTrackIndex = $state(0);
@@ -42,6 +35,16 @@
 
   // Load from local storage on mount
   onMount(() => {
+    battleEngine = new BattleEngine({
+      onDurationChange: (duration) => {
+        recordingDuration = duration;
+      },
+      onRecordingStop: (blob) => {
+        recordedBlob = blob;
+        recordedUrl = URL.createObjectURL(blob);
+      }
+    });
+
     selectedTrackIndex = audioCore.currentTrackIndex;
     const stored = localStorage.getItem("wearedogs_local_freestyles");
     if (stored) {
@@ -81,138 +84,51 @@
   // Currently selected track in the music player
   let currentTrack = $derived(audioCore.library[selectedTrackIndex] || audioCore.library[0]);
 
-  // Audio visualizer loop for microphone input
-  function startVisualizer() {
-    if (!canvasEl || !micAnalyser) return;
-    const ctx = canvasEl.getContext("2d");
-    const bufferLength = micAnalyser.frequencyBinCount;
-    const dataArray = new Uint8Array(bufferLength);
-
-    const draw = () => {
-      if (!isRecording) return;
-      animationFrameId = requestAnimationFrame(draw);
-      micAnalyser.getByteFrequencyData(dataArray);
-
-      const width = canvasEl.width;
-      const height = canvasEl.height;
-      ctx.clearRect(0, 0, width, height);
-
-      // Draw custom cyberpunk mic visualization bars
-      const barWidth = (width / bufferLength) * 2.5;
-      let barHeight;
-      let x = 0;
-
-      for (let i = 0; i < bufferLength; i++) {
-        barHeight = dataArray[i] / 1.5;
-        
-        // Gradient color: magenta to cyan
-        const percent = i / bufferLength;
-        const r = Math.floor(255 - percent * 150);
-        const g = Math.floor(percent * 200);
-        const b = 255;
-        
-        ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
-        ctx.fillRect(x, height - barHeight, barWidth - 2, barHeight);
-        
-        x += barWidth;
-      }
-    };
-    draw();
-  }
-
   // Request mic permission and setup recorder
   async function startRecording() {
     permissionError = false;
+    recordedBlob = null;
+    recordedUrl = null;
+    recordingDuration = 0;
+    isRecording = true;
+
     try {
-      audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      
-      // Initialize Web Audio for live visualization
-      micAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      micAnalyser = micAudioCtx.createAnalyser();
-      micAnalyser.fftSize = 64;
-      micSource = micAudioCtx.createMediaStreamSource(audioStream);
-      micSource.connect(micAnalyser);
-
-      // Initialize media recorder
-      mediaRecorder = new MediaRecorder(audioStream);
-      const chunks = [];
-      
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data && e.data.size > 0) {
-          chunks.push(e.data);
-        }
-      };
-
-      mediaRecorder.onstop = () => {
-        recordedBlob = new Blob(chunks, { type: "audio/webm" });
-        recordedUrl = URL.createObjectURL(recordedBlob);
-      };
-
-      // Reset states
-      recordedBlob = null;
-      recordedUrl = null;
-      recordingDuration = 0;
-      isRecording = true;
-
-      // Start recording & sync with beat player
-      mediaRecorder.start();
-      
-      // Setup instrumental toggle in audioCore if supported
       if (currentTrack.hasInstrumental) {
         audioCore.isInstrumental = useInstrumental;
       }
-      
-      // Force beat to play from beginning
       audioCore.loadTrack(selectedTrackIndex, true);
-      
-      // Start duration counter
-      recordTimer = setInterval(() => {
-        recordingDuration++;
-        if (recordingDuration >= 60) {
-          stopRecording();
-        }
-      }, 1000);
-
-      // Start visualizer canvas loop
-      setTimeout(startVisualizer, 100);
-
+      await battleEngine.startRecording(canvasEl);
     } catch (e) {
       console.error("Mic access failed:", e);
+      isRecording = false;
       permissionError = true;
     }
   }
 
   function stopRecording() {
-    if (mediaRecorder && mediaRecorder.state !== "inactive") {
-      mediaRecorder.stop();
+    if (battleEngine) {
+      battleEngine.stopRecording();
     }
-    if (audioStream) {
-      audioStream.getTracks().forEach(track => track.stop());
-    }
-    if (micAudioCtx) {
-      micAudioCtx.close();
-    }
-    if (recordTimer) {
-      clearInterval(recordTimer);
-    }
-    
     isRecording = false;
     audioCore.pause();
-    
-    if (animationFrameId) {
-      cancelAnimationFrame(animationFrameId);
-    }
   }
 
   function cleanupRecording() {
-    stopRecording();
+    if (battleEngine) {
+      battleEngine.stopRecording();
+    }
     if (recordedUrl) {
       URL.revokeObjectURL(recordedUrl);
+    }
+    if (previewAudio) {
+      previewAudio.pause();
+      previewAudio = null;
     }
   }
 
   // Local audio element for preview
   let previewAudio = null;
+
 
   function togglePreview() {
     if (!recordedUrl) return;
