@@ -1,5 +1,6 @@
 <script>
   import { onMount, untrack } from "svelte";
+  import { fade, fly } from "svelte/transition";
   import BasePanel from "./BasePanel.svelte";
   import ThreeDShirtCanvas from "./apps/ThreeDShirtCanvas.svelte";
   import {
@@ -192,14 +193,14 @@
       <div>
         {#if currentStoreMode === "merch" && selectedProduct}
           <button
-            class="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors duration-200 text-sm font-semibold"
+            class="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors duration-200 text-sm font-semibold cursor-pointer"
             onclick={() => (selectedProduct = null)}
           >
             <ArrowLeft size={16} /> BACK TO CATALOG
           </button>
         {:else if currentStoreMode === "fundraising" && selectedCampaign}
           <button
-            class="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors duration-200 text-sm font-semibold"
+            class="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors duration-200 text-sm font-semibold cursor-pointer"
             onclick={() => (selectedCampaign = null)}
           >
             <ArrowLeft size={16} /> BACK TO CAMPAIGNS
@@ -210,7 +211,7 @@
             class="flex bg-zinc-900/60 p-1 rounded-xl border border-zinc-800 gap-1"
           >
             <button
-              class="px-4 py-1.5 rounded-lg text-xs font-bold tracking-widest transition-all duration-200"
+              class="px-4 py-1.5 rounded-lg text-xs font-bold tracking-widest transition-all duration-200 cursor-pointer"
               class:bg-white={currentStoreMode === "merch"}
               class:text-black={currentStoreMode === "merch"}
               class:text-zinc-400={currentStoreMode !== "merch"}
@@ -222,7 +223,7 @@
               MERCHANDISE
             </button>
             <button
-              class="px-4 py-1.5 rounded-lg text-xs font-bold tracking-widest transition-all duration-200"
+              class="px-4 py-1.5 rounded-lg text-xs font-bold tracking-widest transition-all duration-200 cursor-pointer"
               class:bg-white={currentStoreMode === "fundraising"}
               class:text-black={currentStoreMode === "fundraising"}
               class:text-zinc-400={currentStoreMode !== "fundraising"}
@@ -237,27 +238,26 @@
         {/if}
       </div>
 
-      {#if currentStoreMode === "merch"}
-        <button
-          class="cart-toggle-btn relative p-2 bg-zinc-900 border border-zinc-800 rounded-lg hover:border-zinc-500 hover:text-white transition-all duration-200"
-          onclick={() => (isCartOpen = true)}
-        >
-          <ShoppingCart size={20} />
-          {#if cart.length > 0}
-            <span
-              class="absolute -top-1.5 -right-1.5 bg-red-600 text-white font-bold text-[10px] w-5 h-5 flex items-center justify-center rounded-full animate-pulse"
-            >
-              {cart.reduce((a, b) => a + b.quantity, 0)}
-            </span>
-          {/if}
-        </button>
-      {/if}
+      <button
+        class="cart-toggle-btn relative p-2 bg-zinc-900 border border-zinc-800 rounded-lg hover:border-zinc-500 hover:text-white transition-all duration-200 cursor-pointer"
+        onclick={() => (isCartOpen = true)}
+      >
+        <ShoppingCart size={20} />
+        {#if cart.length > 0}
+          <span
+            class="absolute -top-1.5 -right-1.5 bg-red-600 text-white font-bold text-[10px] w-5 h-5 flex items-center justify-center rounded-full animate-pulse"
+          >
+            {cart.reduce((a, b) => a + b.quantity, 0)}
+          </span>
+        {/if}
+      </button>
     </div>
 
     <!-- Main Workspace -->
-    <div class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+    <div class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 grid grid-cols-1 grid-rows-1">
       {#if currentStoreMode === "merch"}
-        {#if !selectedProduct}
+        <div class="w-full col-start-1 row-start-1" transition:fade={{ duration: 200 }}>
+          {#if !selectedProduct}
           <!-- MERCHANDISE GRID VIEW -->
           <div
             class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 max-w-7xl mx-auto animate-fade-in"
@@ -364,7 +364,7 @@
                       >{product.price}</span
                     >
                     <button
-                      class="px-3 py-1 bg-white text-black font-bold text-xs rounded hover:bg-zinc-200 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      class="px-3 py-1 bg-white text-black font-bold text-xs rounded hover:bg-zinc-200 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer disabled:cursor-not-allowed"
                       disabled={!product.inStock}
                       onclick={() => (selectedProduct = product)}
                     >
@@ -378,33 +378,33 @@
         {:else}
           <!-- DETAIL VIEW -->
           <div
-            class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 items-start animate-fade-in"
+            class="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-start animate-fade-in"
           >
             <!-- Left: 3D Shirt Canvas -->
             <div
-              class="w-full aspect-square bg-black/40 border border-zinc-800 rounded-2xl flex items-center justify-center p-4 min-h-[300px] md:min-h-[400px] relative overflow-hidden"
+              class="w-full aspect-square bg-black/40 border border-zinc-800 rounded-2xl flex items-center justify-center p-4 relative overflow-hidden mx-auto h-auto min-h-[250px] max-h-[300px] sm:min-h-0 sm:max-h-[280px] md:max-h-[340px] lg:max-h-[360px] xl:max-h-[380px] 2xl:max-h-[480px]"
             >
               <ThreeDShirtCanvas productTitle={selectedProduct.title} />
             </div>
 
             <!-- Right: Details -->
             <div
-              class="flex flex-col justify-between h-full bg-zinc-900/20 border border-zinc-800/60 p-6 rounded-2xl"
+              class="flex flex-col justify-between h-full bg-zinc-900/20 border border-zinc-800/60 p-4 sm:p-5 lg:p-6 rounded-2xl"
             >
               <div>
                 <div class="flex justify-between items-start gap-4">
                   <h1
-                    class="text-2xl md:text-3xl font-extrabold tracking-wider"
+                    class="text-xl sm:text-2xl lg:text-3xl font-extrabold tracking-wider"
                   >
                     {selectedProduct.title}
                   </h1>
                   <span
-                    class="text-xl md:text-2xl text-red-500 font-black shrink-0"
+                    class="text-lg sm:text-xl lg:text-2xl text-red-500 font-black shrink-0"
                     >{selectedProduct.price}</span
                   >
                 </div>
 
-                <div class="mt-4 pb-4 border-b border-zinc-800/80">
+                <div class="mt-3 sm:mt-4 pb-4 border-b border-zinc-800/80">
                   <p class="text-zinc-400 text-sm md:text-base leading-relaxed">
                     {selectedProduct.description}
                   </p>
@@ -412,15 +412,15 @@
 
                 <!-- Size selector -->
                 {#if selectedProduct.sizes && selectedProduct.sizes.length > 0 && selectedProduct.sizes[0] !== "One Size"}
-                  <div class="mt-6">
+                  <div class="mt-4 sm:mt-6">
                     <span
-                      class="text-xs font-semibold text-zinc-500 uppercase tracking-widest block mb-3"
+                      class="text-xs font-semibold text-zinc-500 uppercase tracking-widest block mb-2"
                       >SELECT SIZE</span
                     >
                     <div class="flex flex-wrap gap-2">
                       {#each selectedProduct.sizes as size}
                         <button
-                          class="px-3 py-1.5 border border-zinc-800 rounded text-xs font-bold hover:border-zinc-500 transition-all duration-200"
+                          class="px-3 py-1.5 border border-zinc-800 rounded text-xs font-bold hover:border-zinc-500 transition-all duration-200 cursor-pointer"
                           class:active-size={selectedSize === size}
                           onclick={() => (selectedSize = size)}
                         >
@@ -430,7 +430,7 @@
                     </div>
                   </div>
                 {:else}
-                  <div class="mt-6">
+                  <div class="mt-4 sm:mt-6">
                     <span
                       class="text-xs font-semibold text-zinc-500 uppercase tracking-widest block mb-1"
                       >SIZE</span
@@ -441,9 +441,9 @@
                 {/if}
               </div>
 
-              <div class="mt-8 pt-6 border-t border-zinc-800/80">
+              <div class="mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-zinc-800/80">
                 <button
-                  class="w-full py-3.5 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl text-sm tracking-widest transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-red-900/30"
+                  class="w-full py-2.5 sm:py-3.5 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl text-sm tracking-widest transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-red-900/30 cursor-pointer"
                   onclick={() =>
                     addToCart(
                       selectedProduct,
@@ -458,9 +458,11 @@
             </div>
           </div>
         {/if}
+        </div>
       {:else}
         <!-- FUNDRAISING MODE -->
-        {#if !selectedCampaign}
+        <div class="w-full col-start-1 row-start-1" transition:fade={{ duration: 200 }}>
+          {#if !selectedCampaign}
           <!-- CAMPAIGNS CATALOG -->
           <div class="max-w-7xl mx-auto flex flex-col gap-8 animate-fade-in">
             <!-- Active Campaigns Section -->
@@ -610,13 +612,13 @@
           )}
           <!-- STEAM-STYLE CAMPAIGN VIEW -->
           <div
-            class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-start animate-fade-in"
+            class="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-12 gap-4 sm:gap-6 lg:gap-8 items-start animate-fade-in"
           >
             <!-- Left Side: Media Carousel (Col 7) -->
-            <div class="lg:col-span-7 flex flex-col gap-4">
+            <div class="sm:col-span-7 flex flex-col gap-3 sm:gap-4">
               <!-- Big Image Showcase -->
               <div
-                class="relative w-full aspect-video bg-black/40 border border-zinc-800 rounded-2xl overflow-hidden shadow-lg group"
+                class="relative w-full aspect-video bg-black/40 border border-zinc-800 rounded-2xl overflow-hidden shadow-lg group max-h-[200px] sm:max-h-[260px] md:max-h-[320px] lg:max-h-[360px] xl:max-h-[400px]"
               >
                 <img
                   src={selectedCampaign.images[activeImageIdx]}
@@ -626,7 +628,7 @@
 
                 <!-- Navigation Chevrons -->
                 <button
-                  class="absolute left-3 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/85 border border-zinc-800 text-white rounded-full w-8 h-8 flex items-center justify-center transition-all opacity-0 group-hover:opacity-100"
+                  class="absolute left-3 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/85 border border-zinc-800 text-white rounded-full w-8 h-8 flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
                   onclick={() => {
                     activeImageIdx =
                       (activeImageIdx - 1 + selectedCampaign.images.length) %
@@ -636,7 +638,7 @@
                   ◀
                 </button>
                 <button
-                  class="absolute right-3 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/85 border border-zinc-800 text-white rounded-full w-8 h-8 flex items-center justify-center transition-all opacity-0 group-hover:opacity-100"
+                  class="absolute right-3 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/85 border border-zinc-800 text-white rounded-full w-8 h-8 flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
                   onclick={() => {
                     activeImageIdx =
                       (activeImageIdx + 1) % selectedCampaign.images.length;
@@ -681,7 +683,7 @@
 
             <!-- Right Side: Details & Milestone Progression (Col 5) -->
             <div
-              class="lg:col-span-5 flex flex-col justify-between bg-zinc-900/20 border border-zinc-800/60 p-6 rounded-2xl"
+              class="sm:col-span-5 flex flex-col justify-between bg-zinc-900/20 border border-zinc-800/60 p-4 sm:p-5 lg:p-6 rounded-2xl"
             >
               <div>
                 <div
@@ -694,14 +696,14 @@
                       {selectedCampaign.status}
                     </span>
                     <h1
-                      class="text-xl md:text-2xl font-extrabold tracking-wider mt-2 uppercase"
+                      class="text-xl sm:text-2xl font-extrabold tracking-wider mt-2 uppercase"
                     >
                       {selectedCampaign.title}
                     </h1>
                   </div>
                 </div>
 
-                <div class="mt-4 pb-4">
+                <div class="mt-3 sm:mt-4 pb-4">
                   <p class="text-zinc-400 text-sm leading-relaxed font-sans">
                     {selectedCampaign.description}
                   </p>
@@ -709,7 +711,7 @@
 
                 <hr class="border-zinc-850 my-2" />
 
-                <div class="milestones-section mt-4">
+                <div class="milestones-section mt-3 sm:mt-4">
                   <div
                     class="flex justify-between items-center mb-2 font-bold font-mono text-xs"
                   >
@@ -774,7 +776,7 @@
                   href={selectedCampaign.cashAppUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-black font-black rounded-xl text-xs tracking-widest transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-emerald-900/25"
+                  class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-black font-black rounded-xl text-xs tracking-widest transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-emerald-900/25 cursor-pointer"
                 >
                   🟢 SECURE DONATE VIA CASH APP
                 </a>
@@ -782,6 +784,7 @@
             </div>
           </div>
         {/if}
+        </div>
       {/if}
     </div>
 
@@ -791,13 +794,15 @@
       <!-- svelte-ignore a11y_click_events_have_key_events -->
       <!-- svelte-ignore a11y_no_static_element_interactions -->
       <div
+        transition:fade={{ duration: 200 }}
         class="fixed inset-0 bg-black/60 z-40 backdrop-blur-sm"
         onclick={() => (isCartOpen = false)}
       ></div>
 
       <!-- Drawer Content -->
       <div
-        class="fixed top-0 right-0 w-full sm:w-[450px] h-full bg-zinc-950/95 border-l border-zinc-800 z-50 flex flex-col justify-between shadow-2xl transition-all duration-300"
+        transition:fly={{ x: 500, duration: 300 }}
+        class="fixed top-0 right-0 w-full sm:w-[450px] h-full bg-zinc-950/95 border-l border-zinc-800 z-50 flex flex-col justify-between shadow-2xl"
       >
         <!-- Header -->
         <div
@@ -807,7 +812,7 @@
             <ShoppingCart size={16} /> SHOPPING CART
           </span>
           <button
-            class="text-zinc-500 hover:text-white p-1 rounded-full hover:bg-white/5 transition-colors"
+            class="text-zinc-500 hover:text-white p-1 rounded-full hover:bg-white/5 transition-colors cursor-pointer"
             onclick={() => (isCartOpen = false)}
           >
             <X size={18} />
@@ -862,7 +867,7 @@
                   <!-- Qty Controls -->
                   <div class="flex items-center gap-2 mt-2">
                     <button
-                      class="w-5 h-5 bg-white/5 hover:bg-white/10 rounded flex items-center justify-center text-zinc-400 hover:text-white"
+                      class="w-5 h-5 bg-white/5 hover:bg-white/10 rounded flex items-center justify-center text-zinc-400 hover:text-white cursor-pointer"
                       onclick={() => updateQuantity(index, -1)}
                     >
                       <Minus size={10} />
@@ -871,7 +876,7 @@
                       >{item.quantity}</span
                     >
                     <button
-                      class="w-5 h-5 bg-white/5 hover:bg-white/10 rounded flex items-center justify-center text-zinc-400 hover:text-white"
+                      class="w-5 h-5 bg-white/5 hover:bg-white/10 rounded flex items-center justify-center text-zinc-400 hover:text-white cursor-pointer"
                       onclick={() => updateQuantity(index, 1)}
                     >
                       <Plus size={10} />
@@ -881,7 +886,7 @@
 
                 <!-- Delete -->
                 <button
-                  class="text-zinc-600 hover:text-red-400 p-1.5 transition-colors"
+                  class="text-zinc-600 hover:text-red-400 p-1.5 transition-colors cursor-pointer"
                   onclick={() => removeFromCart(index)}
                   title="Remove item"
                 >
@@ -902,7 +907,7 @@
               <span class="text-red-500 text-base">{totalPrice()}</span>
             </div>
             <button
-              class="w-full py-3 bg-green-600 hover:bg-green-500 text-black font-black rounded-xl text-xs tracking-widest transition-all duration-200 flex items-center justify-center gap-1.5"
+              class="w-full py-3 bg-green-600 hover:bg-green-500 text-black font-black rounded-xl text-xs tracking-widest transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer"
               onclick={handleCheckout}
             >
               <Check size={14} /> SECURE CHECKOUT
