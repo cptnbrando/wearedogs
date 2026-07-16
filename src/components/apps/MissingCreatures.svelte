@@ -152,26 +152,13 @@
     });
 </script>
 
-<div class="missing-creatures-app flex flex-col h-full bg-[#0a0c10] text-zinc-300 font-sans overflow-y-auto w-full">
-    <!-- Header -->
-    <header class="border-b border-red-500/20 bg-zinc-950/70 p-4 flex items-center justify-between">
-        <div class="flex items-center gap-2">
-            <span class="p-1 bg-red-600/10 border border-red-500/30 rounded text-red-500 font-mono text-[10px] tracking-widest uppercase">SWARM OUTPOST</span>
-            <h1 class="text-lg font-bold tracking-widest text-white uppercase">MISSING CREATURES RADAR</h1>
-        </div>
-        <div class="flex items-center gap-4 text-xs font-mono">
-            <div class="flex items-center gap-1.5 text-emerald-500 animate-pulse">
-                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                <span>RADAR ONLINE</span>
-            </div>
-        </div>
-    </header>
+<div class="missing-creatures-app flex flex-col h-full bg-[#0a0c10] text-zinc-300 font-sans xl:overflow-hidden overflow-y-auto w-full">
 
     <!-- Main Content Layout -->
-    <main class="flex-grow p-4 grid grid-cols-1 xl:grid-cols-12 gap-4">
+    <main class="flex-grow p-4 grid grid-cols-1 xl:grid-cols-12 gap-4 xl:h-full xl:min-h-0">
         
         <!-- Left: Hotspot map & Comparison panel (Col 4) -->
-        <section class="xl:col-span-4 flex flex-col gap-4">
+        <section class="xl:col-span-4 flex flex-col gap-4 xl:h-full xl:min-h-0">
             <div class="bg-zinc-900/60 border border-zinc-800 rounded-xl p-4 flex flex-col">
                 <h2 class="text-sm font-bold text-white tracking-widest uppercase mb-3 flex items-center gap-2">
                     <MapPin size={14} class="text-red-500" /> SIGHTING HOTSPOTS
@@ -269,8 +256,8 @@
         </section>
 
         <!-- Center: Investigator Polaroid Pinboard (Col 5) -->
-        <section class="xl:col-span-5 flex flex-col gap-4">
-            <div class="bg-zinc-900/60 border border-zinc-800 rounded-xl p-4 flex flex-col flex-grow">
+        <section class="xl:col-span-5 flex flex-col gap-4 xl:h-full xl:min-h-0">
+            <div class="bg-zinc-900/60 border border-zinc-800 rounded-xl p-4 flex flex-col flex-grow xl:min-h-0">
                 <h2 class="text-sm font-bold text-white tracking-widest uppercase mb-3 flex items-center justify-between">
                     <span>🕵️ INVESTIGATOR PINBOARD</span>
                     {#if loadingFbi}
@@ -279,7 +266,7 @@
                 </h2>
 
                 <!-- Pinboard Cork Grid scrollable container -->
-                <div class="grid grid-cols-2 gap-3 max-h-[460px] overflow-y-auto p-2 bg-[#1b1715] border border-zinc-950 rounded-lg shadow-inner flex-grow">
+                <div class="grid grid-cols-2 gap-3 xl:max-h-none overflow-y-auto p-2 bg-[#1b1715] border border-zinc-950 rounded-lg shadow-inner flex-grow min-h-0">
                     {#each fbiProfiles as p, i}
                         <!-- Polaroid Card -->
                         <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -305,7 +292,7 @@
         </section>
 
         <!-- Right: Bodycam Simulated Player & Case files details (Col 3) -->
-        <section class="xl:col-span-3 flex flex-col gap-4">
+        <section class="xl:col-span-3 flex flex-col gap-4 xl:h-full xl:min-h-0">
             <!-- Simulated Bodycam Player -->
             <div class="bg-zinc-900/60 border border-zinc-800 rounded-xl p-4 flex flex-col">
                 <h2 class="text-sm font-bold text-white tracking-widest uppercase mb-3 flex items-center justify-between">
@@ -332,11 +319,11 @@
             </div>
 
             <!-- Profile Details File Drawer -->
-            <div class="bg-zinc-900/60 border border-zinc-800 rounded-xl p-4 flex-grow flex flex-col">
+            <div class="bg-zinc-900/60 border border-zinc-800 rounded-xl p-4 flex-grow flex flex-col xl:min-h-0">
                 <h2 class="text-sm font-bold text-white tracking-widest uppercase mb-2 flex items-center gap-2">
                     <Info size={14} class="text-cyan-400" /> DOSSIER DOS-404
                 </h2>
-                <div class="bg-zinc-950/60 border border-zinc-800 rounded-lg p-3 text-xs leading-relaxed font-sans flex-grow overflow-y-auto">
+                <div class="bg-zinc-950/60 border border-zinc-800 rounded-lg p-3 text-xs leading-relaxed font-sans flex-grow overflow-y-auto min-h-0">
                     {#if selectedProfile}
                         <h3 class="text-red-500 font-mono font-bold tracking-wider mb-1 uppercase">{selectedProfile.title}</h3>
                         <p class="text-zinc-300 font-serif italic mb-2">"{selectedProfile.description}"</p>
