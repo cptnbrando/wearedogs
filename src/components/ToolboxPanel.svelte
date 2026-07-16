@@ -92,7 +92,9 @@
   let headerContainerWidth = $state(0);
   let headerTextWidth = $state(0);
 
-  let isMobile = $state(typeof window !== "undefined" ? window.innerWidth <= 768 : false);
+  let isMobile = $state(
+    typeof window !== "undefined" ? window.innerWidth <= 768 : false,
+  );
 
   function handleResize() {
     isMobile = window.innerWidth <= 768;
@@ -111,6 +113,15 @@
       let title = appInfo.title;
       if (appInfo.id === "missingcreatures") {
         title = isMobile ? "Missing" : "Missing Persons";
+      }
+      if (appInfo.id === "converter") {
+        title = isMobile ? "Converter" : "Catalytic Converter";
+      }
+      if (appInfo.id === "windshieldwiper") {
+        title = isMobile ? "Windshield" : "Windshield Wiper";
+      }
+      if (appInfo.id === "soundboard") {
+        title = isMobile ? "Soundboard" : "Dog Soundboard";
       }
       return {
         title,
