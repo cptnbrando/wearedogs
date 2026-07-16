@@ -23,51 +23,6 @@
   } from "lucide-svelte";
   import { untrack } from "svelte";
 
-  function getRegionIdentity(lang) {
-    const t = translations[lang];
-    if (!t || !t.country) return "default";
-    const country = t.country.toLowerCase();
-
-    if (
-      country.includes("switzerland") ||
-      country.includes("nepal") ||
-      country.includes("tibet") ||
-      country.includes("austria") ||
-      country.includes("peru") ||
-      country.includes("bolivia") ||
-      country.includes("greece") ||
-      country.includes("norway") ||
-      country.includes("chile") ||
-      country.includes("ecuador") ||
-      country.includes("georgia") ||
-      country.includes("armenia") ||
-      country.includes("bhutan") ||
-      country.includes("kashmir")
-    ) {
-      return "mountain";
-    }
-
-    if (
-      country.includes("germany") ||
-      country.includes("japan") ||
-      country.includes("china") ||
-      country.includes("united states") ||
-      country.includes("us") ||
-      country.includes("usa") ||
-      country.includes("south korea") ||
-      country.includes("united kingdom") ||
-      country.includes("uk") ||
-      country.includes("belgium") ||
-      country.includes("russia") ||
-      country.includes("singapore") ||
-      country.includes("taiwan")
-    ) {
-      return "industrial";
-    }
-
-    return "agricultural";
-  }
-
   // Detect initial language from browser
   const browserLang =
     typeof navigator !== "undefined" ? navigator.language.split("-")[0] : "en";
@@ -91,10 +46,21 @@
     currentLang = $bindable(initialLang),
     isPaused = $bindable(false),
     isFlagColors = $bindable(false),
+    isLandingPage = true,
     children,
   } = $props();
 
   let refreshKey = $state(0);
+
+  // Cooldown timer to prevent inertial scrolling up from triggering color toggles
+  let prevIsLandingPage = $state(true);
+  let lastLandedTime = $state(0);
+  $effect(() => {
+    if (isLandingPage && !prevIsLandingPage) {
+      lastLandedTime = Date.now();
+    }
+    prevIsLandingPage = isLandingPage;
+  });
 
   // This is the genesis for the death calculation stats
   // Time elapsed since this will be used to calculate mortality
@@ -411,6 +377,12 @@
     clearInterval(hoverTimer);
   }
 
+  $effect(() => {
+    if (isPaused) {
+      stopCycling();
+    }
+  });
+
   function onEnter() {
     isHovering = true;
     if (!isPaused) {
@@ -517,12 +489,26 @@
     }
   }
 
+  let isWheelActive = false;
+  let wheelTimeout = null;
+
   function handleWheel(e) {
+    if (window.location.pathname !== "/") return;
+    if (Date.now() - lastLandedTime < 800) return;
     if (isFaded) return;
-    if (e.deltaY > 0) {
-      toggleFlagColors(false); // Scroll down -> Flag Colors OFF
-    } else if (e.deltaY < 0) {
-      toggleFlagColors(true); // Scroll up -> Flag Colors ON
+    if (e.deltaY < 0) {
+      const scrollContainer = document.querySelector("main");
+      if (scrollContainer && scrollContainer.scrollTop > 0) {
+        return;
+      }
+      if (!isWheelActive) {
+        isWheelActive = true;
+        toggleFlagColors();
+      }
+      if (wheelTimeout) clearTimeout(wheelTimeout);
+      wheelTimeout = setTimeout(() => {
+        isWheelActive = false;
+      }, 400);
     }
   }
 
@@ -675,7 +661,7 @@
 
     // Center scrolling relative to the anchor point where swipe-hold was activated
     const diffX = currentTouchX - holdAnchorX;
-    
+
     // Normalize drag offset to a standard 375px viewport reference width
     const screenWidth = typeof window !== "undefined" ? window.innerWidth : 375;
     const scaleFactor = 375 / Math.max(280, screenWidth); // clamp screenWidth to avoid division by zero
@@ -728,6 +714,7 @@
   $effect(() => {
     return () => {
       stopScrollLoop();
+      if (wheelTimeout) clearTimeout(wheelTimeout);
     };
   });
 
@@ -842,12 +829,15 @@
     } else {
       // Vertical swipe
       if (Math.abs(diffY) > threshold) {
-        if (diffY < 0) {
-          // Swipe Up -> Flag Colors ON
-          toggleFlagColors(true);
-        } else {
-          // Swipe Down -> Flag Colors OFF
-          toggleFlagColors(false);
+        if (diffY > 0) {
+          // Swipe Down -> Toggle colors
+          if (window.location.pathname !== "/") return;
+          if (Date.now() - lastLandedTime < 800) return;
+          const scrollContainer = document.querySelector("main");
+          if (scrollContainer && scrollContainer.scrollTop > 0) {
+            return;
+          }
+          toggleFlagColors();
         }
       }
     }
@@ -902,6 +892,7 @@
   }
 
   function handleKeydown(e) {
+    if (window.location.pathname !== "/") return;
     if (isFaded) return; // bypass all navigation keys when details Panel is open
     if (e.key === "ArrowLeft") {
       handleLeftArrow();
@@ -914,6 +905,9 @@
     } else if (e.key === " ") {
       e.preventDefault();
       onClick();
+    } else if (e.key === ",") {
+    } else if (e.key === ".") {
+    } else if (e.key === "/") {
     } else if (e.key.length === 1 && e.key.match(/[a-zA-Z]/)) {
       handleLetterPress(e.key.toLowerCase());
     }
@@ -938,11 +932,7 @@
 <svelte:window onkeydown={handleKeydown} onwheel={handleWheel} />
 
 <!-- Ambient background gradient & textures -->
-<div
-  class="ambient-bg"
-  style="--dominant-color: {flagColors[0] || '#000000'}"
-  data-region-type={getRegionIdentity(currentLang)}
->
+<div class="ambient-bg" style="--dominant-color: {flagColors[0] || '#000000'}">
   <div class="ambient-texture"></div>
 </div>
 
@@ -976,7 +966,7 @@
   {/if}
 {/key}
 
-{#if !isFaded}
+{#if !isFaded && isLandingPage}
   <!-- Top Right Corner Click/Tap Target (Flag Colors Toggle) -->
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -989,7 +979,7 @@
 <div
   class="lang-display"
   class:paused={isPaused}
-  class:faded={isFaded}
+  class:faded={isFaded || !isLandingPage}
   onclick={onOpenStats}
 >
   <div class="lang-header">
@@ -1139,12 +1129,12 @@
     <!-- WORD 1: "We" -->
     {#key weGen}
       <h1 class="word" aria-label={currentWe}>
-        {#each toLetters(currentWe) as letter, i}
+        {#each toLetters(currentWe.toUpperCase()) as letter, i}
           <span
             class="letter"
             style="{letterStyle(
               i,
-              toLetters(currentWe).length,
+              toLetters(currentWe.toUpperCase()).length,
             )} --trans-delay: {i * 30}ms; color: {isFlagColors
               ? flagColors[0]
               : 'white'}; text-shadow: {isFlagColors
@@ -1160,12 +1150,12 @@
     <!-- WORD 2: "Are" -->
     {#key areGen}
       <h1 class="word" aria-label={currentAre}>
-        {#each toLetters(currentAre) as letter, i}
+        {#each toLetters(currentAre.toUpperCase()) as letter, i}
           <span
             class="letter"
             style="{letterStyle(
               i,
-              toLetters(currentAre).length,
+              toLetters(currentAre.toUpperCase()).length,
             )} --trans-delay: {i * 30}ms; color: {isFlagColors
               ? flagColors[1]
               : 'white'}; text-shadow: {isFlagColors
@@ -1181,12 +1171,12 @@
     <!-- WORD 3: "Dogs" -->
     {#key dogsGen}
       <h1 class="word" aria-label={currentDogs}>
-        {#each toLetters(currentDogs) as letter, i}
+        {#each toLetters(currentDogs.toUpperCase()) as letter, i}
           <span
             class="letter"
             style="{letterStyle(
               i,
-              toLetters(currentDogs).length,
+              toLetters(currentDogs.toUpperCase()).length,
             )} --trans-delay: {i * 30}ms; color: {isFlagColors
               ? flagColors[2]
               : 'white'}; text-shadow: {isFlagColors
@@ -1210,20 +1200,40 @@
 
 {#if isSwipeHoldActive}
   <div class="language-scroller-ribbon">
-    <div class="scroller-instruction">Drag left/right to scroll past languages</div>
+    <div class="scroller-instruction">
+      Drag left/right to scroll past languages
+    </div>
     <div class="scroller-track">
-      <div class="scroller-track-inner" style="--scroller-shift: {-(scrollOffset - Math.round(scrollOffset)) * 130}">
+      <div
+        class="scroller-track-inner"
+        style="--scroller-shift: {-(scrollOffset - Math.round(scrollOffset)) *
+          130}"
+      >
         {#each [-4, -3, -2, -1, 0, 1, 2, 3, 4] as offset}
           {@const langCode = getLangAtOffset(offset)}
           <div
             class="scroller-item"
             class:active={offset === 0}
-            style="--opacity: {1 - Math.abs(offset) * 0.22}; --scale: {1.2 - Math.abs(offset) * 0.15}; --flag-color: {getFlagColors(langCode)[0]};"
+            style="--opacity: {1 - Math.abs(offset) * 0.22}; --scale: {1.2 -
+              Math.abs(offset) * 0.15}; --flag-color: {getFlagColors(
+              langCode,
+            )[0]};"
           >
             <div class="scroller-flag-pill">
-              <span class="flag-stripe" style="background-color: {getFlagColors(langCode)[0]}"></span>
-              <span class="flag-stripe" style="background-color: {getFlagColors(langCode)[1] || getFlagColors(langCode)[0]}"></span>
-              <span class="flag-stripe" style="background-color: {getFlagColors(langCode)[2] || getFlagColors(langCode)[0]}"></span>
+              <span
+                class="flag-stripe"
+                style="background-color: {getFlagColors(langCode)[0]}"
+              ></span>
+              <span
+                class="flag-stripe"
+                style="background-color: {getFlagColors(langCode)[1] ||
+                  getFlagColors(langCode)[0]}"
+              ></span>
+              <span
+                class="flag-stripe"
+                style="background-color: {getFlagColors(langCode)[2] ||
+                  getFlagColors(langCode)[0]}"
+              ></span>
             </div>
             <div class="scroller-lang-code">{langCode.toUpperCase()}</div>
             <div class="scroller-lang-name">{langDisplayName(langCode)}</div>
@@ -1590,6 +1600,7 @@
     align-items: center;
     justify-content: center;
     position: relative;
+    row-gap: 1.8em;
   }
 
   .word {
@@ -1599,18 +1610,33 @@
     flex-wrap: nowrap;
     margin: 0;
     padding: 0;
-    font-size: clamp(3rem, 12vw, 9rem);
+    font-family: "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, Monaco,
+      Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: clamp(5rem, 18vmin, 15rem);
     font-weight: 900;
     line-height: 1.05;
-    letter-spacing: -0.02em;
+    gap: 0.04em;
     text-transform: uppercase;
     color: white;
     white-space: nowrap;
     cursor: pointer;
   }
 
+  @media (max-width: 767px) {
+    .word {
+      font-size: clamp(2.5rem, 12vmin, 5rem);
+    }
+    .words-wrapper {
+      row-gap: 1.2em;
+    }
+  }
+
   .letter {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 0.6em;
+    height: 0.72em;
     transform-style: preserve-3d;
     animation: matrixFlip 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
     animation-delay: var(--delay, 0ms);
@@ -1619,6 +1645,24 @@
       color 0.5s cubic-bezier(0.25, 1, 0.5, 1),
       text-shadow 0.5s cubic-bezier(0.25, 1, 0.5, 1);
     transition-delay: var(--trans-delay, 0ms);
+  }
+
+  @media (max-height: 500px) {
+    .word {
+      font-size: clamp(1.8rem, 11vh, 5rem);
+    }
+    .pronunciation {
+      margin-top: 1rem !important;
+    }
+  }
+
+  @media (max-height: 350px) {
+    .word {
+      font-size: clamp(1.5rem, 10vh, 4rem);
+    }
+    .pronunciation {
+      margin-top: 0.5rem !important;
+    }
   }
 
   @keyframes matrixFlip {
@@ -1739,21 +1783,6 @@
       opacity 0.8s ease;
   }
 
-  [data-region-type="mountain"] .ambient-texture {
-    background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0 l50 50 l50 -50 M50 50 l0 50 M0 100 l50 -50 l50 50' fill='none' stroke='white' stroke-width='1.5' stroke-opacity='0.25'/%3E%3C/svg%3E");
-    background-size: 80px 80px;
-  }
-
-  [data-region-type="industrial"] .ambient-texture {
-    background-image: url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 12 12' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='6' cy='6' r='2' fill='white' fill-opacity='0.3'/%3E%3C/svg%3E");
-    background-size: 12px 12px;
-  }
-
-  [data-region-type="agricultural"] .ambient-texture {
-    background-image: url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 40 Q 20 20, 40 40 T 80 40 M0 20 Q 20 0, 40 20 T 80 20 M0 60 Q 20 40, 40 60 T 80 60' fill='none' stroke='white' stroke-width='1' stroke-opacity='0.25'/%3E%3C/svg%3E");
-    background-size: 60px 60px;
-  }
-
   /* ── Language Scroller Ribbon ── */
   .language-scroller-ribbon {
     position: fixed;
@@ -1773,7 +1802,7 @@
     border-top: 1px solid rgba(255, 255, 255, 0.08);
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     padding: 20px 0;
-    box-shadow: 
+    box-shadow:
       0 -15px 35px rgba(0, 0, 0, 0.6),
       0 15px 35px rgba(0, 0, 0, 0.6);
     overflow: hidden;
@@ -1815,7 +1844,8 @@
     justify-content: center;
     position: absolute;
     left: 50%;
-    transform: translate(-50%, 0) translateX(calc(var(--scroller-shift, 0) * 1px));
+    transform: translate(-50%, 0)
+      translateX(calc(var(--scroller-shift, 0) * 1px));
     will-change: transform;
   }
 
@@ -1830,7 +1860,9 @@
     text-align: center;
     opacity: var(--opacity, 0.5);
     transform: scale(var(--scale, 0.9));
-    transition: opacity 0.15s cubic-bezier(0.16, 1, 0.3, 1), transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+    transition:
+      opacity 0.15s cubic-bezier(0.16, 1, 0.3, 1),
+      transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .scroller-item.active {
@@ -1846,7 +1878,9 @@
     overflow: hidden;
     border: 1.5px solid rgba(255, 255, 255, 0.18);
     box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
-    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    transition:
+      border-color 0.3s ease,
+      box-shadow 0.3s ease;
   }
 
   .scroller-item.active .scroller-flag-pill {
@@ -1880,7 +1914,10 @@
     white-space: nowrap;
     overflow: hidden;
     width: 110px;
-    font-family: system-ui, -apple-system, sans-serif;
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
     font-weight: 500;
   }
 
@@ -1897,7 +1934,8 @@
   }
 
   @keyframes pulseIndicator {
-    0%, 100% {
+    0%,
+    100% {
       transform: scale(1) translateY(0);
       opacity: 0.7;
     }

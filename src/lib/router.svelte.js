@@ -9,8 +9,8 @@ const VALID_PANELS = new Set(['music', 'stats', 'map', 'store', 'networking']);
 
 /** App slugs recognized by ToolboxPanel. */
 export const VALID_APPS = new Set([
-  'gopro', 'soundboard', 'snake', 'paint', 'stopwatch', 'qrflash', 'rescue', 'memes',
-  'worldcup',
+  'gopro', 'soundboard', 'snake', 'paint', 'stopwatch', 'dataflash', 'qrgenerator', 'rescue', 'memes',
+  'worldcup', 'blog', 'settings', 'arcade',
 ]);
 
 /**
@@ -25,6 +25,18 @@ export const SHOW_SLUGS = {
   'dead': "The Walking Dead",
   'walking-dead': "The Walking Dead",
   'the-walking-dead': "The Walking Dead"
+};
+
+export const ARCADE_SLUGS = {
+  'mario': 'mario64',
+  'mario64': 'mario64',
+  'mariods': 'mariods',
+  'moonwalk': 'moonwalker',
+  'moonwalker': 'moonwalker',
+  'conker': 'conker',
+  'goldeneye': 'goldeneye',
+  'zelda': 'zelda',
+  'nintendogs': 'nintendogs'
 };
 
 // ---------------------------------------------------------------------------
@@ -51,6 +63,11 @@ export function parsePath(path) {
     return { type: 'lang', lang: s0 };
   }
 
+  // /info
+  if (parts.length === 1 && s0 === 'info') {
+    return { type: 'info' };
+  }
+
   // /music  (panel, no track)
   if (s0 === 'music' && parts.length === 1) {
     return { type: 'panel', panel: 'music' };
@@ -71,9 +88,29 @@ export function parsePath(path) {
     return { type: 'panel', panel: 'toolbox' };
   }
 
+  // /apps/arcade/zelda  (Arcade game deep link)
+  if (s0 === 'apps' && s1 === 'arcade' && parts.length === 3 && ARCADE_SLUGS[s2]) {
+    return { type: 'arcade-game', game: ARCADE_SLUGS[s2] };
+  }
+
+  // /arcade/zelda
+  if (s0 === 'arcade' && parts.length === 2 && ARCADE_SLUGS[s1]) {
+    return { type: 'arcade-game', game: ARCADE_SLUGS[s1] };
+  }
+
+  // /zelda  /mario  /conker … (Direct console game short url)
+  if (parts.length === 1 && ARCADE_SLUGS[s0]) {
+    return { type: 'arcade-game', game: ARCADE_SLUGS[s0] };
+  }
+
   // /apps/gopro  /apps/snake  … (specific app)
   if (s0 === 'apps' && parts.length === 2 && VALID_APPS.has(s1)) {
     return { type: 'app', app: s1 };
+  }
+
+  // /apps/blog/hello-world  (Blog post deep link)
+  if (s0 === 'apps' && s1 === 'blog' && parts.length === 3) {
+    return { type: 'blog-post', slug: s2 };
   }
 
   // /apps/gopro/batman/s02e03  (GoPro show + episode deep link)

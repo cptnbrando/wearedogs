@@ -1,6 +1,14 @@
 <script>
   import { onMount } from "svelte";
+  import { fade } from "svelte/transition";
   import { Trophy, Search, RefreshCw, AlertCircle, Grid, List } from "lucide-svelte";
+  import SwipeTabNav from "../SwipeTabNav.svelte";
+
+  const wcTabs = [
+    { id: "bracket", label: "Bracket", icon: Trophy },
+    { id: "standings", label: "Standings", icon: Grid },
+    { id: "teams", label: "Teams", icon: List }
+  ];
   
   // Decoupled logic & components
   import { WorldCupController } from "../../lib/worldcup.js";
@@ -157,7 +165,7 @@
 <div class="wc-container flex flex-col w-full h-full overflow-hidden select-none">
   {#if isLoading}
     <div class="flex flex-col items-center justify-center grow gap-3 text-white/50 text-xs">
-      <RefreshCw size={36} class="animate-spin text-neon-gold" />
+      <RefreshCw size={36} class="animate-spin" style="color: var(--color-neon-gold, #e6b900)" />
       <p>Synchronizing fixtures and standings...</p>
     </div>
   {:else}
@@ -166,7 +174,7 @@
       <div class="wc-left-sidebar flex flex-col shrink-0">
         <!-- Sub Header with Controls -->
         <header class="flex justify-between items-center p-4 bg-black/25 border-b border-white/5 shrink-0">
-          <div class="flex items-center gap-3">
+          <!-- <div class="flex items-center gap-3">
             <div class="text-neon-gold animate-float flex items-center justify-center">
               <Trophy size={24} />
             </div>
@@ -174,7 +182,7 @@
               <h3 class="m-0 text-sm font-extrabold tracking-wider uppercase text-white">FIFA World Cup 2026</h3>
               <p class="m-0 text-[10px] text-white/45">Live Standings, Bracket & Teams (48 Teams)</p>
             </div>
-          </div>
+          </div> -->
           <div class="flex items-center gap-3">
             {#if isOffline}
               <span class="offline-badge text-[9px] font-extrabold tracking-wider bg-red-500/10 border border-red-500/30 text-red-500 px-2 py-1 rounded flex items-center gap-1">
@@ -205,32 +213,7 @@
       <div class="wc-main-content flex flex-col grow overflow-hidden">
         <!-- Navigation Tab Bar -->
         <div class="wc-navigation-bar flex flex-col sm:flex-row justify-between items-stretch sm:items-center px-4 py-2 bg-black/15 border-b border-white/3 shrink-0 gap-3">
-          <div class="flex gap-1.5 select-none justify-center sm:justify-start">
-            <button 
-              class="tab-btn" 
-              class:active={activeTab === "bracket"} 
-              onclick={() => activeTab = "bracket"}
-            >
-              <Trophy size={14} />
-              <span>Bracket</span>
-            </button>
-            <button 
-              class="tab-btn" 
-              class:active={activeTab === "standings"} 
-              onclick={() => activeTab = "standings"}
-            >
-              <Grid size={14} />
-              <span>Standings</span>
-            </button>
-            <button 
-              class="tab-btn" 
-              class:active={activeTab === "teams"} 
-              onclick={() => activeTab = "teams"}
-            >
-              <List size={14} />
-              <span>Teams</span>
-            </button>
-          </div>
+          <SwipeTabNav tabs={wcTabs} bind:activeTab />
 
           <!-- Search Box -->
           <div class="relative flex items-center w-full sm:max-w-[200px]">
@@ -263,33 +246,38 @@
           }}
         >
           {#if activeTab === "bracket"}
-            <KnockoutBracket 
-              {controller} 
-              bind:searchQuery 
-              {bracketMatches} 
-              {teamStatuses} 
-              bind:selectedRoundMobile 
-              {currentMatch}
-            />
+            <div in:fade={{ duration: 120, delay: 120 }} out:fade={{ duration: 120 }} class="flex flex-col grow overflow-hidden">
+              <KnockoutBracket 
+                {controller} 
+                bind:searchQuery 
+                {bracketMatches} 
+                {teamStatuses} 
+                bind:selectedRoundMobile 
+                {currentMatch}
+              />
+            </div>
           {:else if activeTab === "standings"}
-            <GroupStage 
-              {standings} 
-              {thirdPlaceStandings} 
-              {searchQuery} 
-            />
+            <div in:fade={{ duration: 120, delay: 120 }} out:fade={{ duration: 120 }} class="flex flex-col grow overflow-y-auto">
+              <GroupStage 
+                {standings} 
+                {thirdPlaceStandings} 
+                {searchQuery} 
+              />
+            </div>
           {:else if activeTab === "teams"}
-            <TeamStatusGrid 
-              {controller} 
-              {teamStatuses} 
-              {searchQuery} 
-            />
+            <div in:fade={{ duration: 120, delay: 120 }} out:fade={{ duration: 120 }} class="flex flex-col grow overflow-y-auto">
+              <TeamStatusGrid 
+                {controller} 
+                {teamStatuses} 
+                {searchQuery} 
+              />
+            </div>
           {/if}
         </div>
       </div>
     </div>
   {/if}
 </div>
-
 <style lang="scss">
   @use "../../styles/variables" as *;
 
@@ -299,43 +287,44 @@
     color: white;
   }
 
-  .animate-float {
-    animation: trophyFloat 3s ease-in-out infinite alternate;
-  }
 
-  .text-neon-gold {
-    color: $color-neon-gold;
-  }
 
   .offline-badge {
     animation: pulseGlow 2s infinite alternate;
   }
 
-  .tab-btn {
-    background: transparent;
-    border: none;
-    color: rgba(255, 255, 255, 0.55);
-    padding: 6px 12px;
-    border-radius: 8px;
-    font-size: 0.75rem;
-    font-weight: 700;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    transition: all $transition-speed-fast cubic-bezier(0.16, 1, 0.3, 1);
 
-    &:hover {
-      background: rgba(255, 255, 255, 0.03);
-      color: white;
-    }
 
-    &.active {
-      background: rgba($color-neon-red, 0.1);
-      border: 1px solid rgba($color-neon-red, 0.3);
-      color: $color-neon-red;
-      text-shadow: 0 0 10px rgba($color-neon-red, 0.2);
-    }
+  /* ── SwipeTabNav Integration Theme ── */
+  :global(.wc-navigation-bar .swipe-tab-nav) {
+    background: transparent !important;
+    border-bottom: none !important;
+    width: auto !important;
+    padding: 0 !important;
+  }
+
+  :global(.wc-navigation-bar .swipe-tab-nav .tab-btn) {
+    padding: 6px 12px !important;
+    border-radius: 8px !important;
+    font-size: 0.75rem !important;
+    font-weight: 700 !important;
+    color: rgba(255, 255, 255, 0.55) !important;
+    background: transparent !important;
+    border: 1px solid transparent !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  :global(.wc-navigation-bar .swipe-tab-nav .tab-btn:hover) {
+    background: rgba(255, 255, 255, 0.03) !important;
+    color: white !important;
+  }
+
+  :global(.wc-navigation-bar .swipe-tab-nav .tab-btn.active) {
+    background: rgba(255, 51, 68, 0.1) !important;
+    border: 1px solid rgba(255, 51, 68, 0.3) !important;
+    color: #ff3344 !important;
+    text-shadow: 0 0 10px rgba(255, 51, 68, 0.2) !important;
   }
 
   // Landscape View styling
@@ -399,7 +388,7 @@
         padding-bottom: 3px !important;
         gap: 6px !important;
 
-        .tab-btn {
+        :global(.tab-btn) {
           padding: 4px 8px !important;
           font-size: 0.7rem !important;
         }

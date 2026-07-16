@@ -4,19 +4,22 @@
     description = "Application placeholder.",
     graphicSrc = "",
     themeColor = "#ffd700", // Default to WIP yellow
-    children
+    children,
   } = $props();
 </script>
 
-<div class="base-app-layout animated-pane" style="--app-theme-color: {themeColor}">
-  <div class="app-header">
+<div
+  class="base-app-layout animated-pane"
+  style="--app-theme-color: {themeColor}"
+>
+  <!-- <div class="app-header">
     <div class="title-section">
       <h2>{title}</h2>
       {#if description}
         <p class="description">{description}</p>
       {/if}
     </div>
-  </div>
+  </div> -->
 
   <div class="app-body">
     {#if children}
@@ -27,16 +30,21 @@
         <div class="wip-hazard-tape">
           <span>WORK IN PROGRESS</span>
         </div>
-        
+
         {#if graphicSrc}
           <div class="graphic-wrapper">
-            <img src={graphicSrc} alt="{title} Preview" class="app-graphic-preview" />
+            <img
+              src={graphicSrc}
+              alt="{title} Preview"
+              class="app-graphic-preview"
+            />
             <div class="graphic-glow"></div>
           </div>
         {/if}
 
         <p class="wip-message">
-          This application is currently under construction. Check back soon for exciting updates!
+          This application is currently under construction. Check back soon for
+          exciting updates!
         </p>
       </div>
     {/if}
@@ -53,7 +61,7 @@
     overflow-y: auto;
   }
 
-  .app-header {
+  /* .app-header {
     margin-bottom: 24px;
     flex-shrink: 0;
     border-left: 3px solid var(--app-theme-color);
@@ -75,7 +83,7 @@
     color: rgba(255, 255, 255, 0.45);
     margin: 6px 0 0 0;
     font-family: "Inter", sans-serif;
-  }
+  } */
 
   .app-body {
     flex-grow: 1;
@@ -83,6 +91,7 @@
     flex-direction: column;
     min-height: 0;
     position: relative;
+    width: 100%;
     justify-content: center;
     align-items: center;
   }
@@ -170,7 +179,11 @@
     height: 100%;
     pointer-events: none;
     box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.6);
-    background: linear-gradient(180deg, transparent 50%, rgba(0, 0, 0, 0.4) 100%);
+    background: linear-gradient(
+      180deg,
+      transparent 50%,
+      rgba(0, 0, 0, 0.4) 100%
+    );
   }
 
   .wip-message {
@@ -212,9 +225,9 @@
       justify-content: flex-start;
       align-items: stretch;
     }
-    h2 {
+    /* h2 {
       font-size: 1.25rem;
-    }
+    } */
     .wip-hazard-tape {
       font-size: 1rem;
       padding: 8px 20px;

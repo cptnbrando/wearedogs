@@ -1,3 +1,15 @@
+.env
+
+# Media assets
+public/batman/*.mp4
+# !public/batman/batman1.mp4
+src/components/apps/arcade/rom/*
+
+public/changelog.json
+scripts/public/changelog.json
+
+# TODO.md
+
 # Logs
 logs
 *.log
@@ -22,7 +34,3 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-
-# Media assets
-public/batman/*.mp4
-# !public/batman/batman1.mp4

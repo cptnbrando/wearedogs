@@ -1,0 +1,102 @@
+[
+  {
+    "id": "fs_1",
+    "rapTag": "CYPHER_DOG",
+    "trackId": "hollywood",
+    "trackTitle": "HOLLYWOOD",
+    "duration": 34,
+    "votes": 142,
+    "dateAdded": "2026-07-09T22:15:00-05:00",
+    "src": "https://data.wearedogs.net/music/2026/HOLLYWOOD-free.mp3"
+  },
+  {
+    "id": "fs_2",
+    "rapTag": "mj_barker",
+    "trackId": "chicago",
+    "trackTitle": "Chicago",
+    "duration": 48,
+    "votes": 98,
+    "dateAdded": "2026-07-10T01:30:00-05:00",
+    "src": "https://data.wearedogs.net/music/2026/Chicago-free.mp3"
+  },
+  {
+    "id": "fs_3",
+    "rapTag": "SNOOP_PUPP",
+    "trackId": "rainbow",
+    "trackTitle": "Rainbow in the Dark",
+    "duration": 28,
+    "votes": 87,
+    "dateAdded": "2026-07-10T04:20:00-05:00",
+    "src": "https://data.wearedogs.net/music/2026/rainbow-free.mp3"
+  },
+  {
+    "id": "fs_4",
+    "rapTag": "spitfire_dogg",
+    "trackId": "hipsong",
+    "trackTitle": "Hip Song",
+    "duration": 41,
+    "votes": 64,
+    "dateAdded": "2026-07-10T08:12:00-05:00",
+    "src": "https://data.wearedogs.net/music/2026/shop-free.mp3"
+  },
+  {
+    "id": "fs_5",
+    "rapTag": "lil_howler",
+    "trackId": "hollywood",
+    "trackTitle": "HOLLYWOOD",
+    "duration": 18,
+    "votes": 55,
+    "dateAdded": "2026-07-10T11:45:00-05:00",
+    "src": "https://data.wearedogs.net/music/2026/HOLLYWOOD-free.mp3"
+  },
+  {
+    "id": "fs_6",
+    "rapTag": "barK_master",
+    "trackId": "chicago",
+    "trackTitle": "Chicago",
+    "duration": 52,
+    "votes": 43,
+    "dateAdded": "2026-07-10T14:10:00-05:00",
+    "src": "https://data.wearedogs.net/music/2026/Chicago-free.mp3"
+  },
+  {
+    "id": "fs_7",
+    "rapTag": "grime_hound",
+    "trackId": "rainbow",
+    "trackTitle": "Rainbow in the Dark",
+    "duration": 30,
+    "votes": 36,
+    "dateAdded": "2026-07-10T15:30:00-05:00",
+    "src": "https://data.wearedogs.net/music/2026/rainbow-free.mp3"
+  },
+  {
+    "id": "fs_8",
+    "rapTag": "pitbull_flow",
+    "trackId": "hipsong",
+    "trackTitle": "Hip Song",
+    "duration": 37,
+    "votes": 29,
+    "dateAdded": "2026-07-10T17:55:00-05:00",
+    "src": "https://data.wearedogs.net/music/2026/shop-free.mp3"
+  },
+  {
+    "id": "fs_9",
+    "rapTag": "mutT_g",
+    "trackId": "hollywood",
+    "trackTitle": "HOLLYWOOD",
+    "duration": 22,
+    "votes": 21,
+    "dateAdded": "2026-07-10T19:22:00-05:00",
+    "src": "https://data.wearedogs.net/music/2026/HOLLYWOOD-free.mp3"
+  },
+  {
+    "id": "fs_10",
+    "rapTag": "terrier_spitter",
+    "trackId": "chicago",
+    "trackTitle": "Chicago",
+    "duration": 45,
+    "votes": 18,
+    "dateAdded": "2026-07-10T20:05:00-05:00",
+    "src": "https://data.wearedogs.net/music/2026/Chicago-free.mp3"
+  }
+]

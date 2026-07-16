@@ -5,17 +5,136 @@ export const FALLBACK_TEAMS = fallbackData.teams;
 export const FALLBACK_GROUPS = fallbackData.groups;
 export const FALLBACK_GAMES = fallbackData.games;
 
+const sanitizeId = val => val ? String(val).replace(/[^\w-]/g, "") : "";
+const sanitizeUrl = val => (typeof val === "string" && /^https:\/\/flagcdn\.com\/w80\/[a-z-]+\.png$/i.test(val.trim())) ? val.trim() : "";
+const sanitizeString = val => val ? String(val).replace(/<\/?[^>]+(>|$)/g, "").trim() : "";
+
+/**
+ * Sanitizes team details from raw input data.
+ * @param {Array} teams Raw teams list
+ * @returns {Array} Sanitized teams list
+ */
+const sanitizeTeams = teams => Array.isArray(teams) ? teams.map(t => ({
+  id: sanitizeId(t.id),
+  name_en: sanitizeString(t.name_en),
+  name_fa: sanitizeString(t.name_fa),
+  flag: sanitizeUrl(t.flag),
+  fifa_code: String(t.fifa_code || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 3),
+  iso2: String(t.iso2 || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 2),
+  groups: String(t.groups || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 1)
+})) : [];
+
+/**
+ * Sanitizes match game details from raw input data.
+ * @param {Array} games Raw games list
+ * @returns {Array} Sanitized games list
+ */
+const sanitizeGames = games => Array.isArray(games) ? games.map(g => ({
+  id: sanitizeId(g.id),
+  home_team_id: sanitizeId(g.home_team_id),
+  away_team_id: sanitizeId(g.away_team_id),
+  home_score: String(parseInt(g.home_score, 10) || 0),
+  away_score: String(parseInt(g.away_score, 10) || 0),
+  home_scorers: sanitizeString(g.home_scorers),
+  away_scorers: sanitizeString(g.away_scorers),
+  group: sanitizeString(g.group),
+  matchday: sanitizeString(g.matchday),
+  local_date: sanitizeString(g.local_date),
+  persian_date: sanitizeString(g.persian_date),
+  stadium_id: sanitizeId(g.stadium_id),
+  finished: g.finished === "TRUE" ? "TRUE" : "FALSE",
+  time_elapsed: sanitizeString(g.time_elapsed),
+  type: sanitizeString(g.type),
+  home_team_name_en: sanitizeString(g.home_team_name_en),
+  home_team_name_fa: sanitizeString(g.home_team_name_fa),
+  away_team_name_en: sanitizeString(g.away_team_name_en),
+  away_team_name_fa: sanitizeString(g.away_team_name_fa),
+  home_team_label: sanitizeString(g.home_team_label),
+  away_team_label: sanitizeString(g.away_team_label)
+})) : [];
+
+/**
+ * Sanitizes groups and internal team standings from raw input data.
+ * @param {Array} groups Raw groups list
+ * @returns {Array} Sanitized groups list
+ */
+const sanitizeGroups = groups => Array.isArray(groups) ? groups.map(g => ({
+  name: sanitizeString(g.name),
+  teams: Array.isArray(g.teams) ? g.teams.map(t => ({
+    team_id: sanitizeId(t.team_id),
+    mp: String(parseInt(t.mp, 10) || 0),
+    w: String(parseInt(t.w, 10) || 0),
+    l: String(parseInt(t.l, 10) || 0),
+    d: String(parseInt(t.d, 10) || 0),
+    pts: String(parseInt(t.pts, 10) || 0),
+    gf: String(parseInt(t.gf, 10) || 0),
+    ga: String(parseInt(t.ga, 10) || 0),
+    gd: String(parseInt(t.gd, 10) || 0)
+  })) : []
+})) : [];
+
+/**
+ * Performs strict structural, bounds, and value validation on sanitized data.
+ * Throws an Error if any structural invariant fails.
+ * @param {Array} games Games list
+ * @param {Array} teams Teams list
+ * @param {Array} groups Groups list
+ */
+const validateData = (games, teams, groups) => {
+  if (!Array.isArray(games) || games.length !== 104) {
+    throw new Error("Invalid games count");
+  }
+  if (!Array.isArray(teams) || teams.length !== 48) {
+    throw new Error("Invalid teams count");
+  }
+  if (!Array.isArray(groups) || groups.length !== 12) {
+    throw new Error("Invalid groups count");
+  }
+
+  for (const g of games) {
+    if (!g.id || !/^\d+$/.test(g.id)) throw new Error("Invalid game ID");
+    const idNum = parseInt(g.id, 10);
+    if (idNum < 1 || idNum > 104) throw new Error("Game ID out of bounds");
+
+    const hs = parseInt(g.home_score, 10);
+    const as = parseInt(g.away_score, 10);
+    if (isNaN(hs) || hs < 0 || hs > 99 || isNaN(as) || as < 0 || as > 99) {
+      throw new Error("Game score out of range");
+    }
+
+    if (g.finished !== "TRUE" && g.finished !== "FALSE") {
+      throw new Error("Invalid finished flag");
+    }
+  }
+
+  for (const t of teams) {
+    if (!t.id || !/^\d+$/.test(t.id)) throw new Error("Invalid team ID");
+    const idNum = parseInt(t.id, 10);
+    if (idNum < 1 || idNum > 48) throw new Error("Team ID out of bounds");
+
+    if (!t.groups || !/^[A-L]$/.test(t.groups)) {
+      throw new Error("Invalid team group allocation");
+    }
+  }
+};
+
 /**
  * Controller class to manage the World Cup tournament state,
  * standings calculation, and bracket tree generation.
  */
 export class WorldCupController {
   constructor(games = FALLBACK_GAMES, teams = FALLBACK_TEAMS, groups = FALLBACK_GROUPS) {
-    this.games = games;
-    this.teams = teams;
-    this.groups = groups;
-    this.teamMap = new Map(teams.map(t => [t.id, t]));
-    this.teamNameMap = new Map(teams.map(t => [t.name_en.toLowerCase(), t]));
+    const sanitizedGames = sanitizeGames(games);
+    const sanitizedTeams = sanitizeTeams(teams);
+    const sanitizedGroups = sanitizeGroups(groups);
+
+    validateData(sanitizedGames, sanitizedTeams, sanitizedGroups);
+
+    this.games = sanitizedGames;
+    this.teams = sanitizedTeams;
+    this.groups = sanitizedGroups;
+    this.teamMap = new Map(this.teams.map(t => [t.id, t]));
+    this.teamNameMap = new Map(this.teams.map(t => [t.name_en.toLowerCase(), t]));
   }
 
   getTeamById(id) {

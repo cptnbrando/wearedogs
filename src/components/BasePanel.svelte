@@ -1,5 +1,7 @@
 <script>
-  import { X } from "lucide-svelte";
+  import { ArrowLeft } from "lucide-svelte";
+  import DogsLogo from "./DogsLogo.svelte";
+  import { audioCore } from "../lib/AudioCore.svelte.js";
 
   let {
     isClosing = false,
@@ -7,12 +9,6 @@
     onClose,
     children,
   } = $props();
-
-  function handleKeydown(e) {
-    if (e.key === "Escape") {
-      onClose();
-    }
-  }
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -27,16 +23,18 @@
     <!-- Header -->
     <header class="panel-header">
       <div class="brand">
-        <img
-          src="/favicon.svg"
-          alt="DOGS Logo"
-          class="w-6 h-6 shrink-0 drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]"
-        />
+        <button
+          class="logo-btn"
+          onclick={() => window.dispatchEvent(new CustomEvent(audioCore.isPlaying ? "open-music-panel" : "open-info-panel"))}
+          aria-label="Open DOGS Info"
+        >
+          <DogsLogo size="panel" />
+        </button>
         <h1>{title}</h1>
       </div>
 
       <button class="close-btn" onclick={onClose} aria-label="Close panel">
-        <X size={20} />
+        <ArrowLeft size={20} />
       </button>
     </header>
 
@@ -185,7 +183,7 @@
   .close-btn:hover {
     background: rgba(255, 255, 255, 0.15);
     color: white;
-    transform: rotate(90deg);
+    transform: translateX(-4px);
   }
 
   /* ── Body Layout ── */
