@@ -19,10 +19,10 @@
   const CITIES = [
     {
       name: "Tulsa OK",
-      x: 203,
-      y: 407,
-      zoomX: 153,
-      zoomY: 367,
+      x: 181,
+      y: 418,
+      zoomX: 131,
+      zoomY: 378,
       zoomW: 100,
       zoomH: 80,
       lat: 36.1540,
@@ -34,10 +34,10 @@
     },
     {
       name: "Dallas TX",
-      x: 202,
-      y: 416,
-      zoomX: 152,
-      zoomY: 376,
+      x: 178,
+      y: 430,
+      zoomX: 128,
+      zoomY: 390,
       zoomW: 100,
       zoomH: 80,
       lat: 32.7767,
@@ -49,10 +49,10 @@
     },
     {
       name: "Rochester NY",
-      x: 232,
-      y: 380,
-      zoomX: 182,
-      zoomY: 340,
+      x: 242,
+      y: 412,
+      zoomX: 192,
+      zoomY: 372,
       zoomW: 100,
       zoomH: 80,
       lat: 43.1566,
@@ -314,19 +314,19 @@
           <text x="450" y="243" class="ocean-label" text-anchor="middle"
             >ARCTIC OCEAN</text
           >
-          <text x="80" y="330" class="ocean-label" text-anchor="middle"
+          <text x="70" y="380" class="ocean-label" text-anchor="middle"
             >NORTH PACIFIC OCEAN</text
           >
           <text x="85" y="520" class="ocean-label" text-anchor="middle"
             >SOUTH PACIFIC OCEAN</text
           >
-          <text x="325" y="335" class="ocean-label" text-anchor="middle"
+          <text x="320" y="420" class="ocean-label" text-anchor="middle"
             >NORTH ATLANTIC OCEAN</text
           >
-          <text x="375" y="510" class="ocean-label" text-anchor="middle"
+          <text x="360" y="530" class="ocean-label" text-anchor="middle"
             >SOUTH ATLANTIC OCEAN</text
           >
-          <text x="585" y="510" class="ocean-label" text-anchor="middle"
+          <text x="585" y="540" class="ocean-label" text-anchor="middle"
             >INDIAN OCEAN</text
           >
           <text x="450" y="660" class="ocean-label" text-anchor="middle"
