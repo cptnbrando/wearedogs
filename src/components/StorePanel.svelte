@@ -880,35 +880,37 @@
                       class="text-[9px] text-zinc-500 tracking-widest uppercase font-bold"
                       >MILESTONE TARGETS</span
                     >
-                    {#each selectedCampaign.milestones as milestone}
-                      {@const isAchieved = progressPct >= milestone.percentage}
-                      <div
-                        class="flex items-center gap-3 bg-zinc-950/40 border border-zinc-850 p-2.5 rounded-xl"
-                      >
+                    <div class="flex flex-col gap-2 sm:max-h-[150px] sm:overflow-y-auto pr-1">
+                      {#each selectedCampaign.milestones as milestone}
+                        {@const isAchieved = progressPct >= milestone.percentage}
                         <div
-                          class="w-5 h-5 rounded border flex items-center justify-center font-bold font-mono text-[9px] transition-colors"
-                          class:bg-emerald-500={isAchieved}
-                          class:border-emerald-400={isAchieved}
-                          class:text-black={isAchieved}
-                          class:border-zinc-800={!isAchieved}
-                          class:text-zinc-600={!isAchieved}
+                          class="flex items-center gap-3 bg-zinc-950/40 border border-zinc-850 p-2.5 rounded-xl"
                         >
-                          {#if isAchieved}✓{:else}-{/if}
-                        </div>
-                        <div class="flex-grow">
                           <div
-                            class="text-[11px] font-bold"
-                            class:text-white={isAchieved}
-                            class:text-zinc-400={!isAchieved}
+                            class="w-5 h-5 rounded border flex items-center justify-center font-bold font-mono text-[9px] transition-colors"
+                            class:bg-emerald-500={isAchieved}
+                            class:border-emerald-400={isAchieved}
+                            class:text-black={isAchieved}
+                            class:border-zinc-800={!isAchieved}
+                            class:text-zinc-600={!isAchieved}
                           >
-                            {milestone.label}
+                            {#if isAchieved}✓{:else}-{/if}
                           </div>
-                          <div class="text-[9px] text-zinc-500 font-mono">
-                            Target: {milestone.percentage}%
+                          <div class="flex-grow">
+                            <div
+                              class="text-[11px] font-bold"
+                              class:text-white={isAchieved}
+                              class:text-zinc-400={!isAchieved}
+                            >
+                              {milestone.label}
+                            </div>
+                            <div class="text-[9px] text-zinc-500 font-mono">
+                              Target: {milestone.percentage}%
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    {/each}
+                      {/each}
+                    </div>
                   </div>
                 </div>
               </div>
