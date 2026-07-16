@@ -112,7 +112,7 @@
     if (appInfo) {
       let title = appInfo.title;
       if (appInfo.id === "missingcreatures") {
-        title = isMobile ? "Missing" : "Missing Persons";
+        title = isMobile ? "Missing" : "Missing Creatures";
       }
       if (appInfo.id === "converter") {
         title = isMobile ? "Converter" : "Catalytic Converter";
