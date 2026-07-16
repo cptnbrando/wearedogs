@@ -30,17 +30,7 @@ branch: ai/gopro-mods
 - The episodes list should be scrollable page wide. Meaning if my mouse cursor if outside the panel and I scroll, the episodes list should scroll too. This will allow me to scroll and select a show on my tv.
 
 
-# Arcade modifications
-branch: ai/arcade-mods
 
-- Mobile portrait and landscape better layouts
-- Bigger buttons on the controller layouts, up, down, left, right, a, b, all of them should be 25% bigger
-- Arrow keys dont work. more keyboard controls and info about the keybindings. allow keys to be remapped
-- controller support
-- need to override tap-and-hold text selecting/vibrate phone when holding a controller button
-- must fix sega genesis, the sega.gge file and many of the files in that cores folder have never worked in years, since i cloned this bitch in 2023. they all must be documented, modified with zero regression, somehow decompiled? anyways, the sega genesis for mj moonwalker must be fixed somehow. console logs will point in the right direction
-- must fix gba
-- must fix psx
 
 
 # Missing Creatures - new app
