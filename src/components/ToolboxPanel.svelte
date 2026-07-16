@@ -289,7 +289,7 @@
     // RESCUE, GOPRO, DATAFLASH, CHANGELOG, AND SETTINGS MUST ALWAYS BE LAST IN THIS LIST
     {
       id: "gopro",
-      title: "GoPro Cinema",
+      title: "GoPro",
       desc: "Stream retro TV series and clip custom audio loops.",
       icon: Video,
     },
@@ -420,7 +420,9 @@
       </button>
 
       <div class="active-app-header-box">
-        <span class="app-indicator-icon flex items-center justify-center w-6 mr-1.5 shrink-0">
+        <span
+          class="app-indicator-icon flex items-center justify-center w-6 mr-1.5 shrink-0"
+        >
           {#if currentHeaderDetails.isEmoji}
             🔥
           {:else}

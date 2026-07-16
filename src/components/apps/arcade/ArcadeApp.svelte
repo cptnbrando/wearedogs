@@ -751,13 +751,6 @@
   {#if !isEmuRunning}
     <!-- SELECTION GRID SCREEN -->
     <div class="selection-screen">
-      <div>
-        <h2>Arcade</h2>
-        <p class="intro-text">
-          Load vintage ROM games from local disk database.
-        </p>
-      </div>
-
       <div class="games-list-grid">
         {#each GAMES as game}
           <!-- svelte-ignore a11y_click_events_have_key_events -->
