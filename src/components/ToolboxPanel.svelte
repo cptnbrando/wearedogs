@@ -264,12 +264,12 @@
       desc: "Investigate cryptids and global missing anomalies.",
       icon: Search,
     },
-    /* {
+    {
       id: "memes",
-      title: "Canine Memes",
-      desc: "Explore and share high-fidelity, hilarious dog memes.",
+      title: "MEMES",
+      desc: "Create custom Friendship Ended memes and explore templates.",
       icon: Smile,
-    }, */
+    },
     {
       id: "reader",
       title: "Image Reader",
