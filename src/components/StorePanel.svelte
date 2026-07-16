@@ -2,7 +2,15 @@
   import { onMount, untrack } from "svelte";
   import BasePanel from "./BasePanel.svelte";
   import ThreeDShirtCanvas from "./apps/ThreeDShirtCanvas.svelte";
-  import { ShoppingCart, ArrowLeft, Trash2, Plus, Minus, Check, X } from "lucide-svelte";
+  import {
+    ShoppingCart,
+    ArrowLeft,
+    Trash2,
+    Plus,
+    Minus,
+    Check,
+    X,
+  } from "lucide-svelte";
 
   let { isClosing = false, onClose } = $props();
 
@@ -15,7 +23,23 @@
   let currentStoreMode = $state("merch"); // "merch" or "fundraising"
   let activeImageIdx = $state(0);
   let selectedSize = $state("M");
-  let sizes = ["6XS", "5XS", "4XS", "3XS", "2XS", "XS", "S", "M", "L", "XL", "2XL", "3XL", "4XL", "5XL", "6XL"];
+  let sizes = [
+    "6XS",
+    "5XS",
+    "4XS",
+    "3XS",
+    "2XS",
+    "XS",
+    "S",
+    "M",
+    "L",
+    "XL",
+    "2XL",
+    "3XL",
+    "4XL",
+    "5XL",
+    "6XL",
+  ];
 
   // Load products and campaigns on mount
   onMount(async () => {
@@ -37,7 +61,6 @@
     }
     loadCart();
   });
-
 
   // Load cart from localStorage and re-verify stock
   function loadCart() {
@@ -66,7 +89,7 @@
     let removedItems = [];
 
     for (const item of currentCart) {
-      const dbProduct = products.find(p => p.id === item.id);
+      const dbProduct = products.find((p) => p.id === item.id);
       if (dbProduct && dbProduct.inStock) {
         updatedCart.push(item);
       } else {
@@ -78,7 +101,9 @@
     saveCart();
 
     if (removedItems.length > 0) {
-      alert(`The following items in your cart are no longer in stock and have been removed:\n- ${removedItems.join("\n- ")}`);
+      alert(
+        `The following items in your cart are no longer in stock and have been removed:\n- ${removedItems.join("\n- ")}`,
+      );
     }
   }
 
@@ -90,8 +115,10 @@
 
   function addToCart(product, size) {
     if (!product.inStock) return;
-    
-    const existingIndex = cart.findIndex(item => item.id === product.id && item.size === size);
+
+    const existingIndex = cart.findIndex(
+      (item) => item.id === product.id && item.size === size,
+    );
     if (existingIndex > -1) {
       cart[existingIndex].quantity += 1;
     } else {
@@ -102,7 +129,7 @@
         size: size,
         image: product.image,
         checkoutUrl: product.checkoutUrl,
-        quantity: 1
+        quantity: 1,
       });
     }
     saveCart();
@@ -144,8 +171,8 @@
   function handleCheckout() {
     if (cart.length === 0) return;
     // Route to external checkout pipelines
-    cart.forEach(item => {
-      window.open(item.checkoutUrl, '_blank');
+    cart.forEach((item) => {
+      window.open(item.checkoutUrl, "_blank");
     });
     // Clear cart after checkout
     cart = [];
@@ -155,65 +182,71 @@
 </script>
 
 <BasePanel title="DOGS SHOP" {isClosing} {onClose}>
-  <div class="store-container w-full h-full relative font-mono text-zinc-100 flex flex-col">
+  <div
+    class="store-container w-full h-full relative font-mono text-zinc-100 flex flex-col"
+  >
     <!-- Header Controls -->
-    <div class="flex justify-between items-center px-4 py-3 bg-zinc-950/20 border-b border-zinc-800">
+    <div
+      class="flex justify-between items-center px-4 py-3 bg-zinc-950/20 border-b border-zinc-800"
+    >
       <div>
         {#if currentStoreMode === "merch" && selectedProduct}
-          <button 
+          <button
             class="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors duration-200 text-sm font-semibold"
-            onclick={() => selectedProduct = null}
+            onclick={() => (selectedProduct = null)}
           >
             <ArrowLeft size={16} /> BACK TO CATALOG
           </button>
+        {:else if currentStoreMode === "fundraising" && selectedCampaign}
+          <button
+            class="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors duration-200 text-sm font-semibold"
+            onclick={() => (selectedCampaign = null)}
+          >
+            <ArrowLeft size={16} /> BACK TO CAMPAIGNS
+          </button>
         {:else}
-          {#if currentStoreMode === "fundraising" && selectedCampaign}
-            <button 
-              class="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors duration-200 text-sm font-semibold"
-              onclick={() => selectedCampaign = null}
+          <!-- Mode Toggle Switch -->
+          <div
+            class="flex bg-zinc-900/60 p-1 rounded-xl border border-zinc-800 gap-1"
+          >
+            <button
+              class="px-4 py-1.5 rounded-lg text-xs font-bold tracking-widest transition-all duration-200"
+              class:bg-white={currentStoreMode === "merch"}
+              class:text-black={currentStoreMode === "merch"}
+              class:text-zinc-400={currentStoreMode !== "merch"}
+              onclick={() => {
+                currentStoreMode = "merch";
+                selectedProduct = null;
+              }}
             >
-              <ArrowLeft size={16} /> BACK TO CAMPAIGNS
+              MERCHANDISE
             </button>
-          {:else}
-            <!-- Mode Toggle Switch -->
-            <div class="flex bg-zinc-900/60 p-1 rounded-xl border border-zinc-800 gap-1">
-              <button 
-                class="px-4 py-1.5 rounded-lg text-xs font-bold tracking-widest transition-all duration-200"
-                class:bg-white={currentStoreMode === "merch"}
-                class:text-black={currentStoreMode === "merch"}
-                class:text-zinc-400={currentStoreMode !== "merch"}
-                onclick={() => {
-                  currentStoreMode = "merch";
-                  selectedProduct = null;
-                }}
-              >
-                MERCHANDISE
-              </button>
-              <button 
-                class="px-4 py-1.5 rounded-lg text-xs font-bold tracking-widest transition-all duration-200"
-                class:bg-white={currentStoreMode === "fundraising"}
-                class:text-black={currentStoreMode === "fundraising"}
-                class:text-zinc-400={currentStoreMode !== "fundraising"}
-                onclick={() => {
-                  currentStoreMode = "fundraising";
-                  selectedCampaign = null;
-                }}
-              >
-                FUNDRAISING
-              </button>
-            </div>
-          {/if}
+            <button
+              class="px-4 py-1.5 rounded-lg text-xs font-bold tracking-widest transition-all duration-200"
+              class:bg-white={currentStoreMode === "fundraising"}
+              class:text-black={currentStoreMode === "fundraising"}
+              class:text-zinc-400={currentStoreMode !== "fundraising"}
+              onclick={() => {
+                currentStoreMode = "fundraising";
+                selectedCampaign = null;
+              }}
+            >
+              FUNDRAISERS
+            </button>
+          </div>
         {/if}
       </div>
 
       {#if currentStoreMode === "merch"}
-        <button 
+        <button
           class="cart-toggle-btn relative p-2 bg-zinc-900 border border-zinc-800 rounded-lg hover:border-zinc-500 hover:text-white transition-all duration-200"
-          onclick={() => isCartOpen = true}
+          onclick={() => (isCartOpen = true)}
         >
           <ShoppingCart size={20} />
           {#if cart.length > 0}
-            <span class="absolute -top-1.5 -right-1.5 bg-red-600 text-white font-bold text-[10px] w-5 h-5 flex items-center justify-center rounded-full animate-pulse">
+            <span
+              class="absolute -top-1.5 -right-1.5 bg-red-600 text-white font-bold text-[10px] w-5 h-5 flex items-center justify-center rounded-full animate-pulse"
+            >
               {cart.reduce((a, b) => a + b.quantity, 0)}
             </span>
           {/if}
@@ -226,15 +259,21 @@
       {#if currentStoreMode === "merch"}
         {#if !selectedProduct}
           <!-- MERCHANDISE GRID VIEW -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 max-w-7xl mx-auto animate-fade-in">
+          <div
+            class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 max-w-7xl mx-auto animate-fade-in"
+          >
             {#each products as product}
-              <div 
+              <div
                 class="relative flex flex-col justify-between overflow-hidden bg-zinc-900/40 border border-zinc-800 rounded-xl transition-all duration-300 group hover:border-zinc-700"
               >
                 <!-- Caution tape for sold-out items -->
                 {#if !product.inStock}
-                  <div class="absolute inset-0 bg-black/60 z-10 flex items-center justify-center pointer-events-none">
-                    <div class="caution-tape text-center py-2 w-[150%] rotate-12 bg-yellow-400 text-black font-black text-sm tracking-widest uppercase border-y-2 border-black select-none shadow-lg">
+                  <div
+                    class="absolute inset-0 bg-black/60 z-10 flex items-center justify-center pointer-events-none"
+                  >
+                    <div
+                      class="caution-tape text-center py-2 w-[150%] rotate-12 bg-yellow-400 text-black font-black text-sm tracking-widest uppercase border-y-2 border-black select-none shadow-lg"
+                    >
                       SOLD OUT
                     </div>
                   </div>
@@ -243,44 +282,91 @@
                 <!-- Product Graphic Box -->
                 <!-- svelte-ignore a11y_click_events_have_key_events -->
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
-                <div 
+                <div
                   class="aspect-square bg-black/20 border-b border-zinc-800/60 flex flex-col items-center justify-center relative cursor-pointer"
                   onclick={() => product.inStock && (selectedProduct = product)}
                 >
-                  <div class="w-24 h-24 text-zinc-700 group-hover:text-zinc-500 transition-colors duration-300 flex items-center justify-center">
+                  <div
+                    class="w-24 h-24 text-zinc-700 group-hover:text-zinc-500 transition-colors duration-300 flex items-center justify-center"
+                  >
                     {#if product.title.includes("T-SHIRT")}
-                      <svg viewBox="0 0 24 24" class="w-16 h-16 fill-none stroke-current" stroke-width="1.5">
-                        <path d="M4 8.5V20a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8.5M4 8.5L8 5m-4 3.5l-2-1.5L4 4m16 4.5l-4-3.5m4 3.5l2-1.5L20 4M8 5a4 4 0 0 1 8 0" stroke-linecap="round" stroke-linejoin="round"/>
+                      <svg
+                        viewBox="0 0 24 24"
+                        class="w-16 h-16 fill-none stroke-current"
+                        stroke-width="1.5"
+                      >
+                        <path
+                          d="M4 8.5V20a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8.5M4 8.5L8 5m-4 3.5l-2-1.5L4 4m16 4.5l-4-3.5m4 3.5l2-1.5L20 4M8 5a4 4 0 0 1 8 0"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        />
                       </svg>
                     {:else if product.title.includes("HOODIE")}
-                      <svg viewBox="0 0 24 24" class="w-16 h-16 fill-none stroke-current" stroke-width="1.5">
-                        <path d="M5 9v11a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9m-14 0l3-5m11 5l-3-5m-8 0h6m-3 0v4m0 0a2 2 0 1 0 0 4 2 2 0 1 0 0-4" stroke-linecap="round" stroke-linejoin="round"/>
+                      <svg
+                        viewBox="0 0 24 24"
+                        class="w-16 h-16 fill-none stroke-current"
+                        stroke-width="1.5"
+                      >
+                        <path
+                          d="M5 9v11a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9m-14 0l3-5m11 5l-3-5m-8 0h6m-3 0v4m0 0a2 2 0 1 0 0 4 2 2 0 1 0 0-4"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        />
                       </svg>
                     {:else if product.title.includes("HAT")}
-                      <svg viewBox="0 0 24 24" class="w-16 h-16 fill-none stroke-current" stroke-width="1.5">
-                        <path d="M2 17h20M6 17v-4a6 6 0 0 1 12 0v4M12 7V4m0 0l-2 1m2-1l2 1" stroke-linecap="round" stroke-linejoin="round"/>
+                      <svg
+                        viewBox="0 0 24 24"
+                        class="w-16 h-16 fill-none stroke-current"
+                        stroke-width="1.5"
+                      >
+                        <path
+                          d="M2 17h20M6 17v-4a6 6 0 0 1 12 0v4M12 7V4m0 0l-2 1m2-1l2 1"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        />
                       </svg>
                     {:else}
-                      <svg viewBox="0 0 24 24" class="w-16 h-16 fill-none stroke-current" stroke-width="1.5">
-                        <path d="M7 4h10v12a4 4 0 0 1-8 0V4zM7 8h10M9 16h6" stroke-linecap="round" stroke-linejoin="round"/>
+                      <svg
+                        viewBox="0 0 24 24"
+                        class="w-16 h-16 fill-none stroke-current"
+                        stroke-width="1.5"
+                      >
+                        <path
+                          d="M7 4h10v12a4 4 0 0 1-8 0V4zM7 8h10M9 16h6"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        />
                       </svg>
                     {/if}
                   </div>
-                  <span class="absolute bottom-3 text-[10px] text-zinc-500 font-bold tracking-widest">WEAREDOGS LABS</span>
+                  <span
+                    class="absolute bottom-3 text-[10px] text-zinc-500 font-bold tracking-widest"
+                    >WEAREDOGS LABS</span
+                  >
                 </div>
 
                 <!-- Product Details -->
                 <div class="p-4 flex-1 flex flex-col justify-between gap-3">
                   <div>
-                    <h3 class="font-bold text-sm text-zinc-100 group-hover:text-white transition-colors duration-200">{product.title}</h3>
-                    <p class="text-xs text-zinc-500 line-clamp-2 mt-1">{product.description}</p>
+                    <h3
+                      class="font-bold text-sm text-zinc-100 group-hover:text-white transition-colors duration-200"
+                    >
+                      {product.title}
+                    </h3>
+                    <p class="text-xs text-zinc-500 line-clamp-2 mt-1">
+                      {product.description}
+                    </p>
                   </div>
-                  <div class="flex items-center justify-between mt-2 pt-2 border-t border-zinc-800/40">
-                    <span class="font-bold text-sm text-red-500">{product.price}</span>
-                    <button 
+                  <div
+                    class="flex items-center justify-between mt-2 pt-2 border-t border-zinc-800/40"
+                  >
+                    <span class="font-bold text-sm text-red-500"
+                      >{product.price}</span
+                    >
+                    <button
                       class="px-3 py-1 bg-white text-black font-bold text-xs rounded hover:bg-zinc-200 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                       disabled={!product.inStock}
-                      onclick={() => selectedProduct = product}
+                      onclick={() => (selectedProduct = product)}
                     >
                       VIEW
                     </button>
@@ -291,34 +377,52 @@
           </div>
         {:else}
           <!-- DETAIL VIEW -->
-          <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 items-start animate-fade-in">
+          <div
+            class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 items-start animate-fade-in"
+          >
             <!-- Left: 3D Shirt Canvas -->
-            <div class="w-full aspect-square bg-black/40 border border-zinc-800 rounded-2xl flex items-center justify-center p-4 min-h-[300px] md:min-h-[400px] relative overflow-hidden">
+            <div
+              class="w-full aspect-square bg-black/40 border border-zinc-800 rounded-2xl flex items-center justify-center p-4 min-h-[300px] md:min-h-[400px] relative overflow-hidden"
+            >
               <ThreeDShirtCanvas productTitle={selectedProduct.title} />
             </div>
 
             <!-- Right: Details -->
-            <div class="flex flex-col justify-between h-full bg-zinc-900/20 border border-zinc-800/60 p-6 rounded-2xl">
+            <div
+              class="flex flex-col justify-between h-full bg-zinc-900/20 border border-zinc-800/60 p-6 rounded-2xl"
+            >
               <div>
                 <div class="flex justify-between items-start gap-4">
-                  <h1 class="text-2xl md:text-3xl font-extrabold tracking-wider">{selectedProduct.title}</h1>
-                  <span class="text-xl md:text-2xl text-red-500 font-black shrink-0">{selectedProduct.price}</span>
+                  <h1
+                    class="text-2xl md:text-3xl font-extrabold tracking-wider"
+                  >
+                    {selectedProduct.title}
+                  </h1>
+                  <span
+                    class="text-xl md:text-2xl text-red-500 font-black shrink-0"
+                    >{selectedProduct.price}</span
+                  >
                 </div>
 
                 <div class="mt-4 pb-4 border-b border-zinc-800/80">
-                  <p class="text-zinc-400 text-sm md:text-base leading-relaxed">{selectedProduct.description}</p>
+                  <p class="text-zinc-400 text-sm md:text-base leading-relaxed">
+                    {selectedProduct.description}
+                  </p>
                 </div>
 
                 <!-- Size selector -->
                 {#if selectedProduct.sizes && selectedProduct.sizes.length > 0 && selectedProduct.sizes[0] !== "One Size"}
                   <div class="mt-6">
-                    <span class="text-xs font-semibold text-zinc-500 uppercase tracking-widest block mb-3">SELECT SIZE</span>
+                    <span
+                      class="text-xs font-semibold text-zinc-500 uppercase tracking-widest block mb-3"
+                      >SELECT SIZE</span
+                    >
                     <div class="flex flex-wrap gap-2">
                       {#each selectedProduct.sizes as size}
-                        <button 
+                        <button
                           class="px-3 py-1.5 border border-zinc-800 rounded text-xs font-bold hover:border-zinc-500 transition-all duration-200"
                           class:active-size={selectedSize === size}
-                          onclick={() => selectedSize = size}
+                          onclick={() => (selectedSize = size)}
                         >
                           {size}
                         </button>
@@ -327,16 +431,26 @@
                   </div>
                 {:else}
                   <div class="mt-6">
-                    <span class="text-xs font-semibold text-zinc-500 uppercase tracking-widest block mb-1">SIZE</span>
-                    <span class="text-sm font-bold text-zinc-400">ONE SIZE</span>
+                    <span
+                      class="text-xs font-semibold text-zinc-500 uppercase tracking-widest block mb-1"
+                      >SIZE</span
+                    >
+                    <span class="text-sm font-bold text-zinc-400">ONE SIZE</span
+                    >
                   </div>
                 {/if}
               </div>
 
               <div class="mt-8 pt-6 border-t border-zinc-800/80">
-                <button 
+                <button
                   class="w-full py-3.5 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl text-sm tracking-widest transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-red-900/30"
-                  onclick={() => addToCart(selectedProduct, selectedProduct.sizes[0] === "One Size" ? "One Size" : selectedSize)}
+                  onclick={() =>
+                    addToCart(
+                      selectedProduct,
+                      selectedProduct.sizes[0] === "One Size"
+                        ? "One Size"
+                        : selectedSize,
+                    )}
                 >
                   <ShoppingCart size={18} /> ADD TO CART
                 </button>
@@ -351,17 +465,26 @@
           <div class="max-w-7xl mx-auto flex flex-col gap-8 animate-fade-in">
             <!-- Active Campaigns Section -->
             <div>
-              <h2 class="text-sm font-bold text-white tracking-widest uppercase mb-4 border-b border-zinc-850 pb-2">
+              <h2
+                class="text-sm font-bold text-white tracking-widest uppercase mb-4 border-b border-zinc-850 pb-2"
+              >
                 ⚡ ACTIVE CAMPAIGNS
               </h2>
               <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {#each campaigns.filter(c => c.status === "active") as campaign}
-                  {@const raisedVal = parseFloat(campaign.raised.replace(/[^0-9.]/g, ""))}
-                  {@const goalVal = parseFloat(campaign.goal.replace(/[^0-9.]/g, ""))}
-                  {@const progressVal = Math.min(100, Math.round((raisedVal / goalVal) * 100))}
+                {#each campaigns.filter((c) => c.status === "active") as campaign}
+                  {@const raisedVal = parseFloat(
+                    campaign.raised.replace(/[^0-9.]/g, ""),
+                  )}
+                  {@const goalVal = parseFloat(
+                    campaign.goal.replace(/[^0-9.]/g, ""),
+                  )}
+                  {@const progressVal = Math.min(
+                    100,
+                    Math.round((raisedVal / goalVal) * 100),
+                  )}
                   <!-- svelte-ignore a11y_click_events_have_key_events -->
                   <!-- svelte-ignore a11y_no_static_element_interactions -->
-                  <div 
+                  <div
                     class="bg-zinc-900/40 border border-zinc-800 hover:border-zinc-700 rounded-xl p-4 flex flex-col justify-between cursor-pointer transition-all duration-300 group"
                     onclick={() => {
                       selectedCampaign = campaign;
@@ -369,38 +492,66 @@
                     }}
                   >
                     <div>
-                      <div class="aspect-video w-full rounded-lg overflow-hidden bg-black/40 border border-zinc-800/60 mb-3 relative">
-                        <img src={campaign.images[0]} alt={campaign.title} class="w-full h-full object-cover group-hover:scale-103 transition-transform duration-300" />
-                        <span class="absolute top-2 left-2 px-1.5 py-0.5 bg-red-600 text-white font-bold font-mono text-[9px] tracking-widest uppercase rounded">ACTIVE</span>
+                      <div
+                        class="aspect-video w-full rounded-lg overflow-hidden bg-black/40 border border-zinc-800/60 mb-3 relative"
+                      >
+                        <img
+                          src={campaign.images[0]}
+                          alt={campaign.title}
+                          class="w-full h-full object-cover group-hover:scale-103 transition-transform duration-300"
+                        />
+                        <span
+                          class="absolute top-2 left-2 px-1.5 py-0.5 bg-red-600 text-white font-bold font-mono text-[9px] tracking-widest uppercase rounded"
+                          >ACTIVE</span
+                        >
                       </div>
-                      <h3 class="font-bold text-sm text-zinc-100 group-hover:text-white uppercase transition-colors">{campaign.title}</h3>
-                      <p class="text-xs text-zinc-500 line-clamp-2 mt-1.5">{campaign.description}</p>
+                      <h3
+                        class="font-bold text-sm text-zinc-100 group-hover:text-white uppercase transition-colors"
+                      >
+                        {campaign.title}
+                      </h3>
+                      <p class="text-xs text-zinc-500 line-clamp-2 mt-1.5">
+                        {campaign.description}
+                      </p>
                     </div>
-                    
+
                     <div class="mt-4 pt-3 border-t border-zinc-800/40">
-                      <div class="flex justify-between items-center text-[10px] font-mono text-zinc-400 mb-1.5">
+                      <div
+                        class="flex justify-between items-center text-[10px] font-mono text-zinc-400 mb-1.5"
+                      >
                         <span>Progress: {progressVal}%</span>
-                        <span class="text-red-500 font-bold">{campaign.raised} / {campaign.goal}</span>
+                        <span class="text-red-500 font-bold"
+                          >{campaign.raised} / {campaign.goal}</span
+                        >
                       </div>
-                      <div class="w-full h-1.5 bg-zinc-950 border border-zinc-850 rounded-full overflow-hidden">
-                        <div class="h-full bg-red-500" style="width: {progressVal}%"></div>
+                      <div
+                        class="w-full h-1.5 bg-zinc-950 border border-zinc-850 rounded-full overflow-hidden"
+                      >
+                        <div
+                          class="h-full bg-red-500"
+                          style="width: {progressVal}%"
+                        ></div>
                       </div>
                     </div>
                   </div>
                 {/each}
               </div>
             </div>
-            
+
             <!-- Completed Campaigns Section -->
             <div>
-              <h2 class="text-sm font-bold text-zinc-500 tracking-widest uppercase mb-4 border-b border-zinc-850 pb-2">
+              <h2
+                class="text-sm font-bold text-zinc-500 tracking-widest uppercase mb-4 border-b border-zinc-850 pb-2"
+              >
                 ✓ COMPLETED CAMPAIGNS
               </h2>
-              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 opacity-75 hover:opacity-100 transition-opacity duration-200">
-                {#each campaigns.filter(c => c.status === "completed") as campaign}
+              <div
+                class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 opacity-75 hover:opacity-100 transition-opacity duration-200"
+              >
+                {#each campaigns.filter((c) => c.status === "completed") as campaign}
                   <!-- svelte-ignore a11y_click_events_have_key_events -->
                   <!-- svelte-ignore a11y_no_static_element_interactions -->
-                  <div 
+                  <div
                     class="bg-zinc-900/20 border border-zinc-900 hover:border-zinc-800 rounded-xl p-4 flex flex-col justify-between cursor-pointer transition-all duration-300 group"
                     onclick={() => {
                       selectedCampaign = campaign;
@@ -408,18 +559,37 @@
                     }}
                   >
                     <div>
-                      <div class="aspect-video w-full rounded-lg overflow-hidden bg-black/45 border border-zinc-900 mb-3 relative grayscale">
-                        <img src={campaign.images[0]} alt={campaign.title} class="w-full h-full object-cover" />
-                        <span class="absolute top-2 left-2 px-1.5 py-0.5 bg-emerald-600 text-white font-bold font-mono text-[9px] tracking-widest uppercase rounded">SUCCESS</span>
+                      <div
+                        class="aspect-video w-full rounded-lg overflow-hidden bg-black/45 border border-zinc-900 mb-3 relative grayscale"
+                      >
+                        <img
+                          src={campaign.images[0]}
+                          alt={campaign.title}
+                          class="w-full h-full object-cover"
+                        />
+                        <span
+                          class="absolute top-2 left-2 px-1.5 py-0.5 bg-emerald-600 text-white font-bold font-mono text-[9px] tracking-widest uppercase rounded"
+                          >SUCCESS</span
+                        >
                       </div>
-                      <h3 class="font-bold text-sm text-zinc-400 group-hover:text-white uppercase transition-colors">{campaign.title}</h3>
-                      <p class="text-xs text-zinc-650 line-clamp-2 mt-1.5">{campaign.description}</p>
+                      <h3
+                        class="font-bold text-sm text-zinc-400 group-hover:text-white uppercase transition-colors"
+                      >
+                        {campaign.title}
+                      </h3>
+                      <p class="text-xs text-zinc-650 line-clamp-2 mt-1.5">
+                        {campaign.description}
+                      </p>
                     </div>
-                    
+
                     <div class="mt-4 pt-3 border-t border-zinc-900">
-                      <div class="flex justify-between items-center text-[10px] font-mono text-zinc-500">
+                      <div
+                        class="flex justify-between items-center text-[10px] font-mono text-zinc-500"
+                      >
                         <span>Funded: 100%+</span>
-                        <span class="text-emerald-500 font-bold">{campaign.raised} raised</span>
+                        <span class="text-emerald-500 font-bold"
+                          >{campaign.raised} raised</span
+                        >
                       </div>
                     </div>
                   </div>
@@ -428,45 +598,63 @@
             </div>
           </div>
         {:else}
-          {@const raisedNum = parseFloat(selectedCampaign.raised.replace(/[^0-9.]/g, ""))}
-          {@const goalNum = parseFloat(selectedCampaign.goal.replace(/[^0-9.]/g, ""))}
-          {@const progressPct = Math.min(100, Math.round((raisedNum / goalNum) * 100))}
+          {@const raisedNum = parseFloat(
+            selectedCampaign.raised.replace(/[^0-9.]/g, ""),
+          )}
+          {@const goalNum = parseFloat(
+            selectedCampaign.goal.replace(/[^0-9.]/g, ""),
+          )}
+          {@const progressPct = Math.min(
+            100,
+            Math.round((raisedNum / goalNum) * 100),
+          )}
           <!-- STEAM-STYLE CAMPAIGN VIEW -->
-          <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-start animate-fade-in">
-            
+          <div
+            class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-start animate-fade-in"
+          >
             <!-- Left Side: Media Carousel (Col 7) -->
             <div class="lg:col-span-7 flex flex-col gap-4">
               <!-- Big Image Showcase -->
-              <div class="relative w-full aspect-video bg-black/40 border border-zinc-800 rounded-2xl overflow-hidden shadow-lg group">
-                <img 
-                  src={selectedCampaign.images[activeImageIdx]} 
-                  alt={selectedCampaign.title} 
+              <div
+                class="relative w-full aspect-video bg-black/40 border border-zinc-800 rounded-2xl overflow-hidden shadow-lg group"
+              >
+                <img
+                  src={selectedCampaign.images[activeImageIdx]}
+                  alt={selectedCampaign.title}
                   class="w-full h-full object-cover transition-all duration-300"
                 />
-                
+
                 <!-- Navigation Chevrons -->
-                <button 
+                <button
                   class="absolute left-3 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/85 border border-zinc-800 text-white rounded-full w-8 h-8 flex items-center justify-center transition-all opacity-0 group-hover:opacity-100"
                   onclick={() => {
-                    activeImageIdx = (activeImageIdx - 1 + selectedCampaign.images.length) % selectedCampaign.images.length;
+                    activeImageIdx =
+                      (activeImageIdx - 1 + selectedCampaign.images.length) %
+                      selectedCampaign.images.length;
                   }}
                 >
                   ◀
                 </button>
-                <button 
+                <button
                   class="absolute right-3 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/85 border border-zinc-800 text-white rounded-full w-8 h-8 flex items-center justify-center transition-all opacity-0 group-hover:opacity-100"
                   onclick={() => {
-                    activeImageIdx = (activeImageIdx + 1) % selectedCampaign.images.length;
+                    activeImageIdx =
+                      (activeImageIdx + 1) % selectedCampaign.images.length;
                   }}
                 >
                   ▶
                 </button>
 
                 <!-- Indicator dots -->
-                <div class="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+                <div
+                  class="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5"
+                >
                   {#each selectedCampaign.images as _, idx}
-                    <span 
-                      class="w-1.5 h-1.5 rounded-full transition-all duration-200 {activeImageIdx === idx ? 'bg-white' : 'bg-white/30'}" 
+                    <span
+                      class="w-1.5 h-1.5 rounded-full transition-all duration-200 {activeImageIdx ===
+                      idx
+                        ? 'bg-white'
+                        : 'bg-white/30'}"
                     ></span>
                   {/each}
                 </div>
@@ -477,12 +665,12 @@
                 {#each selectedCampaign.images as thumbnail, idx}
                   <!-- svelte-ignore a11y_click_events_have_key_events -->
                   <!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
-                  <img 
-                    src={thumbnail} 
-                    alt="Thumbnail" 
+                  <img
+                    src={thumbnail}
+                    alt="Thumbnail"
                     role="button"
                     tabindex="0"
-                    onclick={() => activeImageIdx = idx}
+                    onclick={() => (activeImageIdx = idx)}
                     class="w-20 aspect-video object-cover rounded-lg border cursor-pointer hover:border-zinc-400 transition-all duration-200"
                     class:border-red-500={activeImageIdx === idx}
                     class:border-zinc-800={activeImageIdx !== idx}
@@ -492,42 +680,68 @@
             </div>
 
             <!-- Right Side: Details & Milestone Progression (Col 5) -->
-            <div class="lg:col-span-5 flex flex-col justify-between bg-zinc-900/20 border border-zinc-800/60 p-6 rounded-2xl">
+            <div
+              class="lg:col-span-5 flex flex-col justify-between bg-zinc-900/20 border border-zinc-800/60 p-6 rounded-2xl"
+            >
               <div>
-                <div class="flex justify-between items-start gap-3 border-b border-zinc-850 pb-4">
+                <div
+                  class="flex justify-between items-start gap-3 border-b border-zinc-850 pb-4"
+                >
                   <div>
-                    <span class="px-2 py-0.5 bg-red-600/10 border border-red-500/30 text-red-500 font-bold font-mono text-[9px] tracking-widest uppercase rounded">
+                    <span
+                      class="px-2 py-0.5 bg-red-600/10 border border-red-500/30 text-red-500 font-bold font-mono text-[9px] tracking-widest uppercase rounded"
+                    >
                       {selectedCampaign.status}
                     </span>
-                    <h1 class="text-xl md:text-2xl font-extrabold tracking-wider mt-2 uppercase">{selectedCampaign.title}</h1>
+                    <h1
+                      class="text-xl md:text-2xl font-extrabold tracking-wider mt-2 uppercase"
+                    >
+                      {selectedCampaign.title}
+                    </h1>
                   </div>
                 </div>
 
                 <div class="mt-4 pb-4">
-                  <p class="text-zinc-400 text-sm leading-relaxed font-sans">{selectedCampaign.description}</p>
+                  <p class="text-zinc-400 text-sm leading-relaxed font-sans">
+                    {selectedCampaign.description}
+                  </p>
                 </div>
 
                 <hr class="border-zinc-850 my-2" />
 
                 <div class="milestones-section mt-4">
-                  <div class="flex justify-between items-center mb-2 font-bold font-mono text-xs">
-                    <span class="text-zinc-500 uppercase tracking-widest">FUNDING PERCENTAGE</span>
-                    <span class="text-red-500 text-sm">{selectedCampaign.raised} / {selectedCampaign.goal} ({progressPct}%)</span>
+                  <div
+                    class="flex justify-between items-center mb-2 font-bold font-mono text-xs"
+                  >
+                    <span class="text-zinc-500 uppercase tracking-widest"
+                      >FUNDING PERCENTAGE</span
+                    >
+                    <span class="text-red-500 text-sm"
+                      >{selectedCampaign.raised} / {selectedCampaign.goal} ({progressPct}%)</span
+                    >
                   </div>
-                  
-                  <div class="w-full h-3 bg-zinc-950 border border-zinc-800 rounded-full overflow-hidden relative mb-4">
-                    <div 
+
+                  <div
+                    class="w-full h-3 bg-zinc-950 border border-zinc-800 rounded-full overflow-hidden relative mb-4"
+                  >
+                    <div
                       class="h-full bg-gradient-to-r from-red-600 to-red-400 rounded-full"
                       style="width: {progressPct}%"
                     ></div>
                   </div>
-                  
+
                   <div class="mt-2 flex flex-col gap-2">
-                    <span class="text-[9px] text-zinc-500 tracking-widest uppercase font-bold">MILESTONE TARGETS</span>
+                    <span
+                      class="text-[9px] text-zinc-500 tracking-widest uppercase font-bold"
+                      >MILESTONE TARGETS</span
+                    >
                     {#each selectedCampaign.milestones as milestone}
                       {@const isAchieved = progressPct >= milestone.percentage}
-                      <div class="flex items-center gap-3 bg-zinc-950/40 border border-zinc-850 p-2.5 rounded-xl">
-                        <div class="w-5 h-5 rounded border flex items-center justify-center font-bold font-mono text-[9px] transition-colors"
+                      <div
+                        class="flex items-center gap-3 bg-zinc-950/40 border border-zinc-850 p-2.5 rounded-xl"
+                      >
+                        <div
+                          class="w-5 h-5 rounded border flex items-center justify-center font-bold font-mono text-[9px] transition-colors"
                           class:bg-emerald-500={isAchieved}
                           class:border-emerald-400={isAchieved}
                           class:text-black={isAchieved}
@@ -537,8 +751,16 @@
                           {#if isAchieved}✓{:else}-{/if}
                         </div>
                         <div class="flex-grow">
-                          <div class="text-[11px] font-bold" class:text-white={isAchieved} class:text-zinc-400={!isAchieved}>{milestone.label}</div>
-                          <div class="text-[9px] text-zinc-500 font-mono">Target: {milestone.percentage}%</div>
+                          <div
+                            class="text-[11px] font-bold"
+                            class:text-white={isAchieved}
+                            class:text-zinc-400={!isAchieved}
+                          >
+                            {milestone.label}
+                          </div>
+                          <div class="text-[9px] text-zinc-500 font-mono">
+                            Target: {milestone.percentage}%
+                          </div>
                         </div>
                       </div>
                     {/each}
@@ -548,7 +770,7 @@
 
               <!-- Cash App Link button -->
               <div class="mt-6 pt-6 border-t border-zinc-800/85">
-                <a 
+                <a
                   href={selectedCampaign.cashAppUrl}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -558,7 +780,6 @@
                 </a>
               </div>
             </div>
-
           </div>
         {/if}
       {/if}
@@ -569,18 +790,25 @@
       <!-- Backdrop -->
       <!-- svelte-ignore a11y_click_events_have_key_events -->
       <!-- svelte-ignore a11y_no_static_element_interactions -->
-      <div class="fixed inset-0 bg-black/60 z-40 backdrop-blur-sm" onclick={() => isCartOpen = false}></div>
+      <div
+        class="fixed inset-0 bg-black/60 z-40 backdrop-blur-sm"
+        onclick={() => (isCartOpen = false)}
+      ></div>
 
       <!-- Drawer Content -->
-      <div class="fixed top-0 right-0 w-full sm:w-[450px] h-full bg-zinc-950/95 border-l border-zinc-800 z-50 flex flex-col justify-between shadow-2xl transition-all duration-300">
+      <div
+        class="fixed top-0 right-0 w-full sm:w-[450px] h-full bg-zinc-950/95 border-l border-zinc-800 z-50 flex flex-col justify-between shadow-2xl transition-all duration-300"
+      >
         <!-- Header -->
-        <div class="flex justify-between items-center p-4 border-b border-zinc-900 bg-zinc-900/20">
+        <div
+          class="flex justify-between items-center p-4 border-b border-zinc-900 bg-zinc-900/20"
+        >
           <span class="text-sm font-bold flex items-center gap-2">
             <ShoppingCart size={16} /> SHOPPING CART
           </span>
-          <button 
+          <button
             class="text-zinc-500 hover:text-white p-1 rounded-full hover:bg-white/5 transition-colors"
-            onclick={() => isCartOpen = false}
+            onclick={() => (isCartOpen = false)}
           >
             <X size={18} />
           </button>
@@ -589,37 +817,60 @@
         <!-- Body / Items List -->
         <div class="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
           {#if cart.length === 0}
-            <div class="flex flex-col items-center justify-center h-full text-zinc-600 gap-2">
+            <div
+              class="flex flex-col items-center justify-center h-full text-zinc-600 gap-2"
+            >
               <ShoppingCart size={48} class="opacity-30" />
-              <span class="text-xs font-bold uppercase tracking-widest">Your cart is empty</span>
+              <span class="text-xs font-bold uppercase tracking-widest"
+                >Your cart is empty</span
+              >
             </div>
           {:else}
             {#each cart as item, index}
-              <div class="flex items-center gap-4 bg-zinc-900/40 p-3 rounded-lg border border-zinc-800/80">
+              <div
+                class="flex items-center gap-4 bg-zinc-900/40 p-3 rounded-lg border border-zinc-800/80"
+              >
                 <!-- Mini thumbnail -->
-                <div class="w-12 h-12 bg-black/20 rounded border border-zinc-800 flex items-center justify-center text-zinc-600">
-                  <svg viewBox="0 0 24 24" class="w-6 h-6 fill-none stroke-current" stroke-width="1.5">
-                    <path d="M4 8.5V20a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8.5M4 8.5L8 5m-4 3.5l-2-1.5L4 4m16 4.5l-4-3.5m4 3.5l2-1.5L20 4M8 5a4 4 0 0 1 8 0" stroke-linecap="round" stroke-linejoin="round"/>
+                <div
+                  class="w-12 h-12 bg-black/20 rounded border border-zinc-800 flex items-center justify-center text-zinc-600"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    class="w-6 h-6 fill-none stroke-current"
+                    stroke-width="1.5"
+                  >
+                    <path
+                      d="M4 8.5V20a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8.5M4 8.5L8 5m-4 3.5l-2-1.5L4 4m16 4.5l-4-3.5m4 3.5l2-1.5L20 4M8 5a4 4 0 0 1 8 0"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
                   </svg>
                 </div>
 
                 <!-- Info -->
                 <div class="flex-1 min-w-0">
-                  <h4 class="text-xs font-bold text-zinc-200 truncate uppercase">{item.title}</h4>
+                  <h4
+                    class="text-xs font-bold text-zinc-200 truncate uppercase"
+                  >
+                    {item.title}
+                  </h4>
                   <div class="text-[10px] text-zinc-500 mt-0.5">
-                    SIZE: {item.size} • <span class="text-red-400 font-semibold">{item.price}</span>
+                    SIZE: {item.size} •
+                    <span class="text-red-400 font-semibold">{item.price}</span>
                   </div>
 
                   <!-- Qty Controls -->
                   <div class="flex items-center gap-2 mt-2">
-                    <button 
+                    <button
                       class="w-5 h-5 bg-white/5 hover:bg-white/10 rounded flex items-center justify-center text-zinc-400 hover:text-white"
                       onclick={() => updateQuantity(index, -1)}
                     >
                       <Minus size={10} />
                     </button>
-                    <span class="text-xs font-mono font-bold w-4 text-center">{item.quantity}</span>
-                    <button 
+                    <span class="text-xs font-mono font-bold w-4 text-center"
+                      >{item.quantity}</span
+                    >
+                    <button
                       class="w-5 h-5 bg-white/5 hover:bg-white/10 rounded flex items-center justify-center text-zinc-400 hover:text-white"
                       onclick={() => updateQuantity(index, 1)}
                     >
@@ -629,7 +880,7 @@
                 </div>
 
                 <!-- Delete -->
-                <button 
+                <button
                   class="text-zinc-600 hover:text-red-400 p-1.5 transition-colors"
                   onclick={() => removeFromCart(index)}
                   title="Remove item"
@@ -643,12 +894,14 @@
 
         <!-- Footer -->
         {#if cart.length > 0}
-          <div class="p-4 border-t border-zinc-900 bg-zinc-900/20 flex flex-col gap-4">
+          <div
+            class="p-4 border-t border-zinc-900 bg-zinc-900/20 flex flex-col gap-4"
+          >
             <div class="flex justify-between items-center text-sm font-bold">
               <span class="text-zinc-500">TOTAL:</span>
               <span class="text-red-500 text-base">{totalPrice()}</span>
             </div>
-            <button 
+            <button
               class="w-full py-3 bg-green-600 hover:bg-green-500 text-black font-black rounded-xl text-xs tracking-widest transition-all duration-200 flex items-center justify-center gap-1.5"
               onclick={handleCheckout}
             >

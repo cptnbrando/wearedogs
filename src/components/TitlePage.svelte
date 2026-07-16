@@ -342,6 +342,13 @@
         return;
       }
       const state = e.state;
+
+      // If state is null, it could be a hashchange on the current panel page.
+      // Do not close the page if the pathname still matches the active page URL prefix.
+      if (state === null && activePage && window.location.pathname.startsWith(panelToUrl(activePage))) {
+        return;
+      }
+
       const targetView = state?.view || null;
       const targetApp = state?.app || null;
       const targetDepth = state?.depth || 0;
