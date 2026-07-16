@@ -356,6 +356,9 @@
               </h2>
               <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {#each campaigns.filter(c => c.status === "active") as campaign}
+                  {@const raisedVal = parseFloat(campaign.raised.replace(/[^0-9.]/g, ""))}
+                  {@const goalVal = parseFloat(campaign.goal.replace(/[^0-9.]/g, ""))}
+                  {@const progressVal = Math.min(100, Math.round((raisedVal / goalVal) * 100))}
                   <!-- svelte-ignore a11y_click_events_have_key_events -->
                   <!-- svelte-ignore a11y_no_static_element_interactions -->
                   <div 
@@ -375,9 +378,6 @@
                     </div>
                     
                     <div class="mt-4 pt-3 border-t border-zinc-800/40">
-                      {@const raisedVal = parseFloat(campaign.raised.replace(/[^0-9.]/g, ""))}
-                      {@const goalVal = parseFloat(campaign.goal.replace(/[^0-9.]/g, ""))}
-                      {@const progressVal = Math.min(100, Math.round((raisedVal / goalVal) * 100))}
                       <div class="flex justify-between items-center text-[10px] font-mono text-zinc-400 mb-1.5">
                         <span>Progress: {progressVal}%</span>
                         <span class="text-red-500 font-bold">{campaign.raised} / {campaign.goal}</span>
@@ -428,6 +428,9 @@
             </div>
           </div>
         {:else}
+          {@const raisedNum = parseFloat(selectedCampaign.raised.replace(/[^0-9.]/g, ""))}
+          {@const goalNum = parseFloat(selectedCampaign.goal.replace(/[^0-9.]/g, ""))}
+          {@const progressPct = Math.min(100, Math.round((raisedNum / goalNum) * 100))}
           <!-- STEAM-STYLE CAMPAIGN VIEW -->
           <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-start animate-fade-in">
             
@@ -463,9 +466,7 @@
                 <div class="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
                   {#each selectedCampaign.images as _, idx}
                     <span 
-                      class="w-1.5 h-1.5 rounded-full transition-all duration-200" 
-                      class:bg-white={activeImageIdx === idx}
-                      class:bg-white/30={activeImageIdx !== idx}
+                      class="w-1.5 h-1.5 rounded-full transition-all duration-200 {activeImageIdx === idx ? 'bg-white' : 'bg-white/30'}" 
                     ></span>
                   {/each}
                 </div>
@@ -508,11 +509,6 @@
 
                 <hr class="border-zinc-850 my-2" />
 
-                <!-- Milestone Progression Trackers -->
-                {@const raisedNum = parseFloat(selectedCampaign.raised.replace(/[^0-9.]/g, ""))}
-                {@const goalNum = parseFloat(selectedCampaign.goal.replace(/[^0-9.]/g, ""))}
-                {@const progressPct = Math.min(100, Math.round((raisedNum / goalNum) * 100))}
-                
                 <div class="milestones-section mt-4">
                   <div class="flex justify-between items-center mb-2 font-bold font-mono text-xs">
                     <span class="text-zinc-500 uppercase tracking-widest">FUNDING PERCENTAGE</span>

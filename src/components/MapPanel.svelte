@@ -417,8 +417,16 @@
   @media (max-width: 900px) {
     .map-explorer-layout {
       grid-template-columns: 1fr;
-      grid-template-rows: 300px 1fr;
+      grid-template-rows: 240px 1fr;
       overflow-y: auto;
+    }
+  }
+
+  @media (max-width: 900px) and (max-height: 500px) {
+    .map-explorer-layout {
+      grid-template-columns: 1.2fr 1fr;
+      grid-template-rows: 1fr;
+      overflow: hidden;
     }
   }
 

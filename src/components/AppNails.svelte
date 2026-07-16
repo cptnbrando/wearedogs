@@ -11,6 +11,7 @@
     RefreshCw,
     FileText,
     Gamepad,
+    Eye,
   } from "lucide-svelte";
 
   let { appId } = $props();
@@ -134,6 +135,13 @@
     <Gamepad
       size={28}
       style="color: var(--color-neon-gold, #e6b900); filter: drop-shadow(0 0 6px rgba(230, 185, 0, 0.4));"
+    />
+  </div>
+{:else if appId === "missingcreatures"}
+  <div class="flex items-center justify-center h-full animate-pulse">
+    <Eye
+      size={28}
+      style="color: #22c55e; filter: drop-shadow(0 0 6px rgba(34, 197, 94, 0.4));"
     />
   </div>
 {/if}

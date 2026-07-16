@@ -918,6 +918,8 @@
                       ></div>
                     </div>
                   {:else}
+                    {@const leftSpoolRatio = audioCore.duration > 0 ? (1 - (audioCore.currentTime / audioCore.duration)) * 0.45 + 0.25 : 0.48}
+                    {@const rightSpoolRatio = audioCore.duration > 0 ? (audioCore.currentTime / audioCore.duration) * 0.45 + 0.25 : 0.48}
                     <!-- Cassette view clicker -->
                     <!-- svelte-ignore a11y_click_events_have_key_events -->
                     <!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
@@ -928,8 +930,6 @@
                       tabindex="0"
                       aria-label="Open tracklist"
                     >
-                      {@const leftSpoolRatio = audioCore.duration > 0 ? (1 - (audioCore.currentTime / audioCore.duration)) * 0.45 + 0.25 : 0.48}
-                      {@const rightSpoolRatio = audioCore.duration > 0 ? (audioCore.currentTime / audioCore.duration) * 0.45 + 0.25 : 0.48}
                       <div class="cassette-tape">
                         <div class="cassette-label bg-gradient-to-r from-purple-800 to-pink-700">
                           <span class="cassette-track-title">{currentTrack.title}</span>
