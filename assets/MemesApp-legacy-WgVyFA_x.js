@@ -1,1 +1,0 @@
-System.register(["./vendor-legacy-CDEM_ks0.js","./BaseApp-legacy-BFkrrUX5.js"],function(e,t){var n;return e("default",function(e){n(e,{title:"Canine Memes",description:"An infinite catalog of hilarious dog memes to brighten your day.",graphicSrc:"/memes.png",themeColor:"#ff55bb"})}),{setters:[function(e){},function(e){n=e.default}],execute:function(){}}});
