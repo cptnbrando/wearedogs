@@ -30,6 +30,7 @@
   let selectedCampaign = $state(null);
   let currentStoreMode = $state("merch"); // "merch" or "fundraising"
   let activeImageIdx = $state(0);
+  let scrollDirection = $state(1);
   let selectedSize = $state("M");
   let sizes = [
     "6XS",
@@ -108,12 +109,27 @@
     initialCampaignId = campaign.id;
     currentStoreMode = "fundraising";
     activeImageIdx = 0;
+    scrollDirection = 1;
     depth = 2;
     history.pushState(
       { view: "store", campaignId: campaign.id, depth: 2 },
       "",
       `/store/campaign/${campaign.id}`
     );
+  }
+
+  function slideIn(node, { duration = 300, direction = 1 }) {
+    return {
+      duration,
+      css: (t) => `transform: translate3d(${(1 - t) * 100 * direction}%, 0, 0);`
+    };
+  }
+
+  function slideOut(node, { duration = 300, direction = 1 }) {
+    return {
+      duration,
+      css: (t) => `transform: translate3d(${(1 - t) * -100 * direction}%, 0, 0);`
+    };
   }
 
   function deselectCampaign() {
@@ -745,7 +761,8 @@
               >
                 {#key activeImageIdx}
                   <img
-                    transition:fade={{ duration: 250 }}
+                    in:slideIn={{ duration: 300, direction: scrollDirection }}
+                    out:slideOut={{ duration: 300, direction: scrollDirection }}
                     src={selectedCampaign.images[activeImageIdx]}
                     alt={selectedCampaign.title}
                     class="absolute inset-0 w-full h-full object-cover"
@@ -756,6 +773,7 @@
                 <button
                   class="absolute left-3 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/85 border border-zinc-800 text-white rounded-full w-8 h-8 flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
                   onclick={() => {
+                    scrollDirection = -1;
                     activeImageIdx =
                       (activeImageIdx - 1 + selectedCampaign.images.length) %
                       selectedCampaign.images.length;
@@ -766,6 +784,7 @@
                 <button
                   class="absolute right-3 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/85 border border-zinc-800 text-white rounded-full w-8 h-8 flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
                   onclick={() => {
+                    scrollDirection = 1;
                     activeImageIdx =
                       (activeImageIdx + 1) % selectedCampaign.images.length;
                   }}
@@ -798,7 +817,10 @@
                     alt="Thumbnail"
                     role="button"
                     tabindex="0"
-                    onclick={() => (activeImageIdx = idx)}
+                    onclick={() => {
+                      scrollDirection = idx > activeImageIdx ? 1 : -1;
+                      activeImageIdx = idx;
+                    }}
                     class="w-20 aspect-video object-cover rounded-lg border cursor-pointer hover:border-zinc-400 transition-all duration-200"
                     class:border-red-500={activeImageIdx === idx}
                     class:border-zinc-800={activeImageIdx !== idx}
@@ -893,7 +915,7 @@
                     >
                     <div
                       bind:this={milestoneScrollContainer}
-                      class="flex flex-col gap-2 sm:max-h-[150px] sm:overflow-y-auto pr-1"
+                      class="flex flex-col gap-2 sm:max-h-[110px] sm:overflow-y-auto pr-1 pb-4"
                     >
                       {#each selectedCampaign.milestones as milestone}
                         {@const isAchieved = progressPct >= milestone.percentage}
