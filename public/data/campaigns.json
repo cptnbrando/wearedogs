@@ -1,93 +1,78 @@
 [
   {
-    "id": "c1",
-    "title": "DOG RESCUE OUTPOST EXPANSION",
+    "id": "police-injustice",
+    "title": "POLICE INJUSTICE LEGAL FUND",
     "status": "active",
-    "goal": "$15,000",
-    "raised": "$9,450",
-    "description": "Funding the expansion of our physical rescue shelter, adding medical isolation quarantine rooms and automated underfloor heating panels for up to 80 dogs during cold winter nights.",
+    "goal": "$50,000",
+    "raised": "$12,450",
+    "description": "Raising funds to support legal representation, advocacy, and community support for victims of police injustice and systemic misconduct. Every contribution directly funds defense attorneys, public education, and family aid.",
     "images": [
-      "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=800&q=80",
-      "https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=800&q=80",
-      "https://images.unsplash.com/photo-1534361960057-19889db9621e?w=800&q=80"
+      "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=800&q=80",
+      "https://images.unsplash.com/photo-1453728013993-6d66e9c9123a?w=800&q=80"
+    ],
+    "media": [
+      { "type": "video", "url": "/vid/blog/2607/shake.mp4", "thumbnail": "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=800&q=80" },
+      { "type": "image", "url": "https://images.unsplash.com/photo-1453728013993-6d66e9c9123a?w=800&q=80" }
     ],
     "milestones": [
       {
-        "label": "Medical Supplies Archive",
+        "label": "Case File Intake & Review",
+        "percentage": 10,
+        "achieved": true
+      },
+      {
+        "label": "Defense Counsel Retainer",
         "percentage": 25,
         "achieved": true
       },
       {
-        "label": "Concrete Foundation Layout",
+        "label": "Expert Witness Fees",
         "percentage": 50,
+        "achieved": false
+      },
+      {
+        "label": "Trial Advocacy & PR Support",
+        "percentage": 100,
+        "achieved": false
+      }
+    ],
+    "cashAppUrl": "https://cash.app/$cptnbrando"
+  },
+  {
+    "id": "dogs-startup-costs",
+    "title": "WEAREDOGS STARTUP & INFRASTRUCTURE",
+    "status": "active",
+    "goal": "$25,000",
+    "raised": "$8,500",
+    "description": "Funding the initial operational and infrastructure costs for WEAREDOGS. This includes server hosting, web development, Cloudflare storage integration, legal formation, and marketing to build the largest decentralized dog rescue network.",
+    "images": [
+      "https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=800&q=80",
+      "https://images.unsplash.com/photo-1530281700549-e82e7bf110d6?w=800&q=80"
+    ],
+    "media": [
+      { "type": "video", "url": "/vid/dog-sing.mp4", "thumbnail": "https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=800&q=80" },
+      { "type": "image", "url": "https://images.unsplash.com/photo-1530281700549-e82e7bf110d6?w=800&q=80" }
+    ],
+    "milestones": [
+      {
+        "label": "Domain & Initial Hosting Setup",
+        "percentage": 20,
         "achieved": true
       },
       {
-        "label": "Frame & Roof Construction",
+        "label": "Cloudflare R2 Database Integration",
+        "percentage": 40,
+        "achieved": false
+      },
+      {
+        "label": "Legal Formation & Trademarking",
         "percentage": 75,
         "achieved": false
       },
       {
-        "label": "Quarantine HVAC Installation",
+        "label": "Launch & Nationwide Marketing",
         "percentage": 100,
         "achieved": false
-      }
-    ],
-    "cashAppUrl": "https://cash.app/$cptnbrando"
-  },
-  {
-    "id": "c2",
-    "title": "STRAY SPAY & NEUTER ROADTRIP",
-    "status": "active",
-    "goal": "$8,000",
-    "raised": "$2,800",
-    "description": "Outfitting a dedicated mobile clinic van to traverse coastal towns and perform free spay/neuter operations, rabies vaccines, and microchipping for local stray canine populations.",
-    "images": [
-      "https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?w=800&q=80",
-      "https://images.unsplash.com/photo-1544568100-847a948585b9?w=800&q=80",
-      "https://images.unsplash.com/photo-1596492784531-6e6eb5ea9993?w=800&q=80"
-    ],
-    "milestones": [
-      {
-        "label": "Clinic Van Lease & Wrap",
-        "percentage": 30,
-        "achieved": true
-      },
-      {
-        "label": "Surgical Gear & Vaccines",
-        "percentage": 65,
-        "achieved": false
-      },
-      {
-        "label": "3-Week Operation Launch",
-        "percentage": 100,
-        "achieved": false
-      }
-    ],
-    "cashAppUrl": "https://cash.app/$cptnbrando"
-  },
-  {
-    "id": "c3",
-    "title": "TACTICAL SEARCH & RESCUE K9 GEAR",
-    "status": "completed",
-    "goal": "$5,000",
-    "raised": "$5,250",
-    "description": "Equipping wilderness search and rescue dogs with rugged high-visibility tactical vests, micro-GPS tracking collars, and specialized protective paw booties.",
-    "images": [
-      "https://images.unsplash.com/photo-1530281700549-e82e7bf110d6?w=800&q=80",
-      "https://images.unsplash.com/photo-1601758124510-52d02ddb7cbd?w=800&q=80",
-      "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=800&q=80"
-    ],
-    "milestones": [
-      {
-        "label": "15 Protective K9 Vests",
-        "percentage": 50,
-        "achieved": true
-      },
-      {
-        "label": "GPS Collars & Booties Delivery",
-        "percentage": 100,
-        "achieved": true
       }
     ],
     "cashAppUrl": "https://cash.app/$cptnbrando"

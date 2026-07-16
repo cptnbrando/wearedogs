@@ -352,6 +352,40 @@
     }
   });
 
+  // Touch swipe handling for fundraising carousel
+  let touchStartX = 0;
+  let touchEndX = 0;
+
+  function handleTouchStart(e) {
+    touchStartX = e.changedTouches[0].clientX;
+  }
+
+  function handleTouchEnd(e) {
+    touchEndX = e.changedTouches[0].clientX;
+    const diff = touchStartX - touchEndX;
+    const swipeThreshold = 50;
+    if (Math.abs(diff) > swipeThreshold) {
+      if (diff > 0) {
+        // Swipe left -> Next image/video
+        scrollDirection = 1;
+        activeImageIdx = (activeImageIdx + 1) % campaignMedia.length;
+      } else {
+        // Swipe right -> Previous image/video
+        scrollDirection = -1;
+        activeImageIdx = (activeImageIdx - 1 + campaignMedia.length) % campaignMedia.length;
+      }
+    }
+  }
+
+  // Reactive/derived values for campaign media (support video & images)
+  let campaignMedia = $derived(
+    selectedCampaign?.media?.length > 0
+      ? selectedCampaign.media
+      : (selectedCampaign?.images?.map(img => ({ type: 'image', url: img })) || [])
+  );
+
+  let currentMediaItem = $derived(campaignMedia[activeImageIdx] || null);
+
   function handlePopState(e) {
     if (!e.state?.cartOpen && isCartOpen) {
       isCartOpen = false;
@@ -656,12 +690,7 @@
                   <button
                     class="w-full py-2.5 sm:py-3.5 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl text-sm tracking-widest transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-red-900/30 cursor-pointer"
                     onclick={() =>
-                      addToCart(
-                        selectedProduct,
-                        selectedProduct.sizes[0] === "One Size"
-                          ? "One Size"
-                          : selectedSize,
-                      )}
+                      window.open("https://cash.app/$cptnbrando", "_blank")}
                   >
                     <ShoppingCart size={18} /> ADD TO CART
                   </button>
@@ -831,48 +860,71 @@
                 <!-- Big Image Showcase -->
                 <div
                   class="relative w-full aspect-video bg-black/40 border border-zinc-800 rounded-2xl overflow-hidden shadow-lg group max-h-[200px] sm:max-h-[260px] md:max-h-[320px] lg:max-h-[360px] xl:max-h-[400px]"
+                  ontouchstart={handleTouchStart}
+                  ontouchend={handleTouchEnd}
                 >
                   {#key activeImageIdx}
-                    <img
-                      in:slideIn={{ duration: 300, direction: scrollDirection }}
-                      out:slideOut={{
-                        duration: 300,
-                        direction: scrollDirection,
-                      }}
-                      src={selectedCampaign.images[activeImageIdx]}
-                      alt={selectedCampaign.title}
-                      class="absolute inset-0 w-full h-full object-cover"
-                    />
+                    {#if currentMediaItem}
+                      {#if currentMediaItem.type === "video"}
+                        <video
+                          in:slideIn={{ duration: 300, direction: scrollDirection }}
+                          out:slideOut={{
+                            duration: 300,
+                            direction: scrollDirection,
+                          }}
+                          src={currentMediaItem.url}
+                          class="absolute inset-0 w-full h-full object-cover"
+                          controls
+                          autoplay
+                          muted
+                          loop
+                          playsinline
+                        ></video>
+                      {:else}
+                        <img
+                          in:slideIn={{ duration: 300, direction: scrollDirection }}
+                          out:slideOut={{
+                            duration: 300,
+                            direction: scrollDirection,
+                          }}
+                          src={currentMediaItem.url}
+                          alt={selectedCampaign.title}
+                          class="absolute inset-0 w-full h-full object-cover"
+                        />
+                      {/if}
+                    {/if}
                   {/key}
 
                   <!-- Navigation Chevrons -->
-                  <button
-                    class="absolute left-3 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/85 border border-zinc-800 text-white rounded-full w-8 h-8 flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
-                    onclick={() => {
-                      scrollDirection = -1;
-                      activeImageIdx =
-                        (activeImageIdx - 1 + selectedCampaign.images.length) %
-                        selectedCampaign.images.length;
-                    }}
-                  >
-                    ◀
-                  </button>
-                  <button
-                    class="absolute right-3 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/85 border border-zinc-800 text-white rounded-full w-8 h-8 flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
-                    onclick={() => {
-                      scrollDirection = 1;
-                      activeImageIdx =
-                        (activeImageIdx + 1) % selectedCampaign.images.length;
-                    }}
-                  >
-                    ▶
-                  </button>
+                  {#if campaignMedia.length > 1}
+                    <button
+                      class="absolute left-3 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/85 border border-zinc-800 text-white rounded-full w-8 h-8 flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 cursor-pointer z-20"
+                      onclick={() => {
+                        scrollDirection = -1;
+                        activeImageIdx =
+                          (activeImageIdx - 1 + campaignMedia.length) %
+                          campaignMedia.length;
+                      }}
+                    >
+                      ◀
+                    </button>
+                    <button
+                      class="absolute right-3 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/85 border border-zinc-800 text-white rounded-full w-8 h-8 flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 cursor-pointer z-20"
+                      onclick={() => {
+                        scrollDirection = 1;
+                        activeImageIdx =
+                          (activeImageIdx + 1) % campaignMedia.length;
+                      }}
+                    >
+                      ▶
+                    </button>
+                  {/if}
 
                   <!-- Indicator dots -->
                   <div
-                    class="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5"
+                    class="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-20 pointer-events-none"
                   >
-                    {#each selectedCampaign.images as _, idx}
+                    {#each campaignMedia as _, idx}
                       <span
                         class="w-1.5 h-1.5 rounded-full transition-all duration-200 {activeImageIdx ===
                         idx
@@ -884,23 +936,38 @@
                 </div>
 
                 <!-- Thumbnails row -->
-                <div class="flex gap-3">
-                  {#each selectedCampaign.images as thumbnail, idx}
+                <div class="flex gap-3 overflow-x-auto pb-1">
+                  {#each campaignMedia as mediaItem, idx}
                     <!-- svelte-ignore a11y_click_events_have_key_events -->
                     <!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
-                    <img
-                      src={thumbnail}
-                      alt="Thumbnail"
+                    <div
                       role="button"
                       tabindex="0"
                       onclick={() => {
                         scrollDirection = idx > activeImageIdx ? 1 : -1;
                         activeImageIdx = idx;
                       }}
-                      class="w-20 aspect-video object-cover rounded-lg border cursor-pointer hover:border-zinc-400 transition-all duration-200"
+                      class="relative w-20 aspect-video rounded-lg border overflow-hidden cursor-pointer hover:border-zinc-400 transition-all duration-200 bg-zinc-950 shrink-0"
                       class:border-red-500={activeImageIdx === idx}
                       class:border-zinc-800={activeImageIdx !== idx}
-                    />
+                    >
+                      {#if mediaItem.type === 'video'}
+                        <img
+                          src={mediaItem.thumbnail || mediaItem.url}
+                          alt="Video Thumbnail"
+                          class="w-full h-full object-cover opacity-80"
+                        />
+                        <div class="absolute inset-0 flex items-center justify-center bg-black/40">
+                          <span class="text-white text-xs select-none">▶</span>
+                        </div>
+                      {:else}
+                        <img
+                          src={mediaItem.url}
+                          alt="Thumbnail"
+                          class="w-full h-full object-cover"
+                        />
+                      {/if}
+                    </div>
                   {/each}
                 </div>
               </div>

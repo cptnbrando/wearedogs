@@ -27,17 +27,17 @@
   },
   {
     "id": "oppa-house-bbq",
-    "name": "Oppa House - Korean BBQ",
+    "name": "Oppa House Korean BBQ and Hot Pot",
     "cityName": "Tulsa OK",
     "category": "restaurants",
-    "subCategory": "Mexican",
+    "subCategory": "Korean BBQ & Hot Pot",
     "rating": 4.8,
     "googleScore": "4.8",
     "yelpScore": "4.7",
     "dogsScore": "5.0",
     "mapsUrl": "https://maps.app.goo.gl/kbwKMzdc5qWFuR6V8",
-    "address": "Tulsa, OK",
-    "description": "Authentic tabletop grilling experience with premium cuts and side dishes.",
+    "address": "7001 S Garnett Rd, Broken Arrow, OK 74012",
+    "description": "Authentic tabletop grilling experience with premium cuts and hot pot options.",
     "images": [
       "https://images.unsplash.com/photo-1544025162-d76694265947?w=500&q=80",
       "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=500&q=80"
@@ -67,9 +67,7 @@
     "images": [
       "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=500&q=80"
     ],
-    "reviews": [
-      { "user": "Arthur P.", "text": "Strongest flat white in the neighborhood. Extremely friendly baristas.", "rating": 5 }
-    ],
+    "reviews": [],
     "directions": "Located in the heart of the arts district.",
     "bestDishes": "Double shot espresso & Lavender Latte.",
     "bestTimes": "Early mornings around 7:30 AM.",
@@ -91,9 +89,7 @@
     "images": [
       "https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=500&q=80"
     ],
-    "reviews": [
-      { "user": "AussieDave", "text": "Perfect spot to grab a draft beer while the dogs socialize.", "rating": 4.5 }
-    ],
+    "reviews": [],
     "directions": "Accessible from Downtown Dallas via DART transit.",
     "bestDishes": "Loaded Nachos and local IPAs.",
     "bestTimes": "Friday happy hour.",
@@ -115,9 +111,7 @@
     "images": [
       "https://images.unsplash.com/photo-1506157786151-b8491531f063?w=500&q=80"
     ],
-    "reviews": [
-      { "user": "Haru K.", "text": "The acoustic engineering is spectacular. Visual projections match the music.", "rating": 5 }
-    ],
+    "reviews": [],
     "directions": "Take I-490 Exit 15 to Monroe Ave.",
     "bestDishes": "Gourmet hot dogs & local soft pretzels.",
     "bestTimes": "Gates open 1 hour before showtime.",
@@ -139,9 +133,7 @@
     "images": [
       "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=500&q=80"
     ],
-    "reviews": [
-      { "user": "Bella's Mom", "text": "Absolute heaven for dogs. Clean grass, fresh water bowls everywhere.", "rating": 5 }
-    ],
+    "reviews": [],
     "directions": "Near Genesee Valley Park entrance.",
     "bestDishes": "N/A - Free public dog park",
     "bestTimes": "Sunset hours for dog socialization.",
