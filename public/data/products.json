@@ -1,0 +1,42 @@
+[
+  {
+    "id": "1",
+    "title": "WOOF CLASSIC T-SHIRT",
+    "price": "$29.99",
+    "description": "High-quality, ultra-soft combed cotton tee featuring the iconic WEAREDOGS minimalist logo. Pre-shrunk, athletic fit, designed for everyday comfort.",
+    "sizes": ["6XS", "5XS", "4XS", "3XS", "2XS", "XS", "S", "M", "L", "XL", "2XL", "3XL", "4XL", "5XL", "6XL"],
+    "inStock": true,
+    "image": "/images/classic-tshirt.png",
+    "checkoutUrl": "https://teespring.com/stores/wearedogs-classic-tshirt"
+  },
+  {
+    "id": "2",
+    "title": "CYBERPUNK SHIBA HOODIE",
+    "price": "$59.99",
+    "description": "Mid-weight, premium fleece hoodie featuring neon Japanese-style Shiba Inu prints. Standard fit, cozy brushed interior with double-lined hood.",
+    "sizes": ["XS", "S", "M", "L", "XL", "2XL", "3XL", "4XL", "5XL"],
+    "inStock": true,
+    "image": "/images/cyberpunk-hoodie.png",
+    "checkoutUrl": "https://teespring.com/stores/wearedogs-cyberpunk-hoodie"
+  },
+  {
+    "id": "3",
+    "title": "RETRO DAD HAT",
+    "price": "$24.99",
+    "description": "Adjustable low-profile baseball cap with embroidered dog motif. 100% cotton chino twill, washed finish for a vintage feel.",
+    "sizes": ["One Size"],
+    "inStock": true,
+    "image": "/images/retro-dad-hat.png",
+    "checkoutUrl": "https://teespring.com/stores/wearedogs-dad-hat"
+  },
+  {
+    "id": "4",
+    "title": "LIMITED EDITION GOLDEN SOCKS",
+    "price": "$14.99",
+    "description": "Premium athletic socks with woven golden retriever designs. Fully cushioned footbed and arch support.",
+    "sizes": ["S", "M", "L"],
+    "inStock": false,
+    "image": "/images/golden-socks.png",
+    "checkoutUrl": "https://teespring.com/stores/wearedogs-golden-socks"
+  }
+]
