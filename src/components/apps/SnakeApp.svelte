@@ -173,6 +173,15 @@
     }
   }
 
+  let touchStartX = 0;
+  let touchStartY = 0;
+
+  function changeDirection(newDir) {
+    if (!snakeGameStarted || snakeGameOver) return;
+    isAIMode = false;
+    snakeDir = newDir;
+  }
+
   function handleSnakeKey(e) {
     if (!snakeGameStarted || snakeGameOver) return;
 
@@ -188,10 +197,41 @@
     }
 
     if (newDir) {
-      // Direct user input turns OFF AI Autoplay mode
-      isAIMode = false;
-      snakeDir = newDir;
+      changeDirection(newDir);
       e.preventDefault();
+    }
+  }
+
+  function handleTouchStart(e) {
+    if (e.touches.length === 1) {
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    }
+  }
+
+  function handleTouchEnd(e) {
+    if (e.changedTouches.length === 1) {
+      const deltaX = e.changedTouches[0].clientX - touchStartX;
+      const deltaY = e.changedTouches[0].clientY - touchStartY;
+      const threshold = 30; // pixels
+
+      if (Math.abs(deltaX) > Math.abs(deltaY)) {
+        if (Math.abs(deltaX) > threshold) {
+          if (deltaX > 0 && snakeDir.x === 0) {
+            changeDirection({ x: 1, y: 0 });
+          } else if (deltaX < 0 && snakeDir.x === 0) {
+            changeDirection({ x: -1, y: 0 });
+          }
+        }
+      } else {
+        if (Math.abs(deltaY) > threshold) {
+          if (deltaY > 0 && snakeDir.y === 0) {
+            changeDirection({ x: 0, y: 1 });
+          } else if (deltaY < 0 && snakeDir.y === 0) {
+            changeDirection({ x: 0, y: -1 });
+          }
+        }
+      }
     }
   }
 
@@ -241,7 +281,12 @@
   </div>
 
   <div class="snake-board-container">
-    <div class="snake-board">
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div 
+      class="snake-board"
+      ontouchstart={handleTouchStart}
+      ontouchend={handleTouchEnd}
+    >
       {#each Array(20) as _, y}
         <div class="board-row">
           {#each Array(20) as _, x}
