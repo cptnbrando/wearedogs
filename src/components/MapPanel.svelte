@@ -632,12 +632,6 @@
     transform: translateY(-2px);
   }
 
-  .spot-card.active-card {
-    border-color: rgba(255, 51, 68, 0.35);
-    background: rgba(255, 51, 68, 0.03);
-    box-shadow: 0 0 12px rgba(255, 51, 68, 0.05);
-  }
-
   .spot-card-head {
     display: flex;
     justify-content: space-between;
@@ -665,19 +659,6 @@
     display: flex;
     align-items: center;
     gap: 2px;
-  }
-
-  .half-star-container {
-    position: relative;
-    display: inline-flex;
-  }
-
-  .half-star-fill {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 50%;
-    overflow: hidden;
   }
 
   .rating-val {

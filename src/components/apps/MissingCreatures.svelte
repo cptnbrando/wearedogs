@@ -280,12 +280,13 @@
 
                 <!-- Pinboard Cork Grid scrollable container -->
                 <div class="grid grid-cols-2 gap-3 max-h-[460px] overflow-y-auto p-2 bg-[#1b1715] border border-zinc-950 rounded-lg shadow-inner flex-grow">
-                    {#each fbiProfiles as p}
+                    {#each fbiProfiles as p, i}
                         <!-- Polaroid Card -->
                         <!-- svelte-ignore a11y_click_events_have_key_events -->
                         <!-- svelte-ignore a11y_no_static_element_interactions -->
                         <div 
-                            class="polaroid bg-[#eae6df] border-4 border-white shadow-lg p-2 flex flex-col cursor-pointer hover:rotate-1 hover:scale-103 transition-all relative text-black"
+                            class="polaroid bg-[#eae6df] border-4 border-white shadow-lg p-2 flex flex-col cursor-pointer transition-all relative text-black"
+                            style="transform: rotate({((i % 3) - 1) * 2}deg)"
                             onclick={() => selectedProfile = p}
                         >
                             <!-- Dossier Pin tape -->
@@ -364,9 +365,8 @@
   }
 
   .polaroid {
-    transform: rotate(calc(-1deg + Math.random() * 2deg));
     &:hover {
-      transform: scale(1.03) rotate(0deg);
+      transform: scale(1.03) rotate(0deg) !important;
       z-index: 10;
     }
   }
