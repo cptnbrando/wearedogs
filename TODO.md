@@ -77,6 +77,22 @@ branch: ai/memes
 - For the meme generator, begin with the /public/memes/template/friendship.png image. This is a popular meme called "Friendship Ended" . Google how it works, and then create a way to quickly type in the data for new memes, for this one, name 1 and name 2. So I can make it say something like "Friendship ended with Ron Weasley, now Harry is my friend" etc. Use canvas and text to position new text onto the image and spit out a downloadable image
 
 
+# Map
+branch: ai/map-mod branched off of swarm/feature-mappanel
+
+- Continue creating the map panel.
+- There will eventually be hundreds of cities available, modify accordingly for scale
+- For now the only cities are: Tulsa OK, Dallas TX, and Rochester NY
+- The map looks and functions excellently
+- Ensure mobile portrait and landscape responsivity
+- Reviews should open up into their own pages. Like a full on review page, like the blog posts are. URL Path accessible too, so the reviews are shareable.
+- Image carousel for every place, based on Google Maps photos available.
+- Addresses for every place and clickable link to directions (google maps and apple maps links)
+- Begin with Chicken and the Wolf in Tulsa, OK. 1124 S Lewis Ave, Tulsa, OK 74104 .
+- Report the Google Maps review score, the Yelp review score, and the DOGS score. For chicken and the wolf, 5/5.
+- Add Oppa House - Korean BBQ. All reviews will mainly be hosted and sourced from my Google Maps. https://maps.app.goo.gl/kbwKMzdc5qWFuR6V8 . This links to my review.
+- Every restaurant needs best dishes, best times to eat, more information
+
 
 # Little things
 branch: ai/little-things
@@ -86,5 +102,4 @@ branch: ai/little-things
 - Soundboard when the app is opened, all samples must be loaded in immediately with a little loading animation on each.
 - Soundboard weird overloading glitch? Hitting around 100 sounds will overload something, making the audio output get very very glitchy until finally the audio cuts out entirely and nothing is played
 - Soundboard - The wave form display needs to show actual waveforms now
-
 
