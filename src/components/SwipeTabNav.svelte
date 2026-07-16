@@ -4,7 +4,7 @@
   let {
     tabs = [], // Array of { id: string, label: string, icon: Component }
     activeTab = $bindable(),
-    onTabChange
+    onTabChange,
   } = $props();
 
   let containerRef = $state();
@@ -16,19 +16,25 @@
       if (e.shiftKey) {
         // Prevent default browser horizontal scrolling
         e.preventDefault();
-        
+
         if (!containerRef) return;
         const rect = containerRef.getBoundingClientRect();
-        const isVisible = rect.width > 0 && rect.height > 0 &&
-                          rect.top < window.innerHeight && rect.bottom > 0 &&
-                          rect.left < window.innerWidth && rect.right > 0;
-                          
+        const isVisible =
+          rect.width > 0 &&
+          rect.height > 0 &&
+          rect.top < window.innerHeight &&
+          rect.bottom > 0 &&
+          rect.left < window.innerWidth &&
+          rect.right > 0;
+
         if (!isVisible) return;
-        
-        const closestApp = containerRef.closest(".mp-container, .stats-container, .app-container, .base-app-layout, body");
+
+        const closestApp = containerRef.closest(
+          ".mp-container, .stats-container, .app-container, .base-app-layout, body",
+        );
         if (closestApp && !closestApp.contains(e.target)) return;
 
-        const idx = tabs.findIndex(t => t.id === activeTab);
+        const idx = tabs.findIndex((t) => t.id === activeTab);
         if (idx === -1) return;
 
         if (e.deltaY > 0) {
@@ -71,7 +77,8 @@
       const containerWidth = containerEl.clientWidth;
       const activeWidth = activeEl.clientWidth;
       const activeLeft = activeEl.offsetLeft;
-      const targetScrollLeft = activeLeft - containerWidth / 2 + activeWidth / 2;
+      const targetScrollLeft =
+        activeLeft - containerWidth / 2 + activeWidth / 2;
 
       // Use local container scrolling instead of global scrollIntoView to avoid parent window shifting
       if (typeof containerEl.scrollTo === "function") {
@@ -107,18 +114,6 @@
   function handleMouseUp(e) {
     if (!isDown) return;
     isDown = false;
-    const diffX = e.clientX - mouseStartX;
-    const diffY = e.clientY - mouseStartY;
-    if (Math.abs(diffX) <= Math.abs(diffY) || Math.abs(diffX) <= 60) return;
-
-    const idx = tabs.findIndex(t => t.id === activeTab);
-    if (idx === -1) return;
-
-    if (diffX < 0 && idx < tabs.length - 1) {
-      selectTab(tabs[idx + 1].id);
-    } else if (diffX > 0 && idx > 0) {
-      selectTab(tabs[idx - 1].id);
-    }
   }
 
   function handleMouseMove(e) {
@@ -141,20 +136,6 @@
   function handleTouchEnd(e) {
     if (!isDown) return;
     isDown = false;
-    if (!e.changedTouches || e.changedTouches.length === 0) return;
-
-    const diffX = e.changedTouches[0].clientX - touchStartX;
-    const diffY = e.changedTouches[0].clientY - touchStartY;
-    if (Math.abs(diffX) <= Math.abs(diffY) || Math.abs(diffX) <= 60) return;
-
-    const idx = tabs.findIndex(t => t.id === activeTab);
-    if (idx === -1) return;
-
-    if (diffX < 0 && idx < tabs.length - 1) {
-      selectTab(tabs[idx + 1].id);
-    } else if (diffX > 0 && idx > 0) {
-      selectTab(tabs[idx - 1].id);
-    }
   }
 
   function handleTouchMove(e) {
@@ -265,7 +246,7 @@
   .tab-btn.active {
     color: #ffffff;
     background: rgba(255, 255, 255, 0.08);
-    box-shadow: 
+    box-shadow:
       0 0 10px rgba(255, 255, 255, 0.1),
       inset 0 1px 0 rgba(255, 255, 255, 0.1);
     text-shadow: 0 0 8px rgba(255, 255, 255, 0.4);

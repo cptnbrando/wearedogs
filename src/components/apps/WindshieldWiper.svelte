@@ -1,21 +1,21 @@
 <script>
   import { onMount, onDestroy } from "svelte";
-  import { 
-    Upload, 
-    Trash2, 
-    Image as ImageIcon, 
-    Video as VideoIcon, 
-    Sparkles, 
-    Sliders, 
-    Play, 
-    Pause, 
-    Download, 
-    Crop, 
-    RefreshCw, 
-    Eraser, 
-    Brush, 
+  import {
+    Upload,
+    Trash2,
+    Image as ImageIcon,
+    Video as VideoIcon,
+    Sparkles,
+    Sliders,
+    Play,
+    Pause,
+    Download,
+    Crop,
+    RefreshCw,
+    Eraser,
+    Brush,
     Target,
-    Square
+    Square,
   } from "lucide-svelte";
   import BaseApp from "./BaseApp.svelte";
 
@@ -59,7 +59,7 @@
 
   // Video masking boxes
   let videoMasks = $state([
-    { id: 1, x: 20, y: 20, width: 120, height: 50, mode: "blur" }
+    { id: 1, x: 20, y: 20, width: 120, height: 50, mode: "blur" },
   ]);
   let selectedMaskId = $state(1);
   let videoWidth = $state(640);
@@ -120,7 +120,7 @@
     cleanupObjectURLs();
     uploadedFile = file;
     fileUrl = URL.createObjectURL(file);
-    
+
     if (file.type.startsWith("image/")) {
       fileType = "image";
       cloneSource = null;
@@ -129,7 +129,9 @@
     } else if (file.type.startsWith("video/")) {
       fileType = "video";
       isPlaying = false;
-      videoMasks = [{ id: 1, x: 20, y: 20, width: 120, height: 50, mode: "blur" }];
+      videoMasks = [
+        { id: 1, x: 20, y: 20, width: 120, height: 50, mode: "blur" },
+      ];
       selectedMaskId = 1;
     } else {
       alert("Unsupported file type. Please upload a standard image or video.");
@@ -179,7 +181,7 @@
   // Brush drawing on mask canvas
   function startDraw(e) {
     if (fileType !== "image" || activeTool === "crop") return;
-    
+
     const rect = maskCanvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
@@ -215,7 +217,7 @@
 
     maskCtx.lineJoin = "round";
     maskCtx.lineCap = "round";
-    
+
     if (activeTool === "clone" && cloneSource) {
       // Paint pixels from clone source onto the main canvas directly
       ctx.save();
@@ -229,15 +231,15 @@
       cloneSource.y += dy;
 
       ctx.drawImage(
-        imageCanvas, 
-        cloneSource.x - brushSize / 2, 
-        cloneSource.y - brushSize / 2, 
-        brushSize, 
-        brushSize, 
-        x - brushSize / 2, 
-        y - brushSize / 2, 
-        brushSize, 
-        brushSize
+        imageCanvas,
+        cloneSource.x - brushSize / 2,
+        cloneSource.y - brushSize / 2,
+        brushSize,
+        brushSize,
+        x - brushSize / 2,
+        y - brushSize / 2,
+        brushSize,
+        brushSize,
       );
       ctx.restore();
 
@@ -248,9 +250,11 @@
 
     if (activeTool === "inpaint") {
       maskCtx.beginPath();
-      maskCtx.strokeStyle = isErasing ? "rgba(0,0,0,1)" : "rgba(255, 0, 85, 0.55)";
+      maskCtx.strokeStyle = isErasing
+        ? "rgba(0,0,0,1)"
+        : "rgba(255, 0, 85, 0.55)";
       maskCtx.lineWidth = brushSize;
-      
+
       // Use destination-out to erase from mask
       if (isErasing) {
         maskCtx.globalCompositeOperation = "destination-out";
@@ -291,7 +295,7 @@
     processProgress = 5;
 
     // Small delay to allow progress UI to update
-    await new Promise(resolve => setTimeout(resolve, 80));
+    await new Promise((resolve) => setTimeout(resolve, 80));
 
     const width = imageCanvas.width;
     const height = imageCanvas.height;
@@ -326,7 +330,7 @@
     }
 
     processProgress = 30;
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise((resolve) => setTimeout(resolve, 50));
 
     // Propagation loop (inward-directed neighbor averaging)
     let remaining = maxCoords.length;
@@ -335,14 +339,17 @@
 
     while (remaining > 0 && passes < 150) {
       const newKnown = [];
-      
+
       for (let i = 0; i < maxCoords.length; i++) {
         const p = maxCoords[i];
         const idx = p.y * width + p.x;
 
         if (state[idx] === 1) {
           // Average surrounding unmasked pixels
-          let rSum = 0, gSum = 0, bSum = 0, count = 0;
+          let rSum = 0,
+            gSum = 0,
+            bSum = 0,
+            count = 0;
 
           // Check 8-neighborhood
           for (let dy = -1; dy <= 1; dy++) {
@@ -385,7 +392,7 @@
 
       if (passes % 10 === 0) {
         processProgress = 30 + Math.min(50, Math.round((passes / 150) * 50));
-        await new Promise(resolve => setTimeout(resolve, 5));
+        await new Promise((resolve) => setTimeout(resolve, 5));
       }
     }
 
@@ -395,7 +402,7 @@
     for (let i = 0; i < maxCoords.length; i++) {
       const p = maxCoords[i];
       const idx = (p.y * width + p.x) * 4;
-      
+
       // Interpolate with original based on feathering/blurring edge (for antialiasing)
       imgPixels[idx] = tempImg[idx];
       imgPixels[idx + 1] = tempImg[idx + 1];
@@ -426,7 +433,7 @@
   function handleMaskMouseDown(e, mask, node) {
     e.preventDefault();
     e.stopPropagation();
-    
+
     selectedMaskId = mask.id;
     activeDragNode = node;
     initialDragMask = { ...mask };
@@ -449,7 +456,7 @@
     const dx = currentX - dragOffset.x;
     const dy = currentY - dragOffset.y;
 
-    videoMasks = videoMasks.map(mask => {
+    videoMasks = videoMasks.map((mask) => {
       if (mask.id !== selectedMaskId) return mask;
 
       let { x, y, width, height } = initialDragMask;
@@ -490,7 +497,6 @@
     window.removeEventListener("mouseup", handleMaskMouseUp);
   }
 
-
   // Toggle Video Playback
   function toggleVideo() {
     if (!videoEl) return;
@@ -510,7 +516,7 @@
     isRecording = true;
     recordingTime = 0;
     recordedChunks = [];
-    
+
     // Pause video and go back to start
     videoEl.pause();
     videoEl.currentTime = 0;
@@ -536,7 +542,10 @@
         const audioTracks = videoStream.getAudioTracks();
         if (audioTracks.length > 0) {
           const audioTrack = audioTracks[0];
-          mergedStream = new MediaStream([canvasStream.getVideoTracks()[0], audioTrack]);
+          mergedStream = new MediaStream([
+            canvasStream.getVideoTracks()[0],
+            audioTrack,
+          ]);
         }
       } catch (e) {
         console.warn("Could not capture video audio stream.", e);
@@ -544,7 +553,7 @@
     }
 
     mediaRecorder = new MediaRecorder(mergedStream, {
-      mimeType: "video/webm;codecs=vp9,opus"
+      mimeType: "video/webm;codecs=vp9,opus",
     });
 
     mediaRecorder.ondataavailable = (e) => {
@@ -560,7 +569,7 @@
       link.href = downloadUrl;
       link.download = `wiped_${uploadedFile.name.replace(/\.[^/.]+$/, "")}.webm`;
       link.click();
-      
+
       // Cleanup
       setTimeout(() => URL.revokeObjectURL(downloadUrl), 5000);
       isRecording = false;
@@ -612,9 +621,19 @@
       tempCanvas.width = width;
       tempCanvas.height = height;
       const tempCtx = tempCanvas.getContext("2d");
-      
-      tempCtx.drawImage(context.canvas, x, y, width, height, 0, 0, width, height);
-      
+
+      tempCtx.drawImage(
+        context.canvas,
+        x,
+        y,
+        width,
+        height,
+        0,
+        0,
+        width,
+        height,
+      );
+
       // Soften pixelate blur
       context.filter = `blur(${blurStrength}px)`;
       context.drawImage(tempCanvas, x, y, width, height);
@@ -631,20 +650,45 @@
       tempCtx.imageSmoothingEnabled = false;
       context.imageSmoothingEnabled = false;
 
-      tempCtx.drawImage(context.canvas, x, y, width, height, 0, 0, tempCanvas.width, tempCanvas.height);
-      context.drawImage(tempCanvas, 0, 0, tempCanvas.width, tempCanvas.height, x, y, width, height);
-      
+      tempCtx.drawImage(
+        context.canvas,
+        x,
+        y,
+        width,
+        height,
+        0,
+        0,
+        tempCanvas.width,
+        tempCanvas.height,
+      );
+      context.drawImage(
+        tempCanvas,
+        0,
+        0,
+        tempCanvas.width,
+        tempCanvas.height,
+        x,
+        y,
+        width,
+        height,
+      );
+
       context.restore();
     } else if (mode === "solid") {
       // Get colors surrounding the watermark rectangle to build a patch
       context.save();
       context.fillStyle = "rgba(10, 10, 15, 0.95)";
-      
+
       // Try to sample a color from the top border of the rectangle
       try {
-        const borderSample = context.getImageData(Math.max(0, x - 1), Math.max(0, y - 1), 1, 1).data;
+        const borderSample = context.getImageData(
+          Math.max(0, x - 1),
+          Math.max(0, y - 1),
+          1,
+          1,
+        ).data;
         context.fillStyle = `rgb(${borderSample[0]}, ${borderSample[1]}, ${borderSample[2]})`;
-      } catch(e) {}
+      } catch (e) {}
 
       context.fillRect(x, y, width, height);
       context.restore();
@@ -659,16 +703,17 @@
   }
 
   function addVideoMask() {
-    const nextId = videoMasks.length > 0 ? Math.max(...videoMasks.map(m => m.id)) + 1 : 1;
+    const nextId =
+      videoMasks.length > 0 ? Math.max(...videoMasks.map((m) => m.id)) + 1 : 1;
     videoMasks = [
       ...videoMasks,
-      { id: nextId, x: 50, y: 50, width: 100, height: 40, mode: "blur" }
+      { id: nextId, x: 50, y: 50, width: 100, height: 40, mode: "blur" },
     ];
     selectedMaskId = nextId;
   }
 
   function removeVideoMask(id) {
-    videoMasks = videoMasks.filter(m => m.id !== id);
+    videoMasks = videoMasks.filter((m) => m.id !== id);
     if (selectedMaskId === id && videoMasks.length > 0) {
       selectedMaskId = videoMasks[0].id;
     }
@@ -677,57 +722,70 @@
 
 <BaseApp title={appName} {activeTab} onClose={() => onClose()}>
   <div class="wiper-layout flex flex-col h-full overflow-hidden select-none">
-    
     <!-- Workspace Area -->
-    <div class="wiper-workspace flex-1 min-h-0 flex flex-col lg:flex-row relative">
-      
+    <div
+      class="wiper-workspace flex-1 min-h-0 flex flex-col lg:flex-row relative"
+    >
       {#if !hasFile}
         <!-- UPLOAD / DRAG & DROP ZONE -->
         <!-- svelte-ignore a11y_click_events_have_key_events -->
         <!-- svelte-ignore a11y_no_static_element_interactions -->
-        <div 
+        <div
           class="wiper-dropzone flex-1 flex flex-col items-center justify-center p-8 m-6 border-2 border-dashed rounded-2xl transition-all duration-300
-            {isDragging 
-              ? 'border-neon-cyan bg-neon-cyan/5 scale-[0.99] shadow-[0_0_20px_rgba(0,255,255,0.15)]' 
-              : 'border-white/10 bg-black/20 hover:border-white/20 hover:bg-white/[0.02]'}"
+            {isDragging
+            ? 'border-neon-cyan bg-neon-cyan/5 scale-[0.99] shadow-[0_0_20px_rgba(0,255,255,0.15)]'
+            : 'border-white/10 bg-black/20 hover:border-white/20 hover:bg-white/[0.02]'}"
           ondragover={handleDragOver}
           ondragleave={handleDragLeave}
           ondrop={handleDrop}
           onclick={() => document.getElementById("wiper-input").click()}
         >
-          <div class="wiper-upload-icon flex items-center justify-center w-16 h-16 rounded-full bg-white/5 border border-white/10 mb-4 transition-transform duration-300">
+          <div
+            class="wiper-upload-icon flex items-center justify-center w-16 h-16 rounded-full bg-white/5 border border-white/10 mb-4 transition-transform duration-300"
+          >
             <Upload size={28} class="text-white/60" />
           </div>
-          <h2 class="text-lg font-bold text-white mb-2">Wipe Watermarks Instantly</h2>
+          <h2 class="text-lg font-bold text-white mb-2">
+            Wipe Watermarks Instantly
+          </h2>
           <p class="text-xs text-white/40 mb-6 text-center max-w-[360px]">
-            Drag & drop any image or video file. All watermark processing is computed privately inside your browser.
+            Drag & drop any image or video file. All watermark processing is
+            computed privately inside your browser.
           </p>
-          <button class="px-5 py-2 rounded-xl text-xs font-bold bg-white/10 border border-white/15 hover:bg-white/15 transition-all">
+          <button
+            class="px-5 py-2 rounded-xl text-xs font-bold bg-white/10 border border-white/15 hover:bg-white/15 transition-all"
+          >
             Choose File
           </button>
-          <input 
-            type="file" 
-            id="wiper-input" 
-            class="hidden" 
+          <input
+            type="file"
+            id="wiper-input"
+            class="hidden"
             accept="image/*,video/*"
-            onchange={handleFileSelect} 
+            onchange={handleFileSelect}
           />
         </div>
       {:else}
         <!-- ACTIVE FILE EDITOR WORKSPACE -->
-        <div class="editor-stage flex-1 min-h-0 flex flex-col p-4 lg:p-6 overflow-hidden">
-          
+        <div
+          class="editor-stage flex-1 min-h-0 flex flex-col p-4 lg:p-6 overflow-hidden"
+        >
           <!-- Stage Top Bar (File name and reset) -->
-          <div class="stage-bar flex justify-between items-center bg-white/[0.02] border border-white/5 rounded-xl px-4 py-2 mb-4 shrink-0">
+          <div
+            class="stage-bar flex justify-between items-center bg-white/[0.02] border border-white/5 rounded-xl px-4 py-2 mb-4 shrink-0"
+          >
             <div class="flex items-center gap-2">
               {#if fileType === "image"}
                 <ImageIcon size={14} class="text-neon-cyan" />
               {:else}
                 <VideoIcon size={14} class="text-neon-gold" />
               {/if}
-              <span class="text-xs font-mono font-bold text-white/70 truncate max-w-[240px]">{uploadedFile.name}</span>
+              <span
+                class="text-xs font-mono font-bold text-white/70 truncate max-w-[240px]"
+                >{uploadedFile.name}</span
+              >
             </div>
-            <button 
+            <button
               class="flex items-center gap-1.5 px-3 py-1 bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-all rounded-lg text-[10px] font-bold uppercase tracking-wider"
               onclick={() => {
                 cleanupObjectURLs();
@@ -739,17 +797,20 @@
           </div>
 
           <!-- Interactive Editor Display -->
-          <div class="stage-viewport flex-1 min-h-0 flex items-center justify-center bg-black/40 border border-white/5 rounded-2xl overflow-hidden relative p-4">
-            
+          <div
+            class="stage-viewport flex-1 min-h-0 flex items-center justify-center bg-black/40 border border-white/5 rounded-2xl overflow-hidden relative p-4"
+          >
             {#if fileType === "image"}
               <!-- Image Brush/Inpaint Editor -->
-              <div class="relative inline-block max-w-full max-h-full select-none cursor-crosshair">
-                <canvas 
-                  bind:this={imageCanvas} 
+              <div
+                class="relative inline-block max-w-full max-h-full select-none cursor-crosshair"
+              >
+                <canvas
+                  bind:this={imageCanvas}
                   class="stage-canvas max-w-full max-h-full block shadow-2xl rounded-lg"
                 ></canvas>
-                <canvas 
-                  bind:this={maskCanvas} 
+                <canvas
+                  bind:this={maskCanvas}
                   class="absolute inset-0 max-w-full max-h-full block rounded-lg pointer-events-auto opacity-75"
                   onmousedown={startDraw}
                   onmousemove={draw}
@@ -759,7 +820,7 @@
 
                 {#if activeTool === "clone" && cloneSource}
                   <!-- Visual Target Marker representing clone stamp source point -->
-                  <div 
+                  <div
                     class="absolute w-5 h-5 border-2 border-dashed border-neon-cyan rounded-full flex items-center justify-center pointer-events-none transform -translate-x-1/2 -translate-y-1/2"
                     style="left: {cloneSource.x}px; top: {cloneSource.y}px;"
                   >
@@ -769,16 +830,16 @@
               </div>
             {:else}
               <!-- Video Mask Editor -->
-              <div 
+              <div
                 bind:this={containerRef}
                 class="relative inline-block max-w-full max-h-full select-none"
                 style="aspect-ratio: {videoWidth} / {videoHeight};"
               >
                 <!-- HTML5 video element -->
                 <!-- svelte-ignore a11y_media_has_caption -->
-                <video 
+                <video
                   bind:this={videoEl}
-                  src={fileUrl} 
+                  src={fileUrl}
                   class="stage-video max-w-full max-h-full block rounded-lg"
                   onloadedmetadata={handleVideoMetaLoad}
                   onclick={toggleVideo}
@@ -789,45 +850,49 @@
                 {#each videoMasks as mask}
                   <!-- svelte-ignore a11y_click_events_have_key_events -->
                   <!-- svelte-ignore a11y_no_static_element_interactions -->
-                  <div 
+                  <div
                     class="absolute border border-neon-gold bg-black/10 rounded-md cursor-move
-                      {mask.id === selectedMaskId ? 'border-2 border-neon-gold shadow-[0_0_12px_rgba(255,167,81,0.25)]' : 'border-white/30 opacity-70'}"
+                      {mask.id === selectedMaskId
+                      ? 'border-2 border-neon-gold shadow-[0_0_12px_rgba(255,167,81,0.25)]'
+                      : 'border-white/30 opacity-70'}"
                     style="left: {mask.x}px; top: {mask.y}px; width: {mask.width}px; height: {mask.height}px;"
                     onmousedown={(e) => handleMaskMouseDown(e, mask, "move")}
-                    onclick={() => selectedMaskId = mask.id}
+                    onclick={() => (selectedMaskId = mask.id)}
                   >
                     <!-- Live CSS Filter Blur Preview -->
-                    <div 
+                    <div
                       class="absolute inset-0 pointer-events-none overflow-hidden rounded-md"
-                      style={mask.mode === "blur" 
-                        ? `backdrop-filter: blur(${blurStrength}px); -webkit-backdrop-filter: blur(${blurStrength}px);` 
-                        : mask.mode === "pixelate" 
-                        ? "backdrop-filter: contrast(120%) brightness(90%) blur(4px);" 
-                        : "background: rgba(10,10,15,0.95);"}
+                      style={mask.mode === "blur"
+                        ? `backdrop-filter: blur(${blurStrength}px); -webkit-backdrop-filter: blur(${blurStrength}px);`
+                        : mask.mode === "pixelate"
+                          ? "backdrop-filter: contrast(120%) brightness(90%) blur(4px);"
+                          : "background: rgba(10,10,15,0.95);"}
                     ></div>
 
                     <!-- Label badge -->
-                    <span class="absolute -top-5 left-0 bg-neon-gold text-black text-[8px] font-mono font-bold px-1.5 py-0.5 rounded shadow">
+                    <span
+                      class="absolute -top-5 left-0 bg-neon-gold text-black text-[8px] font-mono font-bold px-1.5 py-0.5 rounded shadow"
+                    >
                       MASK {mask.id} ({mask.mode.toUpperCase()})
                     </span>
 
                     <!-- NW Resize Node -->
-                    <div 
+                    <div
                       class="absolute -top-1.5 -left-1.5 w-3 h-3 bg-white border border-black rounded-full cursor-nwse-resize z-20"
                       onmousedown={(e) => handleMaskMouseDown(e, mask, "nw")}
                     ></div>
                     <!-- NE Resize Node -->
-                    <div 
+                    <div
                       class="absolute -top-1.5 -right-1.5 w-3 h-3 bg-white border border-black rounded-full cursor-nesw-resize z-20"
                       onmousedown={(e) => handleMaskMouseDown(e, mask, "ne")}
                     ></div>
                     <!-- SE Resize Node -->
-                    <div 
+                    <div
                       class="absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-white border border-black rounded-full cursor-nwse-resize z-20"
                       onmousedown={(e) => handleMaskMouseDown(e, mask, "se")}
                     ></div>
                     <!-- SW Resize Node -->
-                    <div 
+                    <div
                       class="absolute -bottom-1.5 -left-1.5 w-3 h-3 bg-white border border-black rounded-full cursor-nesw-resize z-20"
                       onmousedown={(e) => handleMaskMouseDown(e, mask, "sw")}
                     ></div>
@@ -842,21 +907,24 @@
         </div>
 
         <!-- CONTROL SIDEBAR -->
-        <div class="editor-sidebar w-full lg:w-[320px] bg-black/20 border-t lg:border-t-0 lg:border-l border-white/5 p-4 lg:p-6 flex flex-col gap-6 shrink-0 overflow-y-auto">
-          
+        <div
+          class="editor-sidebar w-full lg:w-[320px] bg-black/20 border-t lg:border-t-0 lg:border-l border-white/5 p-4 lg:p-6 flex flex-col gap-6 shrink-0 overflow-y-auto"
+        >
           {#if fileType === "image"}
             <!-- Image Editing Console -->
             <div class="sidebar-section">
-              <span class="section-title flex items-center gap-1.5 text-white/50 text-[10px] font-bold tracking-widest uppercase mb-3">
+              <span
+                class="section-title flex items-center gap-1.5 text-white/50 text-[10px] font-bold tracking-widest uppercase mb-3"
+              >
                 <Sliders size={12} /> WIPING UTILS
               </span>
-              
+
               <div class="flex flex-col gap-2">
-                <button 
+                <button
                   class="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold text-left transition-all border
-                    {activeTool === 'inpaint' 
-                      ? 'bg-neon-pink/10 border-neon-pink/30 text-neon-pink' 
-                      : 'bg-white/5 border-white/5 hover:bg-white/10 text-white/70'}"
+                    {activeTool === 'inpaint'
+                    ? 'bg-neon-pink/10 border-neon-pink/30 text-neon-pink'
+                    : 'bg-white/5 border-white/5 hover:bg-white/10 text-white/70'}"
                   onclick={() => {
                     activeTool = "inpaint";
                     isErasing = false;
@@ -868,12 +936,12 @@
                   <span class="text-[9px] opacity-50">Content-Aware</span>
                 </button>
 
-                <button 
+                <button
                   class="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold text-left transition-all border
-                    {activeTool === 'clone' 
-                      ? 'bg-neon-cyan/10 border-neon-cyan/30 text-neon-cyan' 
-                      : 'bg-white/5 border-white/5 hover:bg-white/10 text-white/70'}"
-                  onclick={() => activeTool = "clone"}
+                    {activeTool === 'clone'
+                    ? 'bg-neon-cyan/10 border-neon-cyan/30 text-neon-cyan'
+                    : 'bg-white/5 border-white/5 hover:bg-white/10 text-white/70'}"
+                  onclick={() => (activeTool = "clone")}
                 >
                   <span class="flex items-center gap-2">
                     <Target size={14} /> Clone Stamp
@@ -885,34 +953,44 @@
 
             <!-- Image Settings Section -->
             <div class="sidebar-section">
-              <span class="section-title flex items-center gap-1.5 text-white/50 text-[10px] font-bold tracking-widest uppercase mb-3">
+              <span
+                class="section-title flex items-center gap-1.5 text-white/50 text-[10px] font-bold tracking-widest uppercase mb-3"
+              >
                 <Brush size={12} /> BRUSH PARAMETERS
               </span>
 
               {#if activeTool === "inpaint"}
                 <!-- Brush Size Slider -->
-                <div class="flex flex-col gap-2 bg-white/[0.02] border border-white/5 p-3 rounded-xl">
-                  <div class="flex justify-between text-[11px] font-bold text-white/60">
+                <div
+                  class="flex flex-col gap-2 bg-white/[0.02] border border-white/5 p-3 rounded-xl"
+                >
+                  <div
+                    class="flex justify-between text-[11px] font-bold text-white/60"
+                  >
                     <span>Brush Size</span>
                     <span class="font-mono">{brushSize}px</span>
                   </div>
-                  <input 
-                    type="range" 
-                    min="5" 
-                    max="60" 
+                  <input
+                    type="range"
+                    min="5"
+                    max="60"
                     bind:value={brushSize}
-                    class="w-full accent-neon-pink" 
+                    class="w-full accent-neon-pink"
                   />
-                  
+
                   <!-- Eraser Toggle -->
-                  <div class="flex justify-between items-center mt-3 pt-3 border-t border-white/5">
-                    <span class="text-[11px] font-bold text-white/60">Erase Brush Mask</span>
-                    <button 
+                  <div
+                    class="flex justify-between items-center mt-3 pt-3 border-t border-white/5"
+                  >
+                    <span class="text-[11px] font-bold text-white/60"
+                      >Erase Brush Mask</span
+                    >
+                    <button
                       class="p-1.5 rounded-lg border transition-all
-                        {isErasing 
-                          ? 'bg-neon-pink/25 border-neon-pink text-neon-pink' 
-                          : 'bg-white/5 border-white/10 text-white/40 hover:text-white'}"
-                      onclick={() => isErasing = !isErasing}
+                        {isErasing
+                        ? 'bg-neon-pink/25 border-neon-pink text-neon-pink'
+                        : 'bg-white/5 border-white/10 text-white/40 hover:text-white'}"
+                      onclick={() => (isErasing = !isErasing)}
                       title="Erase painted mask"
                     >
                       <Eraser size={14} />
@@ -921,29 +999,40 @@
                 </div>
               {:else if activeTool === "clone"}
                 <!-- Clone Stamp parameters -->
-                <div class="flex flex-col gap-3 bg-white/[0.02] border border-white/5 p-3 rounded-xl">
-                  <div class="flex justify-between text-[11px] font-bold text-white/60">
+                <div
+                  class="flex flex-col gap-3 bg-white/[0.02] border border-white/5 p-3 rounded-xl"
+                >
+                  <div
+                    class="flex justify-between text-[11px] font-bold text-white/60"
+                  >
                     <span>Stamp Size</span>
                     <span class="font-mono">{brushSize}px</span>
                   </div>
-                  <input 
-                    type="range" 
-                    min="10" 
-                    max="80" 
+                  <input
+                    type="range"
+                    min="10"
+                    max="80"
                     bind:value={brushSize}
-                    class="w-full accent-neon-cyan" 
+                    class="w-full accent-neon-cyan"
                   />
 
-                  <button 
+                  <button
                     class="w-full py-2 bg-white/5 border border-white/10 hover:bg-white/10 transition-all rounded-xl text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-1.5"
                     class:bg-neon-cyan-active={isSettingCloneSource}
-                    onclick={() => isSettingCloneSource = true}
+                    onclick={() => (isSettingCloneSource = true)}
                   >
-                    <Target size={12} /> {cloneSource ? "Set Target Source" : "Click to select source"}
+                    <Target size={12} />
+                    {cloneSource
+                      ? "Set Target Source"
+                      : "Click to select source"}
                   </button>
-                  
+
                   {#if cloneSource}
-                    <span class="text-[9px] text-white/40 font-mono text-center">Source Offset: X {Math.round(cloneSource.x)}px, Y {Math.round(cloneSource.y)}px</span>
+                    <span class="text-[9px] text-white/40 font-mono text-center"
+                      >Source Offset: X {Math.round(cloneSource.x)}px, Y {Math.round(
+                        cloneSource.y,
+                      )}px</span
+                    >
                   {/if}
                 </div>
               {/if}
@@ -952,7 +1041,7 @@
             <!-- Inpaint / Export Buttons -->
             <div class="mt-auto flex flex-col gap-2">
               {#if activeTool === "inpaint"}
-                <button 
+                <button
                   class="w-full py-3 bg-neon-pink hover:bg-neon-pink-hover text-white transition-all rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(255,0,85,0.3)]"
                   onclick={runImageInpaint}
                   disabled={isProcessing}
@@ -965,7 +1054,7 @@
                 </button>
               {/if}
 
-              <button 
+              <button
                 class="w-full py-3 bg-white/10 border border-white/15 hover:bg-white/15 text-white transition-all rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2"
                 onclick={downloadImage}
               >
@@ -975,24 +1064,30 @@
           {:else}
             <!-- Video Editing Console -->
             <div class="sidebar-section">
-              <span class="section-title flex items-center gap-1.5 text-white/50 text-[10px] font-bold tracking-widest uppercase mb-3">
+              <span
+                class="section-title flex items-center gap-1.5 text-white/50 text-[10px] font-bold tracking-widest uppercase mb-3"
+              >
                 <Sliders size={12} /> MASK DIRECTORY
               </span>
 
-              <div class="flex flex-col gap-2 max-h-[220px] overflow-y-auto pr-1">
+              <div
+                class="flex flex-col gap-2 max-h-[220px] overflow-y-auto pr-1"
+              >
                 {#each videoMasks as mask}
                   <!-- svelte-ignore a11y_click_events_have_key_events -->
                   <!-- svelte-ignore a11y_no_static_element_interactions -->
-                  <div 
+                  <div
                     class="flex items-center justify-between p-2 rounded-xl border cursor-pointer transition-all
-                      {mask.id === selectedMaskId 
-                        ? 'bg-neon-gold/10 border-neon-gold/30 text-neon-gold' 
-                        : 'bg-white/5 border-white/5 hover:bg-white/10 text-white/70'}"
-                    onclick={() => selectedMaskId = mask.id}
+                      {mask.id === selectedMaskId
+                      ? 'bg-neon-gold/10 border-neon-gold/30 text-neon-gold'
+                      : 'bg-white/5 border-white/5 hover:bg-white/10 text-white/70'}"
+                    onclick={() => (selectedMaskId = mask.id)}
                   >
-                    <span class="text-xs font-mono font-bold pl-1">MASK {mask.id}</span>
+                    <span class="text-xs font-mono font-bold pl-1"
+                      >MASK {mask.id}</span
+                    >
                     <div class="flex items-center gap-1.5">
-                      <select 
+                      <select
                         bind:value={mask.mode}
                         class="bg-black/60 border border-white/10 text-[9px] font-bold rounded px-1.5 py-0.5"
                       >
@@ -1000,7 +1095,7 @@
                         <option value="pixelate">Pixelate</option>
                         <option value="solid">Fill</option>
                       </select>
-                      <button 
+                      <button
                         class="p-1 hover:text-red-400 transition-colors"
                         onclick={() => removeVideoMask(mask.id)}
                         aria-label="Remove mask"
@@ -1012,7 +1107,7 @@
                 {/each}
               </div>
 
-              <button 
+              <button
                 class="w-full mt-3 py-2 bg-white/5 border border-white/10 hover:bg-white/10 transition-all rounded-xl text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-1.5"
                 onclick={addVideoMask}
               >
@@ -1022,28 +1117,34 @@
 
             <!-- Video Mask parameters -->
             <div class="sidebar-section">
-              <span class="section-title flex items-center gap-1.5 text-white/50 text-[10px] font-bold tracking-widest uppercase mb-3">
+              <span
+                class="section-title flex items-center gap-1.5 text-white/50 text-[10px] font-bold tracking-widest uppercase mb-3"
+              >
                 <Sliders size={12} /> BLUR COEFFICIENT
               </span>
 
-              <div class="flex flex-col gap-2 bg-white/[0.02] border border-white/5 p-3 rounded-xl">
-                <div class="flex justify-between text-[11px] font-bold text-white/60">
+              <div
+                class="flex flex-col gap-2 bg-white/[0.02] border border-white/5 p-3 rounded-xl"
+              >
+                <div
+                  class="flex justify-between text-[11px] font-bold text-white/60"
+                >
                   <span>Blur Strength</span>
                   <span class="font-mono">{blurStrength}px</span>
                 </div>
-                <input 
-                  type="range" 
-                  min="5" 
-                  max="45" 
+                <input
+                  type="range"
+                  min="5"
+                  max="45"
                   bind:value={blurStrength}
-                  class="w-full accent-neon-gold" 
+                  class="w-full accent-neon-gold"
                 />
               </div>
             </div>
 
             <!-- Player & Recorder Export Controls -->
             <div class="mt-auto flex flex-col gap-2">
-              <button 
+              <button
                 class="w-full py-3 bg-white/10 border border-white/15 hover:bg-white/15 text-white transition-all rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2"
                 onclick={toggleVideo}
               >
@@ -1054,13 +1155,15 @@
                 {/if}
               </button>
 
-              <button 
+              <button
                 class="w-full py-3 bg-neon-gold hover:bg-neon-gold-hover text-black transition-all rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(255,167,81,0.25)]"
                 onclick={startVideoExport}
                 disabled={isRecording}
               >
                 {#if isRecording}
-                  <RefreshCw size={14} class="animate-spin" /> Recording ({(recordingTime).toFixed(1)}s)
+                  <RefreshCw size={14} class="animate-spin" /> Recording ({recordingTime.toFixed(
+                    1,
+                  )}s)
                 {:else}
                   <Download size={14} /> Wipe & Export MP4
                 {/if}

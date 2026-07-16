@@ -1,5 +1,8 @@
 <script>
-  import { CONSOLE_LABELS, getFriendlyKeyName } from "./controlsConfig.js";
+  import {
+    CONSOLE_LABELS,
+    getFriendlyKeyName,
+  } from "../../../lib/controlsConfig.js";
   import { X, RefreshCw, Keyboard } from "lucide-svelte";
 
   let {
@@ -15,13 +18,13 @@
   // Capture keyboard events when recording is active
   function handleKeyDown(e) {
     if (!recordingAction) return;
-    
+
     // Block standard keys like Escape/Tab from closing/focusing during record
     e.preventDefault();
     e.stopPropagation();
 
     const { console: consoleType, action } = recordingAction;
-    
+
     // Update local bindings state
     userMappings[consoleType][action] = e.code;
     recordingAction = null;
@@ -52,14 +55,17 @@
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div class="controls-modal-backdrop hidden md:flex" onclick={handleClose}>
     <div class="controls-modal-container" onclick={(e) => e.stopPropagation()}>
-      
       <!-- Modal Header -->
       <header class="modal-header">
         <div class="header-title">
           <Keyboard style="color: #e6b900;" size={20} />
           <h2>Keyboard Bindings Configuration</h2>
         </div>
-        <button class="close-btn" onclick={handleClose} aria-label="Close settings">
+        <button
+          class="close-btn"
+          onclick={handleClose}
+          aria-label="Close settings"
+        >
           <X size={16} />
         </button>
       </header>
@@ -93,7 +99,8 @@
           </div>
 
           <p class="panel-instruction-text">
-            Click on any button slot below, then press a key on your keyboard to assign it.
+            Click on any button slot below, then press a key on your keyboard to
+            assign it.
           </p>
 
           <div class="bindings-scroll-area">
@@ -102,19 +109,27 @@
                 <h4>{group.name}</h4>
                 <div class="bindings-grid">
                   {#each group.buttons as btn}
-                    {@const currentKey = userMappings[activeConsole]?.[btn.action]}
-                    {@const isThisRecording = recordingAction && recordingAction.console === activeConsole && recordingAction.action === btn.action}
-                    
+                    {@const currentKey =
+                      userMappings[activeConsole]?.[btn.action]}
+                    {@const isThisRecording =
+                      recordingAction &&
+                      recordingAction.console === activeConsole &&
+                      recordingAction.action === btn.action}
+
                     <div class="binding-item">
                       <span class="action-label">{btn.label}</span>
                       <button
                         class="key-assign-btn"
                         class:recording={isThisRecording}
-                        onclick={() => startRecording(activeConsole, btn.action)}
+                        onclick={() =>
+                          startRecording(activeConsole, btn.action)}
                       >
                         {#if isThisRecording}
                           <span class="pulse-dot"></span>
-                          <span style="color: #ffd633; font-weight: 600;" class="animate-pulse">PRESS ANY KEY...</span>
+                          <span
+                            style="color: #ffd633; font-weight: 600;"
+                            class="animate-pulse">PRESS ANY KEY...</span
+                          >
                         {:else}
                           {getFriendlyKeyName(currentKey)}
                         {/if}
@@ -133,7 +148,6 @@
         <p class="footer-tip">Mappings are automatically saved locally.</p>
         <button class="done-btn" onclick={handleClose}>Done</button>
       </footer>
-
     </div>
   </div>
 {/if}
@@ -162,7 +176,9 @@
     background: rgba(12, 12, 18, 0.95);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 20px;
-    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    box-shadow:
+      0 24px 64px rgba(0, 0, 0, 0.8),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -270,11 +286,26 @@
     color: rgba(255, 255, 255, 0.85);
   }
 
-  .badge.n64 { background: rgba(230, 185, 0, 0.15); color: #e6b900; }
-  .badge.nds { background: rgba(255, 51, 68, 0.15); color: #ff3344; }
-  .badge.gba { background: rgba(0, 215, 95, 0.15); color: #00d75f; }
-  .badge.sega { background: rgba(160, 0, 235, 0.15); color: #b13df2; }
-  .badge.psx { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+  .badge.n64 {
+    background: rgba(230, 185, 0, 0.15);
+    color: #e6b900;
+  }
+  .badge.nds {
+    background: rgba(255, 51, 68, 0.15);
+    color: #ff3344;
+  }
+  .badge.gba {
+    background: rgba(0, 215, 95, 0.15);
+    color: #00d75f;
+  }
+  .badge.sega {
+    background: rgba(160, 0, 235, 0.15);
+    color: #b13df2;
+  }
+  .badge.psx {
+    background: rgba(59, 130, 246, 0.15);
+    color: #3b82f6;
+  }
 
   .console-tab-btn:hover {
     background: rgba(255, 255, 255, 0.03);
@@ -421,8 +452,12 @@
   }
 
   @keyframes keyRecordingPulse {
-    from { opacity: 0.4; }
-    to { opacity: 1; }
+    from {
+      opacity: 0.4;
+    }
+    to {
+      opacity: 1;
+    }
   }
 
   .modal-footer {

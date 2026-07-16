@@ -17,11 +17,13 @@
   // Lazy load the 3D canvas component ONLY when the page is active/visible
   $effect(() => {
     if (active && !ThreeDCanvas) {
-      import("./ThreeDCanvas.svelte").then((module) => {
-        ThreeDCanvas = module.default;
-      }).catch((err) => {
-        console.error("Failed to lazy load Threlte canvas:", err);
-      });
+      import("./ThreeDCanvas.svelte")
+        .then((module) => {
+          ThreeDCanvas = module.default;
+        })
+        .catch((err) => {
+          console.error("Failed to lazy load Threlte canvas:", err);
+        });
     }
   });
 

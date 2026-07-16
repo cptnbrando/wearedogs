@@ -1,13 +1,22 @@
 <script>
   import { onMount } from "svelte";
-  import { Bluetooth, RefreshCw, Smartphone, CheckCircle, AlertCircle, Play, Square, Loader } from "lucide-svelte";
+  import {
+    Bluetooth,
+    RefreshCw,
+    Smartphone,
+    CheckCircle,
+    AlertCircle,
+    Play,
+    Square,
+    Loader,
+  } from "lucide-svelte";
 
   // App States: 'idle' | 'scanning' | 'pairing' | 'connected' | 'transmitting' | 'complete'
   let btState = $state("idle");
   let fileInputEl = $state(null);
   let selectedFile = $state(null);
   let progress = $state(0);
-  
+
   // Device list and pairing
   let mockDevices = $state([]);
   let activeDevice = $state(null);
@@ -24,14 +33,29 @@
   function startScan() {
     btState = "scanning";
     mockDevices = [];
-    
+
     // Simulate finding bluetooth nodes around
     setTimeout(() => {
       mockDevices = [
-        { id: "dev_1", name: "IPHONE-DOGG-X", type: "phone", strength: "Strong" },
-        { id: "dev_2", name: "FRIDGE-DOG-5A", type: "appliance", strength: "Moderate" },
+        {
+          id: "dev_1",
+          name: "IPHONE-DOGG-X",
+          type: "phone",
+          strength: "Strong",
+        },
+        {
+          id: "dev_2",
+          name: "FRIDGE-DOG-5A",
+          type: "appliance",
+          strength: "Moderate",
+        },
         { id: "dev_3", name: "JACUZZI-BASS-7", type: "spa", strength: "Weak" },
-        { id: "dev_4", name: "TOASTER-RAP-9", type: "appliance", strength: "Strong" }
+        {
+          id: "dev_4",
+          name: "TOASTER-RAP-9",
+          type: "appliance",
+          strength: "Strong",
+        },
       ];
       btState = "idle"; // Scan finished, show results
     }, 2500);
@@ -50,13 +74,13 @@
       try {
         const device = await navigator.bluetooth.requestDevice({
           acceptAllDevices: true,
-          optionalServices: ["device_information"]
+          optionalServices: ["device_information"],
         });
         activeDevice = {
           id: device.id,
           name: device.name || "Bluetooth Node",
           type: "phone",
-          strength: "Strong"
+          strength: "Strong",
         };
         startPairing();
       } catch (err) {
@@ -100,18 +124,21 @@
   function playChime() {
     try {
       const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      const notes = [293.66, 349.23, 440.00, 587.33]; // D4, F4, A4, D5
+      const notes = [293.66, 349.23, 440.0, 587.33]; // D4, F4, A4, D5
       notes.forEach((freq, idx) => {
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.connect(gain);
         gain.connect(audioCtx.destination);
-        
+
         osc.type = "sine";
         osc.frequency.setValueAtTime(freq, audioCtx.currentTime + idx * 0.1);
         gain.gain.setValueAtTime(0.2, audioCtx.currentTime + idx * 0.1);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + idx * 0.1 + 0.35);
-        
+        gain.gain.exponentialRampToValueAtTime(
+          0.01,
+          audioCtx.currentTime + idx * 0.1 + 0.35,
+        );
+
         osc.start(audioCtx.currentTime + idx * 0.1);
         osc.stop(audioCtx.currentTime + idx * 0.1 + 0.35);
       });
@@ -145,23 +172,23 @@
         <span>SCANNING LOCAL FREQUENCIES...</span>
         <small>Searching for secure Bluetooth receivers</small>
       </div>
-
     {:else if btState === "pairing"}
       <div class="pairing-slate">
         <Smartphone class="text-blue-400 mb-2" size={32} />
         <h3>SECURE CHANNEL VERIFICATION</h3>
         <p>Confirm matching pairing code on target device:</p>
-        
+
         <div class="pair-code-block">
           {pairCode}
         </div>
 
         <div class="slate-actions">
-          <button class="confirm-btn" onclick={confirmPairing}>Confirm Code</button>
+          <button class="confirm-btn" onclick={confirmPairing}
+            >Confirm Code</button
+          >
           <button class="cancel-btn" onclick={resetTransfer}>Cancel</button>
         </div>
       </div>
-
     {:else if btState === "connected" || btState === "transmitting"}
       <div class="active-slate">
         <div class="connection-pill">
@@ -172,19 +199,26 @@
         {#if btState === "connected"}
           <div class="file-uploader-box">
             {#if !selectedFile}
-              <button class="upload-area-btn" onclick={() => fileInputEl.click()}>
+              <button
+                class="upload-area-btn"
+                onclick={() => fileInputEl.click()}
+              >
                 <span>Choose File to Send</span>
-                <input 
+                <input
                   bind:this={fileInputEl}
-                  type="file" 
-                  onchange={handleFileSelect} 
-                  class="hidden-input" 
+                  type="file"
+                  onchange={handleFileSelect}
+                  class="hidden-input"
                 />
               </button>
             {:else}
               <div class="staged-file-card">
-                <span class="file-label">{selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)</span>
-                <button class="remove" onclick={() => selectedFile = null}>✕</button>
+                <span class="file-label"
+                  >{selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)</span
+                >
+                <button class="remove" onclick={() => (selectedFile = null)}
+                  >✕</button
+                >
               </div>
 
               <button class="dispatch-trigger" onclick={startTransfer}>
@@ -200,19 +234,21 @@
               <div class="bar-fill" style="width: {progress}%"></div>
               <span class="percent-label">{progress}%</span>
             </div>
-            <small>Optimal bit rate throttled by Bluetooth protocol limits.</small>
+            <small
+              >Optimal bit rate throttled by Bluetooth protocol limits.</small
+            >
           </div>
         {/if}
       </div>
-
     {:else if btState === "complete"}
       <div class="complete-slate">
         <CheckCircle class="text-green-400 mb-2" size={36} />
         <h3>Data Dispatched Successfully</h3>
         <p class="file-info">{selectedFile?.name}</p>
-        <button class="finish-btn" onclick={resetTransfer}>Finish Connection</button>
+        <button class="finish-btn" onclick={resetTransfer}
+          >Finish Connection</button
+        >
       </div>
-
     {:else}
       <!-- Idle Search List -->
       <div class="idle-slate">
@@ -232,7 +268,11 @@
                     <Smartphone size={14} class="text-neutral-400" />
                     <span class="dev-name">{dev.name}</span>
                   </div>
-                  <span class="dev-strength" class:strong-sig={dev.strength === "Strong"}>{dev.strength} Signal</span>
+                  <span
+                    class="dev-strength"
+                    class:strong-sig={dev.strength === "Strong"}
+                    >{dev.strength} Signal</span
+                  >
                 </button>
               {/each}
             </div>
@@ -241,7 +281,9 @@
           <div class="empty-results">
             <Smartphone class="text-neutral-600 mb-2" size={28} />
             <span>Search block empty</span>
-            <small>Activate receivers in nearby proximity and click Scan above.</small>
+            <small
+              >Activate receivers in nearby proximity and click Scan above.</small
+            >
           </div>
         {/if}
       </div>

@@ -10,7 +10,7 @@ const VALID_PANELS = new Set(['music', 'stats', 'map', 'store', 'networking']);
 /** App slugs recognized by ToolboxPanel. */
 export const VALID_APPS = new Set([
   'gopro', 'soundboard', 'snake', 'paint', 'stopwatch', 'dataflash', 'qrgenerator', 'rescue', 'memes',
-  'worldcup', 'blog', 'settings', 'arcade',
+  'worldcup', 'blog', 'settings', 'arcade', 'creatures', 'missingcreatures',
 ]);
 
 /**
@@ -78,6 +78,16 @@ export function parsePath(path) {
     return { type: 'music-track', trackId: s1 };
   }
 
+  // /store/campaign/c1
+  if (s0 === 'store' && s1 === 'campaign' && parts.length === 3) {
+    return { type: 'store-campaign', campaignId: s2 };
+  }
+
+  // /store/product/1
+  if (s0 === 'store' && s1 === 'product' && parts.length === 3) {
+    return { type: 'store-product', productId: s2 };
+  }
+
   // /stats  /map  /store  /networking
   if (parts.length === 1 && VALID_PANELS.has(s0)) {
     return { type: 'panel', panel: s0 };
@@ -105,7 +115,8 @@ export function parsePath(path) {
 
   // /apps/gopro  /apps/snake  … (specific app)
   if (s0 === 'apps' && parts.length === 2 && VALID_APPS.has(s1)) {
-    return { type: 'app', app: s1 };
+    const resolvedApp = s1 === 'creatures' ? 'missingcreatures' : s1;
+    return { type: 'app', app: resolvedApp };
   }
 
   // /apps/blog/hello-world  (Blog post deep link)
@@ -141,5 +152,6 @@ export function panelToUrl(panel) {
  * @returns {string}
  */
 export function appToUrl(app) {
+  if (app === 'missingcreatures') return '/apps/creatures';
   return '/apps/' + app;
 }

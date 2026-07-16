@@ -1,9 +1,21 @@
 <script>
   import { onMount, onDestroy } from "svelte";
-  import { 
-    Mic, Square, Play, Pause, Flame, Search, Swords, UploadCloud, Volume2, Trash2, Check, AlertCircle 
+  import {
+    Mic,
+    Square,
+    Play,
+    Pause,
+    Flame,
+    Search,
+    Swords,
+    UploadCloud,
+    Volume2,
+    Trash2,
+    Check,
+    AlertCircle,
   } from "lucide-svelte";
-  import mockFreestyles from "./mockFreestyles.json";
+  import mockFreestyles from "../../lib/mockFreestyles.json";
+  import { BattleEngine } from "../../lib/BattleEngine.js";
 
   // Svelte 5 props
   let { audioCore } = $props();
@@ -24,17 +36,9 @@
   let votedIds = $state([]);
   let searchInputRef = $state(null);
 
-  // Audio recording nodes
-  let mediaRecorder = null;
-  let audioStream = null;
-  let micAudioCtx = null;
-  let micAnalyser = null;
-  let micSource = null;
-  let recordTimer = null;
-  
-  // Waveform canvas
+  // BattleEngine instance
+  let battleEngine = null;
   let canvasEl = $state(null);
-  let animationFrameId = null;
 
   // Selected beat tracking
   let selectedTrackIndex = $state(0);
@@ -42,6 +46,16 @@
 
   // Load from local storage on mount
   onMount(() => {
+    battleEngine = new BattleEngine({
+      onDurationChange: (duration) => {
+        recordingDuration = duration;
+      },
+      onRecordingStop: (blob) => {
+        recordedBlob = blob;
+        recordedUrl = URL.createObjectURL(blob);
+      },
+    });
+
     selectedTrackIndex = audioCore.currentTrackIndex;
     const stored = localStorage.getItem("wearedogs_local_freestyles");
     if (stored) {
@@ -72,142 +86,57 @@
     // Dynamic search filtering
     if (!searchQuery.trim()) return list;
     const query = searchQuery.toLowerCase();
-    return list.filter(f => 
-      f.rapTag.toLowerCase().includes(query) || 
-      f.trackTitle.toLowerCase().includes(query)
+    return list.filter(
+      (f) =>
+        f.rapTag.toLowerCase().includes(query) ||
+        f.trackTitle.toLowerCase().includes(query),
     );
   });
 
   // Currently selected track in the music player
-  let currentTrack = $derived(audioCore.library[selectedTrackIndex] || audioCore.library[0]);
-
-  // Audio visualizer loop for microphone input
-  function startVisualizer() {
-    if (!canvasEl || !micAnalyser) return;
-    const ctx = canvasEl.getContext("2d");
-    const bufferLength = micAnalyser.frequencyBinCount;
-    const dataArray = new Uint8Array(bufferLength);
-
-    const draw = () => {
-      if (!isRecording) return;
-      animationFrameId = requestAnimationFrame(draw);
-      micAnalyser.getByteFrequencyData(dataArray);
-
-      const width = canvasEl.width;
-      const height = canvasEl.height;
-      ctx.clearRect(0, 0, width, height);
-
-      // Draw custom cyberpunk mic visualization bars
-      const barWidth = (width / bufferLength) * 2.5;
-      let barHeight;
-      let x = 0;
-
-      for (let i = 0; i < bufferLength; i++) {
-        barHeight = dataArray[i] / 1.5;
-        
-        // Gradient color: magenta to cyan
-        const percent = i / bufferLength;
-        const r = Math.floor(255 - percent * 150);
-        const g = Math.floor(percent * 200);
-        const b = 255;
-        
-        ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
-        ctx.fillRect(x, height - barHeight, barWidth - 2, barHeight);
-        
-        x += barWidth;
-      }
-    };
-    draw();
-  }
+  let currentTrack = $derived(
+    audioCore.library[selectedTrackIndex] || audioCore.library[0],
+  );
 
   // Request mic permission and setup recorder
   async function startRecording() {
     permissionError = false;
+    recordedBlob = null;
+    recordedUrl = null;
+    recordingDuration = 0;
+    isRecording = true;
+
     try {
-      audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      
-      // Initialize Web Audio for live visualization
-      micAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      micAnalyser = micAudioCtx.createAnalyser();
-      micAnalyser.fftSize = 64;
-      micSource = micAudioCtx.createMediaStreamSource(audioStream);
-      micSource.connect(micAnalyser);
-
-      // Initialize media recorder
-      mediaRecorder = new MediaRecorder(audioStream);
-      const chunks = [];
-      
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data && e.data.size > 0) {
-          chunks.push(e.data);
-        }
-      };
-
-      mediaRecorder.onstop = () => {
-        recordedBlob = new Blob(chunks, { type: "audio/webm" });
-        recordedUrl = URL.createObjectURL(recordedBlob);
-      };
-
-      // Reset states
-      recordedBlob = null;
-      recordedUrl = null;
-      recordingDuration = 0;
-      isRecording = true;
-
-      // Start recording & sync with beat player
-      mediaRecorder.start();
-      
-      // Setup instrumental toggle in audioCore if supported
       if (currentTrack.hasInstrumental) {
         audioCore.isInstrumental = useInstrumental;
       }
-      
-      // Force beat to play from beginning
       audioCore.loadTrack(selectedTrackIndex, true);
-      
-      // Start duration counter
-      recordTimer = setInterval(() => {
-        recordingDuration++;
-        if (recordingDuration >= 60) {
-          stopRecording();
-        }
-      }, 1000);
-
-      // Start visualizer canvas loop
-      setTimeout(startVisualizer, 100);
-
+      await battleEngine.startRecording(canvasEl);
     } catch (e) {
       console.error("Mic access failed:", e);
+      isRecording = false;
       permissionError = true;
     }
   }
 
   function stopRecording() {
-    if (mediaRecorder && mediaRecorder.state !== "inactive") {
-      mediaRecorder.stop();
+    if (battleEngine) {
+      battleEngine.stopRecording();
     }
-    if (audioStream) {
-      audioStream.getTracks().forEach(track => track.stop());
-    }
-    if (micAudioCtx) {
-      micAudioCtx.close();
-    }
-    if (recordTimer) {
-      clearInterval(recordTimer);
-    }
-    
     isRecording = false;
     audioCore.pause();
-    
-    if (animationFrameId) {
-      cancelAnimationFrame(animationFrameId);
-    }
   }
 
   function cleanupRecording() {
-    stopRecording();
+    if (battleEngine) {
+      battleEngine.stopRecording();
+    }
     if (recordedUrl) {
       URL.revokeObjectURL(recordedUrl);
+    }
+    if (previewAudio) {
+      previewAudio.pause();
+      previewAudio = null;
     }
   }
 
@@ -245,9 +174,9 @@
   // Save freestyle locally
   function submitFreestyle() {
     if (!recordedBlob) return;
-    
+
     const tag = rapTag.trim() || "ANONYMOUS_DOG";
-    
+
     // We convert audio blob to Base64 to store in localStorage for local demo persistence
     const reader = new FileReader();
     reader.readAsDataURL(recordedBlob);
@@ -261,11 +190,14 @@
         duration: recordingDuration || 30,
         votes: 0,
         dateAdded: new Date().toISOString(),
-        src: base64Audio // Embedded local audio
+        src: base64Audio, // Embedded local audio
       };
 
       localFreestyles = [newFreestyle, ...localFreestyles];
-      localStorage.setItem("wearedogs_local_freestyles", JSON.stringify(localFreestyles));
+      localStorage.setItem(
+        "wearedogs_local_freestyles",
+        JSON.stringify(localFreestyles),
+      );
 
       // Reset recording workflow states
       recordedBlob = null;
@@ -276,25 +208,31 @@
   }
 
   function deleteLocalFreestyle(id) {
-    localFreestyles = localFreestyles.filter(f => f.id !== id);
-    localStorage.setItem("wearedogs_local_freestyles", JSON.stringify(localFreestyles));
+    localFreestyles = localFreestyles.filter((f) => f.id !== id);
+    localStorage.setItem(
+      "wearedogs_local_freestyles",
+      JSON.stringify(localFreestyles),
+    );
   }
 
   // Double-vote prevention logic
   function upvoteFreestyle(id) {
     if (votedIds.includes(id)) return;
-    
+
     votedIds = [...votedIds, id];
     localStorage.setItem("wearedogs_freestyle_votes", JSON.stringify(votedIds));
 
     // Update vote locally
-    const idx = localFreestyles.findIndex(f => f.id === id);
+    const idx = localFreestyles.findIndex((f) => f.id === id);
     if (idx !== -1) {
       localFreestyles[idx].votes += 1;
-      localStorage.setItem("wearedogs_local_freestyles", JSON.stringify(localFreestyles));
+      localStorage.setItem(
+        "wearedogs_local_freestyles",
+        JSON.stringify(localFreestyles),
+      );
     } else {
       // It's a mock freestyle. We mock the vote counter inside the mock list.
-      const mockIdx = mockFreestyles.findIndex(f => f.id === id);
+      const mockIdx = mockFreestyles.findIndex((f) => f.id === id);
       if (mockIdx !== -1) {
         mockFreestyles[mockIdx].votes += 1;
       }
@@ -327,26 +265,26 @@
   function formatTime(secs) {
     const m = Math.floor(secs / 60);
     const s = Math.floor(secs % 60);
-    return `${m}:${s < 10 ? '0' : ''}${s}`;
+    return `${m}:${s < 10 ? "0" : ""}${s}`;
   }
 </script>
 
 <div class="battle-container">
   <!-- Interactive Arena Grid -->
   <div class="battle-grid">
-    
     <!-- Left Column: Recording & Preview -->
     <div class="battle-card record-zone">
       <div class="card-header">
         <Swords class="icon-swords text-magenta animate-pulse" size={20} />
         <h2>FREESTYLE STUDIO</h2>
       </div>
-      
+
       <!-- Beat Selector Section -->
       <div class="selector-section">
-        <label for="beat-select" class="field-label">CHOOSE A CYPHER BEAT</label>
+        <label for="beat-select" class="field-label">CHOOSE A CYPHER BEAT</label
+        >
         <div class="select-wrapper">
-          <select 
+          <select
             id="beat-select"
             class="beat-dropdown"
             bind:value={selectedTrackIndex}
@@ -361,10 +299,10 @@
         {#if currentTrack.hasInstrumental}
           <div class="instrumental-toggle">
             <span class="toggle-label">USE INSTRUMENTAL TRACK</span>
-            <button 
-              class="glow-switch" 
+            <button
+              class="glow-switch"
               class:active={useInstrumental}
-              onclick={() => useInstrumental = !useInstrumental}
+              onclick={() => (useInstrumental = !useInstrumental)}
               disabled={isRecording}
               aria-label="Toggle instrumental track"
             >
@@ -387,7 +325,12 @@
             <small>Enable mic access in settings to lay down bars.</small>
           </div>
         {:else if isRecording}
-          <canvas bind:this={canvasEl} width="280" height="90" class="visualizer-canvas"></canvas>
+          <canvas
+            bind:this={canvasEl}
+            width="280"
+            height="90"
+            class="visualizer-canvas"
+          ></canvas>
           <div class="live-rec-badge">
             <span class="pulsing-red-circle"></span>
             <span>RECORDING: {formatTime(recordingDuration)} / 1:00</span>
@@ -396,7 +339,9 @@
           <div class="success-slate">
             <Check size={36} class="text-green-400 mb-2" />
             <p>Freestyle Cut Finished!</p>
-            <small>{formatTime(recordingDuration)} of audio stored in memory buffer.</small>
+            <small
+              >{formatTime(recordingDuration)} of audio stored in memory buffer.</small
+            >
           </div>
         {:else}
           <div class="empty-slate">
@@ -410,7 +355,10 @@
       <!-- Action Control Room -->
       <div class="action-dock">
         {#if !isRecording && !recordedUrl}
-          <button class="battle-btn record-trigger-btn" onclick={startRecording}>
+          <button
+            class="battle-btn record-trigger-btn"
+            onclick={startRecording}
+          >
             <Mic size={16} /> Tap to Record
           </button>
         {:else if isRecording}
@@ -420,21 +368,37 @@
         {:else}
           <!-- Re-record & Preview panel -->
           <div class="post-rec-actions">
-            <button class="battle-btn preview-btn" class:playing={isPlayingPreview} onclick={togglePreview}>
+            <button
+              class="battle-btn preview-btn"
+              class:playing={isPlayingPreview}
+              onclick={togglePreview}
+            >
               {#if isPlayingPreview}
                 <Pause size={16} /> Pause Preview
               {:else}
                 <Play size={16} /> Preview Mix
               {/if}
             </button>
-            <button class="battle-btn discard-btn" onclick={() => { recordedUrl = null; recordedBlob = null; }}>
+            <button
+              class="battle-btn discard-btn"
+              onclick={() => {
+                recordedUrl = null;
+                recordedBlob = null;
+              }}
+            >
               Redo Wrap
             </button>
           </div>
 
           <div class="sync-preference">
-            <input id="sync-beat" type="checkbox" bind:checked={syncBeatWithPreview} />
-            <label for="sync-beat">Blend cypher beat into preview playback</label>
+            <input
+              id="sync-beat"
+              type="checkbox"
+              bind:checked={syncBeatWithPreview}
+            />
+            <label for="sync-beat"
+              >Blend cypher beat into preview playback</label
+            >
           </div>
         {/if}
       </div>
@@ -442,13 +406,15 @@
       <!-- Upload Station Form -->
       {#if recordedBlob && !isRecording}
         <div class="upload-station">
-          <label for="rap-tag" class="field-label">RAP TAG NAME (ANONYMOUS)</label>
+          <label for="rap-tag" class="field-label"
+            >RAP TAG NAME (ANONYMOUS)</label
+          >
           <div class="input-glow-group">
-            <input 
+            <input
               id="rap-tag"
-              type="text" 
-              placeholder="e.g. BARK_LORD_99" 
-              bind:value={rapTag} 
+              type="text"
+              placeholder="e.g. BARK_LORD_99"
+              bind:value={rapTag}
               maxlength="20"
               class="form-input-text"
             />
@@ -471,15 +437,17 @@
       <div class="search-block">
         <div class="search-input-wrapper">
           <Search class="search-icon" size={14} />
-          <input 
-            type="text" 
-            placeholder="Search by rap tag or beat title..." 
+          <input
+            type="text"
+            placeholder="Search by rap tag or beat title..."
             bind:value={searchQuery}
             bind:this={searchInputRef}
             class="search-bar"
           />
           {#if searchQuery}
-            <button class="clear-search" onclick={() => searchQuery = ""}>✕</button>
+            <button class="clear-search" onclick={() => (searchQuery = "")}
+              >✕</button
+            >
           {/if}
         </div>
       </div>
@@ -493,11 +461,14 @@
           </div>
         {:else}
           {#each allFreestyles as freestyle (freestyle.id)}
-            <div class="freestyle-item" class:is-playing={activeFeedId === freestyle.id}>
+            <div
+              class="freestyle-item"
+              class:is-playing={activeFeedId === freestyle.id}
+            >
               <!-- Play details -->
               <div class="fs-card-left">
-                <button 
-                  class="fs-play-btn" 
+                <button
+                  class="fs-play-btn"
                   onclick={() => playFeedFreestyle(freestyle)}
                   aria-label={activeFeedId === freestyle.id ? "Pause" : "Play"}
                 >
@@ -509,14 +480,18 @@
                 </button>
                 <div class="fs-card-meta">
                   <span class="fs-rap-tag">🎤 @{freestyle.rapTag}</span>
-                  <span class="fs-track-origin">Beat: {freestyle.trackTitle} ({formatTime(freestyle.duration)})</span>
+                  <span class="fs-track-origin"
+                    >Beat: {freestyle.trackTitle} ({formatTime(
+                      freestyle.duration,
+                    )})</span
+                  >
                 </div>
               </div>
 
               <!-- Interactive controls -->
               <div class="fs-card-right">
-                <button 
-                  class="fs-vote-btn" 
+                <button
+                  class="fs-vote-btn"
                   class:voted={votedIds.includes(freestyle.id)}
                   onclick={() => upvoteFreestyle(freestyle.id)}
                   disabled={votedIds.includes(freestyle.id)}
@@ -526,8 +501,8 @@
                 </button>
 
                 {#if freestyle.id.startsWith("fs_local_")}
-                  <button 
-                    class="fs-delete-btn" 
+                  <button
+                    class="fs-delete-btn"
                     onclick={() => deleteLocalFreestyle(freestyle.id)}
                     aria-label="Delete"
                   >
@@ -540,7 +515,6 @@
         {/if}
       </div>
     </div>
-    
   </div>
 </div>
 
@@ -598,7 +572,6 @@
     }
   }
 
-
   /* ── Selector Section ── */
   .selector-section {
     display: flex;
@@ -630,7 +603,7 @@
     cursor: pointer;
     outline: none;
     appearance: none;
-    
+
     &:focus {
       border-color: #00f0ff;
       box-shadow: 0 0 8px rgba(0, 240, 255, 0.2);
@@ -749,11 +722,17 @@
   }
 
   @keyframes pulseCircle {
-    0% { opacity: 0.3; }
-    100% { opacity: 1; }
+    0% {
+      opacity: 0.3;
+    }
+    100% {
+      opacity: 1;
+    }
   }
 
-  .empty-slate, .error-slate, .success-slate {
+  .empty-slate,
+  .error-slate,
+  .success-slate {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -793,7 +772,9 @@
     gap: 8px;
     cursor: pointer;
     border: none;
-    transition: transform 0.15s, box-shadow 0.2s;
+    transition:
+      transform 0.15s,
+      box-shadow 0.2s;
   }
 
   .record-trigger-btn {
@@ -819,8 +800,12 @@
   }
 
   @keyframes flashBorder {
-    0% { box-shadow: 0 0 4px #e11d48; }
-    100% { box-shadow: 0 0 14px #e11d48; }
+    0% {
+      box-shadow: 0 0 4px #e11d48;
+    }
+    100% {
+      box-shadow: 0 0 14px #e11d48;
+    }
   }
 
   .post-rec-actions {
@@ -838,7 +823,7 @@
       transform: translateY(-1px);
       box-shadow: 0 4px 18px rgba(0, 240, 255, 0.35);
     }
-    
+
     &.playing {
       background: #eab308;
       color: #09090b;
@@ -932,7 +917,6 @@
     display: flex;
     align-items: center;
   }
-
 
   .search-bar {
     width: 100%;
@@ -1034,7 +1018,9 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.2s, border-color 0.2s;
+    transition:
+      background 0.2s,
+      border-color 0.2s;
 
     &:hover {
       background: #00f0ff;

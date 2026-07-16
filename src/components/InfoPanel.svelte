@@ -96,6 +96,7 @@
     </footer>
   </div>
 </div>
+
 <style lang="scss">
   .info-panel-backdrop {
     position: fixed;

@@ -43,7 +43,11 @@
   </div>
 
   <div class="stopwatch-controls">
-    <button class="stopwatch-btn" class:active={timerActive} onclick={toggleStopwatch}>
+    <button
+      class="stopwatch-btn"
+      class:active={timerActive}
+      onclick={toggleStopwatch}
+    >
       {timerActive ? "PAUSE" : "START"}
     </button>
     <button class="stopwatch-btn reset" onclick={resetStopwatch}>
@@ -129,7 +133,13 @@
   }
 
   @keyframes paneFadeIn {
-    0% { opacity: 0; transform: translateY(8px); }
-    100% { opacity: 1; transform: translateY(0); }
+    0% {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 </style>

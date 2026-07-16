@@ -37,7 +37,7 @@
     music: "./MusicPanel.svelte",
     store: "./StorePanel.svelte",
     map: "./MapPanel.svelte",
-    info: "./InfoPanel.svelte"
+    info: "./InfoPanel.svelte",
   };
 
   // Lazy loaded panel components caching
@@ -125,7 +125,9 @@
             for (const el of scrollables) {
               const style = window.getComputedStyle(el);
               if (
-                (style.overflowY === "auto" || style.overflowY === "scroll" || el.classList.contains("shows-list-flow")) &&
+                (style.overflowY === "auto" ||
+                  style.overflowY === "scroll" ||
+                  el.classList.contains("shows-list-flow")) &&
                 el.scrollHeight > el.clientHeight &&
                 el.clientHeight > 0
               ) {
@@ -184,6 +186,8 @@
   let deepLinkGoProEp = $state(null);
   let deepLinkBlogPostSlug = $state(null);
   let deepLinkArcadeGame = $state(null);
+  let deepLinkStoreCampaignId = $state(null);
+  let deepLinkStoreProductId = $state(null);
 
   // ---------------------------------------------------------------------------
   // URL Routing — parse deep-link on first mount
@@ -206,6 +210,34 @@
       // Language is a preference, not a navigation step — set and stay at home.
       activeLang = params.lang;
       setTimeout(() => weAreDogsRef?.forceLanguage(params.lang), 0);
+      return;
+    }
+
+    if (params.type === "store-campaign") {
+      deepLinkStoreCampaignId = params.campaignId;
+      activePage = "store";
+      isClosing = false;
+      history.pushState({ view: "store", depth: 1 }, "", "/store");
+      history.pushState(
+        { view: "store", campaignId: params.campaignId, depth: 2 },
+        "",
+        `/store/campaign/${params.campaignId}`,
+      );
+      depth = 2;
+      return;
+    }
+
+    if (params.type === "store-product") {
+      deepLinkStoreProductId = params.productId;
+      activePage = "store";
+      isClosing = false;
+      history.pushState({ view: "store", depth: 1 }, "", "/store");
+      history.pushState(
+        { view: "store", productId: params.productId, depth: 2 },
+        "",
+        `/store/product/${params.productId}`,
+      );
+      depth = 2;
       return;
     }
 
@@ -342,6 +374,17 @@
         return;
       }
       const state = e.state;
+
+      // If state is null, it could be a hashchange on the current panel page.
+      // Do not close the page if the pathname still matches the active page URL prefix.
+      if (
+        state === null &&
+        activePage &&
+        window.location.pathname.startsWith(panelToUrl(activePage))
+      ) {
+        return;
+      }
+
       const targetView = state?.view || null;
       const targetApp = state?.app || null;
       const targetDepth = state?.depth || 0;
@@ -374,6 +417,11 @@
 
       if (targetView === "toolbox" && targetApp === "blog") {
         deepLinkBlogPostSlug = state?.slug || null;
+      }
+
+      if (targetView === "store") {
+        deepLinkStoreCampaignId = state?.campaignId || null;
+        deepLinkStoreProductId = state?.productId || null;
       }
 
       isClosing = false;
@@ -428,7 +476,12 @@
   function handleKeydown(e) {
     // Guard: don't steal keys from actual text inputs
     const tag = document.activeElement?.tagName;
-    if (tag === "INPUT" || tag === "TEXTAREA" || document.activeElement?.isContentEditable) return;
+    if (
+      tag === "INPUT" ||
+      tag === "TEXTAREA" ||
+      document.activeElement?.isContentEditable
+    )
+      return;
 
     if (e.key === "Escape" || e.key === "Backspace") {
       // If inside a toolbox sub-app, ToolboxPanel's Escape handler takes the first press
@@ -441,10 +494,19 @@
     // Homepage shortcuts — only when no panel is open
     if (activePage !== null) return;
 
-    if (e.key === ",") { e.preventDefault(); openPage("store"); }
-    else if (e.key === ".") { e.preventDefault(); openPage("music"); }
-    else if (e.key === "/") { e.preventDefault(); openPage("toolbox"); }
-    else if (e.key === "'" || e.key === "\'") { e.preventDefault(); openPage("map"); }
+    if (e.key === ",") {
+      e.preventDefault();
+      openPage("store");
+    } else if (e.key === ".") {
+      e.preventDefault();
+      openPage("music");
+    } else if (e.key === "/") {
+      e.preventDefault();
+      openPage("toolbox");
+    } else if (e.key === "'" || e.key === "'") {
+      e.preventDefault();
+      openPage("map");
+    }
   }
 </script>
 
@@ -551,7 +613,9 @@
         {isClosing}
         currentLang={activeLang}
         onClose={closePage}
-        onHoverLang={(code) => { activeLang = code; }}
+        onHoverLang={(code) => {
+          activeLang = code;
+        }}
         onSelectLang={(code) => {
           activeLang = code;
           if (weAreDogsRef) weAreDogsRef.forceLanguage(code);
@@ -572,7 +636,15 @@
       />
     {:else if activePage === "music"}
       <Panel {isClosing} onClose={closePage} {initialTrackId} />
-    {:else if activePage === "store" || activePage === "map"}
+    {:else if activePage === "store"}
+      <Panel
+        {isClosing}
+        onClose={closePage}
+        bind:depth
+        bind:initialCampaignId={deepLinkStoreCampaignId}
+        bind:initialProductId={deepLinkStoreProductId}
+      />
+    {:else if activePage === "map"}
       <Panel {isClosing} onClose={closePage} />
     {/if}
   {:else}
@@ -583,7 +655,11 @@
 {#if showInfo}
   {#if loadedPanels.info}
     {@const Panel = loadedPanels.info}
-    <Panel onClose={() => { if (showInfo) history.back(); }} />
+    <Panel
+      onClose={() => {
+        if (showInfo) history.back();
+      }}
+    />
   {:else}
     <div class="panel-loading-spinner" aria-label="Loading..."></div>
   {/if}
@@ -723,7 +799,8 @@
   }
 
   @keyframes runeDance {
-    0%, 100% {
+    0%,
+    100% {
       transform: scale(1) rotate(0deg);
     }
     25% {
@@ -764,6 +841,8 @@
   }
 
   @keyframes panelSpinner {
-    to { transform: rotate(360deg); }
+    to {
+      transform: rotate(360deg);
+    }
   }
 </style>

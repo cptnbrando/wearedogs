@@ -1,7 +1,16 @@
 <script>
   import { themeManager } from "../../lib/themeManager.svelte.js";
+  import { settingsManager } from "../../lib/settingsManager.svelte.js";
   import themesData from "../../lib/themes.json";
-  import { Settings, Check, Shuffle } from "lucide-svelte";
+  import {
+    Settings,
+    Check,
+    Shuffle,
+    Disc3,
+    BoomBox,
+    Save,
+    Music,
+  } from "lucide-svelte";
 
   let themes = themeManager.getThemesList();
   let activeThemeId = $derived(themeManager.currentThemeId);
@@ -22,6 +31,39 @@
       t.variables["--color-neon-purple"] || "#a000eb",
     ];
   }
+
+  const decks = [
+    {
+      id: "vinyl",
+      name: "Vinyl Disc",
+      desc: "Classic high-fidelity analog record player",
+      icon: Disc3,
+    },
+    {
+      id: "cassette",
+      name: "Cassette Tape",
+      desc: "Retro magnetic tape with rotating spools",
+      icon: BoomBox,
+    },
+    {
+      id: "floppy",
+      name: "Floppy Disk",
+      desc: '3.5" diskette with sliding shutter & active LED',
+      icon: Save,
+    },
+    {
+      id: "musicbox",
+      name: "Music Box",
+      desc: "Mechanical wind-up music box with vibrating comb",
+      icon: Music,
+    },
+  ];
+
+  let activeDeckId = $derived(settingsManager.musicDeckModel);
+
+  function selectDeck(id) {
+    settingsManager.setMusicDeckModel(id);
+  }
 </script>
 
 <div class="settings-layout animated-pane">
@@ -38,12 +80,12 @@
   <main class="settings-body scroll-container">
     <section class="settings-section">
       <h3 class="section-title">Select Theme Profile</h3>
-      
+
       <div class="themes-grid">
         {#each themes as theme}
           {@const isSelected = activeThemeId === theme.id}
           {@const colors = getThemeColors(theme.id)}
-          
+
           <!-- svelte-ignore a11y_click_events_have_key_events -->
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <div
@@ -62,7 +104,7 @@
                 {/each}
               </div>
             {/if}
-            
+
             <div class="theme-info">
               <span class="theme-name">{theme.name}</span>
               {#if isSelected}
@@ -75,8 +117,44 @@
         {/each}
       </div>
     </section>
+
+    <section class="settings-section mt-8">
+      <h3 class="section-title">Select Music Deck</h3>
+
+      <div class="decks-grid">
+        {#each decks as deck}
+          {@const DeckIcon = deck.icon}
+          {@const isSelected = activeDeckId === deck.id}
+
+          <!-- svelte-ignore a11y_click_events_have_key_events -->
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <div
+            class="theme-card deck-card"
+            class:selected={isSelected}
+            onclick={() => selectDeck(deck.id)}
+          >
+            <div class="deck-icon-box">
+              <DeckIcon size={24} class="text-white/80" />
+            </div>
+
+            <div class="theme-info deck-info">
+              <div class="flex flex-col">
+                <span class="theme-name">{deck.name}</span>
+                <span class="deck-desc">{deck.desc}</span>
+              </div>
+              {#if isSelected}
+                <span class="active-badge self-start">
+                  <Check size={12} /> Active
+                </span>
+              {/if}
+            </div>
+          </div>
+        {/each}
+      </div>
+    </section>
   </main>
 </div>
+
 <style lang="scss">
   @use "../../styles/variables" as *;
 
@@ -242,7 +320,69 @@
   }
 
   @keyframes paneFadeIn {
-    0% { opacity: 0; transform: translateY(10px); }
-    100% { opacity: 1; transform: translateY(0); }
+    0% {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .decks-grid {
+    display: grid;
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+    gap: 12px;
+
+    @media (min-width: 640px) {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  .deck-card {
+    flex-direction: row;
+    align-items: center;
+    gap: 14px;
+    padding: 14px;
+    height: 100%;
+  }
+
+  .deck-icon-box {
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+  }
+
+  .deck-card:hover .deck-icon-box {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+
+  .deck-card.selected .deck-icon-box {
+    border-color: var(--color-neon-red, #ff3344);
+    background: rgba(255, 51, 68, 0.05);
+  }
+
+  .deck-info {
+    flex-grow: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .deck-desc {
+    font-size: 0.68rem;
+    color: var(--color-text-muted, rgba(255, 255, 255, 0.45));
+    line-height: 1.3;
+    margin-top: 2px;
   }
 </style>

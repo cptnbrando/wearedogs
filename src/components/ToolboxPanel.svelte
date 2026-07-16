@@ -21,6 +21,7 @@
     FileText,
     Gamepad2,
     Component,
+    Search,
   } from "lucide-svelte";
   import DogsLogo from "./DogsLogo.svelte";
   import AppCard from "./AppCard.svelte";
@@ -66,6 +67,7 @@
     converter: "./apps/CatalyticConverter.svelte",
     reader: "./apps/ImageReader.svelte",
     windshieldwiper: "./apps/WindshieldWiper.svelte",
+    missingcreatures: "./apps/MissingCreatures.svelte",
   };
 
   // Lazy loaded app components caching
@@ -84,10 +86,19 @@
   });
 
   let displayedTitle = $state("TOOLBOX");
+  let dummyTitle = $state("TOOLBOX");
   let typewriterTimeout = null;
 
   let headerContainerWidth = $state(0);
   let headerTextWidth = $state(0);
+
+  let isMobile = $state(
+    typeof window !== "undefined" ? window.innerWidth <= 768 : false,
+  );
+
+  function handleResize() {
+    isMobile = window.innerWidth <= 768;
+  }
 
   // Derive the active header state (icon, title, etc) from active or focused app
   const currentHeaderDetails = $derived.by(() => {
@@ -99,8 +110,21 @@
     }
 
     if (appInfo) {
+      let title = appInfo.title;
+      if (appInfo.id === "missingcreatures") {
+        title = isMobile ? "Missing" : "Missing Persons";
+      }
+      if (appInfo.id === "converter") {
+        title = isMobile ? "Converter" : "Catalytic Converter";
+      }
+      if (appInfo.id === "windshieldwiper") {
+        title = isMobile ? "Windshield" : "Windshield Wiper";
+      }
+      if (appInfo.id === "soundboard") {
+        title = isMobile ? "Soundboard" : "Dog Soundboard";
+      }
       return {
-        title: appInfo.title,
+        title,
         icon: appInfo.icon,
         isEmoji: appInfo.id === "converter",
         id: appInfo.id,
@@ -123,15 +147,24 @@
     const target = currentTargetTitle;
     const current = displayedTitle;
 
-    if (current === target) return;
+    if (current === target) {
+      dummyTitle = target;
+      return;
+    }
 
     // Animate characters (backspace first, then type in)
     if (target.startsWith(current)) {
+      dummyTitle = target;
       displayedTitle = target.slice(0, current.length + 1);
-      typewriterTimeout = setTimeout(stepTypewriter, 35);
+      typewriterTimeout = setTimeout(stepTypewriter, 24);
     } else {
       displayedTitle = current.slice(0, -1);
-      typewriterTimeout = setTimeout(stepTypewriter, 15);
+      if (displayedTitle === "") {
+        // Only update dummyTitle (which shifts container width and center)
+        // after the old name has been fully backspaced / deleted.
+        dummyTitle = target;
+      }
+      typewriterTimeout = setTimeout(stepTypewriter, 10);
     }
   }
 
@@ -256,12 +289,18 @@
       desc: "Play high fidelity dog bark synthesizers.",
       icon: Volume2,
     },
-    /* {
+    {
+      id: "missingcreatures",
+      title: "Missing Creatures",
+      desc: "Investigate cryptids and global missing anomalies.",
+      icon: Search,
+    },
+    {
       id: "memes",
-      title: "Canine Memes",
-      desc: "Explore and share high-fidelity, hilarious dog memes.",
+      title: "MEMES",
+      desc: "Create custom Friendship Ended memes and explore templates.",
       icon: Smile,
-    }, */
+    },
     {
       id: "reader",
       title: "Image Reader",
@@ -271,7 +310,7 @@
     // RESCUE, GOPRO, DATAFLASH, CHANGELOG, AND SETTINGS MUST ALWAYS BE LAST IN THIS LIST
     {
       id: "gopro",
-      title: "GoPro Cinema",
+      title: "GoPro",
       desc: "Stream retro TV series and clip custom audio loops.",
       icon: Video,
     },
@@ -373,8 +412,15 @@
     }
   }
 
-  onMount(() => window.addEventListener("keydown", handleKeydown));
-  onDestroy(() => window.removeEventListener("keydown", handleKeydown));
+  onMount(() => {
+    window.addEventListener("keydown", handleKeydown);
+    window.addEventListener("resize", handleResize);
+    handleResize();
+  });
+  onDestroy(() => {
+    window.removeEventListener("keydown", handleKeydown);
+    window.removeEventListener("resize", handleResize);
+  });
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -402,7 +448,9 @@
       </button>
 
       <div class="active-app-header-box">
-        <span class="app-indicator-icon flex items-center justify-center">
+        <span
+          class="app-indicator-icon flex items-center justify-center w-6 mr-1.5 shrink-0"
+        >
           {#if currentHeaderDetails.isEmoji}
             🔥
           {:else}
@@ -428,10 +476,11 @@
             bind:clientWidth={headerTextWidth}
             class:animate-scroll={headerTextWidth > headerContainerWidth}
           >
-            <span class="invisible-dummy">{currentTargetTitle}</span>
+            <span class="invisible-dummy">{dummyTitle}</span>
             <span class="typewriter-content">{displayedTitle}</span>
           </h1>
         </div>
+        <div class="w-6 ml-1.5 shrink-0 pointer-events-none"></div>
       </div>
 
       <button

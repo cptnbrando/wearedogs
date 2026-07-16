@@ -210,7 +210,9 @@
         class="map-tooltip"
         style="left: {tooltipOnLeft ? mouseX : mouseX + 16}px;
           top: {tooltipOnTop ? mouseY : mouseY + 16}px;
-          transform: translate({tooltipOnLeft ? '-105%' : '0px'}, {tooltipOnTop ? '-105%' : '0px'});"
+          transform: translate({tooltipOnLeft ? '-105%' : '0px'}, {tooltipOnTop
+          ? '-105%'
+          : '0px'});"
       >
         <div
           class="tooltip-header font-bold text-white mb-1 flex items-center gap-1.5"

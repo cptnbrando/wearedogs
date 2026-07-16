@@ -42,7 +42,7 @@
     map: "./stats/MapTab.svelte",
     comparison: "./stats/ComparisonTab.svelte",
     animals: "./stats/AnimalsTab.svelte",
-    themes: "./stats/ThemesTab.svelte"
+    themes: "./stats/ThemesTab.svelte",
   };
 
   // Lazy loaded tab components caching
@@ -501,7 +501,12 @@
       <div class="brand">
         <button
           class="logo-btn"
-          onclick={() => window.dispatchEvent(new CustomEvent(audioCore.isPlaying ? "open-music-panel" : "open-info-panel"))}
+          onclick={() =>
+            window.dispatchEvent(
+              new CustomEvent(
+                audioCore.isPlaying ? "open-music-panel" : "open-info-panel",
+              ),
+            )}
           aria-label="Open DOGS Info"
         >
           <DogsLogo size="panel" />
@@ -527,7 +532,10 @@
       >
         {#if loadedTabs[activeTab]}
           {@const Tab = loadedTabs[activeTab]}
-          <div in:fade={{ duration: 120, delay: 120 }} out:fade={{ duration: 120 }}>
+          <div
+            in:fade={{ duration: 120, delay: 120 }}
+            out:fade={{ duration: 120 }}
+          >
             {#if activeTab === "explorer"}
               <Tab
                 {allLangItems}
@@ -577,14 +585,19 @@
           <div
             class="color-track h-1 flex border border-white/10 rounded-full overflow-hidden"
           >
-            <span class="flex-1" style="background: {activeLangItem.colors[0]}"></span>
-            <span class="flex-1" style="background: {activeLangItem.colors[1]}"></span>
-            <span class="flex-1" style="background: {activeLangItem.colors[2]}"></span>
+            <span class="flex-1" style="background: {activeLangItem.colors[0]}"
+            ></span>
+            <span class="flex-1" style="background: {activeLangItem.colors[1]}"
+            ></span>
+            <span class="flex-1" style="background: {activeLangItem.colors[2]}"
+            ></span>
           </div>
           <div
             class="translation-preview text-xs text-white/50 font-medium italic leading-relaxed"
           >
-            "{activeLangItem.we} {activeLangItem.are} {activeLangItem.dogs}"
+            "{activeLangItem.we}
+            {activeLangItem.are}
+            {activeLangItem.dogs}"
           </div>
         </div>
       </div>

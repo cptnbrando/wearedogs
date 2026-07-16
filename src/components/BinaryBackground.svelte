@@ -29,9 +29,12 @@
 
       // Binary character color
       // In color mode, use active neon color based on active theme, else standard dim white/gray
-      const theme = document.documentElement.getAttribute("data-theme") || "default";
+      const theme =
+        document.documentElement.getAttribute("data-theme") || "default";
       ctx.fillStyle = isFlagColors
-        ? (theme === "default" ? "rgba(214, 26, 44, 0.45)" : "rgba(160, 0, 235, 0.45)")
+        ? theme === "default"
+          ? "rgba(214, 26, 44, 0.45)"
+          : "rgba(160, 0, 235, 0.45)"
         : "rgba(255, 255, 255, 0.15)";
       ctx.font = `${fontSize}px monospace`;
 
