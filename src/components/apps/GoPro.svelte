@@ -19,12 +19,17 @@
         Maximize,
         Minimize,
         ArrowLeft,
+        VolumeX,
+        Volume1,
+        SkipBack,
     } from "lucide-svelte";
     import { samplerStore } from "../../lib/samplerStore.svelte.js";
     import { catalog as cachedCatalog } from "./videos.js";
     import GoProRemapper from "./GoProRemapper.svelte";
     import GoProCatalog from "./GoProCatalog.svelte";
     import GoProCalculator from "./GoProCalculator.svelte";
+    import DogsLogo from "../DogsLogo.svelte";
+    import { audioCore } from "../../lib/AudioCore.svelte.js";
 
     // State Management (Runes)
     let catalog = $state(cachedCatalog);
@@ -33,8 +38,10 @@
     let currentPassword = $state("");
     let showMobileTools = $state(false);
     let currentEpisodeIndex = $state(0);
+    let isEpisodesMenuOpen = $state(false);
+
     let activeControlPage = $state(0);
-    let lowerDeckView = $state("episodes");
+    let lowerDeckView = $state("controls");
     let isControlsExpanded = $state(false);
     let activeShow = $derived(
         catalog[activeShowKey] || {
@@ -852,11 +859,13 @@
             e.preventDefault();
             volume = Math.max(0, volume - 0.05);
             if (videoEl) videoEl.volume = volume;
-        } else if ((e.key >= "0" && e.key <= "9") || (e.code && e.code >= "Numpad0" && e.code <= "Numpad9")) {
+        } else if ((e.key >= "0" && e.key <= "9") || (e.code && e.code.startsWith("Numpad") && e.code.length === 7)) {
             e.preventDefault();
             if (e.repeat) return;
-            const digit = e.key >= "0" && e.key <= "9" ? e.key : e.code.slice(6);
-            startRepeating(digit);
+            const digit = (e.key >= "0" && e.key <= "9") ? e.key : (e.code ? e.code.replace(/^\D+/, "") : null);
+            if (digit !== null) {
+                startRepeating(digit);
+            }
         } else if (e.key === "i" || e.key === "I") {
             e.preventDefault();
             skipIntro();
@@ -1185,13 +1194,33 @@
 
                 <!-- Top Floating Overlay HUD -->
                 <div class="player-overlay-top" class:hidden={!controlsVisible}>
-                    <div class="flex gap-2 font-sans text-xs">
+                    <div class="flex gap-2 font-sans text-xs items-center relative z-50">
                         <button
-                            class="exit-player-btn bg-white/5 border border-white/10"
-                            onclick={() => (isRemapperOpen = true)}
+                            class="episodes-menu-btn flex items-center gap-1 bg-black/60 hover:bg-black/85 border border-white/10 hover:border-white/30 px-2 py-1 rounded text-white transition-all font-mono tracking-wider font-bold"
+                            onclick={(e) => {
+                                e.stopPropagation();
+                                isEpisodesMenuOpen = !isEpisodesMenuOpen;
+                            }}
                         >
-                            ⚙️ Key Remap
+                            📺 CHOOSE SHOW / EPISODE
                         </button>
+                        
+                        {#if isEpisodesMenuOpen}
+                            <!-- svelte-ignore a11y_click_events_have_key_events -->
+                            <!-- svelte-ignore a11y_no_static_element_interactions -->
+                            <div 
+                                class="episodes-dropdown absolute top-8 left-0 z-50 bg-zinc-950/98 border border-zinc-800 rounded-xl p-4 w-[420px] max-h-[500px] overflow-y-auto shadow-[0_10px_35px_rgba(0,0,0,0.9)]"
+                                onclick={(e) => e.stopPropagation()}
+                            >
+                                <GoProCatalog
+                                    bind:catalog
+                                    bind:activeShowKey
+                                    bind:currentEpisodeIndex
+                                    bind:selectedSeasons
+                                    {playEpisode}
+                                />
+                            </div>
+                        {/if}
                     </div>
 
                     <div class="player-episode-info-hud">
@@ -1231,8 +1260,8 @@
                     </div>
                 </div>
 
-                <!-- Flashing center crosshairs / grid HUD (pointer-events none, visible when HUD active) -->
-                {#if hudVisible}
+                <!-- Flashing center crosshairs / grid HUD (visible when HUD active and hover overlay is visible) -->
+                {#if hudVisible && controlsVisible}
                     <div class="video-hud">
                         <div class="rec-indicator">
                             <span class="rec-dot"></span>
@@ -1250,8 +1279,7 @@
                                         .toString()
                                         .padStart(2, "0")}
                                 </span>
-                                <span class="hud-indicator-ep-separator">-</span
-                                >
+                                <span class="hud-indicator-ep-separator">-</span>
                                 <span class="hud-indicator-ep-details">
                                     {currentEpisodeDetails.title}
                                 </span>
@@ -1266,7 +1294,7 @@
                     </div>
                 {/if}
 
-                <!-- Bottom Floating Overlay HUD (Timeline ONLY) -->
+                <!-- Bottom Floating Overlay HUD (Timeline & Controls) -->
                 <div
                     class="player-overlay-bottom"
                     class:hidden={!controlsVisible}
@@ -1351,6 +1379,60 @@
                         {/if}
                     </div>
 
+                    <!-- Overlay controls row (Netflix/Youtube style) -->
+                    <div class="overlay-controls-row flex items-center justify-between mt-3 px-2">
+                        <div class="flex items-center gap-3">
+                            <button class="overlay-ctrl-btn p-1 text-white/70 hover:text-white hover:scale-105 transition-all" onclick={togglePlay} title="Play/Pause">
+                                {#if isPlaying}
+                                    <Pause size={16} fill="currentColor" />
+                                {:else}
+                                    <Play size={16} fill="currentColor" />
+                                {/if}
+                            </button>
+                            <button class="overlay-ctrl-btn p-1 text-white/70 hover:text-white hover:scale-105 transition-all" onclick={prevEpisode} title="Previous Episode">
+                                <SkipBack size={16} />
+                            </button>
+                            <button class="overlay-ctrl-btn p-1 text-white/70 hover:text-white hover:scale-105 transition-all" onclick={nextEpisode} title="Next Episode">
+                                <SkipForward size={16} />
+                            </button>
+                            
+                            <!-- Volume control -->
+                            <div class="flex items-center gap-1.5 ml-2 group/vol">
+                                <button class="overlay-ctrl-btn p-1 text-white/70 hover:text-white hover:scale-105 transition-all" onclick={() => {
+                                    isMuted = !isMuted;
+                                    if (videoEl) videoEl.muted = isMuted;
+                                }}>
+                                    {#if isMuted || volume === 0}
+                                        <VolumeX size={16} />
+                                    {:else if volume < 0.5}
+                                        <Volume1 size={16} />
+                                    {:else}
+                                        <Volume2 size={16} />
+                                    {/if}
+                                </button>
+                                <input
+                                    type="range"
+                                    min="0"
+                                    max="1"
+                                    step="0.05"
+                                    value={isMuted ? 0 : volume}
+                                    oninput={handleVolumeChange}
+                                    class="w-16 h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-cyan-400 opacity-0 group-hover/vol:opacity-100 transition-opacity duration-200"
+                                />
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center gap-2">
+                            <button class="overlay-ctrl-btn p-1 text-white/70 hover:text-white hover:scale-105 transition-all" onclick={toggleFullscreen} title="Fullscreen">
+                                {#if isFullscreen}
+                                    <Minimize size={16} />
+                                {:else}
+                                    <Maximize size={16} />
+                                {/if}
+                            </button>
+                        </div>
+                    </div>
+
                     <!-- Tech details footer stats -->
                     <footer class="cinema-footer">
                         <div class="cache-status">
@@ -1363,29 +1445,18 @@
                         </div>
                     </footer>
                 </div>
+
+                <!-- Permanent greyed out branding overlay in bottom right -->
+                <div class="dogs-brand-overlay absolute bottom-3 right-4 flex items-center gap-1.5 opacity-20 pointer-events-none select-none z-10 transition-all duration-300">
+                    <div class={audioCore.isPlaying ? "animate-pulse" : ""}>
+                        <DogsLogo size="16" />
+                    </div>
+                    <span class="text-[11px] font-mono tracking-widest font-bold text-white">DOGS</span>
+                </div>
             </div>
 
-            <!-- LOWER DECK: Controls & Episode Selector Panels Mutually Exclusive -->
+            <!-- LOWER DECK: Controls Panel Tray -->
             <div class="theater-lower-deck">
-                <!-- Deck View Toggle Bar -->
-                <div class="deck-toggle-bar">
-                    <button
-                        class="deck-toggle-btn"
-                        class:active={lowerDeckView === "controls"}
-                        onclick={() => (lowerDeckView = "controls")}
-                    >
-                        🎮 CONTROLS
-                    </button>
-                    <button
-                        class="deck-toggle-btn"
-                        class:active={lowerDeckView === "episodes"}
-                        onclick={() => (lowerDeckView = "episodes")}
-                    >
-                        📺 EPISODES
-                    </button>
-                </div>
-
-                {#if lowerDeckView === "controls"}
                     <!-- Controls Panel Tray -->
                     <!-- svelte-ignore a11y_no_static_element_interactions -->
                     <div
@@ -1403,42 +1474,22 @@
                         <div
                             class="minimal-controls-row flex items-center justify-between gap-3 w-full"
                         >
-                            <button
-                                class="btn-circular play-toggle flex-shrink-0"
-                                onclick={togglePlay}
-                                title="Play/Pause"
-                            >
-                                {#if isPlaying}
-                                    <Pause size={14} fill="currentColor" />
-                                {:else}
-                                    <Play size={14} fill="currentColor" />
-                                {/if}
-                            </button>
-
-                            <button
-                                type="button"
-                                class="minimal-seekbar-container relative flex-grow cursor-pointer"
-                                aria-label="Seek video"
-                                onclick={(e) => {
-                                    if (!videoEl || duration === 0) return;
-                                    const rect =
-                                        e.currentTarget.getBoundingClientRect();
-                                    const pct =
-                                        (e.clientX - rect.left) / rect.width;
-                                    videoEl.currentTime = duration * pct;
-                                }}
-                            >
-                                <div
-                                    class="minimal-seekbar-track w-full bg-white/10 rounded-full h-1.5 overflow-hidden"
+                            <div class="flex items-center gap-3">
+                                <button
+                                    class="btn-circular play-toggle flex-shrink-0"
+                                    onclick={togglePlay}
+                                    title="Play/Pause"
                                 >
-                                    <div
-                                        class="minimal-seekbar-fill bg-[#ff55bb] h-full"
-                                        style="width: {duration > 0
-                                            ? (currentTime / duration) * 100
-                                            : 0}%"
-                                    ></div>
-                                </div>
-                            </button>
+                                    {#if isPlaying}
+                                        <Pause size={14} fill="currentColor" />
+                                    {:else}
+                                        <Play size={14} fill="currentColor" />
+                                    {/if}
+                                </button>
+                                <span class="text-xs font-mono text-white/60">
+                                    {formatTime(currentTime)} / {formatTime(duration)}
+                                </span>
+                            </div>
 
                             <button
                                 class="arrow-toggle-btn text-white/50 hover:text-white flex-shrink-0 text-[10px] w-6 h-6 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-all"
@@ -1458,27 +1509,35 @@
 
                         {#if isControlsExpanded}
                             <!-- Tabs Navigation Header -->
-                            <div class="controls-navigation-tabs mt-2">
+                            <div class="controls-navigation-tabs mt-2 flex items-center justify-between">
+                                <div class="flex gap-2">
+                                    <button
+                                        class="control-tab-btn"
+                                        class:active={activeControlPage === 0}
+                                        onclick={() => (activeControlPage = 0)}
+                                    >
+                                        PLAYBACK
+                                    </button>
+                                    <button
+                                        class="control-tab-btn"
+                                        class:active={activeControlPage === 1}
+                                        onclick={() => (activeControlPage = 1)}
+                                    >
+                                        FILTERS
+                                    </button>
+                                    <button
+                                        class="control-tab-btn"
+                                        class:active={activeControlPage === 2}
+                                        onclick={() => (activeControlPage = 2)}
+                                    >
+                                        SAMPLER
+                                    </button>
+                                </div>
                                 <button
-                                    class="control-tab-btn"
-                                    class:active={activeControlPage === 0}
-                                    onclick={() => (activeControlPage = 0)}
+                                    class="exit-player-btn bg-white/5 hover:bg-white/10 border border-white/10 px-2 py-1 rounded text-white text-[11px] font-sans transition-all flex items-center gap-1"
+                                    onclick={() => (isRemapperOpen = true)}
                                 >
-                                    PLAYBACK
-                                </button>
-                                <button
-                                    class="control-tab-btn"
-                                    class:active={activeControlPage === 1}
-                                    onclick={() => (activeControlPage = 1)}
-                                >
-                                    FILTERS
-                                </button>
-                                <button
-                                    class="control-tab-btn"
-                                    class:active={activeControlPage === 2}
-                                    onclick={() => (activeControlPage = 2)}
-                                >
-                                    SAMPLER
+                                    ⚙️ Key Remap
                                 </button>
                             </div>
 
@@ -1838,16 +1897,6 @@
                             </div>
                         {/if}
                     </div>
-                {:else}
-                    <!-- Persistent Bottom Episode Selector -->
-                    <GoProCatalog
-                        bind:catalog
-                        bind:activeShowKey
-                        bind:currentEpisodeIndex
-                        bind:selectedSeasons
-                        {playEpisode}
-                    />
-                {/if}
             </div>
         </div>
 
