@@ -382,7 +382,7 @@
           >
             <!-- Left: 3D Shirt Canvas -->
             <div
-              class="w-full aspect-square bg-black/40 border border-zinc-800 rounded-2xl flex items-center justify-center p-4 relative overflow-hidden mx-auto h-auto min-h-[250px] max-h-[300px] sm:min-h-0 sm:max-h-[280px] md:max-h-[340px] lg:max-h-[360px] xl:max-h-[380px] 2xl:max-h-[480px]"
+              class="w-full aspect-square bg-black/40 border border-zinc-800 rounded-2xl flex items-center justify-center p-4 relative overflow-hidden mx-auto h-auto min-h-[250px] max-h-[300px] sm:min-h-0 sm:max-h-[280px] md:max-h-[340px] lg:max-h-[360px] xl:max-h-[380px] 2xl:max-h-[480px] sm:sticky sm:top-4 md:top-6 lg:top-8"
             >
               <ThreeDShirtCanvas productTitle={selectedProduct.title} />
             </div>
@@ -615,7 +615,7 @@
             class="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-12 gap-4 sm:gap-6 lg:gap-8 items-start animate-fade-in"
           >
             <!-- Left Side: Media Carousel (Col 7) -->
-            <div class="sm:col-span-7 flex flex-col gap-3 sm:gap-4">
+            <div class="sm:col-span-7 flex flex-col gap-3 sm:gap-4 sm:sticky sm:top-4 md:top-6 lg:top-8">
               <!-- Big Image Showcase -->
               <div
                 class="relative w-full aspect-video bg-black/40 border border-zinc-800 rounded-2xl overflow-hidden shadow-lg group max-h-[200px] sm:max-h-[260px] md:max-h-[320px] lg:max-h-[360px] xl:max-h-[400px]"
