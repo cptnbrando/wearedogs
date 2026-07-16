@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1784176115,
+    "firstCommitTimestamp": 1784176579,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 126972
+    "averageLinesAltered": 126962
   },
   "entries": [
     {
       "version": "1.0.3",
       "name": "Master",
       "date": "2026-07-16",
-      "timestamp": 1784176050,
+      "timestamp": 1784176508,
       "commits": [
         {
-          "hash": "8f7b1c4",
-          "message": "docs: add roadmap and requirements for map panel feature to TODO list",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/8f7b1c4465905716ca24c833770863397e0f3a7b",
-          "timestamp": 1784176115,
-          "linesChanged": 126972
+          "hash": "fb50865",
+          "message": "no arcade",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/fb50865960806efe4073dfb787eaf09ef37fd081",
+          "timestamp": 1784176579,
+          "linesChanged": 126962
         }
       ]
     },
