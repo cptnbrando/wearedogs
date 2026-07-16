@@ -52,6 +52,22 @@
         currentEpisodeIndex = 0;
     }
 
+    // Page-wide scrolling support
+    import { onMount } from "svelte";
+    let episodesSwipeWrapperRef = $state();
+
+    onMount(() => {
+        const handleGlobalWheel = (e) => {
+            if (episodesSwipeWrapperRef) {
+                episodesSwipeWrapperRef.scrollTop += e.deltaY;
+            }
+        };
+        window.addEventListener("wheel", handleGlobalWheel, { passive: true });
+        return () => {
+            window.removeEventListener("wheel", handleGlobalWheel);
+        };
+    });
+
     // Season Swipe Support
     let touchStartX = 0;
     let touchEndX = 0;
@@ -64,6 +80,7 @@
         touchEndX = e.changedTouches[0].screenX;
         handleSeasonSwipe();
     }
+
 
     function handleSeasonSwipe() {
         const threshold = 50;
@@ -159,6 +176,7 @@
             <!-- Episodes scrollable grid container with Swipe listener -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div
+                bind:this={episodesSwipeWrapperRef}
                 class="episodes-swipe-wrapper"
                 ontouchstart={handleTouchStart}
                 ontouchend={handleTouchEnd}
