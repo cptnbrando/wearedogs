@@ -24,7 +24,7 @@
         SkipBack,
     } from "lucide-svelte";
     import { samplerStore } from "../../lib/samplerStore.svelte.js";
-    import { catalog as cachedCatalog } from "./videos.js";
+    import { catalog as cachedCatalog } from "../../lib/videos.js";
     import GoProRemapper from "./GoProRemapper.svelte";
     import GoProCatalog from "./GoProCatalog.svelte";
     import GoProCalculator from "./GoProCalculator.svelte";

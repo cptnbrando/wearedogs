@@ -18,7 +18,7 @@
     Trash2,
     Loader2,
   } from "lucide-svelte";
-  import { convertImage, convertAudio, convertVideo, convertAudioToVideo } from "./convert.js";
+  import { convertImage, convertAudio, convertVideo, convertAudioToVideo } from "../../lib/convert.js";
   import * as fflate from "fflate";
 
   // State variables
@@ -1635,5 +1635,5 @@
 </div>
 
 <style lang="scss">
-  @use "./CatalyticConverter.scss";
+  @use "../../styles/CatalyticConverter.scss";
 </style>

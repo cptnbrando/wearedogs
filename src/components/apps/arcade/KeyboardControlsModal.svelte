@@ -1,5 +1,5 @@
 <script>
-  import { CONSOLE_LABELS, getFriendlyKeyName } from "./controlsConfig.js";
+  import { CONSOLE_LABELS, getFriendlyKeyName } from "../../../lib/controlsConfig.js";
   import { X, RefreshCw, Keyboard } from "lucide-svelte";
 
   let {

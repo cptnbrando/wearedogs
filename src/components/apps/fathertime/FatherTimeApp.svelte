@@ -23,7 +23,7 @@
   import HistoryTab from "./HistoryTab.svelte";
   import MetronomeTab from "./MetronomeTab.svelte";
   import TuningForkTab from "./TuningForkTab.svelte";
-  import { Metronome } from "./metronome.svelte.js";
+  import { Metronome } from "../../../lib/metronome.svelte.js";
   import MetronomeVisual from "./MetronomeVisual.svelte";
 
   let activeTab = $state("hourglass");

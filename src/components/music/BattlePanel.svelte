@@ -3,8 +3,8 @@
   import { 
     Mic, Square, Play, Pause, Flame, Search, Swords, UploadCloud, Volume2, Trash2, Check, AlertCircle 
   } from "lucide-svelte";
-  import mockFreestyles from "./mockFreestyles.json";
-  import { BattleEngine } from "./BattleEngine.js";
+  import mockFreestyles from "../../lib/mockFreestyles.json";
+  import { BattleEngine } from "../../lib/BattleEngine.js";
 
   // Svelte 5 props
   let { audioCore } = $props();

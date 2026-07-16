@@ -7,7 +7,7 @@
     Settings2, Scissors, Waves, HelpCircle, 
     RefreshCw, Check, ArrowLeft 
   } from "lucide-svelte";
-  import { SoundStripperEngine } from "./SoundStripperEngine.js";
+  import { SoundStripperEngine } from "../../lib/SoundStripperEngine.js";
   import BaseApp from "./BaseApp.svelte";
 
   // State Variables

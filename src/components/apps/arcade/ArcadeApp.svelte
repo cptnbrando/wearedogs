@@ -21,7 +21,7 @@
   // import romMarioDS from "./rom/mario64-ds.zip?url";
   // import romMarioN64 from "./rom/mario64-n64.zip?url";
   // import romMoonwalker from "./rom/moonwalker-segagenesis.zip?url";
-  import { DEFAULT_MAPPINGS } from "./controlsConfig.js";
+  import { DEFAULT_MAPPINGS } from "../../../lib/controlsConfig.js";
   import KeyboardControlsModal from "./KeyboardControlsModal.svelte";
 
   // Initialize obfuscated global variables to prevent ReferenceErrors in cores (e.g., Sega Genesis)
@@ -166,28 +166,50 @@
 
   function getKeyboardEventInit(keyCode) {
     switch (keyCode) {
-      case 38: return { key: "ArrowUp", code: "ArrowUp" };
-      case 40: return { key: "ArrowDown", code: "ArrowDown" };
-      case 37: return { key: "ArrowLeft", code: "ArrowLeft" };
-      case 39: return { key: "ArrowRight", code: "ArrowRight" };
-      case 75: return { key: "k", code: "KeyK" };
-      case 67: return { key: "c", code: "KeyC" };
-      case 81: return { key: "q", code: "KeyQ" };
-      case 69: return { key: "e", code: "KeyE" };
-      case 32: return { key: " ", code: "Space" };
-      case 13: return { key: "Enter", code: "Enter" };
-      case 87: return { key: "w", code: "KeyW" };
-      case 83: return { key: "s", code: "KeyS" };
-      case 65: return { key: "a", code: "KeyA" };
-      case 68: return { key: "d", code: "KeyD" };
-      case 73: return { key: "i", code: "KeyI" };
-      case 76: return { key: "l", code: "KeyL" };
-      case 85: return { key: "u", code: "KeyU" };
-      case 79: return { key: "o", code: "KeyO" };
-      case 88: return { key: "x", code: "KeyX" };
-      case 90: return { key: "z", code: "KeyZ" };
-      case 16: return { key: "Shift", code: "ShiftLeft" };
-      default: return { key: "", code: "" };
+      case 38:
+        return { key: "ArrowUp", code: "ArrowUp" };
+      case 40:
+        return { key: "ArrowDown", code: "ArrowDown" };
+      case 37:
+        return { key: "ArrowLeft", code: "ArrowLeft" };
+      case 39:
+        return { key: "ArrowRight", code: "ArrowRight" };
+      case 75:
+        return { key: "k", code: "KeyK" };
+      case 67:
+        return { key: "c", code: "KeyC" };
+      case 81:
+        return { key: "q", code: "KeyQ" };
+      case 69:
+        return { key: "e", code: "KeyE" };
+      case 32:
+        return { key: " ", code: "Space" };
+      case 13:
+        return { key: "Enter", code: "Enter" };
+      case 87:
+        return { key: "w", code: "KeyW" };
+      case 83:
+        return { key: "s", code: "KeyS" };
+      case 65:
+        return { key: "a", code: "KeyA" };
+      case 68:
+        return { key: "d", code: "KeyD" };
+      case 73:
+        return { key: "i", code: "KeyI" };
+      case 76:
+        return { key: "l", code: "KeyL" };
+      case 85:
+        return { key: "u", code: "KeyU" };
+      case 79:
+        return { key: "o", code: "KeyO" };
+      case 88:
+        return { key: "x", code: "KeyX" };
+      case 90:
+        return { key: "z", code: "KeyZ" };
+      case 16:
+        return { key: "Shift", code: "ShiftLeft" };
+      default:
+        return { key: "", code: "" };
     }
   }
 
@@ -445,7 +467,7 @@
       history.replaceState(
         { view: "toolbox", app: "arcade", game: game.id, depth: 3 },
         "",
-        gameUrl
+        gameUrl,
       );
       window.location.reload();
       return;
@@ -455,7 +477,7 @@
     history.pushState(
       { view: "toolbox", app: "arcade", game: game.id, depth: 3 },
       "",
-      gameUrl
+      gameUrl,
     );
 
     // Apply global NeptuneJS configs
@@ -487,7 +509,7 @@
     history.pushState(
       { view: "toolbox", app: "arcade", depth: 2 },
       "",
-      "/apps/arcade"
+      "/apps/arcade",
     );
     if (window.Neptune) {
       window.location.reload();
@@ -1330,5 +1352,5 @@
 />
 
 <style lang="scss">
-  @use "./ArcadeApp.scss";
+  @use "../../../styles/ArcadeApp.scss";
 </style>

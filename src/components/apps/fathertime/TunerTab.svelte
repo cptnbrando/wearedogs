@@ -1,7 +1,7 @@
 <script>
   import { onMount, onDestroy } from "svelte";
   import { Mic, MicOff, Check, Radio } from "lucide-svelte";
-  import { PitchTuner } from "./pitchTuner.svelte.js";
+  import { PitchTuner } from "../../../lib/pitchTuner.svelte.js";
 
   let tuner = $state(new PitchTuner());
   let isTuning = $derived(tuner.isTuning);

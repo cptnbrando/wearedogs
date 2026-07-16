@@ -1,7 +1,7 @@
 <script>
   import { onMount, onDestroy } from "svelte";
   import { Play, Pause, ChevronLeft, ChevronRight, Volume2, Radio } from "lucide-svelte";
-  import { Metronome } from "./metronome.svelte.js";
+  import { Metronome } from "../../../lib/metronome.svelte.js";
   import MetronomeVisual from "./MetronomeVisual.svelte";
 
   let { metronome } = $props();

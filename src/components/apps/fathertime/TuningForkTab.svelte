@@ -1,7 +1,7 @@
 <script>
   import { onMount, onDestroy } from "svelte";
   import { Mic, MicOff, Radio } from "lucide-svelte";
-  import { TuningFork } from "./tuningFork.svelte.js";
+  import { TuningFork } from "../../../lib/tuningFork.svelte.js";
 
   let tuner = $state(new TuningFork());
   let isTuning = $derived(tuner.isTuning);
