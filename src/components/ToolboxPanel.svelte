@@ -92,6 +92,12 @@
   let headerContainerWidth = $state(0);
   let headerTextWidth = $state(0);
 
+  let isMobile = $state(typeof window !== "undefined" ? window.innerWidth <= 768 : false);
+
+  function handleResize() {
+    isMobile = window.innerWidth <= 768;
+  }
+
   // Derive the active header state (icon, title, etc) from active or focused app
   const currentHeaderDetails = $derived.by(() => {
     let appInfo = null;
@@ -102,8 +108,12 @@
     }
 
     if (appInfo) {
+      let title = appInfo.title;
+      if (appInfo.id === "missingcreatures") {
+        title = isMobile ? "Missing" : "Missing Persons";
+      }
       return {
-        title: appInfo.title,
+        title,
         icon: appInfo.icon,
         isEmoji: appInfo.id === "converter",
         id: appInfo.id,
@@ -391,8 +401,15 @@
     }
   }
 
-  onMount(() => window.addEventListener("keydown", handleKeydown));
-  onDestroy(() => window.removeEventListener("keydown", handleKeydown));
+  onMount(() => {
+    window.addEventListener("keydown", handleKeydown);
+    window.addEventListener("resize", handleResize);
+    handleResize();
+  });
+  onDestroy(() => {
+    window.removeEventListener("keydown", handleKeydown);
+    window.removeEventListener("resize", handleResize);
+  });
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
