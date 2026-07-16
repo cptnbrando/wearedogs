@@ -799,7 +799,7 @@
 
             <!-- Right Side: Details & Milestone Progression (Col 5) -->
             <div
-              class="sm:col-span-5 flex flex-col justify-between bg-zinc-900/20 border border-zinc-800/60 p-4 sm:p-5 lg:p-6 rounded-2xl"
+              class="sm:col-span-5 flex flex-col justify-between bg-zinc-900/20 border border-zinc-800/60 p-4 sm:p-5 lg:p-6 rounded-2xl sm:sticky sm:top-4 md:top-6 lg:top-8"
             >
               <div>
                 <div
