@@ -129,9 +129,15 @@
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
 
+      // Replace custom anchor tags like &lt;a href=&quot;url&quot;&gt;phrase&lt;/a&gt;
+      const customAnchorRegex = /&lt;a href=&quot;(.+?)&quot;&gt;([\s\S]+?)&lt;\/a&gt;/g;
+      const processed = escaped.replace(customAnchorRegex, (match, url, phrase) => {
+        return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-red-500 hover:text-red-400 underline decoration-red-500/30 hover:decoration-red-400 transition-colors duration-200">${phrase}</a>`;
+      });
+
       // Replace URL formats like &lt;https://...&gt; with clickable anchor tags
       const urlRegex = /&lt;(https?:\/\/[^&]+)&gt;/g;
-      return escaped.replace(urlRegex, (match, url) => {
+      return processed.replace(urlRegex, (match, url) => {
         return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-red-500 hover:text-red-400 underline decoration-red-500/30 hover:decoration-red-400 transition-colors duration-200 break-all">${url}</a>`;
       });
     });
@@ -1118,7 +1124,7 @@
 
                   {#if selectedCampaign.id === 'justice-for-rusty'}
                     <!-- Full scroll bio, no max-height scrollbar constraint -->
-                    <div class="mt-3 sm:mt-4 pb-4 flex flex-col gap-4">
+                    <div class="mt-3 sm:mt-4 pb-4 flex flex-col gap-4 selectable-bio">
                       {#if campaignBioText}
                         {#each formatBioText(campaignBioText) as paragraph}
                           <p class="text-zinc-400 text-sm leading-relaxed font-sans">
@@ -1162,7 +1168,7 @@
                     {/if}
                   {:else}
                     <!-- Legacy/Standard layout for other campaigns with milestones/progress -->
-                    <div class="mt-3 sm:mt-4 pb-4 flex flex-col gap-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                    <div class="mt-3 sm:mt-4 pb-4 flex flex-col gap-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar selectable-bio">
                       {#if campaignBioText}
                         {#each formatBioText(campaignBioText) as paragraph}
                           <p class="text-zinc-400 text-sm leading-relaxed font-sans">
@@ -1446,5 +1452,24 @@
   }
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.3);
+  }
+
+  .selectable-bio {
+    user-select: text !important;
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+  }
+  .selectable-bio p {
+    user-select: text !important;
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+  }
+  .selectable-bio a {
+    user-select: text !important;
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
   }
 </style>
