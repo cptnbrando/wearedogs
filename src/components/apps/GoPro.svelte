@@ -1,3 +1,6 @@
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
 <script>
   import { onMount } from "svelte";
   import { fade } from "svelte/transition";
@@ -32,6 +35,12 @@
   let duration = $state(0);
   let isSamplerOpen = $state(false);
   let samples = $state([]);
+  let password = $state("");
+  let objectUrl = $state("");
+  let isVideoLoading = $state(false);
+  let isShuffle = $state(false);
+  let loopMode = $state("all"); // 'off' | 'single' | 'all'
+  let isMoreControlsOpen = $state(false);
 
   // DOM bindings
   let videoElement = $state(null);
@@ -41,7 +50,7 @@
   const currentEpisode = $derived(showData?.episodes[selectedEpisodeIndex]);
   const videoUrl = $derived(
     showData && currentEpisode
-      ? `${showData.baseUrl}${currentEpisode.file}`
+      ? `${showData.baseUrl.replace("https://data.wearedogs.net", "")}${currentEpisode.file}`
       : ""
   );
 
@@ -188,6 +197,107 @@
   }
 
   /**
+   * Play the next episode in the current show, respecting shuffle and loop settings.
+   */
+  function playNextEpisode() {
+    if (!showData || showData.episodes.length === 0) return;
+
+    if (isShuffle) {
+      if (showData.episodes.length > 1) {
+        let nextIdx = selectedEpisodeIndex;
+        while (nextIdx === selectedEpisodeIndex) {
+          nextIdx = Math.floor(Math.random() * showData.episodes.length);
+        }
+        playEpisode(nextIdx);
+      } else {
+        playEpisode(0);
+      }
+    } else {
+      let nextIdx = selectedEpisodeIndex + 1;
+      if (nextIdx >= showData.episodes.length) {
+        if (loopMode === "all") {
+          playEpisode(0);
+        } else {
+          isPlaying = false;
+        }
+      } else {
+        playEpisode(nextIdx);
+      }
+    }
+  }
+
+  /**
+   * Play the previous episode in the current show, respecting shuffle and loop settings.
+   */
+  function playPrevEpisode() {
+    if (!showData || showData.episodes.length === 0) return;
+
+    if (isShuffle) {
+      if (showData.episodes.length > 1) {
+        let prevIdx = selectedEpisodeIndex;
+        while (prevIdx === selectedEpisodeIndex) {
+          prevIdx = Math.floor(Math.random() * showData.episodes.length);
+        }
+        playEpisode(prevIdx);
+      } else {
+        playEpisode(0);
+      }
+    } else {
+      let prevIdx = selectedEpisodeIndex - 1;
+      if (prevIdx < 0) {
+        if (loopMode === "all") {
+          playEpisode(showData.episodes.length - 1);
+        } else {
+          if (videoElement) {
+            videoElement.currentTime = 0;
+          }
+        }
+      } else {
+        playEpisode(prevIdx);
+      }
+    }
+  }
+
+  /**
+   * Handle video ended events (automatic playlist transition).
+   */
+  function handleVideoEnded() {
+    if (loopMode === "single") {
+      if (videoElement) {
+        videoElement.currentTime = 0;
+        videoElement.play().catch((err) => console.warn(err));
+      }
+    } else {
+      playNextEpisode();
+    }
+  }
+
+  /**
+   * Seek video playback to clicked progress percentage.
+   * @param {MouseEvent} e
+   */
+  function handleSeek(e) {
+    if (!videoElement || !duration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const pct = clickX / rect.width;
+    videoElement.currentTime = pct * duration;
+  }
+
+  /**
+   * Cycle loop mode between off, single episode, and all episodes.
+   */
+  function cycleLoopMode() {
+    if (loopMode === "off") {
+      loopMode = "single";
+    } else if (loopMode === "single") {
+      loopMode = "all";
+    } else {
+      loopMode = "off";
+    }
+  }
+
+  /**
    * Seek and play a sample trigger.
    * @param {Object} sample
    */
@@ -241,8 +351,10 @@
 
   /**
    * Unlock callback triggered by the calculator screen.
+   * @param {string} pass
    */
-  function handleUnlock() {
+  function handleUnlock(pass) {
+    password = pass;
     isUnlocked = true;
     loadSamples();
   }
@@ -274,9 +386,72 @@
   onMount(() => {
     const savedPassword = localStorage.getItem("gopro_password");
     if (savedPassword) {
+      password = savedPassword;
       isUnlocked = true;
       loadSamples();
     }
+  });
+
+  let activeFetchController = null;
+
+  $effect(() => {
+    if (videoUrl && password) {
+      isVideoLoading = true;
+      
+      if (activeFetchController) {
+        activeFetchController.abort();
+      }
+      activeFetchController = new AbortController();
+      const { signal } = activeFetchController;
+
+      fetch(videoUrl, {
+        headers: {
+          Authorization: `password=${password}`
+        },
+        signal
+      })
+        .then(res => {
+          if (!res.ok) {
+            throw new Error(`Failed to fetch video: ${res.statusText}`);
+          }
+          return res.blob();
+        })
+        .then(blob => {
+          if (objectUrl) {
+            URL.revokeObjectURL(objectUrl);
+          }
+          objectUrl = URL.createObjectURL(blob);
+          isVideoLoading = false;
+          if (videoElement) {
+            videoElement.load();
+            if (isPlaying) {
+              videoElement.play().catch(err => console.warn(err));
+            }
+          }
+        })
+        .catch(err => {
+          if (err.name !== 'AbortError') {
+            console.error("Error fetching video:", err);
+            isVideoLoading = false;
+          }
+        });
+    } else {
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+        objectUrl = "";
+      }
+      isVideoLoading = false;
+    }
+
+    return () => {
+      if (activeFetchController) {
+        activeFetchController.abort();
+      }
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+        objectUrl = "";
+      }
+    };
   });
 
   // Deep link parsing reactive sync
@@ -311,56 +486,56 @@
 {:else}
   <!-- Main Television-Friendly Streaming Interface -->
   <div
-    class="gopro-app-layout w-full min-h-full bg-gradient-to-br from-[#0c0d14] via-[#050608] to-[#0a0a0f] text-white p-4 font-sans flex flex-col gap-6 overflow-y-auto selection:bg-cyan-500 selection:text-black"
+    class="gopro-app-layout w-full h-[100dvh] bg-gradient-to-br from-[#0c0d14] via-[#050608] to-[#0a0a0f] text-white p-3 sm:p-4 font-sans flex flex-col gap-3 sm:gap-4 overflow-hidden selection:bg-cyan-500 selection:text-black"
     transition:fade
   >
     <!-- TV Header -->
-    <header class="flex flex-col gap-2 border-b border-white/5 pb-4 sm:flex-row sm:items-center sm:justify-between">
-      <div class="flex items-center gap-3">
-        <div class="p-2 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl shadow-lg shadow-cyan-500/10">
-          <Tv class="w-6 h-6 text-white" />
+    <header class="flex-shrink-0 flex items-center justify-between border-b border-white/5 pb-2">
+      <div class="flex items-center gap-2 sm:gap-3">
+        <div class="p-1.5 sm:p-2 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg sm:rounded-xl shadow-lg shadow-cyan-500/10">
+          <Tv class="w-4 h-4 sm:w-6 sm:h-6 text-white" />
         </div>
         <div>
-          <h1 class="text-xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-white to-cyan-400 2xl:text-3xl">
+          <h1 class="text-sm sm:text-xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-white to-cyan-400 2xl:text-3xl animate-pulse">
             WEAREDOGS STREAM
           </h1>
-          <p class="text-[10px] text-white/40 tracking-wider font-semibold font-mono uppercase">
+          <p class="text-[8px] sm:text-[10px] text-white/40 tracking-wider font-semibold font-mono uppercase">
             Grandpa and Monkey Media Player
           </p>
         </div>
       </div>
-      <div class="text-[11px] font-mono text-cyan-400 font-semibold bg-cyan-950/30 border border-cyan-800/30 px-3 py-1 rounded-full self-start sm:self-auto uppercase tracking-wide">
-        Passcode Verified
+      <div class="text-[9px] sm:text-[11px] font-mono text-cyan-400 font-semibold bg-cyan-950/30 border border-cyan-800/30 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full uppercase tracking-wide">
+        Verified
       </div>
     </header>
 
     <!-- Five-Viewport Grid Setup -->
-    <main class="grid grid-cols-1 gap-6 w-full max-w-7xl mx-auto xl:grid-cols-3">
+    <main class="flex-grow grid grid-cols-1 gap-4 w-full max-w-7xl mx-auto overflow-hidden xl:grid-cols-3">
       
       <!-- LEFT SECTION: Shows List & Episode Selector (col-span-1) -->
-      <section class="flex flex-col gap-6 xl:col-span-1">
+      <section class="flex flex-col gap-3 sm:gap-4 overflow-hidden order-2 xl:order-1 xl:col-span-1">
         
         <!-- Show Selection Carousel -->
-        <div class="flex flex-col gap-2">
+        <div class="flex flex-col gap-1.5 flex-shrink-0">
           <h2 class="text-xs uppercase font-bold text-white/50 tracking-wider">Select Show</h2>
           
-          <div class="flex flex-col gap-3 sm:grid sm:grid-cols-3 xl:flex xl:flex-col">
+          <div class="flex flex-col gap-2 sm:grid sm:grid-cols-3 xl:flex xl:flex-col">
             {#each Object.keys(catalog) as showKey}
               {@const show = catalog[showKey]}
               <button
                 onclick={() => selectShow(showKey)}
-                class="w-full text-left p-4 rounded-xl flex items-center justify-between transition-all duration-200 border group focus:ring-2 focus:ring-cyan-400 focus:outline-none {selectedShowKey === showKey
+                class="w-full text-left p-2.5 sm:p-3.5 rounded-xl flex items-center justify-between transition-all duration-200 border group focus:ring-2 focus:ring-cyan-400 focus:outline-none {selectedShowKey === showKey
                   ? 'bg-gradient-to-r from-cyan-950/40 to-blue-950/40 border-cyan-500/50 shadow-md shadow-cyan-950/40'
                   : 'bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/10'}"
               >
-                <div class="flex items-center gap-3">
-                  <span class="text-2xl group-hover:scale-110 transition-transform">{show.symbol}</span>
+                <div class="flex items-center gap-2.5">
+                  <span class="text-xl sm:text-2xl group-hover:scale-110 transition-transform">{show.symbol}</span>
                   <div>
-                    <div class="font-bold text-sm tracking-tight text-white">{showKey}</div>
-                    <div class="text-[10px] text-white/40 font-mono mt-0.5">{show.episodes.length} Episodes</div>
+                    <div class="font-bold text-xs sm:text-sm tracking-tight text-white">{showKey}</div>
+                    <div class="text-[9px] sm:text-[10px] text-white/40 font-mono mt-0.5">{show.episodes.length} Episodes</div>
                   </div>
                 </div>
-                <div class="text-xs font-mono text-cyan-400 font-bold opacity-0 group-hover:opacity-100 transition-opacity">
+                <div class="text-[10px] sm:text-xs font-mono text-cyan-400 font-bold opacity-0 group-hover:opacity-100 transition-opacity">
                   {selectedShowKey === showKey ? "Active" : "Open ➔"}
                 </div>
               </button>
@@ -369,25 +544,25 @@
         </div>
 
         <!-- Episode Selector List -->
-        <div class="flex flex-col gap-2 flex-grow">
+        <div class="flex flex-col gap-1.5 flex-grow overflow-hidden">
           <h2 class="text-xs uppercase font-bold text-white/50 tracking-wider">Episodes ({showData?.episodes.length})</h2>
           
-          <div class="max-h-[300px] xl:max-h-[420px] overflow-y-auto pr-1 flex flex-col gap-2 scrollbar-thin scrollbar-thumb-cyan-500/20">
+          <div class="flex-grow overflow-y-auto pr-1 flex flex-col gap-2 scrollbar-thin scrollbar-thumb-cyan-500/20">
             {#if showData}
               {#each showData.episodes as ep, i}
                 <button
                   onclick={() => playEpisode(i)}
-                  class="w-full text-left p-3 rounded-lg flex items-center justify-between text-xs transition-all duration-150 border focus:ring-2 focus:ring-cyan-400 focus:outline-none {selectedEpisodeIndex === i
+                  class="w-full text-left p-2.5 sm:p-3 rounded-lg flex items-center justify-between text-[11px] sm:text-xs transition-all duration-150 border focus:ring-2 focus:ring-cyan-400 focus:outline-none {selectedEpisodeIndex === i
                     ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400 font-semibold'
                     : 'bg-black/20 border-white/5 text-white/80 hover:bg-white/5 hover:text-white'}"
                 >
-                  <div class="flex flex-col gap-1 pr-2 truncate">
+                  <div class="flex flex-col gap-0.5 pr-2 truncate">
                     <span class="font-bold truncate text-white">Ep {ep.id}: {ep.title}</span>
                     {#if ep.description}
-                      <span class="text-[10px] text-white/40 truncate font-normal">{ep.description}</span>
+                      <span class="text-[9px] sm:text-[10px] text-white/40 truncate font-normal">{ep.description}</span>
                     {/if}
                   </div>
-                  <span class="font-mono text-[9px] uppercase px-1.5 py-0.5 bg-white/5 rounded text-white/50">
+                  <span class="font-mono text-[8px] sm:text-[9px] uppercase px-1 py-0.5 bg-white/5 rounded text-white/50">
                     {ep.file.split(".").pop()}
                   </span>
                 </button>
@@ -398,22 +573,58 @@
       </section>
 
       <!-- RIGHT SECTION: Player & Sampler (col-span-2) -->
-      <section class="flex flex-col gap-6 xl:col-span-2">
+      <section class="flex flex-col gap-3 sm:gap-4 overflow-y-auto xl:overflow-visible order-1 xl:order-2 xl:col-span-2 scrollbar-thin">
         
         <!-- Video Player Wrapper -->
         <div class="relative bg-black rounded-2xl overflow-hidden border border-white/10 shadow-2xl flex flex-col">
           
           <!-- Responsive aspect-video container -->
           <div class="w-full aspect-video bg-black relative flex items-center justify-center">
-            <!-- Source dynamically loaded using videoUrl -->
+            {#if isVideoLoading}
+              <div class="absolute inset-0 bg-black/75 flex flex-col items-center justify-center gap-3 z-20" transition:fade>
+                <div class="w-10 h-10 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin"></div>
+                <span class="text-xs font-semibold tracking-wider text-cyan-400 font-mono uppercase">Downloading Video...</span>
+              </div>
+            {/if}
+
+            <!-- Skip Intro Overlay -->
+            {#if showData && showData.introEnd > showData.introStart && currentTime >= showData.introStart && currentTime <= showData.introEnd}
+              <button
+                onclick={() => {
+                  if (videoElement) {
+                    videoElement.currentTime = showData.introEnd;
+                  }
+                }}
+                class="absolute bottom-4 right-4 px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-black font-bold font-mono text-[10px] rounded-lg shadow-lg border border-cyan-300/30 z-30 transition-all duration-150 uppercase tracking-wider cursor-pointer"
+                transition:fade
+              >
+                Skip Intro
+              </button>
+            {/if}
+
+            <!-- Skip Outro Overlay -->
+            {#if duration > 90 && currentTime >= duration - 90}
+              <button
+                onclick={handleVideoEnded}
+                class="absolute bottom-4 right-4 px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-black font-bold font-mono text-[10px] rounded-lg shadow-lg border border-cyan-300/30 z-30 transition-all duration-150 uppercase tracking-wider cursor-pointer"
+                transition:fade
+              >
+                Skip Outro / Next
+              </button>
+            {/if}
+
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+            <!-- Source dynamically loaded using objectUrl -->
             <video
               bind:this={videoElement}
-              src={videoUrl}
-              class="w-full h-full object-contain"
+              src={objectUrl}
+              class="w-full h-full object-contain cursor-pointer"
               playsinline
-              controls
+              onclick={togglePlay}
               onplay={() => (isPlaying = true)}
               onpause={() => (isPlaying = false)}
+              onended={handleVideoEnded}
               ontimeupdate={() => {
                 if (videoElement) currentTime = videoElement.currentTime;
               }}
@@ -430,18 +641,32 @@
             <!-- Progress bar -->
             <div class="flex items-center justify-between text-[10px] font-mono text-white/50">
               <span>{formatTime(currentTime)}</span>
-              <div class="flex-grow mx-3 h-1 bg-white/10 rounded-full overflow-hidden relative">
+              <button
+                type="button"
+                onclick={handleSeek}
+                class="flex-grow mx-3 h-1.5 bg-white/10 rounded-full overflow-hidden relative cursor-pointer hover:h-2 transition-all border-none focus:outline-none"
+                aria-label="Seek video"
+              >
                 <div
-                  class="h-full bg-cyan-400 rounded-full"
+                  class="h-full bg-cyan-400 rounded-full pointer-events-none"
                   style="width: {(currentTime / (duration || 1)) * 100}%"
                 ></div>
-              </div>
+              </button>
               <span>{formatTime(duration)}</span>
             </div>
 
             <!-- Controls row -->
             <div class="flex flex-wrap items-center justify-between gap-3">
               <div class="flex items-center gap-2">
+                <!-- Previous Episode -->
+                <button
+                  onclick={playPrevEpisode}
+                  class="p-2.5 bg-white/5 hover:bg-white/10 rounded-full transition focus:ring-2 focus:ring-cyan-400 focus:outline-none"
+                  aria-label="Previous Episode"
+                >
+                  <SkipBack class="w-4 h-4 fill-current" />
+                </button>
+
                 <!-- Play/Pause -->
                 <button
                   onclick={togglePlay}
@@ -455,22 +680,13 @@
                   {/if}
                 </button>
 
-                <!-- Backward 10s -->
+                <!-- Next Episode -->
                 <button
-                  onclick={() => skip(-10)}
+                  onclick={playNextEpisode}
                   class="p-2.5 bg-white/5 hover:bg-white/10 rounded-full transition focus:ring-2 focus:ring-cyan-400 focus:outline-none"
-                  aria-label="Skip back 10 seconds"
+                  aria-label="Next Episode"
                 >
-                  <SkipBack class="w-4 h-4" />
-                </button>
-
-                <!-- Forward 10s -->
-                <button
-                  onclick={() => skip(10)}
-                  class="p-2.5 bg-white/5 hover:bg-white/10 rounded-full transition focus:ring-2 focus:ring-cyan-400 focus:outline-none"
-                  aria-label="Skip forward 10 seconds"
-                >
-                  <SkipForward class="w-4 h-4" />
+                  <SkipForward class="w-4 h-4 fill-current" />
                 </button>
               </div>
 
@@ -484,18 +700,6 @@
               <!-- Volume & Fullscreen Controls -->
               <div class="flex items-center gap-2">
                 <button
-                  onclick={toggleMute}
-                  class="p-2.5 bg-white/5 hover:bg-white/10 rounded-full transition focus:ring-2 focus:ring-cyan-400 focus:outline-none"
-                  aria-label={isMuted ? "Unmute" : "Mute"}
-                >
-                  {#if isMuted}
-                    <VolumeX class="w-4 h-4" />
-                  {:else}
-                    <Volume2 class="w-4 h-4" />
-                  {/if}
-                </button>
-
-                <button
                   onclick={triggerFullscreen}
                   class="p-2.5 bg-white/5 hover:bg-white/10 rounded-full transition focus:ring-2 focus:ring-cyan-400 focus:outline-none"
                   aria-label="Enter fullscreen"
@@ -503,19 +707,95 @@
                   <Maximize class="w-4 h-4" />
                 </button>
 
-                <!-- Sampler Open Button -->
+                <!-- Expand/Collapse More Controls -->
                 <button
-                  onclick={() => (isSamplerOpen = !isSamplerOpen)}
-                  class="px-3.5 py-2.5 rounded-full text-xs font-bold transition flex items-center gap-1 focus:ring-2 focus:ring-cyan-400 focus:outline-none {isSamplerOpen
-                    ? 'bg-cyan-500 text-black font-extrabold'
-                    : 'bg-cyan-950/50 text-cyan-400 border border-cyan-800/30'}"
-                  aria-label="Toggle Sampler Panel"
+                  onclick={() => (isMoreControlsOpen = !isMoreControlsOpen)}
+                  class="p-2.5 bg-white/5 hover:bg-white/10 rounded-full transition focus:ring-2 focus:ring-cyan-400 focus:outline-none"
+                  aria-label="Toggle extra controls"
                 >
-                  <span>Sampler</span>
-                  <ArrowRight class="w-3 h-3 transition-transform duration-200 {isSamplerOpen ? 'rotate-90' : ''}" />
+                  <svg
+                    class="w-4 h-4 text-white/70 transition-transform duration-200 {isMoreControlsOpen ? 'rotate-180' : ''}"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                  </svg>
                 </button>
               </div>
             </div>
+
+            <!-- More Controls Panel (Collapsible) -->
+            {#if isMoreControlsOpen}
+              <div class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-white/5" transition:fade>
+                <!-- Left: skip 10s backward / forward, Volume -->
+                <div class="flex items-center gap-2">
+                  <button
+                    onclick={() => skip(-10)}
+                    class="px-2.5 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-[10px] font-mono transition"
+                    title="Rewind 10s"
+                  >
+                    -10s
+                  </button>
+                  <button
+                    onclick={() => skip(10)}
+                    class="px-2.5 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-[10px] font-mono transition"
+                    title="Forward 10s"
+                  >
+                    +10s
+                  </button>
+                  
+                  <span class="w-px h-4 bg-white/10 mx-1"></span>
+
+                  <button
+                    onclick={toggleMute}
+                    class="p-1.5 bg-white/5 hover:bg-white/10 rounded-lg transition"
+                    aria-label={isMuted ? "Unmute" : "Mute"}
+                  >
+                    {#if isMuted}
+                      <VolumeX class="w-3.5 h-3.5" />
+                    {:else}
+                      <Volume2 class="w-3.5 h-3.5" />
+                    {/if}
+                  </button>
+                </div>
+
+                <!-- Right: Shuffle, Loop, Sampler trigger -->
+                <div class="flex items-center gap-2">
+                  <!-- Shuffle button -->
+                  <button
+                    onclick={() => (isShuffle = !isShuffle)}
+                    class="px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition flex items-center gap-1 {isShuffle
+                      ? 'bg-cyan-500 text-black shadow-md shadow-cyan-500/20'
+                      : 'bg-white/5 text-white/70 border border-white/5 hover:bg-white/10'}"
+                  >
+                    Shuffle: {isShuffle ? "ON" : "OFF"}
+                  </button>
+
+                  <!-- Loop Mode button -->
+                  <button
+                    onclick={cycleLoopMode}
+                    class="px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition flex items-center gap-1 {loopMode !== 'off'
+                      ? 'bg-cyan-500 text-black shadow-md shadow-cyan-500/20'
+                      : 'bg-white/5 text-white/70 border border-white/5 hover:bg-white/10'}"
+                  >
+                    Loop: {loopMode.toUpperCase()}
+                  </button>
+
+                  <span class="w-px h-4 bg-white/10 mx-1"></span>
+
+                  <!-- Sampler Open Button -->
+                  <button
+                    onclick={() => (isSamplerOpen = !isSamplerOpen)}
+                    class="px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition flex items-center gap-1 {isSamplerOpen
+                      ? 'bg-cyan-500 text-black font-extrabold shadow-md shadow-cyan-500/20'
+                      : 'bg-cyan-950/50 text-cyan-400 border border-cyan-800/30 hover:bg-cyan-900/30'}"
+                  >
+                    Sampler
+                  </button>
+                </div>
+              </div>
+            {/if}
           </div>
         </div>
 
