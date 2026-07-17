@@ -14,7 +14,7 @@
   // Sampler state
   let audioCtx = null;
   let analyserNode = null;
-  let activePadIndex = $state(null);
+  let activePads = $state(Array(16).fill(0));
   let activeVoices = $state([]);
   let isError = $state(false);
   let failedPads = $state(new Set());
@@ -599,9 +599,9 @@
 
   // Unified Launchpad triggers
   function triggerPad(idx) {
-    activePadIndex = idx;
+    activePads[idx] += 1;
     setTimeout(() => {
-      if (activePadIndex === idx) activePadIndex = null;
+      activePads[idx] = Math.max(0, activePads[idx] - 1);
     }, 250);
 
     const sounds =
@@ -622,6 +622,21 @@
   function deleteClip(id, e) {
     e.stopPropagation();
     samplerStore.removeClip(id);
+  }
+
+  function handlePadTouchStart(idx, e) {
+    if (e.target.closest('.delete-clip-btn')) {
+      return;
+    }
+    if (e.cancelable) e.preventDefault();
+    triggerPad(idx);
+  }
+
+  function handlePadClick(idx, e) {
+    if (e.target.closest('.delete-clip-btn')) {
+      return;
+    }
+    triggerPad(idx);
   }
 
   // CRT Oscilloscope real Analyser time-domain waveform drawing loop
@@ -1114,12 +1129,13 @@
                     'custom'
                       ? 'custom-pad'
                       : 'procedural-pad'}"
-                    class:active={activePadIndex === i}
+                    class:active={activePads[i] > 0}
                     class:pad-error={failedPads.has(i)}
                     style={activeKit.id === "custom"
                       ? `--pad-glow: ${sound.color}; border-color: ${sound.color}44`
                       : ""}
-                    onclick={() => triggerPad(i)}
+                    onclick={(e) => handlePadClick(i, e)}
+                    ontouchstart={(e) => handlePadTouchStart(i, e)}
                   >
                     <span class="pad-key">{sound.key.toUpperCase()}</span>
                     {#if failedPads.has(i)}
