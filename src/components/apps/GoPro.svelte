@@ -397,7 +397,6 @@
     }
   });
 
-  let activeObjectUrl = "";
   let activeFetchController = null;
 
   $effect(() => {
@@ -410,7 +409,6 @@
         if (objectUrl) {
           URL.revokeObjectURL(objectUrl);
           objectUrl = "";
-          activeObjectUrl = "";
         }
 
         if (activeFetchController) {
@@ -448,7 +446,6 @@
               URL.revokeObjectURL(objectUrl);
             }
             objectUrl = URL.createObjectURL(finalBlob);
-            activeObjectUrl = objectUrl;
             isVideoLoading = false;
             if (videoElement) {
               videoElement.load();
@@ -470,7 +467,6 @@
               if (objectUrl) {
                 URL.revokeObjectURL(objectUrl);
                 objectUrl = "";
-                activeObjectUrl = "";
               }
             }
           });
@@ -478,7 +474,6 @@
         if (objectUrl) {
           URL.revokeObjectURL(objectUrl);
           objectUrl = "";
-          activeObjectUrl = "";
         }
         isVideoLoading = false;
       }
@@ -488,10 +483,12 @@
       if (activeFetchController) {
         activeFetchController.abort();
       }
-      if (activeObjectUrl) {
-        URL.revokeObjectURL(activeObjectUrl);
-        activeObjectUrl = "";
-      }
+      untrack(() => {
+        if (objectUrl) {
+          URL.revokeObjectURL(objectUrl);
+          objectUrl = "";
+        }
+      });
     };
   });
 
@@ -693,7 +690,9 @@
 
         <!-- Video Player Wrapper -->
         <div
-          class="relative bg-black rounded-2xl overflow-hidden border border-white/10 shadow-2xl flex flex-col transition-all duration-300 {isMoreControlsOpen ? '-translate-y-4 sm:-translate-y-8 xl:-translate-y-16' : ''}"
+          class="relative bg-black rounded-2xl overflow-hidden border border-white/10 shadow-2xl flex flex-col transition-all duration-300 {isMoreControlsOpen
+            ? '-translate-y-4 sm:-translate-y-8 xl:-translate-y-16'
+            : ''}"
         >
           <!-- Responsive aspect-video container -->
           <div
