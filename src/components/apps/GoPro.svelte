@@ -19,7 +19,7 @@
     ArrowRight,
     Plus,
     Trash2,
-    Tv
+    Tv,
   } from "lucide-svelte";
 
   // Svelte 5 props
@@ -53,7 +53,7 @@
   const videoUrl = $derived(
     showData && currentEpisode
       ? `${showData.baseUrl}${currentEpisode.file}`
-      : ""
+      : "",
   );
 
   /**
@@ -130,7 +130,9 @@
     if (isPlaying) {
       videoElement.pause();
     } else {
-      videoElement.play().catch((err) => console.warn("Video play failed:", err));
+      videoElement
+        .play()
+        .catch((err) => console.warn("Video play failed:", err));
     }
   }
 
@@ -151,7 +153,7 @@
     if (!videoElement) return;
     videoElement.currentTime = Math.max(
       0,
-      Math.min(duration, videoElement.currentTime + seconds)
+      Math.min(duration, videoElement.currentTime + seconds),
     );
   }
 
@@ -310,7 +312,7 @@
     if (isShowChange) {
       selectedShowKey = sample.showKey;
     }
-    
+
     if (isEpChange || isShowChange) {
       selectedEpisodeIndex = sample.episodeIndex;
       pendingSeekTime = sample.time;
@@ -404,7 +406,7 @@
         URL.revokeObjectURL(objectUrl);
         objectUrl = "";
       }
-      
+
       if (activeFetchController) {
         activeFetchController.abort();
       }
@@ -413,21 +415,26 @@
 
       fetch(videoUrl, {
         headers: {
-          Authorization: `password=${password}`
+          Authorization: `password=${password}`,
         },
-        signal
+        signal,
       })
-        .then(res => {
+        .then((res) => {
           if (!res.ok) {
             throw new Error(`Failed to fetch video: ${res.statusText}`);
           }
           return res.blob();
         })
-        .then(blob => {
+        .then((blob) => {
           let finalBlob = blob;
           if (!blob.type || blob.type === "application/octet-stream") {
             const ext = videoUrl.split(".").pop().toLowerCase();
-            const mimeType = ext === "mp4" ? "video/mp4" : (ext === "mkv" ? "video/x-matroska" : "video/mp4");
+            const mimeType =
+              ext === "mp4"
+                ? "video/mp4"
+                : ext === "mkv"
+                  ? "video/x-matroska"
+                  : "video/mp4";
             finalBlob = new Blob([blob], { type: mimeType });
           }
 
@@ -445,12 +452,12 @@
               videoElement.currentTime = 0;
             }
             if (isPlaying) {
-              videoElement.play().catch(err => console.warn(err));
+              videoElement.play().catch((err) => console.warn(err));
             }
           }
         })
-        .catch(err => {
-          if (err.name !== 'AbortError') {
+        .catch((err) => {
+          if (err.name !== "AbortError") {
             console.error("Error fetching video:", err);
             isVideoLoading = false;
             if (objectUrl) {
@@ -481,14 +488,15 @@
   // Deep link parsing reactive sync
   $effect(() => {
     if (isUnlocked && goProShow) {
-      const resolvedShow = SHOW_SLUGS[goProShow.toLowerCase()] || SHOW_SLUGS[goProShow];
+      const resolvedShow =
+        SHOW_SLUGS[goProShow.toLowerCase()] || SHOW_SLUGS[goProShow];
       if (resolvedShow && catalog[resolvedShow]) {
         selectedShowKey = resolvedShow;
 
         if (goProEpisode) {
           const episodes = catalog[resolvedShow].episodes;
           const matchIdx = episodes.findIndex((ep) =>
-            ep.file.toLowerCase().includes(goProEpisode.toLowerCase())
+            ep.file.toLowerCase().includes(goProEpisode.toLowerCase()),
           );
           if (matchIdx !== -1) {
             selectedEpisodeIndex = matchIdx;
@@ -505,7 +513,10 @@
 
 {#if !isUnlocked}
   <!-- Secure calculator gate -->
-  <div class="w-full h-full bg-[#0a0a0f] flex items-center justify-center" transition:fade>
+  <div
+    class="w-full h-full bg-[#0a0a0f] flex items-center justify-center"
+    transition:fade
+  >
     <GoProCalculator onUnlock={handleUnlock} />
   </div>
 {:else}
@@ -515,52 +526,80 @@
     transition:fade
   >
     <!-- TV Header -->
-    <header class="flex-shrink-0 flex items-center justify-between border-b border-white/5 pb-2">
+    <header
+      class="flex-shrink-0 flex items-center justify-between border-b border-white/5 pb-2"
+    >
       <div class="flex items-center gap-2 sm:gap-3">
-        <div class="p-1.5 sm:p-2 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg sm:rounded-xl shadow-lg shadow-cyan-500/10">
+        <div
+          class="p-1.5 sm:p-2 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg sm:rounded-xl shadow-lg shadow-cyan-500/10"
+        >
           <Tv class="w-4 h-4 sm:w-6 sm:h-6 text-white" />
         </div>
         <div>
-          <h1 class="text-sm sm:text-xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-white to-cyan-400 2xl:text-3xl animate-pulse">
-            WEAREDOGS STREAM
+          <h1
+            class="text-sm sm:text-xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-white to-cyan-400 2xl:text-3xl animate-pulse"
+          >
+            DOGS TV
           </h1>
-          <p class="text-[8px] sm:text-[10px] text-white/40 tracking-wider font-semibold font-mono uppercase">
-            Grandpa and Monkey Media Player
-          </p>
         </div>
       </div>
-      <div class="text-[9px] sm:text-[11px] font-mono text-cyan-400 font-semibold bg-cyan-950/30 border border-cyan-800/30 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full uppercase tracking-wide">
+      <div
+        class="text-[9px] sm:text-[11px] font-mono text-cyan-400 font-semibold bg-cyan-950/30 border border-cyan-800/30 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full uppercase tracking-wide"
+      >
         Verified
       </div>
     </header>
 
     <!-- Five-Viewport Grid Setup -->
-    <main class="flex-grow grid grid-cols-1 gap-4 w-full max-w-7xl mx-auto overflow-hidden xl:grid-cols-3">
-      
+    <main
+      class="flex-grow grid grid-cols-1 gap-4 w-full max-w-7xl mx-auto overflow-hidden xl:grid-cols-3"
+    >
       <!-- LEFT SECTION: Shows List & Episode Selector (col-span-1) -->
-      <section class="flex flex-col gap-3 sm:gap-4 overflow-hidden order-2 xl:order-1 xl:col-span-1 {activeMobileView === 'selector' ? 'flex' : 'hidden xl:flex'}">
-        
+      <section
+        class="flex flex-col gap-3 sm:gap-4 overflow-hidden order-2 xl:order-1 xl:col-span-1 {activeMobileView ===
+        'selector'
+          ? 'flex'
+          : 'hidden xl:flex'}"
+      >
         <!-- Show Selection Carousel -->
         <div class="flex flex-col gap-1.5 flex-shrink-0">
-          <h2 class="text-xs uppercase font-bold text-white/50 tracking-wider">Select Show</h2>
-          
-          <div class="flex flex-col gap-2 sm:grid sm:grid-cols-3 xl:flex xl:flex-col">
+          <h2 class="text-xs uppercase font-bold text-white/50 tracking-wider">
+            Select Show
+          </h2>
+
+          <div
+            class="flex flex-col gap-2 sm:grid sm:grid-cols-3 xl:flex xl:flex-col"
+          >
             {#each Object.keys(catalog) as showKey}
               {@const show = catalog[showKey]}
               <button
                 onclick={() => selectShow(showKey)}
-                class="w-full text-left p-2.5 sm:p-3.5 rounded-xl flex items-center justify-between transition-all duration-200 border group focus:ring-2 focus:ring-cyan-400 focus:outline-none {selectedShowKey === showKey
+                class="w-full text-left p-2.5 sm:p-3.5 rounded-xl flex items-center justify-between transition-all duration-200 border group focus:ring-2 focus:ring-cyan-400 focus:outline-none {selectedShowKey ===
+                showKey
                   ? 'bg-gradient-to-r from-cyan-950/40 to-blue-950/40 border-cyan-500/50 shadow-md shadow-cyan-950/40'
                   : 'bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/10'}"
               >
                 <div class="flex items-center gap-2.5">
-                  <span class="text-xl sm:text-2xl group-hover:scale-110 transition-transform">{show.symbol}</span>
+                  <span
+                    class="text-xl sm:text-2xl group-hover:scale-110 transition-transform"
+                    >{show.symbol}</span
+                  >
                   <div>
-                    <div class="font-bold text-xs sm:text-sm tracking-tight text-white">{showKey}</div>
-                    <div class="text-[9px] sm:text-[10px] text-white/40 font-mono mt-0.5">{show.episodes.length} Episodes</div>
+                    <div
+                      class="font-bold text-xs sm:text-sm tracking-tight text-white"
+                    >
+                      {showKey}
+                    </div>
+                    <div
+                      class="text-[9px] sm:text-[10px] text-white/40 font-mono mt-0.5"
+                    >
+                      {show.episodes.length} Episodes
+                    </div>
                   </div>
                 </div>
-                <div class="text-[10px] sm:text-xs font-mono text-cyan-400 font-bold opacity-0 group-hover:opacity-100 transition-opacity">
+                <div
+                  class="text-[10px] sm:text-xs font-mono text-cyan-400 font-bold opacity-0 group-hover:opacity-100 transition-opacity"
+                >
                   {selectedShowKey === showKey ? "Active" : "Open ➔"}
                 </div>
               </button>
@@ -570,24 +609,36 @@
 
         <!-- Episode Selector List -->
         <div class="flex flex-col gap-1.5 flex-grow overflow-hidden">
-          <h2 class="text-xs uppercase font-bold text-white/50 tracking-wider">Episodes ({showData?.episodes.length})</h2>
-          
-          <div class="flex-grow overflow-y-auto pr-1 flex flex-col gap-2 scrollbar-thin scrollbar-thumb-cyan-500/20">
+          <h2 class="text-xs uppercase font-bold text-white/50 tracking-wider">
+            Episodes ({showData?.episodes.length})
+          </h2>
+
+          <div
+            class="flex-grow overflow-y-auto pr-1 flex flex-col gap-2 scrollbar-thin scrollbar-thumb-cyan-500/20"
+          >
             {#if showData}
               {#each showData.episodes as ep, i}
                 <button
                   onclick={() => playEpisode(i)}
-                  class="w-full text-left p-2.5 sm:p-3 rounded-lg flex items-center justify-between text-[11px] sm:text-xs transition-all duration-150 border focus:ring-2 focus:ring-cyan-400 focus:outline-none {selectedEpisodeIndex === i
+                  class="w-full text-left p-2.5 sm:p-3 rounded-lg flex items-center justify-between text-[11px] sm:text-xs transition-all duration-150 border focus:ring-2 focus:ring-cyan-400 focus:outline-none {selectedEpisodeIndex ===
+                  i
                     ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400 font-semibold'
                     : 'bg-black/20 border-white/5 text-white/80 hover:bg-white/5 hover:text-white'}"
                 >
                   <div class="flex flex-col gap-0.5 pr-2 truncate">
-                    <span class="font-bold truncate text-white">Ep {ep.id}: {ep.title}</span>
+                    <span class="font-bold truncate text-white"
+                      >Ep {ep.id}: {ep.title}</span
+                    >
                     {#if ep.description}
-                      <span class="text-[9px] sm:text-[10px] text-white/40 truncate font-normal">{ep.description}</span>
+                      <span
+                        class="text-[9px] sm:text-[10px] text-white/40 truncate font-normal"
+                        >{ep.description}</span
+                      >
                     {/if}
                   </div>
-                  <span class="font-mono text-[8px] sm:text-[9px] uppercase px-1 py-0.5 bg-white/5 rounded text-white/50">
+                  <span
+                    class="font-mono text-[8px] sm:text-[9px] uppercase px-1 py-0.5 bg-white/5 rounded text-white/50"
+                  >
                     {ep.file.split(".").pop()}
                   </span>
                 </button>
@@ -598,8 +649,12 @@
       </section>
 
       <!-- RIGHT SECTION: Player & Sampler (col-span-2) -->
-      <section class="flex flex-col gap-3 sm:gap-4 overflow-y-auto xl:overflow-visible order-1 xl:order-2 xl:col-span-2 scrollbar-thin {activeMobileView === 'player' ? 'flex' : 'hidden xl:flex'}">
-        
+      <section
+        class="flex flex-col gap-3 sm:gap-4 overflow-y-auto xl:overflow-visible order-1 xl:order-2 xl:col-span-2 scrollbar-thin {activeMobileView ===
+        'player'
+          ? 'flex'
+          : 'hidden xl:flex'}"
+      >
         <!-- Back to Episodes Button (mobile-only) -->
         <button
           onclick={() => {
@@ -610,21 +665,42 @@
           }}
           class="xl:hidden self-start flex items-center gap-1.5 px-3 py-1.5 bg-white/5 border border-white/10 hover:bg-white/10 rounded-lg text-xs font-bold text-cyan-400 transition focus:outline-none focus:ring-1 focus:ring-cyan-400"
         >
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          <svg
+            class="w-3.5 h-3.5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M15 19l-7-7 7-7"
+            />
           </svg>
           <span>Back to Episodes</span>
         </button>
 
         <!-- Video Player Wrapper -->
-        <div class="relative bg-black rounded-2xl overflow-hidden border border-white/10 shadow-2xl flex flex-col">
-          
+        <div
+          class="relative bg-black rounded-2xl overflow-hidden border border-white/10 shadow-2xl flex flex-col"
+        >
           <!-- Responsive aspect-video container -->
-          <div class="w-full aspect-video bg-black relative flex items-center justify-center">
+          <div
+            class="w-full aspect-video bg-black relative flex items-center justify-center"
+          >
             {#if isVideoLoading}
-              <div class="absolute inset-0 bg-black/75 flex flex-col items-center justify-center gap-3 z-20" transition:fade>
-                <div class="w-10 h-10 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin"></div>
-                <span class="text-xs font-semibold tracking-wider text-cyan-400 font-mono uppercase">Downloading Video...</span>
+              <div
+                class="absolute inset-0 bg-black/75 flex flex-col items-center justify-center gap-3 z-20"
+                transition:fade
+              >
+                <div
+                  class="w-10 h-10 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin"
+                ></div>
+                <span
+                  class="text-xs font-semibold tracking-wider text-cyan-400 font-mono uppercase"
+                  >Downloading Video...</span
+                >
               </div>
             {/if}
 
@@ -678,9 +754,13 @@
           </div>
 
           <!-- Grandpa-Friendly Control Bar -->
-          <div class="p-4 bg-gradient-to-t from-black/80 to-black/20 backdrop-blur border-t border-white/5 flex flex-col gap-3">
+          <div
+            class="p-4 bg-gradient-to-t from-black/80 to-black/20 backdrop-blur border-t border-white/5 flex flex-col gap-3"
+          >
             <!-- Progress bar -->
-            <div class="flex items-center justify-between text-[10px] font-mono text-white/50">
+            <div
+              class="flex items-center justify-between text-[10px] font-mono text-white/50"
+            >
               <span>{formatTime(currentTime)}</span>
               <button
                 type="button"
@@ -733,7 +813,9 @@
 
               <!-- Episode Display Title -->
               {#if currentEpisode}
-                <div class="text-xs font-semibold truncate max-w-[200px] text-white/80 hidden sm:block">
+                <div
+                  class="text-xs font-semibold truncate max-w-[200px] text-white/80 hidden sm:block"
+                >
                   {currentEpisode.title}
                 </div>
               {/if}
@@ -755,12 +837,19 @@
                   aria-label="Toggle extra controls"
                 >
                   <svg
-                    class="w-4 h-4 text-white/70 transition-transform duration-200 {isMoreControlsOpen ? 'rotate-180' : ''}"
+                    class="w-4 h-4 text-white/70 transition-transform duration-200 {isMoreControlsOpen
+                      ? 'rotate-180'
+                      : ''}"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
                   >
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M19 9l-7 7-7-7"
+                    />
                   </svg>
                 </button>
               </div>
@@ -768,7 +857,10 @@
 
             <!-- More Controls Panel (Collapsible) -->
             {#if isMoreControlsOpen}
-              <div class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-white/5" transition:fade>
+              <div
+                class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-white/5"
+                transition:fade
+              >
                 <!-- Left: skip 10s backward / forward, Volume -->
                 <div class="flex items-center gap-2">
                   <button
@@ -785,7 +877,7 @@
                   >
                     +10s
                   </button>
-                  
+
                   <span class="w-px h-4 bg-white/10 mx-1"></span>
 
                   <button
@@ -816,7 +908,8 @@
                   <!-- Loop Mode button -->
                   <button
                     onclick={cycleLoopMode}
-                    class="px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition flex items-center gap-1 {loopMode !== 'off'
+                    class="px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition flex items-center gap-1 {loopMode !==
+                    'off'
                       ? 'bg-cyan-500 text-black shadow-md shadow-cyan-500/20'
                       : 'bg-white/5 text-white/70 border border-white/5 hover:bg-white/10'}"
                   >
@@ -846,10 +939,18 @@
             class="bg-gradient-to-br from-[#0f111a] to-[#07070a] border border-cyan-500/20 rounded-2xl p-5 flex flex-col gap-4 shadow-xl shadow-cyan-950/10"
             transition:fade
           >
-            <div class="flex items-center justify-between border-b border-cyan-500/10 pb-3">
+            <div
+              class="flex items-center justify-between border-b border-cyan-500/10 pb-3"
+            >
               <div>
-                <h3 class="text-sm font-bold text-cyan-400 tracking-wide uppercase">Monkey Sampler Console</h3>
-                <p class="text-[9px] text-white/30 font-semibold font-mono">Press keys 1-8 to trigger samples</p>
+                <h3
+                  class="text-sm font-bold text-cyan-400 tracking-wide uppercase"
+                >
+                  Monkey Sampler Console
+                </h3>
+                <p class="text-[9px] text-white/30 font-semibold font-mono">
+                  Press keys 1-8 to trigger samples
+                </p>
               </div>
               <button
                 onclick={addSample}
@@ -862,7 +963,9 @@
 
             <!-- Sampler Pad Grid -->
             {#if samples.length === 0}
-              <div class="text-center py-6 text-xs text-white/30 font-semibold uppercase tracking-wider font-mono">
+              <div
+                class="text-center py-6 text-xs text-white/30 font-semibold uppercase tracking-wider font-mono"
+              >
                 No custom samples. Click "+ Add Time Sample" above.
               </div>
             {:else}
@@ -880,21 +983,29 @@
                         playSample(sample);
                       }
                     }}
-                    class="calc-btn text-left p-3 rounded-xl border relative overflow-hidden transition-all duration-150 flex flex-col justify-between h-20 group focus:ring-2 focus:ring-cyan-400 focus:outline-none cursor-pointer {selectedShowKey === sample.showKey && selectedEpisodeIndex === sample.episodeIndex
+                    class="calc-btn text-left p-3 rounded-xl border relative overflow-hidden transition-all duration-150 flex flex-col justify-between h-20 group focus:ring-2 focus:ring-cyan-400 focus:outline-none cursor-pointer {selectedShowKey ===
+                      sample.showKey &&
+                    selectedEpisodeIndex === sample.episodeIndex
                       ? 'bg-cyan-950/30 border-cyan-500/40 text-cyan-300'
                       : 'bg-white/5 border-white/5 text-white/70 hover:bg-white/10 hover:border-white/10'}"
                   >
                     <!-- Trigger Key Badge -->
-                    <span class="absolute top-2 right-2 text-[8px] font-mono bg-cyan-500/20 text-cyan-400 border border-cyan-400/20 px-1 rounded">
+                    <span
+                      class="absolute top-2 right-2 text-[8px] font-mono bg-cyan-500/20 text-cyan-400 border border-cyan-400/20 px-1 rounded"
+                    >
                       Pad {idx + 1}
                     </span>
 
-                    <span class="text-[10px] font-bold truncate pr-6 text-white group-hover:text-cyan-300 transition-colors">
+                    <span
+                      class="text-[10px] font-bold truncate pr-6 text-white group-hover:text-cyan-300 transition-colors"
+                    >
                       {sample.name}
                     </span>
 
                     <div class="flex items-center justify-between w-full mt-2">
-                      <span class="text-[9px] text-white/40 font-mono tracking-tighter">
+                      <span
+                        class="text-[9px] text-white/40 font-mono tracking-tighter"
+                      >
                         {sample.showKey.split(" ")[0]}
                       </span>
                       <button
@@ -914,33 +1025,60 @@
 
         <!-- Show Meta Info -->
         {#if showData?.meta}
-          <div class="bg-white/5 border border-white/5 rounded-2xl p-5 flex-col gap-4 hidden xl:flex">
-            <h3 class="text-xs font-bold uppercase tracking-wider text-white/50">Show Details</h3>
+          <div
+            class="bg-white/5 border border-white/5 rounded-2xl p-5 flex-col gap-4 hidden xl:flex"
+          >
+            <h3
+              class="text-xs font-bold uppercase tracking-wider text-white/50"
+            >
+              Show Details
+            </h3>
             <div class="grid grid-cols-2 gap-4 text-xs sm:grid-cols-4">
               <div>
-                <span class="text-white/40 font-mono block uppercase text-[9px]">Release</span>
-                <span class="font-bold text-white/80">{showData.meta.release || "N/A"}</span>
+                <span class="text-white/40 font-mono block uppercase text-[9px]"
+                  >Release</span
+                >
+                <span class="font-bold text-white/80"
+                  >{showData.meta.release || "N/A"}</span
+                >
               </div>
               <div>
-                <span class="text-white/40 font-mono block uppercase text-[9px]">Rating</span>
-                <span class="font-bold text-white/80">{showData.meta.rating || "N/A"}</span>
+                <span class="text-white/40 font-mono block uppercase text-[9px]"
+                  >Rating</span
+                >
+                <span class="font-bold text-white/80"
+                  >{showData.meta.rating || "N/A"}</span
+                >
               </div>
               <div>
-                <span class="text-white/40 font-mono block uppercase text-[9px]">Runtime</span>
-                <span class="font-bold text-white/80">{showData.meta.runtime || "N/A"}</span>
+                <span class="text-white/40 font-mono block uppercase text-[9px]"
+                  >Runtime</span
+                >
+                <span class="font-bold text-white/80"
+                  >{showData.meta.runtime || "N/A"}</span
+                >
               </div>
               <div>
-                <span class="text-white/40 font-mono block uppercase text-[9px]">Score</span>
-                <span class="font-bold text-cyan-400">{showData.meta.score || "N/A"}</span>
+                <span class="text-white/40 font-mono block uppercase text-[9px]"
+                  >Score</span
+                >
+                <span class="font-bold text-cyan-400"
+                  >{showData.meta.score || "N/A"}</span
+                >
               </div>
             </div>
 
             {#if showData.meta.actors}
               <div>
-                <span class="text-white/40 font-mono block uppercase text-[9px] mb-1">Starring</span>
+                <span
+                  class="text-white/40 font-mono block uppercase text-[9px] mb-1"
+                  >Starring</span
+                >
                 <div class="flex flex-wrap gap-1.5">
                   {#each showData.meta.actors as actor}
-                    <span class="px-2 py-0.5 bg-white/5 border border-white/5 rounded text-[10px] text-white/70">
+                    <span
+                      class="px-2 py-0.5 bg-white/5 border border-white/5 rounded text-[10px] text-white/70"
+                    >
                       {actor}
                     </span>
                   {/each}
@@ -950,8 +1088,13 @@
 
             {#if showData.meta.facts}
               <div class="text-xs border-t border-white/5 pt-3">
-                <span class="text-white/40 font-mono block uppercase text-[9px] mb-1">Trivia / Fact</span>
-                <p class="text-white/60 leading-relaxed text-[11px]">{showData.meta.facts}</p>
+                <span
+                  class="text-white/40 font-mono block uppercase text-[9px] mb-1"
+                  >Trivia / Fact</span
+                >
+                <p class="text-white/60 leading-relaxed text-[11px]">
+                  {showData.meta.facts}
+                </p>
               </div>
             {/if}
           </div>
@@ -960,7 +1103,9 @@
     </main>
 
     <!-- TV Footer Watermark -->
-    <div class="flex items-center justify-end gap-1 opacity-20 text-[9px] uppercase tracking-widest pointer-events-none mt-auto">
+    <div
+      class="flex items-center justify-end gap-1 opacity-20 text-[9px] uppercase tracking-widest pointer-events-none mt-auto"
+    >
       <span>dogs</span>
       <DogsLogo size="panel" class="w-3.5 h-3.5" />
     </div>
