@@ -1466,7 +1466,7 @@
     -moz-user-select: text !important;
     -ms-user-select: text !important;
   }
-  .selectable-bio a {
+  .selectable-bio :global(a) {
     user-select: text !important;
     -webkit-user-select: text !important;
     -moz-user-select: text !important;
