@@ -29,9 +29,11 @@
   let cartHistoryPushed = $state(false);
   let selectedProduct = $state(null);
   let selectedCampaign = $state(null);
+  let campaignBioText = $state("");
   let currentStoreMode = $state("merch"); // "merch" or "fundraising"
   let activeImageIdx = $state(0);
   let scrollDirection = $state(1);
+  let isVideoPlaying = $state(false);
   let selectedSize = $state("M");
   let sizes = [
     "6XS",
@@ -69,10 +71,20 @@
 
   $effect(() => {
     if (campaigns.length > 0 && initialCampaignId) {
-      const matched = campaigns.find((c) => c.id === initialCampaignId);
+      let resolvedId = initialCampaignId;
+      if (resolvedId === "police-injustice") {
+        resolvedId = "justice-for-rusty";
+        initialCampaignId = "justice-for-rusty";
+        history.replaceState(
+          { view: "store", campaignId: resolvedId, depth: 2 },
+          "",
+          `/store/campaign/${resolvedId}`,
+        );
+      }
+      const matched = campaigns.find((c) => c.id === resolvedId);
       if (
         matched &&
-        (!selectedCampaign || selectedCampaign.id !== initialCampaignId)
+        (!selectedCampaign || selectedCampaign.id !== resolvedId)
       ) {
         selectedCampaign = matched;
         currentStoreMode = "fundraising";
@@ -81,6 +93,57 @@
     } else if (!initialCampaignId && selectedCampaign !== null) {
       selectedCampaign = null;
     }
+  });
+
+  $effect(() => {
+    const camp = selectedCampaign;
+    if (camp && camp.bioUrl) {
+      fetch(camp.bioUrl)
+        .then((res) => (res.ok ? res.text() : ""))
+        .then((text) => {
+          campaignBioText = text;
+        })
+        .catch((e) => {
+          console.error("Error loading campaign bio:", e);
+          campaignBioText = "";
+        });
+    } else {
+      campaignBioText = "";
+    }
+  });
+
+  /**
+   * Helper to format a plain text bio into paragraphs with HTML links.
+   * @param {string} text - The raw plaintext bio.
+   * @returns {string[]} An array of formatted HTML paragraph strings.
+   */
+  function formatBioText(text) {
+    if (!text) return [];
+    const paragraphs = text.split(/\r?\n\r?\n/);
+    return paragraphs.map((para) => {
+      // Escape HTML characters
+      const escaped = para
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+
+      // Replace URL formats like &lt;https://...&gt; with clickable anchor tags
+      const urlRegex = /&lt;(https?:\/\/[^&]+)&gt;/g;
+      return escaped.replace(urlRegex, (match, url) => {
+        return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-red-500 hover:text-red-400 underline decoration-red-500/30 hover:decoration-red-400 transition-colors duration-200 break-all">${url}</a>`;
+      });
+    });
+  }
+
+  $effect(() => {
+    // Reset video playing state when active slide index changes
+    const _idx = activeImageIdx;
+    const _camp = selectedCampaign;
+    untrack(() => {
+      isVideoPlaying = false;
+    });
   });
 
   // Navigation handlers that update URL history
@@ -344,25 +407,34 @@
 
   // Touch swipe handling for fundraising carousel
   let touchStartX = 0;
+  let touchStartY = 0;
   let touchEndX = 0;
+  let touchEndY = 0;
 
   function handleTouchStart(e) {
-    touchStartX = e.changedTouches[0].clientX;
+    if (e.changedTouches && e.changedTouches.length > 0) {
+      touchStartX = e.changedTouches[0].clientX;
+      touchStartY = e.changedTouches[0].clientY;
+    }
   }
 
   function handleTouchEnd(e) {
-    touchEndX = e.changedTouches[0].clientX;
-    const diff = touchStartX - touchEndX;
-    const swipeThreshold = 50;
-    if (Math.abs(diff) > swipeThreshold) {
-      if (diff > 0) {
-        // Swipe left -> Next image/video
-        scrollDirection = 1;
-        activeImageIdx = (activeImageIdx + 1) % campaignMedia.length;
-      } else {
-        // Swipe right -> Previous image/video
-        scrollDirection = -1;
-        activeImageIdx = (activeImageIdx - 1 + campaignMedia.length) % campaignMedia.length;
+    if (e.changedTouches && e.changedTouches.length > 0) {
+      touchEndX = e.changedTouches[0].clientX;
+      touchEndY = e.changedTouches[0].clientY;
+      const diffX = touchStartX - touchEndX;
+      const diffY = touchStartY - touchEndY;
+      const swipeThreshold = 50;
+      if (Math.abs(diffX) > swipeThreshold && Math.abs(diffX) > Math.abs(diffY)) {
+        if (diffX > 0) {
+          // Swipe left -> Next image/video
+          scrollDirection = 1;
+          activeImageIdx = (activeImageIdx + 1) % campaignMedia.length;
+        } else {
+          // Swipe right -> Previous image/video
+          scrollDirection = -1;
+          activeImageIdx = (activeImageIdx - 1 + campaignMedia.length) % campaignMedia.length;
+        }
       }
     }
   }
@@ -849,7 +921,7 @@
               >
                 <!-- Big Image Showcase -->
                 <div
-                  class="relative w-full aspect-video bg-black/40 border border-zinc-800 rounded-2xl overflow-hidden shadow-lg group max-h-[200px] sm:max-h-[260px] md:max-h-[320px] lg:max-h-[360px] xl:max-h-[400px]"
+                  class="relative w-full aspect-video bg-black/40 border border-zinc-800 rounded-2xl overflow-hidden shadow-lg group max-h-[200px] sm:max-h-[260px] md:max-h-[320px] lg:max-h-[360px] xl:max-h-[400px] touch-pan-y"
                   ontouchstart={handleTouchStart}
                   ontouchend={handleTouchEnd}
                   role="region"
@@ -858,36 +930,61 @@
                   {#key activeImageIdx}
                     {#if currentMediaItem}
                       {#if currentMediaItem.type === "video"}
-                        {#if currentMediaItem.url.includes("youtube.com") || currentMediaItem.url.includes("youtu.be")}
-                          <iframe
-                            in:slideIn={{ duration: 300, direction: scrollDirection }}
-                            out:slideOut={{
-                              duration: 300,
-                              direction: scrollDirection,
-                            }}
-                            src={currentMediaItem.url}
-                            title="Fundraiser video player"
-                            class="absolute inset-0 w-full h-full"
-                            style="border: none;"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                            referrerpolicy="strict-origin-when-cross-origin"
-                            allowfullscreen
-                          ></iframe>
+                        {#if isVideoPlaying}
+                          {#if currentMediaItem.url.includes("youtube.com") || currentMediaItem.url.includes("youtu.be")}
+                            <iframe
+                              in:slideIn={{ duration: 300, direction: scrollDirection }}
+                              out:slideOut={{
+                                duration: 300,
+                                direction: scrollDirection,
+                              }}
+                              src={currentMediaItem.url + (currentMediaItem.url.includes("?") ? "&autoplay=1" : "?autoplay=1")}
+                              title="Fundraiser video player"
+                              class="absolute inset-0 w-full h-full"
+                              style="border: none;"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                              referrerpolicy="strict-origin-when-cross-origin"
+                              allowfullscreen
+                            ></iframe>
+                          {:else}
+                            <video
+                              in:slideIn={{ duration: 300, direction: scrollDirection }}
+                              out:slideOut={{
+                                duration: 300,
+                                direction: scrollDirection,
+                              }}
+                              src={currentMediaItem.url}
+                              class="absolute inset-0 w-full h-full object-cover"
+                              controls
+                              autoplay
+                              muted
+                              loop
+                              playsinline
+                            ></video>
+                          {/if}
                         {:else}
-                          <video
-                            in:slideIn={{ duration: 300, direction: scrollDirection }}
-                            out:slideOut={{
-                              duration: 300,
-                              direction: scrollDirection,
-                            }}
-                            src={currentMediaItem.url}
-                            class="absolute inset-0 w-full h-full object-cover"
-                            controls
-                            autoplay
-                            muted
-                            loop
-                            playsinline
-                          ></video>
+                          <!-- svelte-ignore a11y_click_events_have_key_events -->
+                          <!-- svelte-ignore a11y_no_static_element_interactions -->
+                          <div 
+                            class="absolute inset-0 w-full h-full cursor-pointer" 
+                            onclick={() => isVideoPlaying = true}
+                          >
+                            <img
+                              in:slideIn={{ duration: 300, direction: scrollDirection }}
+                              out:slideOut={{
+                                duration: 300,
+                                direction: scrollDirection,
+                              }}
+                              src={currentMediaItem.thumbnail || (selectedCampaign.images && selectedCampaign.images[0])}
+                              alt={selectedCampaign.title}
+                              class="absolute inset-0 w-full h-full object-cover"
+                            />
+                            <div class="absolute inset-0 flex items-center justify-center bg-black/35 hover:bg-black/45 transition-colors duration-200">
+                              <div class="w-16 h-16 rounded-full bg-black/70 hover:bg-red-600 border border-white/10 flex items-center justify-center transition-all duration-300 shadow-2xl scale-95 hover:scale-105">
+                                <span class="text-white text-2xl ml-1 select-none">▶</span>
+                              </div>
+                            </div>
+                          </div>
                         {/if}
                       {:else}
                         <img
@@ -1019,38 +1116,27 @@
                     </button>
                   </div>
 
-                  <div class="mt-3 sm:mt-4 pb-4">
-                    <p class="text-zinc-400 text-sm leading-relaxed font-sans">
-                      {selectedCampaign.description}
-                    </p>
-                  </div>
-
-                  <hr class="border-zinc-850 my-2" />
-
-                  <div class="milestones-section mt-3 sm:mt-4">
-                    <div
-                      class="flex justify-between items-center mb-2 font-bold font-mono text-xs"
-                    >
-                      <span class="text-zinc-500 uppercase tracking-widest"
-                        >FUNDING PERCENTAGE</span
-                      >
-                      <span class="text-red-500 text-sm"
-                        >{selectedCampaign.raised} / {selectedCampaign.goal} ({progressPct}%)</span
-                      >
+                  {#if selectedCampaign.id === 'justice-for-rusty'}
+                    <!-- Full scroll bio, no max-height scrollbar constraint -->
+                    <div class="mt-3 sm:mt-4 pb-4 flex flex-col gap-4">
+                      {#if campaignBioText}
+                        {#each formatBioText(campaignBioText) as paragraph}
+                          <p class="text-zinc-400 text-sm leading-relaxed font-sans">
+                            {@html paragraph}
+                          </p>
+                        {/each}
+                      {:else}
+                        <p class="text-zinc-400 text-sm leading-relaxed font-sans">
+                          {selectedCampaign.description}
+                        </p>
+                      {/if}
                     </div>
 
-                    <div
-                      class="w-full h-3 bg-zinc-950 border border-zinc-800 rounded-full overflow-hidden relative mb-4"
-                    >
-                      <div
-                        class="h-full bg-gradient-to-r from-red-600 to-red-400 rounded-full"
-                        style="width: {progressPct}%"
-                      ></div>
-                    </div>
+                    <hr class="border-zinc-850 my-2" />
 
-                    <!-- GoFundMe Link button (if exists) -->
+                    <!-- GoFundMe & CashApp buttons immediately underneath -->
                     {#if selectedCampaign.goFundMeUrl}
-                      <div class="mb-3">
+                      <div class="mb-3 mt-3">
                         <a
                           href={selectedCampaign.goFundMeUrl}
                           target="_blank"
@@ -1062,7 +1148,6 @@
                       </div>
                     {/if}
 
-                    <!-- Cash App Link button -->
                     {#if selectedCampaign.cashAppUrl}
                       <div class="mb-4">
                         <a
@@ -1075,46 +1160,113 @@
                         </a>
                       </div>
                     {/if}
-
-                    <div class="mt-2 flex flex-col gap-2">
-                      <span
-                        class="text-[9px] text-zinc-500 tracking-widest uppercase font-bold"
-                        >MILESTONE TARGETS</span
-                      >
-                      <div class="flex flex-col gap-2 pb-4">
-                        {#each selectedCampaign.milestones as milestone}
-                          {@const isAchieved =
-                            progressPct >= milestone.percentage}
-                          <div
-                            class="flex items-center gap-3 bg-zinc-950/40 border border-zinc-850 p-2.5 rounded-xl"
-                          >
-                            <div
-                              class="w-5 h-5 rounded border flex items-center justify-center font-bold font-mono text-[9px] transition-colors"
-                              class:bg-emerald-500={isAchieved}
-                              class:border-emerald-400={isAchieved}
-                              class:text-black={isAchieved}
-                              class:border-zinc-800={!isAchieved}
-                              class:text-zinc-600={!isAchieved}
-                            >
-                              {#if isAchieved}✓{:else}-{/if}
-                            </div>
-                            <div class="flex-grow">
-                              <div
-                                class="text-[11px] font-bold"
-                                class:text-white={isAchieved}
-                                class:text-zinc-400={!isAchieved}
-                              >
-                                {milestone.label}
-                              </div>
-                              <div class="text-[9px] text-zinc-500 font-mono">
-                                Target: {milestone.percentage}%
-                              </div>
-                            </div>
-                          </div>
+                  {:else}
+                    <!-- Legacy/Standard layout for other campaigns with milestones/progress -->
+                    <div class="mt-3 sm:mt-4 pb-4 flex flex-col gap-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                      {#if campaignBioText}
+                        {#each formatBioText(campaignBioText) as paragraph}
+                          <p class="text-zinc-400 text-sm leading-relaxed font-sans">
+                            {@html paragraph}
+                          </p>
                         {/each}
+                      {:else}
+                        <p class="text-zinc-400 text-sm leading-relaxed font-sans">
+                          {selectedCampaign.description}
+                        </p>
+                      {/if}
+                    </div>
+
+                    <hr class="border-zinc-850 my-2" />
+
+                    <div class="milestones-section mt-3 sm:mt-4">
+                      <div
+                        class="flex justify-between items-center mb-2 font-bold font-mono text-xs"
+                      >
+                        <span class="text-zinc-500 uppercase tracking-widest"
+                          >FUNDING PERCENTAGE</span
+                        >
+                        <span class="text-red-500 text-sm"
+                          >{selectedCampaign.raised} / {selectedCampaign.goal} ({progressPct}%)</span
+                        >
+                      </div>
+
+                      <div
+                        class="w-full h-3 bg-zinc-950 border border-zinc-800 rounded-full overflow-hidden relative mb-4"
+                      >
+                        <div
+                          class="h-full bg-gradient-to-r from-red-600 to-red-400 rounded-full"
+                          style="width: {progressPct}%"
+                        ></div>
+                      </div>
+
+                      <!-- GoFundMe Link button (if exists) -->
+                      {#if selectedCampaign.goFundMeUrl}
+                        <div class="mb-3">
+                          <a
+                            href={selectedCampaign.goFundMeUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="w-full py-3.5 bg-orange-600 hover:bg-orange-500 text-white font-black rounded-xl text-xs tracking-widest transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-orange-900/20 cursor-pointer text-center"
+                          >
+                            🧡 SECURE DONATE VIA GOFUNDME
+                          </a>
+                        </div>
+                      {/if}
+
+                      <!-- Cash App Link button -->
+                      {#if selectedCampaign.cashAppUrl}
+                        <div class="mb-4">
+                          <a
+                            href={selectedCampaign.cashAppUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-black font-black rounded-xl text-xs tracking-widest transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-emerald-900/25 cursor-pointer text-center"
+                          >
+                            🟢 SECURE DONATE VIA CASH APP ({selectedCampaign.cashAppUrl.substring(selectedCampaign.cashAppUrl.lastIndexOf('/') + 1)})
+                          </a>
+                        </div>
+                      {/if}
+
+                      <div class="mt-2 flex flex-col gap-2">
+                        <span
+                          class="text-[9px] text-zinc-500 tracking-widest uppercase font-bold"
+                          >MILESTONE TARGETS</span
+                        >
+                        <div class="flex flex-col gap-2 pb-4">
+                          {#each selectedCampaign.milestones as milestone}
+                            {@const isAchieved =
+                              progressPct >= milestone.percentage}
+                            <div
+                              class="flex items-center gap-3 bg-zinc-950/40 border border-zinc-850 p-2.5 rounded-xl"
+                            >
+                              <div
+                                class="w-5 h-5 rounded border flex items-center justify-center font-bold font-mono text-[9px] transition-colors"
+                                class:bg-emerald-500={isAchieved}
+                                class:border-emerald-400={isAchieved}
+                                class:text-black={isAchieved}
+                                class:border-zinc-800={!isAchieved}
+                                class:text-zinc-600={!isAchieved}
+                              >
+                                {#if isAchieved}✓{:else}-{/if}
+                              </div>
+                              <div class="flex-grow">
+                                <div
+                                  class="text-[11px] font-bold"
+                                  class:text-white={isAchieved}
+                                  class:text-zinc-400={!isAchieved}
+                                >
+                                  {milestone.label}
+                                </div>
+                                <div class="text-[9px] text-zinc-500 font-mono">
+                                  Target: {milestone.percentage}%
+                                </div>
+                              </div>
+                            </div>
+                          {/each}
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  {/if}
                 </div>
               </div>
             </div>
@@ -1280,5 +1432,19 @@
     background-color: #f4f4f5 !important; /* zinc-100 */
     color: #09090b !important; /* zinc-950 */
     border-color: #f4f4f5 !important;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 2px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
   }
 </style>

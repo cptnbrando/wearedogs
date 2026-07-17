@@ -1,7 +1,7 @@
 <script>
   import { onMount } from "svelte";
   import BasePanel from "./BasePanel.svelte";
-  import mapSpots from "../lib/mapSpots.json";
+  import mapSpots from "../lib/data/mapSpots.json";
   import { spring } from "svelte/motion";
   import {
     Star,

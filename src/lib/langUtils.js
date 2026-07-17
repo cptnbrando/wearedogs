@@ -1,4 +1,4 @@
-import translations from './worldwidedogs.json' with { type: 'json' };
+import translations from './data/worldwidedogs.json' with { type: 'json' };
 
 export { translations };
 export const langs = Object.keys(translations);

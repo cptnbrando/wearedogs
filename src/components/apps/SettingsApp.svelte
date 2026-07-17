@@ -1,7 +1,7 @@
 <script>
   import { themeManager } from "../../lib/themeManager.svelte.js";
   import { settingsManager } from "../../lib/settingsManager.svelte.js";
-  import themesData from "../../lib/themes.json";
+  import themesData from "../../lib/data/themes.json";
   import {
     Settings,
     Check,

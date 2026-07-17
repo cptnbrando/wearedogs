@@ -1,5 +1,5 @@
 import { register, init, getLocaleFromNavigator } from 'svelte-i18n';
-import translations from './worldwidedogs.json' with { type: 'json' };
+import translations from './data/worldwidedogs.json' with { type: 'json' };
 
 // All supported language codes (keys from translation dict)
 export const supportedLangs = Object.keys(translations);

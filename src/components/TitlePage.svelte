@@ -28,7 +28,7 @@
   let textIsPaused = $state(false);
 
   // 1. Tell Vite to code-split all sibling panel components in this directory
-  const panelModules = import.meta.glob("./*.svelte");
+  const panelModules = import.meta.glob("./*Panel.svelte");
 
   // 2. Map panel keys to their relative paths from this file
   const panelPathMap = {

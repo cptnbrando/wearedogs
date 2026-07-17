@@ -1,4 +1,4 @@
-import themesData from './themes.json';
+import themesData from './data/themes.json';
 
 /**
  * Manage dynamic site-wide theme switching with LocalStorage persistence and random support.

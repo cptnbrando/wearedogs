@@ -1,5 +1,5 @@
 // World Cup 2026 Data Store and Controller
-import fallbackData from "./worldcup_fallback.json";
+import fallbackData from "./data/worldcup_fallback.json";
 
 export const FALLBACK_TEAMS = fallbackData.teams;
 export const FALLBACK_GROUPS = fallbackData.groups;

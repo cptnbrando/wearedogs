@@ -20,22 +20,6 @@
   padding: 24px;
   overflow-y: auto;
   gap: 20px;
-
-  h2 {
-    margin: 0;
-    font-size: 1.3rem;
-    font-weight: 800;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: $color-neon-gold;
-    text-shadow: 0 0 10px rgba($color-neon-gold, 0.3);
-  }
-
-  .intro-text {
-    margin: -10px 0 10px 0;
-    font-size: 0.8rem;
-    color: var(--color-text-muted, rgba(255, 255, 255, 0.45));
-  }
 }
 
 .games-list-grid {
