@@ -922,23 +922,60 @@
 
         <!-- Episode Details Pane -->
         {#if currentEpisode}
-          <div class="bg-white/5 border border-white/5 rounded-2xl p-4 flex flex-col gap-1.5 flex-shrink-0">
-            <div class="flex items-center justify-between">
+          <div class="bg-white/5 border border-white/5 rounded-2xl p-4 flex flex-col gap-2.5 flex-shrink-0">
+            <!-- Header Row with Metadata Badges -->
+            <div class="flex items-center justify-between border-b border-white/5 pb-1.5 flex-wrap gap-2">
               <span class="text-[10px] font-bold text-cyan-400 uppercase tracking-wider font-mono">
                 {playingShowKey} • Episode {currentEpisode.id}
               </span>
-              <span class="text-[9px] font-mono text-white/30 px-1.5 py-0.5 bg-white/5 rounded uppercase">
-                {currentEpisode.file.split('.').pop()}
-              </span>
+              <div class="flex items-center gap-1.5 flex-wrap">
+                {#if playingShowData?.meta?.rating}
+                  <span class="text-[8px] font-bold px-1.5 py-0.5 bg-white/10 rounded uppercase font-mono text-white/70">
+                    {playingShowData.meta.rating}
+                  </span>
+                {/if}
+                {#if playingShowData?.meta?.runtime}
+                  <span class="text-[8px] font-bold px-1.5 py-0.5 bg-white/10 rounded uppercase font-mono text-white/70">
+                    {playingShowData.meta.runtime}
+                  </span>
+                {/if}
+                {#if playingShowData?.meta?.score}
+                  <span class="text-[8px] font-bold px-1.5 py-0.5 bg-cyan-950 text-cyan-400 border border-cyan-500/20 rounded font-mono">
+                    {playingShowData.meta.score.split('|')[0].trim()}
+                  </span>
+                {/if}
+              </div>
             </div>
-            <h3 class="text-xs sm:text-sm font-extrabold text-white tracking-tight">
-              {currentEpisode.title}
-            </h3>
-            {#if currentEpisode.description}
-              <p class="text-[11px] text-white/60 leading-relaxed">
-                {currentEpisode.description}
-              </p>
-            {/if}
+
+            <!-- Content Grid: Left for Description, Right for Actors -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <!-- Left Col: Title & Description -->
+              <div class="md:col-span-2 flex flex-col gap-1">
+                <h3 class="text-xs sm:text-sm font-extrabold text-white tracking-tight">
+                  {currentEpisode.title}
+                </h3>
+                {#if currentEpisode.description}
+                  <p class="text-[11px] text-white/60 leading-relaxed max-h-12 overflow-y-auto scrollbar-thin">
+                    {currentEpisode.description}
+                  </p>
+                {:else}
+                  <p class="text-[11px] text-white/30 italic">No episode description available.</p>
+                {/if}
+              </div>
+
+              <!-- Right Col: Actors / Starring -->
+              {#if playingShowData?.meta?.actors}
+                <div class="flex flex-col gap-1 border-t border-white/5 pt-2 md:border-t-0 md:pt-0 md:border-l md:border-white/5 md:pl-3">
+                  <span class="text-[8px] uppercase tracking-wider font-bold text-white/40 font-mono">Starring</span>
+                  <div class="text-[10px] text-white/70 leading-snug">
+                    {playingShowData.meta.actors.slice(0, 3).map(a => a.split('(')[0].trim()).join(', ')}
+                    {#if playingShowData.meta.actors.length > 3}
+                      <span class="text-white/40">+{playingShowData.meta.actors.length - 3} more</span>
+                    {/if}
+                  </div>
+                </div>
+              {/if}
+            </div>
           </div>
         {/if}
 
