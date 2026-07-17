@@ -918,6 +918,7 @@
                 </div>
               {/if}
             </div>
+          </div>
         </div>
 
         <!-- Episode Details Pane -->
