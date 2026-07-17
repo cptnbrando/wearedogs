@@ -42,6 +42,7 @@
   let loopMode = $state("all"); // 'off' | 'single' | 'all'
   let isMoreControlsOpen = $state(false);
   let activeMobileView = $state("selector"); // 'selector' | 'player'
+  let pendingSeekTime = $state(null); // number | null
 
   // DOM bindings
   let videoElement = $state(null);
@@ -183,18 +184,15 @@
    */
   function playEpisode(index) {
     if (!showData || index < 0 || index >= showData.episodes.length) return;
-    selectedEpisodeIndex = index;
-    isPlaying = true;
     activeMobileView = "player";
-    if (videoElement) {
-      videoElement.currentTime = 0;
-      // Small timeout to allow state/source bind sync
-      setTimeout(() => {
-        if (videoElement) {
-          videoElement.load();
-          videoElement.play().catch((err) => console.warn(err));
-        }
-      }, 50);
+    if (selectedEpisodeIndex === index) {
+      if (videoElement) {
+        videoElement.currentTime = 0;
+        videoElement.play().catch((err) => console.warn(err));
+      }
+    } else {
+      selectedEpisodeIndex = index;
+      isPlaying = true;
     }
   }
 
@@ -312,17 +310,18 @@
     if (isShowChange) {
       selectedShowKey = sample.showKey;
     }
+    
     if (isEpChange || isShowChange) {
       selectedEpisodeIndex = sample.episodeIndex;
-    }
-
-    setTimeout(() => {
+      pendingSeekTime = sample.time;
+      isPlaying = true;
+    } else {
       if (videoElement) {
         videoElement.currentTime = sample.time;
         videoElement.play().catch((err) => console.warn(err));
         isPlaying = true;
       }
-    }, isShowChange || isEpChange ? 350 : 0);
+    }
   }
 
   /**
@@ -401,6 +400,10 @@
   $effect(() => {
     if (videoUrl && password) {
       isVideoLoading = true;
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+        objectUrl = "";
+      }
       
       if (activeFetchController) {
         activeFetchController.abort();
@@ -421,13 +424,26 @@
           return res.blob();
         })
         .then(blob => {
+          let finalBlob = blob;
+          if (!blob.type || blob.type === "application/octet-stream") {
+            const ext = videoUrl.split(".").pop().toLowerCase();
+            const mimeType = ext === "mp4" ? "video/mp4" : (ext === "mkv" ? "video/x-matroska" : "video/mp4");
+            finalBlob = new Blob([blob], { type: mimeType });
+          }
+
           if (objectUrl) {
             URL.revokeObjectURL(objectUrl);
           }
-          objectUrl = URL.createObjectURL(blob);
+          objectUrl = URL.createObjectURL(finalBlob);
           isVideoLoading = false;
           if (videoElement) {
             videoElement.load();
+            if (pendingSeekTime !== null) {
+              videoElement.currentTime = pendingSeekTime;
+              pendingSeekTime = null;
+            } else {
+              videoElement.currentTime = 0;
+            }
             if (isPlaying) {
               videoElement.play().catch(err => console.warn(err));
             }
@@ -437,6 +453,10 @@
           if (err.name !== 'AbortError') {
             console.error("Error fetching video:", err);
             isVideoLoading = false;
+            if (objectUrl) {
+              URL.revokeObjectURL(objectUrl);
+              objectUrl = "";
+            }
           }
         });
     } else {
