@@ -1,1 +1,0 @@
-System.register(["./TitlePage-legacy-C8I1GoIE.js"],function(e,t){var n;return{setters:[function(e){n=e.t}],execute:function(){e("default",n)}}});
