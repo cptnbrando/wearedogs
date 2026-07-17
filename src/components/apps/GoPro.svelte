@@ -37,13 +37,14 @@
   let isSamplerOpen = $state(false);
   let samples = $state([]);
   let password = $state("");
-  let objectUrl = $state("");
   let isVideoLoading = $state(false);
   let isShuffle = $state(false);
   let loopMode = $state("all"); // 'off' | 'single' | 'all'
   let isMoreControlsOpen = $state(false);
   let activeMobileView = $state("selector"); // 'selector' | 'player'
   let pendingSeekTime = $state(null); // number | null
+  let showControls = $state(true);
+  let controlsTimeout = null;
 
   // DOM bindings
   let videoElement = $state(null);
@@ -54,8 +55,8 @@
   const playingShowData = $derived(catalog[playingShowKey]);
   const currentEpisode = $derived(playingShowData?.episodes[playingEpisodeIndex]);
   const videoUrl = $derived(
-    playingShowData && currentEpisode
-      ? `${playingShowData.baseUrl.replace("https://data.wearedogs.net", "")}${currentEpisode.file}`
+    playingShowData && currentEpisode && password
+      ? `${playingShowData.baseUrl.replace("https://data.wearedogs.net", "")}${currentEpisode.file}?gopropass=${password}`
       : "",
   );
 
@@ -405,7 +406,32 @@
     }
   }
 
+  function resetControlsTimeout() {
+    showControls = true;
+    if (controlsTimeout) clearTimeout(controlsTimeout);
+    if (isPlaying) {
+      controlsTimeout = setTimeout(() => {
+        showControls = false;
+      }, 3000);
+    }
+  }
+
+  function handleLoadedMetadata() {
+    if (videoElement && pendingSeekTime !== null) {
+      videoElement.currentTime = pendingSeekTime;
+      pendingSeekTime = null;
+    }
+  }
+
   onMount(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/gopro-sw.js').then((reg) => {
+        console.log('SW registered:', reg);
+      }).catch((err) => {
+        console.error('SW registration failed:', err);
+      });
+    }
+
     const savedPassword = localStorage.getItem("gopro_password");
     if (savedPassword) {
       password = savedPassword;
@@ -414,99 +440,25 @@
     }
   });
 
-  let activeFetchController = null;
-
+  // Reactive trigger to play video when source changes
   $effect(() => {
     const url = videoUrl;
-    const pass = password;
-
     untrack(() => {
-      if (url && pass) {
-        isVideoLoading = true;
-        if (objectUrl) {
-          URL.revokeObjectURL(objectUrl);
-          objectUrl = "";
+      if (videoElement && url) {
+        videoElement.load();
+        if (isPlaying) {
+          videoElement.play().catch((err) => console.warn("Play on source change failed:", err));
         }
-
-        if (activeFetchController) {
-          activeFetchController.abort();
-        }
-        activeFetchController = new AbortController();
-        const { signal } = activeFetchController;
-
-        fetch(url, {
-          headers: {
-            Authorization: `password=${pass}`,
-          },
-          signal,
-        })
-          .then((res) => {
-            if (!res.ok) {
-              throw new Error(`Failed to fetch video: ${res.statusText}`);
-            }
-            return res.blob();
-          })
-          .then((blob) => {
-            let finalBlob = blob;
-            if (!blob.type || blob.type === "application/octet-stream") {
-              const ext = url.split(".").pop().toLowerCase();
-              const mimeType =
-                ext === "mp4"
-                  ? "video/mp4"
-                  : ext === "mkv"
-                    ? "video/x-matroska"
-                    : "video/mp4";
-              finalBlob = new Blob([blob], { type: mimeType });
-            }
-
-            if (objectUrl) {
-              URL.revokeObjectURL(objectUrl);
-            }
-            objectUrl = URL.createObjectURL(finalBlob);
-            isVideoLoading = false;
-            if (videoElement) {
-              videoElement.load();
-              if (pendingSeekTime !== null) {
-                videoElement.currentTime = pendingSeekTime;
-                pendingSeekTime = null;
-              } else {
-                videoElement.currentTime = 0;
-              }
-              if (isPlaying) {
-                videoElement.play().catch((err) => console.warn(err));
-              }
-            }
-          })
-          .catch((err) => {
-            if (err.name !== "AbortError") {
-              console.error("Error fetching video:", err);
-              isVideoLoading = false;
-              if (objectUrl) {
-                URL.revokeObjectURL(objectUrl);
-                objectUrl = "";
-              }
-            }
-          });
-      } else {
-        if (objectUrl) {
-          URL.revokeObjectURL(objectUrl);
-          objectUrl = "";
-        }
-        isVideoLoading = false;
       }
     });
+  });
 
-    return () => {
-      if (activeFetchController) {
-        activeFetchController.abort();
-      }
-      untrack(() => {
-        if (objectUrl) {
-          URL.revokeObjectURL(objectUrl);
-          objectUrl = "";
-        }
-      });
-    };
+  // Reset controls timeout when isPlaying state changes
+  $effect(() => {
+    const playing = isPlaying;
+    untrack(() => {
+      resetControlsTimeout();
+    });
   });
 
   // Deep link parsing reactive sync
@@ -705,9 +657,14 @@
           <span>Back to Episodes</span>
         </button>
 
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
         <!-- Video Player Wrapper -->
         <div
-          class="relative bg-black rounded-2xl overflow-hidden border border-white/10 shadow-2xl flex flex-col transition-all duration-300 {isMoreControlsOpen
+          bind:this={playerWrapperElement}
+          onmousemove={resetControlsTimeout}
+          onclick={resetControlsTimeout}
+          class="relative bg-black rounded-2xl overflow-hidden border border-white/10 shadow-2xl flex flex-col flex-shrink-0 transition-all duration-300 {isMoreControlsOpen
             ? '-translate-y-4 sm:-translate-y-8 xl:-translate-y-16'
             : ''}"
         >
@@ -725,7 +682,7 @@
                 ></div>
                 <span
                   class="text-xs font-semibold tracking-wider text-cyan-400 font-mono uppercase"
-                  >Downloading Video...</span
+                  >Loading Video...</span
                 >
               </div>
             {/if}
@@ -738,7 +695,7 @@
                     videoElement.currentTime = showData.introEnd;
                   }
                 }}
-                class="absolute bottom-4 right-4 px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-black font-bold font-mono text-[10px] rounded-lg shadow-lg border border-cyan-300/30 z-30 transition-all duration-150 uppercase tracking-wider cursor-pointer"
+                class="absolute bottom-20 right-4 px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-black font-bold font-mono text-[10px] rounded-lg shadow-lg border border-cyan-300/30 z-30 transition-all duration-150 uppercase tracking-wider cursor-pointer"
                 transition:fade
               >
                 Skip Intro
@@ -749,7 +706,7 @@
             {#if duration > 90 && currentTime >= duration - 90}
               <button
                 onclick={handleVideoEnded}
-                class="absolute bottom-4 right-4 px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-black font-bold font-mono text-[10px] rounded-lg shadow-lg border border-cyan-300/30 z-30 transition-all duration-150 uppercase tracking-wider cursor-pointer"
+                class="absolute bottom-20 right-4 px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-black font-bold font-mono text-[10px] rounded-lg shadow-lg border border-cyan-300/30 z-30 transition-all duration-150 uppercase tracking-wider cursor-pointer"
                 transition:fade
               >
                 Skip Outro / Next
@@ -758,16 +715,21 @@
 
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-            <!-- Source dynamically loaded using objectUrl -->
             <video
               bind:this={videoElement}
-              src={objectUrl}
+              src={videoUrl}
               class="w-full h-full object-contain cursor-pointer"
               playsinline
               onclick={togglePlay}
               onplay={() => (isPlaying = true)}
               onpause={() => (isPlaying = false)}
               onended={handleVideoEnded}
+              onwaiting={() => (isVideoLoading = true)}
+              onplaying={() => (isVideoLoading = false)}
+              onloadstart={() => (isVideoLoading = true)}
+              oncanplay={() => (isVideoLoading = false)}
+              onerror={() => (isVideoLoading = false)}
+              onloadedmetadata={handleLoadedMetadata}
               ontimeupdate={() => {
                 if (videoElement) currentTime = videoElement.currentTime;
               }}
@@ -777,185 +739,185 @@
             >
               <track kind="captions" />
             </video>
-          </div>
 
-          <!-- Grandpa-Friendly Control Bar -->
-          <div
-            class="p-4 bg-gradient-to-t from-black/80 to-black/20 backdrop-blur border-t border-white/5 flex flex-col gap-3"
-          >
-            <!-- Progress bar -->
+            <!-- Custom Controls Overlay (glued to bottom inside video container, disappears on inactivity) -->
             <div
-              class="flex items-center justify-between text-[10px] font-mono text-white/50"
+              class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/90 via-black/80 to-transparent backdrop-blur-sm border-t border-white/10 flex flex-col gap-3 z-30 transition-all duration-300 {showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'}"
             >
-              <span>{formatTime(currentTime)}</span>
-              <button
-                type="button"
-                onclick={handleSeek}
-                class="flex-grow mx-3 h-1.5 bg-white/10 rounded-full overflow-hidden relative cursor-pointer hover:h-2 transition-all border-none focus:outline-none"
-                aria-label="Seek video"
-              >
-                <div
-                  class="h-full bg-cyan-400 rounded-full pointer-events-none"
-                  style="width: {(currentTime / (duration || 1)) * 100}%"
-                ></div>
-              </button>
-              <span>{formatTime(duration)}</span>
-            </div>
-
-            <!-- Controls row -->
-            <div class="flex flex-wrap items-center justify-between gap-3">
-              <div class="flex items-center gap-2">
-                <!-- Previous Episode -->
-                <button
-                  onclick={playPrevEpisode}
-                  class="p-2.5 bg-white/5 hover:bg-white/10 rounded-full transition focus:ring-2 focus:ring-cyan-400 focus:outline-none cursor-pointer"
-                  aria-label="Previous Episode"
-                >
-                  <SkipBack class="w-4 h-4 fill-current" />
-                </button>
-
-                <!-- Play/Pause -->
-                <button
-                  onclick={togglePlay}
-                  class="p-2.5 bg-white text-black hover:bg-cyan-400 hover:text-black rounded-full transition focus:ring-2 focus:ring-cyan-400 focus:outline-none cursor-pointer"
-                  aria-label={isPlaying ? "Pause" : "Play"}
-                >
-                  {#if isPlaying}
-                    <Pause class="w-4 h-4 fill-current" />
-                  {:else}
-                    <Play class="w-4 h-4 fill-current" />
-                  {/if}
-                </button>
-
-                <!-- Next Episode -->
-                <button
-                  onclick={playNextEpisode}
-                  class="p-2.5 bg-white/5 hover:bg-white/10 rounded-full transition focus:ring-2 focus:ring-cyan-400 focus:outline-none cursor-pointer"
-                  aria-label="Next Episode"
-                >
-                  <SkipForward class="w-4 h-4 fill-current" />
-                </button>
-              </div>
-
-              <!-- Episode Display Title -->
-              {#if currentEpisode}
-                <div
-                  class="text-xs font-semibold truncate max-w-[200px] text-white/80 hidden sm:block"
-                >
-                  {currentEpisode.title}
-                </div>
-              {/if}
-
-              <!-- Volume & Fullscreen Controls -->
-              <div class="flex items-center gap-2">
-                <button
-                  onclick={triggerFullscreen}
-                  class="p-2.5 bg-white/5 hover:bg-white/10 rounded-full transition focus:ring-2 focus:ring-cyan-400 focus:outline-none cursor-pointer"
-                  aria-label="Enter fullscreen"
-                >
-                  <Maximize class="w-4 h-4" />
-                </button>
-
-                <!-- Expand/Collapse More Controls -->
-                <button
-                  onclick={() => (isMoreControlsOpen = !isMoreControlsOpen)}
-                  class="p-2.5 bg-white/5 hover:bg-white/10 rounded-full transition focus:ring-2 focus:ring-cyan-400 focus:outline-none cursor-pointer"
-                  aria-label="Toggle extra controls"
-                >
-                  <svg
-                    class="w-4 h-4 text-white/70 transition-transform duration-200 {isMoreControlsOpen
-                      ? 'rotate-180'
-                      : ''}"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            <!-- More Controls Panel (Collapsible) -->
-            {#if isMoreControlsOpen}
+              <!-- Progress bar -->
               <div
-                class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-white/5"
-                transition:fade
+                class="flex items-center justify-between text-[10px] font-mono text-white/50"
               >
-                <!-- Left: skip 10s backward / forward, Volume -->
+                <span>{formatTime(currentTime)}</span>
+                <button
+                  type="button"
+                  onclick={handleSeek}
+                  class="flex-grow mx-3 h-1.5 bg-white/10 rounded-full overflow-hidden relative cursor-pointer hover:h-2 transition-all border-none focus:outline-none"
+                  aria-label="Seek video"
+                >
+                  <div
+                    class="h-full bg-cyan-400 rounded-full pointer-events-none"
+                    style="width: {(currentTime / (duration || 1)) * 100}%"
+                  ></div>
+                </button>
+                <span>{formatTime(duration)}</span>
+              </div>
+
+              <!-- Controls row -->
+              <div class="flex flex-wrap items-center justify-between gap-3">
                 <div class="flex items-center gap-2">
+                  <!-- Previous Episode -->
                   <button
-                    onclick={() => skip(-10)}
-                    class="px-2.5 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-[10px] font-mono transition cursor-pointer"
-                    title="Rewind 10s"
+                    onclick={playPrevEpisode}
+                    class="p-2.5 bg-white/5 hover:bg-white/10 rounded-full transition focus:ring-2 focus:ring-cyan-400 focus:outline-none cursor-pointer"
+                    aria-label="Previous Episode"
                   >
-                    -10s
-                  </button>
-                  <button
-                    onclick={() => skip(10)}
-                    class="px-2.5 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-[10px] font-mono transition cursor-pointer"
-                    title="Forward 10s"
-                  >
-                    +10s
+                    <SkipBack class="w-4 h-4 fill-current" />
                   </button>
 
-                  <span class="w-px h-4 bg-white/10 mx-1"></span>
-
+                  <!-- Play/Pause -->
                   <button
-                    onclick={toggleMute}
-                    class="p-1.5 bg-white/5 hover:bg-white/10 rounded-lg transition cursor-pointer"
-                    aria-label={isMuted ? "Unmute" : "Mute"}
+                    onclick={togglePlay}
+                    class="p-2.5 bg-white text-black hover:bg-cyan-400 hover:text-black rounded-full transition focus:ring-2 focus:ring-cyan-400 focus:outline-none cursor-pointer"
+                    aria-label={isPlaying ? "Pause" : "Play"}
                   >
-                    {#if isMuted}
-                      <VolumeX class="w-3.5 h-3.5" />
+                    {#if isPlaying}
+                      <Pause class="w-4 h-4 fill-current" />
                     {:else}
-                      <Volume2 class="w-3.5 h-3.5" />
+                      <Play class="w-4 h-4 fill-current" />
                     {/if}
                   </button>
+
+                  <!-- Next Episode -->
+                  <button
+                    onclick={playNextEpisode}
+                    class="p-2.5 bg-white/5 hover:bg-white/10 rounded-full transition focus:ring-2 focus:ring-cyan-400 focus:outline-none cursor-pointer"
+                    aria-label="Next Episode"
+                  >
+                    <SkipForward class="w-4 h-4 fill-current" />
+                  </button>
                 </div>
 
-                <!-- Right: Shuffle, Loop, Sampler trigger -->
+                <!-- Episode Display Title -->
+                {#if currentEpisode}
+                  <div
+                    class="text-xs font-semibold truncate max-w-[200px] text-white/80 hidden sm:block"
+                  >
+                    {currentEpisode.title}
+                  </div>
+                {/if}
+
+                <!-- Volume & Fullscreen Controls -->
                 <div class="flex items-center gap-2">
-                  <!-- Shuffle button -->
                   <button
-                    onclick={() => (isShuffle = !isShuffle)}
-                    class="px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition flex items-center gap-1 cursor-pointer {isShuffle
-                      ? 'bg-cyan-500 text-black shadow-md shadow-cyan-500/20'
-                      : 'bg-white/5 text-white/70 border border-white/5 hover:bg-white/10'}"
+                    onclick={triggerFullscreen}
+                    class="p-2.5 bg-white/5 hover:bg-white/10 rounded-full transition focus:ring-2 focus:ring-cyan-400 focus:outline-none cursor-pointer"
+                    aria-label="Enter fullscreen"
                   >
-                    Shuffle: {isShuffle ? "ON" : "OFF"}
+                    <Maximize class="w-4 h-4" />
                   </button>
 
-                  <!-- Loop Mode button -->
+                  <!-- Expand/Collapse More Controls -->
                   <button
-                    onclick={cycleLoopMode}
-                    class="px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition flex items-center gap-1 cursor-pointer {loopMode !==
-                    'off'
-                      ? 'bg-cyan-500 text-black shadow-md shadow-cyan-500/20'
-                      : 'bg-white/5 text-white/70 border border-white/5 hover:bg-white/10'}"
+                    onclick={() => (isMoreControlsOpen = !isMoreControlsOpen)}
+                    class="p-2.5 bg-white/5 hover:bg-white/10 rounded-full transition focus:ring-2 focus:ring-cyan-400 focus:outline-none cursor-pointer"
+                    aria-label="Toggle extra controls"
                   >
-                    Loop: {loopMode.toUpperCase()}
-                  </button>
-
-                  <span class="w-px h-4 bg-white/10 mx-1"></span>
-
-                  <!-- Sampler Open Button -->
-                  <button
-                    onclick={() => (isSamplerOpen = !isSamplerOpen)}
-                    class="px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition flex items-center gap-1 cursor-pointer {isSamplerOpen
-                      ? 'bg-cyan-500 text-black font-extrabold shadow-md shadow-cyan-500/20'
-                      : 'bg-cyan-950/50 text-cyan-400 border border-cyan-800/30 hover:bg-cyan-900/30'}"
-                  >
-                    Sampler
+                    <svg
+                      class="w-4 h-4 text-white/70 transition-transform duration-200 {isMoreControlsOpen
+                        ? 'rotate-180'
+                        : ''}"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M19 9l-7 7-7-7"
+                      />
+                    </svg>
                   </button>
                 </div>
               </div>
-            {/if}
+
+              <!-- More Controls Panel (Collapsible) -->
+              {#if isMoreControlsOpen}
+                <div
+                  class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-white/5"
+                  transition:fade
+                >
+                  <!-- Left: skip 10s backward / forward, Volume -->
+                  <div class="flex items-center gap-2">
+                    <button
+                      onclick={() => skip(-10)}
+                      class="px-2.5 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-[10px] font-mono transition cursor-pointer"
+                      title="Rewind 10s"
+                    >
+                      -10s
+                    </button>
+                    <button
+                      onclick={() => skip(10)}
+                      class="px-2.5 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-[10px] font-mono transition cursor-pointer"
+                      title="Forward 10s"
+                    >
+                      +10s
+                    </button>
+
+                    <span class="w-px h-4 bg-white/10 mx-1"></span>
+
+                    <button
+                      onclick={toggleMute}
+                      class="p-1.5 bg-white/5 hover:bg-white/10 rounded-lg transition cursor-pointer"
+                      aria-label={isMuted ? "Unmute" : "Mute"}
+                    >
+                      {#if isMuted}
+                        <VolumeX class="w-3.5 h-3.5" />
+                      {:else}
+                        <Volume2 class="w-3.5 h-3.5" />
+                      {/if}
+                    </button>
+                  </div>
+
+                  <!-- Right: Shuffle, Loop, Sampler trigger -->
+                  <div class="flex items-center gap-2">
+                    <!-- Shuffle button -->
+                    <button
+                      onclick={() => (isShuffle = !isShuffle)}
+                      class="px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition flex items-center gap-1 cursor-pointer {isShuffle
+                        ? 'bg-cyan-500 text-black shadow-md shadow-cyan-500/20'
+                        : 'bg-white/5 text-white/70 border border-white/5 hover:bg-white/10'}"
+                    >
+                      Shuffle: {isShuffle ? "ON" : "OFF"}
+                    </button>
+
+                    <!-- Loop Mode button -->
+                    <button
+                      onclick={cycleLoopMode}
+                      class="px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition flex items-center gap-1 cursor-pointer {loopMode !==
+                      'off'
+                        ? 'bg-cyan-500 text-black shadow-md shadow-cyan-500/20'
+                        : 'bg-white/5 text-white/70 border border-white/5 hover:bg-white/10'}"
+                    >
+                      Loop: {loopMode.toUpperCase()}
+                    </button>
+
+                    <span class="w-px h-4 bg-white/10 mx-1"></span>
+
+                    <!-- Sampler Open Button -->
+                    <button
+                      onclick={() => (isSamplerOpen = !isSamplerOpen)}
+                      class="px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition flex items-center gap-1 cursor-pointer {isSamplerOpen
+                        ? 'bg-cyan-500 text-black font-extrabold shadow-md shadow-cyan-500/20'
+                        : 'bg-cyan-950/50 text-cyan-400 border border-cyan-800/30 hover:bg-cyan-900/30'}"
+                    >
+                      Sampler
+                    </button>
+                  </div>
+                </div>
+              {/if}
+            </div>
           </div>
         </div>
 
@@ -1046,83 +1008,6 @@
                     </div>
                   </div>
                 {/each}
-              </div>
-            {/if}
-          </div>
-        {/if}
-
-        <!-- Show Meta Info -->
-        {#if showData?.meta}
-          <div
-            class="bg-white/5 border border-white/5 rounded-2xl p-5 flex-col gap-4 hidden xl:flex"
-          >
-            <h3
-              class="text-xs font-bold uppercase tracking-wider text-white/50"
-            >
-              Show Details
-            </h3>
-            <div class="grid grid-cols-2 gap-4 text-xs sm:grid-cols-4">
-              <div>
-                <span class="text-white/40 font-mono block uppercase text-[9px]"
-                  >Release</span
-                >
-                <span class="font-bold text-white/80"
-                  >{showData.meta.release || "N/A"}</span
-                >
-              </div>
-              <div>
-                <span class="text-white/40 font-mono block uppercase text-[9px]"
-                  >Rating</span
-                >
-                <span class="font-bold text-white/80"
-                  >{showData.meta.rating || "N/A"}</span
-                >
-              </div>
-              <div>
-                <span class="text-white/40 font-mono block uppercase text-[9px]"
-                  >Runtime</span
-                >
-                <span class="font-bold text-white/80"
-                  >{showData.meta.runtime || "N/A"}</span
-                >
-              </div>
-              <div>
-                <span class="text-white/40 font-mono block uppercase text-[9px]"
-                  >Score</span
-                >
-                <span class="font-bold text-cyan-400"
-                  >{showData.meta.score || "N/A"}</span
-                >
-              </div>
-            </div>
-
-            {#if showData.meta.actors}
-              <div>
-                <span
-                  class="text-white/40 font-mono block uppercase text-[9px] mb-1"
-                  >Starring</span
-                >
-                <div class="flex flex-wrap gap-1.5">
-                  {#each showData.meta.actors as actor}
-                    <span
-                      class="px-2 py-0.5 bg-white/5 border border-white/5 rounded text-[10px] text-white/70"
-                    >
-                      {actor}
-                    </span>
-                  {/each}
-                </div>
-              </div>
-            {/if}
-
-            {#if showData.meta.facts}
-              <div class="text-xs border-t border-white/5 pt-3">
-                <span
-                  class="text-white/40 font-mono block uppercase text-[9px] mb-1"
-                  >Trivia / Fact</span
-                >
-                <p class="text-white/60 leading-relaxed text-[11px]">
-                  {showData.meta.facts}
-                </p>
               </div>
             {/if}
           </div>
