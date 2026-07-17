@@ -664,9 +664,7 @@
           bind:this={playerWrapperElement}
           onmousemove={resetControlsTimeout}
           onclick={resetControlsTimeout}
-          class="relative bg-black rounded-2xl overflow-hidden border border-white/10 shadow-2xl flex flex-col flex-shrink-0 transition-all duration-300 {isMoreControlsOpen
-            ? '-translate-y-4 sm:-translate-y-8 xl:-translate-y-16'
-            : ''}"
+          class="relative bg-black rounded-2xl overflow-hidden border border-white/10 shadow-2xl flex flex-col flex-shrink-0 transition-all duration-300"
         >
           <!-- Responsive aspect-video container -->
           <div
