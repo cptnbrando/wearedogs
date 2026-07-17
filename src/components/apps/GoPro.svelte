@@ -41,6 +41,7 @@
   let isShuffle = $state(false);
   let loopMode = $state("all"); // 'off' | 'single' | 'all'
   let isMoreControlsOpen = $state(false);
+  let activeMobileView = $state("selector"); // 'selector' | 'player'
 
   // DOM bindings
   let videoElement = $state(null);
@@ -50,7 +51,7 @@
   const currentEpisode = $derived(showData?.episodes[selectedEpisodeIndex]);
   const videoUrl = $derived(
     showData && currentEpisode
-      ? `${showData.baseUrl.replace("https://data.wearedogs.net", "")}${currentEpisode.file}`
+      ? `${showData.baseUrl}${currentEpisode.file}`
       : ""
   );
 
@@ -184,6 +185,7 @@
     if (!showData || index < 0 || index >= showData.episodes.length) return;
     selectedEpisodeIndex = index;
     isPlaying = true;
+    activeMobileView = "player";
     if (videoElement) {
       videoElement.currentTime = 0;
       // Small timeout to allow state/source bind sync
@@ -304,6 +306,8 @@
   function playSample(sample) {
     const isShowChange = selectedShowKey !== sample.showKey;
     const isEpChange = selectedEpisodeIndex !== sample.episodeIndex;
+
+    activeMobileView = "player";
 
     if (isShowChange) {
       selectedShowKey = sample.showKey;
@@ -469,6 +473,7 @@
           if (matchIdx !== -1) {
             selectedEpisodeIndex = matchIdx;
             isPlaying = true;
+            activeMobileView = "player";
           }
         }
       }
@@ -513,7 +518,7 @@
     <main class="flex-grow grid grid-cols-1 gap-4 w-full max-w-7xl mx-auto overflow-hidden xl:grid-cols-3">
       
       <!-- LEFT SECTION: Shows List & Episode Selector (col-span-1) -->
-      <section class="flex flex-col gap-3 sm:gap-4 overflow-hidden order-2 xl:order-1 xl:col-span-1">
+      <section class="flex flex-col gap-3 sm:gap-4 overflow-hidden order-2 xl:order-1 xl:col-span-1 {activeMobileView === 'selector' ? 'flex' : 'hidden xl:flex'}">
         
         <!-- Show Selection Carousel -->
         <div class="flex flex-col gap-1.5 flex-shrink-0">
@@ -573,8 +578,24 @@
       </section>
 
       <!-- RIGHT SECTION: Player & Sampler (col-span-2) -->
-      <section class="flex flex-col gap-3 sm:gap-4 overflow-y-auto xl:overflow-visible order-1 xl:order-2 xl:col-span-2 scrollbar-thin">
+      <section class="flex flex-col gap-3 sm:gap-4 overflow-y-auto xl:overflow-visible order-1 xl:order-2 xl:col-span-2 scrollbar-thin {activeMobileView === 'player' ? 'flex' : 'hidden xl:flex'}">
         
+        <!-- Back to Episodes Button (mobile-only) -->
+        <button
+          onclick={() => {
+            activeMobileView = "selector";
+            if (videoElement) {
+              videoElement.pause();
+            }
+          }}
+          class="xl:hidden self-start flex items-center gap-1.5 px-3 py-1.5 bg-white/5 border border-white/10 hover:bg-white/10 rounded-lg text-xs font-bold text-cyan-400 transition focus:outline-none focus:ring-1 focus:ring-cyan-400"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          </svg>
+          <span>Back to Episodes</span>
+        </button>
+
         <!-- Video Player Wrapper -->
         <div class="relative bg-black rounded-2xl overflow-hidden border border-white/10 shadow-2xl flex flex-col">
           
@@ -873,7 +894,7 @@
 
         <!-- Show Meta Info -->
         {#if showData?.meta}
-          <div class="bg-white/5 border border-white/5 rounded-2xl p-5 flex flex-col gap-4">
+          <div class="bg-white/5 border border-white/5 rounded-2xl p-5 flex-col gap-4 hidden xl:flex">
             <h3 class="text-xs font-bold uppercase tracking-wider text-white/50">Show Details</h3>
             <div class="grid grid-cols-2 gap-4 text-xs sm:grid-cols-4">
               <div>

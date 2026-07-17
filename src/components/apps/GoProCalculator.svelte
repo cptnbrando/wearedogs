@@ -153,7 +153,7 @@
 
     try {
       const response = await fetch(
-        `/vid/popcorn/check.txt`,
+        `https://data.wearedogs.net/vid/popcorn/check.txt`,
         {
           method: "GET",
           headers: {
