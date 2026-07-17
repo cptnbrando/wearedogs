@@ -5,7 +5,7 @@
 # ==============================================================================
 
 ## Core Orchestration Instructions
-- **Target Engine**: For every top-level category or task, the `Swarm-Coordinator` must execute `git checkout -b [agy-currentmonth-currentweek]/[task-name]` from a clean master branch.
+- **Target Engine**: When explicitly asked, the `Swarm-Coordinator` must execute `git checkout -b ai-[currentmonth]/[task-name]` from a clean master branch. If not explicitly asked to make separate branches, or to accomplish multiple tasks, complete work on the currently checked out branch.
 - **Transpilation Guard**: Every file edited must adhere to the Potato Target (Chrome 40+ compatibility via transpile steps).
 - **Nobody is allowed to merge branches, or any code, or anything into master, ever. Never git push anything anywhere, no code changes you make can touch a network without my explicit command.**
 

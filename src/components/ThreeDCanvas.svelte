@@ -14,6 +14,8 @@
   let isDragging = $state(false);
   let hasInitialized = false;
 
+  let containerEl;
+
   // Fisher-Yates Shuffle algorithm
   function shuffle(array) {
     const newArr = [...array];
@@ -105,8 +107,95 @@
     };
     window.addEventListener("keydown", handleGlobalKeydown);
 
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let gestureType = null;
+
+    const handleStart = (e) => {
+      if (e.pointerType && e.pointerType !== "touch") return;
+      if (
+        e.target.closest(".arrow-btn") ||
+        e.target.closest(".attribution-widget")
+      ) {
+        return;
+      }
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      touchStartX = clientX;
+      touchStartY = clientY;
+      gestureType = null;
+    };
+
+    const handleMove = (e) => {
+      if (e.pointerType && e.pointerType !== "touch") return;
+      if (
+        e.target.closest(".arrow-btn") ||
+        e.target.closest(".attribution-widget")
+      ) {
+        return;
+      }
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+      if (gestureType === null) {
+        const diffX = clientX - touchStartX;
+        const diffY = clientY - touchStartY;
+        const absX = Math.abs(diffX);
+        const absY = Math.abs(diffY);
+
+        if (absX > 5 || absY > 5) {
+          if (absY > absX) {
+            gestureType = "scroll";
+          } else {
+            gestureType = "rotate";
+          }
+        }
+      }
+
+      if (gestureType === "scroll") {
+        e.stopPropagation();
+      } else if (gestureType === "rotate") {
+        if (e.cancelable) {
+          e.preventDefault();
+        }
+      }
+    };
+
+    if (containerEl) {
+      containerEl.addEventListener("touchstart", handleStart, {
+        capture: true,
+        passive: true,
+      });
+      containerEl.addEventListener("touchmove", handleMove, {
+        capture: true,
+        passive: false,
+      });
+      containerEl.addEventListener("pointerdown", handleStart, {
+        capture: true,
+        passive: true,
+      });
+      containerEl.addEventListener("pointermove", handleMove, {
+        capture: true,
+        passive: false,
+      });
+    }
+
     return () => {
       window.removeEventListener("keydown", handleGlobalKeydown);
+      if (containerEl) {
+        containerEl.removeEventListener("touchstart", handleStart, {
+          capture: true,
+        });
+        containerEl.removeEventListener("touchmove", handleMove, {
+          capture: true,
+        });
+        containerEl.removeEventListener("pointerdown", handleStart, {
+          capture: true,
+        });
+        containerEl.removeEventListener("pointermove", handleMove, {
+          capture: true,
+        });
+      }
     };
   });
 
@@ -149,6 +238,7 @@
 </script>
 
 <div
+  bind:this={containerEl}
   class="canvas-container fuck w-full h-full flex justify-center align-center select-none pointer-events-auto flex align-center justify-center"
   class:dragging={isDragging}
   onpointerdown={handlePointerDown}
@@ -237,6 +327,7 @@
       display: flex !important;
       justify-content: center !important;
       align-items: center !important;
+      touch-action: pan-y !important;
     }
   }
 
