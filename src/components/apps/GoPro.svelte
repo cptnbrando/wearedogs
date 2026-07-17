@@ -37,6 +37,7 @@
   let isSamplerOpen = $state(false);
   let samples = $state([]);
   let password = $state("");
+  let objectUrl = $state("");
   let isVideoLoading = $state(false);
   let isShuffle = $state(false);
   let loopMode = $state("all"); // 'off' | 'single' | 'all'
@@ -57,8 +58,8 @@
     playingShowData?.episodes[playingEpisodeIndex],
   );
   const videoUrl = $derived(
-    playingShowData && currentEpisode && password
-      ? `${playingShowData.baseUrl.replace("https://data.wearedogs.net", "")}${currentEpisode.file}?gopropass=${password}`
+    playingShowData && currentEpisode
+      ? `${playingShowData.baseUrl}${currentEpisode.file}`
       : "",
   );
 
@@ -429,17 +430,6 @@
   }
 
   onMount(() => {
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker
-        .register("/gopro-sw.js")
-        .then((reg) => {
-          console.log("SW registered:", reg);
-        })
-        .catch((err) => {
-          console.error("SW registration failed:", err);
-        });
-    }
-
     const savedPassword = localStorage.getItem("gopro_password");
     if (savedPassword) {
       password = savedPassword;
@@ -448,16 +438,107 @@
     }
   });
 
-  // Reactive trigger to play video when source changes
+  let activeFetchController = null;
+
+  // Fetch video as blob directly with Authorization headers (no proxy/SW)
   $effect(() => {
     const url = videoUrl;
+    const pass = password;
+
     untrack(() => {
-      if (videoElement && url) {
-        videoElement.load();
-        if (isPlaying) {
-          videoElement
-            .play()
-            .catch((err) => console.warn("Play on source change failed:", err));
+      if (url && pass) {
+        isVideoLoading = true;
+        
+        if (objectUrl) {
+          URL.revokeObjectURL(objectUrl);
+          objectUrl = "";
+        }
+
+        if (activeFetchController) {
+          activeFetchController.abort();
+        }
+        activeFetchController = new AbortController();
+        const { signal } = activeFetchController;
+
+        fetch(url, {
+          headers: {
+            Authorization: `password=${pass}`,
+          },
+          signal,
+        })
+          .then((res) => {
+            if (!res.ok) {
+              throw new Error(`Failed to fetch video: ${res.statusText}`);
+            }
+            return res.blob();
+          })
+          .then((blob) => {
+            let finalBlob = blob;
+            if (!blob.type || blob.type === "application/octet-stream") {
+              const ext = url.split(".").pop().toLowerCase();
+              const mimeType =
+                ext === "mp4"
+                  ? "video/mp4"
+                  : ext === "mkv"
+                    ? "video/x-matroska"
+                    : "video/mp4";
+              finalBlob = new Blob([blob], { type: mimeType });
+            }
+
+            objectUrl = URL.createObjectURL(finalBlob);
+            isVideoLoading = false;
+            
+            // Wait a tick for Svelte to update the DOM <video src={objectUrl}>
+            setTimeout(() => {
+              if (videoElement) {
+                videoElement.load();
+                if (pendingSeekTime !== null) {
+                  videoElement.currentTime = pendingSeekTime;
+                  pendingSeekTime = null;
+                } else {
+                  videoElement.currentTime = 0;
+                }
+                if (isPlaying) {
+                  videoElement.play().catch((err) => console.warn("Play failed:", err));
+                }
+              }
+            }, 0);
+          })
+          .catch((err) => {
+            if (err.name !== "AbortError") {
+              console.error("Error fetching video:", err);
+              isVideoLoading = false;
+              if (objectUrl) {
+                URL.revokeObjectURL(objectUrl);
+                objectUrl = "";
+              }
+            }
+          });
+      } else {
+        if (objectUrl) {
+          URL.revokeObjectURL(objectUrl);
+          objectUrl = "";
+        }
+        isVideoLoading = false;
+      }
+    });
+
+    return () => {
+      if (activeFetchController) {
+        activeFetchController.abort();
+      }
+    };
+  });
+
+  // Track play state
+  $effect(() => {
+    const playing = isPlaying;
+    untrack(() => {
+      if (videoElement) {
+        if (playing) {
+          videoElement.play().catch((err) => console.warn("Play toggle failed:", err));
+        } else {
+          videoElement.pause();
         }
       }
     });
@@ -730,7 +811,7 @@
             <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
             <video
               bind:this={videoElement}
-              src={videoUrl}
+              src={objectUrl}
               class="w-full h-full object-contain cursor-pointer"
               playsinline
               onclick={togglePlay}
