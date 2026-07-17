@@ -185,15 +185,16 @@ export async function bufferToMp3(buffer, compression) {
 }
 
 /**
- * Converts an image file to target format, resolution, and quality.
+ * Converts an image file to target format, resolution, quality, and compression.
  * @param {string} previewUrl 
  * @param {string} outputFormat - 'jpg' | 'png' | 'webp'
  * @param {number} targetWidth 
  * @param {number} targetHeight 
  * @param {number} quality - 0 to 100
+ * @param {number} compression - 0 to 100
  * @returns {Promise<Blob>}
  */
-export function convertImage(previewUrl, outputFormat, targetWidth, targetHeight, quality) {
+export function convertImage(previewUrl, outputFormat, targetWidth, targetHeight, quality, compression) {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.src = previewUrl;
@@ -212,12 +213,30 @@ export function convertImage(previewUrl, outputFormat, targetWidth, targetHeight
         return;
       }
 
+      // If compression is requested, apply color quantization to reduce size
+      const comp = Number(compression) || 0;
+      if (comp > 0) {
+        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imgData.data;
+        // Use quadratic curve for smooth control over step size
+        const step = Math.round(1 + Math.pow(comp / 100, 2) * 31);
+        if (step > 1) {
+          for (let i = 0; i < data.length; i += 4) {
+            data[i] = Math.min(255, Math.round(data[i] / step) * step);
+            data[i + 1] = Math.min(255, Math.round(data[i + 1] / step) * step);
+            data[i + 2] = Math.min(255, Math.round(data[i + 2] / step) * step);
+          }
+          ctx.putImageData(imgData, 0, 0);
+        }
+      }
+
       let mimeType = "image/png";
       if (outputFormat === "jpg") mimeType = "image/jpeg";
       else if (outputFormat === "webp") mimeType = "image/webp";
       else if (outputFormat === "avif") mimeType = "image/avif";
 
-      const exportQuality = quality / 100;
+      // Combine quality and compression to determine export quality for lossy formats
+      const exportQuality = Math.max(0.01, (quality * (1 - comp / 100)) / 100);
 
       canvas.toBlob(
         (blob) => {

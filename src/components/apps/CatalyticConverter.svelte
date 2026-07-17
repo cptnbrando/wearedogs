@@ -60,7 +60,7 @@
   let keepTens = $state(true);
 
   // Quality & compression parameters
-  let quality = $state(92); // 0 to 100
+  let quality = $state(80); // 0 to 100
   let compression = $state(15); // 0 to 100
 
   // Audio parameters
@@ -517,6 +517,7 @@
             targetWidth,
             targetHeight,
             quality,
+            compression,
           );
           const originalBase = file.name.substring(
             0,
@@ -816,7 +817,7 @@
         targetHeight: 0,
         keepAspectRatio: true,
         keepTens: false,
-        quality: 90,
+        quality: 80,
         compression: 15,
         audioBitrate: "192",
         audioSampleRate: "keep",
@@ -871,6 +872,7 @@
             item.targetWidth || 800,
             item.targetHeight || 600,
             item.quality,
+            item.compression,
           );
           URL.revokeObjectURL(tempUrl);
         } else if (item.fileType === "audio" || item.fileType === "video") {
