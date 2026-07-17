@@ -53,7 +53,9 @@
   // Derived states
   const showData = $derived(catalog[selectedShowKey]);
   const playingShowData = $derived(catalog[playingShowKey]);
-  const currentEpisode = $derived(playingShowData?.episodes[playingEpisodeIndex]);
+  const currentEpisode = $derived(
+    playingShowData?.episodes[playingEpisodeIndex],
+  );
   const videoUrl = $derived(
     playingShowData && currentEpisode && password
       ? `${playingShowData.baseUrl.replace("https://data.wearedogs.net", "")}${currentEpisode.file}?gopropass=${password}`
@@ -269,7 +271,10 @@
       let prevIdx = playingEpisodeIndex - 1;
       if (prevIdx < 0) {
         if (loopMode === "all") {
-          loadAndPlayEpisode(playingShowKey, playingShowData.episodes.length - 1);
+          loadAndPlayEpisode(
+            playingShowKey,
+            playingShowData.episodes.length - 1,
+          );
         } else {
           if (videoElement) {
             videoElement.currentTime = 0;
@@ -424,12 +429,15 @@
   }
 
   onMount(() => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/gopro-sw.js').then((reg) => {
-        console.log('SW registered:', reg);
-      }).catch((err) => {
-        console.error('SW registration failed:', err);
-      });
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker
+        .register("/gopro-sw.js")
+        .then((reg) => {
+          console.log("SW registered:", reg);
+        })
+        .catch((err) => {
+          console.error("SW registration failed:", err);
+        });
     }
 
     const savedPassword = localStorage.getItem("gopro_password");
@@ -447,7 +455,9 @@
       if (videoElement && url) {
         videoElement.load();
         if (isPlaying) {
-          videoElement.play().catch((err) => console.warn("Play on source change failed:", err));
+          videoElement
+            .play()
+            .catch((err) => console.warn("Play on source change failed:", err));
         }
       }
     });
@@ -504,7 +514,7 @@
   >
     <!-- TV Header -->
     <header
-      class="flex-shrink-0 flex items-center justify-center border-b border-white/5 pb-2 relative"
+      class="flex-shrink-0 flex items-center justify-between border-b border-white/5 pb-2 relative"
     >
       <div class="flex items-center gap-2 sm:gap-3">
         <div
@@ -597,7 +607,8 @@
               {#each showData.episodes as ep, i}
                 <button
                   onclick={() => playEpisode(i)}
-                  class="w-full text-left p-2.5 sm:p-3 rounded-lg flex items-center justify-between text-[11px] sm:text-xs transition-all duration-150 border focus:ring-2 focus:ring-cyan-400 focus:outline-none cursor-pointer {playingShowKey === selectedShowKey && playingEpisodeIndex === i
+                  class="w-full text-left p-2.5 sm:p-3 rounded-lg flex items-center justify-between text-[11px] sm:text-xs transition-all duration-150 border focus:ring-2 focus:ring-cyan-400 focus:outline-none cursor-pointer {playingShowKey ===
+                    selectedShowKey && playingEpisodeIndex === i
                     ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400 font-semibold'
                     : 'bg-black/20 border-white/5 text-white/80 hover:bg-white/5 hover:text-white'}"
                 >
@@ -693,7 +704,9 @@
                     videoElement.currentTime = showData.introEnd;
                   }
                 }}
-                class="absolute {isMoreControlsOpen ? 'bottom-36 sm:bottom-40' : 'bottom-20 sm:bottom-24'} right-4 px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-black font-bold font-mono text-[10px] rounded-lg shadow-lg border border-cyan-300/30 z-30 transition-all duration-300 uppercase tracking-wider cursor-pointer"
+                class="absolute {isMoreControlsOpen
+                  ? 'bottom-36 sm:bottom-40'
+                  : 'bottom-20 sm:bottom-24'} right-4 px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-black font-bold font-mono text-[10px] rounded-lg shadow-lg border border-cyan-300/30 z-30 transition-all duration-300 uppercase tracking-wider cursor-pointer"
                 transition:fade
               >
                 Skip Intro
@@ -704,7 +717,9 @@
             {#if showControls && duration > 90 && currentTime >= duration - 90}
               <button
                 onclick={handleVideoEnded}
-                class="absolute {isMoreControlsOpen ? 'bottom-36 sm:bottom-40' : 'bottom-20 sm:bottom-24'} right-4 px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-black font-bold font-mono text-[10px] rounded-lg shadow-lg border border-cyan-300/30 z-30 transition-all duration-300 uppercase tracking-wider cursor-pointer"
+                class="absolute {isMoreControlsOpen
+                  ? 'bottom-36 sm:bottom-40'
+                  : 'bottom-20 sm:bottom-24'} right-4 px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-black font-bold font-mono text-[10px] rounded-lg shadow-lg border border-cyan-300/30 z-30 transition-all duration-300 uppercase tracking-wider cursor-pointer"
                 transition:fade
               >
                 Skip Outro / Next
@@ -740,7 +755,9 @@
 
             <!-- Custom Controls Overlay (glued to bottom inside video container, disappears on inactivity) -->
             <div
-              class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/90 via-black/80 to-transparent backdrop-blur-sm border-t border-white/10 flex flex-col gap-3 z-30 transition-all duration-300 {showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'}"
+              class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/90 via-black/80 to-transparent backdrop-blur-sm border-t border-white/10 flex flex-col gap-3 z-30 transition-all duration-300 {showControls
+                ? 'opacity-100'
+                : 'opacity-0 pointer-events-none'}"
             >
               <!-- Progress bar -->
               <div
@@ -921,26 +938,38 @@
 
         <!-- Episode Details Pane -->
         {#if currentEpisode}
-          <div class="bg-white/5 border border-white/5 rounded-2xl p-4 flex flex-col gap-2.5 flex-shrink-0">
+          <div
+            class="bg-white/5 border border-white/5 rounded-2xl p-4 flex flex-col gap-2.5 flex-shrink-0"
+          >
             <!-- Header Row with Metadata Badges -->
-            <div class="flex items-center justify-between border-b border-white/5 pb-1.5 flex-wrap gap-2">
-              <span class="text-[10px] font-bold text-cyan-400 uppercase tracking-wider font-mono">
+            <div
+              class="flex items-center justify-between border-b border-white/5 pb-1.5 flex-wrap gap-2"
+            >
+              <span
+                class="text-[10px] font-bold text-cyan-400 uppercase tracking-wider font-mono"
+              >
                 {playingShowKey} • Episode {currentEpisode.id}
               </span>
               <div class="flex items-center gap-1.5 flex-wrap">
                 {#if playingShowData?.meta?.rating}
-                  <span class="text-[8px] font-bold px-1.5 py-0.5 bg-white/10 rounded uppercase font-mono text-white/70">
+                  <span
+                    class="text-[8px] font-bold px-1.5 py-0.5 bg-white/10 rounded uppercase font-mono text-white/70"
+                  >
                     {playingShowData.meta.rating}
                   </span>
                 {/if}
                 {#if playingShowData?.meta?.runtime}
-                  <span class="text-[8px] font-bold px-1.5 py-0.5 bg-white/10 rounded uppercase font-mono text-white/70">
+                  <span
+                    class="text-[8px] font-bold px-1.5 py-0.5 bg-white/10 rounded uppercase font-mono text-white/70"
+                  >
                     {playingShowData.meta.runtime}
                   </span>
                 {/if}
                 {#if playingShowData?.meta?.score}
-                  <span class="text-[8px] font-bold px-1.5 py-0.5 bg-cyan-950 text-cyan-400 border border-cyan-500/20 rounded font-mono">
-                    {playingShowData.meta.score.split('|')[0].trim()}
+                  <span
+                    class="text-[8px] font-bold px-1.5 py-0.5 bg-cyan-950 text-cyan-400 border border-cyan-500/20 rounded font-mono"
+                  >
+                    {playingShowData.meta.score.split("|")[0].trim()}
                   </span>
                 {/if}
               </div>
@@ -950,26 +979,42 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
               <!-- Left Col: Title & Description -->
               <div class="md:col-span-2 flex flex-col gap-1">
-                <h3 class="text-xs sm:text-sm font-extrabold text-white tracking-tight">
+                <h3
+                  class="text-xs sm:text-sm font-extrabold text-white tracking-tight"
+                >
                   {currentEpisode.title}
                 </h3>
                 {#if currentEpisode.description}
-                  <p class="text-[11px] text-white/60 leading-relaxed max-h-12 overflow-y-auto scrollbar-thin">
+                  <p
+                    class="text-[11px] text-white/60 leading-relaxed max-h-12 overflow-y-auto scrollbar-thin"
+                  >
                     {currentEpisode.description}
                   </p>
                 {:else}
-                  <p class="text-[11px] text-white/30 italic">No episode description available.</p>
+                  <p class="text-[11px] text-white/30 italic">
+                    No episode description available.
+                  </p>
                 {/if}
               </div>
 
               <!-- Right Col: Actors / Starring -->
               {#if playingShowData?.meta?.actors}
-                <div class="flex flex-col gap-1 border-t border-white/5 pt-2 md:border-t-0 md:pt-0 md:border-l md:border-white/5 md:pl-3">
-                  <span class="text-[8px] uppercase tracking-wider font-bold text-white/40 font-mono">Starring</span>
+                <div
+                  class="flex flex-col gap-1 border-t border-white/5 pt-2 md:border-t-0 md:pt-0 md:border-l md:border-white/5 md:pl-3"
+                >
+                  <span
+                    class="text-[8px] uppercase tracking-wider font-bold text-white/40 font-mono"
+                    >Starring</span
+                  >
                   <div class="text-[10px] text-white/70 leading-snug">
-                    {playingShowData.meta.actors.slice(0, 3).map(a => a.split('(')[0].trim()).join(', ')}
+                    {playingShowData.meta.actors
+                      .slice(0, 3)
+                      .map((a) => a.split("(")[0].trim())
+                      .join(", ")}
                     {#if playingShowData.meta.actors.length > 3}
-                      <span class="text-white/40">+{playingShowData.meta.actors.length - 3} more</span>
+                      <span class="text-white/40"
+                        >+{playingShowData.meta.actors.length - 3} more</span
+                      >
                     {/if}
                   </div>
                 </div>
@@ -979,96 +1024,100 @@
         {/if}
 
         <!-- Scrollable Details & Sampler Pane -->
-        <div class="flex-grow overflow-y-auto flex flex-col gap-3 sm:gap-4 scrollbar-thin pr-1 pb-4">
+        <div
+          class="flex-grow overflow-y-auto flex flex-col gap-3 sm:gap-4 scrollbar-thin pr-1 pb-4"
+        >
           <!-- Hidden Sampler Drawer -->
           {#if isSamplerOpen}
-          <div
-            class="bg-gradient-to-br from-[#0f111a] to-[#07070a] border border-cyan-500/20 rounded-2xl p-5 flex flex-col gap-4 shadow-xl shadow-cyan-950/10"
-            transition:fade
-          >
             <div
-              class="flex items-center justify-between border-b border-cyan-500/10 pb-3"
+              class="bg-gradient-to-br from-[#0f111a] to-[#07070a] border border-cyan-500/20 rounded-2xl p-5 flex flex-col gap-4 shadow-xl shadow-cyan-950/10"
+              transition:fade
             >
-              <div>
-                <h3
-                  class="text-sm font-bold text-cyan-400 tracking-wide uppercase"
-                >
-                  Monkey Sampler Console
-                </h3>
-                <p class="text-[9px] text-white/30 font-semibold font-mono">
-                  Press keys 1-8 to trigger samples
-                </p>
-              </div>
-              <button
-                onclick={addSample}
-                class="px-3.5 py-1.5 bg-cyan-500 text-black hover:bg-cyan-400 transition text-[10px] font-bold rounded-lg flex items-center gap-1 focus:ring-2 focus:ring-cyan-400 focus:outline-none cursor-pointer"
-              >
-                <Plus class="w-3.5 h-3.5" />
-                <span>Add Time Sample</span>
-              </button>
-            </div>
-
-            <!-- Sampler Pad Grid -->
-            {#if samples.length === 0}
               <div
-                class="text-center py-6 text-xs text-white/30 font-semibold uppercase tracking-wider font-mono"
+                class="flex items-center justify-between border-b border-cyan-500/10 pb-3"
               >
-                No custom samples. Click "+ Add Time Sample" above.
-              </div>
-            {:else}
-              <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {#each samples as sample, idx}
-                  <!-- svelte-ignore a11y_click_events_have_key_events -->
-                  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-                  <div
-                    role="button"
-                    tabindex="0"
-                    onclick={() => playSample(sample)}
-                    onkeydown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        playSample(sample);
-                      }
-                    }}
-                    class="calc-btn text-left p-3 rounded-xl border relative overflow-hidden transition-all duration-150 flex flex-col justify-between h-20 group focus:ring-2 focus:ring-cyan-400 focus:outline-none cursor-pointer {playingShowKey ===
-                      sample.showKey &&
-                    playingEpisodeIndex === sample.episodeIndex
-                      ? 'bg-cyan-950/30 border-cyan-500/40 text-cyan-300'
-                      : 'bg-white/5 border-white/5 text-white/70 hover:bg-white/10 hover:border-white/10'}"
+                <div>
+                  <h3
+                    class="text-sm font-bold text-cyan-400 tracking-wide uppercase"
                   >
-                    <!-- Trigger Key Badge -->
-                    <span
-                      class="absolute top-2 right-2 text-[8px] font-mono bg-cyan-500/20 text-cyan-400 border border-cyan-400/20 px-1 rounded"
-                    >
-                      Pad {idx + 1}
-                    </span>
-
-                    <span
-                      class="text-[10px] font-bold truncate pr-6 text-white group-hover:text-cyan-300 transition-colors"
-                    >
-                      {sample.name}
-                    </span>
-
-                    <div class="flex items-center justify-between w-full mt-2">
-                      <span
-                        class="text-[9px] text-white/40 font-mono tracking-tighter"
-                      >
-                        {sample.showKey.split(" ")[0]}
-                      </span>
-                      <button
-                        onclick={(e) => deleteSample(sample.id, e)}
-                        class="p-1 rounded text-white/30 hover:text-red-400 hover:bg-red-950/20 transition focus:ring-1 focus:ring-red-400 focus:outline-none cursor-pointer"
-                        title="Delete sample"
-                      >
-                        <Trash2 class="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                {/each}
+                    Monkey Sampler Console
+                  </h3>
+                  <p class="text-[9px] text-white/30 font-semibold font-mono">
+                    Press keys 1-8 to trigger samples
+                  </p>
+                </div>
+                <button
+                  onclick={addSample}
+                  class="px-3.5 py-1.5 bg-cyan-500 text-black hover:bg-cyan-400 transition text-[10px] font-bold rounded-lg flex items-center gap-1 focus:ring-2 focus:ring-cyan-400 focus:outline-none cursor-pointer"
+                >
+                  <Plus class="w-3.5 h-3.5" />
+                  <span>Add Time Sample</span>
+                </button>
               </div>
-            {/if}
-          </div>
-        {/if}
+
+              <!-- Sampler Pad Grid -->
+              {#if samples.length === 0}
+                <div
+                  class="text-center py-6 text-xs text-white/30 font-semibold uppercase tracking-wider font-mono"
+                >
+                  No custom samples. Click "+ Add Time Sample" above.
+                </div>
+              {:else}
+                <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  {#each samples as sample, idx}
+                    <!-- svelte-ignore a11y_click_events_have_key_events -->
+                    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+                    <div
+                      role="button"
+                      tabindex="0"
+                      onclick={() => playSample(sample)}
+                      onkeydown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          playSample(sample);
+                        }
+                      }}
+                      class="calc-btn text-left p-3 rounded-xl border relative overflow-hidden transition-all duration-150 flex flex-col justify-between h-20 group focus:ring-2 focus:ring-cyan-400 focus:outline-none cursor-pointer {playingShowKey ===
+                        sample.showKey &&
+                      playingEpisodeIndex === sample.episodeIndex
+                        ? 'bg-cyan-950/30 border-cyan-500/40 text-cyan-300'
+                        : 'bg-white/5 border-white/5 text-white/70 hover:bg-white/10 hover:border-white/10'}"
+                    >
+                      <!-- Trigger Key Badge -->
+                      <span
+                        class="absolute top-2 right-2 text-[8px] font-mono bg-cyan-500/20 text-cyan-400 border border-cyan-400/20 px-1 rounded"
+                      >
+                        Pad {idx + 1}
+                      </span>
+
+                      <span
+                        class="text-[10px] font-bold truncate pr-6 text-white group-hover:text-cyan-300 transition-colors"
+                      >
+                        {sample.name}
+                      </span>
+
+                      <div
+                        class="flex items-center justify-between w-full mt-2"
+                      >
+                        <span
+                          class="text-[9px] text-white/40 font-mono tracking-tighter"
+                        >
+                          {sample.showKey.split(" ")[0]}
+                        </span>
+                        <button
+                          onclick={(e) => deleteSample(sample.id, e)}
+                          class="p-1 rounded text-white/30 hover:text-red-400 hover:bg-red-950/20 transition focus:ring-1 focus:ring-red-400 focus:outline-none cursor-pointer"
+                          title="Delete sample"
+                        >
+                          <Trash2 class="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  {/each}
+                </div>
+              {/if}
+            </div>
+          {/if}
         </div>
       </section>
     </main>
