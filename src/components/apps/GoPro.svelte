@@ -688,7 +688,7 @@
 
         <!-- Video Player Wrapper -->
         <div
-          class="relative bg-black rounded-2xl overflow-hidden border border-white/10 shadow-2xl flex flex-col"
+          class="relative bg-black rounded-2xl overflow-hidden border border-white/10 shadow-2xl flex flex-col transition-all duration-300 {isMoreControlsOpen ? '-translate-y-4 sm:-translate-y-8 xl:-translate-y-16' : ''}"
         >
           <!-- Responsive aspect-video container -->
           <div
