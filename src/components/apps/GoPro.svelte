@@ -1,2070 +1,669 @@
 <script>
-    import { onMount, onDestroy } from "svelte";
-    import {
-        Play,
-        Pause,
-        RotateCcw,
-        SkipForward,
-        Info,
-        Download,
-        Music,
-        Bookmark,
-        Trash2,
-        Sliders,
-        Volume2,
-        Eye,
-        EyeOff,
-        Radio,
-        Tv,
-        Maximize,
-        Minimize,
-        ArrowLeft,
-        VolumeX,
-        Volume1,
-        SkipBack,
-    } from "lucide-svelte";
-    import { samplerStore } from "../../lib/samplerStore.svelte.js";
-    import { catalog as cachedCatalog } from "../../lib/videos.js";
-    import GoProRemapper from "./GoProRemapper.svelte";
-    import GoProCatalog from "./GoProCatalog.svelte";
-    import GoProCalculator from "./GoProCalculator.svelte";
-    import DogsLogo from "../DogsLogo.svelte";
-    import { audioCore } from "../../lib/AudioCore.svelte.js";
+  import { onMount } from "svelte";
+  import { fade } from "svelte/transition";
+  import { catalog } from "../../lib/videos.js";
+  import { SHOW_SLUGS } from "../../lib/router.svelte.js";
+  import DogsLogo from "../DogsLogo.svelte";
+  import GoProCalculator from "./GoProCalculator.svelte";
+  import {
+    Play,
+    Pause,
+    SkipForward,
+    SkipBack,
+    Volume2,
+    VolumeX,
+    Maximize,
+    ArrowRight,
+    Plus,
+    Trash2,
+    Tv
+  } from "lucide-svelte";
 
-    // State Management (Runes)
-    let catalog = $state(cachedCatalog);
-    let activeShowKey = $state("Batman Beyond");
-    let isUnlocked = $state(false);
-    let currentPassword = $state("");
-    let showMobileTools = $state(false);
-    let currentEpisodeIndex = $state(0);
-    let isEpisodesMenuOpen = $state(false);
+  // Svelte 5 props
+  let { goProShow = null, goProEpisode = null } = $props();
 
-    let activeControlPage = $state(0);
-    let lowerDeckView = $state("controls");
-    let isControlsExpanded = $state(false);
-    let activeShow = $derived(
-        catalog[activeShowKey] || {
-            episodes: [],
-            meta: { actors: [], facts: "" },
-        },
+  // State management
+  let isUnlocked = $state(false);
+  let selectedShowKey = $state("Batman Beyond");
+  let selectedEpisodeIndex = $state(0);
+  let isPlaying = $state(false);
+  let isMuted = $state(false);
+  let currentTime = $state(0);
+  let duration = $state(0);
+  let isSamplerOpen = $state(false);
+  let samples = $state([]);
+
+  // DOM bindings
+  let videoElement = $state(null);
+
+  // Derived states
+  const showData = $derived(catalog[selectedShowKey]);
+  const currentEpisode = $derived(showData?.episodes[selectedEpisodeIndex]);
+  const videoUrl = $derived(
+    showData && currentEpisode
+      ? `${showData.baseUrl}${currentEpisode.file}`
+      : ""
+  );
+
+  /**
+   * Format time in seconds to mm:ss format.
+   * @param {number} seconds
+   * @returns {string}
+   */
+  function formatTime(seconds) {
+    if (isNaN(seconds)) return "00:00";
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+  }
+
+  /**
+   * Load samples from localStorage or populate default presets.
+   */
+  function loadSamples() {
+    const saved = localStorage.getItem("gopro_samples");
+    if (saved) {
+      try {
+        samples = JSON.parse(saved);
+      } catch (e) {
+        console.warn("Error parsing samples from localStorage", e);
+        loadDefaultSamples();
+      }
+    } else {
+      loadDefaultSamples();
+    }
+  }
+
+  /**
+   * Populate default sampler triggers for the catalog.
+   */
+  function loadDefaultSamples() {
+    samples = [
+      {
+        id: 1,
+        name: "Batman Theme",
+        showKey: "Batman Beyond",
+        episodeIndex: 0,
+        time: 0,
+      },
+      {
+        id: 2,
+        name: "Mr. Bean Math",
+        showKey: "Mr. Bean",
+        episodeIndex: 0,
+        time: 30,
+      },
+      {
+        id: 3,
+        name: "Walking Dead Start",
+        showKey: "The Walking Dead",
+        episodeIndex: 0,
+        time: 0,
+      },
+      {
+        id: 4,
+        name: "Bean Swimsuit",
+        showKey: "Mr. Bean",
+        episodeIndex: 0,
+        time: 140,
+      },
+    ];
+    localStorage.setItem("gopro_samples", JSON.stringify(samples));
+  }
+
+  /**
+   * Toggle video playback (play / pause).
+   */
+  function togglePlay() {
+    if (!videoElement) return;
+    if (isPlaying) {
+      videoElement.pause();
+    } else {
+      videoElement.play().catch((err) => console.warn("Video play failed:", err));
+    }
+  }
+
+  /**
+   * Toggle video mute state.
+   */
+  function toggleMute() {
+    if (!videoElement) return;
+    videoElement.muted = !videoElement.muted;
+    isMuted = videoElement.muted;
+  }
+
+  /**
+   * Seek playback by relative offset.
+   * @param {number} seconds - Positive or negative offset.
+   */
+  function skip(seconds) {
+    if (!videoElement) return;
+    videoElement.currentTime = Math.max(
+      0,
+      Math.min(duration, videoElement.currentTime + seconds)
     );
-    let currentEpisode = $derived(
-        activeShow.episodes[currentEpisodeIndex] || { title: "", file: "" },
-    );
+  }
 
-    // Local file caching & pre-flight existence checks
-    let streamUrl = $state("");
-    let showDownloadPrompt = $state(false);
-    let isFetching = $state(false);
-
-    // Seasons selection state
-    let selectedSeasons = $state({}); // key: showKey, value: seasonNum
-
-    function getEpisodeSeason(ep) {
-        if (!ep || !ep.file) return 1;
-        const match = ep.file.match(/S([0-9]+)/i);
-        return match ? parseInt(match[1], 10) : 1;
-    }
-
-    async function checkLocalFile(file) {
-        if (!file) {
-            streamUrl = "";
-            return;
-        }
-        isFetching = true;
-        try {
-            const remoteBase = activeShow.baseUrl || "";
-            const remoteUrl = remoteBase ? `${remoteBase}${file}` : file;
-
-            const password =
-                currentPassword || localStorage.getItem("gopro_password") || "";
-
-            // First, try a local HEAD check (serves cached/locally hosted copies)
-            const localFolder = activeShow.baseUrl
-                ? null
-                : activeShowKey === "Batman Beyond"
-                  ? "/batman/"
-                  : "/";
-
-            if (localFolder) {
-                const localPath = `${localFolder}${file}`;
-                const localRes = await fetch(localPath, { method: "HEAD" });
-                if (localRes.ok) {
-                    streamUrl = localPath;
-                    return;
-                }
-            }
-
-            // Fall back to the remote R2 URL with auth header by fetching the video
-            const res = await fetch(remoteUrl, {
-                method: "GET",
-                headers: password
-                    ? { Authorization: `password=${password}` }
-                    : {},
-            });
-            if (res.ok) {
-                const blob = await res.blob();
-                streamUrl = URL.createObjectURL(blob);
-            } else {
-                streamUrl = "";
-                showDownloadPrompt = true;
-            }
-        } catch {
-            streamUrl = "";
-        } finally {
-            isFetching = false;
-        }
-    }
-
-    function handleVideoError() {
-        isChangingEpisode = false;
-        if (
-            streamUrl &&
-            (streamUrl.startsWith("http://") ||
-                streamUrl.startsWith("https://"))
-        ) {
-            showDownloadPrompt = true;
-        }
-    }
-
-    $effect(() => {
-        // Only fetch the video URL once the user has actively selected an episode to play.
-        if (isPlayingEpisode && currentEpisode && currentEpisode.file) {
-            showDownloadPrompt = false;
-            checkLocalFile(currentEpisode.file);
-        }
+  /**
+   * Trigger native browser video element fullscreen.
+   */
+  function triggerFullscreen() {
+    if (!videoElement) return;
+    videoElement.requestFullscreen().catch((err) => {
+      console.warn("Fullscreen request failed:", err);
     });
+  }
 
-    // Auto skips
-    $effect(() => {
-        if (autoSkipIntro && isInIntroRange && videoEl && isPlaying) {
-            skipIntro();
+  /**
+   * Select a show and reset the current episode index.
+   * @param {string} showKey
+   */
+  function selectShow(showKey) {
+    selectedShowKey = showKey;
+    selectedEpisodeIndex = 0;
+    isPlaying = false;
+    if (videoElement) {
+      videoElement.currentTime = 0;
+    }
+  }
+
+  /**
+   * Load and play a specific episode.
+   * @param {number} index
+   */
+  function playEpisode(index) {
+    if (!showData || index < 0 || index >= showData.episodes.length) return;
+    selectedEpisodeIndex = index;
+    isPlaying = true;
+    if (videoElement) {
+      videoElement.currentTime = 0;
+      // Small timeout to allow state/source bind sync
+      setTimeout(() => {
+        if (videoElement) {
+          videoElement.load();
+          videoElement.play().catch((err) => console.warn(err));
         }
-    });
+      }, 50);
+    }
+  }
 
-    $effect(() => {
-        if (autoSkipOutro && isInOutroRange && videoEl && isPlaying) {
-            skipOutro();
-        }
-    });
+  /**
+   * Seek and play a sample trigger.
+   * @param {Object} sample
+   */
+  function playSample(sample) {
+    const isShowChange = selectedShowKey !== sample.showKey;
+    const isEpChange = selectedEpisodeIndex !== sample.episodeIndex;
 
-    $effect(() => {
-        const url = streamUrl;
-        const active = isPlayingEpisode;
-
-        if (url && active && videoEl) {
-            const playVideo = () => {
-                videoEl.play().catch((err) => {
-                    console.warn("Autoplay failed:", err);
-                });
-            };
-
-            if (videoEl.readyState >= 3) {
-                playVideo();
-            } else {
-                videoEl.addEventListener("canplay", playVideo, { once: true });
-                return () => {
-                    videoEl.removeEventListener("canplay", playVideo);
-                };
-            }
-        }
-    });
-
-    // Player State
-    let videoEl = $state(null);
-    let isPlaying = $state(false);
-    let currentTime = $state(0);
-    let duration = $state(0);
-    let playbackRate = $state(1);
-    let isMuted = $state(false);
-    let volume = $state(0.8);
-    let hudVisible = $state(true);
-
-    // Auto skip & remapper states
-    let isRemapperOpen = $state(false);
-    let autoSkipIntro = $state(false);
-    let autoSkipOutro = $state(false);
-    let isCursorHidden = $state(false);
-    let cursorTimeout = null;
-    let flashSkipIntroGlow = $state(false);
-    let flashSkipOutroGlow = $state(false);
-
-    // Playback Loop Modes: 'none' | 'episode' | 'season' | 'shuffle'
-    let loopMode = $state("none");
-
-    // Filters State
-    let activeVideoFilter = $state("normal"); // 'normal' | 'grayscale' | 'monochrome' | 'highcontrast' | 'cyberpunk' | 'nightvision'
-    let activeAudioFilter = $state("normal"); // 'normal' | 'funny' | 'vocal' | 'reverb'
-
-    // Clipping State
-    let clipStart = $state(0);
-    let clipEnd = $state(0);
-    let isClipLoopActive = $state(false);
-    let clipName = $state("");
-
-    // Storage Cache / Checkpoints State
-    let checkpoints = $state([]);
-    let isMetadataOpen = $state(false);
-    let isCheckpointsOpen = $state(false);
-    let localCacheProgress = $state(92.4); // Mock cache progress percentage
-
-    // View & Fullscreen Overlay States
-    let isPlayingEpisode = $state(false);
-    let controlsVisible = $state(true);
-    let playerContainerEl = $state(null);
-    let isFullscreen = $state(false);
-    let isMaximized = $state(false);
-    let isChangingEpisode = false;
-    let controlsTimeout = null;
-
-    // Dot animation indicators state
-    let lastNumberPressTime = 0;
-    let activeEffectType = "ring";
-    let dotEffectsList = ["sparkles", "pixels", "ring", "glitch", "pulse"];
-    let dotParticles = $state([]);
-
-    // BPM and beat repeating configurations
-    let bpm = $state(120);
-    let repeatInterval = $derived(bpm > 0 ? 15000 / bpm : BPM_MAX);
-    const BPM_MAX = 180;
-    const BPM_MIN = 24;
-
-    // Key repeating timer variables
-    let activeRepeatKey = null;
-    let repeatTimer = null;
-
-    function getMappedTime(key) {
-        const storageKey = `gopro_remapper_${activeShowKey}_${currentEpisode.title}`;
-        if (typeof window !== "undefined") {
-            const saved = localStorage.getItem(storageKey);
-            if (saved) {
-                try {
-                    const parsed = JSON.parse(saved);
-                    const match = parsed.find((m) => m.key === key);
-                    if (match) return match.time;
-                } catch {}
-            }
-        }
-        return (duration * (parseInt(key) * 10)) / 100;
+    if (isShowChange) {
+      selectedShowKey = sample.showKey;
+    }
+    if (isEpChange || isShowChange) {
+      selectedEpisodeIndex = sample.episodeIndex;
     }
 
-    function jumpToMappedKey(key) {
-        if (!videoEl || duration === 0) return;
-        const target = getMappedTime(key);
-        videoEl.currentTime = target;
-        if (controlsVisible) {
-            resetControlsTimer();
-        }
-    }
-
-    function scheduleNextTick() {
-        if (activeRepeatKey === null) return;
-        repeatTimer = setTimeout(() => {
-            if (activeRepeatKey === null) return;
-            jumpToMappedKey(activeRepeatKey);
-            triggerDotAnimation();
-            scheduleNextTick();
-        }, repeatInterval);
-    }
-
-    function startRepeating(key) {
-        if (activeRepeatKey === key) return;
-        stopRepeating();
-        activeRepeatKey = key;
-        jumpToMappedKey(key);
-        triggerDotAnimation();
-        scheduleNextTick();
-    }
-
-    function stopRepeating() {
-        activeRepeatKey = null;
-        if (repeatTimer) {
-            clearTimeout(repeatTimer);
-            repeatTimer = null;
-        }
-    }
-
-    function handleBpmBlur() {
-        if (bpm === null || bpm === undefined || isNaN(bpm) || bpm < BPM_MIN) {
-            bpm = BPM_MIN;
-        } else if (bpm > BPM_MAX) {
-            bpm = BPM_MAX;
-        }
-    }
-
-    function triggerDotAnimation() {
-        const now = Date.now();
-        // If break is more than 1 second, choose a new randomized style
-        if (now - lastNumberPressTime > 1000) {
-            const currentIdx = dotEffectsList.indexOf(activeEffectType);
-            let nextIdx;
-            do {
-                nextIdx = Math.floor(Math.random() * dotEffectsList.length);
-            } while (nextIdx === currentIdx && dotEffectsList.length > 1);
-            activeEffectType = dotEffectsList[nextIdx];
-        }
-        lastNumberPressTime = now;
-
-        const timestamp = now;
-        let newParticles = [];
-        if (activeEffectType === "sparkles") {
-            for (let i = 0; i < 5; i++) {
-                const angle = (i * 2 * Math.PI) / 5;
-                const distance = 25 + Math.random() * 15;
-                const tx = Math.cos(angle) * distance;
-                const ty = Math.sin(angle) * distance;
-                newParticles.push({
-                    id: Math.random(),
-                    type: "sparkle",
-                    style: `--tx: ${tx}px; --ty: ${ty}px; --color: #ff3344;`,
-                });
-            }
-        } else if (activeEffectType === "pixels") {
-            for (let i = 0; i < 8; i++) {
-                const tx = (Math.random() - 0.5) * 60;
-                const ty = (Math.random() - 0.5) * 60;
-                newParticles.push({
-                    id: Math.random(),
-                    type: "pixel",
-                    style: `--tx: ${tx}px; --ty: ${ty}px; --color: #ffffff;`,
-                });
-            }
-        } else if (activeEffectType === "ring") {
-            newParticles.push({
-                id: Math.random(),
-                type: "ring",
-                style: `--color: #ff3344;`,
-            });
-        } else if (activeEffectType === "glitch") {
-            newParticles.push({
-                id: Math.random(),
-                type: "glitch-red",
-                style: `--color: #ff3344;`,
-            });
-            newParticles.push({
-                id: Math.random(),
-                type: "glitch-white",
-                style: `--color: #ffffff;`,
-            });
-        } else if (activeEffectType === "pulse") {
-            newParticles.push({
-                id: Math.random(),
-                type: "pulse",
-                style: `--color: #ff3344;`,
-            });
-        }
-
-        newParticles.push({
-            id: Math.random(),
-            type: "core-dot",
-            style: `--color: #ff3344;`,
-        });
-
-        dotParticles = [...dotParticles, ...newParticles];
-
-        setTimeout(() => {
-            dotParticles = dotParticles.filter(
-                (p) => !newParticles.some((np) => np.id === p.id),
-            );
-        }, 400);
-    }
-
-    // Web Audio Context setup
-    let audioCtx = null;
-    let audioSource = null;
-    let audioGainNode = null;
-    let activeFilterNode = null;
-
-    function initAudio() {
-        if (audioCtx) return;
-        try {
-            const AudioContextClass =
-                window.AudioContext || window.webkitAudioContext;
-            audioCtx = new AudioContextClass({
-                latencyHint: "interactive",
-            });
-            if (videoEl) {
-                audioSource = audioCtx.createMediaElementSource(videoEl);
-                audioGainNode = audioCtx.createGain();
-                audioGainNode.gain.setValueAtTime(volume, audioCtx.currentTime);
-                applyAudioFilterGraph();
-            }
-        } catch (e) {
-            console.error("Web Audio Init failed:", e);
-        }
-    }
-
-    function applyAudioFilterGraph() {
-        if (!audioCtx || !audioSource) return;
-
-        // Disconnect existing filters
-        audioSource.disconnect();
-        if (activeFilterNode) {
-            activeFilterNode.disconnect();
-            activeFilterNode = null;
-        }
-        audioGainNode.disconnect();
-
-        const now = audioCtx.currentTime;
-
-        if (activeAudioFilter === "normal") {
-            audioSource.connect(audioGainNode);
-            audioGainNode.connect(audioCtx.destination);
-        } else if (activeAudioFilter === "funny") {
-            // Distortion + highpass + lowpass
-            const highpass = audioCtx.createBiquadFilter();
-            highpass.type = "highpass";
-            highpass.frequency.setValueAtTime(800, now);
-
-            const lowpass = audioCtx.createBiquadFilter();
-            lowpass.type = "lowpass";
-            lowpass.frequency.setValueAtTime(3200, now);
-
-            const shaper = audioCtx.createWaveShaper();
-            const makeDistortionCurve = (amount) => {
-                const k = amount;
-                const n_samples = 44100;
-                const curve = new Float32Array(n_samples);
-                const deg = Math.PI / 180;
-                for (let i = 0; i < n_samples; ++i) {
-                    const x = (i * 2) / n_samples - 1;
-                    curve[i] =
-                        ((3 + k) * x * 20 * deg) / (Math.PI + k * Math.abs(x));
-                }
-                return curve;
-            };
-            shaper.curve = makeDistortionCurve(100);
-            shaper.oversample = "4x";
-
-            audioSource.connect(highpass);
-            highpass.connect(shaper);
-            shaper.connect(lowpass);
-            lowpass.connect(audioGainNode);
-            audioGainNode.connect(audioCtx.destination);
-
-            activeFilterNode = highpass; // track head node of chain
-        } else if (activeAudioFilter === "vocal") {
-            // Bandpass centered at speech frequencies
-            const bandpass = audioCtx.createBiquadFilter();
-            bandpass.type = "bandpass";
-            bandpass.frequency.setValueAtTime(1500, now);
-            bandpass.Q.setValueAtTime(1.5, now);
-
-            const boost = audioCtx.createGain();
-            boost.gain.setValueAtTime(1.8, now);
-
-            audioSource.connect(bandpass);
-            bandpass.connect(boost);
-            boost.connect(audioGainNode);
-            audioGainNode.connect(audioCtx.destination);
-
-            activeFilterNode = bandpass;
-        } else if (activeAudioFilter === "reverb") {
-            // Procedural impulse response convolution
-            const convolver = audioCtx.createConvolver();
-            const rate = audioCtx.sampleRate;
-            const length = rate * 2.2;
-            const impulse = audioCtx.createBuffer(2, length, rate);
-            const left = impulse.getChannelData(0);
-            const right = impulse.getChannelData(1);
-            for (let i = 0; i < length; i++) {
-                const decay = Math.exp(-i / (rate * 0.7));
-                left[i] = (Math.random() * 2 - 1) * decay;
-                right[i] = (Math.random() * 2 - 1) * decay;
-            }
-            convolver.buffer = impulse;
-
-            const mix = audioCtx.createGain();
-            mix.gain.setValueAtTime(0.5, now);
-
-            // Connect dry
-            audioSource.connect(audioGainNode);
-            // Connect wet
-            audioSource.connect(convolver);
-            convolver.connect(mix);
-            mix.connect(audioGainNode);
-
-            audioGainNode.connect(audioCtx.destination);
-
-            activeFilterNode = convolver;
-        }
-    }
-
-    // Monitor audio filter state
-    $effect(() => {
-        activeAudioFilter;
-        if (audioCtx) {
-            applyAudioFilterGraph();
-        }
-    });
-
-    // Track video element events
-    function handlePlay() {
+    setTimeout(() => {
+      if (videoElement) {
+        videoElement.currentTime = sample.time;
+        videoElement.play().catch((err) => console.warn(err));
         isPlaying = true;
-        initAudio();
-        if (audioCtx && audioCtx.state === "suspended") {
-            audioCtx.resume();
-        }
+      }
+    }, isShowChange || isEpChange ? 350 : 0);
+  }
 
-        if (isChangingEpisode) {
-            isChangingEpisode = false;
-            if (controlsVisible) {
-                resetControlsTimer();
-            }
-        } else {
-            resetControlsTimer();
-        }
-    }
-
-    function handlePause() {
-        isPlaying = false;
-        if (isChangingEpisode) {
-            return;
-        }
-        controlsVisible = true;
-        if (controlsTimeout) {
-            clearTimeout(controlsTimeout);
-        }
-    }
-
-    function handleTimeUpdate() {
-        if (!videoEl) return;
-        currentTime = videoEl.currentTime;
-
-        // Handle range A-B looping
-        if (isClipLoopActive && clipEnd > clipStart) {
-            if (currentTime >= clipEnd || currentTime < clipStart) {
-                videoEl.currentTime = clipStart;
-            }
-        }
-    }
-
-    function handleLoadedMetadata() {
-        if (!videoEl) return;
-        duration = videoEl.duration;
-        clipEnd = duration;
-        clipStart = 0;
-    }
-
-    function togglePlay() {
-        if (!videoEl) return;
-        if (isPlaying) {
-            videoEl.pause();
-        } else {
-            videoEl.play().catch((err) => console.warn(err));
-        }
-    }
-
-    function handleVolumeChange(e) {
-        volume = parseFloat(e.target.value);
-        isMuted = volume === 0;
-        if (videoEl) videoEl.volume = volume;
-        if (audioGainNode && audioCtx) {
-            audioGainNode.gain.setValueAtTime(volume, audioCtx.currentTime);
-        }
-    }
-
-    function seekRelative(secs) {
-        if (!videoEl) return;
-        let target = videoEl.currentTime + secs;
-        if (target < 0) target = 0;
-        if (target > duration) target = duration;
-        videoEl.currentTime = target;
-        if (controlsVisible) {
-            resetControlsTimer();
-        }
-    }
-
-    // YouTube-style jumping keys
-    function jumpToPercent(percent) {
-        if (!videoEl || duration === 0) return;
-        const target = duration * (percent / 100);
-        if (typeof videoEl.fastSeek === "function") {
-            videoEl.fastSeek(target);
-        } else {
-            videoEl.currentTime = target;
-        }
-        if (controlsVisible) {
-            resetControlsTimer();
-        }
-    }
-
-    function handleRateChange(rate) {
-        playbackRate = rate;
-        if (videoEl) videoEl.playbackRate = rate;
-    }
-
-    // Replay, shuffle, automatic playback chaining
-    function handleEpisodeEnded() {
-        if (loopMode === "episode") {
-            if (videoEl) {
-                videoEl.currentTime = 0;
-                videoEl.play();
-            }
-        } else if (loopMode === "season") {
-            nextEpisode();
-        } else if (loopMode === "shuffle") {
-            const len = activeShow.episodes.length;
-            if (len > 0) {
-                isChangingEpisode = true;
-                const randIdx = Math.floor(Math.random() * len);
-                currentEpisodeIndex = randIdx;
-            }
-        } else {
-            // Default: sequential play
-            const len = activeShow.episodes.length;
-            if (currentEpisodeIndex < len - 1) {
-                nextEpisode();
-            } else {
-                isPlaying = false;
-            }
-        }
-    }
-
-    function nextEpisode() {
-        isChangingEpisode = true;
-        const len = activeShow.episodes.length;
-        if (len > 0) {
-            currentEpisodeIndex = (currentEpisodeIndex + 1) % len;
-        }
-        if (controlsVisible) {
-            resetControlsTimer();
-        }
-    }
-
-    function prevEpisode() {
-        isChangingEpisode = true;
-        const len = activeShow.episodes.length;
-        if (len > 0) {
-            currentEpisodeIndex = (currentEpisodeIndex - 1 + len) % len;
-        }
-        if (controlsVisible) {
-            resetControlsTimer();
-        }
-    }
-
-    function switchShow(showKey) {
-        activeShowKey = showKey;
-        currentEpisodeIndex = 0;
-        checkpoints = [];
-        isClipLoopActive = false;
-        loadCheckpoints();
-    }
-
-    // Skip Intro points
-    let isInIntroRange = $derived(
-        currentTime >= activeShow.introStart &&
-            currentTime <= activeShow.introEnd,
-    );
-
-    function skipIntro() {
-        if (!videoEl) return;
-        videoEl.currentTime = activeShow.introEnd;
-        resetControlsTimer();
-    }
-
-    // Precise frame-by-frame adjustments (+-.05s is 50ms)
-    function adjustClipStart(amount) {
-        clipStart = Math.max(0, Math.min(clipStart + amount, clipEnd - 0.05));
-        if (videoEl) videoEl.currentTime = clipStart;
-    }
-
-    function adjustClipEnd(amount) {
-        clipEnd = Math.max(
-            clipStart + 0.05,
-            Math.min(clipEnd + amount, duration),
-        );
-        if (videoEl) videoEl.currentTime = clipEnd;
-    }
-
-    function setClipA() {
-        clipStart = currentTime;
-        if (clipStart > clipEnd) clipEnd = duration;
-    }
-
-    function setClipB() {
-        clipEnd = currentTime;
-        if (clipEnd < clipStart) clipStart = 0;
-    }
-
-    function sendToSoundboard() {
-        if (clipEnd <= clipStart) return;
-        const title = clipName.trim() || `${currentEpisode.title} Slice`;
-        samplerStore.addClip({
-            title,
-            show: activeShowKey,
-            episode: currentEpisode.title,
-            videoUrl: streamUrl,
-            start: clipStart,
-            end: clipEnd,
-            duration: clipEnd - clipStart,
-        });
-        clipName = "";
-        alert(`Success: Clip "${title}" added to Soundboard launcher pads!`);
-    }
-
-    // Checkpoint persistence
-    function loadCheckpoints() {
-        if (typeof window !== "undefined") {
-            const data = localStorage.getItem(
-                `gopro_checkpoints_${activeShowKey}`,
-            );
-            if (data) {
-                try {
-                    checkpoints = JSON.parse(data);
-                } catch (e) {
-                    console.error(e);
-                }
-            }
-        }
-    }
-
-    function saveCheckpoints() {
-        if (typeof window !== "undefined") {
-            localStorage.setItem(
-                `gopro_checkpoints_${activeShowKey}`,
-                JSON.stringify(checkpoints),
-            );
-        }
-    }
-
-    function addCheckpoint() {
-        const name = prompt(
-            "Name your checkpoint timestamp:",
-            `Checkpoint at ${formatTime(currentTime)}`,
-        );
-        if (name === null) return;
-        checkpoints.push({
-            id: Date.now(),
-            name: name.trim() || `Mark ${checkpoints.length + 1}`,
-            time: currentTime,
-        });
-        saveCheckpoints();
-    }
-
-    function removeCheckpoint(id) {
-        checkpoints = checkpoints.filter((c) => c.id !== id);
-        saveCheckpoints();
-    }
-
-    function loadCheckpointTime(time) {
-        if (videoEl) {
-            videoEl.currentTime = time;
-            videoEl.play().catch((err) => console.warn(err));
-        }
-    }
-
-    function formatTime(secs) {
-        const m = Math.floor(secs / 60);
-        const s = Math.floor(secs % 60);
-        const ms = Math.floor((secs % 1) * 100);
-        return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}.${ms.toString().padStart(2, "0")}`;
-    }
-
-    function getEpisodeDetails(showKey, epIndex) {
-        const show = catalog[showKey];
-        if (!show || !show.episodes)
-            return { season: 1, episode: 1, title: "" };
-        const targetEp = show.episodes[epIndex];
-        if (!targetEp) return { season: 1, episode: 1, title: "" };
-
-        const season = getEpisodeSeason(targetEp);
-        const seasonEps = show.episodes.filter(
-            (ep) => getEpisodeSeason(ep) === season,
-        );
-        const idxInSeason = seasonEps.indexOf(targetEp);
-        const episodeNum = idxInSeason !== -1 ? idxInSeason + 1 : 1;
-
-        return {
-            season,
-            episode: episodeNum,
-            title: targetEp.title,
-        };
-    }
-
-    // Outro configurations specific to shows
-    const showOutroLengths = {
-        "Batman Beyond": 40,
-        "Mr. Bean": 30,
+  /**
+   * Capture current playback position as a new sample trigger.
+   */
+  function addSample() {
+    if (!videoElement || !currentEpisode) return;
+    const time = videoElement.currentTime;
+    const newSample = {
+      id: Date.now(),
+      name: `Smp ${samples.length + 1} (${formatTime(time)})`,
+      showKey: selectedShowKey,
+      episodeIndex: selectedEpisodeIndex,
+      time: time,
     };
+    samples = [...samples, newSample];
+    localStorage.setItem("gopro_samples", JSON.stringify(samples));
+  }
 
-    let showOutroLength = $derived(showOutroLengths[activeShowKey] || 30);
-    let isInOutroRange = $derived(
-        duration > 0 && currentTime >= duration - showOutroLength,
-    );
+  /**
+   * Remove a sample trigger.
+   * @param {number} id
+   * @param {Event} e
+   */
+  function deleteSample(id, e) {
+    e.stopPropagation();
+    samples = samples.filter((s) => s.id !== id);
+    localStorage.setItem("gopro_samples", JSON.stringify(samples));
+  }
 
-    let currentEpisodeDetails = $derived(
-        getEpisodeDetails(activeShowKey, currentEpisodeIndex),
-    );
+  /**
+   * Unlock callback triggered by the calculator screen.
+   */
+  function handleUnlock() {
+    isUnlocked = true;
+    loadSamples();
+  }
 
-    function skipOutro() {
-        if (!videoEl) return;
-        videoEl.currentTime = duration;
-        resetControlsTimer();
+  /**
+   * Handle global keyboard keydowns for sampler triggers and play/pause.
+   * @param {KeyboardEvent} e
+   */
+  function handleGlobalKeyDown(e) {
+    if (!isUnlocked) return;
+
+    // Play/Pause shortcut (Space)
+    if (e.key === " " && document.activeElement?.tagName !== "BUTTON") {
+      e.preventDefault();
+      togglePlay();
     }
 
-    // Keyboard Shortcuts Handler
-    function handleKeydown(e) {
-        if (!isUnlocked) return;
-        if (document.activeElement.tagName === "INPUT") return;
-
-        // Context-dependent: when selector view is active
-        if (!isPlayingEpisode) {
-            const showKeys = Object.keys(catalog);
-            if (e.key === "ArrowUp") {
-                e.preventDefault();
-                const idx = showKeys.indexOf(activeShowKey);
-                const nextIdx = (idx - 1 + showKeys.length) % showKeys.length;
-                switchShow(showKeys[nextIdx]);
-            } else if (e.key === "ArrowDown") {
-                e.preventDefault();
-                const idx = showKeys.indexOf(activeShowKey);
-                const nextIdx = (idx + 1) % showKeys.length;
-                switchShow(showKeys[nextIdx]);
-            } else if (e.key === "ArrowLeft") {
-                e.preventDefault();
-                const maxEpisodes = activeShow.episodes.length;
-                if (maxEpisodes > 0) {
-                    currentEpisodeIndex =
-                        (currentEpisodeIndex - 1 + maxEpisodes) % maxEpisodes;
-                }
-            } else if (e.key === "ArrowRight") {
-                e.preventDefault();
-                const maxEpisodes = activeShow.episodes.length;
-                if (maxEpisodes > 0) {
-                    currentEpisodeIndex =
-                        (currentEpisodeIndex + 1) % maxEpisodes;
-                }
-            } else if (e.key === "Enter") {
-                e.preventDefault();
-                playEpisode(activeShowKey, currentEpisodeIndex);
-            }
-            return;
-        }
-
-        // Context-dependent: when player view is active
-        if (e.key === " ") {
-            e.preventDefault();
-            togglePlay();
-        } else if (e.key === "ArrowLeft") {
-            e.preventDefault();
-            seekRelative(-5);
-        } else if (e.key === "ArrowRight") {
-            e.preventDefault();
-            seekRelative(5);
-        } else if (e.key === "ArrowUp") {
-            e.preventDefault();
-            volume = Math.min(1, volume + 0.05);
-            if (videoEl) videoEl.volume = volume;
-        } else if (e.key === "ArrowDown") {
-            e.preventDefault();
-            volume = Math.max(0, volume - 0.05);
-            if (videoEl) videoEl.volume = volume;
-        } else if (
-            (e.key >= "0" && e.key <= "9") ||
-            (e.code && e.code.startsWith("Numpad") && e.code.length === 7)
-        ) {
-            e.preventDefault();
-            if (e.repeat) return;
-            const digit =
-                e.key >= "0" && e.key <= "9"
-                    ? e.key
-                    : e.code
-                      ? e.code.replace(/^\D+/, "")
-                      : null;
-            if (digit !== null) {
-                startRepeating(digit);
-            }
-        } else if (e.key === "i" || e.key === "I") {
-            e.preventDefault();
-            skipIntro();
-            flashSkipIntroGlow = true;
-            setTimeout(() => {
-                flashSkipIntroGlow = false;
-            }, 300);
-        } else if (e.key === "o" || e.key === "O") {
-            e.preventDefault();
-            skipOutro();
-            flashSkipOutroGlow = true;
-            setTimeout(() => {
-                flashSkipOutroGlow = false;
-            }, 300);
-        } else if (e.key === "a" || e.key === "A") {
-            setClipA();
-        } else if (e.key === "b" || e.key === "B") {
-            setClipB();
-        } else if (e.key === "[") {
-            adjustClipStart(-0.05);
-        } else if (e.key === "]") {
-            adjustClipStart(0.05);
-        } else if (e.key === "{") {
-            adjustClipEnd(-0.05);
-        } else if (e.key === "}") {
-            adjustClipEnd(0.05);
-        } else if (e.key === "s" || e.key === "S") {
-            if (isInIntroRange) skipIntro();
-        }
-    }
-
-    function handleKeyup(e) {
-        if (!isUnlocked) return;
-        if (document.activeElement.tagName === "INPUT") return;
-
-        let digit = null;
-        if (e.key >= "0" && e.key <= "9") {
-            digit = e.key;
-        } else if (e.code && e.code >= "Numpad0" && e.code <= "Numpad9") {
-            digit = e.code.slice(6);
-        }
-
-        if (digit !== null) {
-            if (activeRepeatKey === digit) {
-                stopRepeating();
-            }
-        }
-    }
-
-    // Reactively scroll active card into view when navigating via keyboard in selector mode
-    $effect(() => {
-        if (!isPlayingEpisode) {
-            // Trigger scrolling after DOM updates
-            const showKey = activeShowKey;
-            const epIndex = currentEpisodeIndex;
-            setTimeout(() => {
-                const activeCard = document.querySelector(
-                    ".episode-grid-card.active",
-                );
-                if (activeCard) {
-                    activeCard.scrollIntoView({
-                        behavior: "smooth",
-                        block: "nearest",
-                        inline: "nearest",
-                    });
-                }
-            }, 50);
-        }
-    });
-
-    // View state controllers
-    function playEpisode(showKey, episodeIndex) {
-        if (showKey !== undefined) activeShowKey = showKey;
-        if (episodeIndex !== undefined) currentEpisodeIndex = episodeIndex;
-        isPlayingEpisode = true;
-        controlsVisible = true;
-        isChangingEpisode = false; // Reset transition flag so player starts fresh
-        lowerDeckView = "controls";
-    }
-
-    function exitToCatalog() {
-        if (videoEl) {
-            videoEl.pause();
-        }
-        isPlayingEpisode = false;
-        isMaximized = false;
-        stopRepeating();
-        if (
-            document.fullscreenElement &&
-            document.fullscreenElement === playerContainerEl
-        ) {
-            document.exitFullscreen().catch((err) => console.error(err));
-        }
-    }
-
-    function toggleFullscreen() {
-        if (!playerContainerEl) return;
-
-        // Detect if site/page is already in browser-level fullscreen
-        const isSiteFullscreen =
-            document.fullscreenElement &&
-            document.fullscreenElement !== playerContainerEl;
-
-        if (isSiteFullscreen) {
-            isMaximized = !isMaximized;
-        } else {
-            if (!document.fullscreenElement) {
-                playerContainerEl.requestFullscreen().catch((err) => {
-                    console.error("Fullscreen request failed:", err);
-                });
-            } else {
-                document.exitFullscreen().catch((err) => {
-                    console.error("Exit fullscreen failed:", err);
-                });
-            }
-        }
-    }
-
-    function handleVideoClick(e) {
-        if (
-            e.target.closest("button") ||
-            e.target.closest("input") ||
-            e.target.closest(".timeline-track") ||
-            e.target.closest(".minimal-seekbar-container")
-        ) {
-            return;
-        }
+    // Number keys 1-8 for sampler pads
+    const num = parseInt(e.key, 10);
+    if (!isNaN(num) && num >= 1 && num <= 8) {
+      const sample = samples[num - 1];
+      if (sample) {
         e.preventDefault();
-        controlsVisible = !controlsVisible;
-        if (controlsVisible) {
-            resetControlsTimer();
-        }
+        playSample(sample);
+      }
     }
+  }
 
-    function handleVideoDblClick(e) {
-        e.preventDefault();
-        toggleFullscreen();
+  onMount(() => {
+    const savedPassword = localStorage.getItem("gopro_password");
+    if (savedPassword) {
+      isUnlocked = true;
+      loadSamples();
     }
+  });
 
-    function handleFullscreenChange() {
-        isFullscreen = document.fullscreenElement === playerContainerEl;
-        if (!document.fullscreenElement) {
-            isMaximized = false;
+  // Deep link parsing reactive sync
+  $effect(() => {
+    if (isUnlocked && goProShow) {
+      const resolvedShow = SHOW_SLUGS[goProShow.toLowerCase()] || SHOW_SLUGS[goProShow];
+      if (resolvedShow && catalog[resolvedShow]) {
+        selectedShowKey = resolvedShow;
+
+        if (goProEpisode) {
+          const episodes = catalog[resolvedShow].episodes;
+          const matchIdx = episodes.findIndex((ep) =>
+            ep.file.toLowerCase().includes(goProEpisode.toLowerCase())
+          );
+          if (matchIdx !== -1) {
+            selectedEpisodeIndex = matchIdx;
+            isPlaying = true;
+          }
         }
+      }
     }
-
-    function resetControlsTimer() {
-        controlsVisible = true;
-        if (controlsTimeout) {
-            clearTimeout(controlsTimeout);
-        }
-        if (isPlaying && isPlayingEpisode) {
-            controlsTimeout = setTimeout(() => {
-                const activeEl = document.activeElement;
-                const isInteracting =
-                    activeEl &&
-                    (activeEl.tagName === "INPUT" ||
-                        activeEl.tagName === "SELECT" ||
-                        activeEl.closest(".player-controls-panel"));
-                if (isPlaying && !isInteracting) {
-                    controlsVisible = false;
-                }
-            }, 3000);
-        }
-    }
-
-    function handleMouseMove() {
-        resetControlsTimer();
-
-        isCursorHidden = false;
-        if (cursorTimeout) clearTimeout(cursorTimeout);
-        if (isFullscreen && isPlaying) {
-            cursorTimeout = setTimeout(() => {
-                isCursorHidden = true;
-            }, 3000);
-        }
-    }
-
-    onMount(() => {
-        const savedPassword = localStorage.getItem("gopro_password");
-        if (savedPassword) {
-            currentPassword = savedPassword;
-            isUnlocked = true;
-        }
-        loadCheckpoints();
-        document.addEventListener("fullscreenchange", handleFullscreenChange);
-    });
-
-    // Swipe gesture support for controls tabs
-    let touchStartX = 0;
-    let touchEndX = 0;
-
-    function handleTouchStart(e) {
-        touchStartX = e.changedTouches[0].screenX;
-    }
-
-    function handleTouchEnd(e) {
-        touchEndX = e.changedTouches[0].screenX;
-        handleSwipe();
-    }
-
-    function handleSwipe() {
-        const threshold = 50; // minimum drag distance
-        if (touchStartX - touchEndX > threshold) {
-            // Swiped Left -> next page
-            if (activeControlPage < 2) activeControlPage += 1;
-        } else if (touchEndX - touchStartX > threshold) {
-            // Swiped Right -> previous page
-            if (activeControlPage > 0) activeControlPage -= 1;
-        }
-    }
-
-    onDestroy(() => {
-        if (audioCtx) {
-            audioCtx.close();
-        }
-        stopRepeating();
-        if (controlsTimeout) clearTimeout(controlsTimeout);
-        if (cursorTimeout) clearTimeout(cursorTimeout);
-        document.removeEventListener(
-            "fullscreenchange",
-            handleFullscreenChange,
-        );
-    });
+  });
 </script>
 
-<svelte:window
-    onkeydown={handleKeydown}
-    onkeyup={handleKeyup}
-    onblur={stopRepeating}
-/>
+<svelte:window onkeydown={handleGlobalKeyDown} />
 
-<div class="gopro-layout animated-pane">
-    {#if !isUnlocked}
-        <GoProCalculator
-            onUnlock={(pass) => {
-                currentPassword = pass;
-                isUnlocked = true;
-            }}
-        />
-    {:else}
-        <div class="theater-layout">
-            <!-- PERSISTENT PLAYER CONTAINER -->
-            <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <div
-                bind:this={playerContainerEl}
-                class="player-view-container"
-                class:maximized={isMaximized}
-                onmousemove={handleMouseMove}
-                onclick={handleVideoClick}
-                onkeydown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                        handleVideoClick(e);
-                    }
-                }}
-                style="cursor: {isCursorHidden ? 'none' : 'auto'}"
-            >
-                <!-- Slick Bottom Left Indicator Dot -->
-                <div class="bottom-left-indicator">
-                    {#each dotParticles as particle (particle.id)}
-                        <div
-                            class="indicator-particle {particle.type}"
-                            style={particle.style}
-                        ></div>
-                    {/each}
-                    <div class="indicator-baseline-dot"></div>
+{#if !isUnlocked}
+  <!-- Secure calculator gate -->
+  <div class="w-full h-full bg-[#0a0a0f] flex items-center justify-center" transition:fade>
+    <GoProCalculator onUnlock={handleUnlock} />
+  </div>
+{:else}
+  <!-- Main Television-Friendly Streaming Interface -->
+  <div
+    class="gopro-app-layout w-full min-h-full bg-gradient-to-br from-[#0c0d14] via-[#050608] to-[#0a0a0f] text-white p-4 font-sans flex flex-col gap-6 overflow-y-auto selection:bg-cyan-500 selection:text-black"
+    transition:fade
+  >
+    <!-- TV Header -->
+    <header class="flex flex-col gap-2 border-b border-white/5 pb-4 sm:flex-row sm:items-center sm:justify-between">
+      <div class="flex items-center gap-3">
+        <div class="p-2 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl shadow-lg shadow-cyan-500/10">
+          <Tv class="w-6 h-6 text-white" />
+        </div>
+        <div>
+          <h1 class="text-xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-white to-cyan-400 2xl:text-3xl">
+            WEAREDOGS STREAM
+          </h1>
+          <p class="text-[10px] text-white/40 tracking-wider font-semibold font-mono uppercase">
+            Grandpa and Monkey Media Player
+          </p>
+        </div>
+      </div>
+      <div class="text-[11px] font-mono text-cyan-400 font-semibold bg-cyan-950/30 border border-cyan-800/30 px-3 py-1 rounded-full self-start sm:self-auto uppercase tracking-wide">
+        Passcode Verified
+      </div>
+    </header>
+
+    <!-- Five-Viewport Grid Setup -->
+    <main class="grid grid-cols-1 gap-6 w-full max-w-7xl mx-auto xl:grid-cols-3">
+      
+      <!-- LEFT SECTION: Shows List & Episode Selector (col-span-1) -->
+      <section class="flex flex-col gap-6 xl:col-span-1">
+        
+        <!-- Show Selection Carousel -->
+        <div class="flex flex-col gap-2">
+          <h2 class="text-xs uppercase font-bold text-white/50 tracking-wider">Select Show</h2>
+          
+          <div class="flex flex-col gap-3 sm:grid sm:grid-cols-3 xl:flex xl:flex-col">
+            {#each Object.keys(catalog) as showKey}
+              {@const show = catalog[showKey]}
+              <button
+                onclick={() => selectShow(showKey)}
+                class="w-full text-left p-4 rounded-xl flex items-center justify-between transition-all duration-200 border group focus:ring-2 focus:ring-cyan-400 focus:outline-none {selectedShowKey === showKey
+                  ? 'bg-gradient-to-r from-cyan-950/40 to-blue-950/40 border-cyan-500/50 shadow-md shadow-cyan-950/40'
+                  : 'bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/10'}"
+              >
+                <div class="flex items-center gap-3">
+                  <span class="text-2xl group-hover:scale-110 transition-transform">{show.symbol}</span>
+                  <div>
+                    <div class="font-bold text-sm tracking-tight text-white">{showKey}</div>
+                    <div class="text-[10px] text-white/40 font-mono mt-0.5">{show.episodes.length} Episodes</div>
+                  </div>
                 </div>
-                <!-- HTML5 Video Element -->
-                <!-- svelte-ignore a11y_media_has_caption -->
-                <!-- svelte-ignore a11y_click_events_have_key_events -->
-                <video
-                    bind:this={videoEl}
-                    src={streamUrl}
-                    crossorigin="anonymous"
-                    preload="auto"
-                    class="player-video-core {activeVideoFilter}"
-                    onclick={handleVideoClick}
-                    ondblclick={handleVideoDblClick}
-                    onplay={handlePlay}
-                    onpause={handlePause}
-                    ontimeupdate={handleTimeUpdate}
-                    onloadedmetadata={handleLoadedMetadata}
-                    onended={handleEpisodeEnded}
-                    onerror={handleVideoError}
-                ></video>
-
-                {#if isFetching}
-                    <!-- svelte-ignore a11y_click_events_have_key_events -->
-                    <!-- svelte-ignore a11y_no_static_element_interactions -->
-                    <div
-                        class="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-[100] pointer-events-auto"
-                        onclick={(e) => e.stopPropagation()}
-                    >
-                        <div
-                            class="w-12 h-12 rounded-full border-4 border-[#ff3344]/10 border-t-[#ff3344] animate-spin shadow-[0_0_15px_rgba(255,51,68,0.5)]"
-                        ></div>
-                        <span
-                            class="mt-4 text-white text-xs sm:text-sm font-bold tracking-widest uppercase animate-pulse"
-                        >
-                            Fetching Episode...
-                        </span>
-                    </div>
-                {/if}
-
-                {#if showDownloadPrompt}
-                    <div class="download-prompt-overlay">
-                        <div class="download-prompt-box">
-                            <span class="warning-icon">⚠️</span>
-                            <h3>Local Copy Required</h3>
-                            <p>
-                                The remote video could not be loaded due to
-                                network or CORS restrictions. Please download
-                                this episode to run it locally.
-                            </p>
-                            <div class="code-box">
-                                <code
-                                    >bash
-                                    src/components/apps/get-vid/download.sh</code
-                                >
-                            </div>
-                            <button
-                                class="close-prompt-btn"
-                                onclick={() => (showDownloadPrompt = false)}
-                            >
-                                Dismiss
-                            </button>
-                        </div>
-                    </div>
-                {/if}
-
-                <!-- Top Floating Overlay HUD -->
-                <div class="player-overlay-top" class:hidden={!controlsVisible}>
-                    <div
-                        class="flex gap-2 font-sans text-xs items-center relative z-50"
-                    >
-                        <button
-                            class="episodes-menu-btn flex items-center gap-1 bg-black/60 hover:bg-black/85 border border-white/10 hover:border-white/30 px-2 py-1 rounded text-white transition-all font-mono tracking-wider font-bold"
-                            onclick={(e) => {
-                                e.stopPropagation();
-                                isEpisodesMenuOpen = !isEpisodesMenuOpen;
-                            }}
-                        >
-                            📺 CHOOSE SHOW / EPISODE
-                        </button>
-
-                        {#if isEpisodesMenuOpen}
-                            <!-- svelte-ignore a11y_click_events_have_key_events -->
-                            <!-- svelte-ignore a11y_no_static_element_interactions -->
-                            <div
-                                class="episodes-dropdown absolute top-8 left-0 z-50 bg-zinc-950/98 border border-zinc-800 rounded-xl p-4 w-[420px] max-h-[500px] overflow-y-auto shadow-[0_10px_35px_rgba(0,0,0,0.9)]"
-                                onclick={(e) => e.stopPropagation()}
-                            >
-                                <GoProCatalog
-                                    bind:catalog
-                                    bind:activeShowKey
-                                    bind:currentEpisodeIndex
-                                    bind:selectedSeasons
-                                    {playEpisode}
-                                />
-                            </div>
-                        {/if}
-                    </div>
-
-                    <div class="player-episode-info-hud">
-                        <span class="hud-show-title">{activeShowKey}</span>
-                        <span class="hud-sep">/</span>
-                        <span class="hud-episode-title"
-                            >S01E{(currentEpisodeIndex + 1)
-                                .toString()
-                                .padStart(2, "0")}
-                            - {currentEpisode.title}</span
-                        >
-                    </div>
-
-                    <div class="player-drawer-toggles">
-                        <button
-                            class="icon-header-btn"
-                            class:active={isMetadataOpen}
-                            onclick={() => {
-                                isMetadataOpen = !isMetadataOpen;
-                                if (isMetadataOpen) isCheckpointsOpen = false;
-                            }}
-                            title="Show Facts"
-                        >
-                            <Info size={16} />
-                        </button>
-                        <button
-                            class="icon-header-btn"
-                            class:active={isCheckpointsOpen}
-                            onclick={() => {
-                                isCheckpointsOpen = !isCheckpointsOpen;
-                                if (isCheckpointsOpen) isMetadataOpen = false;
-                            }}
-                            title="Episode Checkpoints"
-                        >
-                            <Bookmark size={16} />
-                        </button>
-                    </div>
+                <div class="text-xs font-mono text-cyan-400 font-bold opacity-0 group-hover:opacity-100 transition-opacity">
+                  {selectedShowKey === showKey ? "Active" : "Open ➔"}
                 </div>
-
-                <!-- Flashing center crosshairs / grid HUD (visible when HUD active and hover overlay is visible) -->
-                {#if hudVisible && controlsVisible}
-                    <div class="video-hud">
-                        <div class="rec-indicator">
-                            <span class="rec-dot"></span>
-                            <div class="hud-show-info-group">
-                                <span class="hud-indicator-show-name"
-                                    >{activeShow.symbol || activeShowKey}</span
-                                >
-                                <span class="hud-indicator-ep-details">
-                                    s{currentEpisodeDetails.season
-                                        .toString()
-                                        .padStart(
-                                            2,
-                                            "0",
-                                        )}e{currentEpisodeDetails.episode
-                                        .toString()
-                                        .padStart(2, "0")}
-                                </span>
-                                <span class="hud-indicator-ep-separator">-</span
-                                >
-                                <span class="hud-indicator-ep-details">
-                                    {currentEpisodeDetails.title}
-                                </span>
-                            </div>
-                        </div>
-                        <div class="hud-corners">
-                            <div class="corner tl"></div>
-                            <div class="corner tr"></div>
-                            <div class="corner bl"></div>
-                            <div class="corner br"></div>
-                        </div>
-                    </div>
-                {/if}
-
-                <!-- Bottom Floating Overlay HUD (Timeline & Controls) -->
-                <div
-                    class="player-overlay-bottom"
-                    class:hidden={!controlsVisible}
-                >
-                    <div class="sampler-timeline">
-                        <div class="timeline-headers">
-                            <span class="timeline-time"
-                                >{formatTime(currentTime)} / {formatTime(
-                                    duration,
-                                )}</span
-                            >
-                            <span class="slice-points-desc">
-                                Slice: <span class="highlight"
-                                    >{formatTime(clipStart)}</span
-                                >
-                                to
-                                <span class="highlight"
-                                    >{formatTime(clipEnd)}</span
-                                >
-                                ({formatTime(clipEnd - clipStart)})
-                            </span>
-                        </div>
-
-                        <div class="timeline-track-outer">
-                            <!-- Interactive timeline scrubber -->
-                            <!-- svelte-ignore a11y_click_events_have_key_events -->
-                            <!-- svelte-ignore a11y_no_static_element_interactions -->
-                            <div
-                                class="timeline-track"
-                                onclick={(e) => {
-                                    if (!videoEl || duration === 0) return;
-                                    const rect =
-                                        e.currentTarget.getBoundingClientRect();
-                                    const pct =
-                                        (e.clientX - rect.left) / rect.width;
-                                    videoEl.currentTime = duration * pct;
-                                }}
-                            >
-                                <!-- Loop Range indicator -->
-                                {#if duration > 0}
-                                    <div
-                                        class="selection-range-overlay"
-                                        style="left: {(clipStart / duration) *
-                                            100}%; width: {((clipEnd -
-                                            clipStart) /
-                                            duration) *
-                                            100}%"
-                                    ></div>
-                                    <div
-                                        class="playhead"
-                                        style="left: {(currentTime / duration) *
-                                            100}%"
-                                    ></div>
-                                {/if}
-                            </div>
-                        </div>
-
-                        <!-- Quick skip intro trigger -->
-                        {#if isInIntroRange}
-                            <button
-                                class="skip-intro-hud-btn transition-all duration-300 font-sans"
-                                class:scale-105={flashSkipIntroGlow}
-                                class:bg-cyan-500={flashSkipIntroGlow}
-                                class:text-black={flashSkipIntroGlow}
-                                onclick={skipIntro}
-                            >
-                                <SkipForward size={14} /> Skip Theme Intro [I]
-                            </button>
-                        {/if}
-
-                        <!-- Quick skip outro trigger -->
-                        {#if isInOutroRange}
-                            <button
-                                class="skip-outro-hud-btn transition-all duration-300 font-sans"
-                                class:scale-105={flashSkipOutroGlow}
-                                class:bg-cyan-500={flashSkipOutroGlow}
-                                class:text-black={flashSkipOutroGlow}
-                                onclick={skipOutro}
-                            >
-                                <SkipForward size={14} /> Skip Outro [O]
-                            </button>
-                        {/if}
-                    </div>
-
-                    <!-- Overlay controls row (Netflix/Youtube style) -->
-                    <div
-                        class="overlay-controls-row flex items-center justify-between mt-3 px-2"
-                    >
-                        <div class="flex items-center gap-3">
-                            <button
-                                class="overlay-ctrl-btn p-1 text-white/70 hover:text-white hover:scale-105 transition-all"
-                                onclick={togglePlay}
-                                title="Play/Pause"
-                            >
-                                {#if isPlaying}
-                                    <Pause size={16} fill="currentColor" />
-                                {:else}
-                                    <Play size={16} fill="currentColor" />
-                                {/if}
-                            </button>
-                            <button
-                                class="overlay-ctrl-btn p-1 text-white/70 hover:text-white hover:scale-105 transition-all"
-                                onclick={prevEpisode}
-                                title="Previous Episode"
-                            >
-                                <SkipBack size={16} />
-                            </button>
-                            <button
-                                class="overlay-ctrl-btn p-1 text-white/70 hover:text-white hover:scale-105 transition-all"
-                                onclick={nextEpisode}
-                                title="Next Episode"
-                            >
-                                <SkipForward size={16} />
-                            </button>
-
-                            <!-- Volume control -->
-                            <div
-                                class="flex items-center gap-1.5 ml-2 group/vol"
-                            >
-                                <button
-                                    class="overlay-ctrl-btn p-1 text-white/70 hover:text-white hover:scale-105 transition-all"
-                                    onclick={() => {
-                                        isMuted = !isMuted;
-                                        if (videoEl) videoEl.muted = isMuted;
-                                    }}
-                                >
-                                    {#if isMuted || volume === 0}
-                                        <VolumeX size={16} />
-                                    {:else if volume < 0.5}
-                                        <Volume1 size={16} />
-                                    {:else}
-                                        <Volume2 size={16} />
-                                    {/if}
-                                </button>
-                                <input
-                                    type="range"
-                                    min="0"
-                                    max="1"
-                                    step="0.05"
-                                    value={isMuted ? 0 : volume}
-                                    oninput={handleVolumeChange}
-                                    class="w-16 h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-cyan-400 opacity-0 group-hover/vol:opacity-100 transition-opacity duration-200"
-                                />
-                            </div>
-                        </div>
-
-                        <div class="flex items-center gap-2">
-                            <button
-                                class="overlay-ctrl-btn p-1 text-white/70 hover:text-white hover:scale-105 transition-all"
-                                onclick={toggleFullscreen}
-                                title="Fullscreen"
-                            >
-                                {#if isFullscreen}
-                                    <Minimize size={16} />
-                                {:else}
-                                    <Maximize size={16} />
-                                {/if}
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Tech details footer stats -->
-                    <footer class="cinema-footer">
-                        <div class="cache-status">
-                            <span class="green-indicator-glow"></span>
-                            <span>CACHE: {localCacheProgress}% SECURE</span>
-                        </div>
-                        <div class="quick-kb-hint">
-                            💡 Space: Play/Pause | Arrow Keys: Seek/Vol | 1-9:
-                            Jump % | A/B: Set Slice | [ / ]: Fine-tune
-                        </div>
-                    </footer>
-                </div>
-
-                <!-- Permanent greyed out branding overlay in bottom right -->
-                <div
-                    class="dogs-brand-overlay absolute bottom-3 right-4 flex items-center gap-1.5 opacity-20 pointer-events-none select-none z-10 transition-all duration-300"
-                >
-                    <div class={audioCore.isPlaying ? "animate-pulse" : ""}>
-                        <DogsLogo size="16" />
-                    </div>
-                    <span
-                        class="text-[11px] font-mono tracking-widest font-bold text-white"
-                        >DOGS</span
-                    >
-                </div>
-            </div>
-
-            <!-- LOWER DECK: Controls Panel Tray -->
-            <div class="theater-lower-deck">
-                <!-- Controls Panel Tray -->
-                <!-- svelte-ignore a11y_no_static_element_interactions -->
-                <div
-                    class="player-controls-panel"
-                    class:expanded={isControlsExpanded}
-                    ontouchstart={handleTouchStart}
-                    ontouchend={handleTouchEnd}
-                    onmouseenter={() => {
-                        if (controlsTimeout) clearTimeout(controlsTimeout);
-                        controlsVisible = true;
-                    }}
-                    onmouseleave={resetControlsTimer}
-                >
-                    <!-- Minimal Controls Row -->
-                    <div
-                        class="minimal-controls-row flex items-center justify-between gap-3 w-full"
-                    >
-                        <div class="flex items-center gap-3">
-                            <button
-                                class="btn-circular play-toggle flex-shrink-0"
-                                onclick={togglePlay}
-                                title="Play/Pause"
-                            >
-                                {#if isPlaying}
-                                    <Pause size={14} fill="currentColor" />
-                                {:else}
-                                    <Play size={14} fill="currentColor" />
-                                {/if}
-                            </button>
-                            <span class="text-xs font-mono text-white/60">
-                                {formatTime(currentTime)} / {formatTime(
-                                    duration,
-                                )}
-                            </span>
-                        </div>
-
-                        <button
-                            class="arrow-toggle-btn text-white/50 hover:text-white flex-shrink-0 text-[10px] w-6 h-6 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-all"
-                            onclick={() =>
-                                (isControlsExpanded = !isControlsExpanded)}
-                            title={isControlsExpanded
-                                ? "Collapse Controls"
-                                : "Expand Controls"}
-                        >
-                            {#if isControlsExpanded}
-                                ▼
-                            {:else}
-                                ▲
-                            {/if}
-                        </button>
-                    </div>
-
-                    {#if isControlsExpanded}
-                        <!-- Tabs Navigation Header -->
-                        <div
-                            class="controls-navigation-tabs mt-2 flex items-center justify-between"
-                        >
-                            <div class="flex gap-2">
-                                <button
-                                    class="control-tab-btn"
-                                    class:active={activeControlPage === 0}
-                                    onclick={() => (activeControlPage = 0)}
-                                >
-                                    PLAYBACK
-                                </button>
-                                <button
-                                    class="control-tab-btn"
-                                    class:active={activeControlPage === 1}
-                                    onclick={() => (activeControlPage = 1)}
-                                >
-                                    FILTERS
-                                </button>
-                                <button
-                                    class="control-tab-btn"
-                                    class:active={activeControlPage === 2}
-                                    onclick={() => (activeControlPage = 2)}
-                                >
-                                    SAMPLER
-                                </button>
-                            </div>
-                            <button
-                                class="exit-player-btn bg-white/5 hover:bg-white/10 border border-white/10 px-2 py-1 rounded text-white text-[11px] font-sans transition-all flex items-center gap-1"
-                                onclick={() => (isRemapperOpen = true)}
-                            >
-                                ⚙️ Key Remap
-                            </button>
-                        </div>
-
-                        <!-- Paginated content wrapper (Strictly identical height/width) -->
-                        <div class="control-page-content-wrapper">
-                            {#if activeControlPage === 0}
-                                <!-- PLAYBACK PAGE -->
-                                <div class="control-page-pane page-playback">
-                                    <div
-                                        class="playback-main-row flex items-center justify-between gap-4 w-full"
-                                    >
-                                        <div
-                                            class="play-btn-group flex items-center gap-2"
-                                        >
-                                            <button
-                                                class="btn-circular"
-                                                onclick={prevEpisode}
-                                                title="Prev Episode"
-                                            >
-                                                ⏮
-                                            </button>
-                                            <button
-                                                class="btn-circular play-toggle"
-                                                onclick={togglePlay}
-                                                title="Play/Pause"
-                                            >
-                                                {#if isPlaying}
-                                                    <Pause
-                                                        size={18}
-                                                        fill="currentColor"
-                                                    />
-                                                {:else}
-                                                    <Play
-                                                        size={18}
-                                                        fill="currentColor"
-                                                    />
-                                                {/if}
-                                            </button>
-                                            <button
-                                                class="btn-circular"
-                                                onclick={nextEpisode}
-                                                title="Next Episode"
-                                            >
-                                                ⏭
-                                            </button>
-                                            <button
-                                                class="btn-circular"
-                                                onclick={() =>
-                                                    seekRelative(-10)}
-                                                title="Back 10s"
-                                            >
-                                                -10s
-                                            </button>
-                                            <button
-                                                class="btn-circular"
-                                                onclick={() => seekRelative(10)}
-                                                title="Forward 10s"
-                                            >
-                                                +10s
-                                            </button>
-                                        </div>
-
-                                        <div
-                                            class="volume-slider-box flex items-center gap-2"
-                                        >
-                                            <Volume2
-                                                size={16}
-                                                class="vol-icon"
-                                            />
-                                            <input
-                                                type="range"
-                                                min="0"
-                                                max="1"
-                                                step="0.05"
-                                                value={volume}
-                                                oninput={handleVolumeChange}
-                                                class="volume-slider"
-                                            />
-                                            <button
-                                                class="btn-circular fullscreen-toggle"
-                                                onclick={toggleFullscreen}
-                                                title="Toggle Fullscreen"
-                                            >
-                                                {#if isFullscreen || isMaximized}
-                                                    <Minimize size={16} />
-                                                {:else}
-                                                    <Maximize size={16} />
-                                                {/if}
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <div
-                                        class="playback-sub-row flex flex-wrap items-center justify-between gap-3 w-full"
-                                    >
-                                        <div class="speed-group flex gap-1">
-                                            {#each [1, 2, 3, 4] as rate}
-                                                <button
-                                                    class="speed-btn"
-                                                    class:active={playbackRate ===
-                                                        rate}
-                                                    onclick={() =>
-                                                        handleRateChange(rate)}
-                                                >
-                                                    {rate}x
-                                                </button>
-                                            {/each}
-                                        </div>
-
-                                        <div
-                                            class="loop-group flex items-center gap-2"
-                                        >
-                                            <button
-                                                class="loop-btn"
-                                                class:active={loopMode ===
-                                                    "episode"}
-                                                onclick={() =>
-                                                    (loopMode =
-                                                        loopMode === "episode"
-                                                            ? "none"
-                                                            : "episode")}
-                                                title="Repeat Episode"
-                                            >
-                                                🔁 Loop Ep
-                                            </button>
-                                            <button
-                                                class="loop-btn"
-                                                class:active={loopMode ===
-                                                    "season"}
-                                                onclick={() =>
-                                                    (loopMode =
-                                                        loopMode === "season"
-                                                            ? "none"
-                                                            : "season")}
-                                                title="Repeat Season"
-                                            >
-                                                🔂 Season
-                                            </button>
-                                            <button
-                                                class="loop-btn"
-                                                class:active={loopMode ===
-                                                    "shuffle"}
-                                                onclick={() =>
-                                                    (loopMode =
-                                                        loopMode === "shuffle"
-                                                            ? "none"
-                                                            : "shuffle")}
-                                                title="Shuffle Play"
-                                            >
-                                                🔀 Shuffle
-                                            </button>
-                                        </div>
-
-                                        <div
-                                            class="autoskip-toggles flex items-center gap-3"
-                                        >
-                                            <label
-                                                class="flex items-center gap-1.5 cursor-pointer text-[10px] font-bold text-white/50 select-none"
-                                            >
-                                                <input
-                                                    type="checkbox"
-                                                    bind:checked={autoSkipIntro}
-                                                    class="accent-cyan-500 rounded cursor-pointer w-3.5 h-3.5"
-                                                />
-                                                <span>Skip Intro</span>
-                                            </label>
-                                            <label
-                                                class="flex items-center gap-1.5 cursor-pointer text-[10px] font-bold text-white/50 select-none"
-                                            >
-                                                <input
-                                                    type="checkbox"
-                                                    bind:checked={autoSkipOutro}
-                                                    class="accent-cyan-500 rounded cursor-pointer w-3.5 h-3.5"
-                                                />
-                                                <span>Skip Outro</span>
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-                            {:else if activeControlPage === 1}
-                                <!-- FILTERS PAGE -->
-                                <div
-                                    class="control-page-pane page-filters grid-filters"
-                                >
-                                    <div class="filter-panel-box">
-                                        <span class="box-tag"
-                                            ><Tv size={12} /> VIDEO FILTERS</span
-                                        >
-                                        <div class="filter-selector-row">
-                                            {#each ["normal", "grayscale", "monochrome", "highcontrast", "cyberpunk", "nightvision"] as f}
-                                                <button
-                                                    class="filter-select-btn"
-                                                    class:active={activeVideoFilter ===
-                                                        f}
-                                                    onclick={() =>
-                                                        (activeVideoFilter = f)}
-                                                >
-                                                    {f}
-                                                </button>
-                                            {/each}
-                                        </div>
-                                    </div>
-
-                                    <div class="filter-panel-box">
-                                        <span class="box-tag"
-                                            ><Radio size={12} /> AUDIO SYNTH EFFECTS</span
-                                        >
-                                        <div class="filter-selector-row">
-                                            {#each ["normal", "funny", "vocal", "reverb"] as f}
-                                                <button
-                                                    class="filter-select-btn"
-                                                    class:active={activeAudioFilter ===
-                                                        f}
-                                                    onclick={() =>
-                                                        (activeAudioFilter = f)}
-                                                >
-                                                    {f === "funny"
-                                                        ? "funny mic"
-                                                        : f === "vocal"
-                                                          ? "vocal boost"
-                                                          : f}
-                                                </button>
-                                            {/each}
-                                        </div>
-                                    </div>
-                                </div>
-                            {:else if activeControlPage === 2}
-                                <!-- SAMPLER PAGE -->
-                                <div
-                                    class="control-page-pane page-sampler sampler-clipper-box"
-                                >
-                                    <div class="clipper-header-row">
-                                        <span class="clipper-tag"
-                                            ><Music size={12} /> SAMPLER WORKBENCH</span
-                                        >
-                                        <div class="bpm-control-box">
-                                            <span class="bpm-label">BPM</span>
-                                            <input
-                                                type="number"
-                                                min={BPM_MIN}
-                                                max={BPM_MAX}
-                                                bind:value={bpm}
-                                                onblur={handleBpmBlur}
-                                                class="bpm-input"
-                                            />
-                                            <input
-                                                type="range"
-                                                min={BPM_MIN}
-                                                max={BPM_MAX}
-                                                step="1"
-                                                bind:value={bpm}
-                                                class="bpm-slider"
-                                            />
-                                        </div>
-                                        <button
-                                            class="loop-selection-btn"
-                                            class:active={isClipLoopActive}
-                                            onclick={() =>
-                                                (isClipLoopActive =
-                                                    !isClipLoopActive)}
-                                        >
-                                            🔁 Loop Selection
-                                        </button>
-                                    </div>
-
-                                    <div class="clipper-main-controls">
-                                        <div class="endpoint-set-group">
-                                            <button
-                                                class="clip-action-btn"
-                                                onclick={setClipA}
-                                                >Set Start [A]</button
-                                            >
-                                            <div class="nudge-group">
-                                                <button
-                                                    class="nudge-btn"
-                                                    onclick={() =>
-                                                        adjustClipStart(-0.05)}
-                                                    title="Nudge start back 50ms"
-                                                    >-.05s</button
-                                                >
-                                                <button
-                                                    class="nudge-btn"
-                                                    onclick={() =>
-                                                        adjustClipStart(0.05)}
-                                                    title="Nudge start forward 50ms"
-                                                    >+.05s</button
-                                                >
-                                            </div>
-                                        </div>
-
-                                        <div class="endpoint-set-group">
-                                            <button
-                                                class="clip-action-btn"
-                                                onclick={setClipB}
-                                                >Set End [B]</button
-                                            >
-                                            <div class="nudge-group">
-                                                <button
-                                                    class="nudge-btn"
-                                                    onclick={() =>
-                                                        adjustClipEnd(-0.05)}
-                                                    title="Nudge end back 50ms"
-                                                    >-.05s</button
-                                                >
-                                                <button
-                                                    class="nudge-btn"
-                                                    onclick={() =>
-                                                        adjustClipEnd(0.05)}
-                                                    title="Nudge end forward 50ms"
-                                                    >+.05s</button
-                                                >
-                                            </div>
-                                        </div>
-
-                                        <div class="sampler-export-group">
-                                            <input
-                                                type="text"
-                                                placeholder="Clip name..."
-                                                bind:value={clipName}
-                                                class="clip-name-input"
-                                            />
-                                            <button
-                                                class="send-sampler-btn"
-                                                disabled={clipEnd <= clipStart}
-                                                onclick={sendToSoundboard}
-                                            >
-                                                <Music size={14} /> Export
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            {/if}
-                        </div>
-                    {/if}
-                </div>
-            </div>
+              </button>
+            {/each}
+          </div>
         </div>
 
-        <!-- Sidebar drawers (can open over the layout) -->
-        <!-- Sidebar Stats Wiki details -->
-        {#if isMetadataOpen}
-            <div class="meta-drawer">
-                <div class="drawer-header">
-                    <h2>{activeShowKey} Wiki Stats</h2>
-                    <button
-                        onclick={() => (isMetadataOpen = false)}
-                        class="close-drawer">✕</button
-                    >
-                </div>
-                <div class="drawer-body">
-                    <div class="meta-item">
-                        <span class="d-label">🎭 Main Cast:</span>
-                        <div class="cast-list">
-                            {#each activeShow.meta.actors as actor}
-                                <span class="cast-tag">{actor}</span>
-                            {/each}
-                        </div>
-                    </div>
+        <!-- Episode Selector List -->
+        <div class="flex flex-col gap-2 flex-grow">
+          <h2 class="text-xs uppercase font-bold text-white/50 tracking-wider">Episodes ({showData?.episodes.length})</h2>
+          
+          <div class="max-h-[300px] xl:max-h-[420px] overflow-y-auto pr-1 flex flex-col gap-2 scrollbar-thin scrollbar-thumb-cyan-500/20">
+            {#if showData}
+              {#each showData.episodes as ep, i}
+                <button
+                  onclick={() => playEpisode(i)}
+                  class="w-full text-left p-3 rounded-lg flex items-center justify-between text-xs transition-all duration-150 border focus:ring-2 focus:ring-cyan-400 focus:outline-none {selectedEpisodeIndex === i
+                    ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400 font-semibold'
+                    : 'bg-black/20 border-white/5 text-white/80 hover:bg-white/5 hover:text-white'}"
+                >
+                  <div class="flex flex-col gap-1 pr-2 truncate">
+                    <span class="font-bold truncate text-white">Ep {ep.id}: {ep.title}</span>
+                    {#if ep.description}
+                      <span class="text-[10px] text-white/40 truncate font-normal">{ep.description}</span>
+                    {/if}
+                  </div>
+                  <span class="font-mono text-[9px] uppercase px-1.5 py-0.5 bg-white/5 rounded text-white/50">
+                    {ep.file.split(".").pop()}
+                  </span>
+                </button>
+              {/each}
+            {/if}
+          </div>
+        </div>
+      </section>
 
-                    <div class="meta-item">
-                        <span class="d-label">📍 Filming Location:</span>
-                        <p>{activeShow.meta.location}</p>
-                    </div>
+      <!-- RIGHT SECTION: Player & Sampler (col-span-2) -->
+      <section class="flex flex-col gap-6 xl:col-span-2">
+        
+        <!-- Video Player Wrapper -->
+        <div class="relative bg-black rounded-2xl overflow-hidden border border-white/10 shadow-2xl flex flex-col">
+          
+          <!-- Responsive aspect-video container -->
+          <div class="w-full aspect-video bg-black relative flex items-center justify-center">
+            <!-- Source dynamically loaded using videoUrl -->
+            <video
+              bind:this={videoElement}
+              src={videoUrl}
+              class="w-full h-full object-contain"
+              playsinline
+              controls
+              onplay={() => (isPlaying = true)}
+              onpause={() => (isPlaying = false)}
+              ontimeupdate={() => {
+                if (videoElement) currentTime = videoElement.currentTime;
+              }}
+              ondurationchange={() => {
+                if (videoElement) duration = videoElement.duration;
+              }}
+            >
+              <track kind="captions" />
+            </video>
+          </div>
 
-                    <div class="meta-item">
-                        <span class="d-label">💰 Episode Budget:</span>
-                        <p>{activeShow.meta.budget}</p>
-                    </div>
-
-                    <div class="meta-item">
-                        <span class="d-label">💡 Trivia Fact:</span>
-                        <p class="fact-text">{activeShow.meta.facts}</p>
-                    </div>
-
-                    <div class="meta-grid">
-                        <div class="meta-cell">
-                            <span class="d-label">📅 Release Date</span>
-                            <p>{activeShow.meta.release}</p>
-                        </div>
-                        <div class="meta-cell">
-                            <span class="d-label">⭐ Rating</span>
-                            <p>{activeShow.meta.rating}</p>
-                        </div>
-                        <div class="meta-cell">
-                            <span class="d-label">👥 Viewers</span>
-                            <p>{activeShow.meta.viewers}</p>
-                        </div>
-                        <div class="meta-cell">
-                            <span class="d-label">⏱️ Runtime</span>
-                            <p>{activeShow.meta.runtime}</p>
-                        </div>
-                    </div>
-
-                    <div class="ratings-badge">{activeShow.meta.score}</div>
-
-                    <div class="meta-links">
-                        <a
-                            href={activeShow.meta.wiki}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            class="link-btn">Wikipedia</a
-                        >
-                        <a
-                            href={activeShow.meta.imdb}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            class="link-btn">IMDb</a
-                        >
-                        <a
-                            href={activeShow.meta.tomatoes}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            class="link-btn">Rotten Tomatoes</a
-                        >
-                    </div>
-                </div>
+          <!-- Grandpa-Friendly Control Bar -->
+          <div class="p-4 bg-gradient-to-t from-black/80 to-black/20 backdrop-blur border-t border-white/5 flex flex-col gap-3">
+            <!-- Progress bar -->
+            <div class="flex items-center justify-between text-[10px] font-mono text-white/50">
+              <span>{formatTime(currentTime)}</span>
+              <div class="flex-grow mx-3 h-1 bg-white/10 rounded-full overflow-hidden relative">
+                <div
+                  class="h-full bg-cyan-400 rounded-full"
+                  style="width: {(currentTime / (duration || 1)) * 100}%"
+                ></div>
+              </div>
+              <span>{formatTime(duration)}</span>
             </div>
+
+            <!-- Controls row -->
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <div class="flex items-center gap-2">
+                <!-- Play/Pause -->
+                <button
+                  onclick={togglePlay}
+                  class="p-2.5 bg-white text-black hover:bg-cyan-400 hover:text-black rounded-full transition focus:ring-2 focus:ring-cyan-400 focus:outline-none"
+                  aria-label={isPlaying ? "Pause" : "Play"}
+                >
+                  {#if isPlaying}
+                    <Pause class="w-4 h-4 fill-current" />
+                  {:else}
+                    <Play class="w-4 h-4 fill-current" />
+                  {/if}
+                </button>
+
+                <!-- Backward 10s -->
+                <button
+                  onclick={() => skip(-10)}
+                  class="p-2.5 bg-white/5 hover:bg-white/10 rounded-full transition focus:ring-2 focus:ring-cyan-400 focus:outline-none"
+                  aria-label="Skip back 10 seconds"
+                >
+                  <SkipBack class="w-4 h-4" />
+                </button>
+
+                <!-- Forward 10s -->
+                <button
+                  onclick={() => skip(10)}
+                  class="p-2.5 bg-white/5 hover:bg-white/10 rounded-full transition focus:ring-2 focus:ring-cyan-400 focus:outline-none"
+                  aria-label="Skip forward 10 seconds"
+                >
+                  <SkipForward class="w-4 h-4" />
+                </button>
+              </div>
+
+              <!-- Episode Display Title -->
+              {#if currentEpisode}
+                <div class="text-xs font-semibold truncate max-w-[200px] text-white/80 hidden sm:block">
+                  {currentEpisode.title}
+                </div>
+              {/if}
+
+              <!-- Volume & Fullscreen Controls -->
+              <div class="flex items-center gap-2">
+                <button
+                  onclick={toggleMute}
+                  class="p-2.5 bg-white/5 hover:bg-white/10 rounded-full transition focus:ring-2 focus:ring-cyan-400 focus:outline-none"
+                  aria-label={isMuted ? "Unmute" : "Mute"}
+                >
+                  {#if isMuted}
+                    <VolumeX class="w-4 h-4" />
+                  {:else}
+                    <Volume2 class="w-4 h-4" />
+                  {/if}
+                </button>
+
+                <button
+                  onclick={triggerFullscreen}
+                  class="p-2.5 bg-white/5 hover:bg-white/10 rounded-full transition focus:ring-2 focus:ring-cyan-400 focus:outline-none"
+                  aria-label="Enter fullscreen"
+                >
+                  <Maximize class="w-4 h-4" />
+                </button>
+
+                <!-- Sampler Open Button -->
+                <button
+                  onclick={() => (isSamplerOpen = !isSamplerOpen)}
+                  class="px-3.5 py-2.5 rounded-full text-xs font-bold transition flex items-center gap-1 focus:ring-2 focus:ring-cyan-400 focus:outline-none {isSamplerOpen
+                    ? 'bg-cyan-500 text-black font-extrabold'
+                    : 'bg-cyan-950/50 text-cyan-400 border border-cyan-800/30'}"
+                  aria-label="Toggle Sampler Panel"
+                >
+                  <span>Sampler</span>
+                  <ArrowRight class="w-3 h-3 transition-transform duration-200 {isSamplerOpen ? 'rotate-90' : ''}" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hidden Sampler Drawer -->
+        {#if isSamplerOpen}
+          <div
+            class="bg-gradient-to-br from-[#0f111a] to-[#07070a] border border-cyan-500/20 rounded-2xl p-5 flex flex-col gap-4 shadow-xl shadow-cyan-950/10"
+            transition:fade
+          >
+            <div class="flex items-center justify-between border-b border-cyan-500/10 pb-3">
+              <div>
+                <h3 class="text-sm font-bold text-cyan-400 tracking-wide uppercase">Monkey Sampler Console</h3>
+                <p class="text-[9px] text-white/30 font-semibold font-mono">Press keys 1-8 to trigger samples</p>
+              </div>
+              <button
+                onclick={addSample}
+                class="px-3.5 py-1.5 bg-cyan-500 text-black hover:bg-cyan-400 transition text-[10px] font-bold rounded-lg flex items-center gap-1 focus:ring-2 focus:ring-cyan-400 focus:outline-none"
+              >
+                <Plus class="w-3.5 h-3.5" />
+                <span>Add Time Sample</span>
+              </button>
+            </div>
+
+            <!-- Sampler Pad Grid -->
+            {#if samples.length === 0}
+              <div class="text-center py-6 text-xs text-white/30 font-semibold uppercase tracking-wider font-mono">
+                No custom samples. Click "+ Add Time Sample" above.
+              </div>
+            {:else}
+              <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {#each samples as sample, idx}
+                  <!-- svelte-ignore a11y_click_events_have_key_events -->
+                  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+                  <div
+                    role="button"
+                    tabindex="0"
+                    onclick={() => playSample(sample)}
+                    onkeydown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        playSample(sample);
+                      }
+                    }}
+                    class="calc-btn text-left p-3 rounded-xl border relative overflow-hidden transition-all duration-150 flex flex-col justify-between h-20 group focus:ring-2 focus:ring-cyan-400 focus:outline-none cursor-pointer {selectedShowKey === sample.showKey && selectedEpisodeIndex === sample.episodeIndex
+                      ? 'bg-cyan-950/30 border-cyan-500/40 text-cyan-300'
+                      : 'bg-white/5 border-white/5 text-white/70 hover:bg-white/10 hover:border-white/10'}"
+                  >
+                    <!-- Trigger Key Badge -->
+                    <span class="absolute top-2 right-2 text-[8px] font-mono bg-cyan-500/20 text-cyan-400 border border-cyan-400/20 px-1 rounded">
+                      Pad {idx + 1}
+                    </span>
+
+                    <span class="text-[10px] font-bold truncate pr-6 text-white group-hover:text-cyan-300 transition-colors">
+                      {sample.name}
+                    </span>
+
+                    <div class="flex items-center justify-between w-full mt-2">
+                      <span class="text-[9px] text-white/40 font-mono tracking-tighter">
+                        {sample.showKey.split(" ")[0]}
+                      </span>
+                      <button
+                        onclick={(e) => deleteSample(sample.id, e)}
+                        class="p-1 rounded text-white/30 hover:text-red-400 hover:bg-red-950/20 transition focus:ring-1 focus:ring-red-400 focus:outline-none"
+                        title="Delete sample"
+                      >
+                        <Trash2 class="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                {/each}
+              </div>
+            {/if}
+          </div>
         {/if}
 
-        <!-- Sidebar Checkpoints -->
-        {#if isCheckpointsOpen}
-            <div class="meta-drawer checkpoints-drawer">
-                <div class="drawer-header">
-                    <h2>Episode Checkpoints</h2>
-                    <button
-                        onclick={() => (isCheckpointsOpen = false)}
-                        class="close-drawer">✕</button
-                    >
-                </div>
-                <div class="drawer-body">
-                    <button class="add-mark-btn" onclick={addCheckpoint}>
-                        <Bookmark size={14} /> Add Current Playhead
-                    </button>
-
-                    <div class="marks-list">
-                        {#if checkpoints.length === 0}
-                            <p class="empty-marks">
-                                No checkpoints saved. Click button above to
-                                bookmark custom frames.
-                            </p>
-                        {:else}
-                            {#each checkpoints as mark}
-                                <div class="mark-row">
-                                    <!-- svelte-ignore a11y_click_events_have_key_events -->
-                                    <!-- svelte-ignore a11y_no_static_element_interactions -->
-                                    <div
-                                        class="mark-info"
-                                        onclick={() =>
-                                            loadCheckpointTime(mark.time)}
-                                    >
-                                        <span class="mark-name"
-                                            >{mark.name}</span
-                                        >
-                                        <span class="mark-time"
-                                            >{formatTime(mark.time)}</span
-                                        >
-                                    </div>
-                                    <button
-                                        class="delete-mark"
-                                        onclick={() =>
-                                            removeCheckpoint(mark.id)}
-                                    >
-                                        <Trash2 size={12} />
-                                    </button>
-                                </div>
-                            {/each}
-                        {/if}
-                    </div>
-                </div>
+        <!-- Show Meta Info -->
+        {#if showData?.meta}
+          <div class="bg-white/5 border border-white/5 rounded-2xl p-5 flex flex-col gap-4">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-white/50">Show Details</h3>
+            <div class="grid grid-cols-2 gap-4 text-xs sm:grid-cols-4">
+              <div>
+                <span class="text-white/40 font-mono block uppercase text-[9px]">Release</span>
+                <span class="font-bold text-white/80">{showData.meta.release || "N/A"}</span>
+              </div>
+              <div>
+                <span class="text-white/40 font-mono block uppercase text-[9px]">Rating</span>
+                <span class="font-bold text-white/80">{showData.meta.rating || "N/A"}</span>
+              </div>
+              <div>
+                <span class="text-white/40 font-mono block uppercase text-[9px]">Runtime</span>
+                <span class="font-bold text-white/80">{showData.meta.runtime || "N/A"}</span>
+              </div>
+              <div>
+                <span class="text-white/40 font-mono block uppercase text-[9px]">Score</span>
+                <span class="font-bold text-cyan-400">{showData.meta.score || "N/A"}</span>
+              </div>
             </div>
-        {/if}
 
-        <!-- Keybind Remapper Drawer -->
-        <GoProRemapper
-            bind:isOpen={isRemapperOpen}
-            showKey={activeShowKey}
-            episodeTitle={currentEpisode.title}
-            {duration}
-        />
-    {/if}
-</div>
+            {#if showData.meta.actors}
+              <div>
+                <span class="text-white/40 font-mono block uppercase text-[9px] mb-1">Starring</span>
+                <div class="flex flex-wrap gap-1.5">
+                  {#each showData.meta.actors as actor}
+                    <span class="px-2 py-0.5 bg-white/5 border border-white/5 rounded text-[10px] text-white/70">
+                      {actor}
+                    </span>
+                  {/each}
+                </div>
+              </div>
+            {/if}
+
+            {#if showData.meta.facts}
+              <div class="text-xs border-t border-white/5 pt-3">
+                <span class="text-white/40 font-mono block uppercase text-[9px] mb-1">Trivia / Fact</span>
+                <p class="text-white/60 leading-relaxed text-[11px]">{showData.meta.facts}</p>
+              </div>
+            {/if}
+          </div>
+        {/if}
+      </section>
+    </main>
+
+    <!-- TV Footer Watermark -->
+    <div class="flex items-center justify-end gap-1 opacity-20 text-[9px] uppercase tracking-widest pointer-events-none mt-auto">
+      <span>dogs</span>
+      <DogsLogo size="panel" class="w-3.5 h-3.5" />
+    </div>
+  </div>
+{/if}
+
+<style lang="scss">
+  .gopro-app-layout {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+    }
+  }
+
+  .calc-btn {
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    &:active {
+      transform: scale(0.97);
+    }
+  }
+</style>

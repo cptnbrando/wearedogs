@@ -36,6 +36,8 @@
     blogPostSlug = $bindable(null),
     depth = $bindable(0),
     deepLinkArcadeGame = null,
+    goProShow = null,
+    goProEpisode = null,
   } = $props();
 
   const TITLE_DEFAULT = "Toolbox";
@@ -542,6 +544,8 @@
             />
           {:else if activeApp === "windshieldwiper"}
             <App onClose={() => (activeApp = null)} />
+          {:else if activeApp === "gopro"}
+            <App goProShow={goProShow} goProEpisode={goProEpisode} />
           {:else}
             <App />
           {/if}
