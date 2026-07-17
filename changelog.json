@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1784247393,
+    "firstCommitTimestamp": 1784249514,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 144905
+    "averageLinesAltered": 144930
   },
   "entries": [
     {
       "version": "1.0.2",
       "name": "Master",
       "date": "2026-07-17",
-      "timestamp": 1784247325,
+      "timestamp": 1784249545,
       "commits": [
         {
-          "hash": "5399178",
-          "message": "Rusty + refactoring",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/53991781d5f1e113cc5e6de3cef96b68760a3532",
-          "timestamp": 1784247393,
-          "linesChanged": 144905
+          "hash": "089b727",
+          "message": "Merge pull request #23 from cptnbrando/agy-2607-w3/hide-urls",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/089b72799baa0c1ba4508ad5e3e3558ecaa54421",
+          "timestamp": 1784249514,
+          "linesChanged": 144930
         }
       ]
     },
