@@ -918,8 +918,29 @@
                 </div>
               {/if}
             </div>
-          </div>
         </div>
+
+        <!-- Episode Details Pane -->
+        {#if currentEpisode}
+          <div class="bg-white/5 border border-white/5 rounded-2xl p-4 flex flex-col gap-1.5 flex-shrink-0">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-bold text-cyan-400 uppercase tracking-wider font-mono">
+                {playingShowKey} • Episode {currentEpisode.id}
+              </span>
+              <span class="text-[9px] font-mono text-white/30 px-1.5 py-0.5 bg-white/5 rounded uppercase">
+                {currentEpisode.file.split('.').pop()}
+              </span>
+            </div>
+            <h3 class="text-xs sm:text-sm font-extrabold text-white tracking-tight">
+              {currentEpisode.title}
+            </h3>
+            {#if currentEpisode.description}
+              <p class="text-[11px] text-white/60 leading-relaxed">
+                {currentEpisode.description}
+              </p>
+            {/if}
+          </div>
+        {/if}
 
         <!-- Scrollable Details & Sampler Pane -->
         <div class="flex-grow overflow-y-auto flex flex-col gap-3 sm:gap-4 scrollbar-thin pr-1 pb-4">
