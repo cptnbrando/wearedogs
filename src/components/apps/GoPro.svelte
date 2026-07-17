@@ -670,7 +670,7 @@
         >
           <!-- Responsive aspect-video container -->
           <div
-            class="w-full aspect-video bg-black relative flex items-center justify-center"
+            class="w-full aspect-video max-h-[52dvh] bg-black relative flex items-center justify-center"
           >
             {#if isVideoLoading}
               <div
@@ -688,14 +688,14 @@
             {/if}
 
             <!-- Skip Intro Overlay -->
-            {#if showData && showData.introEnd > showData.introStart && currentTime >= showData.introStart && currentTime <= showData.introEnd}
+            {#if showControls && showData && showData.introEnd > showData.introStart && currentTime >= showData.introStart && currentTime <= showData.introEnd}
               <button
                 onclick={() => {
                   if (videoElement) {
                     videoElement.currentTime = showData.introEnd;
                   }
                 }}
-                class="absolute bottom-20 right-4 px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-black font-bold font-mono text-[10px] rounded-lg shadow-lg border border-cyan-300/30 z-30 transition-all duration-150 uppercase tracking-wider cursor-pointer"
+                class="absolute bottom-28 right-4 px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-black font-bold font-mono text-[10px] rounded-lg shadow-lg border border-cyan-300/30 z-30 transition-all duration-150 uppercase tracking-wider cursor-pointer"
                 transition:fade
               >
                 Skip Intro
@@ -703,10 +703,10 @@
             {/if}
 
             <!-- Skip Outro Overlay -->
-            {#if duration > 90 && currentTime >= duration - 90}
+            {#if showControls && duration > 90 && currentTime >= duration - 90}
               <button
                 onclick={handleVideoEnded}
-                class="absolute bottom-20 right-4 px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-black font-bold font-mono text-[10px] rounded-lg shadow-lg border border-cyan-300/30 z-30 transition-all duration-150 uppercase tracking-wider cursor-pointer"
+                class="absolute bottom-28 right-4 px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-black font-bold font-mono text-[10px] rounded-lg shadow-lg border border-cyan-300/30 z-30 transition-all duration-150 uppercase tracking-wider cursor-pointer"
                 transition:fade
               >
                 Skip Outro / Next
