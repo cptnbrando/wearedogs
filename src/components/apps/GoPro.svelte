@@ -504,7 +504,7 @@
   >
     <!-- TV Header -->
     <header
-      class="flex-shrink-0 flex items-center justify-between border-b border-white/5 pb-2"
+      class="flex-shrink-0 flex items-center justify-center border-b border-white/5 pb-2 relative"
     >
       <div class="flex items-center gap-2 sm:gap-3">
         <div
@@ -521,7 +521,7 @@
         </div>
       </div>
       <div
-        class="text-[9px] sm:text-[11px] font-mono text-cyan-400 font-semibold bg-cyan-950/30 border border-cyan-800/30 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full uppercase tracking-wide"
+        class="text-[9px] sm:text-[11px] font-mono text-cyan-400 font-semibold bg-cyan-950/30 border border-cyan-800/30 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full uppercase tracking-wide absolute right-0"
       >
         Verified
       </div>
