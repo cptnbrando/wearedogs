@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1784249514,
+    "firstCommitTimestamp": 1784251350,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 144930
+    "averageLinesAltered": 143106
   },
   "entries": [
     {
       "version": "1.0.2",
       "name": "Master",
       "date": "2026-07-17",
-      "timestamp": 1784249545,
+      "timestamp": 1784251282,
       "commits": [
         {
-          "hash": "089b727",
-          "message": "Merge pull request #23 from cptnbrando/agy-2607-w3/hide-urls",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/089b72799baa0c1ba4508ad5e3e3558ecaa54421",
-          "timestamp": 1784249514,
-          "linesChanged": 144930
+          "hash": "c165f36",
+          "message": "goprooooo",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/c165f3616bf7dfcd25d0dc363a492c8474895f4e",
+          "timestamp": 1784251350,
+          "linesChanged": 143106
         }
       ]
     },
