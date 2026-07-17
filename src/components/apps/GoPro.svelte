@@ -28,7 +28,8 @@
   // State management
   let isUnlocked = $state(false);
   let selectedShowKey = $state("Batman Beyond");
-  let selectedEpisodeIndex = $state(0);
+  let playingShowKey = $state("Batman Beyond");
+  let playingEpisodeIndex = $state(0);
   let isPlaying = $state(false);
   let isMuted = $state(false);
   let currentTime = $state(0);
@@ -50,10 +51,11 @@
 
   // Derived states
   const showData = $derived(catalog[selectedShowKey]);
-  const currentEpisode = $derived(showData?.episodes[selectedEpisodeIndex]);
+  const playingShowData = $derived(catalog[playingShowKey]);
+  const currentEpisode = $derived(playingShowData?.episodes[playingEpisodeIndex]);
   const videoUrl = $derived(
-    showData && currentEpisode
-      ? `${showData.baseUrl.replace("https://data.wearedogs.net", "")}${currentEpisode.file}`
+    playingShowData && currentEpisode
+      ? `${playingShowData.baseUrl.replace("https://data.wearedogs.net", "")}${currentEpisode.file}`
       : "",
   );
 
@@ -175,62 +177,73 @@
   }
 
   /**
-   * Select a show and reset the current episode index.
+   * Select a show for browsing, without affecting current ongoing playback.
    * @param {string} showKey
    */
   function selectShow(showKey) {
     selectedShowKey = showKey;
-    selectedEpisodeIndex = 0;
-    isPlaying = false;
-    if (videoElement) {
-      videoElement.currentTime = 0;
-    }
   }
 
   /**
-   * Load and play a specific episode.
+   * Load and play a specific episode from the browsed show.
    * @param {number} index
    */
-  function playEpisode(index) {
-    if (!showData || index < 0 || index >= showData.episodes.length) return;
-    activeMobileView = "player";
-    if (selectedEpisodeIndex === index) {
+  /**
+   * Core function to load and play an episode.
+   * @param {string} showKey
+   * @param {number} index
+   */
+  function loadAndPlayEpisode(showKey, index) {
+    const targetShow = catalog[showKey];
+    if (!targetShow || index < 0 || index >= targetShow.episodes.length) return;
+
+    if (playingShowKey === showKey && playingEpisodeIndex === index) {
       if (videoElement) {
         videoElement.currentTime = 0;
         videoElement.play().catch((err) => console.warn(err));
       }
     } else {
-      selectedEpisodeIndex = index;
+      playingShowKey = showKey;
+      playingEpisodeIndex = index;
       isPlaying = true;
     }
+  }
+
+  /**
+   * Load and play a specific episode from the browsed show.
+   * @param {number} index
+   */
+  function playEpisode(index) {
+    activeMobileView = "player";
+    loadAndPlayEpisode(selectedShowKey, index);
   }
 
   /**
    * Play the next episode in the current show, respecting shuffle and loop settings.
    */
   function playNextEpisode() {
-    if (!showData || showData.episodes.length === 0) return;
+    if (!playingShowData || playingShowData.episodes.length === 0) return;
 
     if (isShuffle) {
-      if (showData.episodes.length > 1) {
-        let nextIdx = selectedEpisodeIndex;
-        while (nextIdx === selectedEpisodeIndex) {
-          nextIdx = Math.floor(Math.random() * showData.episodes.length);
+      if (playingShowData.episodes.length > 1) {
+        let nextIdx = playingEpisodeIndex;
+        while (nextIdx === playingEpisodeIndex) {
+          nextIdx = Math.floor(Math.random() * playingShowData.episodes.length);
         }
-        playEpisode(nextIdx);
+        loadAndPlayEpisode(playingShowKey, nextIdx);
       } else {
-        playEpisode(0);
+        loadAndPlayEpisode(playingShowKey, 0);
       }
     } else {
-      let nextIdx = selectedEpisodeIndex + 1;
-      if (nextIdx >= showData.episodes.length) {
+      let nextIdx = playingEpisodeIndex + 1;
+      if (nextIdx >= playingShowData.episodes.length) {
         if (loopMode === "all") {
-          playEpisode(0);
+          loadAndPlayEpisode(playingShowKey, 0);
         } else {
           isPlaying = false;
         }
       } else {
-        playEpisode(nextIdx);
+        loadAndPlayEpisode(playingShowKey, nextIdx);
       }
     }
   }
@@ -239,30 +252,30 @@
    * Play the previous episode in the current show, respecting shuffle and loop settings.
    */
   function playPrevEpisode() {
-    if (!showData || showData.episodes.length === 0) return;
+    if (!playingShowData || playingShowData.episodes.length === 0) return;
 
     if (isShuffle) {
-      if (showData.episodes.length > 1) {
-        let prevIdx = selectedEpisodeIndex;
-        while (prevIdx === selectedEpisodeIndex) {
-          prevIdx = Math.floor(Math.random() * showData.episodes.length);
+      if (playingShowData.episodes.length > 1) {
+        let prevIdx = playingEpisodeIndex;
+        while (prevIdx === playingEpisodeIndex) {
+          prevIdx = Math.floor(Math.random() * playingShowData.episodes.length);
         }
-        playEpisode(prevIdx);
+        loadAndPlayEpisode(playingShowKey, prevIdx);
       } else {
-        playEpisode(0);
+        loadAndPlayEpisode(playingShowKey, 0);
       }
     } else {
-      let prevIdx = selectedEpisodeIndex - 1;
+      let prevIdx = playingEpisodeIndex - 1;
       if (prevIdx < 0) {
         if (loopMode === "all") {
-          playEpisode(showData.episodes.length - 1);
+          loadAndPlayEpisode(playingShowKey, playingShowData.episodes.length - 1);
         } else {
           if (videoElement) {
             videoElement.currentTime = 0;
           }
         }
       } else {
-        playEpisode(prevIdx);
+        loadAndPlayEpisode(playingShowKey, prevIdx);
       }
     }
   }
@@ -311,17 +324,14 @@
    * @param {Object} sample
    */
   function playSample(sample) {
-    const isShowChange = selectedShowKey !== sample.showKey;
-    const isEpChange = selectedEpisodeIndex !== sample.episodeIndex;
+    const isShowChange = playingShowKey !== sample.showKey;
+    const isEpChange = playingEpisodeIndex !== sample.episodeIndex;
 
     activeMobileView = "player";
 
-    if (isShowChange) {
-      selectedShowKey = sample.showKey;
-    }
-
     if (isEpChange || isShowChange) {
-      selectedEpisodeIndex = sample.episodeIndex;
+      playingShowKey = sample.showKey;
+      playingEpisodeIndex = sample.episodeIndex;
       pendingSeekTime = sample.time;
       isPlaying = true;
     } else {
@@ -342,8 +352,8 @@
     const newSample = {
       id: Date.now(),
       name: `Smp ${samples.length + 1} (${formatTime(time)})`,
-      showKey: selectedShowKey,
-      episodeIndex: selectedEpisodeIndex,
+      showKey: playingShowKey,
+      episodeIndex: playingEpisodeIndex,
       time: time,
     };
     samples = [...samples, newSample];
@@ -513,7 +523,8 @@
             ep.file.toLowerCase().includes(goProEpisode.toLowerCase()),
           );
           if (matchIdx !== -1) {
-            selectedEpisodeIndex = matchIdx;
+            playingShowKey = resolvedShow;
+            playingEpisodeIndex = matchIdx;
             isPlaying = true;
             activeMobileView = "player";
           }
@@ -545,13 +556,13 @@
     >
       <div class="flex items-center gap-2 sm:gap-3">
         <div
-          class="p-1.5 sm:p-2 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg sm:rounded-xl shadow-lg shadow-cyan-500/10"
+          class="p-1.5 sm:p-2 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg sm:rounded-xl shadow-lg shadow-cyan-500/10 flex items-center justify-center"
         >
           <Tv class="w-4 h-4 sm:w-6 sm:h-6 text-white" />
         </div>
-        <div>
+        <div class="flex items-center">
           <h1
-            class="text-sm sm:text-xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-white to-cyan-400 2xl:text-3xl animate-pulse"
+            class="text-sm sm:text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-white to-cyan-400 2xl:text-3xl leading-none"
           >
             DOGS TV
           </h1>
@@ -588,7 +599,7 @@
               {@const show = catalog[showKey]}
               <button
                 onclick={() => selectShow(showKey)}
-                class="w-full text-left p-2.5 sm:p-3.5 rounded-xl flex items-center justify-between transition-all duration-200 border group focus:ring-2 focus:ring-cyan-400 focus:outline-none {selectedShowKey ===
+                class="w-full text-left p-2.5 sm:p-3.5 rounded-xl flex items-center justify-between transition-all duration-200 border group focus:ring-2 focus:ring-cyan-400 focus:outline-none cursor-pointer {selectedShowKey ===
                 showKey
                   ? 'bg-gradient-to-r from-cyan-950/40 to-blue-950/40 border-cyan-500/50 shadow-md shadow-cyan-950/40'
                   : 'bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/10'}"
@@ -634,8 +645,7 @@
               {#each showData.episodes as ep, i}
                 <button
                   onclick={() => playEpisode(i)}
-                  class="w-full text-left p-2.5 sm:p-3 rounded-lg flex items-center justify-between text-[11px] sm:text-xs transition-all duration-150 border focus:ring-2 focus:ring-cyan-400 focus:outline-none {selectedEpisodeIndex ===
-                  i
+                  class="w-full text-left p-2.5 sm:p-3 rounded-lg flex items-center justify-between text-[11px] sm:text-xs transition-all duration-150 border focus:ring-2 focus:ring-cyan-400 focus:outline-none cursor-pointer {playingShowKey === selectedShowKey && playingEpisodeIndex === i
                     ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400 font-semibold'
                     : 'bg-black/20 border-white/5 text-white/80 hover:bg-white/5 hover:text-white'}"
                 >
@@ -664,7 +674,7 @@
 
       <!-- RIGHT SECTION: Player & Sampler (col-span-2) -->
       <section
-        class="flex flex-col gap-3 sm:gap-4 overflow-y-auto order-1 xl:order-2 xl:col-span-2 scrollbar-thin {activeMobileView ===
+        class="flex flex-col gap-3 sm:gap-4 overflow-hidden order-1 xl:order-2 xl:col-span-2 {activeMobileView ===
         'player'
           ? 'flex'
           : 'hidden xl:flex'}"
@@ -697,14 +707,13 @@
 
         <!-- Video Player Wrapper -->
         <div
-          bind:this={playerWrapperElement}
           class="relative bg-black rounded-2xl overflow-hidden border border-white/10 shadow-2xl flex flex-col transition-all duration-300 {isMoreControlsOpen
             ? '-translate-y-4 sm:-translate-y-8 xl:-translate-y-16'
             : ''}"
         >
           <!-- Responsive aspect-video container -->
           <div
-            class="w-full aspect-video bg-black relative flex items-center justify-center flex-grow"
+            class="w-full aspect-video bg-black relative flex items-center justify-center"
           >
             {#if isVideoLoading}
               <div
@@ -756,7 +765,6 @@
               class="w-full h-full object-contain cursor-pointer"
               playsinline
               onclick={togglePlay}
-              ondblclick={triggerFullscreen}
               onplay={() => (isPlaying = true)}
               onpause={() => (isPlaying = false)}
               onended={handleVideoEnded}
@@ -800,7 +808,7 @@
                 <!-- Previous Episode -->
                 <button
                   onclick={playPrevEpisode}
-                  class="p-2.5 bg-white/5 hover:bg-white/10 rounded-full transition focus:ring-2 focus:ring-cyan-400 focus:outline-none"
+                  class="p-2.5 bg-white/5 hover:bg-white/10 rounded-full transition focus:ring-2 focus:ring-cyan-400 focus:outline-none cursor-pointer"
                   aria-label="Previous Episode"
                 >
                   <SkipBack class="w-4 h-4 fill-current" />
@@ -809,7 +817,7 @@
                 <!-- Play/Pause -->
                 <button
                   onclick={togglePlay}
-                  class="p-2.5 bg-white text-black hover:bg-cyan-400 hover:text-black rounded-full transition focus:ring-2 focus:ring-cyan-400 focus:outline-none"
+                  class="p-2.5 bg-white text-black hover:bg-cyan-400 hover:text-black rounded-full transition focus:ring-2 focus:ring-cyan-400 focus:outline-none cursor-pointer"
                   aria-label={isPlaying ? "Pause" : "Play"}
                 >
                   {#if isPlaying}
@@ -822,7 +830,7 @@
                 <!-- Next Episode -->
                 <button
                   onclick={playNextEpisode}
-                  class="p-2.5 bg-white/5 hover:bg-white/10 rounded-full transition focus:ring-2 focus:ring-cyan-400 focus:outline-none"
+                  class="p-2.5 bg-white/5 hover:bg-white/10 rounded-full transition focus:ring-2 focus:ring-cyan-400 focus:outline-none cursor-pointer"
                   aria-label="Next Episode"
                 >
                   <SkipForward class="w-4 h-4 fill-current" />
@@ -842,7 +850,7 @@
               <div class="flex items-center gap-2">
                 <button
                   onclick={triggerFullscreen}
-                  class="p-2.5 bg-white/5 hover:bg-white/10 rounded-full transition focus:ring-2 focus:ring-cyan-400 focus:outline-none"
+                  class="p-2.5 bg-white/5 hover:bg-white/10 rounded-full transition focus:ring-2 focus:ring-cyan-400 focus:outline-none cursor-pointer"
                   aria-label="Enter fullscreen"
                 >
                   <Maximize class="w-4 h-4" />
@@ -851,7 +859,7 @@
                 <!-- Expand/Collapse More Controls -->
                 <button
                   onclick={() => (isMoreControlsOpen = !isMoreControlsOpen)}
-                  class="p-2.5 bg-white/5 hover:bg-white/10 rounded-full transition focus:ring-2 focus:ring-cyan-400 focus:outline-none"
+                  class="p-2.5 bg-white/5 hover:bg-white/10 rounded-full transition focus:ring-2 focus:ring-cyan-400 focus:outline-none cursor-pointer"
                   aria-label="Toggle extra controls"
                 >
                   <svg
@@ -883,14 +891,14 @@
                 <div class="flex items-center gap-2">
                   <button
                     onclick={() => skip(-10)}
-                    class="px-2.5 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-[10px] font-mono transition"
+                    class="px-2.5 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-[10px] font-mono transition cursor-pointer"
                     title="Rewind 10s"
                   >
                     -10s
                   </button>
                   <button
                     onclick={() => skip(10)}
-                    class="px-2.5 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-[10px] font-mono transition"
+                    class="px-2.5 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-[10px] font-mono transition cursor-pointer"
                     title="Forward 10s"
                   >
                     +10s
@@ -900,7 +908,7 @@
 
                   <button
                     onclick={toggleMute}
-                    class="p-1.5 bg-white/5 hover:bg-white/10 rounded-lg transition"
+                    class="p-1.5 bg-white/5 hover:bg-white/10 rounded-lg transition cursor-pointer"
                     aria-label={isMuted ? "Unmute" : "Mute"}
                   >
                     {#if isMuted}
@@ -916,7 +924,7 @@
                   <!-- Shuffle button -->
                   <button
                     onclick={() => (isShuffle = !isShuffle)}
-                    class="px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition flex items-center gap-1 {isShuffle
+                    class="px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition flex items-center gap-1 cursor-pointer {isShuffle
                       ? 'bg-cyan-500 text-black shadow-md shadow-cyan-500/20'
                       : 'bg-white/5 text-white/70 border border-white/5 hover:bg-white/10'}"
                   >
@@ -926,7 +934,7 @@
                   <!-- Loop Mode button -->
                   <button
                     onclick={cycleLoopMode}
-                    class="px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition flex items-center gap-1 {loopMode !==
+                    class="px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition flex items-center gap-1 cursor-pointer {loopMode !==
                     'off'
                       ? 'bg-cyan-500 text-black shadow-md shadow-cyan-500/20'
                       : 'bg-white/5 text-white/70 border border-white/5 hover:bg-white/10'}"
@@ -939,7 +947,7 @@
                   <!-- Sampler Open Button -->
                   <button
                     onclick={() => (isSamplerOpen = !isSamplerOpen)}
-                    class="px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition flex items-center gap-1 {isSamplerOpen
+                    class="px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition flex items-center gap-1 cursor-pointer {isSamplerOpen
                       ? 'bg-cyan-500 text-black font-extrabold shadow-md shadow-cyan-500/20'
                       : 'bg-cyan-950/50 text-cyan-400 border border-cyan-800/30 hover:bg-cyan-900/30'}"
                   >
@@ -951,8 +959,10 @@
           </div>
         </div>
 
-        <!-- Hidden Sampler Drawer -->
-        {#if isSamplerOpen}
+        <!-- Scrollable Details & Sampler Pane -->
+        <div class="flex-grow overflow-y-auto flex flex-col gap-3 sm:gap-4 scrollbar-thin pr-1 pb-4">
+          <!-- Hidden Sampler Drawer -->
+          {#if isSamplerOpen}
           <div
             class="bg-gradient-to-br from-[#0f111a] to-[#07070a] border border-cyan-500/20 rounded-2xl p-5 flex flex-col gap-4 shadow-xl shadow-cyan-950/10"
             transition:fade
@@ -972,7 +982,7 @@
               </div>
               <button
                 onclick={addSample}
-                class="px-3.5 py-1.5 bg-cyan-500 text-black hover:bg-cyan-400 transition text-[10px] font-bold rounded-lg flex items-center gap-1 focus:ring-2 focus:ring-cyan-400 focus:outline-none"
+                class="px-3.5 py-1.5 bg-cyan-500 text-black hover:bg-cyan-400 transition text-[10px] font-bold rounded-lg flex items-center gap-1 focus:ring-2 focus:ring-cyan-400 focus:outline-none cursor-pointer"
               >
                 <Plus class="w-3.5 h-3.5" />
                 <span>Add Time Sample</span>
@@ -1001,9 +1011,9 @@
                         playSample(sample);
                       }
                     }}
-                    class="calc-btn text-left p-3 rounded-xl border relative overflow-hidden transition-all duration-150 flex flex-col justify-between h-20 group focus:ring-2 focus:ring-cyan-400 focus:outline-none cursor-pointer {selectedShowKey ===
+                    class="calc-btn text-left p-3 rounded-xl border relative overflow-hidden transition-all duration-150 flex flex-col justify-between h-20 group focus:ring-2 focus:ring-cyan-400 focus:outline-none cursor-pointer {playingShowKey ===
                       sample.showKey &&
-                    selectedEpisodeIndex === sample.episodeIndex
+                    playingEpisodeIndex === sample.episodeIndex
                       ? 'bg-cyan-950/30 border-cyan-500/40 text-cyan-300'
                       : 'bg-white/5 border-white/5 text-white/70 hover:bg-white/10 hover:border-white/10'}"
                   >
@@ -1028,7 +1038,7 @@
                       </span>
                       <button
                         onclick={(e) => deleteSample(sample.id, e)}
-                        class="p-1 rounded text-white/30 hover:text-red-400 hover:bg-red-950/20 transition focus:ring-1 focus:ring-red-400 focus:outline-none"
+                        class="p-1 rounded text-white/30 hover:text-red-400 hover:bg-red-950/20 transition focus:ring-1 focus:ring-red-400 focus:outline-none cursor-pointer"
                         title="Delete sample"
                       >
                         <Trash2 class="w-3.5 h-3.5" />
@@ -1117,6 +1127,7 @@
             {/if}
           </div>
         {/if}
+        </div>
       </section>
     </main>
 
