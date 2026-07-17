@@ -23,6 +23,11 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path.replace(/^\/api-worldcup/, '')
+      },
+      '/vid': {
+        target: 'https://data.wearedogs.net',
+        changeOrigin: true,
+        secure: false,
       }
     }
   },

@@ -149,17 +149,11 @@
     if (keywordBuffer.length === 0) return;
     const concatenated = keywordBuffer.join("");
 
-    if (concatenated === "FoxtrotBoobsLaserPlayStationPizza") {
-      localStorage.setItem("gopro_password", concatenated);
-      onUnlock(concatenated);
-      return;
-    }
-
     isChecking = true;
 
     try {
       const response = await fetch(
-        `https://data.wearedogs.net/vid/popcorn/check.txt`,
+        `/vid/popcorn/check.txt`,
         {
           method: "GET",
           headers: {
@@ -171,9 +165,14 @@
       if (response.ok) {
         localStorage.setItem("gopro_password", concatenated);
         onUnlock(concatenated);
+      } else {
+        errorFlash = true;
+        displayValue = "Error";
       }
     } catch (e) {
       console.warn("Passcode verification check failed or offline:", e);
+      errorFlash = true;
+      displayValue = "Error";
     } finally {
       isChecking = false;
     }
