@@ -693,7 +693,7 @@
                     videoElement.currentTime = showData.introEnd;
                   }
                 }}
-                class="absolute bottom-28 right-4 px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-black font-bold font-mono text-[10px] rounded-lg shadow-lg border border-cyan-300/30 z-30 transition-all duration-150 uppercase tracking-wider cursor-pointer"
+                class="absolute {isMoreControlsOpen ? 'bottom-36 sm:bottom-40' : 'bottom-20 sm:bottom-24'} right-4 px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-black font-bold font-mono text-[10px] rounded-lg shadow-lg border border-cyan-300/30 z-30 transition-all duration-300 uppercase tracking-wider cursor-pointer"
                 transition:fade
               >
                 Skip Intro
@@ -704,7 +704,7 @@
             {#if showControls && duration > 90 && currentTime >= duration - 90}
               <button
                 onclick={handleVideoEnded}
-                class="absolute bottom-28 right-4 px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-black font-bold font-mono text-[10px] rounded-lg shadow-lg border border-cyan-300/30 z-30 transition-all duration-150 uppercase tracking-wider cursor-pointer"
+                class="absolute {isMoreControlsOpen ? 'bottom-36 sm:bottom-40' : 'bottom-20 sm:bottom-24'} right-4 px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-black font-bold font-mono text-[10px] rounded-lg shadow-lg border border-cyan-300/30 z-30 transition-all duration-300 uppercase tracking-wider cursor-pointer"
                 transition:fade
               >
                 Skip Outro / Next
