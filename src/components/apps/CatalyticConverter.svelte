@@ -31,12 +31,13 @@
   let file = $state(null);
   let fileType = $state(""); // 'image' | 'audio' | 'unsupported'
   let inputFormat = $state(""); // e.g. 'jpg', 'png', 'webp', 'mp3', 'wav', 'm4a'
-  let outputFormat = $state(""); // selected output format
+  let selectedFormats = $state([]); // selected output formats
+  let selectionAnchor = $state(""); // anchor for range selection
   let conversionStatus = $state("idle"); // 'idle' | 'converting' | 'done' | 'error'
   let progress = $state(0);
   let previewUrl = $state("");
-  let convertedBlob = $state(null);
-  let convertedFileName = $state("");
+  let convertedFiles = $state([]); // array of { blob, name }
+  let zipDownloads = $state(false);
   let errorMessage = $state("");
   let currentNotice = $state("Refining Format Molecules");
 
@@ -117,6 +118,13 @@
           : [],
   );
 
+  const hasQualitySupport = $derived(
+    selectedFormats.some((f) => f === "jpg" || f === "webp"),
+  );
+  const hasCompressionSupport = $derived(
+    selectedFormats.some((f) => f === "png" || f === "webp"),
+  );
+
   const notices = [
     "Refining Format Molecules",
     "Microwaving the Pizza",
@@ -168,6 +176,71 @@
     `Doing git revert --no-commit "HEAD~$c..HEAD"-Ups`,
   ];
 
+  // Selection Anchor and Format Handler
+  function handleFormatSelection(format, event) {
+    if (conversionStatus !== "idle" || !file) return;
+
+    const isCtrl = event.ctrlKey || event.metaKey;
+    const isShift = event.shiftKey;
+
+    if (isCtrl || isShift) {
+      // Toggle/Add selection (both Ctrl and Shift click/enter do this, no range selection)
+      if (selectedFormats.includes(format)) {
+        selectedFormats = selectedFormats.filter((f) => f !== format);
+      } else {
+        selectedFormats = [...selectedFormats, format];
+      }
+      selectionAnchor = format;
+    } else {
+      // Single select
+      selectedFormats = [format];
+      selectionAnchor = format;
+    }
+  }
+
+  // Keyboard focus navigation for formats grid
+  function moveFocus(key) {
+    const buttons = Array.from(document.querySelectorAll(".format-opt-btn"));
+    if (buttons.length === 0) return;
+
+    const active = document.activeElement;
+    if (!buttons.includes(active)) {
+      buttons[0].focus();
+      return;
+    }
+
+    const index = buttons.indexOf(active);
+    let nextIndex = index;
+
+    // Calculate columns in the grid by comparing top offsets
+    let cols = 0;
+    if (buttons.length > 1) {
+      const firstTop = buttons[0].getBoundingClientRect().top;
+      for (const btn of buttons) {
+        if (Math.abs(btn.getBoundingClientRect().top - firstTop) < 5) {
+          cols++;
+        } else {
+          break;
+        }
+      }
+    }
+    if (cols === 0) cols = 2; // fallback
+
+    if (key === "ArrowLeft") {
+      nextIndex = index - 1;
+    } else if (key === "ArrowRight") {
+      nextIndex = index + 1;
+    } else if (key === "ArrowUp") {
+      nextIndex = index - cols;
+    } else if (key === "ArrowDown") {
+      nextIndex = index + cols;
+    }
+
+    if (nextIndex >= 0 && nextIndex < buttons.length) {
+      buttons[nextIndex].focus();
+    }
+  }
+
   // Keyboard shortcut listener
   function handleKeydown(e) {
     if (conversionStatus !== "idle" || !file) return;
@@ -175,9 +248,22 @@
     // Numbers 1-9 to select formats
     const num = parseInt(e.key);
     if (!isNaN(num) && num >= 1 && num <= 9 && availableFormats[num - 1]) {
-      outputFormat = availableFormats[num - 1];
-    } else if (e.key === "Enter" && outputFormat) {
-      startConversion();
+      selectedFormats = [availableFormats[num - 1]];
+      selectionAnchor = availableFormats[num - 1];
+    } else if (e.key === "Enter" && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
+      const active = document.activeElement;
+      if (active && active.classList.contains("format-opt-btn")) {
+        // Let standard browser click handle it
+        return;
+      }
+      if (selectedFormats.length > 0) {
+        startConversion();
+      }
+    } else if (
+      ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key)
+    ) {
+      e.preventDefault();
+      moveFocus(e.key);
     }
   }
 
@@ -252,7 +338,8 @@
       inputFormat = ext === "jpeg" ? "jpg" : ext;
       previewUrl = URL.createObjectURL(file);
       // Auto-select a default different format
-      outputFormat = inputFormat === "png" ? "jpg" : "png";
+      selectedFormats = [inputFormat === "png" ? "jpg" : "png"];
+      selectionAnchor = selectedFormats[0];
 
       // Read dimensions
       const img = new Image();
@@ -270,7 +357,8 @@
       fileType = "audio";
       inputFormat = ext;
       previewUrl = URL.createObjectURL(file);
-      outputFormat = inputFormat === "mp3" ? "wav" : "mp3";
+      selectedFormats = [inputFormat === "mp3" ? "wav" : "mp3"];
+      selectionAnchor = selectedFormats[0];
 
       // Load audio data in background for actual WAV encoding if needed
       try {
@@ -287,7 +375,8 @@
       fileType = "video";
       inputFormat = ext;
       previewUrl = URL.createObjectURL(file);
-      outputFormat = inputFormat === "mp4" ? "mov" : "mp4";
+      selectedFormats = [inputFormat === "mp4" ? "mov" : "mp4"];
+      selectionAnchor = selectedFormats[0];
 
       // Decode audio track from video in background if present
       try {
@@ -361,12 +450,13 @@
     file = null;
     fileType = "";
     inputFormat = "";
-    outputFormat = "";
+    selectedFormats = [];
+    selectionAnchor = "";
     conversionStatus = "idle";
     progress = 0;
     previewUrl = "";
-    convertedBlob = null;
-    convertedFileName = "";
+    convertedFiles = [];
+    zipDownloads = false;
     errorMessage = "";
     audioBuffer = null;
     originalWidth = 0;
@@ -391,69 +481,52 @@
 
   // Run Conversion
   async function startConversion() {
-    if (!file || !outputFormat) return;
+    if (!file || selectedFormats.length === 0) return;
     conversionStatus = "converting";
     progress = 0;
+    convertedFiles = [];
     currentNotice = notices[Math.floor(Math.random() * notices.length)];
 
-    const interval = setInterval(() => {
-      progress += 10;
-      if (progress >= 90) clearInterval(interval);
-    }, 150);
-
     try {
-      if (fileType === "image") {
-        convertedBlob = await convertImage(
-          previewUrl,
-          outputFormat,
-          targetWidth,
-          targetHeight,
-          quality,
+      for (let i = 0; i < selectedFormats.length; i++) {
+        const currentFormat = selectedFormats[i];
+        currentNotice = `Refining Molecule: ${currentFormat.toUpperCase()}`;
+
+        const startProgress = Math.round((i / selectedFormats.length) * 100);
+        const endProgress = Math.round(
+          ((i + 1) / selectedFormats.length) * 100,
         );
-        const originalBase = file.name.substring(0, file.name.lastIndexOf("."));
-        convertedFileName = `${originalBase}.${outputFormat}`;
-      } else if (fileType === "audio") {
-        const isTargetVideo = ["mp4", "mov", "mkv", "avi"].includes(
-          outputFormat,
-        );
-        if (!audioBuffer) {
-          try {
-            const arrayBuffer = await file.arrayBuffer();
-            audioContext = new (window.AudioContext ||
-              window.webkitAudioContext)();
-            audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-          } catch (err) {
-            console.error("Failed to decode audio data on-the-fly:", err);
-          }
-        }
-        if (isTargetVideo) {
-          clearInterval(interval);
-          if (!audioBuffer) {
-            throw new Error("Failed to decode audio data for video encoding.");
-          }
-          convertedBlob = await convertAudioToVideo(
-            audioBuffer,
-            outputFormat,
-            (pct) => {
-              progress = pct;
-            },
+        const progressSpan = endProgress - startProgress;
+
+        let currentSubProgress = 0;
+        const interval = setInterval(() => {
+          currentSubProgress += 10;
+          if (currentSubProgress >= 90) clearInterval(interval);
+          progress = Math.round(
+            startProgress + (currentSubProgress / 100) * progressSpan,
           );
-        } else {
-          convertedBlob = await convertAudio(
-            file,
-            audioBuffer,
-            outputFormat,
-            audioSampleRate,
-            compression,
+        }, 100);
+
+        let resultBlob = null;
+        let resultFileName = "";
+
+        if (fileType === "image") {
+          resultBlob = await convertImage(
+            previewUrl,
+            currentFormat,
+            targetWidth,
+            targetHeight,
+            quality,
           );
-        }
-        const originalBase = file.name.substring(0, file.name.lastIndexOf("."));
-        convertedFileName = `${originalBase}_converted.${outputFormat}`;
-      } else if (fileType === "video") {
-        const isTargetAudio = ["mp3", "wav", "m4a", "aac", "webm"].includes(
-          outputFormat,
-        );
-        if (isTargetAudio) {
+          const originalBase = file.name.substring(
+            0,
+            file.name.lastIndexOf("."),
+          );
+          resultFileName = `${originalBase}.${currentFormat}`;
+        } else if (fileType === "audio") {
+          const isTargetVideo = ["mp4", "mov", "mkv", "avi"].includes(
+            currentFormat,
+          );
           if (!audioBuffer) {
             try {
               const arrayBuffer = await file.arrayBuffer();
@@ -461,35 +534,93 @@
                 window.webkitAudioContext)();
               audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
             } catch (err) {
-              console.error(
-                "Failed to decode video audio track on-the-fly:",
-                err,
-              );
+              console.error("Failed to decode audio data on-the-fly:", err);
             }
           }
-          if (!audioBuffer) {
-            throw new Error("No audio track detected in this video file.");
+          if (isTargetVideo) {
+            clearInterval(interval);
+            if (!audioBuffer) {
+              throw new Error(
+                "Failed to decode audio data for video encoding.",
+              );
+            }
+            resultBlob = await convertAudioToVideo(
+              audioBuffer,
+              currentFormat,
+              (pct) => {
+                progress = Math.round(
+                  startProgress + (pct / 100) * progressSpan,
+                );
+              },
+            );
+          } else {
+            resultBlob = await convertAudio(
+              file,
+              audioBuffer,
+              currentFormat,
+              audioSampleRate,
+              compression,
+            );
           }
-          convertedBlob = await convertAudio(
-            file,
-            audioBuffer,
-            outputFormat,
-            audioSampleRate,
-            compression,
+          const originalBase = file.name.substring(
+            0,
+            file.name.lastIndexOf("."),
           );
-        } else {
-          convertedBlob = await convertVideo(file, outputFormat);
+          resultFileName = `${originalBase}_converted.${currentFormat}`;
+        } else if (fileType === "video") {
+          const isTargetAudio = ["mp3", "wav", "m4a", "aac", "webm"].includes(
+            currentFormat,
+          );
+          if (isTargetAudio) {
+            if (!audioBuffer) {
+              try {
+                const arrayBuffer = await file.arrayBuffer();
+                audioContext = new (window.AudioContext ||
+                  window.webkitAudioContext)();
+                audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+              } catch (err) {
+                console.error(
+                  "Failed to decode video audio track on-the-fly:",
+                  err,
+                );
+              }
+            }
+            if (!audioBuffer) {
+              throw new Error("No audio track detected in this video file.");
+            }
+            resultBlob = await convertAudio(
+              file,
+              audioBuffer,
+              currentFormat,
+              audioSampleRate,
+              compression,
+            );
+          } else {
+            resultBlob = await convertVideo(file, currentFormat);
+          }
+          const originalBase = file.name.substring(
+            0,
+            file.name.lastIndexOf("."),
+          );
+          resultFileName = `${originalBase}_converted.${currentFormat}`;
         }
-        const originalBase = file.name.substring(0, file.name.lastIndexOf("."));
-        convertedFileName = `${originalBase}_converted.${outputFormat}`;
+
+        clearInterval(interval);
+        progress = endProgress;
+
+        if (resultBlob) {
+          convertedFiles.push({
+            blob: resultBlob,
+            name: resultFileName,
+          });
+        }
       }
-      clearInterval(interval);
+
       progress = 100;
       setTimeout(() => {
         conversionStatus = "done";
       }, 300);
     } catch (err) {
-      clearInterval(interval);
       console.error(err);
       errorMessage =
         err.message || "An error occurred during format conversion.";
@@ -497,16 +628,55 @@
     }
   }
 
-  function downloadFile() {
-    if (!convertedBlob) return;
-    const url = URL.createObjectURL(convertedBlob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = convertedFileName;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  async function downloadFile() {
+    if (convertedFiles.length === 0) return;
+
+    if (zipDownloads) {
+      const zipData = {};
+      convertedFiles.forEach((item) => {
+        zipData[item.name] = item.blob;
+      });
+
+      const promises = Object.entries(zipData).map(async ([name, blob]) => {
+        const arrayBuffer = await blob.arrayBuffer();
+        return [name, new Uint8Array(arrayBuffer)];
+      });
+
+      try {
+        const entries = await Promise.all(promises);
+        const zipObj = Object.fromEntries(entries);
+
+        fflate.zip(zipObj, (err, data) => {
+          if (err) {
+            console.error("Error creating ZIP:", err);
+            return;
+          }
+          const blob = new Blob([data], { type: "application/zip" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          const baseName = file.name.substring(0, file.name.lastIndexOf("."));
+          a.download = `${baseName}_converted.zip`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        });
+      } catch (err) {
+        console.error("Failed to build ZIP archive:", err);
+      }
+    } else {
+      convertedFiles.forEach((item) => {
+        const url = URL.createObjectURL(item.blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = item.name;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      });
+    }
   }
 
   function formatBytes(bytes) {
@@ -1235,13 +1405,39 @@
       <div class="success-panel">
         <CheckCircle class="text-green-400" size={54} />
         <h3>Conversion Complete!</h3>
-        <div class="converted-info-card">
-          <span class="filename">{convertedFileName}</span>
-          <span class="filesize">{formatBytes(convertedBlob?.size || 0)}</span>
+        <div
+          class="flex flex-col gap-2 w-full max-w-[280px] max-h-[150px] overflow-y-auto pr-1"
+        >
+          {#each convertedFiles as item}
+            <div
+              class="converted-info-card !p-3 flex !flex-row items-center justify-between gap-3 text-left"
+            >
+              <span class="filename !text-[11px] truncate flex-1"
+                >{item.name}</span
+              >
+              <span class="filesize !text-[10px] flex-shrink-0"
+                >{formatBytes(item.blob?.size || 0)}</span
+              >
+            </div>
+          {/each}
         </div>
+
+        {#if convertedFiles.length > 1}
+          <label
+            class="flex items-center gap-2 text-xs text-white/50 cursor-pointer select-none mt-2 hover:text-white/70 transition-colors"
+          >
+            <input
+              type="checkbox"
+              bind:checked={zipDownloads}
+              class="accent-[#ff5e00] rounded border-white/10"
+            />
+            <span>Zip downloads</span>
+          </label>
+        {/if}
+
         <div class="success-actions">
           <button class="action-btn download" onclick={downloadFile}>
-            <Download size={16} /> DOWNLOAD
+            <Download size={16} /> DOWNLOAD {#if convertedFiles.length > 1 && !zipDownloads}ALL{/if}
           </button>
           <button class="action-btn secondary" onclick={resetState}>
             CONVERT ANOTHER
@@ -1330,9 +1526,11 @@
                     >{inputFormat.toUpperCase()}</span
                   >
                   <span class="arrow-trans">➔</span>
-                  <span class="format-badge output"
-                    >{outputFormat ? outputFormat.toUpperCase() : "?"}</span
-                  >
+                  <span class="format-badge output">
+                    {selectedFormats.length > 0
+                      ? selectedFormats.map((f) => f.toUpperCase()).join(", ")
+                      : "?"}
+                  </span>
                 </div>
               </div>
             </div>
@@ -1477,9 +1675,7 @@
                     >
                       <div
                         class="slider-field"
-                        class:opacity-30={!(
-                          outputFormat === "jpg" || outputFormat === "webp"
-                        )}
+                        class:opacity-30={!hasQualitySupport}
                       >
                         <div
                           class="slider-label flex justify-between items-center text-[11px] mb-1 font-mono"
@@ -1492,10 +1688,7 @@
                               max="100"
                               bind:value={quality}
                               class="value-input quality-input"
-                              disabled={!(
-                                outputFormat === "jpg" ||
-                                outputFormat === "webp"
-                              )}
+                              disabled={!hasQualitySupport}
                             />
                             <span class="text-white/30">%</span>
                           </div>
@@ -1506,17 +1699,13 @@
                           max="100"
                           bind:value={quality}
                           class="param-slider"
-                          disabled={!(
-                            outputFormat === "jpg" || outputFormat === "webp"
-                          )}
+                          disabled={!hasQualitySupport}
                         />
                       </div>
 
                       <div
                         class="slider-field"
-                        class:opacity-30={!(
-                          outputFormat === "png" || outputFormat === "webp"
-                        )}
+                        class:opacity-30={!hasCompressionSupport}
                       >
                         <div
                           class="slider-label flex justify-between items-center text-[11px] mb-1 font-mono"
@@ -1529,10 +1718,7 @@
                               max="100"
                               bind:value={compression}
                               class="value-input compression-input"
-                              disabled={!(
-                                outputFormat === "png" ||
-                                outputFormat === "webp"
-                              )}
+                              disabled={!hasCompressionSupport}
                             />
                             <span class="text-white/30">%</span>
                           </div>
@@ -1543,9 +1729,7 @@
                           max="100"
                           bind:value={compression}
                           class="param-slider"
-                          disabled={!(
-                            outputFormat === "png" || outputFormat === "webp"
-                          )}
+                          disabled={!hasCompressionSupport}
                         />
                       </div>
                     </div>
@@ -1557,7 +1741,7 @@
                     <div
                       class="sliders-row grid grid-cols-2 gap-3.5 max-sm:grid-cols-1"
                     >
-                      {#if outputFormat === "mp3"}
+                      {#if selectedFormats.includes("mp3")}
                         <div class="slider-field">
                           <div
                             class="slider-label flex justify-between items-center text-[11px] mb-1 font-mono"
@@ -1582,7 +1766,7 @@
                             class="param-slider"
                           />
                         </div>
-                      {:else if outputFormat === "m4a" || outputFormat === "aac" || outputFormat === "webm"}
+                      {:else if selectedFormats.some( (f) => ["m4a", "aac", "webm"].includes(f), )}
                         <div class="slider-field">
                           <div
                             class="slider-label flex justify-between text-[11px] mb-1 font-mono"
@@ -1649,8 +1833,8 @@
                       {#if group.formats.includes(format)}
                         <button
                           class="format-opt-btn"
-                          class:selected={outputFormat === format}
-                          onclick={() => (outputFormat = format)}
+                          class:selected={selectedFormats.includes(format)}
+                          onclick={(e) => handleFormatSelection(format, e)}
                         >
                           <span class="format-num">{index + 1}</span>
                           <span class="format-label"
@@ -1664,16 +1848,23 @@
               {/each}
 
               <div
-                class="shortcut-tip flex items-center justify-center gap-1.5 mt-2 text-[10px] text-white/30 font-mono"
+                class="shortcut-tip flex flex-col items-center justify-center gap-1 mt-3 text-[10px] text-white/35 font-mono text-center bg-white/[0.01] border border-white/5 rounded-lg p-2.5"
               >
-                <Keyboard size={12} />
-                <span>Press [1-9] to select, [Enter] to convert</span>
+                <div class="flex items-center gap-1.5 text-white/55">
+                  <Keyboard size={12} />
+                  <span>Press [1-9] or Arrow keys + Enter to select.</span>
+                </div>
+                <div
+                  class="flex flex-col gap-0.5 mt-1 text-[9px] text-white/30"
+                >
+                  <span>• Ctrl/Shift + Click: Multiple format selections</span>
+                </div>
               </div>
             </div>
 
             <button
               class="action-btn convert-launch"
-              disabled={!outputFormat}
+              disabled={selectedFormats.length === 0}
               onclick={startConversion}
             >
               <RefreshCw size={16} /> CONVERT
