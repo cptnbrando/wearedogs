@@ -2,7 +2,7 @@
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <script>
-  import { onMount } from "svelte";
+  import { onMount, untrack } from "svelte";
   import { fade } from "svelte/transition";
   import { catalog } from "../../lib/videos.js";
   import { SHOW_SLUGS } from "../../lib/router.svelte.js";
@@ -52,7 +52,7 @@
   const currentEpisode = $derived(showData?.episodes[selectedEpisodeIndex]);
   const videoUrl = $derived(
     showData && currentEpisode
-      ? `${showData.baseUrl}${currentEpisode.file}`
+      ? `${showData.baseUrl.replace("https://data.wearedogs.net", "")}${currentEpisode.file}`
       : "",
   );
 
@@ -400,79 +400,84 @@
   let activeFetchController = null;
 
   $effect(() => {
-    if (videoUrl && password) {
-      isVideoLoading = true;
-      if (objectUrl) {
-        URL.revokeObjectURL(objectUrl);
-        objectUrl = "";
-      }
+    const url = videoUrl;
+    const pass = password;
 
-      if (activeFetchController) {
-        activeFetchController.abort();
-      }
-      activeFetchController = new AbortController();
-      const { signal } = activeFetchController;
+    untrack(() => {
+      if (url && pass) {
+        isVideoLoading = true;
+        if (objectUrl) {
+          URL.revokeObjectURL(objectUrl);
+          objectUrl = "";
+        }
 
-      fetch(videoUrl, {
-        headers: {
-          Authorization: `password=${password}`,
-        },
-        signal,
-      })
-        .then((res) => {
-          if (!res.ok) {
-            throw new Error(`Failed to fetch video: ${res.statusText}`);
-          }
-          return res.blob();
+        if (activeFetchController) {
+          activeFetchController.abort();
+        }
+        activeFetchController = new AbortController();
+        const { signal } = activeFetchController;
+
+        fetch(url, {
+          headers: {
+            Authorization: `password=${pass}`,
+          },
+          signal,
         })
-        .then((blob) => {
-          let finalBlob = blob;
-          if (!blob.type || blob.type === "application/octet-stream") {
-            const ext = videoUrl.split(".").pop().toLowerCase();
-            const mimeType =
-              ext === "mp4"
-                ? "video/mp4"
-                : ext === "mkv"
-                  ? "video/x-matroska"
-                  : "video/mp4";
-            finalBlob = new Blob([blob], { type: mimeType });
-          }
+          .then((res) => {
+            if (!res.ok) {
+              throw new Error(`Failed to fetch video: ${res.statusText}`);
+            }
+            return res.blob();
+          })
+          .then((blob) => {
+            let finalBlob = blob;
+            if (!blob.type || blob.type === "application/octet-stream") {
+              const ext = url.split(".").pop().toLowerCase();
+              const mimeType =
+                ext === "mp4"
+                  ? "video/mp4"
+                  : ext === "mkv"
+                    ? "video/x-matroska"
+                    : "video/mp4";
+              finalBlob = new Blob([blob], { type: mimeType });
+            }
 
-          if (objectUrl) {
-            URL.revokeObjectURL(objectUrl);
-          }
-          objectUrl = URL.createObjectURL(finalBlob);
-          isVideoLoading = false;
-          if (videoElement) {
-            videoElement.load();
-            if (pendingSeekTime !== null) {
-              videoElement.currentTime = pendingSeekTime;
-              pendingSeekTime = null;
-            } else {
-              videoElement.currentTime = 0;
-            }
-            if (isPlaying) {
-              videoElement.play().catch((err) => console.warn(err));
-            }
-          }
-        })
-        .catch((err) => {
-          if (err.name !== "AbortError") {
-            console.error("Error fetching video:", err);
-            isVideoLoading = false;
             if (objectUrl) {
               URL.revokeObjectURL(objectUrl);
-              objectUrl = "";
             }
-          }
-        });
-    } else {
-      if (objectUrl) {
-        URL.revokeObjectURL(objectUrl);
-        objectUrl = "";
+            objectUrl = URL.createObjectURL(finalBlob);
+            isVideoLoading = false;
+            if (videoElement) {
+              videoElement.load();
+              if (pendingSeekTime !== null) {
+                videoElement.currentTime = pendingSeekTime;
+                pendingSeekTime = null;
+              } else {
+                videoElement.currentTime = 0;
+              }
+              if (isPlaying) {
+                videoElement.play().catch((err) => console.warn(err));
+              }
+            }
+          })
+          .catch((err) => {
+            if (err.name !== "AbortError") {
+              console.error("Error fetching video:", err);
+              isVideoLoading = false;
+              if (objectUrl) {
+                URL.revokeObjectURL(objectUrl);
+                objectUrl = "";
+              }
+            }
+          });
+      } else {
+        if (objectUrl) {
+          URL.revokeObjectURL(objectUrl);
+          objectUrl = "";
+        }
+        isVideoLoading = false;
       }
-      isVideoLoading = false;
-    }
+    });
 
     return () => {
       if (activeFetchController) {
