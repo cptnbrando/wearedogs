@@ -397,6 +397,7 @@
     }
   });
 
+  let activeObjectUrl = "";
   let activeFetchController = null;
 
   $effect(() => {
@@ -409,6 +410,7 @@
         if (objectUrl) {
           URL.revokeObjectURL(objectUrl);
           objectUrl = "";
+          activeObjectUrl = "";
         }
 
         if (activeFetchController) {
@@ -446,6 +448,7 @@
               URL.revokeObjectURL(objectUrl);
             }
             objectUrl = URL.createObjectURL(finalBlob);
+            activeObjectUrl = objectUrl;
             isVideoLoading = false;
             if (videoElement) {
               videoElement.load();
@@ -467,6 +470,7 @@
               if (objectUrl) {
                 URL.revokeObjectURL(objectUrl);
                 objectUrl = "";
+                activeObjectUrl = "";
               }
             }
           });
@@ -474,6 +478,7 @@
         if (objectUrl) {
           URL.revokeObjectURL(objectUrl);
           objectUrl = "";
+          activeObjectUrl = "";
         }
         isVideoLoading = false;
       }
@@ -483,9 +488,9 @@
       if (activeFetchController) {
         activeFetchController.abort();
       }
-      if (objectUrl) {
-        URL.revokeObjectURL(objectUrl);
-        objectUrl = "";
+      if (activeObjectUrl) {
+        URL.revokeObjectURL(activeObjectUrl);
+        activeObjectUrl = "";
       }
     };
   });
