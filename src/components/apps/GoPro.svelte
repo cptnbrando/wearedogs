@@ -46,6 +46,7 @@
 
   // DOM bindings
   let videoElement = $state(null);
+  let playerWrapperElement = $state(null);
 
   // Derived states
   const showData = $derived(catalog[selectedShowKey]);
@@ -161,10 +162,16 @@
    * Trigger native browser video element fullscreen.
    */
   function triggerFullscreen() {
-    if (!videoElement) return;
-    videoElement.requestFullscreen().catch((err) => {
-      console.warn("Fullscreen request failed:", err);
-    });
+    if (!playerWrapperElement) return;
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch((err) => {
+        console.warn("Exit fullscreen failed:", err);
+      });
+    } else {
+      playerWrapperElement.requestFullscreen().catch((err) => {
+        console.warn("Fullscreen request failed:", err);
+      });
+    }
   }
 
   /**
@@ -657,7 +664,7 @@
 
       <!-- RIGHT SECTION: Player & Sampler (col-span-2) -->
       <section
-        class="flex flex-col gap-3 sm:gap-4 overflow-y-auto xl:overflow-visible order-1 xl:order-2 xl:col-span-2 scrollbar-thin {activeMobileView ===
+        class="flex flex-col gap-3 sm:gap-4 overflow-y-auto order-1 xl:order-2 xl:col-span-2 scrollbar-thin {activeMobileView ===
         'player'
           ? 'flex'
           : 'hidden xl:flex'}"
@@ -690,13 +697,14 @@
 
         <!-- Video Player Wrapper -->
         <div
+          bind:this={playerWrapperElement}
           class="relative bg-black rounded-2xl overflow-hidden border border-white/10 shadow-2xl flex flex-col transition-all duration-300 {isMoreControlsOpen
             ? '-translate-y-4 sm:-translate-y-8 xl:-translate-y-16'
             : ''}"
         >
           <!-- Responsive aspect-video container -->
           <div
-            class="w-full aspect-video bg-black relative flex items-center justify-center"
+            class="w-full aspect-video bg-black relative flex items-center justify-center flex-grow"
           >
             {#if isVideoLoading}
               <div
@@ -748,6 +756,7 @@
               class="w-full h-full object-contain cursor-pointer"
               playsinline
               onclick={togglePlay}
+              ondblclick={triggerFullscreen}
               onplay={() => (isPlaying = true)}
               onpause={() => (isPlaying = false)}
               onended={handleVideoEnded}
