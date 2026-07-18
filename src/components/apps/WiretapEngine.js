@@ -209,6 +209,10 @@ export class WiretapEngine {
     this.source = this.audioContext.createMediaStreamSource(this.liveStream);
     this.source.connect(this.analyser);
 
+    if (this.audioContext.state === "suspended") {
+      this.audioContext.resume();
+    }
+
     const bufferLength = this.analyser.frequencyBinCount;
     const dataArray = new Uint8Array(bufferLength);
 
