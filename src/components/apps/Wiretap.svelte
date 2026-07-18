@@ -26,6 +26,8 @@
     Volume2,
     Sliders,
     Hourglass,
+    List,
+    FileText,
   } from "lucide-svelte";
 
   // State Management
@@ -37,6 +39,9 @@
   let selectedVideoDevice = $state("");
   let isPermissionsGranted = $state(false);
   let isCheckingPermissions = $state(true);
+
+  // Settings collapse state
+  let isInputsCollapsed = $state(true);
 
   // Prick Mode State Variables
   let mode = $state("recorder"); // "recorder" or "prick"
@@ -656,6 +661,7 @@
 
   onMount(() => {
     initDevices();
+    isInputsCollapsed = window.innerWidth < 768 || window.innerHeight < 500;
     const img = new Image();
     img.src = dogsLogoPng;
     img.onload = () => {
@@ -680,7 +686,10 @@
   description="Hacker-style voice recorder with live transcripts and responsive camera monitoring."
   themeColor="#00ff66"
 >
-  <div class="wiretap-layout w-full h-full flex flex-col justify-between">
+  <div
+    class="wiretap-layout w-full h-full flex flex-col justify-between"
+    class:video-active={playbackMedia || enableVideo}
+  >
     <!-- Permissions Block -->
     {#if isCheckingPermissions}
       <div
@@ -693,18 +702,22 @@
       </div>
     {:else if !isPermissionsGranted}
       <div
-        class="flex-1 flex flex-col items-center justify-center text-center p-6 max-w-md mx-auto"
+        class="permission-container flex-1 flex flex-col items-center justify-center text-center p-6 max-w-md mx-auto"
       >
-        <AlertCircle class="w-12 h-12 text-[#ff3344] mb-4 animate-pulse" />
-        <h3
-          class="text-lg font-mono font-bold text-white uppercase tracking-wider mb-2"
-        >
-          ACCESS REQUIRED
-        </h3>
-        <p class="text-xs text-white/60 mb-6 leading-relaxed">
-          Wiretap requires camera and microphone permissions to capture
-          surveillance streams and generate transcriptions.
-        </p>
+        <AlertCircle
+          class="alert-icon w-12 h-12 text-[#ff3344] mb-4 animate-pulse"
+        />
+        <div class="permission-text-block">
+          <h3
+            class="text-lg font-mono font-bold text-white uppercase tracking-wider mb-2"
+          >
+            ACCESS REQUIRED
+          </h3>
+          <p class="text-xs text-white/60 mb-6 leading-relaxed">
+            Wiretap requires camera and microphone permissions to capture
+            surveillance streams and generate transcriptions.
+          </p>
+        </div>
         <button
           onclick={initDevices}
           class="px-6 py-3 bg-[#00ff66] text-black font-mono font-bold text-xs uppercase rounded hover:bg-[#00d75f] active:scale-95 transition-all shadow-[0_0_15px_rgba(0,255,102,0.3)] hover:shadow-[0_0_25px_rgba(0,255,102,0.5)] cursor-pointer"
@@ -720,112 +733,130 @@
         <!-- Left Panel: Device Setup & Live Video Feed (Col 1-5 on Desktop) -->
         <div class="xl:col-span-5 flex flex-col gap-4 min-h-0">
           <!-- Device Settings Panel -->
-          <div class="glass-card flex flex-col gap-3 p-4">
-            <h3 class="panel-header">
-              <span class="pulse-indicator"></span> SURVEILLANCE INPUTS
-            </h3>
-
-            <!-- Audio Input -->
-            <div class="flex flex-col gap-1">
-              <label for="mic-select" class="input-label"
-                >MICROPHONE SOURCE</label
-              >
-              <div
-                class="flex items-center gap-2 bg-black/35 border border-white/10 rounded px-2 py-1 w-full min-w-0 overflow-hidden"
-              >
-                <Mic class="w-4 h-4 text-[#00ff66] flex-shrink-0" />
-                <select
-                  id="mic-select"
-                  bind:value={selectedAudioDevice}
-                  disabled={engineState.isRecording}
-                  class="flex-1 min-w-0 w-full bg-transparent text-white text-xs font-mono border-none outline-none py-1 cursor-pointer disabled:opacity-50 truncate"
-                >
-                  {#each audioDevices as dev}
-                    <option value={dev.deviceId} class="bg-neutral-900">
-                      {dev.label || `Microphone ${dev.deviceId.slice(0, 5)}`}
-                    </option>
-                  {/each}
-                </select>
-              </div>
-            </div>
-
-            <!-- Video Input -->
-            <div class="flex flex-col gap-1">
-              <label for="camera-select" class="input-label"
-                >CAMERA SOURCE</label
-              >
-              <div
-                class="flex items-center gap-2 bg-black/35 border border-white/10 rounded px-2 py-1 w-full min-w-0 overflow-hidden"
-              >
-                <Camera class="w-4 h-4 text-[#00ff66] flex-shrink-0" />
-                <select
-                  id="camera-select"
-                  bind:value={selectedVideoDevice}
-                  disabled={engineState.isRecording}
-                  class="flex-1 min-w-0 w-full bg-transparent text-white text-xs font-mono border-none outline-none py-1 cursor-pointer disabled:opacity-50 truncate"
-                >
-                  {#each videoDevices as dev}
-                    <option value={dev.deviceId} class="bg-neutral-900">
-                      {dev.label || `Webcam ${dev.deviceId.slice(0, 5)}`}
-                    </option>
-                  {/each}
-                </select>
-              </div>
-            </div>
-
-            <!-- Video Toggle -->
-            <div
-              class="flex items-center justify-between border-t border-white/5 pt-3 mt-1"
+          <div class="glass-card flex flex-col gap-3 p-4" data-card="inputs">
+            <button
+              onclick={() => (isInputsCollapsed = !isInputsCollapsed)}
+              class="panel-header w-full flex items-center justify-between cursor-pointer focus:outline-none select-none text-left border-none bg-transparent p-0"
             >
-              <span class="input-label">MONITOR LIVE VIDEO FEED</span>
-              <button
-                onclick={() => (enableVideo = !enableVideo)}
-                class="flex items-center gap-2 px-3 py-1.5 rounded text-xs font-mono uppercase transition-all duration-200 border cursor-pointer {enableVideo
-                  ? 'bg-[#00ff66] text-black border-[#00ff66]'
-                  : 'bg-transparent text-white/60 border-white/10'}"
+              <span class="flex items-center gap-2">
+                <span class="pulse-indicator"></span> INPUTS
+              </span>
+              <span
+                class="text-[9px] text-[#00ff66]/70 border border-[#00ff66]/20 rounded px-1.5 py-0.5 font-mono uppercase tracking-wider"
               >
-                {#if enableVideo}
-                  <Video class="w-3.5 h-3.5" /> VIDEO ON
-                {:else}
-                  <VideoOff class="w-3.5 h-3.5" /> VIDEO OFF
-                {/if}
-              </button>
-            </div>
+                {isInputsCollapsed ? "EXPAND" : "COLLAPSE"}
+              </span>
+            </button>
 
-            <!-- Surveillance Location -->
-            <div class="flex flex-col gap-1 border-t border-white/5 pt-3 mt-1">
-              <label for="location-input" class="input-label"
-                >SURVEILLANCE LOCATION</label
-              >
-              <div
-                class="flex items-center gap-2 bg-black/35 border border-white/10 rounded px-2 py-1 w-full min-w-0"
-              >
-                <input
-                  id="location-input"
-                  type="text"
-                  bind:value={locationText}
-                  placeholder="Type location manually..."
-                  class="flex-1 bg-transparent text-white text-xs font-mono border-none outline-none py-1 min-w-0"
-                />
-                <button
-                  onclick={getDeviceLocation}
-                  disabled={isLocating}
-                  class="px-2 py-1 bg-[#00ff66]/10 hover:bg-[#00ff66]/20 text-[#00ff66] border border-[#00ff66]/20 rounded text-[9px] font-mono uppercase tracking-wider transition-all cursor-pointer disabled:opacity-40"
+            {#if !isInputsCollapsed}
+              <div class="flex flex-col gap-3">
+                <!-- Audio Input -->
+                <div class="flex flex-col gap-1">
+                  <label for="mic-select" class="input-label"
+                    >MICROPHONE SOURCE</label
+                  >
+                  <div
+                    class="flex items-center gap-2 bg-black/35 border border-white/10 rounded px-2 py-1 w-full min-w-0 overflow-hidden"
+                  >
+                    <Mic class="w-4 h-4 text-[#00ff66] flex-shrink-0" />
+                    <select
+                      id="mic-select"
+                      bind:value={selectedAudioDevice}
+                      disabled={engineState.isRecording}
+                      class="flex-1 min-w-0 w-full bg-transparent text-white text-xs font-mono border-none outline-none py-1 cursor-pointer disabled:opacity-50 truncate"
+                    >
+                      {#each audioDevices as dev}
+                        <option value={dev.deviceId} class="bg-neutral-900">
+                          {dev.label ||
+                            `Microphone ${dev.deviceId.slice(0, 5)}`}
+                        </option>
+                      {/each}
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Video Input -->
+                <div class="flex flex-col gap-1">
+                  <label for="camera-select" class="input-label"
+                    >CAMERA SOURCE</label
+                  >
+                  <div
+                    class="flex items-center gap-2 bg-black/35 border border-white/10 rounded px-2 py-1 w-full min-w-0 overflow-hidden"
+                  >
+                    <Camera class="w-4 h-4 text-[#00ff66] flex-shrink-0" />
+                    <select
+                      id="camera-select"
+                      bind:value={selectedVideoDevice}
+                      disabled={engineState.isRecording}
+                      class="flex-1 min-w-0 w-full bg-transparent text-white text-xs font-mono border-none outline-none py-1 cursor-pointer disabled:opacity-50 truncate"
+                    >
+                      {#each videoDevices as dev}
+                        <option value={dev.deviceId} class="bg-neutral-900">
+                          {dev.label || `Webcam ${dev.deviceId.slice(0, 5)}`}
+                        </option>
+                      {/each}
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Video Toggle -->
+                <div
+                  class="flex items-center justify-between border-t border-white/5 pt-3 mt-1"
                 >
-                  {#if isLocating}
-                    LOCATING...
-                  {:else}
-                    GPS
-                  {/if}
-                </button>
+                  <span class="input-label">MONITOR</span>
+                  <button
+                    onclick={() => (enableVideo = !enableVideo)}
+                    class="flex items-center gap-2 px-3 py-1.5 rounded text-xs font-mono uppercase transition-all duration-200 border cursor-pointer {enableVideo
+                      ? 'bg-[#00ff66] text-black border-[#00ff66]'
+                      : 'bg-transparent text-white/60 border-white/10'}"
+                  >
+                    {#if enableVideo}
+                      <Video class="w-3.5 h-3.5" /> VIDEO ON
+                    {:else}
+                      <VideoOff class="w-3.5 h-3.5" /> VIDEO OFF
+                    {/if}
+                  </button>
+                </div>
+
+                <!-- Surveillance Location -->
+                <div
+                  class="flex flex-col gap-1 border-t border-white/5 pt-3 mt-1"
+                >
+                  <label for="location-input" class="input-label"
+                    >LOCATION</label
+                  >
+                  <div
+                    class="flex items-center gap-2 bg-black/35 border border-white/10 rounded px-2 py-1 w-full min-w-0"
+                  >
+                    <input
+                      id="location-input"
+                      type="text"
+                      bind:value={locationText}
+                      placeholder="Type location manually..."
+                      class="flex-1 bg-transparent text-white text-xs font-mono border-none outline-none py-1 min-w-0"
+                    />
+                    <button
+                      onclick={getDeviceLocation}
+                      disabled={isLocating}
+                      class="px-2 py-1 bg-[#00ff66]/10 hover:bg-[#00ff66]/20 text-[#00ff66] border border-[#00ff66]/20 rounded text-[9px] font-mono uppercase tracking-wider transition-all cursor-pointer disabled:opacity-40"
+                    >
+                      {#if isLocating}
+                        LOCATING...
+                      {:else}
+                        GPS
+                      {/if}
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
+            {/if}
           </div>
 
           <!-- Video Viewport / Playback Player -->
           {#if playbackMedia || enableVideo}
             <div
               class="glass-card flex-1 min-h-[180px] md:min-h-[240px] relative overflow-hidden flex flex-col justify-center bg-black/90 border-2 border-red-500/20 shadow-[0_0_20px_rgba(239,68,68,0.1)]"
+              data-card="viewport"
             >
               <!-- Scanlines overlay -->
               <div
@@ -994,6 +1025,7 @@
             <!-- Live Transcript Card -->
             <div
               class="glass-card flex-1 flex flex-col p-4 min-h-[180px] overflow-hidden"
+              data-card="clips"
             >
               <div
                 class="flex items-center justify-between border-b border-white/5 pb-2 mb-3"
@@ -1048,6 +1080,7 @@
             <!-- Prick Clips Card -->
             <div
               class="glass-card flex-1 flex flex-col p-4 min-h-[180px] overflow-hidden"
+              data-card="clips"
             >
               <div
                 class="flex items-center justify-between border-b border-white/5 pb-2 mb-3"
@@ -1210,7 +1243,10 @@
           {/if}
 
           <!-- Audio Stream Control & Visualizer Card -->
-          <div class="glass-card p-4 flex flex-col justify-between gap-4">
+          <div
+            class="glass-card p-4 flex flex-col justify-between gap-4"
+            data-card="monitor"
+          >
             <!-- Controls / Waveform layout -->
             <div class="flex flex-col gap-3">
               <!-- Live Waveform & Timeline Player -->
@@ -1497,7 +1533,7 @@
                       ? 'bg-[#00ff66] text-black font-bold'
                       : 'text-white/60 hover:text-white'}"
                   >
-                    RECORDER
+                    LISTEN
                   </button>
                   <button
                     onclick={() => (mode = "prick")}
@@ -1507,7 +1543,7 @@
                       ? 'bg-[#00ff66] text-black font-bold'
                       : 'text-white/60 hover:text-white'}"
                   >
-                    PRICK MODE
+                    PRICK
                   </button>
                 </div>
 
@@ -1535,13 +1571,13 @@
                     <span
                       class="text-xs text-[#00ff66] font-mono font-bold animate-pulse tracking-wide uppercase"
                     >
-                      DECODING AUDIO BUFFER...
+                      DECODING AUDIO...
                     </span>
                   {:else}
                     <span
                       class="text-xs text-white/30 font-mono tracking-wider uppercase"
                     >
-                      SYSTEM IDLE
+                      IDLE
                     </span>
                   {/if}
                 </div>
