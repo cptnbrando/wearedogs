@@ -302,7 +302,7 @@ export class WiretapEngine {
     const freqDataArray = new Uint8Array(bufferLength);
     const timeDomainArray = new Uint8Array(this.analyser.fftSize);
 
-    let lastSampleTime = performance.now();
+    let lastSampleTime = this.recordingStartTime;
     let currentWindowMax = 0;
 
     const tick = () => {
@@ -320,27 +320,29 @@ export class WiretapEngine {
         currentWindowMax = amp;
       }
 
-      // 2. Accumulate peak every sampleIntervalMs
+      // 2. Accumulate peak every sampleIntervalMs using a drift-free accumulator
       const now = performance.now();
-      if (now - lastSampleTime >= this.sampleIntervalMs) {
+      let pushedAny = false;
+      while (now - lastSampleTime >= this.sampleIntervalMs) {
         this.livePeaks.push(currentWindowMax);
-        lastSampleTime = now;
+        lastSampleTime += this.sampleIntervalMs;
         currentWindowMax = 0;
+        pushedAny = true;
 
         // Downsample dynamically to protect performance if recording is long-running
         if (this.livePeaks.length >= 1000) {
           this.livePeaks = downsamplePeaksHalf(this.livePeaks);
           this.sampleIntervalMs *= 2;
         }
+      }
 
-        if (this.onLivePeaksUpdate) {
-          const duration = (performance.now() - this.recordingStartTime) / 1000;
-          this.onLivePeaksUpdate(
-            resamplePeaks(this.livePeaks, WAVEFORM_BARS_COUNT),
-            Math.min(WAVEFORM_BARS_COUNT, this.livePeaks.length),
-            duration
-          );
-        }
+      if (pushedAny && this.onLivePeaksUpdate) {
+        const duration = (performance.now() - this.recordingStartTime) / 1000;
+        this.onLivePeaksUpdate(
+          resamplePeaks(this.livePeaks, WAVEFORM_BARS_COUNT),
+          Math.min(WAVEFORM_BARS_COUNT, this.livePeaks.length),
+          duration
+        );
       }
 
       // 3. Keep standard frequency update for compatibility
