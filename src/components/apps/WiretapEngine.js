@@ -105,6 +105,21 @@ export class WiretapEngine {
     this.isPlaying = false;
     this.playbackProgress = 0; // 0 to 1
     
+    // Tapper Mode state
+    this.mode = "recorder"; // "recorder" or "tapper"
+    this.threshold = 0.15;
+    this.clips = [];
+    this.cameraStream = null; // reference set by Svelte UI
+    this.isClipRecording = false;
+    this.clipMediaRecorder = null;
+    this.clipChunks = [];
+    this.clipStartTime = null;
+    this.clipStartPerformanceTime = null;
+    this.clipIsVideo = false;
+    this.lastLoudSoundTime = 0;
+    this.silenceDelayMs = 1500;
+    this.maxClipDurationMs = 10000;
+
     // Callbacks
     this.onStateChange = null;     // (state) => {}
     this.onLiveTranscript = null;  // ({ final, interim }) => {}
@@ -112,6 +127,10 @@ export class WiretapEngine {
     this.onPlaybackProgress = null;// (progress, currentTime, duration) => {}
     this.onAudioDecoded = null;    // (peaks) => {}
     this.onLivePeaksUpdate = null; // (peaks, count, duration) => {}
+    this.onClipAdded = null;       // (newClip, clips) => {}
+    this.onClipsCleared = null;    // () => {}
+    this.onLiveVolumeUpdate = null;// (amp) => {}
+
     // Downsampling & timing for long recordings
     this.sampleIntervalMs = 100;
     this.recordingStartTime = 0;
@@ -265,6 +284,10 @@ export class WiretapEngine {
   stopRecording() {
     if (!this.isRecording) return;
 
+    if (this.isClipRecording) {
+      this.stopClipRecording();
+    }
+
     if (this.mediaRecorder && this.mediaRecorder.state !== "inactive") {
       this.mediaRecorder.stop();
     }
@@ -318,6 +341,25 @@ export class WiretapEngine {
       const amp = localMax / 128;
       if (amp > currentWindowMax) {
         currentWindowMax = amp;
+      }
+
+      if (this.onLiveVolumeUpdate) {
+        this.onLiveVolumeUpdate(amp);
+      }
+
+      if (this.mode === "tapper") {
+        if (amp > this.threshold) {
+          this.lastLoudSoundTime = performance.now();
+          if (!this.isClipRecording) {
+            this.startClipRecording();
+          }
+        } else if (this.isClipRecording) {
+          const silenceDuration = performance.now() - this.lastLoudSoundTime;
+          const clipDuration = performance.now() - this.clipStartPerformanceTime;
+          if (silenceDuration >= this.silenceDelayMs || clipDuration >= this.maxClipDurationMs) {
+            this.stopClipRecording();
+          }
+        }
       }
 
       // 2. Accumulate peak every sampleIntervalMs using a drift-free accumulator
@@ -512,6 +554,116 @@ export class WiretapEngine {
   }
 
   /**
+   * Start a cropped clip recording based on threshold audio event.
+   */
+  startClipRecording() {
+    if (this.isClipRecording) return;
+
+    this.clipChunks = [];
+    this.clipStartTime = new Date();
+    this.clipStartPerformanceTime = performance.now();
+    this.isClipRecording = true;
+
+    const clipStream = new MediaStream();
+    
+    // Add cloned audio track from live stream
+    if (this.liveStream) {
+      this.liveStream.getAudioTracks().forEach(track => {
+        clipStream.addTrack(track.clone());
+      });
+    }
+
+    // Add cloned video track if camera stream is active and video is enabled
+    let isVideo = false;
+    if (this.cameraStream) {
+      const videoTracks = this.cameraStream.getVideoTracks();
+      if (videoTracks.length > 0 && videoTracks[0].enabled && videoTracks[0].readyState === "live") {
+        clipStream.addTrack(videoTracks[0].clone());
+        isVideo = true;
+      }
+    }
+    this.clipIsVideo = isVideo;
+
+    let options = {};
+    if (isVideo) {
+      if (MediaRecorder.isTypeSupported("video/webm;codecs=vp8,opus")) {
+        options.mimeType = "video/webm;codecs=vp8,opus";
+      } else if (MediaRecorder.isTypeSupported("video/webm")) {
+        options.mimeType = "video/webm";
+      } else if (MediaRecorder.isTypeSupported("video/mp4")) {
+        options.mimeType = "video/mp4";
+      }
+    } else {
+      if (MediaRecorder.isTypeSupported("audio/webm;codecs=opus")) {
+        options.mimeType = "audio/webm;codecs=opus";
+      } else if (MediaRecorder.isTypeSupported("audio/webm")) {
+        options.mimeType = "audio/webm";
+      } else if (MediaRecorder.isTypeSupported("audio/ogg;codecs=opus")) {
+        options.mimeType = "audio/ogg;codecs=opus";
+      } else if (MediaRecorder.isTypeSupported("audio/mp4")) {
+        options.mimeType = "audio/mp4";
+      }
+    }
+
+    try {
+      this.clipMediaRecorder = new MediaRecorder(clipStream, options);
+      this.clipMediaRecorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) {
+          this.clipChunks.push(e.data);
+        }
+      };
+
+      this.clipMediaRecorder.onstop = () => {
+        // Clean up cloned stream tracks
+        clipStream.getTracks().forEach(track => track.stop());
+
+        if (this.clipChunks.length === 0) return;
+
+        const blobType = this.clipIsVideo ? "video/webm" : "audio/webm";
+        const clipBlob = new Blob(this.clipChunks, { type: blobType });
+        const clipUrl = URL.createObjectURL(clipBlob);
+        const clipDuration = (performance.now() - this.clipStartPerformanceTime) / 1000;
+
+        const newClip = {
+          id: Date.now() + Math.random(),
+          timestamp: this.clipStartTime,
+          duration: clipDuration,
+          blob: clipBlob,
+          url: clipUrl,
+          isVideo: this.clipIsVideo,
+        };
+
+        this.clips.push(newClip);
+        if (this.onClipAdded) {
+          this.onClipAdded(newClip, this.clips);
+        }
+      };
+
+      this.clipMediaRecorder.start();
+    } catch (err) {
+      console.warn("Failed to start clip MediaRecorder:", err);
+      this.isClipRecording = false;
+    }
+  }
+
+  /**
+   * Stop the active clip recording.
+   */
+  stopClipRecording() {
+    if (!this.isClipRecording) return;
+
+    this.isClipRecording = false;
+    if (this.clipMediaRecorder && this.clipMediaRecorder.state !== "inactive") {
+      try {
+        this.clipMediaRecorder.stop();
+      } catch (err) {
+        console.warn("Error stopping clip media recorder:", err);
+      }
+    }
+    this.clipMediaRecorder = null;
+  }
+
+  /**
    * Start playback.
    */
   play() {
@@ -563,6 +715,10 @@ export class WiretapEngine {
     this.interimTranscript = "";
     this.playbackProgress = 0;
     this.isPlaying = false;
+    this.clips = [];
+    if (this.onClipsCleared) {
+      this.onClipsCleared();
+    }
     this.triggerStateChange();
   }
 }

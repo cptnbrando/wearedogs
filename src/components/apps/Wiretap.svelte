@@ -16,6 +16,9 @@
     AlertCircle,
     Copy,
     Check,
+    Trash2,
+    Volume2,
+    Sliders,
   } from "lucide-svelte";
 
   // State Management
@@ -27,6 +30,12 @@
   let selectedVideoDevice = $state("");
   let isPermissionsGranted = $state(false);
   let isCheckingPermissions = $state(true);
+
+  // Tapper Mode State Variables
+  let mode = $state("recorder"); // "recorder" or "tapper"
+  let triggerThreshold = $state(0.15);
+  let liveVolume = $state(0);
+  let clips = $state([]);
   
   // Real-time Visuals
   let liveTranscript = $state({ final: "", interim: "" });
@@ -86,6 +95,25 @@
     duration = dur;
   };
 
+  engine.onClipAdded = (newClip, updatedClips) => {
+    clips = [...updatedClips];
+  };
+
+  engine.onClipsCleared = () => {
+    clips = [];
+  };
+
+  engine.onLiveVolumeUpdate = (amp) => {
+    liveVolume = amp;
+  };
+
+  // Sync state variables dynamically to the engine
+  $effect(() => {
+    engine.mode = mode;
+    engine.threshold = triggerThreshold;
+    engine.cameraStream = cameraStream;
+  });
+
   // Autoscroll transcript container during live recording
   let transcriptContainer = $state(null);
   function scrollTranscriptIntoView() {
@@ -117,6 +145,16 @@
 
   // Handle camera preview stream update
   async function updateCameraStream() {
+    if (engineState.isRecording && cameraStream) {
+      cameraStream.getVideoTracks().forEach((track) => {
+        track.enabled = enableVideo;
+      });
+      if (videoEl) {
+        videoEl.srcObject = enableVideo ? cameraStream : null;
+      }
+      return;
+    }
+
     if (cameraStream) {
       cameraStream.getTracks().forEach((track) => track.stop());
       cameraStream = null;
@@ -134,6 +172,8 @@
         console.error("Webcam stream access failed:", err);
         enableVideo = false;
       }
+    } else if (videoEl) {
+      videoEl.srcObject = null;
     }
   }
 
@@ -215,6 +255,8 @@
     livePeaksCount = 0;
     livePeaksDuration = 0;
     recordingStartDate = null;
+    clips = [];
+    liveVolume = 0;
   }
 
   // Format seconds to readable timer format (MM:SS or H:MM:SS)
@@ -368,43 +410,191 @@
         <!-- Right Panel: Recorder controls, Visualizer & Transcription (Col 6-12 on Desktop) -->
         <div class="xl:col-span-7 flex flex-col gap-4 min-h-0">
           
-          <!-- Live Transcript Card -->
-          <div class="glass-card flex-1 flex flex-col p-4 min-h-[180px] overflow-hidden">
-            <div class="flex items-center justify-between border-b border-white/5 pb-2 mb-3">
-              <h3 class="panel-header uppercase">
-                <span class="pulse-indicator bg-[#00ff66]" class:recording={engineState.isRecording}></span> 
-                Live Transcript
-              </h3>
-              
-              <button
-                onclick={copyTranscript}
-                disabled={!liveTranscript.final}
-                class="flex items-center gap-1.5 text-[10px] text-white/50 hover:text-[#00ff66] font-mono bg-white/5 border border-white/10 hover:border-[#00ff66]/35 rounded px-2.5 py-1 transition-all cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
-              >
-                {#if isCopied}
-                  <Check class="w-3 h-3 text-[#00ff66]" /> COPIED
-                {:else}
-                  <Copy class="w-3 h-3" /> COPY
-                {/if}
-              </button>
-            </div>
+          <!-- Conditionally Render: Live Transcript or Tapped Clips Panel -->
+          {#if mode === "recorder"}
+            <!-- Live Transcript Card -->
+            <div class="glass-card flex-1 flex flex-col p-4 min-h-[180px] overflow-hidden">
+              <div class="flex items-center justify-between border-b border-white/5 pb-2 mb-3">
+                <h3 class="panel-header uppercase">
+                  <span class="pulse-indicator bg-[#00ff66]" class:recording={engineState.isRecording}></span> 
+                  Live Transcript
+                </h3>
+                
+                <button
+                  onclick={copyTranscript}
+                  disabled={!liveTranscript.final}
+                  class="flex items-center gap-1.5 text-[10px] text-white/50 hover:text-[#00ff66] font-mono bg-white/5 border border-white/10 hover:border-[#00ff66]/35 rounded px-2.5 py-1 transition-all cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
+                >
+                  {#if isCopied}
+                    <Check class="w-3 h-3 text-[#00ff66]" /> COPIED
+                  {:else}
+                    <Copy class="w-3 h-3" /> COPY
+                  {/if}
+                </button>
+              </div>
 
-            <!-- Scrolling Transcript Content -->
-            <div
-              bind:this={transcriptContainer}
-              class="flex-grow overflow-y-auto bg-black/40 border border-white/5 rounded p-3 font-mono text-sm leading-relaxed text-white/85 max-h-[220px] xl:max-h-none"
-            >
-              {#if engineState.isRecording}
-                <span class="text-white">{liveTranscript.final}</span>
-                <span class="text-[#00ff66]/80 italic">{liveTranscript.interim}</span>
-                {#if !liveTranscript.final && !liveTranscript.interim}
-                  <span class="text-white/20 animate-pulse block text-center py-8">Awaiting transcription capture...</span>
+              <!-- Scrolling Transcript Content -->
+              <div
+                bind:this={transcriptContainer}
+                class="flex-grow overflow-y-auto bg-black/40 border border-white/5 rounded p-3 font-mono text-sm leading-relaxed text-white/85 max-h-[220px] xl:max-h-none"
+              >
+                {#if engineState.isRecording}
+                  <span class="text-white">{liveTranscript.final}</span>
+                  <span class="text-[#00ff66]/80 italic">{liveTranscript.interim}</span>
+                  {#if !liveTranscript.final && !liveTranscript.interim}
+                    <span class="text-white/20 animate-pulse block text-center py-8">Awaiting transcription capture...</span>
+                  {/if}
+                {:else}
+                  <span class="text-white">{liveTranscript.final || "Press Record to capture speech-to-text transcript."}</span>
                 {/if}
-              {:else}
-                <span class="text-white">{liveTranscript.final || "Press Record to capture speech-to-text transcript."}</span>
-              {/if}
+              </div>
             </div>
-          </div>
+          {:else}
+            <!-- Tapped Clips Card -->
+            <div class="glass-card flex-1 flex flex-col p-4 min-h-[180px] overflow-hidden">
+              <div class="flex items-center justify-between border-b border-white/5 pb-2 mb-3">
+                <h3 class="panel-header uppercase flex items-center gap-2">
+                  <span class="pulse-indicator bg-[#00ff66]" class:recording={engineState.isRecording}></span> 
+                  Tapped Clips
+                  {#if clips.length > 0}
+                    <span class="text-[10px] font-mono text-[#00ff66] font-normal">[ {clips.length} clip{clips.length === 1 ? '' : 's'} ]</span>
+                  {/if}
+                </h3>
+                
+                <button
+                  onclick={() => { clips = []; engine.clips = []; }}
+                  disabled={clips.length === 0}
+                  class="flex items-center gap-1.5 text-[10px] text-white/50 hover:text-[#ff3344] font-mono bg-white/5 border border-white/10 hover:border-[#ff3344]/35 rounded px-2.5 py-1 transition-all cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
+                >
+                  <Trash2 class="w-3 h-3" /> CLEAR ALL
+                </button>
+              </div>
+
+              <!-- Scrolling Clips Content -->
+              <div
+                class="flex-grow overflow-y-auto bg-black/40 border border-white/5 rounded p-3 font-mono text-xs max-h-[220px] xl:max-h-none flex flex-col gap-2 min-h-0"
+              >
+                {#if clips.length === 0}
+                  <div class="flex-grow flex flex-col items-center justify-center text-center py-8 text-white/20 select-none">
+                    {#if engineState.isRecording}
+                      <div class="flex items-center gap-2 mb-1 animate-pulse">
+                        <span class="w-2 h-2 bg-[#00ff66] rounded-full"></span>
+                        <span class="text-xs uppercase tracking-wider text-[#00ff66]">MONITORING SOUND SENSORS...</span>
+                      </div>
+                      <span class="text-[10px]">Clips will record automatically when volume crosses trigger threshold.</span>
+                    {:else}
+                      <Volume2 class="w-8 h-8 mb-2 opacity-30" />
+                      <span>Press Record to start monitoring and tap audio/video clips.</span>
+                    {/if}
+                  </div>
+                {:else}
+                  {#each clips as clip (clip.id)}
+                    <div class="flex items-center justify-between gap-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded p-2.5 transition-all">
+                      
+                      <!-- Clip media / icon -->
+                      <div class="flex-shrink-0 w-16 h-12 relative bg-neutral-900 rounded overflow-hidden border border-white/10 flex items-center justify-center">
+                        {#if clip.isVideo}
+                          <!-- svelte-ignore a11y_media_has_caption -->
+                          <video
+                            src={clip.url}
+                            muted
+                            loop
+                            playsinline
+                            class="w-full h-full object-cover"
+                          >
+                            <!-- svelte-ignore a11y_click_events_have_key_events -->
+                            <!-- svelte-ignore a11y_no_static_element_interactions -->
+                            <div onclick={(e) => { e.stopPropagation(); }} class="w-full h-full"></div>
+                          </video>
+                        {:else}
+                          <Volume2 class="w-5 h-5 text-[#00ff66]" />
+                        {/if}
+                      </div>
+
+                      <!-- Metadata -->
+                      <div class="flex-grow min-w-0">
+                        <div class="flex items-center gap-1.5 text-white/90 font-bold mb-0.5">
+                          <span class="truncate">{clip.isVideo ? 'VIDEO' : 'AUDIO'} CLIP</span>
+                          <span class="text-white/45 text-[10px] font-normal">{clip.duration.toFixed(1)}s</span>
+                        </div>
+                        <div class="text-[10px] text-white/40 leading-none">
+                          {clip.timestamp.toLocaleDateString()} {clip.timestamp.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' })}
+                        </div>
+                      </div>
+
+                      <!-- Inline player and action buttons -->
+                      <div class="flex items-center gap-1.5 flex-shrink-0">
+                        <!-- Play/Pause in main preview or inline playing -->
+                        {#if clip.isVideo}
+                          <button
+                            onclick={(e) => {
+                              const video = e.currentTarget.parentElement.parentElement.querySelector('video');
+                              if (video) {
+                                if (video.paused) {
+                                  video.play();
+                                } else {
+                                  video.pause();
+                                }
+                              }
+                            }}
+                            class="p-1.5 bg-[#00ff66]/10 hover:bg-[#00ff66]/20 text-[#00ff66] border border-[#00ff66]/20 rounded transition-all cursor-pointer"
+                            title="Toggle Play Preview"
+                          >
+                            <Play class="w-3.5 h-3.5" />
+                          </button>
+                        {:else}
+                          <!-- Audio clip playback -->
+                          <!-- svelte-ignore a11y_media_has_caption -->
+                          <audio src={clip.url} class="hidden"></audio>
+                          <button
+                            onclick={(e) => {
+                              const audio = e.currentTarget.parentElement.querySelector('audio');
+                              if (audio) {
+                                if (audio.paused) {
+                                  audio.play();
+                                } else {
+                                  audio.pause();
+                                }
+                              }
+                            }}
+                            class="p-1.5 bg-[#00ff66]/10 hover:bg-[#00ff66]/20 text-[#00ff66] border border-[#00ff66]/20 rounded transition-all cursor-pointer"
+                            title="Play Clip"
+                          >
+                            <Play class="w-3.5 h-3.5" />
+                          </button>
+                        {/if}
+
+                        <button
+                          onclick={() => {
+                            const anchor = document.createElement("a");
+                            anchor.href = clip.url;
+                            anchor.download = `wiretap-clip-${clip.id.toFixed(0)}.${clip.isVideo ? 'webm' : 'webm'}`;
+                            anchor.click();
+                          }}
+                          class="p-1.5 bg-white/5 hover:bg-white/10 text-white/70 border border-white/10 rounded transition-all cursor-pointer"
+                          title="Download Clip"
+                        >
+                          <Download class="w-3.5 h-3.5" />
+                        </button>
+
+                        <button
+                          onclick={() => {
+                            clips = clips.filter(c => c.id !== clip.id);
+                            engine.clips = engine.clips.filter(c => c.id !== clip.id);
+                          }}
+                          class="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded transition-all cursor-pointer"
+                          title="Delete Clip"
+                        >
+                          <Trash2 class="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                    </div>
+                  {/each}
+                {/if}
+              </div>
+            </div>
+          {/if}
 
           <!-- Audio Stream Control & Visualizer Card -->
           <div class="glass-card p-4 flex flex-col justify-between gap-4">
@@ -488,30 +678,96 @@
                   </div>
                 </div>
               {/if}
+
+              <!-- Trigger Threshold controls when in Tapper Mode -->
+              {#if mode === "tapper"}
+                <div class="flex flex-col gap-2 border-t border-white/5 pt-3 mt-1">
+                  <div class="flex items-center justify-between">
+                    <span class="input-label text-[10px] flex items-center gap-1.5">
+                      <Sliders class="w-3.5 h-3.5 text-[#00ff66]" /> TRIGGER THRESHOLD SENSITIVITY
+                    </span>
+                    <span class="text-[10px] font-mono text-white/50 tracking-wider">
+                      THRESHOLD: {triggerThreshold.toFixed(2)} (LIVE: {liveVolume.toFixed(2)})
+                    </span>
+                  </div>
+                  <div class="flex items-center gap-4 bg-black/45 border border-white/10 rounded px-3 py-2.5">
+                    <!-- Trigger Indicator Light -->
+                    <span 
+                      class="w-2.5 h-2.5 rounded-full transition-all duration-75 flex-shrink-0 {liveVolume > triggerThreshold ? 'bg-[#00ff66] shadow-[0_0_8px_#00ff66]' : 'bg-white/10'}"
+                      title={liveVolume > triggerThreshold ? "Triggered" : "Monitoring"}
+                    ></span>
+                    
+                    <!-- The slider -->
+                    <input
+                      type="range"
+                      min="0.01"
+                      max="1.0"
+                      step="0.01"
+                      bind:value={triggerThreshold}
+                      class="flex-grow h-1 bg-white/15 rounded-lg appearance-none cursor-pointer accent-[#00ff66]"
+                    />
+
+                    <!-- Live volume bar gauge -->
+                    <div class="w-24 h-2.5 bg-white/5 rounded border border-white/10 overflow-hidden relative flex items-center">
+                      <div 
+                        class="h-full bg-[#00ff66]/80 transition-all duration-75"
+                        style="width: {liveVolume * 100}%"
+                      ></div>
+                      <!-- Threshold tick mark line -->
+                      <div 
+                        class="absolute top-0 bottom-0 w-[2px] bg-red-500"
+                        style="left: {triggerThreshold * 100}%"
+                        title="Threshold marker"
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              {/if}
             </div>
 
             <!-- Lower action bar -->
             <div class="flex flex-wrap items-center justify-between gap-3 border-t border-white/5 pt-3">
               
-              <!-- Status info -->
-              <div class="flex items-center gap-2">
-                {#if engineState.isRecording}
-                  <span class="flex items-center gap-1 text-xs text-red-500 font-mono font-bold tracking-widest uppercase">
-                    <span class="w-2.5 h-2.5 bg-red-600 rounded-full animate-ping mr-1"></span> RECORDING
-                  </span>
-                {:else if engineState.isDecoding}
-                  <span class="text-xs text-[#00ff66] font-mono font-bold animate-pulse tracking-wide uppercase">
-                    DECODING AUDIO BUFFER...
-                  </span>
-                {:else if decodedPeaks.length > 0}
-                  <span class="text-xs text-white/50 font-mono tracking-wider uppercase">
-                    RECORDING SAVED
-                  </span>
-                {:else}
-                  <span class="text-xs text-white/30 font-mono tracking-wider uppercase">
-                    SYSTEM IDLE
-                  </span>
-                {/if}
+              <!-- Mode Toggle & Status info -->
+              <div class="flex items-center gap-4 flex-wrap">
+                <!-- Cyberpunk Mode Slide Toggle -->
+                <div class="flex items-center gap-1 bg-black/40 border border-white/10 rounded p-1">
+                  <button
+                    onclick={() => mode = "recorder"}
+                    disabled={engineState.isRecording}
+                    class="px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider rounded transition-all duration-150 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed {mode === 'recorder' ? 'bg-[#00ff66] text-black font-bold' : 'text-white/60 hover:text-white'}"
+                  >
+                    RECORDER
+                  </button>
+                  <button
+                    onclick={() => mode = "tapper"}
+                    disabled={engineState.isRecording}
+                    class="px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider rounded transition-all duration-150 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed {mode === 'tapper' ? 'bg-[#00ff66] text-black font-bold' : 'text-white/60 hover:text-white'}"
+                  >
+                    TAPPER
+                  </button>
+                </div>
+
+                <!-- Status indicator -->
+                <div class="flex items-center gap-2">
+                  {#if engineState.isRecording}
+                    <span class="flex items-center gap-1 text-xs text-red-500 font-mono font-bold tracking-widest uppercase">
+                      <span class="w-2.5 h-2.5 bg-red-600 rounded-full animate-ping mr-1"></span> RECORDING
+                    </span>
+                  {:else if engineState.isDecoding}
+                    <span class="text-xs text-[#00ff66] font-mono font-bold animate-pulse tracking-wide uppercase">
+                      DECODING AUDIO BUFFER...
+                    </span>
+                  {:else if decodedPeaks.length > 0}
+                    <span class="text-xs text-white/50 font-mono tracking-wider uppercase">
+                      RECORDING SAVED
+                    </span>
+                  {:else}
+                    <span class="text-xs text-white/30 font-mono tracking-wider uppercase">
+                      SYSTEM IDLE
+                    </span>
+                  {/if}
+                </div>
               </div>
 
               <!-- Main Interactive buttons -->
