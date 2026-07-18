@@ -926,7 +926,10 @@
         <!-- Left Panel: Device Setup & Live Video Feed (Col 1-5 on Desktop) -->
         <div class="xl:col-span-5 flex flex-col gap-4 min-h-0">
           <!-- Device Settings Panel -->
-          <div class="glass-card flex flex-col gap-3 p-4" data-card="inputs">
+          <div
+            class="glass-card flex flex-col transition-all duration-200 {isInputsCollapsed ? 'p-2.5 sm:p-4 gap-0' : 'p-3.5 sm:p-4 gap-3'}"
+            data-card="inputs"
+          >
             <button
               onclick={() => (isInputsCollapsed = !isInputsCollapsed)}
               class="panel-header w-full flex items-center justify-between cursor-pointer focus:outline-none select-none text-left border-none bg-transparent p-0"
@@ -935,7 +938,7 @@
                 <span class="pulse-indicator"></span> INPUTS
               </span>
               <span
-                class="text-[9px] text-[#00ff66]/70 border border-[#00ff66]/20 rounded px-1.5 py-0.5 font-mono uppercase tracking-wider"
+                class="text-[8px] sm:text-[9px] text-[#00ff66]/70 border border-[#00ff66]/20 rounded px-1 sm:px-1.5 py-0.5 font-mono uppercase tracking-wider"
               >
                 {isInputsCollapsed ? "EXPAND" : "COLLAPSE"}
               </span>
@@ -945,21 +948,21 @@
               <div class="flex flex-col gap-3">
                 <!-- Audio Input -->
                 <div class="flex flex-col gap-1">
-                  <label for="mic-select" class="input-label"
+                  <label for="mic-select" class="input-label text-[9px] sm:text-[10px]"
                     >MICROPHONE SOURCE</label
                   >
                   <div
-                    class="flex items-center gap-2 bg-black/35 border border-white/10 rounded px-2 py-1 w-full min-w-0 overflow-hidden"
+                    class="flex items-center gap-1.5 sm:gap-2 bg-black/35 border border-white/10 rounded px-1.5 py-0.5 sm:px-2 sm:py-1 w-full min-w-0 overflow-hidden"
                   >
-                    <Mic class="w-4 h-4 text-[#00ff66] flex-shrink-0" />
+                    <Mic class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#00ff66] flex-shrink-0" />
                     <select
                       id="mic-select"
                       bind:value={selectedAudioDevice}
                       disabled={engineState.isRecording}
-                      class="flex-1 min-w-0 w-full bg-transparent text-white text-xs font-mono border-none outline-none py-1 cursor-pointer disabled:opacity-50 truncate"
+                      class="flex-1 min-w-0 w-full bg-transparent text-white text-[10px] sm:text-xs font-mono border-none outline-none py-0.5 sm:py-1 cursor-pointer disabled:opacity-50 truncate"
                     >
                       {#each audioDevices as dev}
-                        <option value={dev.deviceId} class="bg-neutral-900">
+                        <option value={dev.deviceId} class="bg-neutral-900 text-xs">
                           {dev.label ||
                             `Microphone ${dev.deviceId.slice(0, 5)}`}
                         </option>
@@ -970,21 +973,21 @@
 
                 <!-- Video Input -->
                 <div class="flex flex-col gap-1">
-                  <label for="camera-select" class="input-label"
+                  <label for="camera-select" class="input-label text-[9px] sm:text-[10px]"
                     >CAMERA SOURCE</label
                   >
                   <div
-                    class="flex items-center gap-2 bg-black/35 border border-white/10 rounded px-2 py-1 w-full min-w-0 overflow-hidden"
+                    class="flex items-center gap-1.5 sm:gap-2 bg-black/35 border border-white/10 rounded px-1.5 py-0.5 sm:px-2 sm:py-1 w-full min-w-0 overflow-hidden"
                   >
-                    <Camera class="w-4 h-4 text-[#00ff66] flex-shrink-0" />
+                    <Camera class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#00ff66] flex-shrink-0" />
                     <select
                       id="camera-select"
                       bind:value={selectedVideoDevice}
                       disabled={engineState.isRecording}
-                      class="flex-1 min-w-0 w-full bg-transparent text-white text-xs font-mono border-none outline-none py-1 cursor-pointer disabled:opacity-50 truncate"
+                      class="flex-1 min-w-0 w-full bg-transparent text-white text-[10px] sm:text-xs font-mono border-none outline-none py-0.5 sm:py-1 cursor-pointer disabled:opacity-50 truncate"
                     >
                       {#each videoDevices as dev}
-                        <option value={dev.deviceId} class="bg-neutral-900">
+                        <option value={dev.deviceId} class="bg-neutral-900 text-xs">
                           {dev.label || `Webcam ${dev.deviceId.slice(0, 5)}`}
                         </option>
                       {/each}
@@ -1015,11 +1018,11 @@
                 <div
                   class="flex flex-col gap-1 border-t border-white/5 pt-3 mt-1"
                 >
-                  <label for="location-input" class="input-label"
+                  <label for="location-input" class="input-label text-[9px] sm:text-[10px]"
                     >LOCATION</label
                   >
                   <div
-                    class="flex items-center gap-2 bg-black/35 border border-white/10 rounded px-2 py-1 w-full min-w-0"
+                    class="flex items-center gap-1.5 sm:gap-2 bg-black/35 border border-white/10 rounded px-1.5 py-0.5 sm:px-2 sm:py-1 w-full min-w-0"
                   >
                     <input
                       id="location-input"
@@ -1029,12 +1032,12 @@
                         deviceCoords = null;
                       }}
                       placeholder="Type location manually..."
-                      class="flex-1 bg-transparent text-white text-xs font-mono border-none outline-none py-1 min-w-0"
+                      class="flex-1 bg-transparent text-white text-[10px] sm:text-xs font-mono border-none outline-none py-0.5 sm:py-1 min-w-0"
                     />
                     <button
                       onclick={getDeviceLocation}
                       disabled={isLocating}
-                      class="px-2 py-1 bg-[#00ff66]/10 hover:bg-[#00ff66]/20 text-[#00ff66] border border-[#00ff66]/20 rounded text-[9px] font-mono uppercase tracking-wider transition-all cursor-pointer disabled:opacity-40"
+                      class="px-1.5 py-0.5 bg-[#00ff66]/10 hover:bg-[#00ff66]/20 text-[#00ff66] border border-[#00ff66]/20 rounded text-[8px] sm:text-[9px] font-mono uppercase tracking-wider transition-all cursor-pointer disabled:opacity-40"
                     >
                       {#if isLocating}
                         LOCATING...
@@ -1302,14 +1305,14 @@
                   {/if}
                 </h3>
 
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-1.5 sm:gap-2">
                   <button
                     onclick={downloadAllClipsAsZip}
                     disabled={clips.length === 0 || isZipping}
-                    class="flex items-center gap-1.5 text-[10px] text-white/50 hover:text-[#00ff66] font-mono bg-white/5 border border-white/10 hover:border-[#00ff66]/35 rounded px-2.5 py-1 transition-all cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
+                    class="flex items-center gap-1 sm:gap-1.5 text-[8px] sm:text-[10px] text-white/50 hover:text-[#00ff66] font-mono bg-white/5 border border-white/10 hover:border-[#00ff66]/35 rounded px-1.5 py-0.5 sm:px-2.5 sm:py-1 transition-all cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
                   >
-                    <Download class="w-3 h-3" />
-                    {#if isZipping}ZIPPING...{:else}ZIP ALL{/if}
+                    <Download class="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                    {#if isZipping}ZIP...{:else}ZIP ALL{/if}
                   </button>
 
                   <button
@@ -1318,9 +1321,9 @@
                       engine.clips = [];
                     }}
                     disabled={clips.length === 0}
-                    class="flex items-center gap-1.5 text-[10px] text-white/50 hover:text-[#ff3344] font-mono bg-white/5 border border-white/10 hover:border-[#ff3344]/35 rounded px-2.5 py-1 transition-all cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
+                    class="flex items-center gap-1 sm:gap-1.5 text-[8px] sm:text-[10px] text-white/50 hover:text-[#ff3344] font-mono bg-white/5 border border-white/10 hover:border-[#ff3344]/35 rounded px-1.5 py-0.5 sm:px-2.5 sm:py-1 transition-all cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
                   >
-                    <Trash2 class="w-3 h-3" /> CLEAR
+                    <Trash2 class="w-2.5 h-2.5 sm:w-3 sm:h-3" /> CLEAR
                   </button>
                 </div>
               </div>
@@ -1357,11 +1360,11 @@
                 {:else}
                   {#each clips as clip, index (clip.id)}
                     <div
-                      class="flex items-center justify-between gap-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded p-2.5 transition-all"
+                      class="flex items-center justify-between gap-2 sm:gap-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded p-1.5 sm:p-2.5 transition-all"
                     >
                       <!-- Clip media / icon thumbnail -->
                       <div
-                        class="flex-shrink-0 w-16 h-12 relative bg-neutral-900 rounded overflow-hidden border border-white/10 flex items-center justify-center"
+                        class="flex-shrink-0 w-12 h-9 sm:w-16 sm:h-12 relative bg-neutral-900 rounded overflow-hidden border border-white/10 flex items-center justify-center"
                       >
                         {#if clip.isVideo}
                           <video
@@ -1372,23 +1375,23 @@
                             class="w-full h-full object-cover"
                           ></video>
                         {:else}
-                          <Volume2 class="w-5 h-5 text-[#00ff66]" />
+                          <Volume2 class="w-4 h-4 sm:w-5 sm:h-5 text-[#00ff66]" />
                         {/if}
                       </div>
 
                       <!-- Metadata -->
                       <div class="flex-grow min-w-0 text-left">
                         <div
-                          class="flex items-center gap-1.5 text-white/90 font-bold mb-0.5"
+                          class="flex items-center gap-1 sm:gap-1.5 text-white/90 font-bold mb-0.5 text-[10px] sm:text-xs"
                         >
                           <span class="truncate"
                             >{clip.isVideo ? "VIDEO" : "AUDIO"} CLIP</span
                           >
-                          <span class="text-white/45 text-[10px] font-normal"
+                          <span class="text-white/45 text-[9px] sm:text-[10px] font-normal"
                             >{clip.duration.toFixed(1)}s</span
                           >
                         </div>
-                        <div class="text-[10px] text-white/40 leading-none">
+                        <div class="text-[9px] sm:text-[10px] text-white/40 leading-none">
                           {clip.timestamp.toLocaleDateString()}
                           {clip.timestamp.toLocaleTimeString([], {
                             hour: "numeric",
@@ -1399,23 +1402,23 @@
                       </div>
 
                       <!-- Interactive buttons -->
-                      <div class="flex items-center gap-1.5 flex-shrink-0">
+                      <div class="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
                         <!-- Play in Unified Monitor Viewport -->
                         <button
                           onclick={() => playClipInViewport(clip)}
-                          class="p-1.5 bg-[#00ff66]/10 hover:bg-[#00ff66]/20 text-[#00ff66] border border-[#00ff66]/20 rounded transition-all cursor-pointer"
+                          class="p-1 sm:p-1.5 bg-[#00ff66]/10 hover:bg-[#00ff66]/20 text-[#00ff66] border border-[#00ff66]/20 rounded transition-all cursor-pointer"
                           title="Play Clip in Surveillance Panel"
                         >
-                          <Play class="w-3.5 h-3.5" />
+                          <Play class="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                         </button>
 
                         <!-- Download Clip -->
                         <button
                           onclick={() => downloadClipAsZip(clip, index)}
-                          class="p-1.5 bg-white/5 hover:bg-white/10 text-white/70 border border-white/10 rounded transition-all cursor-pointer"
+                          class="p-1 sm:p-1.5 bg-white/5 hover:bg-white/10 text-white/70 border border-white/10 rounded transition-all cursor-pointer"
                           title="Download Clip ZIP"
                         >
-                          <Download class="w-3.5 h-3.5" />
+                          <Download class="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                         </button>
 
                         <!-- Delete Clip -->
@@ -1426,10 +1429,10 @@
                               (c) => c.id !== clip.id,
                             );
                           }}
-                          class="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded transition-all cursor-pointer"
+                          class="p-1 sm:p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded transition-all cursor-pointer"
                           title="Delete Clip"
                         >
-                          <Trash2 class="w-3.5 h-3.5" />
+                          <Trash2 class="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                         </button>
                       </div>
                     </div>
@@ -1623,23 +1626,23 @@
               <!-- Trigger Threshold controls when in Prick Mode -->
               {#if mode === "prick"}
                 <div
-                  class="flex flex-col gap-3 border-t border-white/5 pt-3 mt-1 text-left"
+                  class="flex flex-col transition-all duration-200 text-left border-t border-white/5 {isPrickSettingsCollapsed ? 'gap-1 pt-2 mt-1' : 'gap-3 pt-3 mt-1'}"
                 >
                   <button
                     onclick={() =>
                       (isPrickSettingsCollapsed = !isPrickSettingsCollapsed)}
                     class="panel-header w-full flex items-center justify-between cursor-pointer focus:outline-none select-none text-left border-none bg-transparent p-0"
                   >
-                    <span class="flex items-center gap-2">
+                    <span class="flex items-center gap-1.5 sm:gap-2">
                       <span
-                        class="w-1.5 h-1.5 rounded-full transition-all duration-75 flex-shrink-0 {liveVolume >
+                        class="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full transition-all duration-75 flex-shrink-0 {liveVolume >
                         triggerThreshold
                           ? 'bg-[#00ff66] shadow-[0_0_8px_#00ff66]'
                           : 'bg-white/20'}"
                       ></span> SENSORS
                     </span>
                     <span
-                      class="text-[9px] text-[#00ff66]/70 border border-[#00ff66]/20 rounded px-1.5 py-0.5 font-mono uppercase tracking-wider"
+                      class="text-[8px] sm:text-[9px] text-[#00ff66]/70 border border-[#00ff66]/20 rounded px-1 sm:px-1.5 py-0.5 font-mono uppercase tracking-wider"
                     >
                       {isPrickSettingsCollapsed ? "EXPAND" : "COLLAPSE"}
                     </span>
