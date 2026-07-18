@@ -286,6 +286,11 @@ export class WiretapEngine {
     this.headerChunk = null;
     this.clipCapturingState = "idle";
 
+    // Start speech recognition synchronously in the user gesture call stack
+    this.startSpeechRecognition();
+    this.isRecording = true;
+    this.triggerStateChange();
+
     const constraints = {
       audio: audioDeviceId ? { deviceId: { exact: audioDeviceId } } : true,
     };
@@ -368,14 +373,11 @@ export class WiretapEngine {
 
       // Request data every 250ms to feed the circular buffer
       this.mediaRecorder.start(250);
-      this.isRecording = true;
-
-      // Start speech recognition
-      this.startSpeechRecognition();
-
-      this.triggerStateChange();
     } catch (err) {
       console.error("Failed to start recording:", err);
+      this.stopSpeechRecognition();
+      this.isRecording = false;
+      this.triggerStateChange();
       throw err;
     }
   }
@@ -604,12 +606,16 @@ export class WiretapEngine {
 
     this.recognition.onend = () => {
       if (this.isRecording && this.isRecognizing) {
-        // SpeechRecognition can time out; restart if we're still recording.
-        try {
-          this.recognition.start();
-        } catch (e) {
-          console.warn("Speech recognition failed to restart automatically:", e);
-        }
+        // SpeechRecognition can time out; restart if we're still recording with a slight delay.
+        setTimeout(() => {
+          if (this.isRecording && this.isRecognizing) {
+            try {
+              this.recognition.start();
+            } catch (e) {
+              console.warn("Speech recognition failed to restart automatically:", e);
+            }
+          }
+        }, 100);
       }
     };
 
