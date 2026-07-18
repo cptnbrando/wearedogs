@@ -165,7 +165,7 @@
 
   <!-- Top bar (Visible on Mobile Viewports) -->
   <div
-    class="md:hidden flex items-center justify-between border-b border-white/5 bg-black/40 px-4 py-2.5 select-none shrink-0 w-full"
+    class="md:hidden h-11 flex items-center justify-between border-b border-white/5 bg-black/40 px-4 select-none shrink-0 w-full"
   >
     <div class="flex items-center gap-2">
       {#if !showMobileTiles}
@@ -301,9 +301,9 @@
     >
       <!-- Mobile Windows Phone-like Tile Launcher -->
       {#if showMobileTiles}
-        <div class="md:hidden flex-grow flex flex-col justify-center items-center p-2 select-none w-full h-full max-h-[500px]">
-          <!-- Windows Phone Grid: responsive 3 columns -->
-          <div class="grid grid-cols-3 gap-2.5 w-full max-w-sm aspect-square p-2">
+        <div class="md:hidden flex-grow flex flex-col justify-stretch items-stretch p-0.5 select-none w-full h-full">
+          <!-- Windows Phone Grid: responsive 3 columns and 3 rows -->
+          <div class="grid grid-cols-3 grid-rows-3 gap-2 w-full h-full flex-grow p-0.5">
             {#each TABS_CONFIG as tab, idx}
               {@const bgColors = [
                 "bg-sky-600 hover:bg-sky-500",
@@ -321,7 +321,7 @@
                   activeTab = tab.id;
                   showMobileTiles = false;
                 }}
-                class="flex flex-col justify-between p-2.5 rounded-lg border border-white/5 active:scale-95 transition-all text-left relative overflow-hidden shadow-[0_4px_12px_rgba(0,0,0,0.3)] aspect-square {bgColors[idx % bgColors.length]}"
+                class="flex flex-col justify-between p-2.5 rounded-lg border border-white/5 active:scale-95 transition-all text-left relative overflow-hidden shadow-[0_4px_12px_rgba(0,0,0,0.3)] {bgColors[idx % bgColors.length]}"
               >
                 <!-- Icon in top-left or centered -->
                 <div class="text-white/95">
