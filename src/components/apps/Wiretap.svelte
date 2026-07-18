@@ -35,6 +35,7 @@
   let livePeaks = $state(Array(100).fill(0));
   let livePeaksCount = $state(0);
   let livePeaksDuration = $state(0);
+  let recordingStartDate = $state(null);
   
   // Playback Info
   let playbackProgress = $state(0);
@@ -146,11 +147,18 @@
   // Start recording voice and transcription
   async function startRecording() {
     try {
-      await engine.startRecording(selectedAudioDevice);
-      liveTranscript = { final: "", interim: "" };
+      // Clear previous states immediately to prevent lingering visuals during getUserMedia load
+      livePeaks = Array(100).fill(0);
+      livePeaksCount = 0;
+      livePeaksDuration = 0;
+      decodedPeaks = [];
       playbackProgress = 0;
       currentTime = 0;
       duration = 0;
+      recordingStartDate = new Date();
+
+      await engine.startRecording(selectedAudioDevice);
+      liveTranscript = { final: "", interim: "" };
     } catch (err) {
       console.error("Start recording failed:", err);
     }
@@ -206,6 +214,7 @@
     livePeaks = Array(100).fill(0);
     livePeaksCount = 0;
     livePeaksDuration = 0;
+    recordingStartDate = null;
   }
 
   // Format seconds to readable timer format (MM:SS or H:MM:SS)
@@ -220,6 +229,13 @@
       return `${hours}:${minutes < 10 ? "0" : ""}${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
     }
     return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
+  }
+
+  // Format starting Date plus relative offset into hh:mm:ss am/pm format
+  function formatWallClockTime(startDate, offsetSecs) {
+    if (!startDate) return "";
+    const time = new Date(startDate.getTime() + offsetSecs * 1000);
+    return time.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true }).toLowerCase();
   }
 
   onMount(() => {
@@ -398,6 +414,8 @@
               
               <!-- Live Waveform & Timeline Player -->
               {#if engineState.isRecording || decodedPeaks.length > 0}
+                {@const isLiveScrolling = engineState.isRecording && livePeaksDuration > 10}
+                {@const timelineStart = isLiveScrolling ? (livePeaksDuration - 10) : 0}
                 {@const totalTime = engineState.isRecording ? Math.max(10, livePeaksDuration) : duration}
                 {@const peaksToRender = engineState.isRecording ? livePeaks : decodedPeaks}
                 <div class="flex flex-col gap-2">
@@ -424,24 +442,49 @@
                     class="flex items-center justify-between w-full h-16 gap-[2px] bg-black/45 border rounded px-2 relative select-none {engineState.isRecording ? 'border-[#ff3344]/30' : 'border-white/10 hover:border-white/20 cursor-ew-resize'}"
                     onpointerdown={!engineState.isRecording ? handleWaveformPointerDown : null}
                   >
+                    <!-- Vertical grid lines (Graph paper-esque) -->
+                    <div class="absolute left-[25%] top-0 w-[1px] h-full border-l border-dashed border-white/10 pointer-events-none z-0"></div>
+                    <div class="absolute left-[50%] top-0 w-[1px] h-full border-l border-dashed border-white/10 pointer-events-none z-0"></div>
+                    <div class="absolute left-[75%] top-0 w-[1px] h-full border-l border-dashed border-white/10 pointer-events-none z-0"></div>
+
                     {#each peaksToRender as peak, idx}
                       {@const isActive = engineState.isRecording 
                         ? (idx < livePeaksCount) 
                         : ((idx / decodedPeaks.length) <= playbackProgress)}
                       <div
-                        class="flex-1 rounded-sm transition-colors duration-100 {isActive ? 'bg-[#00ff66]' : 'bg-white/20'}"
+                        class="flex-1 rounded-sm transition-colors duration-100 {isActive ? 'bg-[#00ff66]' : 'bg-white/20'} z-10"
                         style="height: {Math.max(4, peak * 80)}%;"
                       ></div>
                     {/each}
                   </div>
 
                   <!-- Waveform Timestamps -->
-                  <div class="flex justify-between text-[9px] font-mono text-white/40 mt-1 px-1 select-none border-t border-white/5 pt-1.5">
-                    <span>0:00</span>
-                    <span>{formatTime(totalTime * 0.25)}</span>
-                    <span>{formatTime(totalTime * 0.5)}</span>
-                    <span>{formatTime(totalTime * 0.75)}</span>
-                    <span>{formatTime(totalTime)}</span>
+                  <div class="grid grid-cols-5 text-[9px] font-mono text-white/40 mt-1 px-1 select-none border-t border-white/5 pt-1.5">
+                    <!-- Column 0 -->
+                    <div class="text-left flex flex-col gap-0.5">
+                      <span class="text-white/60">{formatTime(timelineStart)}</span>
+                      <span class="text-white/25 text-[8px] tracking-tight">{formatWallClockTime(recordingStartDate, timelineStart)}</span>
+                    </div>
+                    <!-- Column 1 -->
+                    <div class="text-center flex flex-col gap-0.5">
+                      <span class="text-white/60">{formatTime(isLiveScrolling ? (livePeaksDuration - 7.5) : (totalTime * 0.25))}</span>
+                      <span class="text-white/25 text-[8px] tracking-tight">{formatWallClockTime(recordingStartDate, isLiveScrolling ? (livePeaksDuration - 7.5) : (totalTime * 0.25))}</span>
+                    </div>
+                    <!-- Column 2 -->
+                    <div class="text-center flex flex-col gap-0.5">
+                      <span class="text-white/60">{formatTime(isLiveScrolling ? (livePeaksDuration - 5) : (totalTime * 0.5))}</span>
+                      <span class="text-white/25 text-[8px] tracking-tight">{formatWallClockTime(recordingStartDate, isLiveScrolling ? (livePeaksDuration - 5) : (totalTime * 0.5))}</span>
+                    </div>
+                    <!-- Column 3 -->
+                    <div class="text-center flex flex-col gap-0.5">
+                      <span class="text-white/60">{formatTime(isLiveScrolling ? (livePeaksDuration - 2.5) : (totalTime * 0.75))}</span>
+                      <span class="text-white/25 text-[8px] tracking-tight">{formatWallClockTime(recordingStartDate, isLiveScrolling ? (livePeaksDuration - 2.5) : (totalTime * 0.75))}</span>
+                    </div>
+                    <!-- Column 4 -->
+                    <div class="text-right flex flex-col gap-0.5">
+                      <span class="text-white/60">{formatTime(isLiveScrolling ? livePeaksDuration : totalTime)}</span>
+                      <span class="text-white/25 text-[8px] tracking-tight">{formatWallClockTime(recordingStartDate, isLiveScrolling ? livePeaksDuration : totalTime)}</span>
+                    </div>
                   </div>
                 </div>
               {/if}
