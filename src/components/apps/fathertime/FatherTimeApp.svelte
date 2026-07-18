@@ -27,6 +27,7 @@
   import MetronomeVisual from "./MetronomeVisual.svelte";
 
   let activeTab = $state("hourglass");
+  let showMobileTiles = $state(true);
   let nowDate = $state(new Date());
   let hourglassMode = $state("minute");
   let sharedMetronome = $state(new Metronome());
@@ -58,10 +59,37 @@
     });
   }
 
+  let isMobileViewport = $state(false);
+
+  function handlePopState(e) {
+    if (!isMobileViewport) return;
+    const state = e.state;
+    if (state && state.app === "stopwatch") {
+      if (state.depth === 2) {
+        showMobileTiles = true;
+      } else if (state.depth === 3 && state.subTab) {
+        activeTab = state.subTab;
+        showMobileTiles = false;
+      }
+    }
+  }
+
   onMount(() => {
     updateClock();
     timeTicker = setInterval(updateClock, 1000);
-    return () => clearInterval(timeTicker);
+
+    isMobileViewport = window.innerWidth <= 768;
+    const handleResize = () => {
+      isMobileViewport = window.innerWidth <= 768;
+    };
+    window.addEventListener("resize", handleResize);
+    window.addEventListener("popstate", handlePopState);
+
+    return () => {
+      clearInterval(timeTicker);
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("popstate", handlePopState);
+    };
   });
 
   // Touch swipe handling to swipe between tabs
@@ -106,10 +134,64 @@
         if (currentIdx !== -1) {
           if (deltaX < 0 && currentIdx < TABS_CONFIG.length - 1) {
             // Swiped left -> Go to next tab
+            const prevShowTiles = showMobileTiles;
             activeTab = TABS_CONFIG[currentIdx + 1].id;
+            showMobileTiles = false;
+            if (isMobileViewport) {
+              if (prevShowTiles) {
+                history.pushState(
+                  {
+                    view: "toolbox",
+                    app: "stopwatch",
+                    subTab: activeTab,
+                    depth: 3,
+                  },
+                  "",
+                  "/apps/stopwatch/" + activeTab,
+                );
+              } else {
+                history.replaceState(
+                  {
+                    view: "toolbox",
+                    app: "stopwatch",
+                    subTab: activeTab,
+                    depth: 3,
+                  },
+                  "",
+                  "/apps/stopwatch/" + activeTab,
+                );
+              }
+            }
           } else if (deltaX > 0 && currentIdx > 0) {
             // Swiped right -> Go to previous tab
+            const prevShowTiles = showMobileTiles;
             activeTab = TABS_CONFIG[currentIdx - 1].id;
+            showMobileTiles = false;
+            if (isMobileViewport) {
+              if (prevShowTiles) {
+                history.pushState(
+                  {
+                    view: "toolbox",
+                    app: "stopwatch",
+                    subTab: activeTab,
+                    depth: 3,
+                  },
+                  "",
+                  "/apps/stopwatch/" + activeTab,
+                );
+              } else {
+                history.replaceState(
+                  {
+                    view: "toolbox",
+                    app: "stopwatch",
+                    subTab: activeTab,
+                    depth: 3,
+                  },
+                  "",
+                  "/apps/stopwatch/" + activeTab,
+                );
+              }
+            }
           }
         }
       }
@@ -160,36 +242,58 @@
     </div>
   </nav>
 
-  <!-- Top bar (Visible on Mobile Landscape) -->
+  <!-- Top bar (Visible on Mobile Viewports) -->
   <div
-    class="md:hidden flex items-center justify-between border-b border-white/5 bg-black/40 px-4 py-2.5 select-none shrink-0 w-full"
+    class="md:hidden h-11 flex items-center justify-between border-b border-white/5 bg-black/40 px-4 select-none shrink-0 w-full"
   >
-    <!-- <div class="flex items-center gap-2">
-      <HourglassIcon class="text-sky-400" size={15} />
-      <span class="text-[11px] font-extrabold uppercase text-white tracking-widest">Father Time</span>
-    </div> -->
+    <div class="flex items-center gap-2">
+      {#if !showMobileTiles}
+        <button
+          onclick={() => {
+            if (isMobileViewport) {
+              history.back();
+            } else {
+              showMobileTiles = true;
+            }
+          }}
+          class="flex items-center gap-1.5 px-2.5 py-1 bg-sky-500/20 hover:bg-sky-500/30 text-sky-400 border border-sky-500/30 rounded text-[9px] font-mono font-bold uppercase transition-all active:scale-95 cursor-pointer"
+        >
+          <Home size={10} /> TILES
+        </button>
+      {:else}
+        <div class="flex items-center gap-1.5">
+          <HourglassIcon class="text-sky-400 animate-spin-slow" size={12} />
+          <span
+            class="text-[10px] font-mono tracking-widest text-white/55 uppercase"
+            >FATHER TIME</span
+          >
+        </div>
+      {/if}
+    </div>
     <div class="text-right font-mono text-[10px] text-sky-400 font-bold">
       {digitalTime}
     </div>
   </div>
 
   <!-- Mobile Horizontal Scrollable Tab Bar (Visible on Mobile Viewports instead of vertical list) -->
-  <div
-    class="md:hidden flex overflow-x-auto scrollbar-none border-b border-white/5 bg-black/20 py-1.5 px-2 select-none gap-1 shrink-0 w-full"
-  >
-    {#each TABS_CONFIG as tab}
-      <button
-        class="mobile-nav-btn text-[10px]"
-        class:active={activeTab === tab.id}
-        onclick={() => (activeTab = tab.id)}
-        role="tab"
-        aria-selected={activeTab === tab.id}
-      >
-        <tab.icon size={11} />
-        <span>{tab.label}</span>
-      </button>
-    {/each}
-  </div>
+  {#if !showMobileTiles}
+    <div
+      class="md:hidden flex overflow-x-auto scrollbar-none border-b border-white/5 bg-black/20 py-1.5 px-2 select-none gap-1 shrink-0 w-full"
+    >
+      {#each TABS_CONFIG as tab}
+        <button
+          class="mobile-nav-btn text-[10px]"
+          class:active={activeTab === tab.id}
+          onclick={() => (activeTab = tab.id)}
+          role="tab"
+          aria-selected={activeTab === tab.id}
+        >
+          <tab.icon size={11} />
+          <span>{tab.label}</span>
+        </button>
+      {/each}
+    </div>
+  {/if}
 
   <!-- Main Viewport Container -->
   <main
@@ -283,39 +387,104 @@
     <div
       class="2xl:hidden w-full h-full flex flex-col items-stretch justify-center relative overflow-hidden"
     >
-      {#if activeTab === "hourglass"}
+      <!-- Mobile Windows Phone-like Tile Launcher -->
+      {#if showMobileTiles}
         <div
-          class="flex flex-col items-center justify-center text-center p-6 h-full select-none"
+          class="md:hidden flex-grow flex flex-col justify-stretch items-stretch p-0.5 select-none w-full h-full"
         >
-          <Hourglass now={nowDate} bind:currentMode={hourglassMode} />
-          <h3 class="font-bold text-white text-sm mt-4">Sands of Time</h3>
-          <p class="text-[10px] text-white/40 max-w-xs mt-1">
-            Particles settle dynamically every second. Click the glass to
-            physically rotate it.
-          </p>
-
+          <!-- Windows Phone Grid: responsive 3 columns and 3 rows -->
           <div
-            class="mt-6 border border-white/5 bg-white/2 rounded-xl py-2 px-5 text-center font-mono"
+            class="grid grid-cols-3 grid-rows-3 gap-2 w-full h-full flex-grow p-0.5"
           >
-            <span class="text-xl font-bold text-sky-400">{digitalTime}</span>
-            <span
-              class="text-[8px] text-white/30 block uppercase tracking-wider"
-              >{digitalDate}</span
-            >
+            {#each TABS_CONFIG as tab, idx}
+              {@const bgColors = [
+                "bg-sky-600 hover:bg-sky-500",
+                "bg-blue-600 hover:bg-blue-500",
+                "bg-indigo-600 hover:bg-indigo-500",
+                "bg-violet-600 hover:bg-violet-500",
+                "bg-purple-600 hover:bg-purple-500",
+                "bg-fuchsia-600 hover:bg-fuchsia-500",
+                "bg-pink-600 hover:bg-pink-500",
+                "bg-cyan-600 hover:bg-cyan-500",
+                "bg-teal-600 hover:bg-teal-500",
+              ]}
+              <button
+                onclick={() => {
+                  activeTab = tab.id;
+                  showMobileTiles = false;
+                  if (isMobileViewport) {
+                    history.pushState(
+                      {
+                        view: "toolbox",
+                        app: "stopwatch",
+                        subTab: tab.id,
+                        depth: 3,
+                      },
+                      "",
+                      "/apps/stopwatch/" + tab.id,
+                    );
+                  }
+                }}
+                class="flex flex-col justify-between p-2.5 rounded-lg border border-white/5 active:scale-95 transition-all text-left relative overflow-hidden shadow-[0_4px_12px_rgba(0,0,0,0.3)] {bgColors[
+                  idx % bgColors.length
+                ]}"
+              >
+                <!-- Icon in top-left or centered -->
+                <div class="text-white/95">
+                  <tab.icon size={16} strokeWidth={2.5} />
+                </div>
+                <!-- Label in bottom-left -->
+                <span
+                  class="text-[9px] font-black uppercase tracking-widest text-white leading-tight mt-auto select-none"
+                >
+                  {tab.label}
+                </span>
+              </button>
+            {/each}
           </div>
         </div>
-      {:else}
-        {#if activeTab === "stopwatch"}<StopwatchTab />{/if}
-        {#if activeTab === "timer"}<TimerTab />{/if}
-        {#if activeTab === "alarms"}<AlarmsTab />{/if}
-        {#if activeTab === "worldclock"}<WorldClockTab />{/if}
-        {#if activeTab === "servers"}<TimeServersTab />{/if}
-        {#if activeTab === "history"}<HistoryTab />{/if}
-        {#if activeTab === "metronome"}<MetronomeTab
-            metronome={sharedMetronome}
-          />{/if}
-        {#if activeTab === "tuner"}<TuningForkTab />{/if}
       {/if}
+
+      <!-- Tab Content Area (hidden on mobile if tiles launcher is shown) -->
+      <div
+        class="w-full h-full flex-grow flex flex-col items-stretch justify-center {showMobileTiles
+          ? 'hidden md:flex'
+          : 'flex'}"
+      >
+        {#if activeTab === "hourglass"}
+          <div
+            class="flex flex-col items-center justify-center text-center p-6 h-full select-none"
+          >
+            <Hourglass now={nowDate} bind:currentMode={hourglassMode} />
+            <h3 class="font-bold text-white text-sm mt-4">Sands of Time</h3>
+            <p class="text-[10px] text-white/40 max-w-xs mt-1">
+              Particles settle dynamically every second. Click the glass to
+              physically rotate it.
+            </p>
+
+            <div
+              class="mt-6 border border-white/5 bg-white/2 rounded-xl py-2 px-5 text-center font-mono"
+            >
+              <span class="text-xl font-bold text-sky-400">{digitalTime}</span>
+              <span
+                class="text-[8px] text-white/30 block uppercase tracking-wider"
+                >{digitalDate}</span
+              >
+            </div>
+          </div>
+        {:else}
+          {#if activeTab === "stopwatch"}<StopwatchTab />{/if}
+          {#if activeTab === "timer"}<TimerTab />{/if}
+          {#if activeTab === "alarms"}<AlarmsTab />{/if}
+          {#if activeTab === "worldclock"}<WorldClockTab />{/if}
+          {#if activeTab === "servers"}<TimeServersTab />{/if}
+          {#if activeTab === "history"}<HistoryTab />{/if}
+          {#if activeTab === "metronome"}<MetronomeTab
+              metronome={sharedMetronome}
+            />{/if}
+          {#if activeTab === "tuner"}<TuningForkTab />{/if}
+        {/if}
+      </div>
     </div>
   </main>
 </div>

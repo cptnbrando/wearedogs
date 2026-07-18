@@ -176,9 +176,45 @@
     `Doing git revert --no-commit "HEAD~$c..HEAD"-Ups`,
   ];
 
+  // Touch-and-hold format selector for mobile viewports
+  let holdTimeout = null;
+  let ignoreNextClick = false;
+
+  function handleFormatPointerDown(format, event) {
+    if (conversionStatus !== "idle" || !file) return;
+
+    ignoreNextClick = false;
+    holdTimeout = setTimeout(() => {
+      // Toggle selection (like Ctrl+click)
+      if (selectedFormats.includes(format)) {
+        selectedFormats = selectedFormats.filter((f) => f !== format);
+      } else {
+        selectedFormats = [...selectedFormats, format];
+      }
+      selectionAnchor = format;
+
+      ignoreNextClick = true;
+      if (navigator.vibrate) {
+        navigator.vibrate(35); // Haptic feedback tick
+      }
+    }, 450); // 450ms hold trigger threshold
+  }
+
+  function handleFormatPointerUp(format, event) {
+    if (holdTimeout) {
+      clearTimeout(holdTimeout);
+      holdTimeout = null;
+    }
+  }
+
   // Selection Anchor and Format Handler
   function handleFormatSelection(format, event) {
     if (conversionStatus !== "idle" || !file) return;
+
+    if (ignoreNextClick) {
+      ignoreNextClick = false;
+      return;
+    }
 
     const isCtrl = event.ctrlKey || event.metaKey;
     const isShift = event.shiftKey;
@@ -1837,6 +1873,11 @@
                           class="format-opt-btn"
                           class:selected={selectedFormats.includes(format)}
                           onclick={(e) => handleFormatSelection(format, e)}
+                          onpointerdown={(e) =>
+                            handleFormatPointerDown(format, e)}
+                          onpointerup={(e) => handleFormatPointerUp(format, e)}
+                          onpointerleave={(e) =>
+                            handleFormatPointerUp(format, e)}
                         >
                           <span class="format-num">{index + 1}</span>
                           <span class="format-label"
@@ -1859,7 +1900,7 @@
                 <div
                   class="flex flex-col gap-0.5 mt-1 text-[9px] text-white/30"
                 >
-                  <span>• Ctrl/Shift + Click: Multiple format selections</span>
+                  <span>• Shift+Click or Touch+Hold: Multi-select</span>
                 </div>
               </div>
             </div>
