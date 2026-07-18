@@ -338,9 +338,21 @@ export class WiretapEngine {
 
       if (pushedAny && this.onLivePeaksUpdate) {
         const duration = (performance.now() - this.recordingStartTime) / 1000;
+        let displayPeaks;
+        let activeCount;
+        if (this.livePeaks.length <= WAVEFORM_BARS_COUNT) {
+          displayPeaks = resamplePeaks(this.livePeaks, WAVEFORM_BARS_COUNT);
+          activeCount = this.livePeaks.length;
+        } else {
+          displayPeaks = this.livePeaks.slice(-WAVEFORM_BARS_COUNT);
+          const maxVal = Math.max(...displayPeaks) || 1.0;
+          const scale = maxVal > 0.05 ? maxVal : 1.0;
+          displayPeaks = displayPeaks.map(p => p / scale);
+          activeCount = WAVEFORM_BARS_COUNT;
+        }
         this.onLivePeaksUpdate(
-          resamplePeaks(this.livePeaks, WAVEFORM_BARS_COUNT),
-          Math.min(WAVEFORM_BARS_COUNT, this.livePeaks.length),
+          displayPeaks,
+          activeCount,
           duration
         );
       }
