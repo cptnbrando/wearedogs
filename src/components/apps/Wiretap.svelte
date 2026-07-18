@@ -46,7 +46,7 @@
   // Prick Mode State Variables
   let mode = $state("recorder"); // "recorder" or "prick"
   let triggerThreshold = $state(0.45);
-  let clipLength = $state(3); // default 3 seconds
+  let clipLength = $state(4); // default 3 seconds
   let liveVolume = $state(0);
   let clips = $state([]);
 
@@ -289,6 +289,10 @@
       canvasEl.width = 640;
       canvasEl.height = 480;
       canvasCtx = canvasEl.getContext("2d");
+
+      // Paint first frame black to initialize buffers
+      canvasCtx.fillStyle = "#0c0c0f";
+      canvasCtx.fillRect(0, 0, canvasEl.width, canvasEl.height);
     }
   }
 
@@ -327,10 +331,8 @@
     }
   });
 
-  // Canvas Draw Loop to bake overlays into recorded video in real-time
-  function drawCanvasFrame() {
-    if (!enableVideo && !engineState.isRecording) return;
-
+  // Synchronous canvas render function
+  function renderCanvas() {
     if (canvasCtx && canvasEl) {
       // 1. Draw webcam feed or background grid
       if (enableVideo && hiddenVideoEl && hiddenVideoEl.readyState >= 2) {
@@ -460,7 +462,12 @@
         );
       }
     }
+  }
 
+  // Canvas Draw Loop to bake overlays into recorded video in real-time
+  function drawCanvasFrame() {
+    if (!enableVideo && !engineState.isRecording) return;
+    renderCanvas();
     canvasDrawLoopId = requestAnimationFrame(drawCanvasFrame);
   }
 
@@ -479,6 +486,7 @@
 
       // Ensure canvas is active to physically record the HUD overlays
       ensureCanvasInitialized();
+      renderCanvas(); // Render immediately to make sure stream tracks have frames
       startCanvasDrawLoop();
 
       const canvasStream = canvasEl.captureStream(30);
@@ -568,8 +576,15 @@
 
   // Format starting Date plus relative offset into hh:mm:ss am/pm format
   function formatWallClockTime(startDate, offsetSecs) {
-    if (!startDate || isNaN(offsetSecs) || offsetSecs === Infinity || offsetSecs === -Infinity) return "";
-    const baseDate = startDate instanceof Date ? startDate : new Date(startDate);
+    if (
+      !startDate ||
+      isNaN(offsetSecs) ||
+      offsetSecs === Infinity ||
+      offsetSecs === -Infinity
+    )
+      return "";
+    const baseDate =
+      startDate instanceof Date ? startDate : new Date(startDate);
     const time = new Date(baseDate.getTime() + offsetSecs * 1000);
     return time
       .toLocaleTimeString([], {
@@ -1433,7 +1448,9 @@
                   : displayDuration}
                 {@const peaksToRender = engineState.isRecording
                   ? livePeaks
-                  : (playbackMedia && playbackMedia.peaks ? playbackMedia.peaks : decodedPeaks)}
+                  : playbackMedia && playbackMedia.peaks
+                    ? playbackMedia.peaks
+                    : decodedPeaks}
                 {@const timelineStartDate = playbackMedia
                   ? playbackMedia.timestamp
                   : recordingStartDate}
@@ -1768,7 +1785,7 @@
                   >
                     STOP
                   </button>
-                {:else}
+                {:else if !playbackMedia}
                   <button
                     onclick={startRecording}
                     disabled={engineState.isDecoding || engineState.isPlaying}
@@ -1778,16 +1795,27 @@
                   </button>
                 {/if}
 
-                <!-- Playback toggle -->
-                {#if decodedPeaks.length > 0}
-                  {#if playbackMedia ? isMediaPlaying : engineState.isPlaying}
+                <!-- Playback toggle (Full Recording or Clip Playback) -->
+                {#if playbackMedia}
+                  <!-- Exit Playback button -->
+                  <button
+                    onclick={() => {
+                      if (mediaPlaybackEl) {
+                        mediaPlaybackEl.pause();
+                      }
+                      playbackMedia = null;
+                    }}
+                    class="px-4 py-2.5 bg-[#ff3344]/20 hover:bg-[#ff3344]/30 text-[#ff3344] border border-[#ff3344]/30 font-mono text-xs font-bold uppercase rounded active:scale-95 transition-all cursor-pointer"
+                    title="Exit Playback"
+                  >
+                    Exit Playback
+                  </button>
+
+                  <!-- Play/Pause for the currently playing clip/recording -->
+                  {#if isMediaPlaying}
                     <button
                       onclick={() => {
-                        if (playbackMedia && mediaPlaybackEl) {
-                          mediaPlaybackEl.pause();
-                        } else {
-                          engine.pause();
-                        }
+                        if (mediaPlaybackEl) mediaPlaybackEl.pause();
                       }}
                       class="p-2.5 bg-white/10 hover:bg-white/15 text-white rounded active:scale-95 transition-all cursor-pointer"
                       title="Pause"
@@ -1797,12 +1825,27 @@
                   {:else}
                     <button
                       onclick={() => {
-                        if (playbackMedia && mediaPlaybackEl) {
-                          mediaPlaybackEl.play();
-                        } else {
-                          playFullRecording();
-                        }
+                        if (mediaPlaybackEl) mediaPlaybackEl.play();
                       }}
+                      class="p-2.5 bg-[#00ff66] hover:bg-[#00d75f] text-black rounded active:scale-95 transition-all cursor-pointer"
+                      title="Play"
+                    >
+                      <Play class="w-4 h-4" />
+                    </button>
+                  {/if}
+                {:else if decodedPeaks.length > 0}
+                  <!-- Full recording Play/Pause toggle -->
+                  {#if engineState.isPlaying}
+                    <button
+                      onclick={() => engine.pause()}
+                      class="p-2.5 bg-white/10 hover:bg-white/15 text-white rounded active:scale-95 transition-all cursor-pointer"
+                      title="Pause"
+                    >
+                      <Pause class="w-4 h-4" />
+                    </button>
+                  {:else}
+                    <button
+                      onclick={() => playFullRecording()}
                       disabled={engineState.isDecoding}
                       class="p-2.5 bg-[#00ff66] hover:bg-[#00d75f] text-black rounded active:scale-95 transition-all cursor-pointer"
                       title="Play"
