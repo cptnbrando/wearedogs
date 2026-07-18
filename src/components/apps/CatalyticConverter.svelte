@@ -1873,9 +1873,11 @@
                           class="format-opt-btn"
                           class:selected={selectedFormats.includes(format)}
                           onclick={(e) => handleFormatSelection(format, e)}
-                          onpointerdown={(e) => handleFormatPointerDown(format, e)}
+                          onpointerdown={(e) =>
+                            handleFormatPointerDown(format, e)}
                           onpointerup={(e) => handleFormatPointerUp(format, e)}
-                          onpointerleave={(e) => handleFormatPointerUp(format, e)}
+                          onpointerleave={(e) =>
+                            handleFormatPointerUp(format, e)}
                         >
                           <span class="format-num">{index + 1}</span>
                           <span class="format-label"
@@ -1898,7 +1900,7 @@
                 <div
                   class="flex flex-col gap-0.5 mt-1 text-[9px] text-white/30"
                 >
-                  <span>• Ctrl/Shift + Click / Hold option: Multiple format selections</span>
+                  <span>• Shift+Click or Touch+Hold: Multi-select</span>
                 </div>
               </div>
             </div>

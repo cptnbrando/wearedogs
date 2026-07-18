@@ -140,15 +140,25 @@
             if (isMobileViewport) {
               if (prevShowTiles) {
                 history.pushState(
-                  { view: "toolbox", app: "stopwatch", subTab: activeTab, depth: 3 },
+                  {
+                    view: "toolbox",
+                    app: "stopwatch",
+                    subTab: activeTab,
+                    depth: 3,
+                  },
                   "",
-                  "/apps/stopwatch/" + activeTab
+                  "/apps/stopwatch/" + activeTab,
                 );
               } else {
                 history.replaceState(
-                  { view: "toolbox", app: "stopwatch", subTab: activeTab, depth: 3 },
+                  {
+                    view: "toolbox",
+                    app: "stopwatch",
+                    subTab: activeTab,
+                    depth: 3,
+                  },
                   "",
-                  "/apps/stopwatch/" + activeTab
+                  "/apps/stopwatch/" + activeTab,
                 );
               }
             }
@@ -160,15 +170,25 @@
             if (isMobileViewport) {
               if (prevShowTiles) {
                 history.pushState(
-                  { view: "toolbox", app: "stopwatch", subTab: activeTab, depth: 3 },
+                  {
+                    view: "toolbox",
+                    app: "stopwatch",
+                    subTab: activeTab,
+                    depth: 3,
+                  },
                   "",
-                  "/apps/stopwatch/" + activeTab
+                  "/apps/stopwatch/" + activeTab,
                 );
               } else {
                 history.replaceState(
-                  { view: "toolbox", app: "stopwatch", subTab: activeTab, depth: 3 },
+                  {
+                    view: "toolbox",
+                    app: "stopwatch",
+                    subTab: activeTab,
+                    depth: 3,
+                  },
                   "",
-                  "/apps/stopwatch/" + activeTab
+                  "/apps/stopwatch/" + activeTab,
                 );
               }
             }
@@ -243,7 +263,10 @@
       {:else}
         <div class="flex items-center gap-1.5">
           <HourglassIcon class="text-sky-400 animate-spin-slow" size={12} />
-          <span class="text-[10px] font-mono tracking-widest text-white/55 uppercase">FATHER TIME</span>
+          <span
+            class="text-[10px] font-mono tracking-widest text-white/55 uppercase"
+            >FATHER TIME</span
+          >
         </div>
       {/if}
     </div>
@@ -366,9 +389,13 @@
     >
       <!-- Mobile Windows Phone-like Tile Launcher -->
       {#if showMobileTiles}
-        <div class="md:hidden flex-grow flex flex-col justify-stretch items-stretch p-0.5 select-none w-full h-full">
+        <div
+          class="md:hidden flex-grow flex flex-col justify-stretch items-stretch p-0.5 select-none w-full h-full"
+        >
           <!-- Windows Phone Grid: responsive 3 columns and 3 rows -->
-          <div class="grid grid-cols-3 grid-rows-3 gap-2 w-full h-full flex-grow p-0.5">
+          <div
+            class="grid grid-cols-3 grid-rows-3 gap-2 w-full h-full flex-grow p-0.5"
+          >
             {#each TABS_CONFIG as tab, idx}
               {@const bgColors = [
                 "bg-sky-600 hover:bg-sky-500",
@@ -379,7 +406,7 @@
                 "bg-fuchsia-600 hover:bg-fuchsia-500",
                 "bg-pink-600 hover:bg-pink-500",
                 "bg-cyan-600 hover:bg-cyan-500",
-                "bg-teal-600 hover:bg-teal-500"
+                "bg-teal-600 hover:bg-teal-500",
               ]}
               <button
                 onclick={() => {
@@ -387,20 +414,29 @@
                   showMobileTiles = false;
                   if (isMobileViewport) {
                     history.pushState(
-                      { view: "toolbox", app: "stopwatch", subTab: tab.id, depth: 3 },
+                      {
+                        view: "toolbox",
+                        app: "stopwatch",
+                        subTab: tab.id,
+                        depth: 3,
+                      },
                       "",
-                      "/apps/stopwatch/" + tab.id
+                      "/apps/stopwatch/" + tab.id,
                     );
                   }
                 }}
-                class="flex flex-col justify-between p-2.5 rounded-lg border border-white/5 active:scale-95 transition-all text-left relative overflow-hidden shadow-[0_4px_12px_rgba(0,0,0,0.3)] {bgColors[idx % bgColors.length]}"
+                class="flex flex-col justify-between p-2.5 rounded-lg border border-white/5 active:scale-95 transition-all text-left relative overflow-hidden shadow-[0_4px_12px_rgba(0,0,0,0.3)] {bgColors[
+                  idx % bgColors.length
+                ]}"
               >
                 <!-- Icon in top-left or centered -->
                 <div class="text-white/95">
                   <tab.icon size={16} strokeWidth={2.5} />
                 </div>
                 <!-- Label in bottom-left -->
-                <span class="text-[9px] font-black uppercase tracking-widest text-white leading-tight mt-auto select-none">
+                <span
+                  class="text-[9px] font-black uppercase tracking-widest text-white leading-tight mt-auto select-none"
+                >
                   {tab.label}
                 </span>
               </button>
@@ -410,7 +446,11 @@
       {/if}
 
       <!-- Tab Content Area (hidden on mobile if tiles launcher is shown) -->
-      <div class="w-full h-full flex-grow flex flex-col items-stretch justify-center {showMobileTiles ? 'hidden md:flex' : 'flex'}">
+      <div
+        class="w-full h-full flex-grow flex flex-col items-stretch justify-center {showMobileTiles
+          ? 'hidden md:flex'
+          : 'flex'}"
+      >
         {#if activeTab === "hourglass"}
           <div
             class="flex flex-col items-center justify-center text-center p-6 h-full select-none"
