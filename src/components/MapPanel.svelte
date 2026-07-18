@@ -295,6 +295,7 @@
             <span>{city.name}</span>
           </button>
         {/each}
+        <!--
         <button
           class="city-btn find-location-btn"
           onclick={findClosestLocation}
@@ -302,6 +303,7 @@
           <Sparkles size={12} />
           <span>Find Location</span>
         </button>
+        -->
       </div>
 
       <div class="svg-container">
@@ -1971,6 +1973,7 @@
 
   .cities-bar {
     display: flex;
+    flex-shrink: 0;
     gap: 0.5rem;
     padding: 0.5rem;
     background: rgba(0, 0, 0, 0.2);
@@ -1984,6 +1987,7 @@
   .city-btn {
     display: flex;
     align-items: center;
+    flex-shrink: 0;
     gap: 4px;
     padding: 4px 10px;
     border: 1px solid rgba(255, 255, 255, 0.08);
@@ -2008,6 +2012,7 @@
     box-shadow: 0 0 10px rgba(255, 51, 68, 0.15);
   }
 
+  /*
   .find-location-btn {
     border-color: rgba(239, 68, 68, 0.4);
     background: rgba(239, 68, 68, 0.08);
@@ -2019,6 +2024,7 @@
     color: #ef4444;
     border-color: rgba(239, 68, 68, 0.6);
   }
+  */
 
   .svg-container {
     flex: 1;
