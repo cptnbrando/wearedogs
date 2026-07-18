@@ -403,7 +403,7 @@
           data,
         });
       }
-      const zipBlob = createZip(filesToZip);
+      const zipBlob = await createZip(filesToZip);
       const url = URL.createObjectURL(zipBlob);
       const a = document.createElement("a");
       a.href = url;

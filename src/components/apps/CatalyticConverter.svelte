@@ -24,7 +24,7 @@
     convertVideo,
     convertAudioToVideo,
   } from "../../lib/convert.js";
-  import * as fflate from "fflate";
+  import { createZip, unzip } from "../../lib/zip.js";
 
   // State variables
   let isDragging = $state(false);
@@ -640,29 +640,20 @@
 
       const promises = Object.entries(zipData).map(async ([name, blob]) => {
         const arrayBuffer = await blob.arrayBuffer();
-        return [name, new Uint8Array(arrayBuffer)];
+        return { name, data: new Uint8Array(arrayBuffer) };
       });
 
       try {
-        const entries = await Promise.all(promises);
-        const zipObj = Object.fromEntries(entries);
-
-        fflate.zip(zipObj, (err, data) => {
-          if (err) {
-            console.error("Error creating ZIP:", err);
-            return;
-          }
-          const blob = new Blob([data], { type: "application/zip" });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = url;
-          const baseName = file.name.substring(0, file.name.lastIndexOf("."));
-          a.download = `${baseName}_converted.zip`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-        });
+        const filesToZip = await Promise.all(promises);
+        const blob = await createZip(filesToZip);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        const baseName = file.name.substring(0, file.name.lastIndexOf("."));
+        a.download = `${baseName}_converted.zip`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
       } catch (err) {
         console.error("Failed to build ZIP archive:", err);
       }
@@ -732,46 +723,45 @@
       const arrayBuffer = await zipFile.arrayBuffer();
       const uint8Array = new Uint8Array(arrayBuffer);
 
-      fflate.unzip(uint8Array, (err, unzipped) => {
-        if (err) {
-          errorMessage = "Could not extract ZIP file: " + err.message;
-          conversionStatus = "error";
-          return;
-        }
+      unzip(uint8Array)
+        .then((unzipped) => {
+          const extractedFiles = [];
+          for (const [path, data] of Object.entries(unzipped)) {
+            if (path.endsWith("/") || data.length === 0) continue;
 
-        const extractedFiles = [];
-        for (const [path, data] of Object.entries(unzipped)) {
-          if (path.endsWith("/") || data.length === 0) continue;
+            const filename = path.split("/").pop();
+            const ext = filename.split(".").pop().toLowerCase();
 
-          const filename = path.split("/").pop();
-          const ext = filename.split(".").pop().toLowerCase();
+            let mime = "application/octet-stream";
+            if (
+              ["png", "jpg", "jpeg", "webp", "gif", "avif", "svg"].includes(ext)
+            ) {
+              mime = `image/${ext === "jpg" || ext === "jpeg" ? "jpeg" : ext}`;
+            } else if (
+              ["mp3", "wav", "m4a", "aac", "webm", "ogg"].includes(ext)
+            ) {
+              mime = `audio/${ext}`;
+            } else if (["mp4", "mov", "mkv", "avi"].includes(ext)) {
+              mime = `video/${ext}`;
+            }
 
-          let mime = "application/octet-stream";
-          if (
-            ["png", "jpg", "jpeg", "webp", "gif", "avif", "svg"].includes(ext)
-          ) {
-            mime = `image/${ext === "jpg" || ext === "jpeg" ? "jpeg" : ext}`;
-          } else if (
-            ["mp3", "wav", "m4a", "aac", "webm", "ogg"].includes(ext)
-          ) {
-            mime = `audio/${ext}`;
-          } else if (["mp4", "mov", "mkv", "avi"].includes(ext)) {
-            mime = `video/${ext}`;
+            const fileObj = new File([data], filename, { type: mime });
+            extractedFiles.push(fileObj);
           }
 
-          const fileObj = new File([data], filename, { type: mime });
-          extractedFiles.push(fileObj);
-        }
+          if (extractedFiles.length === 0) {
+            errorMessage = "No supported files found inside the ZIP.";
+            conversionStatus = "error";
+            return;
+          }
 
-        if (extractedFiles.length === 0) {
-          errorMessage = "No supported files found inside the ZIP.";
+          conversionStatus = "idle";
+          processMultipleFiles(extractedFiles);
+        })
+        .catch((err) => {
+          errorMessage = "Could not extract ZIP file: " + err.message;
           conversionStatus = "error";
-          return;
-        }
-
-        conversionStatus = "idle";
-        processMultipleFiles(extractedFiles);
-      });
+        });
     } catch (err) {
       errorMessage = "Error reading ZIP file: " + err.message;
       conversionStatus = "error";
