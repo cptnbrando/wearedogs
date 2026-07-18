@@ -554,7 +554,7 @@
 
   // Format seconds to readable timer format (MM:SS or H:MM:SS)
   function formatTime(secs) {
-    if (isNaN(secs)) return "0:00";
+    if (isNaN(secs) || secs === Infinity || secs === -Infinity) return "0:00";
     const totalSeconds = Math.round(secs);
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
@@ -568,8 +568,9 @@
 
   // Format starting Date plus relative offset into hh:mm:ss am/pm format
   function formatWallClockTime(startDate, offsetSecs) {
-    if (!startDate) return "";
-    const time = new Date(startDate.getTime() + offsetSecs * 1000);
+    if (!startDate || isNaN(offsetSecs) || offsetSecs === Infinity || offsetSecs === -Infinity) return "";
+    const baseDate = startDate instanceof Date ? startDate : new Date(startDate);
+    const time = new Date(baseDate.getTime() + offsetSecs * 1000);
     return time
       .toLocaleTimeString([], {
         hour: "numeric",

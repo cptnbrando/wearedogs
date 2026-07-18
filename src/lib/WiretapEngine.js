@@ -92,6 +92,7 @@ export class WiretapEngine {
     // Monitoring State
     this.isMonitoring = false;
     this.monitorStream = null;
+    this.recordingDuration = 0;
 
     // Speech Recognition
     this.recognition = null;
@@ -149,13 +150,17 @@ export class WiretapEngine {
    */
   setupPlaybackListeners() {
     const updateProgress = () => {
-      if (this.audioElement.duration) {
-        this.playbackProgress = this.audioElement.currentTime / this.audioElement.duration;
+      let dur = this.audioElement.duration;
+      if (!dur || dur === Infinity) {
+        dur = this.recordingDuration || 0;
+      }
+      if (dur) {
+        this.playbackProgress = this.audioElement.currentTime / dur;
         if (this.onPlaybackProgress) {
           this.onPlaybackProgress(
             this.playbackProgress,
             this.audioElement.currentTime,
-            this.audioElement.duration
+            dur
           );
         }
       }
@@ -179,7 +184,11 @@ export class WiretapEngine {
       this.playbackProgress = 0;
       this.triggerStateChange();
       if (this.onPlaybackProgress) {
-        this.onPlaybackProgress(0, 0, this.audioElement.duration || 0);
+        let dur = this.audioElement.duration;
+        if (!dur || dur === Infinity) {
+          dur = this.recordingDuration || 0;
+        }
+        this.onPlaybackProgress(0, 0, dur);
       }
     });
   }
@@ -376,6 +385,8 @@ export class WiretapEngine {
    */
   stopRecording() {
     if (!this.isRecording) return;
+
+    this.recordingDuration = (performance.now() - this.recordingStartTime) / 1000;
 
     if (this.clipCapturingState === "capturing") {
       this.finalizeClip();
@@ -735,9 +746,13 @@ export class WiretapEngine {
    * Scrub to a given percentage of the audio.
    */
   seek(percent) {
-    if (this.audioElement.duration) {
+    let dur = this.audioElement.duration;
+    if (!dur || dur === Infinity) {
+      dur = this.recordingDuration || 0;
+    }
+    if (dur) {
       const boundedPercent = Math.max(0, Math.min(1, percent));
-      this.audioElement.currentTime = boundedPercent * this.audioElement.duration;
+      this.audioElement.currentTime = boundedPercent * dur;
       this.playbackProgress = boundedPercent;
     }
   }
