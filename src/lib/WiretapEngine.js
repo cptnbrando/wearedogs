@@ -89,6 +89,10 @@ export class WiretapEngine {
     this.liveStream = null;
     this.animationFrameId = null;
 
+    // Monitoring State
+    this.isMonitoring = false;
+    this.monitorStream = null;
+
     // Speech Recognition
     this.recognition = null;
     this.finalTranscript = "";
@@ -218,8 +222,37 @@ export class WiretapEngine {
   }
 
   /**
-   * Starts microphone recording and speech recognition.
+   * Start live background monitoring.
    */
+  async startMonitoring(audioDeviceId) {
+    this.stopMonitoring();
+
+    const constraints = {
+      audio: audioDeviceId ? { deviceId: { exact: audioDeviceId } } : true,
+    };
+
+    try {
+      this.monitorStream = await navigator.mediaDevices.getUserMedia(constraints);
+      this.isMonitoring = true;
+      this.startAnalyser();
+    } catch (err) {
+      console.error("Failed to start monitoring:", err);
+      throw err;
+    }
+  }
+
+  /**
+   * Stop background monitoring.
+   */
+  stopMonitoring() {
+    this.stopAnalyser();
+    if (this.monitorStream) {
+      this.monitorStream.getTracks().forEach((t) => t.stop());
+      this.monitorStream = null;
+    }
+    this.isMonitoring = false;
+  }
+
   /**
    * Starts microphone and video recording and speech recognition.
    */
@@ -257,12 +290,26 @@ export class WiretapEngine {
     }
 
     try {
-      this.liveStream = await navigator.mediaDevices.getUserMedia(constraints);
+      // Reuse monitoring stream audio track if active, otherwise fetch new stream
+      if (this.isMonitoring && this.monitorStream) {
+        this.liveStream = new MediaStream();
+        const audioTrack = this.monitorStream.getAudioTracks()[0];
+        if (audioTrack) {
+          this.liveStream.addTrack(audioTrack);
+        } else {
+          const tempStream = await navigator.mediaDevices.getUserMedia(constraints);
+          this.liveStream.addTrack(tempStream.getAudioTracks()[0]);
+        }
+      } else {
+        this.liveStream = await navigator.mediaDevices.getUserMedia(constraints);
+      }
+
       if (videoTrack) {
         this.liveStream.addTrack(videoTrack);
       }
+
       this.recordingStartTime = performance.now();
-      
+
       const options = { mimeType: this.mimeType };
       this.mediaRecorder = new MediaRecorder(this.liveStream, options);
 
@@ -278,7 +325,7 @@ export class WiretapEngine {
 
           // Push to rolling chunks for pre-record buffer
           this.rollingChunks.push({ chunk: e.data, timestamp: now });
-          
+
           // Filter rolling chunks to keep only those within clipLength
           const preRecordLimit = now - this.clipLength * 1000;
           this.rollingChunks = this.rollingChunks.filter((c) => c.timestamp >= preRecordLimit);
@@ -314,9 +361,6 @@ export class WiretapEngine {
       this.mediaRecorder.start(250);
       this.isRecording = true;
 
-      // Set up real-time audio analysis
-      this.startAnalyser();
-
       // Start speech recognition
       this.startSpeechRecognition();
 
@@ -328,7 +372,7 @@ export class WiretapEngine {
   }
 
   /**
-   * Stop the current recording, live streaming tracks, analysis, and SpeechRecognition.
+   * Stop the current recording, but keep monitoring running.
    */
   stopRecording() {
     if (!this.isRecording) return;
@@ -341,12 +385,17 @@ export class WiretapEngine {
       this.mediaRecorder.stop();
     }
 
+    // Stop only tracks that are not part of monitorStream
     if (this.liveStream) {
-      this.liveStream.getTracks().forEach((t) => t.stop());
+      this.liveStream.getTracks().forEach((t) => {
+        const isMonitorTrack = this.monitorStream && this.monitorStream.getTracks().includes(t);
+        if (!isMonitorTrack) {
+          t.stop();
+        }
+      });
       this.liveStream = null;
     }
 
-    this.stopAnalyser();
     this.stopSpeechRecognition();
 
     this.isRecording = false;
@@ -360,10 +409,13 @@ export class WiretapEngine {
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
     if (!AudioContextClass) return;
 
+    const streamSource = this.monitorStream || this.liveStream;
+    if (!streamSource) return;
+
     this.audioContext = new AudioContextClass();
     this.analyser = this.audioContext.createAnalyser();
     this.analyser.fftSize = 1024;
-    this.source = this.audioContext.createMediaStreamSource(this.liveStream);
+    this.source = this.audioContext.createMediaStreamSource(streamSource);
     this.source.connect(this.analyser);
 
     if (this.audioContext.state === "suspended") {
@@ -374,11 +426,11 @@ export class WiretapEngine {
     const freqDataArray = new Uint8Array(bufferLength);
     const timeDomainArray = new Uint8Array(this.analyser.fftSize);
 
-    let lastSampleTime = this.recordingStartTime;
+    let lastSampleTime = performance.now();
     let currentWindowMax = 0;
 
     const tick = () => {
-      if (!this.isRecording) return;
+      if (!this.isMonitoring && !this.isRecording) return;
 
       // 1. Get live time-domain peak amplitude
       this.analyser.getByteTimeDomainData(timeDomainArray);
@@ -396,7 +448,7 @@ export class WiretapEngine {
         this.onLiveVolumeUpdate(amp);
       }
 
-      if (this.mode === "prick") {
+      if (this.mode === "prick" && this.isRecording) {
         if (amp > this.threshold) {
           const now = performance.now();
           if (this.clipCapturingState === "idle") {
@@ -404,15 +456,16 @@ export class WiretapEngine {
             this.triggerStateChange();
             this.clipStartTime = new Date(Date.now() - this.clipLength * 1000);
             this.clipStartPerformanceTime = now - this.clipLength * 1000;
-            
+
             // Collect the pre-recorded chunks & peaks
             this.activeClipChunks = this.rollingChunks.map((c) => c.chunk);
             this.activeClipPeaks = this.rollingPeaks.map((p) => p.val);
-            
+
             this.clipEndTime = now + this.clipLength * 1000;
           } else if (this.clipCapturingState === "capturing") {
-            // Extend the clip recording to clipLength seconds after the latest snap
-            this.clipEndTime = now + this.clipLength * 1000;
+            // Extend the clip recording, but cap it to prevent infinite capture loops
+            const maxClipEndTime = this.clipStartPerformanceTime + (this.clipLength * 4) * 1000;
+            this.clipEndTime = Math.min(now + this.clipLength * 1000, maxClipEndTime);
           }
         }
       }
@@ -422,29 +475,32 @@ export class WiretapEngine {
       let pushedAny = false;
       while (now - lastSampleTime >= this.sampleIntervalMs) {
         const peakVal = currentWindowMax;
-        this.livePeaks.push(peakVal);
 
-        // Keep rolling peaks for pre-record buffer
-        this.rollingPeaks.push({ val: peakVal, timestamp: now });
-        const preRecordLimit = now - this.clipLength * 1000;
-        this.rollingPeaks = this.rollingPeaks.filter((p) => p.timestamp >= preRecordLimit);
+        if (this.isRecording) {
+          this.livePeaks.push(peakVal);
 
-        if (this.clipCapturingState === "capturing") {
-          this.activeClipPeaks.push(peakVal);
+          // Keep rolling peaks for pre-record buffer
+          this.rollingPeaks.push({ val: peakVal, timestamp: now });
+          const preRecordLimit = now - this.clipLength * 1000;
+          this.rollingPeaks = this.rollingPeaks.filter((p) => p.timestamp >= preRecordLimit);
+
+          if (this.clipCapturingState === "capturing") {
+            this.activeClipPeaks.push(peakVal);
+          }
+
+          // Downsample dynamically to protect performance if recording is long-running
+          if (this.livePeaks.length >= 1000) {
+            this.livePeaks = downsamplePeaksHalf(this.livePeaks);
+            this.sampleIntervalMs *= 2;
+          }
         }
 
         lastSampleTime += this.sampleIntervalMs;
         currentWindowMax = 0;
         pushedAny = true;
-
-        // Downsample dynamically to protect performance if recording is long-running
-        if (this.livePeaks.length >= 1000) {
-          this.livePeaks = downsamplePeaksHalf(this.livePeaks);
-          this.sampleIntervalMs *= 2;
-        }
       }
 
-      if (pushedAny && this.onLivePeaksUpdate) {
+      if (pushedAny && this.onLivePeaksUpdate && this.isRecording) {
         const duration = (performance.now() - this.recordingStartTime) / 1000;
         let displayPeaks;
         let activeCount;
@@ -653,6 +709,10 @@ export class WiretapEngine {
     if (this.onClipAdded) {
       this.onClipAdded(newClip, this.clips);
     }
+
+    // Reset chunks and peaks to clear state
+    this.activeClipChunks = [];
+    this.activeClipPeaks = [];
   }
 
   /**
@@ -699,6 +759,7 @@ export class WiretapEngine {
    */
   reset() {
     this.stopRecording();
+    this.stopMonitoring();
     this.pause();
     this.audioBlob = null;
     this.audioUrl = null;

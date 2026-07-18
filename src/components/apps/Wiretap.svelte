@@ -69,9 +69,10 @@
   let enableVideo = $state(false);
   let videoEl = $state(null);
   let cameraStream = null;
+  let hiddenVideoEl = null;
 
   // Playback Media for Unified Video Viewport
-  let playbackMedia = $state(null); // { url, isVideo, title, duration }
+  let playbackMedia = $state(null); // { url, isVideo, title, duration, timestamp, peaks }
   let playerCurrentTime = $state(0);
   let playerDuration = $state(0);
   let playerProgress = $derived(
@@ -180,6 +181,13 @@
     engine.cameraStream = cameraStream;
   });
 
+  // Start/stop live monitoring based on permission grant and audio device selection
+  $effect(() => {
+    if (isPermissionsGranted && selectedAudioDevice) {
+      engine.startMonitoring(selectedAudioDevice);
+    }
+  });
+
   // Update clock when video is on/going
   $effect(() => {
     const isVideoGoing = playbackMedia || enableVideo;
@@ -228,14 +236,20 @@
 
   // Handle camera preview stream update
   async function updateCameraStream() {
-    if (engineState.isRecording && cameraStream) {
-      cameraStream.getVideoTracks().forEach((track) => {
-        track.enabled = enableVideo;
-      });
-      if (videoEl) {
-        videoEl.srcObject = enableVideo ? cameraStream : null;
-      }
-      return;
+    if (typeof document === "undefined") return;
+
+    if (!hiddenVideoEl) {
+      hiddenVideoEl = document.createElement("video");
+      hiddenVideoEl.muted = true;
+      hiddenVideoEl.playsInline = true;
+      hiddenVideoEl.setAttribute("playsinline", "");
+      hiddenVideoEl.setAttribute("muted", "");
+      hiddenVideoEl.style.position = "absolute";
+      hiddenVideoEl.style.width = "1px";
+      hiddenVideoEl.style.height = "1px";
+      hiddenVideoEl.style.opacity = "0";
+      hiddenVideoEl.style.pointerEvents = "none";
+      document.body.appendChild(hiddenVideoEl);
     }
 
     if (cameraStream) {
@@ -248,15 +262,18 @@
         cameraStream = await navigator.mediaDevices.getUserMedia({
           video: { deviceId: { exact: selectedVideoDevice } },
         });
-        if (videoEl) {
-          videoEl.srcObject = cameraStream;
-        }
+        hiddenVideoEl.srcObject = cameraStream;
+        hiddenVideoEl.onloadedmetadata = () => {
+          hiddenVideoEl
+            .play()
+            .catch((err) => console.warn("Hidden video play failed:", err));
+        };
       } catch (err) {
         console.error("Webcam stream access failed:", err);
         enableVideo = false;
       }
-    } else if (videoEl) {
-      videoEl.srcObject = null;
+    } else {
+      hiddenVideoEl.srcObject = null;
     }
   }
 
@@ -265,17 +282,94 @@
     updateCameraStream();
   });
 
+  // Initialize canvas backing store
+  function ensureCanvasInitialized() {
+    if (!canvasEl) {
+      canvasEl = document.createElement("canvas");
+      canvasEl.width = 640;
+      canvasEl.height = 480;
+      canvasCtx = canvasEl.getContext("2d");
+    }
+  }
+
+  // Start canvas frame loop
+  function startCanvasDrawLoop() {
+    ensureCanvasInitialized();
+    if (!canvasDrawLoopId) {
+      canvasDrawLoopId = requestAnimationFrame(drawCanvasFrame);
+    }
+  }
+
+  // Stop canvas frame loop
+  function stopCanvasDrawLoop() {
+    if (canvasDrawLoopId && !enableVideo && !engineState.isRecording) {
+      cancelAnimationFrame(canvasDrawLoopId);
+      canvasDrawLoopId = null;
+    }
+  }
+
+  // Automatically manage canvas draw loop
+  $effect(() => {
+    if (enableVideo || engineState.isRecording) {
+      startCanvasDrawLoop();
+    } else {
+      stopCanvasDrawLoop();
+    }
+  });
+
+  // Automatically bind canvas stream to video element for live display
+  $effect(() => {
+    if (enableVideo && !playbackMedia && videoEl && canvasEl) {
+      const stream = canvasEl.captureStream(30);
+      if (videoEl.srcObject !== stream) {
+        videoEl.srcObject = stream;
+      }
+    }
+  });
+
   // Canvas Draw Loop to bake overlays into recorded video in real-time
   function drawCanvasFrame() {
-    if (!engineState.isRecording) return;
+    if (!enableVideo && !engineState.isRecording) return;
 
-    if (canvasCtx) {
-      // 1. Draw live webcam frame
-      if (videoEl && videoEl.readyState >= 2) {
-        canvasCtx.drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height);
+    if (canvasCtx && canvasEl) {
+      // 1. Draw webcam feed or background grid
+      if (enableVideo && hiddenVideoEl && hiddenVideoEl.readyState >= 2) {
+        canvasCtx.drawImage(
+          hiddenVideoEl,
+          0,
+          0,
+          canvasEl.width,
+          canvasEl.height,
+        );
       } else {
         canvasCtx.fillStyle = "#0c0c0f";
         canvasCtx.fillRect(0, 0, canvasEl.width, canvasEl.height);
+
+        canvasCtx.strokeStyle = "rgba(0, 255, 102, 0.08)";
+        canvasCtx.lineWidth = 1;
+        const gridSpacing = 40;
+        for (let x = 0; x < canvasEl.width; x += gridSpacing) {
+          canvasCtx.beginPath();
+          canvasCtx.moveTo(x, 0);
+          canvasCtx.lineTo(x, canvasEl.height);
+          canvasCtx.stroke();
+        }
+        for (let y = 0; y < canvasEl.height; y += gridSpacing) {
+          canvasCtx.beginPath();
+          canvasCtx.moveTo(0, y);
+          canvasCtx.lineTo(canvasEl.width, y);
+          canvasCtx.stroke();
+        }
+
+        canvasCtx.fillStyle = "rgba(0, 255, 102, 0.05)";
+        canvasCtx.font = "bold 48px monospace";
+        canvasCtx.textAlign = "center";
+        canvasCtx.textBaseline = "middle";
+        canvasCtx.fillText(
+          "WIRETAP SYSTEM",
+          canvasEl.width / 2,
+          canvasEl.height / 2,
+        );
       }
 
       // 2. Draw semi-transparent HUD background banners
@@ -312,13 +406,21 @@
       // Top-left HUD status badge
       const isClipping =
         mode === "prick" && engineState.clipCapturingState === "capturing";
-      canvasCtx.fillStyle = isClipping ? "#0066ff" : "#ff3344";
+      canvasCtx.fillStyle = isClipping
+        ? "#0066ff"
+        : engineState.isRecording
+          ? "#ff3344"
+          : "#eab308";
       canvasCtx.fillRect(15, 12, isClipping ? 68 : 60, 18);
       canvasCtx.fillStyle = "#ffffff";
       canvasCtx.font = "bold 9px monospace";
       canvasCtx.textAlign = "center";
       canvasCtx.fillText(
-        isClipping ? "CLIPPING" : "LIVE REC",
+        isClipping
+          ? "CLIPPING"
+          : engineState.isRecording
+            ? "LIVE REC"
+            : "LIVE FEED",
         isClipping ? 49 : 45,
         24,
       );
@@ -375,27 +477,15 @@
       recordingStartDate = new Date();
       playbackMedia = null; // Reset playback player when recording starts
 
-      let videoTrack = null;
-      if (enableVideo) {
-        canvasEl = document.createElement("canvas");
-        canvasEl.width = 640;
-        canvasEl.height = 480;
-        canvasCtx = canvasEl.getContext("2d");
+      // Ensure canvas is active to physically record the HUD overlays
+      ensureCanvasInitialized();
+      startCanvasDrawLoop();
 
-        // Start the frame drawing loop immediately
-        canvasDrawLoopId = requestAnimationFrame(drawCanvasFrame);
-
-        const canvasStream = canvasEl.captureStream(30);
-        videoTrack = canvasStream.getVideoTracks()[0];
-      }
+      const canvasStream = canvasEl.captureStream(30);
+      const videoTrack = canvasStream.getVideoTracks()[0];
 
       await engine.startRecording(selectedAudioDevice, videoTrack);
       liveTranscript = { final: "", interim: "" };
-
-      // Link live stream to video element
-      if (enableVideo && videoEl) {
-        videoEl.srcObject = engine.liveStream;
-      }
     } catch (err) {
       console.error("Start recording failed:", err);
     }
@@ -404,14 +494,7 @@
   // Stop recording voice and transcription
   function stopRecording() {
     engine.stopRecording();
-    if (canvasDrawLoopId) {
-      cancelAnimationFrame(canvasDrawLoopId);
-      canvasDrawLoopId = null;
-    }
-    // Restore stream preview
-    if (enableVideo && videoEl) {
-      videoEl.srcObject = cameraStream;
-    }
+    stopCanvasDrawLoop();
   }
 
   // Custom pointer drag scrubbing logic for timeline
@@ -546,7 +629,79 @@
     );
   }
 
-  // ZIP and download all recorded clips
+  // Get date range string for clips
+  function getDateRangeStr(startDate, endDate) {
+    if (!startDate || !endDate) return "";
+    const startStr = startDate.toLocaleDateString("en-US", {
+      month: "numeric",
+      day: "numeric",
+      year: "numeric",
+    });
+    const endStr = endDate.toLocaleDateString("en-US", {
+      month: "numeric",
+      day: "numeric",
+      year: "numeric",
+    });
+    if (startStr === endStr) {
+      return startStr;
+    } else {
+      return `${startStr} - ${endStr}`;
+    }
+  }
+
+  // Generate metadata JSON string
+  function getClipMetadataJSON(clip) {
+    const end = new Date(clip.timestamp.getTime() + clip.duration * 1000);
+    const metadata = {
+      start_utc: clip.timestamp.toISOString(),
+      end_utc: end.toISOString(),
+      start_local_time: clip.timestamp.toString(),
+      end_local_time: end.toString(),
+      dates: getDateRangeStr(clip.timestamp, end),
+      duration_seconds: clip.duration,
+      location: locationText,
+      peaks: clip.peaks,
+    };
+    return JSON.stringify(metadata, null, 2);
+  }
+
+  // ZIP and download a single recorded clip with its metadata JSON
+  async function downloadClipAsZip(clip, index) {
+    try {
+      const filesToZip = [];
+      const arrayBuffer = await clip.blob.arrayBuffer();
+      const mediaData = new Uint8Array(arrayBuffer);
+
+      const formattedDate = clip.timestamp.toISOString().replace(/[:.]/g, "-");
+      const mediaFilename = `clip-${index + 1}-${formattedDate}.webm`;
+      filesToZip.push({
+        name: mediaFilename,
+        data: mediaData,
+      });
+
+      // Add metadata JSON
+      const jsonStr = getClipMetadataJSON(clip);
+      const encoder = new TextEncoder();
+      const jsonData = encoder.encode(jsonStr);
+      filesToZip.push({
+        name: `clip-${index + 1}-${formattedDate}-metadata.json`,
+        data: jsonData,
+      });
+
+      const zipBlob = await createZip(filesToZip);
+      const url = URL.createObjectURL(zipBlob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `clip-${index + 1}-${formattedDate}.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Single clip ZIP download failed:", err);
+      alert("Download failed.");
+    }
+  }
+
+  // ZIP and download all recorded clips with their metadata JSONs
   let isZipping = $state(false);
   async function downloadAllClipsAsZip() {
     if (clips.length === 0) return;
@@ -555,13 +710,25 @@
       const filesToZip = [];
       for (let i = 0; i < clips.length; i++) {
         const c = clips[i];
+
+        // Add WebM file
         const arrayBuffer = await c.blob.arrayBuffer();
         const data = new Uint8Array(arrayBuffer);
-        const ext = c.isVideo ? "webm" : "webm";
         const formattedDate = c.timestamp.toISOString().replace(/[:.]/g, "-");
+        const mediaFilename = `clip-${i + 1}-${formattedDate}.webm`;
         filesToZip.push({
-          name: `clip-${i + 1}-${formattedDate}.${ext}`,
+          name: mediaFilename,
           data,
+        });
+
+        // Add metadata JSON file
+        const jsonStr = getClipMetadataJSON(c);
+        const encoder = new TextEncoder();
+        const jsonData = encoder.encode(jsonStr);
+        const jsonFilename = `clip-${i + 1}-${formattedDate}-metadata.json`;
+        filesToZip.push({
+          name: jsonFilename,
+          data: jsonData,
         });
       }
       const zipBlob = await createZip(filesToZip);
@@ -586,6 +753,8 @@
       isVideo: clip.isVideo,
       title: `${clip.isVideo ? "Video" : "Audio"} Clip`,
       duration: clip.duration,
+      timestamp: clip.timestamp,
+      peaks: clip.peaks,
     };
   }
 
@@ -596,6 +765,8 @@
       isVideo: engine.mimeType.startsWith("video"),
       title: "Full Recording",
       duration: duration,
+      timestamp: recordingStartDate,
+      peaks: decodedPeaks,
     };
   }
 
@@ -623,9 +794,8 @@
   // Resample peaks for mini-visualizer overlay
   let overlayWaveformBars = $derived.by(() => {
     if (playbackMedia) {
-      const clip = clips.find((c) => c.url === playbackMedia.url);
-      if (clip && clip.peaks) {
-        return resamplePeaksForOverlay(clip.peaks);
+      if (playbackMedia.peaks) {
+        return resamplePeaksForOverlay(playbackMedia.peaks);
       }
       if (decodedPeaks.length > 0 && playbackMedia.title === "Full Recording") {
         return resamplePeaksForOverlay(decodedPeaks);
@@ -915,8 +1085,8 @@
                 ></video>
               {/if}
 
-              <!-- Surveillance Head-up Display Overlays (only visible for live feed or audio-only playback) -->
-              {#if !playbackMedia || !playbackMedia.isVideo}
+              <!-- Surveillance Head-up Display Overlays (always visible to align with playback clip or live feed) -->
+              {#if true}
                 <div
                   class="absolute inset-0 pointer-events-none z-20 flex flex-col justify-between p-3 select-none"
                 >
@@ -966,22 +1136,24 @@
                     </div>
 
                     <!-- Top Right HUD Overlay -->
-                    <div
-                      class="text-right flex flex-col items-end gap-0.5 font-mono text-[9px] text-[#00ff66] bg-black/60 px-2 py-1.5 rounded border border-[#00ff66]/10 shadow-[0_0_10px_rgba(0,0,0,0.5)]"
-                    >
-                      <div class="font-bold tracking-wider">
-                        {formatUTCTime(HUDTime)}
-                      </div>
-                      <div class="tracking-wide">
-                        {formatLocalTimeWithCentiseconds(HUDTime)}
-                      </div>
-                      <div class="text-white/70">{dateStr}</div>
+                    {#if !playbackMedia || !playbackMedia.isVideo}
                       <div
-                        class="text-white/90 font-bold border-t border-[#00ff66]/20 mt-1 pt-0.5"
+                        class="text-right flex flex-col items-end gap-0.5 font-mono text-[9px] text-[#00ff66] bg-black/60 px-2 py-1.5 rounded border border-[#00ff66]/10 shadow-[0_0_10px_rgba(0,0,0,0.5)]"
                       >
-                        LOC: {locationText || "MANUAL"}
+                        <div class="font-bold tracking-wider">
+                          {formatUTCTime(HUDTime)}
+                        </div>
+                        <div class="tracking-wide">
+                          {formatLocalTimeWithCentiseconds(HUDTime)}
+                        </div>
+                        <div class="text-white/70">{dateStr}</div>
+                        <div
+                          class="text-white/90 font-bold border-t border-[#00ff66]/20 mt-1 pt-0.5"
+                        >
+                          LOC: {locationText || "MANUAL"}
+                        </div>
                       </div>
-                    </div>
+                    {/if}
                   </div>
 
                   <!-- Bottom Row -->
@@ -989,28 +1161,32 @@
                     class="w-full flex justify-between items-end pointer-events-none"
                   >
                     <!-- Bottom Left HUD Waveform -->
-                    <div
-                      class="bg-black/70 border border-[#00ff66]/20 rounded p-1.5 flex items-end gap-[1.5px] h-9 w-28 pointer-events-none"
-                    >
-                      {#each overlayWaveformBars as val, idx}
-                        {@const isFilled =
-                          !playbackMedia || idx / 20 <= playerProgress}
-                        <div
-                          class="flex-grow rounded-sm transition-all duration-75 {isFilled
-                            ? 'bg-[#00ff66]'
-                            : 'bg-white/10'}"
-                          style="height: {Math.max(4, val * 100)}%;"
-                        ></div>
-                      {/each}
-                    </div>
+                    {#if !playbackMedia || !playbackMedia.isVideo}
+                      <div
+                        class="bg-black/70 border border-[#00ff66]/20 rounded p-1.5 flex items-end gap-[1.5px] h-9 w-28 pointer-events-none"
+                      >
+                        {#each overlayWaveformBars as val, idx}
+                          {@const isFilled =
+                            !playbackMedia || idx / 20 <= playerProgress}
+                          <div
+                            class="flex-grow rounded-sm transition-all duration-75 {isFilled
+                              ? 'bg-[#00ff66]'
+                              : 'bg-white/10'}"
+                            style="height: {Math.max(4, val * 100)}%;"
+                          ></div>
+                        {/each}
+                      </div>
+                    {/if}
 
                     <!-- Bottom Right HUD Logo -->
-                    <div
-                      class="flex items-center gap-1.5 font-mono font-bold tracking-widest text-[#00ff66] bg-black/60 px-2 py-1 rounded border border-[#00ff66]/10"
-                    >
-                      <span>DOGS</span>
-                      <DogsLogo size="panel" />
-                    </div>
+                    {#if !playbackMedia || !playbackMedia.isVideo}
+                      <div
+                        class="flex items-center gap-1.5 font-mono font-bold tracking-widest text-[#00ff66] bg-black/60 px-2 py-1 rounded border border-[#00ff66]/10"
+                      >
+                        <span>DOGS</span>
+                        <DogsLogo size="panel" />
+                      </div>
+                    {/if}
                   </div>
                 </div>
               {/if}
@@ -1153,7 +1329,7 @@
                     {/if}
                   </div>
                 {:else}
-                  {#each clips as clip (clip.id)}
+                  {#each clips as clip, index (clip.id)}
                     <div
                       class="flex items-center justify-between gap-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded p-2.5 transition-all"
                     >
@@ -1209,14 +1385,9 @@
 
                         <!-- Download Clip -->
                         <button
-                          onclick={() => {
-                            const anchor = document.createElement("a");
-                            anchor.href = clip.url;
-                            anchor.download = `clip-${clip.timestamp.getTime()}.${clip.isVideo ? "webm" : "webm"}`;
-                            anchor.click();
-                          }}
+                          onclick={() => downloadClipAsZip(clip, index)}
                           class="p-1.5 bg-white/5 hover:bg-white/10 text-white/70 border border-white/10 rounded transition-all cursor-pointer"
-                          title="Download Clip"
+                          title="Download Clip ZIP"
                         >
                           <Download class="w-3.5 h-3.5" />
                         </button>
@@ -1250,7 +1421,7 @@
             <!-- Controls / Waveform layout -->
             <div class="flex flex-col gap-3">
               <!-- Live Waveform & Timeline Player -->
-              {#if engineState.isRecording || decodedPeaks.length > 0}
+              {#if engineState.isRecording || decodedPeaks.length > 0 || playbackMedia}
                 {@const isLiveScrolling =
                   engineState.isRecording && livePeaksDuration > 10}
                 {@const timelineStart = isLiveScrolling
@@ -1258,10 +1429,13 @@
                   : 0}
                 {@const totalTime = engineState.isRecording
                   ? Math.max(10, livePeaksDuration)
-                  : duration}
+                  : displayDuration}
                 {@const peaksToRender = engineState.isRecording
                   ? livePeaks
-                  : decodedPeaks}
+                  : (playbackMedia && playbackMedia.peaks ? playbackMedia.peaks : decodedPeaks)}
+                {@const timelineStartDate = playbackMedia
+                  ? playbackMedia.timestamp
+                  : recordingStartDate}
                 <div class="flex flex-col gap-2 text-left">
                   <div class="flex items-center justify-between">
                     <span
@@ -1335,7 +1509,7 @@
                         >{formatTime(timelineStart)}</span
                       >
                       <span class="text-white/25 text-[8px] tracking-tight">
-                        {formatWallClockTime(recordingStartDate, timelineStart)}
+                        {formatWallClockTime(timelineStartDate, timelineStart)}
                       </span>
                     </div>
                     <!-- Column 1 -->
@@ -1351,7 +1525,7 @@
                       </span>
                       <span class="text-white/25 text-[8px] tracking-tight">
                         {formatWallClockTime(
-                          recordingStartDate,
+                          timelineStartDate,
                           isLiveScrolling
                             ? livePeaksDuration - 7.5
                             : totalTime * 0.25,
@@ -1371,7 +1545,7 @@
                       </span>
                       <span class="text-white/25 text-[8px] tracking-tight">
                         {formatWallClockTime(
-                          recordingStartDate,
+                          timelineStartDate,
                           isLiveScrolling
                             ? livePeaksDuration - 5
                             : totalTime * 0.5,
@@ -1391,7 +1565,7 @@
                       </span>
                       <span class="text-white/25 text-[8px] tracking-tight">
                         {formatWallClockTime(
-                          recordingStartDate,
+                          timelineStartDate,
                           isLiveScrolling
                             ? livePeaksDuration - 2.5
                             : totalTime * 0.75,
@@ -1409,7 +1583,7 @@
                       </span>
                       <span class="text-white/25 text-[8px] tracking-tight">
                         {formatWallClockTime(
-                          recordingStartDate,
+                          timelineStartDate,
                           isLiveScrolling ? livePeaksDuration : totalTime,
                         )}
                       </span>
