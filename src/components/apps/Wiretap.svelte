@@ -32,6 +32,9 @@
   let liveTranscript = $state({ final: "", interim: "" });
   let liveWaveform = $state(Array(32).fill(0));
   let decodedPeaks = $state([]);
+  let livePeaks = $state(Array(100).fill(0));
+  let livePeaksCount = $state(0);
+  let livePeaksDuration = $state(0);
   
   // Playback Info
   let playbackProgress = $state(0);
@@ -68,6 +71,12 @@
 
   engine.onAudioDecoded = (peaks) => {
     decodedPeaks = peaks;
+  };
+
+  engine.onLivePeaksUpdate = (peaks, count, dur) => {
+    livePeaks = peaks;
+    livePeaksCount = count;
+    livePeaksDuration = dur;
   };
 
   engine.onPlaybackProgress = (progress, time, dur) => {
@@ -194,6 +203,9 @@
     liveTranscript = { final: "", interim: "" };
     liveWaveform = Array(32).fill(0);
     decodedPeaks = [];
+    livePeaks = Array(100).fill(0);
+    livePeaksCount = 0;
+    livePeaksDuration = 0;
   }
 
   // Format seconds to readable timer format (MM:SS)
@@ -378,44 +390,56 @@
             <!-- Controls / Waveform layout -->
             <div class="flex flex-col gap-3">
               
-              <!-- Live Frequency Visualizer (during recording) -->
-              {#if engineState.isRecording}
-                <div class="flex flex-col gap-2">
-                  <span class="input-label text-[10px]">LIVE AUDIO FREQUENCY SPECTRUM</span>
-                  <div class="flex items-end justify-center gap-1 h-14 bg-black/25 border border-white/5 rounded p-2">
-                    {#each liveWaveform as val}
-                      <div
-                        class="w-1 bg-[#00ff66] rounded-t transition-all duration-75"
-                        style="height: {val * 100}%; opacity: {0.3 + val * 0.7};"
-                      ></div>
-                    {/each}
-                  </div>
-                </div>
-              {/if}
-
-              <!-- Static Waveform Player (after recording is stopped) -->
-              {#if decodedPeaks.length > 0}
+              <!-- Live Waveform & Timeline Player -->
+              {#if engineState.isRecording || decodedPeaks.length > 0}
+                {@const totalTime = engineState.isRecording ? livePeaksDuration : duration}
                 <div class="flex flex-col gap-2">
                   <div class="flex items-center justify-between">
-                    <span class="input-label text-[10px]">PLAYBACK TIMELINE & AUDIO WAVEFORM</span>
-                    <span class="text-[10px] font-mono text-white/50 tracking-wider">
-                      {formatTime(currentTime)} / {formatTime(duration)}
+                    <span class="input-label text-[10px]" class:text-[#ff3344]={engineState.isRecording}>
+                      {#if engineState.isRecording}
+                        LIVE SURVEILLANCE AUDIO MONITOR
+                      {:else}
+                        PLAYBACK TIMELINE & AUDIO WAVEFORM
+                      {/if}
+                    </span>
+                    <span class="text-[10px] font-mono tracking-wider" class:text-[#ff3344]={engineState.isRecording} class:text-white/50={!engineState.isRecording}>
+                      {#if engineState.isRecording}
+                        RECORDING: {formatTime(livePeaksDuration)}
+                      {:else}
+                        {formatTime(currentTime)} / {formatTime(duration)}
+                      {/if}
                     </span>
                   </div>
                   
-                  <!-- Interactive peak list -->
+                  <!-- Waveform grid -->
                   <!-- svelte-ignore a11y_no_static_element_interactions -->
                   <div
-                    class="flex items-center justify-between w-full h-16 gap-[2px] bg-black/45 border border-white/10 hover:border-white/20 rounded px-2 cursor-ew-resize relative select-none"
-                    onpointerdown={handleWaveformPointerDown}
+                    class="flex items-center justify-between w-full h-16 gap-[2px] bg-black/45 border rounded px-2 relative select-none"
+                    class:border-[#ff3344]/30={engineState.isRecording}
+                    class:border-white/10={!engineState.isRecording}
+                    class:hover:border-white/20={!engineState.isRecording}
+                    class:cursor-ew-resize={!engineState.isRecording}
+                    onpointerdown={!engineState.isRecording ? handleWaveformPointerDown : null}
                   >
-                    {#each decodedPeaks as peak, idx}
-                      {@const isActive = (idx / decodedPeaks.length) <= playbackProgress}
+                    {@const peaksToRender = engineState.isRecording ? livePeaks : decodedPeaks}
+                    {#each peaksToRender as peak, idx}
+                      {@const isActive = engineState.isRecording 
+                        ? (idx < livePeaksCount) 
+                        : ((idx / decodedPeaks.length) <= playbackProgress)}
                       <div
                         class="flex-1 rounded-sm transition-colors duration-100 {isActive ? 'bg-[#00ff66]' : 'bg-white/20'}"
                         style="height: {Math.max(4, peak * 80)}%;"
                       ></div>
                     {/each}
+                  </div>
+
+                  <!-- Waveform Timestamps -->
+                  <div class="flex justify-between text-[9px] font-mono text-white/40 mt-1 px-1 select-none border-t border-white/5 pt-1.5">
+                    <span>0:00</span>
+                    <span>{formatTime(totalTime * 0.25)}</span>
+                    <span>{formatTime(totalTime * 0.5)}</span>
+                    <span>{formatTime(totalTime * 0.75)}</span>
+                    <span>{formatTime(totalTime)}</span>
                   </div>
                 </div>
               {/if}

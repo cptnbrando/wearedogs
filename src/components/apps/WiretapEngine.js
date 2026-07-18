@@ -8,6 +8,34 @@ const DEFAULT_FFT_SIZE = 64;
 const DEFAULT_LANG = "en-US";
 const WAVEFORM_BARS_COUNT = 100;
 
+/**
+ * Resample a list of amplitudes to targetLength and normalize them.
+ */
+function resamplePeaks(array, targetLength) {
+  let resampled = [];
+  if (array.length <= targetLength) {
+    resampled = [...array];
+    while (resampled.length < targetLength) {
+      resampled.push(0);
+    }
+  } else {
+    const step = array.length / targetLength;
+    for (let i = 0; i < targetLength; i++) {
+      let max = 0;
+      const start = Math.floor(i * step);
+      const end = Math.min(Math.floor((i + 1) * step), array.length);
+      for (let j = start; j < end; j++) {
+        if (array[j] > max) max = array[j];
+      }
+      resampled.push(max);
+    }
+  }
+
+  const maxPeak = Math.max(...resampled) || 1.0;
+  const scale = maxPeak > 0.05 ? maxPeak : 1.0;
+  return resampled.map((p) => p / scale);
+}
+
 export class WiretapEngine {
   constructor() {
     this.mediaRecorder = null;
@@ -32,6 +60,7 @@ export class WiretapEngine {
     // Decoded peaks for playback waveform
     this.peaks = [];
     this.isDecoding = false;
+    this.livePeaks = [];
 
     // Listeners and state flags
     this.isRecording = false;
@@ -44,6 +73,7 @@ export class WiretapEngine {
     this.onLiveWaveform = null;    // (array) => {}
     this.onPlaybackProgress = null;// (progress, currentTime, duration) => {}
     this.onAudioDecoded = null;    // (peaks) => {}
+    this.onLivePeaksUpdate = null; // (peaks, count, duration) => {}
 
     this.setupPlaybackListeners();
   }
@@ -132,6 +162,7 @@ export class WiretapEngine {
     this.audioBlob = null;
     this.audioUrl = null;
     this.peaks = [];
+    this.livePeaks = [];
     this.finalTranscript = "";
     this.interimTranscript = "";
     this.playbackProgress = 0;
@@ -206,7 +237,7 @@ export class WiretapEngine {
 
     this.audioContext = new AudioContextClass();
     this.analyser = this.audioContext.createAnalyser();
-    this.analyser.fftSize = DEFAULT_FFT_SIZE;
+    this.analyser.fftSize = 1024;
     this.source = this.audioContext.createMediaStreamSource(this.liveStream);
     this.source.connect(this.analyser);
 
@@ -215,14 +246,50 @@ export class WiretapEngine {
     }
 
     const bufferLength = this.analyser.frequencyBinCount;
-    const dataArray = new Uint8Array(bufferLength);
+    const freqDataArray = new Uint8Array(bufferLength);
+    const timeDomainArray = new Uint8Array(this.analyser.fftSize);
+
+    let lastSampleTime = performance.now();
+    let currentWindowMax = 0;
 
     const tick = () => {
       if (!this.isRecording) return;
-      this.analyser.getByteFrequencyData(dataArray);
-      if (this.onLiveWaveform) {
-        this.onLiveWaveform(Array.from(dataArray));
+
+      // 1. Get live time-domain peak amplitude
+      this.analyser.getByteTimeDomainData(timeDomainArray);
+      let localMax = 0;
+      for (let i = 0; i < timeDomainArray.length; i++) {
+        const val = Math.abs(timeDomainArray[i] - 128);
+        if (val > localMax) localMax = val;
       }
+      const amp = localMax / 128;
+      if (amp > currentWindowMax) {
+        currentWindowMax = amp;
+      }
+
+      // 2. Accumulate peak every 100ms
+      const now = performance.now();
+      if (now - lastSampleTime >= 100) {
+        this.livePeaks.push(currentWindowMax);
+        lastSampleTime = now;
+        currentWindowMax = 0;
+
+        if (this.onLivePeaksUpdate) {
+          const duration = this.livePeaks.length * 0.1;
+          this.onLivePeaksUpdate(
+            resamplePeaks(this.livePeaks, WAVEFORM_BARS_COUNT),
+            Math.min(WAVEFORM_BARS_COUNT, this.livePeaks.length),
+            duration
+          );
+        }
+      }
+
+      // 3. Keep standard frequency update for compatibility
+      this.analyser.getByteFrequencyData(freqDataArray);
+      if (this.onLiveWaveform) {
+        this.onLiveWaveform(Array.from(freqDataArray).slice(0, 32));
+      }
+
       this.animationFrameId = requestAnimationFrame(tick);
     };
 
