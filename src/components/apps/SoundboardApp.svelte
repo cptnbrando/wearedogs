@@ -19,6 +19,12 @@
   let isError = $state(false);
   let failedPads = $state(new Set());
 
+  // Repeat & trigger state
+  let bpm = $state(140);
+  let activeTimers = Array(16).fill(null);
+  let activeKeys = new Set();
+  let isTouching = false;
+
   // Preload Buffer Caching
   const bufferCache = new Map();
   let preloadedCount = $state(0);
@@ -27,11 +33,11 @@
   // OP-1 Encoders (Knobs) state
   let knobPitch = $state(1.0); // 0.5 to 2.0
   let knobSpeed = $state(1.0); // 0.5 to 2.0
-  let knobVolume = $state(0.7); // 0.0 to 1.0
+  const masterVolume = 0.7; // fixed master volume
   let knobCutoff = $state(2000); // 200Hz to 10000Hz (Lowpass)
 
   // Dragging states for custom visual knobs
-  let activeDragKnob = $state(null); // 'pitch' | 'speed' | 'volume' | 'cutoff'
+  let activeDragKnob = $state(null); // 'pitch' | 'speed' | 'bpm' | 'cutoff'
   let dragStartY = 0;
   let dragStartVal = 0;
 
@@ -292,7 +298,7 @@
     // Apply OP-1 Knobs
     filter.type = "lowpass";
     filter.frequency.setValueAtTime(knobCutoff, now);
-    gain.gain.setValueAtTime(knobVolume * 0.7, now);
+    gain.gain.setValueAtTime(masterVolume * 0.7, now);
 
     const basePitch = knobPitch * (options.pitch || 1.0);
     const speed = knobSpeed * (options.speed || 1.0);
@@ -340,7 +346,7 @@
       osc.frequency.setValueAtTime(987.77 * basePitch, now);
       osc.frequency.setValueAtTime(1318.51 * basePitch, now + 0.08 / speed);
 
-      gain.gain.setValueAtTime(knobVolume * 0.5, now);
+      gain.gain.setValueAtTime(masterVolume * 0.5, now);
       gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
       osc.start(now);
       osc.stop(now + duration);
@@ -365,7 +371,7 @@
       filter.frequency.setValueAtTime(knobCutoff, now);
       filter.frequency.exponentialRampToValueAtTime(50, now + duration);
 
-      gain.gain.setValueAtTime(knobVolume * 0.8, now);
+      gain.gain.setValueAtTime(masterVolume * 0.8, now);
       gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
       osc.start(now);
       osc.stop(now + duration);
@@ -443,7 +449,7 @@
     const audio = new Audio(clip.videoUrl);
     audio.crossOrigin = "anonymous";
     audio.currentTime = clip.start;
-    audio.volume = knobVolume;
+    audio.volume = masterVolume;
     audio.playbackRate = knobSpeed * knobPitch;
 
     if (typeof audio.preservesPitch !== "undefined") {
@@ -483,12 +489,12 @@
 
         filter.type = "lowpass";
         filter.frequency.setValueAtTime(knobCutoff, audioCtx.currentTime);
-        gain.gain.setValueAtTime(knobVolume, audioCtx.currentTime);
+        gain.gain.setValueAtTime(masterVolume, audioCtx.currentTime);
 
         allocateMediaVoice(audio, gain);
       } catch (err) {
         // Fallback to direct element routing if already wired
-        audio.volume = knobVolume;
+        audio.volume = masterVolume;
       }
     }
 
@@ -537,7 +543,7 @@
         try {
           const fallbackAudio = new Audio(url);
           fallbackAudio.crossOrigin = "anonymous";
-          fallbackAudio.volume = knobVolume;
+          fallbackAudio.volume = masterVolume;
           fallbackAudio.playbackRate =
             knobSpeed *
             knobPitch *
@@ -578,7 +584,7 @@
 
       filter.type = "lowpass";
       filter.frequency.setValueAtTime(knobCutoff, audioCtx.currentTime);
-      gain.gain.setValueAtTime(knobVolume, audioCtx.currentTime);
+      gain.gain.setValueAtTime(masterVolume, audioCtx.currentTime);
 
       const pitchMultiplier = options.pitch || 1.0;
       const speedMultiplier = options.speed || 1.0;
@@ -618,6 +624,30 @@
     }
   }
 
+  // Repeat timing loop when held
+  function runRepeat(idx) {
+    triggerPad(idx);
+    const intervalMs = 60000 / bpm;
+    activeTimers[idx] = setTimeout(() => {
+      runRepeat(idx);
+    }, intervalMs);
+  }
+
+  function startPad(idx) {
+    if (activeTimers[idx]) {
+      clearTimeout(activeTimers[idx]);
+      activeTimers[idx] = null;
+    }
+    runRepeat(idx);
+  }
+
+  function stopPad(idx) {
+    if (activeTimers[idx]) {
+      clearTimeout(activeTimers[idx]);
+      activeTimers[idx] = null;
+    }
+  }
+
   // Remove custom clips
   function deleteClip(id, e) {
     e.stopPropagation();
@@ -625,18 +655,42 @@
   }
 
   function handlePadTouchStart(idx, e) {
-    if (e.target.closest('.delete-clip-btn')) {
+    if (e.target.closest(".delete-clip-btn")) {
       return;
     }
+    isTouching = true;
     if (e.cancelable) e.preventDefault();
-    triggerPad(idx);
+    startPad(idx);
+  }
+
+  function handlePadTouchEnd(idx, e) {
+    stopPad(idx);
+    setTimeout(() => {
+      isTouching = false;
+    }, 100);
+  }
+
+  function handlePadMouseDown(idx, e) {
+    if (e.target.closest(".delete-clip-btn")) {
+      return;
+    }
+    if (isTouching) return;
+    startPad(idx);
+  }
+
+  function handlePadMouseUp(idx, e) {
+    if (isTouching) return;
+    stopPad(idx);
   }
 
   function handlePadClick(idx, e) {
-    if (e.target.closest('.delete-clip-btn')) {
+    if (e.target.closest(".delete-clip-btn")) {
       return;
     }
-    triggerPad(idx);
+    // Only trigger on keyboard space/enter details
+    if (e.detail === 0) {
+      triggerPad(idx);
+    }
   }
 
   // CRT Oscilloscope real Analyser time-domain waveform drawing loop
@@ -726,6 +780,17 @@
 
   // Keyboard controls key bindings
   function handleKeydown(e) {
+    // Ignore keys if user is focusing an input, textarea, or select element
+    if (
+      e.target.tagName === "INPUT" ||
+      e.target.tagName === "TEXTAREA" ||
+      e.target.tagName === "SELECT"
+    ) {
+      return;
+    }
+
+    if (e.repeat) return; // Prevent native browser key repeat from triggering multiple times
+
     const key = e.key.toLowerCase();
 
     // Switch kits using keys 1-5
@@ -751,15 +816,33 @@
       activeKit.id === "custom" ? samplerStore.customClips : activeKit.sounds;
     const matchIdx = currentSounds.findIndex((s) => s.key === key);
     if (matchIdx !== -1 && matchIdx < 16) {
-      triggerPad(matchIdx);
+      activeKeys.add(key);
+      startPad(matchIdx);
     }
+  }
+
+  function handleKeyup(e) {
+    const key = e.key.toLowerCase();
+    if (activeKeys.has(key)) {
+      activeKeys.delete(key);
+      const currentSounds =
+        activeKit.id === "custom" ? samplerStore.customClips : activeKit.sounds;
+      const matchIdx = currentSounds.findIndex((s) => s.key === key);
+      if (matchIdx !== -1) {
+        stopPad(matchIdx);
+      }
+    }
+  }
+
+  function handleContextMenu(e) {
+    e.preventDefault();
   }
 
   // Reset knob to default values
   function resetKnob(knob) {
     if (knob === "pitch") knobPitch = 1.0;
     else if (knob === "speed") knobSpeed = 1.0;
-    else if (knob === "volume") knobVolume = 0.7;
+    else if (knob === "bpm") bpm = 140;
     else if (knob === "cutoff") knobCutoff = 2000;
   }
 
@@ -768,14 +851,14 @@
     if (e.key === "ArrowUp" || e.key === "ArrowRight") {
       if (knob === "pitch") knobPitch = Math.min(2.0, knobPitch + 0.05);
       else if (knob === "speed") knobSpeed = Math.min(2.0, knobSpeed + 0.05);
-      else if (knob === "volume") knobVolume = Math.min(1.0, knobVolume + 0.05);
+      else if (knob === "bpm") bpm = Math.min(500, bpm + 5);
       else if (knob === "cutoff")
         knobCutoff = Math.min(10000, knobCutoff + 200);
       e.preventDefault();
     } else if (e.key === "ArrowDown" || e.key === "ArrowLeft") {
       if (knob === "pitch") knobPitch = Math.max(0.5, knobPitch - 0.05);
       else if (knob === "speed") knobSpeed = Math.max(0.5, knobSpeed - 0.05);
-      else if (knob === "volume") knobVolume = Math.max(0.0, knobVolume - 0.05);
+      else if (knob === "bpm") bpm = Math.max(140, bpm - 5);
       else if (knob === "cutoff") knobCutoff = Math.max(200, knobCutoff - 200);
       e.preventDefault();
     }
@@ -788,7 +871,7 @@
 
     if (knob === "pitch") dragStartVal = knobPitch;
     else if (knob === "speed") dragStartVal = knobSpeed;
-    else if (knob === "volume") dragStartVal = knobVolume;
+    else if (knob === "bpm") dragStartVal = bpm;
     else if (knob === "cutoff") dragStartVal = knobCutoff;
 
     window.addEventListener("mousemove", handleKnobDrag);
@@ -803,8 +886,8 @@
       knobPitch = Math.max(0.5, Math.min(2.0, dragStartVal + deltaY * 0.008));
     } else if (activeDragKnob === "speed") {
       knobSpeed = Math.max(0.5, Math.min(2.0, dragStartVal + deltaY * 0.008));
-    } else if (activeDragKnob === "volume") {
-      knobVolume = Math.max(0.0, Math.min(1.0, dragStartVal + deltaY * 0.008));
+    } else if (activeDragKnob === "bpm") {
+      bpm = Math.max(140, Math.min(500, Math.round(dragStartVal + deltaY * 1.0)));
     } else if (activeDragKnob === "cutoff") {
       knobCutoff = Math.max(200, Math.min(10000, dragStartVal + deltaY * 40));
     }
@@ -836,7 +919,7 @@
 
     if (knob === "pitch") dragStartVal = knobPitch;
     else if (knob === "speed") dragStartVal = knobSpeed;
-    else if (knob === "volume") dragStartVal = knobVolume;
+    else if (knob === "bpm") dragStartVal = bpm;
     else if (knob === "cutoff") dragStartVal = knobCutoff;
 
     window.addEventListener("touchmove", handleTouchMove, { passive: false });
@@ -855,8 +938,8 @@
       knobPitch = Math.max(0.5, Math.min(2.0, dragStartVal + deltaY * 0.008));
     } else if (activeDragKnob === "speed") {
       knobSpeed = Math.max(0.5, Math.min(2.0, dragStartVal + deltaY * 0.008));
-    } else if (activeDragKnob === "volume") {
-      knobVolume = Math.max(0.0, Math.min(1.0, dragStartVal + deltaY * 0.008));
+    } else if (activeDragKnob === "bpm") {
+      bpm = Math.max(140, Math.min(500, Math.round(dragStartVal + deltaY * 1.0)));
     } else if (activeDragKnob === "cutoff") {
       knobCutoff = Math.max(200, Math.min(10000, dragStartVal + deltaY * 40));
     }
@@ -906,6 +989,9 @@
 
   onDestroy(() => {
     if (animationFrameId) cancelAnimationFrame(animationFrameId);
+    activeTimers.forEach((timer) => {
+      if (timer) clearTimeout(timer);
+    });
     activeVoices.forEach((v) => {
       try {
         if (v.audioEl) {
@@ -921,7 +1007,7 @@
   });
 </script>
 
-<svelte:window onkeydown={handleKeydown} />
+<svelte:window onkeydown={handleKeydown} onkeyup={handleKeyup} oncontextmenu={handleContextMenu} />
 
 <div
   class="soundboard-layout animated-pane w-full h-full"
@@ -973,9 +1059,7 @@
               ></canvas>
 
               <div class="screen-footer-hud">
-                <span class="hud-item"
-                  ><Activity size={10} /> OP-1 ENGINE ACTIVE</span
-                >
+                <span class="hud-item"><Activity size={10} /> BPM: {bpm}</span>
                 <span class="hud-item"
                   ><Zap size={10} /> RATE: {knobSpeed.toFixed(2)}x</span
                 >
@@ -985,24 +1069,51 @@
 
           <!-- Kit Selector Presets Selector Row (looks like OP-1 preset buttons) -->
           <div
-            class="kit-selector-row flex justify-between items-center bg-black/40 border border-white/5 rounded-xl px-3 py-2"
+            class="kit-selector-row flex justify-between items-center bg-black/40 border border-white/5 rounded-xl px-3 py-2 gap-4"
           >
-            <span
-              class="kit-selector-label text-[10px] font-bold text-white/30 tracking-wider"
-              >PRESET KITS:</span
+            <div class="flex items-center gap-2">
+              <span
+                class="kit-selector-label text-[10px] font-bold text-white/30 tracking-wider"
+                >PRESET KITS:</span
+              >
+              <div class="flex gap-2">
+                {#each KITS as kit, i}
+                  <button
+                    class="kit-btn"
+                    class:active={activeKitIndex === i}
+                    style="--kit-color: {kit.color}; --kit-glow: {kit.glow}"
+                    onclick={() => selectKit(i)}
+                    title={kit.name}
+                  >
+                    {i + 1}
+                  </button>
+                {/each}
+              </div>
+            </div>
+
+            <!-- BPM Repeat Control -->
+            <div
+              class="flex items-center gap-1.5 border-l border-white/10 pl-3"
             >
-            <div class="flex gap-2">
-              {#each KITS as kit, i}
-                <button
-                  class="kit-btn"
-                  class:active={activeKitIndex === i}
-                  style="--kit-color: {kit.color}; --kit-glow: {kit.glow}"
-                  onclick={() => selectKit(i)}
-                  title={kit.name}
-                >
-                  {i + 1}
-                </button>
-              {/each}
+              <span class="text-[10px] font-bold text-white/30 tracking-wider"
+                >BPM:</span
+              >
+              <input
+                type="number"
+                bind:value={bpm}
+                min="140"
+                max="500"
+                class="bg-white/5 border border-white/10 rounded px-1 py-0.5 text-white font-mono text-[10px] w-10 text-center focus:outline-none focus:border-cyan-500"
+              />
+              {#if !isPortrait}
+                <input
+                  type="range"
+                  bind:value={bpm}
+                  min="140"
+                  max="500"
+                  class="w-16 h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-cyan-500 focus:outline-none"
+                />
+              {/if}
             </div>
           </div>
 
@@ -1056,28 +1167,28 @@
               <span class="knob-value">{knobSpeed.toFixed(2)}x</span>
             </div>
 
-            <!-- Knob 3: Master Volume (Orange) -->
+            <!-- Knob 3: BPM Tempo (Orange) -->
             <div
               class="encoder-slot"
               role="slider"
-              aria-label="Master Volume"
-              aria-valuemin="0.0"
-              aria-valuemax="1.0"
-              aria-valuenow={knobVolume}
+              aria-label="BPM Tempo"
+              aria-valuemin="140"
+              aria-valuemax="500"
+              aria-valuenow={bpm}
               tabindex="0"
-              onmousedown={(e) => startKnobDrag("volume", e)}
-              ontouchstart={(e) => handleTouchStart("volume", e)}
-              ondblclick={() => resetKnob("volume")}
-              onkeydown={(e) => handleKnobKeydown("volume", e)}
+              onmousedown={(e) => startKnobDrag("bpm", e)}
+              ontouchstart={(e) => handleTouchStart("bpm", e)}
+              ondblclick={() => resetKnob("bpm")}
+              onkeydown={(e) => handleKnobKeydown("bpm", e)}
             >
               <div
                 class="knob-cap color-orange"
-                style="transform: rotate({(knobVolume - 0.5) * 270}deg)"
+                style="transform: rotate({((bpm - 140) / 360 - 0.5) * 270}deg)"
               >
                 <div class="notch"></div>
               </div>
-              <span class="knob-title">VOL</span>
-              <span class="knob-value">{Math.round(knobVolume * 100)}%</span>
+              <span class="knob-title">BPM</span>
+              <span class="knob-value">{bpm}</span>
             </div>
 
             <!-- Knob 4: Lowpass Cutoff (Pink) -->
@@ -1135,7 +1246,12 @@
                       ? `--pad-glow: ${sound.color}; border-color: ${sound.color}44`
                       : ""}
                     onclick={(e) => handlePadClick(i, e)}
+                    onmousedown={(e) => handlePadMouseDown(i, e)}
+                    onmouseup={(e) => handlePadMouseUp(i, e)}
+                    onmouseleave={(e) => handlePadMouseUp(i, e)}
                     ontouchstart={(e) => handlePadTouchStart(i, e)}
+                    ontouchend={(e) => handlePadTouchEnd(i, e)}
+                    ontouchcancel={(e) => handlePadTouchEnd(i, e)}
                   >
                     <span class="pad-key">{sound.key.toUpperCase()}</span>
                     {#if failedPads.has(i)}
