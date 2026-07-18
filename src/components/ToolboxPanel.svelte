@@ -22,6 +22,7 @@
     Gamepad2,
     Component,
     Search,
+    Mic,
   } from "lucide-svelte";
   import DogsLogo from "./DogsLogo.svelte";
   import AppCard from "./AppCard.svelte";
@@ -70,6 +71,7 @@
     reader: "./apps/ImageReader.svelte",
     windshieldwiper: "./apps/WindshieldWiper.svelte",
     missingcreatures: "./apps/MissingCreatures.svelte",
+    wiretap: "./apps/Wiretap.svelte",
   };
 
   // Lazy loaded app components caching
@@ -221,6 +223,7 @@
     rescue: "#00bfff",
     changelog: "#00ff66",
     settings: "#ff3344",
+    wiretap: "#00ff66",
   };
 
   // CRITICAL: The changelog and settings apps MUST always remain next to each other at the bottom of the toolbox list, with settings last.
@@ -308,6 +311,12 @@
       title: "Image Reader",
       desc: "Extract editable text from uploaded images in any format.",
       icon: FileText,
+    },
+    {
+      id: "wiretap",
+      title: "Wiretap",
+      desc: "Record audio and video streams with live transcriptions and waveform scrubbing.",
+      icon: Mic,
     },
     // RESCUE, GOPRO, DATAFLASH, CHANGELOG, AND SETTINGS MUST ALWAYS BE LAST IN THIS LIST
     {

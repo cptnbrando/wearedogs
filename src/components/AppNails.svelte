@@ -12,6 +12,7 @@
     FileText,
     Gamepad,
     Eye,
+    Mic,
   } from "lucide-svelte";
 
   let { appId } = $props();
@@ -142,6 +143,13 @@
     <Eye
       size={28}
       style="color: #22c55e; filter: drop-shadow(0 0 6px rgba(34, 197, 94, 0.4));"
+    />
+  </div>
+{:else if appId === "wiretap"}
+  <div class="flex items-center justify-center h-full">
+    <Mic
+      size={28}
+      style="color: var(--color-neon-green, #00d75f); filter: drop-shadow(0 0 6px rgba(0, 215, 95, 0.4));"
     />
   </div>
 {/if}
