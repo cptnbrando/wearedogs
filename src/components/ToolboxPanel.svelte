@@ -22,6 +22,7 @@
     Gamepad2,
     Component,
     Search,
+    Mic,
   } from "lucide-svelte";
   import DogsLogo from "./DogsLogo.svelte";
   import AppCard from "./AppCard.svelte";
@@ -70,6 +71,7 @@
     reader: "./apps/ImageReader.svelte",
     windshieldwiper: "./apps/WindshieldWiper.svelte",
     missingcreatures: "./apps/MissingCreatures.svelte",
+    wiretap: "./apps/Wiretap.svelte",
   };
 
   // Lazy loaded app components caching
@@ -221,6 +223,7 @@
     rescue: "#00bfff",
     changelog: "#00ff66",
     settings: "#ff3344",
+    wiretap: "#00ff66",
   };
 
   // CRITICAL: The changelog and settings apps MUST always remain next to each other at the bottom of the toolbox list, with settings last.
@@ -232,28 +235,40 @@
       icon: BookOpen,
     },
     {
-      id: "qrgenerator",
-      title: "QR Generator",
-      desc: "Generate resizable QR codes with custom center logo overlays.",
-      icon: QrCode,
-    },
-    {
       id: "converter",
       title: "Catalytic Converter",
       desc: "A way to convert img, vid, audio files.",
       icon: RefreshCw,
     },
     {
-      id: "stopwatch",
-      title: "Father Time",
-      desc: "Sands of time: stopwatch, timer, alarms, world clock, metronome & tuning fork.",
-      icon: Hourglass,
+      id: "qrgenerator",
+      title: "QR Generator",
+      desc: "Generate resizable QR codes with optional center logos.",
+      icon: QrCode,
     },
     {
       id: "worldcup",
       title: "FIFA World Cup",
       desc: "Track matches, group stage standings, and the responsive bracket.",
       icon: Trophy,
+    },
+    {
+      id: "reader",
+      title: "Image Reader",
+      desc: "Extract editable text from images.",
+      icon: FileText,
+    },
+    {
+      id: "wiretap",
+      title: "Wiretap",
+      desc: "Record audio and video streams with live transcriptions and waveforms.",
+      icon: Mic,
+    },
+    {
+      id: "dataflash",
+      title: "Data Train",
+      desc: "Multi-protocol secure data dispatcher (QR, BT, USB, AirRTC).",
+      icon: Zap,
     },
     {
       id: "soundstripper",
@@ -264,68 +279,62 @@
     {
       id: "windshieldwiper",
       title: "Windshield Wiper",
-      desc: "Clean watermarks and logos from images and videos using canvas magic.",
+      desc: "Clean watermarks, logos, and text from images and videos using canvas magic.",
       icon: Sparkles,
+    },
+    {
+      id: "soundboard",
+      title: "Dog Soundboard",
+      desc: "Bark bark bark.",
+      icon: Volume2,
     },
     {
       id: "snake",
       title: "Snake",
-      desc: "Retro snake game, runs inside grid. Use Arrow Keys.",
+      desc: "The classic. AI mode included.",
       icon: Award,
     },
     {
       id: "arcade",
       title: "Arcade",
-      desc: "Play retro consoles (GBA, N64, NDS, Genesis) with virtual touch gamepads.",
+      desc: "Play retro consoles (GBA, N64, NDS, Genesis).",
       icon: Gamepad2,
+    },
+    {
+      id: "stopwatch",
+      title: "Father Time",
+      desc: "Explore the sounds and sands of time.",
+      icon: Hourglass,
     },
     {
       id: "paint",
       title: "Sketch",
-      desc: "Draw and paint illustrations on a canvas.",
+      desc: "Draw and paint.",
       icon: Paintbrush,
-    },
-    {
-      id: "soundboard",
-      title: "Dog Soundboard",
-      desc: "Play high fidelity dog bark synthesizers.",
-      icon: Volume2,
     },
     {
       id: "missingcreatures",
       title: "Missing Creatures",
-      desc: "Investigate cryptids and global missing anomalies.",
+      desc: "Investigate missing people and dogs.",
       icon: Search,
     },
     {
       id: "memes",
       title: "MEMES",
-      desc: "Create custom Friendship Ended memes and explore templates.",
+      desc: "Create custom memes and explore pop culture.",
       icon: Smile,
-    },
-    {
-      id: "reader",
-      title: "Image Reader",
-      desc: "Extract editable text from uploaded images in any format.",
-      icon: FileText,
     },
     // RESCUE, GOPRO, DATAFLASH, CHANGELOG, AND SETTINGS MUST ALWAYS BE LAST IN THIS LIST
     {
       id: "gopro",
       title: "GoPro",
-      desc: "Stream retro TV series and clip custom audio loops.",
+      desc: "Stream, clip, and sample retro TV shows.",
       icon: Video,
-    },
-    {
-      id: "dataflash",
-      title: "Data Train",
-      desc: "Multi-protocol secure data dispatcher (QR, BT, USB, AirRTC).",
-      icon: Zap,
     },
     {
       id: "rescue",
       title: "Rescue Ops",
-      desc: "Coordinate search-and-rescue beacons and flight paths.",
+      desc: "Coordinate search-and-rescue beacons.",
       icon: Radio,
     },
     {
@@ -337,7 +346,7 @@
     {
       id: "settings",
       title: "Settings",
-      desc: "Customize site-wide themes and UI profiles.",
+      desc: "Customize this website.",
       icon: Settings,
     },
   ];
@@ -545,7 +554,7 @@
           {:else if activeApp === "windshieldwiper"}
             <App onClose={() => (activeApp = null)} />
           {:else if activeApp === "gopro"}
-            <App goProShow={goProShow} goProEpisode={goProEpisode} />
+            <App {goProShow} {goProEpisode} />
           {:else}
             <App />
           {/if}
