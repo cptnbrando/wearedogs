@@ -40,7 +40,7 @@
 
   // Prick Mode State Variables
   let mode = $state("recorder"); // "recorder" or "prick"
-  let triggerThreshold = $state(0.15);
+  let triggerThreshold = $state(0.45);
   let clipLength = $state(3); // default 3 seconds
   let liveVolume = $state(0);
   let clips = $state([]);
@@ -69,7 +69,9 @@
   let playbackMedia = $state(null); // { url, isVideo, title, duration }
   let playerCurrentTime = $state(0);
   let playerDuration = $state(0);
-  let playerProgress = $derived(playerDuration > 0 ? playerCurrentTime / playerDuration : 0);
+  let playerProgress = $derived(
+    playerDuration > 0 ? playerCurrentTime / playerDuration : 0,
+  );
   let mediaPlaybackEl = $state(null);
   let isMediaPaused = $state(true);
   let isMediaPlaying = $derived(!isMediaPaused);
@@ -77,10 +79,12 @@
   // Clock Overlay Variables
   let currentTimeObj = $state(new Date());
   let clockInterval = null;
-  
+
   let HUDTime = $derived.by(() => {
     if (playbackMedia && playbackMedia.timestamp) {
-      return new Date(playbackMedia.timestamp.getTime() + playerCurrentTime * 1000);
+      return new Date(
+        playbackMedia.timestamp.getTime() + playerCurrentTime * 1000,
+      );
     }
     return currentTimeObj;
   });
@@ -90,7 +94,7 @@
       month: "numeric",
       day: "numeric",
       year: "numeric",
-    })
+    }),
   );
 
   // Location Geocoding Variables
@@ -105,13 +109,11 @@
 
   // Sync timelines
   let displayCurrentTime = $derived(
-    playbackMedia ? playerCurrentTime : currentTime
+    playbackMedia ? playerCurrentTime : currentTime,
   );
-  let displayDuration = $derived(
-    playbackMedia ? playerDuration : duration
-  );
+  let displayDuration = $derived(playbackMedia ? playerDuration : duration);
   let displayProgress = $derived(
-    playbackMedia ? playerProgress : playbackProgress
+    playbackMedia ? playerProgress : playbackProgress,
   );
 
   // Engine state representation
@@ -283,8 +285,12 @@
       canvasCtx.fillStyle = "#00ff66";
       canvasCtx.textAlign = "right";
       canvasCtx.fillText(formatUTCTime(now), canvasEl.width - 15, 16);
-      canvasCtx.fillText(formatLocalTimeWithCentiseconds(now), canvasEl.width - 15, 28);
-      
+      canvasCtx.fillText(
+        formatLocalTimeWithCentiseconds(now),
+        canvasEl.width - 15,
+        28,
+      );
+
       canvasCtx.fillStyle = "rgba(255, 255, 255, 0.7)";
       canvasCtx.font = "9px monospace";
       canvasCtx.fillText(dateStr, canvasEl.width - 15, 38);
@@ -292,23 +298,38 @@
       // Location
       canvasCtx.fillStyle = "rgba(255, 255, 255, 0.9)";
       canvasCtx.font = "bold 9px monospace";
-      canvasCtx.fillText(`LOC: ${locationText || "MANUAL"}`, canvasEl.width - 15, 48);
+      canvasCtx.fillText(
+        `LOC: ${locationText || "MANUAL"}`,
+        canvasEl.width - 15,
+        48,
+      );
 
       // Top-left HUD status badge
-      const isClipping = mode === "prick" && engineState.clipCapturingState === "capturing";
+      const isClipping =
+        mode === "prick" && engineState.clipCapturingState === "capturing";
       canvasCtx.fillStyle = isClipping ? "#0066ff" : "#ff3344";
       canvasCtx.fillRect(15, 12, isClipping ? 68 : 60, 18);
       canvasCtx.fillStyle = "#ffffff";
       canvasCtx.font = "bold 9px monospace";
       canvasCtx.textAlign = "center";
-      canvasCtx.fillText(isClipping ? "CLIPPING" : "LIVE REC", isClipping ? 49 : 45, 24);
+      canvasCtx.fillText(
+        isClipping ? "CLIPPING" : "LIVE REC",
+        isClipping ? 49 : 45,
+        24,
+      );
 
       // Bottom-right: DOGS & Logo
       canvasCtx.fillStyle = "#00ff66";
       canvasCtx.font = "bold 11px monospace";
       canvasCtx.textAlign = "right";
       if (logoImage) {
-        canvasCtx.drawImage(logoImage, canvasEl.width - 32, canvasEl.height - 28, 16, 16);
+        canvasCtx.drawImage(
+          logoImage,
+          canvasEl.width - 32,
+          canvasEl.height - 28,
+          16,
+          16,
+        );
         canvasCtx.fillText("DOGS", canvasEl.width - 38, canvasEl.height - 16);
       } else {
         canvasCtx.fillText("DOGS", canvasEl.width - 15, canvasEl.height - 16);
@@ -319,12 +340,17 @@
       const barGap = 1.5;
       const startX = 15;
       const startY = canvasEl.height - 15;
-      
+
       for (let i = 0; i < overlayWaveformBars.length; i++) {
         const val = overlayWaveformBars[i];
         canvasCtx.fillStyle = "#00ff66";
         const barHeight = Math.max(2, val * 20);
-        canvasCtx.fillRect(startX + i * (barWidth + barGap), startY - barHeight, barWidth, barHeight);
+        canvasCtx.fillRect(
+          startX + i * (barWidth + barGap),
+          startY - barHeight,
+          barWidth,
+          barHeight,
+        );
       }
     }
 
@@ -350,10 +376,10 @@
         canvasEl.width = 640;
         canvasEl.height = 480;
         canvasCtx = canvasEl.getContext("2d");
-        
+
         // Start the frame drawing loop immediately
         canvasDrawLoopId = requestAnimationFrame(drawCanvasFrame);
-        
+
         const canvasStream = canvasEl.captureStream(30);
         videoTrack = canvasStream.getVideoTracks()[0];
       }
@@ -478,12 +504,17 @@
         const { latitude, longitude } = position.coords;
         try {
           const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=12&addressdetails=1`
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=12&addressdetails=1`,
           );
           if (!res.ok) throw new Error("Geocoding failed");
           const data = await res.json();
           if (data && data.address) {
-            const city = data.address.city || data.address.town || data.address.village || data.address.suburb || "";
+            const city =
+              data.address.city ||
+              data.address.town ||
+              data.address.village ||
+              data.address.suburb ||
+              "";
             const state = data.address.state || "";
             if (city && state) {
               locationText = `${city}, ${state}`;
@@ -506,7 +537,7 @@
         console.warn("GPS Location failed:", err);
         alert(`Location access failed: ${err.message}`);
         isLocating = false;
-      }
+      },
     );
   }
 
@@ -652,16 +683,22 @@
   <div class="wiretap-layout w-full h-full flex flex-col justify-between">
     <!-- Permissions Block -->
     {#if isCheckingPermissions}
-      <div class="flex-1 flex flex-col items-center justify-center text-center p-6">
+      <div
+        class="flex-1 flex flex-col items-center justify-center text-center p-6"
+      >
         <RefreshCw class="w-8 h-8 text-[#00ff66] animate-spin mb-4" />
         <p class="text-sm font-mono text-white/50 tracking-wider">
           ENUMERATING RECORDING DEVICES...
         </p>
       </div>
     {:else if !isPermissionsGranted}
-      <div class="flex-1 flex flex-col items-center justify-center text-center p-6 max-w-md mx-auto">
+      <div
+        class="flex-1 flex flex-col items-center justify-center text-center p-6 max-w-md mx-auto"
+      >
         <AlertCircle class="w-12 h-12 text-[#ff3344] mb-4 animate-pulse" />
-        <h3 class="text-lg font-mono font-bold text-white uppercase tracking-wider mb-2">
+        <h3
+          class="text-lg font-mono font-bold text-white uppercase tracking-wider mb-2"
+        >
           ACCESS REQUIRED
         </h3>
         <p class="text-xs text-white/60 mb-6 leading-relaxed">
@@ -677,7 +714,9 @@
       </div>
     {:else}
       <!-- Responsive Dashboard -->
-      <div class="dashboard-grid w-full h-full flex flex-col xl:grid xl:grid-cols-12 gap-4 flex-grow overflow-hidden p-2">
+      <div
+        class="dashboard-grid w-full h-full flex flex-col xl:grid xl:grid-cols-12 gap-4 flex-grow overflow-hidden p-2"
+      >
         <!-- Left Panel: Device Setup & Live Video Feed (Col 1-5 on Desktop) -->
         <div class="xl:col-span-5 flex flex-col gap-4 min-h-0">
           <!-- Device Settings Panel -->
@@ -688,8 +727,12 @@
 
             <!-- Audio Input -->
             <div class="flex flex-col gap-1">
-              <label for="mic-select" class="input-label">MICROPHONE SOURCE</label>
-              <div class="flex items-center gap-2 bg-black/35 border border-white/10 rounded px-2 py-1 w-full min-w-0 overflow-hidden">
+              <label for="mic-select" class="input-label"
+                >MICROPHONE SOURCE</label
+              >
+              <div
+                class="flex items-center gap-2 bg-black/35 border border-white/10 rounded px-2 py-1 w-full min-w-0 overflow-hidden"
+              >
                 <Mic class="w-4 h-4 text-[#00ff66] flex-shrink-0" />
                 <select
                   id="mic-select"
@@ -708,8 +751,12 @@
 
             <!-- Video Input -->
             <div class="flex flex-col gap-1">
-              <label for="camera-select" class="input-label">CAMERA SOURCE</label>
-              <div class="flex items-center gap-2 bg-black/35 border border-white/10 rounded px-2 py-1 w-full min-w-0 overflow-hidden">
+              <label for="camera-select" class="input-label"
+                >CAMERA SOURCE</label
+              >
+              <div
+                class="flex items-center gap-2 bg-black/35 border border-white/10 rounded px-2 py-1 w-full min-w-0 overflow-hidden"
+              >
                 <Camera class="w-4 h-4 text-[#00ff66] flex-shrink-0" />
                 <select
                   id="camera-select"
@@ -727,7 +774,9 @@
             </div>
 
             <!-- Video Toggle -->
-            <div class="flex items-center justify-between border-t border-white/5 pt-3 mt-1">
+            <div
+              class="flex items-center justify-between border-t border-white/5 pt-3 mt-1"
+            >
               <span class="input-label">MONITOR LIVE VIDEO FEED</span>
               <button
                 onclick={() => (enableVideo = !enableVideo)}
@@ -745,8 +794,12 @@
 
             <!-- Surveillance Location -->
             <div class="flex flex-col gap-1 border-t border-white/5 pt-3 mt-1">
-              <label for="location-input" class="input-label">SURVEILLANCE LOCATION</label>
-              <div class="flex items-center gap-2 bg-black/35 border border-white/10 rounded px-2 py-1 w-full min-w-0">
+              <label for="location-input" class="input-label"
+                >SURVEILLANCE LOCATION</label
+              >
+              <div
+                class="flex items-center gap-2 bg-black/35 border border-white/10 rounded px-2 py-1 w-full min-w-0"
+              >
                 <input
                   id="location-input"
                   type="text"
@@ -771,9 +824,13 @@
 
           <!-- Video Viewport / Playback Player -->
           {#if playbackMedia || enableVideo}
-            <div class="glass-card flex-1 min-h-[180px] md:min-h-[240px] relative overflow-hidden flex flex-col justify-center bg-black/90 border-2 border-red-500/20 shadow-[0_0_20px_rgba(239,68,68,0.1)]">
+            <div
+              class="glass-card flex-1 min-h-[180px] md:min-h-[240px] relative overflow-hidden flex flex-col justify-center bg-black/90 border-2 border-red-500/20 shadow-[0_0_20px_rgba(239,68,68,0.1)]"
+            >
               <!-- Scanlines overlay -->
-              <div class="absolute inset-0 scanlines pointer-events-none opacity-25 z-10"></div>
+              <div
+                class="absolute inset-0 scanlines pointer-events-none opacity-25 z-10"
+              ></div>
 
               {#if playbackMedia}
                 {#if playbackMedia.isVideo}
@@ -789,12 +846,18 @@
                   ></video>
                 {:else}
                   <!-- Playback Audio Player with visualizer center stage -->
-                  <div class="w-full h-[240px] flex flex-col justify-between items-center bg-neutral-950 p-4 pt-16 z-0">
-                    <div class="flex-grow flex items-center justify-center gap-1.5 w-full max-w-[220px]">
+                  <div
+                    class="w-full h-[240px] flex flex-col justify-between items-center bg-neutral-950 p-4 pt-16 z-0"
+                  >
+                    <div
+                      class="flex-grow flex items-center justify-center gap-1.5 w-full max-w-[220px]"
+                    >
                       {#each overlayWaveformBars as val, idx}
                         {@const isFilled = idx / 20 <= playerProgress}
                         <div
-                          class="w-1.5 rounded-sm transition-all duration-75 {isFilled ? 'bg-[#00ff66]' : 'bg-white/10'}"
+                          class="w-1.5 rounded-sm transition-all duration-75 {isFilled
+                            ? 'bg-[#00ff66]'
+                            : 'bg-white/10'}"
                           style="height: {Math.max(8, val * 100)}%;"
                         ></div>
                       {/each}
@@ -823,9 +886,13 @@
 
               <!-- Surveillance Head-up Display Overlays (only visible for live feed or audio-only playback) -->
               {#if !playbackMedia || !playbackMedia.isVideo}
-                <div class="absolute inset-0 pointer-events-none z-20 flex flex-col justify-between p-3 select-none">
+                <div
+                  class="absolute inset-0 pointer-events-none z-20 flex flex-col justify-between p-3 select-none"
+                >
                   <!-- Top Row -->
-                  <div class="w-full flex justify-between items-start pointer-events-none">
+                  <div
+                    class="w-full flex justify-between items-start pointer-events-none"
+                  >
                     <!-- HUD Status / Action Button -->
                     <div class="flex flex-col gap-1.5 pointer-events-auto">
                       {#if playbackMedia}
@@ -835,52 +902,81 @@
                         >
                           &larr; LIVE STREAM
                         </button>
-                        <div class="bg-black/60 text-white/60 text-[8px] font-mono tracking-wider px-1.5 py-0.5 rounded border border-white/5 uppercase w-max">
+                        <div
+                          class="bg-black/60 text-white/60 text-[8px] font-mono tracking-wider px-1.5 py-0.5 rounded border border-white/5 uppercase w-max"
+                        >
                           PLAYBACK
                         </div>
                       {:else if engineState.isRecording}
                         {#if mode === "prick" && engineState.clipCapturingState === "capturing"}
-                          <div class="bg-[#0066ff] text-white text-[9px] font-mono font-bold tracking-widest px-2.5 py-0.5 rounded flex items-center gap-1.5 animate-pulse">
-                            <span class="w-1.5 h-1.5 rounded-full bg-white animate-ping"></span> CLIPPING
+                          <div
+                            class="bg-[#0066ff] text-white text-[9px] font-mono font-bold tracking-widest px-2.5 py-0.5 rounded flex items-center gap-1.5 animate-pulse"
+                          >
+                            <span
+                              class="w-1.5 h-1.5 rounded-full bg-white animate-ping"
+                            ></span> CLIPPING
                           </div>
-                        {#else}
-                          <div class="bg-red-600/90 text-white text-[9px] font-mono font-bold tracking-widest px-2 py-0.5 rounded flex items-center gap-1 animate-pulse">
-                            <span class="w-1.5 h-1.5 rounded-full bg-white"></span> LIVE REC
+                        {:else}
+                          <div
+                            class="bg-red-600/90 text-white text-[9px] font-mono font-bold tracking-widest px-2 py-0.5 rounded flex items-center gap-1 animate-pulse"
+                          >
+                            <span class="w-1.5 h-1.5 rounded-full bg-white"
+                            ></span> LIVE REC
                           </div>
                         {/if}
                       {:else}
-                        <div class="bg-yellow-600/90 text-white text-[9px] font-mono font-bold tracking-widest px-2 py-0.5 rounded flex items-center gap-1">
-                          <span class="w-1.5 h-1.5 rounded-full bg-white"></span> LIVE FEED
+                        <div
+                          class="bg-yellow-600/90 text-white text-[9px] font-mono font-bold tracking-widest px-2 py-0.5 rounded flex items-center gap-1"
+                        >
+                          <span class="w-1.5 h-1.5 rounded-full bg-white"
+                          ></span> LIVE FEED
                         </div>
                       {/if}
                     </div>
 
                     <!-- Top Right HUD Overlay -->
-                    <div class="text-right flex flex-col items-end gap-0.5 font-mono text-[9px] text-[#00ff66] bg-black/60 px-2 py-1.5 rounded border border-[#00ff66]/10 shadow-[0_0_10px_rgba(0,0,0,0.5)]">
-                      <div class="font-bold tracking-wider">{formatUTCTime(HUDTime)}</div>
-                      <div class="tracking-wide">{formatLocalTimeWithCentiseconds(HUDTime)}</div>
+                    <div
+                      class="text-right flex flex-col items-end gap-0.5 font-mono text-[9px] text-[#00ff66] bg-black/60 px-2 py-1.5 rounded border border-[#00ff66]/10 shadow-[0_0_10px_rgba(0,0,0,0.5)]"
+                    >
+                      <div class="font-bold tracking-wider">
+                        {formatUTCTime(HUDTime)}
+                      </div>
+                      <div class="tracking-wide">
+                        {formatLocalTimeWithCentiseconds(HUDTime)}
+                      </div>
                       <div class="text-white/70">{dateStr}</div>
-                      <div class="text-white/90 font-bold border-t border-[#00ff66]/20 mt-1 pt-0.5">
+                      <div
+                        class="text-white/90 font-bold border-t border-[#00ff66]/20 mt-1 pt-0.5"
+                      >
                         LOC: {locationText || "MANUAL"}
                       </div>
                     </div>
                   </div>
 
                   <!-- Bottom Row -->
-                  <div class="w-full flex justify-between items-end pointer-events-none">
+                  <div
+                    class="w-full flex justify-between items-end pointer-events-none"
+                  >
                     <!-- Bottom Left HUD Waveform -->
-                    <div class="bg-black/70 border border-[#00ff66]/20 rounded p-1.5 flex items-end gap-[1.5px] h-9 w-28 pointer-events-none">
+                    <div
+                      class="bg-black/70 border border-[#00ff66]/20 rounded p-1.5 flex items-end gap-[1.5px] h-9 w-28 pointer-events-none"
+                    >
                       {#each overlayWaveformBars as val, idx}
-                        {@const isFilled = !playbackMedia || (idx / 20 <= playerProgress)}
+                        {@const isFilled =
+                          !playbackMedia || idx / 20 <= playerProgress}
                         <div
-                          class="flex-grow rounded-sm transition-all duration-75 {isFilled ? 'bg-[#00ff66]' : 'bg-white/10'}"
+                          class="flex-grow rounded-sm transition-all duration-75 {isFilled
+                            ? 'bg-[#00ff66]'
+                            : 'bg-white/10'}"
                           style="height: {Math.max(4, val * 100)}%;"
                         ></div>
                       {/each}
                     </div>
 
                     <!-- Bottom Right HUD Logo -->
-                    <div class="flex items-center gap-1.5 font-mono font-bold tracking-widest text-[#00ff66] bg-black/60 px-2 py-1 rounded border border-[#00ff66]/10">
+                    <div
+                      class="flex items-center gap-1.5 font-mono font-bold tracking-widest text-[#00ff66] bg-black/60 px-2 py-1 rounded border border-[#00ff66]/10"
+                    >
                       <span>DOGS</span>
                       <DogsLogo size="panel" />
                     </div>
@@ -896,8 +992,12 @@
           <!-- Conditionally Render: Live Transcript or Prick Clips Panel -->
           {#if mode === "recorder"}
             <!-- Live Transcript Card -->
-            <div class="glass-card flex-1 flex flex-col p-4 min-h-[180px] overflow-hidden">
-              <div class="flex items-center justify-between border-b border-white/5 pb-2 mb-3">
+            <div
+              class="glass-card flex-1 flex flex-col p-4 min-h-[180px] overflow-hidden"
+            >
+              <div
+                class="flex items-center justify-between border-b border-white/5 pb-2 mb-3"
+              >
                 <h3 class="panel-header uppercase">
                   <span
                     class="pulse-indicator bg-[#00ff66]"
@@ -926,23 +1026,32 @@
               >
                 {#if engineState.isRecording}
                   <span class="text-white">{liveTranscript.final}</span>
-                  <span class="text-[#00ff66]/80 italic">{liveTranscript.interim}</span>
+                  <span class="text-[#00ff66]/80 italic"
+                    >{liveTranscript.interim}</span
+                  >
                   {#if !liveTranscript.final && !liveTranscript.interim}
-                    <span class="text-white/20 animate-pulse block text-center py-8">
+                    <span
+                      class="text-white/20 animate-pulse block text-center py-8"
+                    >
                       Awaiting transcription capture...
                     </span>
                   {/if}
                 {:else}
                   <span class="text-white">
-                    {liveTranscript.final || "Press Record to capture speech-to-text transcript."}
+                    {liveTranscript.final ||
+                      "Press Record to capture speech-to-text transcript."}
                   </span>
                 {/if}
               </div>
             </div>
           {:else}
             <!-- Prick Clips Card -->
-            <div class="glass-card flex-1 flex flex-col p-4 min-h-[180px] overflow-hidden">
-              <div class="flex items-center justify-between border-b border-white/5 pb-2 mb-3">
+            <div
+              class="glass-card flex-1 flex flex-col p-4 min-h-[180px] overflow-hidden"
+            >
+              <div
+                class="flex items-center justify-between border-b border-white/5 pb-2 mb-3"
+              >
                 <h3 class="panel-header uppercase flex items-center gap-2">
                   <span
                     class="pulse-indicator bg-[#00ff66]"
@@ -950,7 +1059,9 @@
                   ></span>
                   Prick Clips
                   {#if clips.length > 0}
-                    <span class="text-[10px] font-mono text-[#00ff66] font-normal">
+                    <span
+                      class="text-[10px] font-mono text-[#00ff66] font-normal"
+                    >
                       [ {clips.length} clip{clips.length === 1 ? "" : "s"} ]
                     </span>
                   {/if}
@@ -980,31 +1091,43 @@
               </div>
 
               <!-- Scrolling Clips Content -->
-              <div class="flex-grow overflow-y-auto bg-black/40 border border-white/5 rounded p-3 font-mono text-xs max-h-[220px] xl:max-h-none flex flex-col gap-2 min-h-0">
+              <div
+                class="flex-grow overflow-y-auto bg-black/40 border border-white/5 rounded p-3 font-mono text-xs max-h-[220px] xl:max-h-none flex flex-col gap-2 min-h-0"
+              >
                 {#if clips.length === 0}
-                  <div class="flex-grow flex flex-col items-center justify-center text-center py-8 text-white/20 select-none">
+                  <div
+                    class="flex-grow flex flex-col items-center justify-center text-center py-8 text-white/20 select-none"
+                  >
                     {#if engineState.isRecording}
                       <div class="flex items-center gap-2 mb-1 animate-pulse">
                         <span class="w-2 h-2 bg-[#00ff66] rounded-full"></span>
-                        <span class="text-xs uppercase tracking-wider text-[#00ff66]">
+                        <span
+                          class="text-xs uppercase tracking-wider text-[#00ff66]"
+                        >
                           MONITORING SOUND SENSORS...
                         </span>
                       </div>
                       <span class="text-[10px]">
-                        Clips will record automatically when volume crosses trigger threshold.
+                        Clips will record automatically when volume crosses
+                        trigger threshold.
                       </span>
                     {:else}
                       <Volume2 class="w-8 h-8 mb-2 opacity-30" />
                       <span>
-                        Press Record to start monitoring and capture prick clips.
+                        Press Record to start monitoring and capture prick
+                        clips.
                       </span>
                     {/if}
                   </div>
                 {:else}
                   {#each clips as clip (clip.id)}
-                    <div class="flex items-center justify-between gap-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded p-2.5 transition-all">
+                    <div
+                      class="flex items-center justify-between gap-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded p-2.5 transition-all"
+                    >
                       <!-- Clip media / icon thumbnail -->
-                      <div class="flex-shrink-0 w-16 h-12 relative bg-neutral-900 rounded overflow-hidden border border-white/10 flex items-center justify-center">
+                      <div
+                        class="flex-shrink-0 w-16 h-12 relative bg-neutral-900 rounded overflow-hidden border border-white/10 flex items-center justify-center"
+                      >
                         {#if clip.isVideo}
                           <video
                             src={clip.url}
@@ -1020,9 +1143,15 @@
 
                       <!-- Metadata -->
                       <div class="flex-grow min-w-0 text-left">
-                        <div class="flex items-center gap-1.5 text-white/90 font-bold mb-0.5">
-                          <span class="truncate">{clip.isVideo ? "VIDEO" : "AUDIO"} CLIP</span>
-                          <span class="text-white/45 text-[10px] font-normal">{clip.duration.toFixed(1)}s</span>
+                        <div
+                          class="flex items-center gap-1.5 text-white/90 font-bold mb-0.5"
+                        >
+                          <span class="truncate"
+                            >{clip.isVideo ? "VIDEO" : "AUDIO"} CLIP</span
+                          >
+                          <span class="text-white/45 text-[10px] font-normal"
+                            >{clip.duration.toFixed(1)}s</span
+                          >
                         </div>
                         <div class="text-[10px] text-white/40 leading-none">
                           {clip.timestamp.toLocaleDateString()}
@@ -1063,7 +1192,9 @@
                         <button
                           onclick={() => {
                             clips = clips.filter((c) => c.id !== clip.id);
-                            engine.clips = engine.clips.filter((c) => c.id !== clip.id);
+                            engine.clips = engine.clips.filter(
+                              (c) => c.id !== clip.id,
+                            );
                           }}
                           class="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded transition-all cursor-pointer"
                           title="Delete Clip"
@@ -1084,24 +1215,41 @@
             <div class="flex flex-col gap-3">
               <!-- Live Waveform & Timeline Player -->
               {#if engineState.isRecording || decodedPeaks.length > 0}
-                {@const isLiveScrolling = engineState.isRecording && livePeaksDuration > 10}
-                {@const timelineStart = isLiveScrolling ? livePeaksDuration - 10 : 0}
-                {@const totalTime = engineState.isRecording ? Math.max(10, livePeaksDuration) : duration}
-                {@const peaksToRender = engineState.isRecording ? livePeaks : decodedPeaks}
+                {@const isLiveScrolling =
+                  engineState.isRecording && livePeaksDuration > 10}
+                {@const timelineStart = isLiveScrolling
+                  ? livePeaksDuration - 10
+                  : 0}
+                {@const totalTime = engineState.isRecording
+                  ? Math.max(10, livePeaksDuration)
+                  : duration}
+                {@const peaksToRender = engineState.isRecording
+                  ? livePeaks
+                  : decodedPeaks}
                 <div class="flex flex-col gap-2 text-left">
                   <div class="flex items-center justify-between">
-                    <span class="input-label text-[10px] {engineState.isRecording ? 'text-[#ff3344]' : ''}">
+                    <span
+                      class="input-label text-[10px] {engineState.isRecording
+                        ? 'text-[#ff3344]'
+                        : ''}"
+                    >
                       {#if engineState.isRecording}
                         LIVE SURVEILLANCE AUDIO MONITOR
                       {:else}
                         PLAYBACK TIMELINE & AUDIO WAVEFORM
                       {/if}
                     </span>
-                    <span class="text-[10px] font-mono tracking-wider {engineState.isRecording ? 'text-[#ff3344]' : 'text-white/50'}">
+                    <span
+                      class="text-[10px] font-mono tracking-wider {engineState.isRecording
+                        ? 'text-[#ff3344]'
+                        : 'text-white/50'}"
+                    >
                       {#if engineState.isRecording}
                         RECORDING: {formatTime(livePeaksDuration)}
                       {:else}
-                        {formatTime(displayCurrentTime)} / {formatTime(displayDuration)}
+                        {formatTime(displayCurrentTime)} / {formatTime(
+                          displayDuration,
+                        )}
                       {/if}
                     </span>
                   </div>
@@ -1111,67 +1259,123 @@
                     class="flex items-center justify-between w-full h-16 gap-[2px] bg-black/45 border rounded px-2 relative select-none {engineState.isRecording
                       ? 'border-[#ff3344]/30'
                       : 'border-white/10 hover:border-white/20 cursor-ew-resize'}"
-                    onpointerdown={!engineState.isRecording ? handleWaveformPointerDown : null}
+                    onpointerdown={!engineState.isRecording
+                      ? handleWaveformPointerDown
+                      : null}
                   >
                     <!-- Vertical grid lines -->
-                    <div class="absolute left-[25%] top-0 w-[1px] h-full border-l border-dashed border-white/10 pointer-events-none z-0"></div>
-                    <div class="absolute left-[50%] top-0 w-[1px] h-full border-l border-dashed border-white/10 pointer-events-none z-0"></div>
-                    <div class="absolute left-[75%] top-0 w-[1px] h-full border-l border-dashed border-white/10 pointer-events-none z-0"></div>
+                    <div
+                      class="absolute left-[25%] top-0 w-[1px] h-full border-l border-dashed border-white/10 pointer-events-none z-0"
+                    ></div>
+                    <div
+                      class="absolute left-[50%] top-0 w-[1px] h-full border-l border-dashed border-white/10 pointer-events-none z-0"
+                    ></div>
+                    <div
+                      class="absolute left-[75%] top-0 w-[1px] h-full border-l border-dashed border-white/10 pointer-events-none z-0"
+                    ></div>
 
                     {#each peaksToRender as peak, idx}
                       {@const isActive = engineState.isRecording
                         ? idx < livePeaksCount
                         : idx / peaksToRender.length <= displayProgress}
                       <div
-                        class="flex-1 rounded-sm transition-colors duration-100 {isActive ? 'bg-[#00ff66]' : 'bg-white/20'} z-10"
+                        class="flex-1 rounded-sm transition-colors duration-100 {isActive
+                          ? 'bg-[#00ff66]'
+                          : 'bg-white/20'} z-10"
                         style="height: {Math.max(4, peak * 80)}%;"
                       ></div>
                     {/each}
                   </div>
 
                   <!-- Waveform Timestamps -->
-                  <div class="relative h-8 text-[9px] font-mono text-white/40 mt-1 select-none border-t border-white/5 pt-1.5">
+                  <div
+                    class="relative h-8 text-[9px] font-mono text-white/40 mt-1 select-none border-t border-white/5 pt-1.5"
+                  >
                     <!-- Column 0 -->
-                    <div class="absolute left-0 top-1.5 text-left flex flex-col gap-0.5">
-                      <span class="text-white/60">{formatTime(timelineStart)}</span>
+                    <div
+                      class="absolute left-0 top-1.5 text-left flex flex-col gap-0.5"
+                    >
+                      <span class="text-white/60"
+                        >{formatTime(timelineStart)}</span
+                      >
                       <span class="text-white/25 text-[8px] tracking-tight">
                         {formatWallClockTime(recordingStartDate, timelineStart)}
                       </span>
                     </div>
                     <!-- Column 1 -->
-                    <div class="absolute left-[25%] top-1.5 -translate-x-1/2 text-center flex flex-col gap-0.5">
+                    <div
+                      class="absolute left-[25%] top-1.5 -translate-x-1/2 text-center flex flex-col gap-0.5"
+                    >
                       <span class="text-white/60">
-                        {formatTime(isLiveScrolling ? livePeaksDuration - 7.5 : totalTime * 0.25)}
+                        {formatTime(
+                          isLiveScrolling
+                            ? livePeaksDuration - 7.5
+                            : totalTime * 0.25,
+                        )}
                       </span>
                       <span class="text-white/25 text-[8px] tracking-tight">
-                        {formatWallClockTime(recordingStartDate, isLiveScrolling ? livePeaksDuration - 7.5 : totalTime * 0.25)}
+                        {formatWallClockTime(
+                          recordingStartDate,
+                          isLiveScrolling
+                            ? livePeaksDuration - 7.5
+                            : totalTime * 0.25,
+                        )}
                       </span>
                     </div>
                     <!-- Column 2 -->
-                    <div class="absolute left-[50%] top-1.5 -translate-x-1/2 text-center flex flex-col gap-0.5">
+                    <div
+                      class="absolute left-[50%] top-1.5 -translate-x-1/2 text-center flex flex-col gap-0.5"
+                    >
                       <span class="text-white/60">
-                        {formatTime(isLiveScrolling ? livePeaksDuration - 5 : totalTime * 0.5)}
+                        {formatTime(
+                          isLiveScrolling
+                            ? livePeaksDuration - 5
+                            : totalTime * 0.5,
+                        )}
                       </span>
                       <span class="text-white/25 text-[8px] tracking-tight">
-                        {formatWallClockTime(recordingStartDate, isLiveScrolling ? livePeaksDuration - 5 : totalTime * 0.5)}
+                        {formatWallClockTime(
+                          recordingStartDate,
+                          isLiveScrolling
+                            ? livePeaksDuration - 5
+                            : totalTime * 0.5,
+                        )}
                       </span>
                     </div>
                     <!-- Column 3 -->
-                    <div class="absolute left-[75%] top-1.5 -translate-x-1/2 text-center flex flex-col gap-0.5">
+                    <div
+                      class="absolute left-[75%] top-1.5 -translate-x-1/2 text-center flex flex-col gap-0.5"
+                    >
                       <span class="text-white/60">
-                        {formatTime(isLiveScrolling ? livePeaksDuration - 2.5 : totalTime * 0.75)}
+                        {formatTime(
+                          isLiveScrolling
+                            ? livePeaksDuration - 2.5
+                            : totalTime * 0.75,
+                        )}
                       </span>
                       <span class="text-white/25 text-[8px] tracking-tight">
-                        {formatWallClockTime(recordingStartDate, isLiveScrolling ? livePeaksDuration - 2.5 : totalTime * 0.75)}
+                        {formatWallClockTime(
+                          recordingStartDate,
+                          isLiveScrolling
+                            ? livePeaksDuration - 2.5
+                            : totalTime * 0.75,
+                        )}
                       </span>
                     </div>
                     <!-- Column 4 -->
-                    <div class="absolute right-0 top-1.5 text-right flex flex-col gap-0.5">
+                    <div
+                      class="absolute right-0 top-1.5 text-right flex flex-col gap-0.5"
+                    >
                       <span class="text-white/60">
-                        {formatTime(isLiveScrolling ? livePeaksDuration : totalTime)}
+                        {formatTime(
+                          isLiveScrolling ? livePeaksDuration : totalTime,
+                        )}
                       </span>
                       <span class="text-white/25 text-[8px] tracking-tight">
-                        {formatWallClockTime(recordingStartDate, isLiveScrolling ? livePeaksDuration : totalTime)}
+                        {formatWallClockTime(
+                          recordingStartDate,
+                          isLiveScrolling ? livePeaksDuration : totalTime,
+                        )}
                       </span>
                     </div>
                   </div>
@@ -1180,24 +1384,38 @@
 
               <!-- Trigger Threshold controls when in Prick Mode -->
               {#if mode === "prick"}
-                <div class="flex flex-col gap-3 border-t border-white/5 pt-3 mt-1 text-left">
+                <div
+                  class="flex flex-col gap-3 border-t border-white/5 pt-3 mt-1 text-left"
+                >
                   <!-- Trigger Threshold -->
                   <div class="flex flex-col gap-1">
                     <div class="flex items-center justify-between">
-                      <span class="input-label text-[10px] flex items-center gap-1.5">
-                        <Sliders class="w-3.5 h-3.5 text-[#00ff66]" /> TRIGGER THRESHOLD SENSITIVITY
+                      <span
+                        class="input-label text-[10px] flex items-center gap-1.5"
+                      >
+                        <Sliders class="w-3.5 h-3.5 text-[#00ff66]" /> TRIGGER THRESHOLD
+                        SENSITIVITY
                       </span>
-                      <span class="text-[10px] font-mono text-white/50 tracking-wider">
-                        THRESHOLD: {triggerThreshold.toFixed(2)} (LIVE: {liveVolume.toFixed(2)})
+                      <span
+                        class="text-[10px] font-mono text-white/50 tracking-wider"
+                      >
+                        THRESHOLD: {triggerThreshold.toFixed(2)} (LIVE: {liveVolume.toFixed(
+                          2,
+                        )})
                       </span>
                     </div>
-                    <div class="flex items-center gap-4 bg-black/45 border border-white/10 rounded px-3 py-2">
+                    <div
+                      class="flex items-center gap-4 bg-black/45 border border-white/10 rounded px-3 py-2"
+                    >
                       <!-- Trigger Indicator Light -->
                       <span
-                        class="w-2.5 h-2.5 rounded-full transition-all duration-75 flex-shrink-0 {liveVolume > triggerThreshold
+                        class="w-2.5 h-2.5 rounded-full transition-all duration-75 flex-shrink-0 {liveVolume >
+                        triggerThreshold
                           ? 'bg-[#00ff66] shadow-[0_0_8px_#00ff66]'
                           : 'bg-white/10'}"
-                        title={liveVolume > triggerThreshold ? "Triggered" : "Monitoring"}
+                        title={liveVolume > triggerThreshold
+                          ? "Triggered"
+                          : "Monitoring"}
                       ></span>
 
                       <!-- The slider -->
@@ -1211,7 +1429,9 @@
                       />
 
                       <!-- Live volume bar gauge -->
-                      <div class="w-24 h-2.5 bg-white/5 rounded border border-white/10 overflow-hidden relative flex items-center">
+                      <div
+                        class="w-24 h-2.5 bg-white/5 rounded border border-white/10 overflow-hidden relative flex items-center"
+                      >
                         <div
                           class="h-full bg-[#00ff66]/80 transition-all duration-75"
                           style="width: {liveVolume * 100}%"
@@ -1229,14 +1449,22 @@
                   <!-- Clip Length control -->
                   <div class="flex flex-col gap-1">
                     <div class="flex items-center justify-between">
-                      <span class="input-label text-[10px] flex items-center gap-1.5">
-                        <Hourglass class="w-3.5 h-3.5 text-[#00ff66]" /> CLIP BUFFER DURATION
+                      <span
+                        class="input-label text-[10px] flex items-center gap-1.5"
+                      >
+                        <Hourglass class="w-3.5 h-3.5 text-[#00ff66]" /> CLIP BUFFER
+                        DURATION
                       </span>
-                      <span class="text-[10px] font-mono text-white/50 tracking-wider">
-                        LENGTH: {clipLength}s ({clipLength}s before & {clipLength}s after)
+                      <span
+                        class="text-[10px] font-mono text-white/50 tracking-wider"
+                      >
+                        LENGTH: {clipLength}s ({clipLength}s before & {clipLength}s
+                        after)
                       </span>
                     </div>
-                    <div class="flex items-center gap-4 bg-black/45 border border-white/10 rounded px-3 py-2">
+                    <div
+                      class="flex items-center gap-4 bg-black/45 border border-white/10 rounded px-3 py-2"
+                    >
                       <input
                         type="range"
                         min="1"
@@ -1252,15 +1480,20 @@
             </div>
 
             <!-- Lower action bar -->
-            <div class="flex flex-wrap items-center justify-between gap-3 border-t border-white/5 pt-3">
+            <div
+              class="flex flex-wrap items-center justify-between gap-3 border-t border-white/5 pt-3"
+            >
               <!-- Mode Toggle & Status info -->
               <div class="flex items-center gap-4 flex-wrap">
                 <!-- Cyberpunk Mode Slide Toggle -->
-                <div class="flex items-center gap-1 bg-black/40 border border-white/10 rounded p-1">
+                <div
+                  class="flex items-center gap-1 bg-black/40 border border-white/10 rounded p-1"
+                >
                   <button
                     onclick={() => (mode = "recorder")}
                     disabled={engineState.isRecording}
-                    class="px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider rounded transition-all duration-150 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed {mode === 'recorder'
+                    class="px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider rounded transition-all duration-150 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed {mode ===
+                    'recorder'
                       ? 'bg-[#00ff66] text-black font-bold'
                       : 'text-white/60 hover:text-white'}"
                   >
@@ -1269,7 +1502,8 @@
                   <button
                     onclick={() => (mode = "prick")}
                     disabled={engineState.isRecording}
-                    class="px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider rounded transition-all duration-150 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed {mode === 'prick'
+                    class="px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider rounded transition-all duration-150 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed {mode ===
+                    'prick'
                       ? 'bg-[#00ff66] text-black font-bold'
                       : 'text-white/60 hover:text-white'}"
                   >
@@ -1281,20 +1515,32 @@
                 <div class="flex items-center gap-2">
                   {#if engineState.isRecording}
                     {#if mode === "prick" && engineState.clipCapturingState === "capturing"}
-                      <span class="flex items-center gap-1 text-xs text-[#0066ff] font-mono font-bold tracking-widest uppercase animate-pulse">
-                        <span class="w-2.5 h-2.5 bg-[#0066ff] rounded-full animate-ping mr-1"></span> CLIPPING
+                      <span
+                        class="flex items-center gap-1 text-xs text-[#0066ff] font-mono font-bold tracking-widest uppercase animate-pulse"
+                      >
+                        <span
+                          class="w-2.5 h-2.5 bg-[#0066ff] rounded-full animate-ping mr-1"
+                        ></span> CLIPPING
                       </span>
-                    {#else}
-                      <span class="flex items-center gap-1 text-xs text-red-500 font-mono font-bold tracking-widest uppercase">
-                        <span class="w-2.5 h-2.5 bg-red-600 rounded-full animate-ping mr-1"></span> RECORDING
+                    {:else}
+                      <span
+                        class="flex items-center gap-1 text-xs text-red-500 font-mono font-bold tracking-widest uppercase"
+                      >
+                        <span
+                          class="w-2.5 h-2.5 bg-red-600 rounded-full animate-ping mr-1"
+                        ></span> RECORDING
                       </span>
                     {/if}
                   {:else if engineState.isDecoding}
-                    <span class="text-xs text-[#00ff66] font-mono font-bold animate-pulse tracking-wide uppercase">
+                    <span
+                      class="text-xs text-[#00ff66] font-mono font-bold animate-pulse tracking-wide uppercase"
+                    >
                       DECODING AUDIO BUFFER...
                     </span>
                   {:else}
-                    <span class="text-xs text-white/30 font-mono tracking-wider uppercase">
+                    <span
+                      class="text-xs text-white/30 font-mono tracking-wider uppercase"
+                    >
                       SYSTEM IDLE
                     </span>
                   {/if}
