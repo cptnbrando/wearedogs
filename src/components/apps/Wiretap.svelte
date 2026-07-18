@@ -393,6 +393,7 @@
               <!-- Live Waveform & Timeline Player -->
               {#if engineState.isRecording || decodedPeaks.length > 0}
                 {@const totalTime = engineState.isRecording ? livePeaksDuration : duration}
+                {@const peaksToRender = engineState.isRecording ? livePeaks : decodedPeaks}
                 <div class="flex flex-col gap-2">
                   <div class="flex items-center justify-between">
                     <span class="input-label text-[10px] {engineState.isRecording ? 'text-[#ff3344]' : ''}">
@@ -417,7 +418,6 @@
                     class="flex items-center justify-between w-full h-16 gap-[2px] bg-black/45 border rounded px-2 relative select-none {engineState.isRecording ? 'border-[#ff3344]/30' : 'border-white/10 hover:border-white/20 cursor-ew-resize'}"
                     onpointerdown={!engineState.isRecording ? handleWaveformPointerDown : null}
                   >
-                    {@const peaksToRender = engineState.isRecording ? livePeaks : decodedPeaks}
                     {#each peaksToRender as peak, idx}
                       {@const isActive = engineState.isRecording 
                         ? (idx < livePeaksCount) 
