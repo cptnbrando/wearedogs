@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1784405224,
+    "firstCommitTimestamp": 1784405412,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 147981
+    "averageLinesAltered": 147983
   },
   "entries": [
     {
       "version": "1.0.2",
       "name": "Master",
       "date": "2026-07-18",
-      "timestamp": 1784405248,
+      "timestamp": 1784405342,
       "commits": [
         {
-          "hash": "68d0536",
-          "message": "Merge pull request #28 from cptnbrando/swarm/wiretap-mobile-fixes",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/68d053600c887f805b6c402170492df785cf70d3",
-          "timestamp": 1784405224,
-          "linesChanged": 147981
+          "hash": "a4317b1",
+          "message": "default threshold",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/a4317b104211b098f88cc3a3e7b1c159b37e6177",
+          "timestamp": 1784405412,
+          "linesChanged": 147983
         }
       ]
     },
