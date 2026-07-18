@@ -33,11 +33,6 @@
   letter-spacing: 0.12em;
   font-family: "Outfit", sans-serif;
   color: rgba(255, 255, 255, 0.9);
-
-  @media (max-width: 767px) {
-    font-size: 0.65rem;
-    gap: 4px;
-  }
 }
 
 .pulse-indicator {
@@ -45,11 +40,6 @@
   height: 6px;
   border-radius: 50%;
   background: #ef4444;
-
-  @media (max-width: 767px) {
-    width: 4px;
-    height: 4px;
-  }
 
   &.recording {
     animation: indicatorPulse 1.2s infinite alternate;
@@ -142,6 +132,7 @@
 /* 4. MOBILE PORTRAIT */
 @media (max-width: 767px) {
   :global(.base-app-layout) {
+    min-height: 100% !important;
     height: auto !important;
     max-height: none !important;
     overflow-y: auto !important;
@@ -149,8 +140,8 @@
   }
 
   :global(.app-body) {
+    min-height: 100% !important;
     height: auto !important;
-    min-height: auto !important;
     flex-grow: 1 !important;
     overflow: visible !important;
     width: 100% !important;
@@ -163,6 +154,7 @@
   .dashboard-grid {
     display: flex !important;
     flex-direction: column !important;
+    min-height: 100% !important;
     height: auto !important;
     overflow-y: visible !important;
     padding: 6px !important;
@@ -187,7 +179,7 @@
     [data-card="viewport"] {
       flex: 1 1 auto !important;
       min-height: 140px !important;
-      max-height: none !important;
+      max-height: 220px !important;
     }
   }
 
@@ -218,6 +210,7 @@
 /* 5. MOBILE LANDSCAPE */
 @media (max-width: 950px) and (orientation: landscape) {
   :global(.base-app-layout) {
+    min-height: 100% !important;
     height: auto !important;
     max-height: none !important;
     overflow-y: auto !important;
@@ -225,8 +218,8 @@
   }
 
   :global(.app-body) {
+    min-height: 100% !important;
     height: auto !important;
-    min-height: auto !important;
     flex-grow: 1 !important;
     overflow: visible !important;
     width: 100% !important;
@@ -239,6 +232,7 @@
   .dashboard-grid {
     display: flex !important;
     flex-direction: row !important;
+    min-height: 100% !important;
     height: auto !important;
     overflow: visible !important;
     gap: 6px !important;
