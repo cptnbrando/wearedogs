@@ -292,13 +292,13 @@
             <!-- Audio Input -->
             <div class="flex flex-col gap-1">
               <label for="mic-select" class="input-label">MICROPHONE SOURCE</label>
-              <div class="flex items-center gap-2 bg-black/35 border border-white/10 rounded px-2 py-1">
-                <Mic class="w-4 h-4 text-[#00ff66]" />
+              <div class="flex items-center gap-2 bg-black/35 border border-white/10 rounded px-2 py-1 w-full min-w-0 overflow-hidden">
+                <Mic class="w-4 h-4 text-[#00ff66] flex-shrink-0" />
                 <select
                   id="mic-select"
                   bind:value={selectedAudioDevice}
                   disabled={engineState.isRecording}
-                  class="flex-1 bg-transparent text-white text-xs font-mono border-none outline-none py-1 cursor-pointer disabled:opacity-50"
+                  class="flex-1 min-w-0 w-full bg-transparent text-white text-xs font-mono border-none outline-none py-1 cursor-pointer disabled:opacity-50 truncate"
                 >
                   {#each audioDevices as dev}
                     <option value={dev.deviceId} class="bg-neutral-900">{dev.label || `Microphone ${dev.deviceId.slice(0, 5)}`}</option>
@@ -310,13 +310,13 @@
             <!-- Video Input -->
             <div class="flex flex-col gap-1">
               <label for="camera-select" class="input-label">CAMERA SOURCE</label>
-              <div class="flex items-center gap-2 bg-black/35 border border-white/10 rounded px-2 py-1">
-                <Camera class="w-4 h-4 text-[#00ff66]" />
+              <div class="flex items-center gap-2 bg-black/35 border border-white/10 rounded px-2 py-1 w-full min-w-0 overflow-hidden">
+                <Camera class="w-4 h-4 text-[#00ff66] flex-shrink-0" />
                 <select
                   id="camera-select"
                   bind:value={selectedVideoDevice}
                   disabled={engineState.isRecording}
-                  class="flex-1 bg-transparent text-white text-xs font-mono border-none outline-none py-1 cursor-pointer disabled:opacity-50"
+                  class="flex-1 min-w-0 w-full bg-transparent text-white text-xs font-mono border-none outline-none py-1 cursor-pointer disabled:opacity-50 truncate"
                 >
                   {#each videoDevices as dev}
                     <option value={dev.deviceId} class="bg-neutral-900">{dev.label || `Webcam ${dev.deviceId.slice(0, 5)}`}</option>
@@ -459,29 +459,29 @@
                   </div>
 
                   <!-- Waveform Timestamps -->
-                  <div class="grid grid-cols-5 text-[9px] font-mono text-white/40 mt-1 px-1 select-none border-t border-white/5 pt-1.5">
+                  <div class="relative h-8 text-[9px] font-mono text-white/40 mt-1 select-none border-t border-white/5 pt-1.5">
                     <!-- Column 0 -->
-                    <div class="text-left flex flex-col gap-0.5">
+                    <div class="absolute left-0 top-1.5 text-left flex flex-col gap-0.5">
                       <span class="text-white/60">{formatTime(timelineStart)}</span>
                       <span class="text-white/25 text-[8px] tracking-tight">{formatWallClockTime(recordingStartDate, timelineStart)}</span>
                     </div>
                     <!-- Column 1 -->
-                    <div class="text-center flex flex-col gap-0.5">
+                    <div class="absolute left-[25%] top-1.5 -translate-x-1/2 text-center flex flex-col gap-0.5">
                       <span class="text-white/60">{formatTime(isLiveScrolling ? (livePeaksDuration - 7.5) : (totalTime * 0.25))}</span>
                       <span class="text-white/25 text-[8px] tracking-tight">{formatWallClockTime(recordingStartDate, isLiveScrolling ? (livePeaksDuration - 7.5) : (totalTime * 0.25))}</span>
                     </div>
                     <!-- Column 2 -->
-                    <div class="text-center flex flex-col gap-0.5">
+                    <div class="absolute left-[50%] top-1.5 -translate-x-1/2 text-center flex flex-col gap-0.5">
                       <span class="text-white/60">{formatTime(isLiveScrolling ? (livePeaksDuration - 5) : (totalTime * 0.5))}</span>
                       <span class="text-white/25 text-[8px] tracking-tight">{formatWallClockTime(recordingStartDate, isLiveScrolling ? (livePeaksDuration - 5) : (totalTime * 0.5))}</span>
                     </div>
                     <!-- Column 3 -->
-                    <div class="text-center flex flex-col gap-0.5">
+                    <div class="absolute left-[75%] top-1.5 -translate-x-1/2 text-center flex flex-col gap-0.5">
                       <span class="text-white/60">{formatTime(isLiveScrolling ? (livePeaksDuration - 2.5) : (totalTime * 0.75))}</span>
                       <span class="text-white/25 text-[8px] tracking-tight">{formatWallClockTime(recordingStartDate, isLiveScrolling ? (livePeaksDuration - 2.5) : (totalTime * 0.75))}</span>
                     </div>
                     <!-- Column 4 -->
-                    <div class="text-right flex flex-col gap-0.5">
+                    <div class="absolute right-0 top-1.5 text-right flex flex-col gap-0.5">
                       <span class="text-white/60">{formatTime(isLiveScrolling ? livePeaksDuration : totalTime)}</span>
                       <span class="text-white/25 text-[8px] tracking-tight">{formatWallClockTime(recordingStartDate, isLiveScrolling ? livePeaksDuration : totalTime)}</span>
                     </div>
