@@ -5,7 +5,7 @@ export const DEFAULT_MAPPINGS = {
     LEFT: "ArrowLeft",
     RIGHT: "ArrowRight",
     A: "KeyK",
-    B: "KeyC",
+    B: "KeyJ",
     L: "KeyQ",
     R: "KeyE",
     Z: "Space",
@@ -25,7 +25,7 @@ export const DEFAULT_MAPPINGS = {
     LEFT: "ArrowLeft",
     RIGHT: "ArrowRight",
     A: "KeyX",
-    B: "KeyC",
+    B: "KeyJ",
     L: "KeyA",
     R: "KeyD",
     SELECT: "ShiftLeft",
@@ -37,7 +37,7 @@ export const DEFAULT_MAPPINGS = {
     LEFT: "ArrowLeft",
     RIGHT: "ArrowRight",
     A: "KeyX",
-    B: "KeyC",
+    B: "KeyJ",
     X: "KeyZ",
     Y: "KeyS",
     L: "KeyA",
@@ -51,7 +51,7 @@ export const DEFAULT_MAPPINGS = {
     LEFT: "ArrowLeft",
     RIGHT: "ArrowRight",
     Y: "KeyS", // maps to RetroArch Y
-    B: "KeyC", // maps to RetroArch B
+    B: "KeyJ", // maps to RetroArch B
     A: "KeyX", // maps to RetroArch A
     START: "Enter",
   },
@@ -60,7 +60,7 @@ export const DEFAULT_MAPPINGS = {
     DOWN: "ArrowDown",
     LEFT: "ArrowLeft",
     RIGHT: "ArrowRight",
-    B: "KeyC",      // Cross (✖)
+    B: "KeyJ",      // Cross (✖)
     A: "KeyX",      // Circle (●)
     X: "KeyZ",      // Square (■)
     Y: "KeyS",      // Triangle (▲)

@@ -37,7 +37,11 @@ export const ARCADE_SLUGS = {
   'conker': 'conker',
   'goldeneye': 'goldeneye',
   'zelda': 'zelda',
-  'nintendogs': 'nintendogs'
+  'nintendogs': 'nintendogs',
+  'dkc': 'dkc',
+  'dkc1': 'dkc',
+  'dkc2': 'dkc2',
+  'dkc3': 'dkc3'
 };
 
 // ---------------------------------------------------------------------------

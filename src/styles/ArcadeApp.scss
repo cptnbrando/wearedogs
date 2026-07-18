@@ -280,6 +280,8 @@
     display: flex;
     align-items: center;
     gap: 10px;
+    min-width: 0;
+    flex-shrink: 1;
 
     .back-btn {
       background: rgba(255, 255, 255, 0.06);
@@ -294,6 +296,7 @@
       gap: 6px;
       cursor: pointer;
       transition: all 0.2s ease;
+      flex-shrink: 0;
 
       &:hover {
         background: rgba(255, 255, 255, 0.15);
@@ -307,6 +310,10 @@
       font-size: 0.9rem;
       font-weight: 700;
       letter-spacing: 0.02em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      min-width: 0;
     }
   }
 
@@ -314,20 +321,60 @@
     display: flex;
     gap: 8px;
     align-items: center;
+    flex-shrink: 0;
 
-    .settings-select {
-      background: rgba(0, 0, 0, 0.3);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      color: rgba(255, 255, 255, 0.8);
-      border-radius: 6px;
-      font-size: 0.65rem;
-      padding: 4px 8px;
-      font-family: monospace;
-      outline: none;
-      cursor: pointer;
+    .theme-dropdown-container {
+      position: relative;
+      display: inline-block;
 
-      &:hover {
-        border-color: rgba(255, 255, 255, 0.2);
+      .dropdown-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        background: transparent;
+      }
+
+      .theme-dropdown-menu {
+        position: absolute;
+        top: calc(100% + 6px);
+        right: 0;
+        background: rgba(15, 15, 20, 0.95);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 8px;
+        padding: 6px;
+        min-width: 150px;
+        z-index: 1001;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+
+        .dropdown-item {
+          background: transparent;
+          border: none;
+          color: rgba(255, 255, 255, 0.7);
+          text-align: left;
+          padding: 8px 12px;
+          border-radius: 6px;
+          font-size: 0.7rem;
+          font-family: monospace;
+          cursor: pointer;
+          transition: all 0.15s ease;
+          width: 100%;
+          outline: none;
+
+          &:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: white;
+          }
+
+          &.active {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            font-weight: bold;
+          }
+        }
       }
     }
 
@@ -349,6 +396,14 @@
         background: rgba(255, 255, 255, 0.15);
         color: white;
         border-color: rgba(255, 255, 255, 0.25);
+      }
+    }
+
+    .keyboard-config-btn {
+      display: none !important;
+
+      @media (min-width: 768px) {
+        display: flex !important;
       }
     }
   }
@@ -1403,3 +1458,150 @@
     }
   }
 }
+
+/* ── N64 Extra Buttons on Mobile (Z button & C-Buttons) ── */
+.n64-extra-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 0 16px;
+  margin-top: 4px;
+  margin-bottom: 4px;
+  flex-shrink: 0;
+
+  .n64-z-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    background: #4a4b4d;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 
+      0 3px 6px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    color: white;
+    font-weight: 800;
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.08s ease, background 0.1s ease;
+    user-select: none;
+    -webkit-user-select: none;
+
+    &:active {
+      transform: translateY(2px) scale(0.95);
+      background: #333435;
+    }
+  }
+
+  .n64-c-buttons {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    user-select: none;
+    -webkit-user-select: none;
+
+    .c-buttons-horizontal {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .c-label {
+      font-size: 0.6rem;
+      font-weight: 800;
+      color: rgba($color-neon-gold, 0.85);
+      font-family: sans-serif;
+    }
+
+    .c-btn {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #ffd700; // Original yellow C-Buttons
+      border: 1px solid rgba(0, 0, 0, 0.35);
+      box-shadow: 
+        0 2px 3px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.25);
+      color: #111;
+      font-size: 0.65rem;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      outline: none;
+      transition: transform 0.08s ease, background 0.1s ease;
+
+      &:active {
+        transform: scale(0.92);
+        background: #e6c200;
+      }
+    }
+  }
+}
+
+.gba-z-btn {
+  width: 44px;
+  height: 24px;
+  background: #4a4b4d;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 800;
+  margin-bottom: 12px;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  -webkit-user-select: none;
+
+  &:active {
+    background: #333435;
+    transform: translateY(1px);
+  }
+}
+
+.gba-c-buttons {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  margin-bottom: 8px;
+  user-select: none;
+  -webkit-user-select: none;
+
+  .c-buttons-horizontal {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .c-btn {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #ffd700;
+    border: 1px solid rgba(0, 0, 0, 0.3);
+    color: #111;
+    font-size: 0.5rem;
+    font-weight: 800;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    outline: none;
+
+    &:active {
+      background: #e6c200;
+      transform: scale(0.92);
+    }
+  }
+}
+

@@ -65,6 +65,7 @@
       file: "https://data.wearedogs.net/game/n64/conker.zip",
       desc: "Classic N64 comedy platformer.",
     },
+    /*
     {
       id: "mariods",
       title: "Super Mario 64 DS",
@@ -93,6 +94,28 @@
       file: "https://data.wearedogs.net/game/genesis/moonwalker.zip",
       desc: "Michael Jackson's Sega Genesis classic.",
     },
+    {
+      id: "dkc",
+      title: "Donkey Kong Country",
+      console: "gba",
+      file: "https://data.wearedogs.net/game/gba/dkc.zip",
+      desc: "Classic GBA platformer.",
+    },
+    {
+      id: "dkc2",
+      title: "Donkey Kong Country 2",
+      console: "gba",
+      file: "https://data.wearedogs.net/game/gba/dkc2.zip",
+      desc: "Diddy Kong's GBA adventure.",
+    },
+    {
+      id: "dkc3",
+      title: "Donkey Kong Country 3",
+      console: "gba",
+      file: "https://data.wearedogs.net/game/gba/dkc3.zip",
+      desc: "Dixie Kong's GBA quest.",
+    },
+    */
   ];
 
   // States
@@ -103,36 +126,39 @@
   let isSavingInfoVisible = $state(false);
   let isFullscreen = $state(false);
   let emulatorEl = $state(null);
+  let isThemeDropdownOpen = $state(false);
 
   // Video settings
   let filterType = $state("composite");
   let zoomEnabled = $state(true);
 
   // Keyboard mappings state initialized synchronously from localStorage if available
-  let userMappings = $state(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const saved = localStorage.getItem("arcade-keyboard-mappings");
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          for (const consoleKey of Object.keys(DEFAULT_MAPPINGS)) {
-            if (!parsed[consoleKey]) {
-              parsed[consoleKey] = { ...DEFAULT_MAPPINGS[consoleKey] };
-            } else {
-              parsed[consoleKey] = {
-                ...DEFAULT_MAPPINGS[consoleKey],
-                ...parsed[consoleKey],
-              };
+  let userMappings = $state(
+    (() => {
+      if (typeof window !== "undefined") {
+        try {
+          const saved = localStorage.getItem("arcade-keyboard-mappings");
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            for (const consoleKey of Object.keys(DEFAULT_MAPPINGS)) {
+              if (!parsed[consoleKey]) {
+                parsed[consoleKey] = { ...DEFAULT_MAPPINGS[consoleKey] };
+              } else {
+                parsed[consoleKey] = {
+                  ...DEFAULT_MAPPINGS[consoleKey],
+                  ...parsed[consoleKey],
+                };
+              }
             }
+            return parsed;
           }
-          return parsed;
+        } catch (e) {
+          console.warn("Failed to load mappings from localStorage:", e);
         }
-      } catch (e) {
-        console.warn("Failed to load mappings from localStorage:", e);
       }
-    }
-    return JSON.parse(JSON.stringify(DEFAULT_MAPPINGS));
-  });
+      return JSON.parse(JSON.stringify(DEFAULT_MAPPINGS));
+    })(),
+  );
   let isControlsModalOpen = $state(false);
 
   function handleResetConsoleMappings(consoleKey) {
@@ -176,6 +202,8 @@
         return { key: "ArrowRight", code: "ArrowRight" };
       case 75:
         return { key: "k", code: "KeyK" };
+      case 74:
+        return { key: "j", code: "KeyJ" };
       case 67:
         return { key: "c", code: "KeyC" };
       case 81:
@@ -247,23 +275,25 @@
     if (isN64) {
       switch (btn) {
         case "UP":
-          return 38;
+          return 87; // Map D-pad Up to Analog Up (W) for Mario/N64 movement
         case "DOWN":
-          return 40;
+          return 83; // Map D-pad Down to Analog Down (S)
         case "LEFT":
-          return 37;
+          return 65; // Map D-pad Left to Analog Left (A)
         case "RIGHT":
-          return 39;
+          return 68; // Map D-pad Right to Analog Right (D)
         case "A":
           return 75; // K
         case "B":
-          return 67; // C
+          return 74; // J
         case "L":
           return 81; // Q
         case "R":
           return 69; // E
         case "Z":
           return 32; // Space
+        case "SELECT":
+          return 32; // Map SELECT to Z button (Space) for N64 on mobile
         case "START":
           return 13; // Enter
         case "ANALOG_UP":
@@ -296,7 +326,7 @@
         case "A":
           return 88; // X
         case "B":
-          return 67; // C
+          return 74; // J
         case "X":
           return 90; // Z
         case "Y":
@@ -340,6 +370,10 @@
       code: extra.code,
       bubbles: true,
       cancelable: true,
+    });
+    Object.defineProperty(eventObj, "synthesized", {
+      value: true,
+      enumerable: true,
     });
 
     const canvas = document.querySelector("#emulator canvas");
@@ -860,14 +894,66 @@
           <h3>{currentGame.title} ({currentGame.console.toUpperCase()})</h3>
         </div>
         <div class="bar-settings">
-          <select bind:value={activeTheme} class="settings-select">
-            <option value="gbc">Gameboy Color</option>
-            <option value="psp">PSP Layout</option>
-            <option value="gba">GBA Horizontal</option>
-            <option value="screen">Screen Only</option>
-          </select>
+          <div class="theme-dropdown-container">
+            <button
+              class="fullscreen-btn theme-toggle-btn"
+              onclick={() => (isThemeDropdownOpen = !isThemeDropdownOpen)}
+              aria-label="Controller Layout"
+              title="Controller Layout"
+            >
+              <Gamepad size={14} />
+            </button>
+            {#if isThemeDropdownOpen}
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
+              <!-- svelte-ignore a11y_click_events_have_key_events -->
+              <div
+                class="dropdown-backdrop"
+                onclick={() => (isThemeDropdownOpen = false)}
+              ></div>
+              <div class="theme-dropdown-menu">
+                <button
+                  class="dropdown-item {activeTheme === 'gbc' ? 'active' : ''}"
+                  onclick={() => {
+                    activeTheme = "gbc";
+                    isThemeDropdownOpen = false;
+                  }}
+                >
+                  Gameboy Color
+                </button>
+                <button
+                  class="dropdown-item {activeTheme === 'psp' ? 'active' : ''}"
+                  onclick={() => {
+                    activeTheme = "psp";
+                    isThemeDropdownOpen = false;
+                  }}
+                >
+                  PSP Layout
+                </button>
+                <button
+                  class="dropdown-item {activeTheme === 'gba' ? 'active' : ''}"
+                  onclick={() => {
+                    activeTheme = "gba";
+                    isThemeDropdownOpen = false;
+                  }}
+                >
+                  GBA Horizontal
+                </button>
+                <button
+                  class="dropdown-item {activeTheme === 'screen'
+                    ? 'active'
+                    : ''}"
+                  onclick={() => {
+                    activeTheme = "screen";
+                    isThemeDropdownOpen = false;
+                  }}
+                >
+                  Screen Only
+                </button>
+              </div>
+            {/if}
+          </div>
           <button
-            class="fullscreen-btn hidden md:flex"
+            class="fullscreen-btn keyboard-config-btn"
             onclick={() => (isControlsModalOpen = true)}
             aria-label="Keyboard controls"
           >
@@ -908,6 +994,71 @@
           </div>
 
           <div class="controls-area">
+            {#if currentGame.console === "n64"}
+              <!-- N64 Specific controls (Z button & C-Buttons) -->
+              <div class="n64-extra-row">
+                <!-- svelte-ignore a11y_click_events_have_key_events -->
+                <!-- svelte-ignore a11y_no_static_element_interactions -->
+                <div
+                  class="n64-z-btn"
+                  ontouchstart={(e) => handleTouchStart(e, "Z")}
+                  ontouchend={(e) => handleTouchEnd(e, "Z")}
+                  onmousedown={(e) => handleMouseDown(e, "Z")}
+                  onmouseup={(e) => handleMouseUp(e, "Z")}
+                >
+                  Z
+                </div>
+                <div class="n64-c-buttons">
+                  <!-- svelte-ignore a11y_click_events_have_key_events -->
+                  <!-- svelte-ignore a11y_no_static_element_interactions -->
+                  <div
+                    class="c-btn up"
+                    ontouchstart={(e) => handleTouchStart(e, "C_UP")}
+                    ontouchend={(e) => handleTouchEnd(e, "C_UP")}
+                    onmousedown={(e) => handleMouseDown(e, "C_UP")}
+                    onmouseup={(e) => handleMouseUp(e, "C_UP")}
+                  >
+                    ▲
+                  </div>
+                  <div class="c-buttons-horizontal">
+                    <!-- svelte-ignore a11y_click_events_have_key_events -->
+                    <!-- svelte-ignore a11y_no_static_element_interactions -->
+                    <div
+                      class="c-btn left"
+                      ontouchstart={(e) => handleTouchStart(e, "C_LEFT")}
+                      ontouchend={(e) => handleTouchEnd(e, "C_LEFT")}
+                      onmousedown={(e) => handleMouseDown(e, "C_LEFT")}
+                      onmouseup={(e) => handleMouseUp(e, "C_LEFT")}
+                    >
+                      ◀
+                    </div>
+                    <span class="c-label">C</span>
+                    <!-- svelte-ignore a11y_click_events_have_key_events -->
+                    <!-- svelte-ignore a11y_no_static_element_interactions -->
+                    <div
+                      class="c-btn right"
+                      ontouchstart={(e) => handleTouchStart(e, "C_RIGHT")}
+                      ontouchend={(e) => handleTouchEnd(e, "C_RIGHT")}
+                      onmousedown={(e) => handleMouseDown(e, "C_RIGHT")}
+                      onmouseup={(e) => handleMouseUp(e, "C_RIGHT")}
+                    >
+                      ▶
+                    </div>
+                  </div>
+                  <!-- svelte-ignore a11y_click_events_have_key_events -->
+                  <!-- svelte-ignore a11y_no_static_element_interactions -->
+                  <div
+                    class="c-btn down"
+                    ontouchstart={(e) => handleTouchStart(e, "C_DOWN")}
+                    ontouchend={(e) => handleTouchEnd(e, "C_DOWN")}
+                    onmousedown={(e) => handleMouseDown(e, "C_DOWN")}
+                    onmouseup={(e) => handleMouseUp(e, "C_DOWN")}
+                  >
+                    ▼
+                  </div>
+                </div>
+              </div>
+            {/if}
             <div class="dpad-buttons-row">
               <!-- GBC Dpad -->
               <div class="gbc-dpad">
@@ -1220,6 +1371,19 @@
 
           <!-- Left Wing -->
           <div class="left-wing">
+            {#if currentGame.console === "n64"}
+              <!-- svelte-ignore a11y_click_events_have_key_events -->
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
+              <div
+                class="gba-z-btn"
+                ontouchstart={(e) => handleTouchStart(e, "Z")}
+                ontouchend={(e) => handleTouchEnd(e, "Z")}
+                onmousedown={(e) => handleMouseDown(e, "Z")}
+                onmouseup={(e) => handleMouseUp(e, "Z")}
+              >
+                Z
+              </div>
+            {/if}
             <div class="gba-dpad">
               <div class="dpad-cross cross-h"></div>
               <div class="dpad-cross cross-v"></div>
@@ -1271,6 +1435,56 @@
 
           <!-- Right Wing -->
           <div class="right-wing">
+            {#if currentGame.console === "n64"}
+              <div class="gba-c-buttons">
+                <!-- svelte-ignore a11y_click_events_have_key_events -->
+                <!-- svelte-ignore a11y_no_static_element_interactions -->
+                <div
+                  class="c-btn up"
+                  ontouchstart={(e) => handleTouchStart(e, "C_UP")}
+                  ontouchend={(e) => handleTouchEnd(e, "C_UP")}
+                  onmousedown={(e) => handleMouseDown(e, "C_UP")}
+                  onmouseup={(e) => handleMouseUp(e, "C_UP")}
+                >
+                  ▲
+                </div>
+                <div class="c-buttons-horizontal">
+                  <!-- svelte-ignore a11y_click_events_have_key_events -->
+                  <!-- svelte-ignore a11y_no_static_element_interactions -->
+                  <div
+                    class="c-btn left"
+                    ontouchstart={(e) => handleTouchStart(e, "C_LEFT")}
+                    ontouchend={(e) => handleTouchEnd(e, "C_LEFT")}
+                    onmousedown={(e) => handleMouseDown(e, "C_LEFT")}
+                    onmouseup={(e) => handleMouseUp(e, "C_LEFT")}
+                  >
+                    ◀
+                  </div>
+                  <!-- svelte-ignore a11y_click_events_have_key_events -->
+                  <!-- svelte-ignore a11y_no_static_element_interactions -->
+                  <div
+                    class="c-btn right"
+                    ontouchstart={(e) => handleTouchStart(e, "C_RIGHT")}
+                    ontouchend={(e) => handleTouchEnd(e, "C_RIGHT")}
+                    onmousedown={(e) => handleMouseDown(e, "C_RIGHT")}
+                    onmouseup={(e) => handleMouseUp(e, "C_RIGHT")}
+                  >
+                    ▶
+                  </div>
+                </div>
+                <!-- svelte-ignore a11y_click_events_have_key_events -->
+                <!-- svelte-ignore a11y_no_static_element_interactions -->
+                <div
+                  class="c-btn down"
+                  ontouchstart={(e) => handleTouchStart(e, "C_DOWN")}
+                  ontouchend={(e) => handleTouchEnd(e, "C_DOWN")}
+                  onmousedown={(e) => handleMouseDown(e, "C_DOWN")}
+                  onmouseup={(e) => handleMouseUp(e, "C_DOWN")}
+                >
+                  ▼
+                </div>
+              </div>
+            {/if}
             <div class="gba-action-buttons">
               <!-- svelte-ignore a11y_no_static_element_interactions -->
               <div
