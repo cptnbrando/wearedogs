@@ -1779,7 +1779,7 @@
                       >
                         <span
                           class="w-2 h-2 bg-[#0066ff] rounded-full animate-ping mr-1"
-                        ></span> CLIPPING
+                        ></span> CLIP
                       </span>
                     {:else}
                       <span
@@ -1787,7 +1787,7 @@
                       >
                         <span
                           class="w-2 h-2 bg-red-600 rounded-full animate-ping mr-1"
-                        ></span> RECORDING
+                        ></span> REC
                       </span>
                     {/if}
                   {:else if engineState.isDecoding}
