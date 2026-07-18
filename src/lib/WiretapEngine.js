@@ -222,7 +222,7 @@ export class WiretapEngine {
   /**
    * Starts microphone and video recording and speech recognition.
    */
-  async startRecording(audioDeviceId, videoDeviceId = null, enableVideo = false) {
+  async startRecording(audioDeviceId, videoTrack = null) {
     if (this.isRecording) return;
 
     // Reset transcripts, chunks, buffers, and states
@@ -247,10 +247,7 @@ export class WiretapEngine {
       audio: audioDeviceId ? { deviceId: { exact: audioDeviceId } } : true,
     };
 
-    if (enableVideo) {
-      constraints.video = (videoDeviceId && videoDeviceId !== "")
-        ? { deviceId: { exact: videoDeviceId } }
-        : true;
+    if (videoTrack) {
       this.mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp8,opus")
         ? "video/webm;codecs=vp8,opus"
         : "video/webm";
@@ -260,6 +257,9 @@ export class WiretapEngine {
 
     try {
       this.liveStream = await navigator.mediaDevices.getUserMedia(constraints);
+      if (videoTrack) {
+        this.liveStream.addTrack(videoTrack);
+      }
       this.recordingStartTime = performance.now();
       
       const options = { mimeType: this.mimeType };

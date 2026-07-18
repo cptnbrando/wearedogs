@@ -7,6 +7,7 @@
   import { WiretapEngine } from "../../lib/WiretapEngine.js";
   import { createZip } from "../../lib/zip.js";
   import DogsLogo from "../DogsLogo.svelte";
+  import dogsLogoPng from "../../assets/dogs-logo-cropped.png";
   import {
     Mic,
     MicOff,
@@ -69,12 +70,23 @@
   let playerCurrentTime = $state(0);
   let playerDuration = $state(0);
   let playerProgress = $derived(playerDuration > 0 ? playerCurrentTime / playerDuration : 0);
+  let mediaPlaybackEl = $state(null);
+  let isMediaPaused = $state(true);
+  let isMediaPlaying = $derived(!isMediaPaused);
 
   // Clock Overlay Variables
   let currentTimeObj = $state(new Date());
   let clockInterval = null;
+  
+  let HUDTime = $derived.by(() => {
+    if (playbackMedia && playbackMedia.timestamp) {
+      return new Date(playbackMedia.timestamp.getTime() + playerCurrentTime * 1000);
+    }
+    return currentTimeObj;
+  });
+
   const dateStr = $derived(
-    currentTimeObj.toLocaleDateString("en-US", {
+    HUDTime.toLocaleDateString("en-US", {
       month: "numeric",
       day: "numeric",
       year: "numeric",
@@ -84,6 +96,23 @@
   // Location Geocoding Variables
   let locationText = $state("Dallas, TX");
   let isLocating = $state(false);
+
+  // Canvas Drawing Loop Variables
+  let canvasEl = null;
+  let canvasCtx = null;
+  let canvasDrawLoopId = null;
+  let logoImage = null;
+
+  // Sync timelines
+  let displayCurrentTime = $derived(
+    playbackMedia ? playerCurrentTime : currentTime
+  );
+  let displayDuration = $derived(
+    playbackMedia ? playerDuration : duration
+  );
+  let displayProgress = $derived(
+    playbackMedia ? playerProgress : playbackProgress
+  );
 
   // Engine state representation
   let engineState = $state({
@@ -228,6 +257,78 @@
     updateCameraStream();
   });
 
+  // Canvas Draw Loop to bake overlays into recorded video in real-time
+  function drawCanvasFrame() {
+    if (!engineState.isRecording) return;
+
+    if (canvasCtx) {
+      // 1. Draw live webcam frame
+      if (videoEl && videoEl.readyState >= 2) {
+        canvasCtx.drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height);
+      } else {
+        canvasCtx.fillStyle = "#0c0c0f";
+        canvasCtx.fillRect(0, 0, canvasEl.width, canvasEl.height);
+      }
+
+      // 2. Draw semi-transparent HUD background banners
+      canvasCtx.fillStyle = "rgba(0, 0, 0, 0.45)";
+      canvasCtx.fillRect(0, 0, canvasEl.width, 45); // top banner
+      canvasCtx.fillRect(0, canvasEl.height - 45, canvasEl.width, 45); // bottom banner
+
+      const now = new Date();
+
+      // Top-right HUD clock
+      canvasCtx.font = "bold 11px monospace";
+      canvasCtx.fillStyle = "#00ff66";
+      canvasCtx.textAlign = "right";
+      canvasCtx.fillText(formatUTCTime(now), canvasEl.width - 15, 16);
+      canvasCtx.fillText(formatLocalTimeWithCentiseconds(now), canvasEl.width - 15, 28);
+      
+      canvasCtx.fillStyle = "rgba(255, 255, 255, 0.7)";
+      canvasCtx.font = "9px monospace";
+      canvasCtx.fillText(dateStr, canvasEl.width - 15, 38);
+
+      // Location
+      canvasCtx.fillStyle = "rgba(255, 255, 255, 0.9)";
+      canvasCtx.font = "bold 9px monospace";
+      canvasCtx.fillText(`LOC: ${locationText || "MANUAL"}`, canvasEl.width - 15, 48);
+
+      // Top-left HUD "LIVE REC" badge
+      canvasCtx.fillStyle = "#ff3344";
+      canvasCtx.fillRect(15, 12, 60, 18);
+      canvasCtx.fillStyle = "#ffffff";
+      canvasCtx.font = "bold 9px monospace";
+      canvasCtx.textAlign = "center";
+      canvasCtx.fillText("LIVE REC", 45, 24);
+
+      // Bottom-right: DOGS & Logo
+      canvasCtx.fillStyle = "#00ff66";
+      canvasCtx.font = "bold 11px monospace";
+      canvasCtx.textAlign = "right";
+      if (logoImage) {
+        canvasCtx.drawImage(logoImage, canvasEl.width - 32, canvasEl.height - 28, 16, 16);
+        canvasCtx.fillText("DOGS", canvasEl.width - 38, canvasEl.height - 16);
+      } else {
+        canvasCtx.fillText("DOGS", canvasEl.width - 15, canvasEl.height - 16);
+      }
+
+      // Bottom-left: Waveform visualizer
+      const barWidth = 3;
+      const barGap = 1.5;
+      const startX = 15;
+      const startY = canvasEl.height - 15;
+      
+      for (let i = 0; i < overlayWaveformBars.length; i++) {
+        const val = overlayWaveformBars[i];
+        canvasCtx.fillStyle = "#00ff66";
+        const barHeight = Math.max(2, val * 20);
+        canvasCtx.fillRect(startX + i * (barWidth + barGap), startY - barHeight, barWidth, barHeight);
+      }
+    }
+
+    canvasDrawLoopId = requestAnimationFrame(drawCanvasFrame);
+  }
+
   // Start recording voice and transcription
   async function startRecording() {
     try {
@@ -241,7 +342,21 @@
       recordingStartDate = new Date();
       playbackMedia = null; // Reset playback player when recording starts
 
-      await engine.startRecording(selectedAudioDevice, selectedVideoDevice, enableVideo);
+      let videoTrack = null;
+      if (enableVideo) {
+        canvasEl = document.createElement("canvas");
+        canvasEl.width = 640;
+        canvasEl.height = 480;
+        canvasCtx = canvasEl.getContext("2d");
+        
+        // Start the frame drawing loop immediately
+        canvasDrawLoopId = requestAnimationFrame(drawCanvasFrame);
+        
+        const canvasStream = canvasEl.captureStream(30);
+        videoTrack = canvasStream.getVideoTracks()[0];
+      }
+
+      await engine.startRecording(selectedAudioDevice, videoTrack);
       liveTranscript = { final: "", interim: "" };
 
       // Link live stream to video element
@@ -256,6 +371,10 @@
   // Stop recording voice and transcription
   function stopRecording() {
     engine.stopRecording();
+    if (canvasDrawLoopId) {
+      cancelAnimationFrame(canvasDrawLoopId);
+      canvasDrawLoopId = null;
+    }
     // Restore stream preview
     if (enableVideo && videoEl) {
       videoEl.srcObject = cameraStream;
@@ -269,7 +388,11 @@
     function updateProgress(clientX) {
       const clickX = clientX - rect.left;
       const pct = Math.max(0, Math.min(1, clickX / rect.width));
-      engine.seek(pct);
+      if (playbackMedia && mediaPlaybackEl) {
+        mediaPlaybackEl.currentTime = pct * (mediaPlaybackEl.duration || 1);
+      } else {
+        engine.seek(pct);
+      }
     }
 
     updateProgress(e.clientX);
@@ -500,6 +623,11 @@
 
   onMount(() => {
     initDevices();
+    const img = new Image();
+    img.src = dogsLogoPng;
+    img.onload = () => {
+      logoImage = img;
+    };
   });
 
   onDestroy(() => {
@@ -649,6 +777,8 @@
                 {#if playbackMedia.isVideo}
                   <!-- Playback Video Player -->
                   <video
+                    bind:this={mediaPlaybackEl}
+                    bind:paused={isMediaPaused}
                     src={playbackMedia.url}
                     controls
                     autoplay
@@ -668,6 +798,8 @@
                       {/each}
                     </div>
                     <audio
+                      bind:this={mediaPlaybackEl}
+                      bind:paused={isMediaPaused}
                       src={playbackMedia.url}
                       controls
                       autoplay
@@ -687,64 +819,66 @@
                 ></video>
               {/if}
 
-              <!-- Surveillance Head-up Display Overlays -->
-              <div class="absolute inset-0 pointer-events-none z-20 flex flex-col justify-between p-3 select-none">
-                <!-- Top Row -->
-                <div class="w-full flex justify-between items-start pointer-events-none">
-                  <!-- HUD Status / Action Button -->
-                  <div class="flex flex-col gap-1.5 pointer-events-auto">
-                    {#if playbackMedia}
-                      <button
-                        onclick={() => (playbackMedia = null)}
-                        class="bg-[#00ff66] hover:bg-[#00d75f] text-black text-[9px] font-mono font-bold tracking-widest px-2.5 py-1 rounded flex items-center gap-1 cursor-pointer transition-all active:scale-95 shadow-[0_0_10px_rgba(0,255,102,0.2)]"
-                      >
-                        &larr; LIVE STREAM
-                      </button>
-                      <div class="bg-black/60 text-white/60 text-[8px] font-mono tracking-wider px-1.5 py-0.5 rounded border border-white/5 uppercase w-max">
-                        PLAYBACK
+              <!-- Surveillance Head-up Display Overlays (only visible for live feed or audio-only playback) -->
+              {#if !playbackMedia || !playbackMedia.isVideo}
+                <div class="absolute inset-0 pointer-events-none z-20 flex flex-col justify-between p-3 select-none">
+                  <!-- Top Row -->
+                  <div class="w-full flex justify-between items-start pointer-events-none">
+                    <!-- HUD Status / Action Button -->
+                    <div class="flex flex-col gap-1.5 pointer-events-auto">
+                      {#if playbackMedia}
+                        <button
+                          onclick={() => (playbackMedia = null)}
+                          class="bg-[#00ff66] hover:bg-[#00d75f] text-black text-[9px] font-mono font-bold tracking-widest px-2.5 py-1 rounded flex items-center gap-1 cursor-pointer transition-all active:scale-95 shadow-[0_0_10px_rgba(0,255,102,0.2)]"
+                        >
+                          &larr; LIVE STREAM
+                        </button>
+                        <div class="bg-black/60 text-white/60 text-[8px] font-mono tracking-wider px-1.5 py-0.5 rounded border border-white/5 uppercase w-max">
+                          PLAYBACK
+                        </div>
+                      {:else if engineState.isRecording}
+                        <div class="bg-red-600/90 text-white text-[9px] font-mono font-bold tracking-widest px-2 py-0.5 rounded flex items-center gap-1 animate-pulse">
+                          <span class="w-1.5 h-1.5 rounded-full bg-white"></span> LIVE REC
+                        </div>
+                      {:else}
+                        <div class="bg-yellow-600/90 text-white text-[9px] font-mono font-bold tracking-widest px-2 py-0.5 rounded flex items-center gap-1">
+                          <span class="w-1.5 h-1.5 rounded-full bg-white"></span> LIVE FEED
+                        </div>
+                      {/if}
+                    </div>
+
+                    <!-- Top Right HUD Overlay -->
+                    <div class="text-right flex flex-col items-end gap-0.5 font-mono text-[9px] text-[#00ff66] bg-black/60 px-2 py-1.5 rounded border border-[#00ff66]/10 shadow-[0_0_10px_rgba(0,0,0,0.5)]">
+                      <div class="font-bold tracking-wider">{formatUTCTime(HUDTime)}</div>
+                      <div class="tracking-wide">{formatLocalTimeWithCentiseconds(HUDTime)}</div>
+                      <div class="text-white/70">{dateStr}</div>
+                      <div class="text-white/90 font-bold border-t border-[#00ff66]/20 mt-1 pt-0.5">
+                        LOC: {locationText || "MANUAL"}
                       </div>
-                    {:else if engineState.isRecording}
-                      <div class="bg-red-600/90 text-white text-[9px] font-mono font-bold tracking-widest px-2 py-0.5 rounded flex items-center gap-1 animate-pulse">
-                        <span class="w-1.5 h-1.5 rounded-full bg-white"></span> LIVE REC
-                      </div>
-                    {:else}
-                      <div class="bg-yellow-600/90 text-white text-[9px] font-mono font-bold tracking-widest px-2 py-0.5 rounded flex items-center gap-1">
-                        <span class="w-1.5 h-1.5 rounded-full bg-white"></span> LIVE FEED
-                      </div>
-                    {/if}
+                    </div>
                   </div>
 
-                  <!-- Top Right HUD Overlay -->
-                  <div class="text-right flex flex-col items-end gap-0.5 font-mono text-[9px] text-[#00ff66] bg-black/60 px-2 py-1.5 rounded border border-[#00ff66]/10 shadow-[0_0_10px_rgba(0,0,0,0.5)]">
-                    <div class="font-bold tracking-wider">{formatUTCTime(currentTimeObj)}</div>
-                    <div class="tracking-wide">{formatLocalTimeWithCentiseconds(currentTimeObj)}</div>
-                    <div class="text-white/70">{dateStr}</div>
-                    <div class="text-white/90 font-bold border-t border-[#00ff66]/20 mt-1 pt-0.5">
-                      LOC: {locationText || "MANUAL"}
+                  <!-- Bottom Row -->
+                  <div class="w-full flex justify-between items-end pointer-events-none">
+                    <!-- Bottom Left HUD Waveform -->
+                    <div class="bg-black/70 border border-[#00ff66]/20 rounded p-1.5 flex items-end gap-[1.5px] h-9 w-28 pointer-events-none">
+                      {#each overlayWaveformBars as val, idx}
+                        {@const isFilled = !playbackMedia || (idx / 20 <= playerProgress)}
+                        <div
+                          class="flex-grow rounded-sm transition-all duration-75 {isFilled ? 'bg-[#00ff66]' : 'bg-white/10'}"
+                          style="height: {Math.max(4, val * 100)}%;"
+                        ></div>
+                      {/each}
+                    </div>
+
+                    <!-- Bottom Right HUD Logo -->
+                    <div class="flex items-center gap-1.5 font-mono font-bold tracking-widest text-[#00ff66] bg-black/60 px-2 py-1 rounded border border-[#00ff66]/10">
+                      <span>DOGS</span>
+                      <DogsLogo size="panel" />
                     </div>
                   </div>
                 </div>
-
-                <!-- Bottom Row -->
-                <div class="w-full flex justify-between items-end pointer-events-none">
-                  <!-- Bottom Left HUD Waveform -->
-                  <div class="bg-black/70 border border-[#00ff66]/20 rounded p-1.5 flex items-end gap-[1.5px] h-9 w-28 pointer-events-none">
-                    {#each overlayWaveformBars as val, idx}
-                      {@const isFilled = idx / 20 <= (playbackMedia ? playerProgress : liveVolume)}
-                      <div
-                        class="flex-grow rounded-sm transition-all duration-75 {isFilled ? 'bg-[#00ff66]' : 'bg-white/10'}"
-                        style="height: {Math.max(4, val * 100)}%;"
-                      ></div>
-                    {/each}
-                  </div>
-
-                  <!-- Bottom Right HUD Logo -->
-                  <div class="flex items-center gap-1.5 font-mono font-bold tracking-widest text-[#00ff66] bg-black/60 px-2 py-1 rounded border border-[#00ff66]/10">
-                    <span>DOGS</span>
-                    <DogsLogo size="panel" />
-                  </div>
-                </div>
-              </div>
+              {/if}
             </div>
           {/if}
         </div>
@@ -959,7 +1093,7 @@
                       {#if engineState.isRecording}
                         RECORDING: {formatTime(livePeaksDuration)}
                       {:else}
-                        {formatTime(currentTime)} / {formatTime(duration)}
+                        {formatTime(displayCurrentTime)} / {formatTime(displayDuration)}
                       {/if}
                     </span>
                   </div>
@@ -979,7 +1113,7 @@
                     {#each peaksToRender as peak, idx}
                       {@const isActive = engineState.isRecording
                         ? idx < livePeaksCount
-                        : idx / decodedPeaks.length <= playbackProgress}
+                        : idx / peaksToRender.length <= displayProgress}
                       <div
                         class="flex-1 rounded-sm transition-colors duration-100 {isActive ? 'bg-[#00ff66]' : 'bg-white/20'} z-10"
                         style="height: {Math.max(4, peak * 80)}%;"
@@ -1175,9 +1309,15 @@
 
                 <!-- Playback toggle -->
                 {#if decodedPeaks.length > 0}
-                  {#if engineState.isPlaying}
+                  {#if playbackMedia ? isMediaPlaying : engineState.isPlaying}
                     <button
-                      onclick={() => engine.pause()}
+                      onclick={() => {
+                        if (playbackMedia && mediaPlaybackEl) {
+                          mediaPlaybackEl.pause();
+                        } else {
+                          engine.pause();
+                        }
+                      }}
                       class="p-2.5 bg-white/10 hover:bg-white/15 text-white rounded active:scale-95 transition-all cursor-pointer"
                       title="Pause"
                     >
@@ -1185,10 +1325,16 @@
                     </button>
                   {:else}
                     <button
-                      onclick={playFullRecording}
+                      onclick={() => {
+                        if (playbackMedia && mediaPlaybackEl) {
+                          mediaPlaybackEl.play();
+                        } else {
+                          playFullRecording();
+                        }
+                      }}
                       disabled={engineState.isDecoding}
                       class="p-2.5 bg-[#00ff66] hover:bg-[#00d75f] text-black rounded active:scale-95 transition-all cursor-pointer"
-                      title="Play Full Recording in Viewport"
+                      title="Play"
                     >
                       <Play class="w-4 h-4" />
                     </button>
