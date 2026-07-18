@@ -159,14 +159,15 @@ export class WiretapEngine {
         this.triggerStateChange();
       };
 
+      this.mediaRecorder.start();
+      this.isRecording = true;
+
       // Set up real-time audio analysis
       this.startAnalyser();
 
       // Start speech recognition
       this.startSpeechRecognition();
 
-      this.mediaRecorder.start();
-      this.isRecording = true;
       this.triggerStateChange();
     } catch (err) {
       console.error("Failed to start recording:", err);
