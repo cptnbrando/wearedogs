@@ -36,6 +36,44 @@ function resamplePeaks(array, targetLength) {
   return resampled.map((p) => p / scale);
 }
 
+/**
+ * Resample a list of peaks to targetLength by stretching/interpolating, and normalize them.
+ */
+function resamplePeaksStretched(array, targetLength) {
+  if (array.length === 0) {
+    return Array(targetLength).fill(0);
+  }
+  let resampled = [];
+  const step = array.length / targetLength;
+  for (let i = 0; i < targetLength; i++) {
+    let max = 0;
+    const start = Math.floor(i * step);
+    const end = Math.max(start + 1, Math.min(Math.floor((i + 1) * step), array.length));
+    for (let j = start; j < end; j++) {
+      if (array[j] > max) max = array[j];
+    }
+    resampled.push(max);
+  }
+  const maxPeak = Math.max(...resampled) || 1.0;
+  const scale = maxPeak > 0.05 ? maxPeak : 1.0;
+  return resampled.map((p) => p / scale);
+}
+
+/**
+ * Downsample a list of peaks by half, taking the maximum of each pair.
+ */
+function downsamplePeaksHalf(array) {
+  const result = [];
+  for (let i = 0; i < array.length; i += 2) {
+    if (i + 1 < array.length) {
+      result.push(Math.max(array[i], array[i + 1]));
+    } else {
+      result.push(array[i]);
+    }
+  }
+  return result;
+}
+
 export class WiretapEngine {
   constructor() {
     this.mediaRecorder = null;
@@ -74,6 +112,9 @@ export class WiretapEngine {
     this.onPlaybackProgress = null;// (progress, currentTime, duration) => {}
     this.onAudioDecoded = null;    // (peaks) => {}
     this.onLivePeaksUpdate = null; // (peaks, count, duration) => {}
+    // Downsampling & timing for long recordings
+    this.sampleIntervalMs = 100;
+    this.recordingStartTime = 0;
 
     this.setupPlaybackListeners();
   }
@@ -82,7 +123,7 @@ export class WiretapEngine {
    * Set up audio element event listeners.
    */
   setupPlaybackListeners() {
-    this.audioElement.addEventListener("timeupdate", () => {
+    const updateProgress = () => {
       if (this.audioElement.duration) {
         this.playbackProgress = this.audioElement.currentTime / this.audioElement.duration;
         if (this.onPlaybackProgress) {
@@ -93,7 +134,10 @@ export class WiretapEngine {
           );
         }
       }
-    });
+    };
+
+    this.audioElement.addEventListener("timeupdate", updateProgress);
+    this.audioElement.addEventListener("loadedmetadata", updateProgress);
 
     this.audioElement.addEventListener("play", () => {
       this.isPlaying = true;
@@ -166,6 +210,8 @@ export class WiretapEngine {
     this.finalTranscript = "";
     this.interimTranscript = "";
     this.playbackProgress = 0;
+    this.sampleIntervalMs = 100;
+    this.recordingStartTime = performance.now();
 
     const constraints = {
       audio: audioDeviceId ? { deviceId: { exact: audioDeviceId } } : true,
@@ -186,7 +232,14 @@ export class WiretapEngine {
         this.audioUrl = URL.createObjectURL(this.audioBlob);
         this.audioElement.src = this.audioUrl;
         
-        await this.decodeWaveform();
+        if (this.livePeaks.length > 0) {
+          this.peaks = resamplePeaksStretched(this.livePeaks, WAVEFORM_BARS_COUNT);
+          if (this.onAudioDecoded) {
+            this.onAudioDecoded(this.peaks);
+          }
+        } else {
+          await this.decodeWaveform();
+        }
         this.triggerStateChange();
       };
 
@@ -267,15 +320,21 @@ export class WiretapEngine {
         currentWindowMax = amp;
       }
 
-      // 2. Accumulate peak every 100ms
+      // 2. Accumulate peak every sampleIntervalMs
       const now = performance.now();
-      if (now - lastSampleTime >= 100) {
+      if (now - lastSampleTime >= this.sampleIntervalMs) {
         this.livePeaks.push(currentWindowMax);
         lastSampleTime = now;
         currentWindowMax = 0;
 
+        // Downsample dynamically to protect performance if recording is long-running
+        if (this.livePeaks.length >= 1000) {
+          this.livePeaks = downsamplePeaksHalf(this.livePeaks);
+          this.sampleIntervalMs *= 2;
+        }
+
         if (this.onLivePeaksUpdate) {
-          const duration = this.livePeaks.length * 0.1;
+          const duration = (performance.now() - this.recordingStartTime) / 1000;
           this.onLivePeaksUpdate(
             resamplePeaks(this.livePeaks, WAVEFORM_BARS_COUNT),
             Math.min(WAVEFORM_BARS_COUNT, this.livePeaks.length),

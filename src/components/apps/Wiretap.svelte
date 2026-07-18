@@ -208,11 +208,17 @@
     livePeaksDuration = 0;
   }
 
-  // Format seconds to readable timer format (MM:SS)
+  // Format seconds to readable timer format (MM:SS or H:MM:SS)
   function formatTime(secs) {
     if (isNaN(secs)) return "0:00";
-    const minutes = Math.floor(secs / 60);
-    const seconds = Math.floor(secs % 60);
+    const totalSeconds = Math.round(secs);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    
+    if (hours > 0) {
+      return `${hours}:${minutes < 10 ? "0" : ""}${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
+    }
     return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
   }
 
@@ -392,7 +398,7 @@
               
               <!-- Live Waveform & Timeline Player -->
               {#if engineState.isRecording || decodedPeaks.length > 0}
-                {@const totalTime = engineState.isRecording ? livePeaksDuration : duration}
+                {@const totalTime = engineState.isRecording ? Math.max(10, livePeaksDuration) : duration}
                 {@const peaksToRender = engineState.isRecording ? livePeaks : decodedPeaks}
                 <div class="flex flex-col gap-2">
                   <div class="flex items-center justify-between">
