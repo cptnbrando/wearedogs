@@ -46,7 +46,7 @@
 
   // Prick Mode State Variables
   let mode = $state("recorder"); // "recorder" or "prick"
-  let triggerThreshold = $state(0.45);
+  let triggerThreshold = $state(0.35);
   let clipLength = $state(4); // default 3 seconds
   let liveVolume = $state(0);
   let clips = $state([]);
@@ -1227,7 +1227,8 @@
             <!-- Live Transcript Card -->
             <div
               class="glass-card flex-1 flex flex-col p-4 min-h-[180px] overflow-hidden"
-              class:taller-clips={!isInputsCollapsed || (mode === "prick" && !isPrickSettingsCollapsed)}
+              class:taller-clips={!isInputsCollapsed ||
+                (mode === "prick" && !isPrickSettingsCollapsed)}
               data-card="clips"
             >
               <div
@@ -1283,7 +1284,8 @@
             <!-- Prick Clips Card -->
             <div
               class="glass-card flex-1 flex flex-col p-4 min-h-[180px] overflow-hidden"
-              class:taller-clips={!isInputsCollapsed || (mode === "prick" && !isPrickSettingsCollapsed)}
+              class:taller-clips={!isInputsCollapsed ||
+                (mode === "prick" && !isPrickSettingsCollapsed)}
               data-card="clips"
             >
               <div
