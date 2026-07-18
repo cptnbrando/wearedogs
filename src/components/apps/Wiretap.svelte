@@ -296,13 +296,7 @@
               <span class="input-label">MONITOR LIVE VIDEO FEED</span>
               <button
                 onclick={() => enableVideo = !enableVideo}
-                class="flex items-center gap-2 px-3 py-1.5 rounded text-xs font-mono uppercase transition-all duration-200 border cursor-pointer"
-                class:bg-[#00ff66]={enableVideo}
-                class:text-black={enableVideo}
-                class:border-[#00ff66]={enableVideo}
-                class:bg-transparent={!enableVideo}
-                class:text-white/60={!enableVideo}
-                class:border-white/10={!enableVideo}
+                class="flex items-center gap-2 px-3 py-1.5 rounded text-xs font-mono uppercase transition-all duration-200 border cursor-pointer {enableVideo ? 'bg-[#00ff66] text-black border-[#00ff66]' : 'bg-transparent text-white/60 border-white/10'}"
               >
                 {#if enableVideo}
                   <Video class="w-3.5 h-3.5" /> VIDEO ON
@@ -418,9 +412,7 @@
                     {#each decodedPeaks as peak, idx}
                       {@const isActive = (idx / decodedPeaks.length) <= playbackProgress}
                       <div
-                        class="flex-1 rounded-sm transition-colors duration-100"
-                        class:bg-[#00ff66]={isActive}
-                        class:bg-white/20={!isActive}
+                        class="flex-1 rounded-sm transition-colors duration-100 {isActive ? 'bg-[#00ff66]' : 'bg-white/20'}"
                         style="height: {Math.max(4, peak * 80)}%;"
                       ></div>
                     {/each}
