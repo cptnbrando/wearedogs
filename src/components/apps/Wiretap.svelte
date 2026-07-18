@@ -42,6 +42,7 @@
 
   // Settings collapse state
   let isInputsCollapsed = $state(true);
+  let isPrickSettingsCollapsed = $state(true);
 
   // Prick Mode State Variables
   let mode = $state("recorder"); // "recorder" or "prick"
@@ -680,7 +681,7 @@
       duration_seconds: clip.duration,
       location: deviceCoords
         ? `${deviceCoords.latitude.toFixed(6)}, ${deviceCoords.longitude.toFixed(6)}`
-        : (locationText || "MANUAL"),
+        : locationText || "MANUAL",
     };
     return JSON.stringify(metadata, null, 2);
   }
@@ -852,6 +853,8 @@
   onMount(() => {
     initDevices();
     isInputsCollapsed = window.innerWidth < 768 || window.innerHeight < 500;
+    isPrickSettingsCollapsed =
+      window.innerWidth < 768 || window.innerHeight < 500;
     const img = new Image();
     img.src = dogsLogoPng;
     img.onload = () => {
@@ -1022,7 +1025,9 @@
                       id="location-input"
                       type="text"
                       bind:value={locationText}
-                      oninput={() => { deviceCoords = null; }}
+                      oninput={() => {
+                        deviceCoords = null;
+                      }}
                       placeholder="Type location manually..."
                       class="flex-1 bg-transparent text-white text-xs font-mono border-none outline-none py-1 min-w-0"
                     />
@@ -1287,7 +1292,7 @@
                     class="pulse-indicator bg-[#00ff66]"
                     class:recording={engineState.isRecording}
                   ></span>
-                  Prick Clips
+                  Clips
                   {#if clips.length > 0}
                     <span
                       class="text-[10px] font-mono text-[#00ff66] font-normal"
@@ -1304,7 +1309,7 @@
                     class="flex items-center gap-1.5 text-[10px] text-white/50 hover:text-[#00ff66] font-mono bg-white/5 border border-white/10 hover:border-[#00ff66]/35 rounded px-2.5 py-1 transition-all cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
                   >
                     <Download class="w-3 h-3" />
-                    {#if isZipping}ZIPPING...{:else}ZIP & DOWNLOAD ALL{/if}
+                    {#if isZipping}ZIPPING...{:else}ZIP ALL{/if}
                   </button>
 
                   <button
@@ -1315,7 +1320,7 @@
                     disabled={clips.length === 0}
                     class="flex items-center gap-1.5 text-[10px] text-white/50 hover:text-[#ff3344] font-mono bg-white/5 border border-white/10 hover:border-[#ff3344]/35 rounded px-2.5 py-1 transition-all cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
                   >
-                    <Trash2 class="w-3 h-3" /> CLEAR ALL
+                    <Trash2 class="w-3 h-3" /> CLEAR
                   </button>
                 </div>
               </div>
@@ -1620,94 +1625,115 @@
                 <div
                   class="flex flex-col gap-3 border-t border-white/5 pt-3 mt-1 text-left"
                 >
-                  <!-- Trigger Threshold -->
-                  <div class="flex flex-col gap-1">
-                    <div class="flex items-center justify-between">
+                  <button
+                    onclick={() =>
+                      (isPrickSettingsCollapsed = !isPrickSettingsCollapsed)}
+                    class="panel-header w-full flex items-center justify-between cursor-pointer focus:outline-none select-none text-left border-none bg-transparent p-0"
+                  >
+                    <span class="flex items-center gap-2">
                       <span
-                        class="input-label text-[10px] flex items-center gap-1.5"
-                      >
-                        <Sliders class="w-3.5 h-3.5 text-[#00ff66]" /> TRIGGER THRESHOLD
-                        SENSITIVITY
-                      </span>
-                      <span
-                        class="text-[10px] font-mono text-white/50 tracking-wider"
-                      >
-                        THRESHOLD: {triggerThreshold.toFixed(2)} (LIVE: {liveVolume.toFixed(
-                          2,
-                        )})
-                      </span>
-                    </div>
-                    <div
-                      class="flex items-center gap-4 bg-black/45 border border-white/10 rounded px-3 py-2"
-                    >
-                      <!-- Trigger Indicator Light -->
-                      <span
-                        class="w-2.5 h-2.5 rounded-full transition-all duration-75 flex-shrink-0 {liveVolume >
+                        class="w-1.5 h-1.5 rounded-full transition-all duration-75 flex-shrink-0 {liveVolume >
                         triggerThreshold
                           ? 'bg-[#00ff66] shadow-[0_0_8px_#00ff66]'
-                          : 'bg-white/10'}"
-                        title={liveVolume > triggerThreshold
-                          ? "Triggered"
-                          : "Monitoring"}
-                      ></span>
+                          : 'bg-white/20'}"
+                      ></span> SENSORS
+                    </span>
+                    <span
+                      class="text-[9px] text-[#00ff66]/70 border border-[#00ff66]/20 rounded px-1.5 py-0.5 font-mono uppercase tracking-wider"
+                    >
+                      {isPrickSettingsCollapsed ? "EXPAND" : "COLLAPSE"}
+                    </span>
+                  </button>
 
-                      <!-- The slider -->
-                      <input
-                        type="range"
-                        min="0.01"
-                        max="1.0"
-                        step="0.01"
-                        bind:value={triggerThreshold}
-                        class="flex-grow h-1 bg-white/15 rounded-lg appearance-none cursor-pointer accent-[#00ff66]"
-                      />
+                  {#if !isPrickSettingsCollapsed}
+                    <div class="flex flex-col gap-3">
+                      <!-- Trigger Threshold -->
+                      <div class="flex flex-col gap-1">
+                        <div class="flex items-center justify-between">
+                          <span
+                            class="input-label text-[10px] flex items-center gap-1.5"
+                          >
+                            <Sliders class="w-3.5 h-3.5 text-[#00ff66]" /> THRESHOLD
+                          </span>
+                          <span
+                            class="text-[10px] font-mono text-white/50 tracking-wider"
+                          >
+                            THRESHOLD: {triggerThreshold.toFixed(2)} (LIVE: {liveVolume.toFixed(
+                              2,
+                            )})
+                          </span>
+                        </div>
+                        <div
+                          class="flex items-center gap-4 bg-black/45 border border-white/10 rounded px-3 py-2"
+                        >
+                          <!-- Trigger Indicator Light -->
+                          <span
+                            class="w-2.5 h-2.5 rounded-full transition-all duration-75 flex-shrink-0 {liveVolume >
+                            triggerThreshold
+                              ? 'bg-[#00ff66] shadow-[0_0_8px_#00ff66]'
+                              : 'bg-white/10'}"
+                            title={liveVolume > triggerThreshold
+                              ? "Triggered"
+                              : "Monitoring"}
+                          ></span>
 
-                      <!-- Live volume bar gauge -->
-                      <div
-                        class="w-24 h-2.5 bg-white/5 rounded border border-white/10 overflow-hidden relative flex items-center"
-                      >
+                          <!-- The slider -->
+                          <input
+                            type="range"
+                            min="0.01"
+                            max="1.0"
+                            step="0.01"
+                            bind:value={triggerThreshold}
+                            class="flex-grow h-1 bg-white/15 rounded-lg appearance-none cursor-pointer accent-[#00ff66]"
+                          />
+
+                          <!-- Live volume bar gauge -->
+                          <div
+                            class="w-24 h-2.5 bg-white/5 rounded border border-white/10 overflow-hidden relative flex items-center"
+                          >
+                            <div
+                              class="h-full bg-[#00ff66]/80 transition-all duration-75"
+                              style="width: {liveVolume * 100}%"
+                            ></div>
+                            <!-- Threshold tick mark line -->
+                            <div
+                              class="absolute top-0 bottom-0 w-[2px] bg-red-500"
+                              style="left: {triggerThreshold * 100}%"
+                              title="Threshold marker"
+                            ></div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Clip Length control -->
+                      <div class="flex flex-col gap-1">
+                        <div class="flex items-center justify-between">
+                          <span
+                            class="input-label text-[10px] flex items-center gap-1.5"
+                          >
+                            <Hourglass class="w-3.5 h-3.5 text-[#00ff66]" /> DURATION
+                          </span>
+                          <span
+                            class="text-[10px] font-mono text-white/50 tracking-wider"
+                          >
+                            LENGTH: {clipLength}s
+                          </span>
+                        </div>
                         <div
-                          class="h-full bg-[#00ff66]/80 transition-all duration-75"
-                          style="width: {liveVolume * 100}%"
-                        ></div>
-                        <!-- Threshold tick mark line -->
-                        <div
-                          class="absolute top-0 bottom-0 w-[2px] bg-red-500"
-                          style="left: {triggerThreshold * 100}%"
-                          title="Threshold marker"
-                        ></div>
+                          class="flex items-center gap-4 bg-black/45 border border-white/10 rounded px-3 py-2"
+                        >
+                          <input
+                            type="range"
+                            min="1"
+                            max="10"
+                            step="1"
+                            bind:value={clipLength}
+                            class="flex-grow h-1 bg-white/15 rounded-lg appearance-none cursor-pointer accent-[#00ff66]"
+                          />
+                        </div>
                       </div>
                     </div>
-                  </div>
-
-                  <!-- Clip Length control -->
-                  <div class="flex flex-col gap-1">
-                    <div class="flex items-center justify-between">
-                      <span
-                        class="input-label text-[10px] flex items-center gap-1.5"
-                      >
-                        <Hourglass class="w-3.5 h-3.5 text-[#00ff66]" /> CLIP BUFFER
-                        DURATION
-                      </span>
-                      <span
-                        class="text-[10px] font-mono text-white/50 tracking-wider"
-                      >
-                        LENGTH: {clipLength}s ({clipLength}s before & {clipLength}s
-                        after)
-                      </span>
-                    </div>
-                    <div
-                      class="flex items-center gap-4 bg-black/45 border border-white/10 rounded px-3 py-2"
-                    >
-                      <input
-                        type="range"
-                        min="1"
-                        max="10"
-                        step="1"
-                        bind:value={clipLength}
-                        class="flex-grow h-1 bg-white/15 rounded-lg appearance-none cursor-pointer accent-[#00ff66]"
-                      />
-                    </div>
-                  </div>
+                  {/if}
                 </div>
               {/if}
             </div>
@@ -1740,7 +1766,7 @@
                       ? 'bg-[#00ff66] text-black font-bold'
                       : 'text-white/60 hover:text-white'}"
                   >
-                    PRICK
+                    PRICKS
                   </button>
                 </div>
 
@@ -1752,7 +1778,7 @@
                         class="flex items-center gap-1 text-xs text-[#0066ff] font-mono font-bold tracking-widest uppercase animate-pulse"
                       >
                         <span
-                          class="w-2.5 h-2.5 bg-[#0066ff] rounded-full animate-ping mr-1"
+                          class="w-2 h-2 bg-[#0066ff] rounded-full animate-ping mr-1"
                         ></span> CLIPPING
                       </span>
                     {:else}
@@ -1760,7 +1786,7 @@
                         class="flex items-center gap-1 text-xs text-red-500 font-mono font-bold tracking-widest uppercase"
                       >
                         <span
-                          class="w-2.5 h-2.5 bg-red-600 rounded-full animate-ping mr-1"
+                          class="w-2 h-2 bg-red-600 rounded-full animate-ping mr-1"
                         ></span> RECORDING
                       </span>
                     {/if}
