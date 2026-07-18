@@ -198,6 +198,10 @@
     [data-card="clips"] {
       flex: 1 1 auto !important;
       min-height: 120px !important;
+
+      &.taller-clips {
+        min-height: 250px !important;
+      }
     }
 
     [data-card="monitor"] {
@@ -282,6 +286,10 @@
       height: auto !important;
       min-height: 180px !important;
       max-height: none !important;
+
+      &.taller-clips {
+        min-height: 280px !important;
+      }
     }
 
     [data-card="monitor"] {

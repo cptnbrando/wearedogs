@@ -1227,6 +1227,7 @@
             <!-- Live Transcript Card -->
             <div
               class="glass-card flex-1 flex flex-col p-4 min-h-[180px] overflow-hidden"
+              class:taller-clips={!isInputsCollapsed || (mode === "prick" && !isPrickSettingsCollapsed)}
               data-card="clips"
             >
               <div
@@ -1282,6 +1283,7 @@
             <!-- Prick Clips Card -->
             <div
               class="glass-card flex-1 flex flex-col p-4 min-h-[180px] overflow-hidden"
+              class:taller-clips={!isInputsCollapsed || (mode === "prick" && !isPrickSettingsCollapsed)}
               data-card="clips"
             >
               <div
