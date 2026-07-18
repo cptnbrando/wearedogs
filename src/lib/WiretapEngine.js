@@ -247,8 +247,10 @@ export class WiretapEngine {
       audio: audioDeviceId ? { deviceId: { exact: audioDeviceId } } : true,
     };
 
-    if (enableVideo && videoDeviceId) {
-      constraints.video = { deviceId: { exact: videoDeviceId } };
+    if (enableVideo) {
+      constraints.video = (videoDeviceId && videoDeviceId !== "")
+        ? { deviceId: { exact: videoDeviceId } }
+        : true;
       this.mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp8,opus")
         ? "video/webm;codecs=vp8,opus"
         : "video/webm";

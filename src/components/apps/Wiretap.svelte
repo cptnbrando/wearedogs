@@ -432,7 +432,7 @@
   function playFullRecording() {
     playbackMedia = {
       url: engine.audioUrl,
-      isVideo: enableVideo && selectedVideoDevice !== "",
+      isVideo: engine.mimeType.startsWith("video"),
       title: "Full Recording",
       duration: duration,
     };
@@ -646,14 +646,36 @@
               <div class="absolute inset-0 scanlines pointer-events-none opacity-25 z-10"></div>
 
               {#if playbackMedia}
-                <!-- Playback Video Player -->
-                <video
-                  src={playbackMedia.url}
-                  controls
-                  autoplay
-                  class="w-full h-full object-contain bg-neutral-950 max-h-[300px]"
-                  ontimeupdate={handlePlayerTimeUpdate}
-                ></video>
+                {#if playbackMedia.isVideo}
+                  <!-- Playback Video Player -->
+                  <video
+                    src={playbackMedia.url}
+                    controls
+                    autoplay
+                    class="w-full h-full object-contain bg-neutral-950 max-h-[300px] z-0"
+                    ontimeupdate={handlePlayerTimeUpdate}
+                  ></video>
+                {:else}
+                  <!-- Playback Audio Player with visualizer center stage -->
+                  <div class="w-full h-[240px] flex flex-col justify-between items-center bg-neutral-950 p-4 pt-16 z-0">
+                    <div class="flex-grow flex items-center justify-center gap-1.5 w-full max-w-[220px]">
+                      {#each overlayWaveformBars as val, idx}
+                        {@const isFilled = idx / 20 <= playerProgress}
+                        <div
+                          class="w-1.5 rounded-sm transition-all duration-75 {isFilled ? 'bg-[#00ff66]' : 'bg-white/10'}"
+                          style="height: {Math.max(8, val * 100)}%;"
+                        ></div>
+                      {/each}
+                    </div>
+                    <audio
+                      src={playbackMedia.url}
+                      controls
+                      autoplay
+                      class="w-full max-w-[280px] h-8 mt-2 pointer-events-auto"
+                      ontimeupdate={handlePlayerTimeUpdate}
+                    ></audio>
+                  </div>
+                {/if}
               {:else}
                 <!-- Live Video Feed -->
                 <video
