@@ -81,14 +81,14 @@ export class WiretapEngine {
     this.audioBlob = null;
     this.audioUrl = null;
     this.audioElement = new Audio();
-    
+
     // Audio Context & Analyser
     this.audioContext = null;
     this.analyser = null;
     this.source = null;
     this.liveStream = null;
     this.animationFrameId = null;
-    
+
     // Speech Recognition
     this.recognition = null;
     this.finalTranscript = "";
@@ -104,7 +104,7 @@ export class WiretapEngine {
     this.isRecording = false;
     this.isPlaying = false;
     this.playbackProgress = 0; // 0 to 1
-    
+
     // Tapper Mode state
     this.mode = "recorder"; // "recorder" or "tapper"
     this.threshold = 0.15;
@@ -239,7 +239,7 @@ export class WiretapEngine {
       this.liveStream = await navigator.mediaDevices.getUserMedia(constraints);
       this.recordingStartTime = performance.now();
       this.mediaRecorder = new MediaRecorder(this.liveStream);
-      
+
       this.mediaRecorder.ondataavailable = (e) => {
         if (e.data && e.data.size > 0) {
           this.audioChunks.push(e.data);
@@ -250,7 +250,7 @@ export class WiretapEngine {
         this.audioBlob = new Blob(this.audioChunks, { type: "audio/webm" });
         this.audioUrl = URL.createObjectURL(this.audioBlob);
         this.audioElement.src = this.audioUrl;
-        
+
         if (this.livePeaks.length > 0) {
           this.peaks = resamplePeaksStretched(this.livePeaks, WAVEFORM_BARS_COUNT);
           if (this.onAudioDecoded) {
@@ -513,10 +513,10 @@ export class WiretapEngine {
       const arrayBuffer = await this.audioBlob.arrayBuffer();
       const AudioContextClass = window.AudioContext || window.webkitAudioContext;
       const tempContext = new AudioContextClass();
-      
+
       const audioBuffer = await tempContext.decodeAudioData(arrayBuffer);
       const channelData = audioBuffer.getChannelData(0);
-      
+
       const step = Math.ceil(channelData.length / WAVEFORM_BARS_COUNT);
       const computedPeaks = [];
 
@@ -524,7 +524,7 @@ export class WiretapEngine {
         let max = 0;
         const start = i * step;
         const end = Math.min(start + step, channelData.length);
-        
+
         for (let j = start; j < end; j++) {
           const val = Math.abs(channelData[j]);
           if (val > max) max = val;
@@ -565,7 +565,7 @@ export class WiretapEngine {
     this.isClipRecording = true;
 
     const clipStream = new MediaStream();
-    
+
     // Add cloned audio track from live stream
     if (this.liveStream) {
       this.liveStream.getAudioTracks().forEach(track => {
@@ -695,7 +695,7 @@ export class WiretapEngine {
    */
   download(filename = "wiretap-recording.webm") {
     if (!this.audioBlob) return;
-    
+
     const anchor = document.createElement("a");
     anchor.href = this.audioUrl;
     anchor.download = filename;
