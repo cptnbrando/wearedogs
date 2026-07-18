@@ -648,7 +648,10 @@
         const blob = await createZip(filesToZip);
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
-        const baseName = file.name.substring(0, file.name.lastIndexOf("."));
+        a.href = url;
+        const baseName = file
+          ? file.name.substring(0, file.name.lastIndexOf("."))
+          : "converted";
         a.download = `${baseName}_converted.zip`;
         document.body.appendChild(a);
         a.click();
@@ -960,28 +963,20 @@
 
     const promises = Object.entries(zipData).map(async ([name, blob]) => {
       const arrayBuffer = await blob.arrayBuffer();
-      return [name, new Uint8Array(arrayBuffer)];
+      return { name, data: new Uint8Array(arrayBuffer) };
     });
 
     try {
-      const entries = await Promise.all(promises);
-      const zipObj = Object.fromEntries(entries);
-
-      fflate.zip(zipObj, (err, data) => {
-        if (err) {
-          alert("Error creating ZIP: " + err.message);
-          return;
-        }
-        const blob = new Blob([data], { type: "application/zip" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "catalytic-converted-files.zip";
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      });
+      const filesToZip = await Promise.all(promises);
+      const blob = await createZip(filesToZip);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "catalytic-converted-files.zip";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     } catch (err) {
       alert("Failed to build ZIP archive: " + err.message);
     }

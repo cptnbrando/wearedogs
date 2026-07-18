@@ -105,6 +105,7 @@
 
   // Location Geocoding Variables
   let locationText = $state("Dallas, TX");
+  let deviceCoords = $state(null);
   let isLocating = $state(false);
 
   // Canvas Drawing Loop Variables
@@ -558,6 +559,7 @@
     clips = [];
     liveVolume = 0;
     playbackMedia = null;
+    deviceCoords = null;
   }
 
   // Format seconds to readable timer format (MM:SS or H:MM:SS)
@@ -606,6 +608,7 @@
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
+        deviceCoords = { latitude, longitude };
         try {
           const res = await fetch(
             `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=12&addressdetails=1`,
@@ -675,8 +678,9 @@
       end_local_time: end.toString(),
       dates: getDateRangeStr(clip.timestamp, end),
       duration_seconds: clip.duration,
-      location: locationText,
-      peaks: clip.peaks,
+      location: deviceCoords
+        ? `${deviceCoords.latitude.toFixed(6)}, ${deviceCoords.longitude.toFixed(6)}`
+        : (locationText || "MANUAL"),
     };
     return JSON.stringify(metadata, null, 2);
   }
@@ -1018,6 +1022,7 @@
                       id="location-input"
                       type="text"
                       bind:value={locationText}
+                      oninput={() => { deviceCoords = null; }}
                       placeholder="Type location manually..."
                       class="flex-1 bg-transparent text-white text-xs font-mono border-none outline-none py-1 min-w-0"
                     />
