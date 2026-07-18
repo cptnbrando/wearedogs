@@ -395,14 +395,14 @@
                 {@const totalTime = engineState.isRecording ? livePeaksDuration : duration}
                 <div class="flex flex-col gap-2">
                   <div class="flex items-center justify-between">
-                    <span class="input-label text-[10px]" class:text-[#ff3344]={engineState.isRecording}>
+                    <span class="input-label text-[10px] {engineState.isRecording ? 'text-[#ff3344]' : ''}">
                       {#if engineState.isRecording}
                         LIVE SURVEILLANCE AUDIO MONITOR
                       {:else}
                         PLAYBACK TIMELINE & AUDIO WAVEFORM
                       {/if}
                     </span>
-                    <span class="text-[10px] font-mono tracking-wider" class:text-[#ff3344]={engineState.isRecording} class:text-white/50={!engineState.isRecording}>
+                    <span class="text-[10px] font-mono tracking-wider {engineState.isRecording ? 'text-[#ff3344]' : 'text-white/50'}">
                       {#if engineState.isRecording}
                         RECORDING: {formatTime(livePeaksDuration)}
                       {:else}

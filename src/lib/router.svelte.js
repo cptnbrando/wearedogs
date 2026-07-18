@@ -11,6 +11,7 @@ const VALID_PANELS = new Set(['music', 'stats', 'map', 'store', 'networking']);
 export const VALID_APPS = new Set([
   'gopro', 'soundboard', 'snake', 'paint', 'stopwatch', 'dataflash', 'qrgenerator', 'rescue', 'memes',
   'worldcup', 'blog', 'settings', 'arcade', 'creatures', 'missingcreatures',
+  'soundstripper', 'converter', 'reader', 'windshieldwiper', 'changelog', 'wiretap',
 ]);
 
 /**
