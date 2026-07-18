@@ -105,20 +105,22 @@ export class WiretapEngine {
     this.isPlaying = false;
     this.playbackProgress = 0; // 0 to 1
 
-    // Tapper Mode state
-    this.mode = "recorder"; // "recorder" or "tapper"
+    // Prick Mode state
+    this.mode = "recorder"; // "recorder" or "prick"
     this.threshold = 0.15;
+    this.clipLength = 3; // buffer length in seconds (before and after snap)
     this.clips = [];
     this.cameraStream = null; // reference set by Svelte UI
-    this.isClipRecording = false;
-    this.clipMediaRecorder = null;
-    this.clipChunks = [];
+    this.clipCapturingState = "idle"; // "idle" or "capturing"
+    this.rollingChunks = []; // last clipLength seconds of media chunks: { chunk, timestamp }
+    this.rollingPeaks = []; // last clipLength seconds of peak values: { val, timestamp }
+    this.activeClipChunks = []; // chunks accumulated for the current clip
+    this.activeClipPeaks = []; // peaks accumulated for the current clip
+    this.headerChunk = null; // WebM header chunk of the current session
+    this.clipEndTime = 0;
     this.clipStartTime = null;
     this.clipStartPerformanceTime = null;
-    this.clipIsVideo = false;
-    this.lastLoudSoundTime = 0;
-    this.silenceDelayMs = 1500;
-    this.maxClipDurationMs = 10000;
+    this.mimeType = "audio/webm";
 
     // Callbacks
     this.onStateChange = null;     // (state) => {}
@@ -217,10 +219,13 @@ export class WiretapEngine {
   /**
    * Starts microphone recording and speech recognition.
    */
-  async startRecording(audioDeviceId) {
+  /**
+   * Starts microphone and video recording and speech recognition.
+   */
+  async startRecording(audioDeviceId, videoDeviceId = null, enableVideo = false) {
     if (this.isRecording) return;
 
-    // Reset transcripts and chunks
+    // Reset transcripts, chunks, buffers, and states
     this.audioChunks = [];
     this.audioBlob = null;
     this.audioUrl = null;
@@ -231,23 +236,63 @@ export class WiretapEngine {
     this.playbackProgress = 0;
     this.sampleIntervalMs = 100;
 
+    this.rollingChunks = [];
+    this.rollingPeaks = [];
+    this.activeClipChunks = [];
+    this.activeClipPeaks = [];
+    this.headerChunk = null;
+    this.clipCapturingState = "idle";
+
     const constraints = {
       audio: audioDeviceId ? { deviceId: { exact: audioDeviceId } } : true,
     };
 
+    if (enableVideo && videoDeviceId) {
+      constraints.video = { deviceId: { exact: videoDeviceId } };
+      this.mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp8,opus")
+        ? "video/webm;codecs=vp8,opus"
+        : "video/webm";
+    } else {
+      this.mimeType = "audio/webm";
+    }
+
     try {
       this.liveStream = await navigator.mediaDevices.getUserMedia(constraints);
       this.recordingStartTime = performance.now();
-      this.mediaRecorder = new MediaRecorder(this.liveStream);
+      
+      const options = { mimeType: this.mimeType };
+      this.mediaRecorder = new MediaRecorder(this.liveStream, options);
 
       this.mediaRecorder.ondataavailable = (e) => {
         if (e.data && e.data.size > 0) {
           this.audioChunks.push(e.data);
+
+          if (!this.headerChunk) {
+            this.headerChunk = e.data;
+          }
+
+          const now = performance.now();
+
+          // Push to rolling chunks for pre-record buffer
+          this.rollingChunks.push({ chunk: e.data, timestamp: now });
+          
+          // Filter rolling chunks to keep only those within clipLength
+          const preRecordLimit = now - this.clipLength * 1000;
+          this.rollingChunks = this.rollingChunks.filter((c) => c.timestamp >= preRecordLimit);
+
+          // If capturing post-snap chunks for a clip
+          if (this.clipCapturingState === "capturing") {
+            this.activeClipChunks.push(e.data);
+
+            if (now >= this.clipEndTime) {
+              this.finalizeClip();
+            }
+          }
         }
       };
 
       this.mediaRecorder.onstop = async () => {
-        this.audioBlob = new Blob(this.audioChunks, { type: "audio/webm" });
+        this.audioBlob = new Blob(this.audioChunks, { type: this.mimeType });
         this.audioUrl = URL.createObjectURL(this.audioBlob);
         this.audioElement.src = this.audioUrl;
 
@@ -262,7 +307,8 @@ export class WiretapEngine {
         this.triggerStateChange();
       };
 
-      this.mediaRecorder.start();
+      // Request data every 250ms to feed the circular buffer
+      this.mediaRecorder.start(250);
       this.isRecording = true;
 
       // Set up real-time audio analysis
@@ -284,8 +330,8 @@ export class WiretapEngine {
   stopRecording() {
     if (!this.isRecording) return;
 
-    if (this.isClipRecording) {
-      this.stopClipRecording();
+    if (this.clipCapturingState === "capturing") {
+      this.finalizeClip();
     }
 
     if (this.mediaRecorder && this.mediaRecorder.state !== "inactive") {
@@ -347,17 +393,22 @@ export class WiretapEngine {
         this.onLiveVolumeUpdate(amp);
       }
 
-      if (this.mode === "tapper") {
+      if (this.mode === "prick") {
         if (amp > this.threshold) {
-          this.lastLoudSoundTime = performance.now();
-          if (!this.isClipRecording) {
-            this.startClipRecording();
-          }
-        } else if (this.isClipRecording) {
-          const silenceDuration = performance.now() - this.lastLoudSoundTime;
-          const clipDuration = performance.now() - this.clipStartPerformanceTime;
-          if (silenceDuration >= this.silenceDelayMs || clipDuration >= this.maxClipDurationMs) {
-            this.stopClipRecording();
+          const now = performance.now();
+          if (this.clipCapturingState === "idle") {
+            this.clipCapturingState = "capturing";
+            this.clipStartTime = new Date(Date.now() - this.clipLength * 1000);
+            this.clipStartPerformanceTime = now - this.clipLength * 1000;
+            
+            // Collect the pre-recorded chunks & peaks
+            this.activeClipChunks = this.rollingChunks.map((c) => c.chunk);
+            this.activeClipPeaks = this.rollingPeaks.map((p) => p.val);
+            
+            this.clipEndTime = now + this.clipLength * 1000;
+          } else if (this.clipCapturingState === "capturing") {
+            // Extend the clip recording to clipLength seconds after the latest snap
+            this.clipEndTime = now + this.clipLength * 1000;
           }
         }
       }
@@ -366,7 +417,18 @@ export class WiretapEngine {
       const now = performance.now();
       let pushedAny = false;
       while (now - lastSampleTime >= this.sampleIntervalMs) {
-        this.livePeaks.push(currentWindowMax);
+        const peakVal = currentWindowMax;
+        this.livePeaks.push(peakVal);
+
+        // Keep rolling peaks for pre-record buffer
+        this.rollingPeaks.push({ val: peakVal, timestamp: now });
+        const preRecordLimit = now - this.clipLength * 1000;
+        this.rollingPeaks = this.rollingPeaks.filter((p) => p.timestamp >= preRecordLimit);
+
+        if (this.clipCapturingState === "capturing") {
+          this.activeClipPeaks.push(peakVal);
+        }
+
         lastSampleTime += this.sampleIntervalMs;
         currentWindowMax = 0;
         pushedAny = true;
@@ -554,113 +616,38 @@ export class WiretapEngine {
   }
 
   /**
-   * Start a cropped clip recording based on threshold audio event.
+   * Finalizes the current clip, concatenates the headers, and fires the callback.
    */
-  startClipRecording() {
-    if (this.isClipRecording) return;
+  finalizeClip() {
+    this.clipCapturingState = "idle";
+    if (this.activeClipChunks.length === 0) return;
 
-    this.clipChunks = [];
-    this.clipStartTime = new Date();
-    this.clipStartPerformanceTime = performance.now();
-    this.isClipRecording = true;
-
-    const clipStream = new MediaStream();
-
-    // Add cloned audio track from live stream
-    if (this.liveStream) {
-      this.liveStream.getAudioTracks().forEach(track => {
-        clipStream.addTrack(track.clone());
-      });
+    // Filter duplicate header chunks to prevent EBML structural issues
+    let chunksToCombine = [...this.activeClipChunks];
+    if (chunksToCombine[0] === this.headerChunk) {
+      chunksToCombine.shift();
     }
+    chunksToCombine.unshift(this.headerChunk);
 
-    // Add cloned video track if camera stream is active and video is enabled
-    let isVideo = false;
-    if (this.cameraStream) {
-      const videoTracks = this.cameraStream.getVideoTracks();
-      if (videoTracks.length > 0 && videoTracks[0].enabled && videoTracks[0].readyState === "live") {
-        clipStream.addTrack(videoTracks[0].clone());
-        isVideo = true;
-      }
+    const clipBlob = new Blob(chunksToCombine, { type: this.mimeType });
+    const clipUrl = URL.createObjectURL(clipBlob);
+    const clipDuration = (performance.now() - this.clipStartPerformanceTime) / 1000;
+    const clipPeaks = resamplePeaksStretched(this.activeClipPeaks, WAVEFORM_BARS_COUNT);
+
+    const newClip = {
+      id: Date.now() + Math.random(),
+      timestamp: this.clipStartTime,
+      duration: clipDuration,
+      blob: clipBlob,
+      url: clipUrl,
+      isVideo: this.mimeType.startsWith("video"),
+      peaks: clipPeaks,
+    };
+
+    this.clips.push(newClip);
+    if (this.onClipAdded) {
+      this.onClipAdded(newClip, this.clips);
     }
-    this.clipIsVideo = isVideo;
-
-    let options = {};
-    if (isVideo) {
-      if (MediaRecorder.isTypeSupported("video/webm;codecs=vp8,opus")) {
-        options.mimeType = "video/webm;codecs=vp8,opus";
-      } else if (MediaRecorder.isTypeSupported("video/webm")) {
-        options.mimeType = "video/webm";
-      } else if (MediaRecorder.isTypeSupported("video/mp4")) {
-        options.mimeType = "video/mp4";
-      }
-    } else {
-      if (MediaRecorder.isTypeSupported("audio/webm;codecs=opus")) {
-        options.mimeType = "audio/webm;codecs=opus";
-      } else if (MediaRecorder.isTypeSupported("audio/webm")) {
-        options.mimeType = "audio/webm";
-      } else if (MediaRecorder.isTypeSupported("audio/ogg;codecs=opus")) {
-        options.mimeType = "audio/ogg;codecs=opus";
-      } else if (MediaRecorder.isTypeSupported("audio/mp4")) {
-        options.mimeType = "audio/mp4";
-      }
-    }
-
-    try {
-      this.clipMediaRecorder = new MediaRecorder(clipStream, options);
-      this.clipMediaRecorder.ondataavailable = (e) => {
-        if (e.data && e.data.size > 0) {
-          this.clipChunks.push(e.data);
-        }
-      };
-
-      this.clipMediaRecorder.onstop = () => {
-        // Clean up cloned stream tracks
-        clipStream.getTracks().forEach(track => track.stop());
-
-        if (this.clipChunks.length === 0) return;
-
-        const blobType = this.clipIsVideo ? "video/webm" : "audio/webm";
-        const clipBlob = new Blob(this.clipChunks, { type: blobType });
-        const clipUrl = URL.createObjectURL(clipBlob);
-        const clipDuration = (performance.now() - this.clipStartPerformanceTime) / 1000;
-
-        const newClip = {
-          id: Date.now() + Math.random(),
-          timestamp: this.clipStartTime,
-          duration: clipDuration,
-          blob: clipBlob,
-          url: clipUrl,
-          isVideo: this.clipIsVideo,
-        };
-
-        this.clips.push(newClip);
-        if (this.onClipAdded) {
-          this.onClipAdded(newClip, this.clips);
-        }
-      };
-
-      this.clipMediaRecorder.start();
-    } catch (err) {
-      console.warn("Failed to start clip MediaRecorder:", err);
-      this.isClipRecording = false;
-    }
-  }
-
-  /**
-   * Stop the active clip recording.
-   */
-  stopClipRecording() {
-    if (!this.isClipRecording) return;
-
-    this.isClipRecording = false;
-    if (this.clipMediaRecorder && this.clipMediaRecorder.state !== "inactive") {
-      try {
-        this.clipMediaRecorder.stop();
-      } catch (err) {
-        console.warn("Error stopping clip media recorder:", err);
-      }
-    }
-    this.clipMediaRecorder = null;
   }
 
   /**
