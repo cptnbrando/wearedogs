@@ -120,6 +120,7 @@
     isPlaying: false,
     isDecoding: false,
     hasRecording: false,
+    clipCapturingState: "idle",
   });
 
   // Track state changes from the engine
@@ -293,13 +294,14 @@
       canvasCtx.font = "bold 9px monospace";
       canvasCtx.fillText(`LOC: ${locationText || "MANUAL"}`, canvasEl.width - 15, 48);
 
-      // Top-left HUD "LIVE REC" badge
-      canvasCtx.fillStyle = "#ff3344";
-      canvasCtx.fillRect(15, 12, 60, 18);
+      // Top-left HUD status badge
+      const isClipping = mode === "prick" && engineState.clipCapturingState === "capturing";
+      canvasCtx.fillStyle = isClipping ? "#0066ff" : "#ff3344";
+      canvasCtx.fillRect(15, 12, isClipping ? 68 : 60, 18);
       canvasCtx.fillStyle = "#ffffff";
       canvasCtx.font = "bold 9px monospace";
       canvasCtx.textAlign = "center";
-      canvasCtx.fillText("LIVE REC", 45, 24);
+      canvasCtx.fillText(isClipping ? "CLIPPING" : "LIVE REC", isClipping ? 49 : 45, 24);
 
       // Bottom-right: DOGS & Logo
       canvasCtx.fillStyle = "#00ff66";
@@ -837,9 +839,15 @@
                           PLAYBACK
                         </div>
                       {:else if engineState.isRecording}
-                        <div class="bg-red-600/90 text-white text-[9px] font-mono font-bold tracking-widest px-2 py-0.5 rounded flex items-center gap-1 animate-pulse">
-                          <span class="w-1.5 h-1.5 rounded-full bg-white"></span> LIVE REC
-                        </div>
+                        {#if mode === "prick" && engineState.clipCapturingState === "capturing"}
+                          <div class="bg-[#0066ff] text-white text-[9px] font-mono font-bold tracking-widest px-2.5 py-0.5 rounded flex items-center gap-1.5 animate-pulse">
+                            <span class="w-1.5 h-1.5 rounded-full bg-white animate-ping"></span> CLIPPING
+                          </div>
+                        {#else}
+                          <div class="bg-red-600/90 text-white text-[9px] font-mono font-bold tracking-widest px-2 py-0.5 rounded flex items-center gap-1 animate-pulse">
+                            <span class="w-1.5 h-1.5 rounded-full bg-white"></span> LIVE REC
+                          </div>
+                        {/if}
                       {:else}
                         <div class="bg-yellow-600/90 text-white text-[9px] font-mono font-bold tracking-widest px-2 py-0.5 rounded flex items-center gap-1">
                           <span class="w-1.5 h-1.5 rounded-full bg-white"></span> LIVE FEED
@@ -1272,9 +1280,15 @@
                 <!-- Status indicator -->
                 <div class="flex items-center gap-2">
                   {#if engineState.isRecording}
-                    <span class="flex items-center gap-1 text-xs text-red-500 font-mono font-bold tracking-widest uppercase">
-                      <span class="w-2.5 h-2.5 bg-red-600 rounded-full animate-ping mr-1"></span> RECORDING
-                    </span>
+                    {#if mode === "prick" && engineState.clipCapturingState === "capturing"}
+                      <span class="flex items-center gap-1 text-xs text-[#0066ff] font-mono font-bold tracking-widest uppercase animate-pulse">
+                        <span class="w-2.5 h-2.5 bg-[#0066ff] rounded-full animate-ping mr-1"></span> CLIPPING
+                      </span>
+                    {#else}
+                      <span class="flex items-center gap-1 text-xs text-red-500 font-mono font-bold tracking-widest uppercase">
+                        <span class="w-2.5 h-2.5 bg-red-600 rounded-full animate-ping mr-1"></span> RECORDING
+                      </span>
+                    {/if}
                   {:else if engineState.isDecoding}
                     <span class="text-xs text-[#00ff66] font-mono font-bold animate-pulse tracking-wide uppercase">
                       DECODING AUDIO BUFFER...

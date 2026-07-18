@@ -190,6 +190,7 @@ export class WiretapEngine {
         isPlaying: this.isPlaying,
         isDecoding: this.isDecoding,
         hasRecording: !!this.audioBlob,
+        clipCapturingState: this.clipCapturingState,
       });
     }
   }
@@ -400,6 +401,7 @@ export class WiretapEngine {
           const now = performance.now();
           if (this.clipCapturingState === "idle") {
             this.clipCapturingState = "capturing";
+            this.triggerStateChange();
             this.clipStartTime = new Date(Date.now() - this.clipLength * 1000);
             this.clipStartPerformanceTime = now - this.clipLength * 1000;
             
@@ -622,6 +624,7 @@ export class WiretapEngine {
    */
   finalizeClip() {
     this.clipCapturingState = "idle";
+    this.triggerStateChange();
     if (this.activeClipChunks.length === 0) return;
 
     // Filter duplicate header chunks to prevent EBML structural issues
