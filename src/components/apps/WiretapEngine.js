@@ -211,7 +211,6 @@ export class WiretapEngine {
     this.interimTranscript = "";
     this.playbackProgress = 0;
     this.sampleIntervalMs = 100;
-    this.recordingStartTime = performance.now();
 
     const constraints = {
       audio: audioDeviceId ? { deviceId: { exact: audioDeviceId } } : true,
@@ -219,6 +218,7 @@ export class WiretapEngine {
 
     try {
       this.liveStream = await navigator.mediaDevices.getUserMedia(constraints);
+      this.recordingStartTime = performance.now();
       this.mediaRecorder = new MediaRecorder(this.liveStream);
       
       this.mediaRecorder.ondataavailable = (e) => {
