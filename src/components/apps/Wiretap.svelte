@@ -414,11 +414,7 @@
                   <!-- Waveform grid -->
                   <!-- svelte-ignore a11y_no_static_element_interactions -->
                   <div
-                    class="flex items-center justify-between w-full h-16 gap-[2px] bg-black/45 border rounded px-2 relative select-none"
-                    class:border-[#ff3344]/30={engineState.isRecording}
-                    class:border-white/10={!engineState.isRecording}
-                    class:hover:border-white/20={!engineState.isRecording}
-                    class:cursor-ew-resize={!engineState.isRecording}
+                    class="flex items-center justify-between w-full h-16 gap-[2px] bg-black/45 border rounded px-2 relative select-none {engineState.isRecording ? 'border-[#ff3344]/30' : 'border-white/10 hover:border-white/20 cursor-ew-resize'}"
                     onpointerdown={!engineState.isRecording ? handleWaveformPointerDown : null}
                   >
                     {@const peaksToRender = engineState.isRecording ? livePeaks : decodedPeaks}
