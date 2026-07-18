@@ -59,10 +59,37 @@
     });
   }
 
+  let isMobileViewport = $state(false);
+
+  function handlePopState(e) {
+    if (!isMobileViewport) return;
+    const state = e.state;
+    if (state && state.app === "stopwatch") {
+      if (state.depth === 2) {
+        showMobileTiles = true;
+      } else if (state.depth === 3 && state.subTab) {
+        activeTab = state.subTab;
+        showMobileTiles = false;
+      }
+    }
+  }
+
   onMount(() => {
     updateClock();
     timeTicker = setInterval(updateClock, 1000);
-    return () => clearInterval(timeTicker);
+
+    isMobileViewport = window.innerWidth <= 768;
+    const handleResize = () => {
+      isMobileViewport = window.innerWidth <= 768;
+    };
+    window.addEventListener("resize", handleResize);
+    window.addEventListener("popstate", handlePopState);
+
+    return () => {
+      clearInterval(timeTicker);
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("popstate", handlePopState);
+    };
   });
 
   // Touch swipe handling to swipe between tabs
@@ -107,12 +134,44 @@
         if (currentIdx !== -1) {
           if (deltaX < 0 && currentIdx < TABS_CONFIG.length - 1) {
             // Swiped left -> Go to next tab
+            const prevShowTiles = showMobileTiles;
             activeTab = TABS_CONFIG[currentIdx + 1].id;
             showMobileTiles = false;
+            if (isMobileViewport) {
+              if (prevShowTiles) {
+                history.pushState(
+                  { view: "toolbox", app: "stopwatch", subTab: activeTab, depth: 3 },
+                  "",
+                  "/apps/stopwatch/" + activeTab
+                );
+              } else {
+                history.replaceState(
+                  { view: "toolbox", app: "stopwatch", subTab: activeTab, depth: 3 },
+                  "",
+                  "/apps/stopwatch/" + activeTab
+                );
+              }
+            }
           } else if (deltaX > 0 && currentIdx > 0) {
             // Swiped right -> Go to previous tab
+            const prevShowTiles = showMobileTiles;
             activeTab = TABS_CONFIG[currentIdx - 1].id;
             showMobileTiles = false;
+            if (isMobileViewport) {
+              if (prevShowTiles) {
+                history.pushState(
+                  { view: "toolbox", app: "stopwatch", subTab: activeTab, depth: 3 },
+                  "",
+                  "/apps/stopwatch/" + activeTab
+                );
+              } else {
+                history.replaceState(
+                  { view: "toolbox", app: "stopwatch", subTab: activeTab, depth: 3 },
+                  "",
+                  "/apps/stopwatch/" + activeTab
+                );
+              }
+            }
           }
         }
       }
@@ -170,7 +229,13 @@
     <div class="flex items-center gap-2">
       {#if !showMobileTiles}
         <button
-          onclick={() => (showMobileTiles = true)}
+          onclick={() => {
+            if (isMobileViewport) {
+              history.back();
+            } else {
+              showMobileTiles = true;
+            }
+          }}
           class="flex items-center gap-1.5 px-2.5 py-1 bg-sky-500/20 hover:bg-sky-500/30 text-sky-400 border border-sky-500/30 rounded text-[9px] font-mono font-bold uppercase transition-all active:scale-95 cursor-pointer"
         >
           <Home size={10} /> TILES
@@ -320,6 +385,13 @@
                 onclick={() => {
                   activeTab = tab.id;
                   showMobileTiles = false;
+                  if (isMobileViewport) {
+                    history.pushState(
+                      { view: "toolbox", app: "stopwatch", subTab: tab.id, depth: 3 },
+                      "",
+                      "/apps/stopwatch/" + tab.id
+                    );
+                  }
                 }}
                 class="flex flex-col justify-between p-2.5 rounded-lg border border-white/5 active:scale-95 transition-all text-left relative overflow-hidden shadow-[0_4px_12px_rgba(0,0,0,0.3)] {bgColors[idx % bgColors.length]}"
               >
