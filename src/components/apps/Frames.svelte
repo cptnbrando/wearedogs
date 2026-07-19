@@ -75,6 +75,29 @@
     }, 3000);
   }
 
+  function nonPassiveTouch(node, params) {
+    const onTouchStart = (e) => {
+      e.preventDefault();
+      params.start(e);
+    };
+    const onTouchEnd = (e) => {
+      e.preventDefault();
+      params.end(e);
+    };
+
+    node.addEventListener("touchstart", onTouchStart, { passive: false });
+    node.addEventListener("touchend", onTouchEnd, { passive: false });
+    node.addEventListener("touchcancel", onTouchEnd, { passive: false });
+
+    return {
+      destroy() {
+        node.removeEventListener("touchstart", onTouchStart);
+        node.removeEventListener("touchend", onTouchEnd);
+        node.removeEventListener("touchcancel", onTouchEnd);
+      }
+    };
+  }
+
   function startHoldScrub(stepAmount) {
     if (activeSeekDirection === stepAmount) return;
     stopHoldScrub();
@@ -100,6 +123,9 @@
       repeatTimer = null;
     }
     activeSeekDirection = 0;
+    if (videoEl) {
+      videoEl.currentTime = seekTargetTime;
+    }
   }
 
   function handleMouseDownScrub(stepAmount, e) {
@@ -179,7 +205,9 @@
       isPlaying = false;
     }
     seekTargetTime = Math.max(0, Math.min(duration, seekTargetTime + count * frameTime));
-    videoEl.currentTime = seekTargetTime;
+    if (!videoEl.seeking || activeSeekDirection === 0) {
+      videoEl.currentTime = seekTargetTime;
+    }
   }
 
   function jumpToStart() {
@@ -438,12 +466,13 @@
         <div class="playback-actions">
           <!-- Step -5 -->
           <button 
+            use:nonPassiveTouch={{
+              start: (e) => handleMouseDownScrub(-5, e),
+              end: () => stopHoldScrub(-5)
+            }}
             onmousedown={(e) => handleMouseDownScrub(-5, e)}
             onmouseup={() => stopHoldScrub(-5)}
             onmouseleave={() => stopHoldScrub(-5)}
-            ontouchstart={(e) => { e.preventDefault(); handleMouseDownScrub(-5, e); }}
-            ontouchend={() => stopHoldScrub(-5)}
-            ontouchcancel={() => stopHoldScrub(-5)}
             oncontextmenu={(e) => e.preventDefault()}
             class="control-icon-btn jump-btn" 
             title="Back 5 frames"
@@ -453,12 +482,13 @@
           
           <!-- Step Left -->
           <button 
+            use:nonPassiveTouch={{
+              start: (e) => handleMouseDownScrub(-validatedStep, e),
+              end: () => stopHoldScrub(-validatedStep)
+            }}
             onmousedown={(e) => handleMouseDownScrub(-validatedStep, e)}
             onmouseup={() => stopHoldScrub(-validatedStep)}
             onmouseleave={() => stopHoldScrub(-validatedStep)}
-            ontouchstart={(e) => { e.preventDefault(); handleMouseDownScrub(-validatedStep, e); }}
-            ontouchend={() => stopHoldScrub(-validatedStep)}
-            ontouchcancel={() => stopHoldScrub(-validatedStep)}
             oncontextmenu={(e) => e.preventDefault()}
             class="control-icon-btn step-btn" 
             title="Previous step (Left Arrow). Hold Shift to move faster."
@@ -477,12 +507,13 @@
 
           <!-- Step Right -->
           <button 
+            use:nonPassiveTouch={{
+              start: (e) => handleMouseDownScrub(validatedStep, e),
+              end: () => stopHoldScrub(validatedStep)
+            }}
             onmousedown={(e) => handleMouseDownScrub(validatedStep, e)}
             onmouseup={() => stopHoldScrub(validatedStep)}
             onmouseleave={() => stopHoldScrub(validatedStep)}
-            ontouchstart={(e) => { e.preventDefault(); handleMouseDownScrub(validatedStep, e); }}
-            ontouchend={() => stopHoldScrub(validatedStep)}
-            ontouchcancel={() => stopHoldScrub(validatedStep)}
             oncontextmenu={(e) => e.preventDefault()}
             class="control-icon-btn step-btn" 
             title="Next step (Right Arrow). Hold Shift to move faster."
@@ -492,12 +523,13 @@
 
           <!-- Step +5 -->
           <button 
+            use:nonPassiveTouch={{
+              start: (e) => handleMouseDownScrub(5, e),
+              end: () => stopHoldScrub(5)
+            }}
             onmousedown={(e) => handleMouseDownScrub(5, e)}
             onmouseup={() => stopHoldScrub(5)}
-            onmouseleave={() => stopHoldScrub(5)}
-            ontouchstart={(e) => { e.preventDefault(); handleMouseDownScrub(5, e); }}
-            ontouchend={() => stopHoldScrub(5)}
-            ontouchcancel={() => stopHoldScrub(5)}
+            onmouseleave={(e) => stopHoldScrub(5)}
             oncontextmenu={(e) => e.preventDefault()}
             class="control-icon-btn jump-btn" 
             title="Forward 5 frames"
