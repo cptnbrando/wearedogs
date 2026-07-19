@@ -31,9 +31,8 @@
   let isShiftPressed = false;
   
   let stepSizeString = "1";
-  let fpsPreset = "30";
   let fps = 30;
-  let customFps = 30;
+  let parsedFrameCount = null;
   
   let dragOver = false;
   
@@ -43,14 +42,6 @@
   // Reactivity Calculations
   $: framesToMove = Number(stepSizeString) || 1;
   $: validatedStep = Math.max(1, Math.floor(framesToMove));
-
-  $: {
-    if (fpsPreset !== "custom") {
-      fps = Number(fpsPreset);
-    } else {
-      fps = customFps > 0 ? customFps : 30;
-    }
-  }
 
   $: frameTime = 1 / fps;
   $: totalFrames = duration ? Math.round(duration * fps) : 0;
@@ -66,6 +57,70 @@
 
     const pad = (n, len = 2) => String(n).padStart(len, "0");
     return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}.${pad(ms, 3)}`;
+  }
+
+  // Native MP4/MOV metadata parser to extract sample count (total frames)
+  function parseMp4MaxFrames(arrayBuffer) {
+    const view = new DataView(arrayBuffer);
+    
+    function findBox(path, currentOffset, endOffset) {
+      if (path.length === 0) return currentOffset;
+      let localOffset = currentOffset;
+      while (localOffset < endOffset) {
+        if (localOffset + 8 > view.byteLength) break;
+        const length = view.getUint32(localOffset);
+        const type = String.fromCharCode(
+          view.getUint8(localOffset + 4),
+          view.getUint8(localOffset + 5),
+          view.getUint8(localOffset + 6),
+          view.getUint8(localOffset + 7)
+        );
+        
+        if (length <= 0) break;
+        
+        if (type === path[0]) {
+          if (path.length === 1) {
+            return localOffset;
+          }
+          const result = findBox(path.slice(1), localOffset + 8, localOffset + length);
+          if (result !== null) return result;
+        }
+        localOffset += length;
+      }
+      return null;
+    }
+    
+    const stszOffset = findBox(['moov', 'trak', 'mdia', 'minf', 'stbl', 'stsz'], 0, view.byteLength);
+    if (stszOffset !== null) {
+      return view.getUint32(stszOffset + 16);
+    }
+    return null;
+  }
+
+  function matchStandardFps(rawFps) {
+    if (!rawFps || isNaN(rawFps)) return 30;
+    const standards = [23.976, 24, 25, 29.97, 30, 50, 59.94, 60, 120, 240];
+    let bestMatch = 30;
+    let minDiff = Infinity;
+    for (const std of standards) {
+      const diff = Math.abs(rawFps - std);
+      if (diff < minDiff) {
+        minDiff = diff;
+        bestMatch = std;
+      }
+    }
+    if (minDiff > 1.5) {
+      return Math.round(rawFps * 100) / 100;
+    }
+    return bestMatch;
+  }
+
+  function tryDetectFps() {
+    if (parsedFrameCount && duration) {
+      const estimatedFps = parsedFrameCount / duration;
+      fps = matchStandardFps(estimatedFps);
+      showNotification(`Detected Video Framerate: ${fps} FPS`);
+    }
   }
 
   function showNotification(text) {
@@ -273,6 +328,7 @@
       videoWidth = videoEl.videoWidth;
       videoHeight = videoEl.videoHeight;
       seekTargetTime = videoEl.currentTime;
+      tryDetectFps();
     }
   }
 
@@ -290,6 +346,19 @@
     isPlaying = false;
     currentTime = 0;
     duration = 0;
+    parsedFrameCount = null;
+    fps = 30; // Reset to default fallback
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        parsedFrameCount = parseMp4MaxFrames(e.target.result);
+        tryDetectFps();
+      } catch (err) {
+        console.error("Error parsing video metadata:", err);
+      }
+    };
+    reader.readAsArrayBuffer(file.slice(0, 10 * 1024 * 1024));
   }
 
   function handleFileChange(e) {
@@ -329,6 +398,9 @@
     duration = 0;
     videoWidth = 0;
     videoHeight = 0;
+    seekTargetTime = 0;
+    parsedFrameCount = null;
+    fps = 30;
   }
 
   // Snapshot functionality
@@ -550,59 +622,22 @@
           💡 Use <span class="kbd">←</span> <span class="kbd">→</span> (or hold down) for steps, hold <span class="kbd">Shift + ← / →</span> to scrub fast, <span class="kbd">↑</span> <span class="kbd">↓</span> for 10x jumps, and <span class="kbd">Space</span> to play/pause.
         </div>
 
-        <!-- Configurations: Step Size and Framerate -->
-        <div class="config-grid">
-          <!-- Step Size Configurer -->
-          <div class="config-item font-primary">
-            <label for="step-size-select" class="config-label">STEP SIZE</label>
-            <select id="step-size-select" bind:value={stepSizeString} class="step-size-dropdown">
-              <option value="1">1 frame</option>
-              <option value="2">2 frames</option>
-              <option value="3">3 frames</option>
-              <option value="4">4 frames</option>
-              <option value="5">5 frames</option>
-              <option value="6">6 frames</option>
-              <option value="7">7 frames</option>
-              <option value="8">8 frames</option>
-              <option value="9">9 frames</option>
-              <option value="10">10 frames</option>
-            </select>
-          </div>
-
-          <!-- Framerate Configurer -->
-          <div class="config-item font-primary">
-            <label for="fps-select" class="config-label">FRAMERATE (FPS)</label>
-            <div class="fps-selectors">
-              <select id="fps-select" bind:value={fpsPreset} class="fps-dropdown">
-                <option value="24">24 FPS (Film)</option>
-                <option value="25">25 FPS (PAL)</option>
-                <option value="29.97">29.97 FPS (NTSC)</option>
-                <option value="30">30 FPS (Standard)</option>
-                <option value="50">50 FPS</option>
-                <option value="60">60 FPS (High-rate)</option>
-                <option value="custom">Custom FPS...</option>
-              </select>
-            </div>
-          </div>
+        <!-- Configurations: Step Size -->
+        <div class="config-item font-primary">
+          <label for="step-size-select" class="config-label">STEP SIZE</label>
+          <select id="step-size-select" bind:value={stepSizeString} class="step-size-dropdown">
+            <option value="1">1 frame</option>
+            <option value="2">2 frames</option>
+            <option value="3">3 frames</option>
+            <option value="4">4 frames</option>
+            <option value="5">5 frames</option>
+            <option value="6">6 frames</option>
+            <option value="7">7 frames</option>
+            <option value="8">8 frames</option>
+            <option value="9">9 frames</option>
+            <option value="10">10 frames</option>
+          </select>
         </div>
-
-        {#if fpsPreset === 'custom'}
-          <div class="custom-fps-input-wrapper font-primary">
-            <label for="custom-fps-input" class="config-label">CUSTOM FPS</label>
-            <div class="custom-fps-input-box">
-              <input 
-                id="custom-fps-input"
-                type="number" 
-                bind:value={customFps}
-                min="0.1" 
-                max="240" 
-                step="0.001" 
-                class="custom-fps-input"
-              />
-              <span class="custom-fps-suffix">fps</span>
-            </div>
-          </div>
-        {/if}
 
         <!-- Snapshots / Quick Exports -->
         <div class="export-actions">
@@ -1069,17 +1104,11 @@
       }
     }
 
-    .config-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-bottom: 16px;
-      flex-shrink: 0;
-    }
-
     .config-item {
       display: flex;
       flex-direction: column;
+      margin-bottom: 16px;
+      flex-shrink: 0;
     }
 
     .config-label {
@@ -1091,8 +1120,7 @@
       margin-bottom: 6px;
     }
 
-    .step-size-dropdown,
-    .fps-dropdown {
+    .step-size-dropdown {
       background: rgba(15, 15, 22, 0.6);
       border: 1px solid rgba(255, 255, 255, 0.08);
       color: white;
@@ -1111,43 +1139,6 @@
 
       &:focus {
         border-color: $color-neon-gold;
-      }
-    }
-
-    .custom-fps-input-wrapper {
-      margin-top: -4px;
-      margin-bottom: 16px;
-      flex-shrink: 0;
-
-      .custom-fps-input-box {
-        display: flex;
-        align-items: center;
-        background: rgba(15, 15, 22, 0.6);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 6px;
-        padding: 8px 12px;
-        height: 38px;
-        box-sizing: border-box;
-
-        &:focus-within {
-          border-color: $color-neon-gold;
-        }
-
-        .custom-fps-input {
-          background: transparent;
-          border: none;
-          color: white;
-          width: 100%;
-          outline: none;
-          font-size: 0.8rem;
-          font-family: monospace;
-        }
-
-        .custom-fps-suffix {
-          font-size: 0.72rem;
-          color: rgba(255, 255, 255, 0.4);
-          margin-left: 6px;
-        }
       }
     }
 
