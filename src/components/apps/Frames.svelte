@@ -29,7 +29,7 @@
   let repeatTimer = null;
   let isShiftPressed = false;
   
-  let framesToMove = 1;
+  let stepSizeString = "1";
   let fpsPreset = "30";
   let fps = 30;
   let customFps = 30;
@@ -40,7 +40,8 @@
   let notificationTimeout = null;
 
   // Reactivity Calculations
-  $: validatedStep = Math.max(1, Math.floor(Number(framesToMove) || 1));
+  $: framesToMove = Number(stepSizeString) || 1;
+  $: validatedStep = Math.max(1, Math.floor(framesToMove));
 
   $: {
     if (fpsPreset !== "custom") {
@@ -514,17 +515,17 @@
           <!-- Step Size Configurer -->
           <div class="config-item font-primary">
             <label for="step-size-select" class="config-label">STEP SIZE</label>
-            <select id="step-size-select" bind:value={framesToMove} class="step-size-dropdown">
-              <option value={1}>1 frame</option>
-              <option value={2}>2 frames</option>
-              <option value={3}>3 frames</option>
-              <option value={4}>4 frames</option>
-              <option value={5}>5 frames</option>
-              <option value={6}>6 frames</option>
-              <option value={7}>7 frames</option>
-              <option value={8}>8 frames</option>
-              <option value={9}>9 frames</option>
-              <option value={10}>10 frames</option>
+            <select id="step-size-select" bind:value={stepSizeString} class="step-size-dropdown">
+              <option value="1">1 frame</option>
+              <option value="2">2 frames</option>
+              <option value="3">3 frames</option>
+              <option value="4">4 frames</option>
+              <option value="5">5 frames</option>
+              <option value="6">6 frames</option>
+              <option value="7">7 frames</option>
+              <option value="8">8 frames</option>
+              <option value="9">9 frames</option>
+              <option value="10">10 frames</option>
             </select>
           </div>
 
