@@ -119,7 +119,6 @@
     if (parsedFrameCount && duration) {
       const estimatedFps = parsedFrameCount / duration;
       fps = matchStandardFps(estimatedFps);
-      showNotification(`Detected Video Framerate: ${fps} FPS`);
     }
   }
 
@@ -499,7 +498,7 @@
               {videoFile ? (videoFile.name.length > 32 ? videoFile.name.substring(0, 30) + '...' : videoFile.name) : 'Video file'}
             </span>
             <span class="resolution">
-              {videoWidth}x{videoHeight} | {(duration || 0).toFixed(2)}s
+              {videoWidth}x{videoHeight} | {(duration || 0).toFixed(2)}s | {fps} FPS
             </span>
           </div>
           <button onclick={handleReset} class="reset-app-btn">
