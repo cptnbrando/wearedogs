@@ -26,6 +26,7 @@
   let videoHeight = 0;
   
   let activeSeekDirection = 0; // -1 for left, 1 for right, 0 for none
+  let repeatTimeout = null;
   let repeatTimer = null;
   let isShiftPressed = false;
   
@@ -52,8 +53,8 @@
   }
 
   $: frameTime = 1 / fps;
-  $: totalFrames = duration ? Math.floor(duration * fps) : 0;
-  $: currentFrame = currentTime ? Math.floor(currentTime * fps) : 0;
+  $: totalFrames = duration ? Math.round(duration * fps) : 0;
+  $: currentFrame = currentTime ? Math.round(currentTime * fps) : 0;
 
   // Helper to format time into HH:MM:SS.mmm
   function formatTimeMs(timeSecs) {
@@ -110,14 +111,21 @@
     const initialStep = isShiftPressed ? stepAmount * 5 : stepAmount;
     stepFrames(initialStep);
     
-    repeatTimer = setInterval(() => {
-      const step = isShiftPressed ? stepAmount * 5 : stepAmount;
-      stepFrames(step);
-    }, SCRUB_STEP_INTERVAL_MS);
+    // Set 400ms delay before repeat seeks begin (standard repeat delay)
+    repeatTimeout = setTimeout(() => {
+      repeatTimer = setInterval(() => {
+        const step = isShiftPressed ? stepAmount * 5 : stepAmount;
+        stepFrames(step);
+      }, SCRUB_STEP_INTERVAL_MS);
+    }, 400);
   }
 
   function stopHoldScrub(stepAmount) {
     if (stepAmount && activeSeekDirection !== stepAmount) return;
+    if (repeatTimeout) {
+      clearTimeout(repeatTimeout);
+      repeatTimeout = null;
+    }
     if (repeatTimer) {
       clearInterval(repeatTimer);
       repeatTimer = null;
