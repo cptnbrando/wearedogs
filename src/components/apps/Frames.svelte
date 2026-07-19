@@ -165,10 +165,13 @@
     const initialStep = isShiftPressed ? stepAmount * 5 : stepAmount;
     stepFrames(initialStep);
     
+    // Hold repeat ticks always move by 1 frame (or 5 with shift) in the step direction
+    const direction = Math.sign(stepAmount);
+    
     // Set 400ms delay before repeat seeks begin (standard repeat delay)
     repeatTimeout = setTimeout(() => {
       repeatTimer = setInterval(() => {
-        const step = isShiftPressed ? stepAmount * 5 : stepAmount;
+        const step = isShiftPressed ? direction * 5 : direction;
         stepFrames(step);
       }, SCRUB_STEP_INTERVAL_MS);
     }, 400);
