@@ -158,12 +158,8 @@
     stopHoldScrub();
     activeSeekDirection = stepAmount;
     
-    if (videoEl) {
-      seekTargetTime = videoEl.currentTime;
-    }
-
     const initialStep = isShiftPressed ? stepAmount * 5 : stepAmount;
-    stepFrames(initialStep);
+    stepFrames(initialStep, true); // Force initial seek to feel instant
     
     // Hold repeat ticks always move by 1 frame (or 5 with shift) in the step direction
     const direction = Math.sign(stepAmount);
@@ -172,7 +168,7 @@
     repeatTimeout = setTimeout(() => {
       repeatTimer = setInterval(() => {
         const step = isShiftPressed ? direction * 5 : direction;
-        stepFrames(step);
+        stepFrames(step, false);
       }, SCRUB_STEP_INTERVAL_MS);
     }, 400);
   }
@@ -263,14 +259,14 @@
     }
   }
 
-  function stepFrames(count) {
+  function stepFrames(count, force = false) {
     if (!videoEl) return;
     if (isPlaying) {
       videoEl.pause();
       isPlaying = false;
     }
     seekTargetTime = Math.max(0, Math.min(duration, seekTargetTime + count * frameTime));
-    if (!videoEl.seeking || activeSeekDirection === 0) {
+    if (force || !videoEl.seeking || activeSeekDirection === 0) {
       videoEl.currentTime = seekTargetTime;
     }
   }
