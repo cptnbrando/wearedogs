@@ -3,8 +3,6 @@
   import {
     Play,
     Pause,
-    SkipBack,
-    SkipForward,
     ChevronLeft,
     ChevronRight,
     Camera,
@@ -12,7 +10,7 @@
     RotateCcw
   } from "lucide-svelte";
 
-  const SCRUB_STEPS_PER_SECOND = 12;
+  const SCRUB_STEPS_PER_SECOND = 20; // Increased for smoother hold scrubbing
   const SCRUB_STEP_INTERVAL_MS = 1000 / SCRUB_STEPS_PER_SECOND;
 
   // State Variables (Svelte 4 style - no runes)
@@ -22,6 +20,7 @@
   
   let isPlaying = false;
   let currentTime = 0;
+  let seekTargetTime = 0;
   let duration = 0;
   let videoWidth = 0;
   let videoHeight = 0;
@@ -30,6 +29,7 @@
   let repeatTimer = null;
   let isShiftPressed = false;
   
+  let framesToMove = 1;
   let fpsPreset = "30";
   let fps = 30;
   let customFps = 30;
@@ -40,6 +40,8 @@
   let notificationTimeout = null;
 
   // Reactivity Calculations
+  $: validatedStep = Math.max(1, Math.floor(Number(framesToMove) || 1));
+
   $: {
     if (fpsPreset !== "custom") {
       fps = Number(fpsPreset);
@@ -72,22 +74,26 @@
     }, 3000);
   }
 
-  function startHoldScrub(direction) {
-    if (activeSeekDirection === direction) return;
+  function startHoldScrub(stepAmount) {
+    if (activeSeekDirection === stepAmount) return;
     stopHoldScrub();
-    activeSeekDirection = direction;
+    activeSeekDirection = stepAmount;
     
-    const initialStep = isShiftPressed ? direction * 5 : direction;
+    if (videoEl) {
+      seekTargetTime = videoEl.currentTime;
+    }
+
+    const initialStep = isShiftPressed ? stepAmount * 5 : stepAmount;
     stepFrames(initialStep);
     
     repeatTimer = setInterval(() => {
-      const step = isShiftPressed ? direction * 5 : direction;
+      const step = isShiftPressed ? stepAmount * 5 : stepAmount;
       stepFrames(step);
     }, SCRUB_STEP_INTERVAL_MS);
   }
 
-  function stopHoldScrub(direction) {
-    if (direction && activeSeekDirection !== direction) return;
+  function stopHoldScrub(stepAmount) {
+    if (stepAmount && activeSeekDirection !== stepAmount) return;
     if (repeatTimer) {
       clearInterval(repeatTimer);
       repeatTimer = null;
@@ -95,9 +101,9 @@
     activeSeekDirection = 0;
   }
 
-  function handleMouseDownScrub(direction, e) {
-    isShiftPressed = e.shiftKey;
-    startHoldScrub(direction);
+  function handleMouseDownScrub(stepAmount, e) {
+    isShiftPressed = e ? e.shiftKey : false;
+    startHoldScrub(stepAmount);
   }
 
   // Keyboard Shortcuts Handler
@@ -117,10 +123,10 @@
 
     if (e.key === "ArrowRight") {
       e.preventDefault();
-      startHoldScrub(1);
+      startHoldScrub(validatedStep);
     } else if (e.key === "ArrowLeft") {
       e.preventDefault();
-      startHoldScrub(-1);
+      startHoldScrub(-validatedStep);
     } else if (e.key === " " || e.key === "Spacebar") {
       e.preventDefault();
       if (!e.repeat) {
@@ -129,12 +135,12 @@
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       if (!e.repeat) {
-        stepFrames(10);
+        stepFrames(validatedStep * 10);
       }
     } else if (e.key === "ArrowDown") {
       e.preventDefault();
       if (!e.repeat) {
-        stepFrames(-10);
+        stepFrames(-validatedStep * 10);
       }
     }
   }
@@ -142,9 +148,9 @@
   function handleKeyup(e) {
     isShiftPressed = e.shiftKey;
     if (e.key === "ArrowRight") {
-      stopHoldScrub(1);
+      stopHoldScrub(validatedStep);
     } else if (e.key === "ArrowLeft") {
-      stopHoldScrub(-1);
+      stopHoldScrub(-validatedStep);
     }
   }
 
@@ -171,8 +177,8 @@
       videoEl.pause();
       isPlaying = false;
     }
-    const targetTime = currentTime + count * frameTime;
-    videoEl.currentTime = Math.max(0, Math.min(duration, targetTime));
+    seekTargetTime = Math.max(0, Math.min(duration, seekTargetTime + count * frameTime));
+    videoEl.currentTime = seekTargetTime;
   }
 
   function jumpToStart() {
@@ -181,6 +187,7 @@
       videoEl.pause();
       isPlaying = false;
     }
+    seekTargetTime = 0;
     videoEl.currentTime = 0;
   }
 
@@ -190,6 +197,7 @@
       videoEl.pause();
       isPlaying = false;
     }
+    seekTargetTime = duration;
     videoEl.currentTime = duration;
   }
 
@@ -200,7 +208,8 @@
       isPlaying = false;
     }
     const targetFrame = Number(e.target.value);
-    videoEl.currentTime = Math.max(0, Math.min(duration, targetFrame * frameTime));
+    seekTargetTime = Math.max(0, Math.min(duration, targetFrame * frameTime));
+    videoEl.currentTime = seekTargetTime;
   }
 
   // Video State Events
@@ -215,6 +224,9 @@
   function handleTimeUpdate() {
     if (videoEl) {
       currentTime = videoEl.currentTime;
+      if (activeSeekDirection === 0) {
+        seekTargetTime = currentTime;
+      }
     }
   }
 
@@ -223,6 +235,7 @@
       duration = videoEl.duration;
       videoWidth = videoEl.videoWidth;
       videoHeight = videoEl.videoHeight;
+      seekTargetTime = videoEl.currentTime;
     }
   }
 
@@ -422,25 +435,32 @@
 
         <!-- Playback Controls -->
         <div class="playback-actions">
-          <!-- Jump to Start -->
-          <button onclick={jumpToStart} class="control-icon-btn" title="Jump to start">
-            <SkipBack size={18} />
-          </button>
-          
-          <!-- Step -10 -->
-          <button onclick={() => stepFrames(-10)} class="control-icon-btn jump-btn" title="Back 10 frames (Down Arrow)">
-            -10
-          </button>
-          
-          <!-- Step -1 -->
+          <!-- Step -5 -->
           <button 
-            onmousedown={(e) => handleMouseDownScrub(-1, e)}
-            onmouseup={() => stopHoldScrub(-1)}
-            onmouseleave={() => stopHoldScrub(-1)}
-            ontouchstart={(e) => { e.preventDefault(); handleMouseDownScrub(-1, e); }}
-            ontouchend={() => stopHoldScrub(-1)}
+            onmousedown={(e) => handleMouseDownScrub(-5, e)}
+            onmouseup={() => stopHoldScrub(-5)}
+            onmouseleave={() => stopHoldScrub(-5)}
+            ontouchstart={(e) => { e.preventDefault(); handleMouseDownScrub(-5, e); }}
+            ontouchend={() => stopHoldScrub(-5)}
+            ontouchcancel={() => stopHoldScrub(-5)}
+            oncontextmenu={(e) => e.preventDefault()}
+            class="control-icon-btn jump-btn" 
+            title="Back 5 frames"
+          >
+            -5
+          </button>
+          
+          <!-- Step Left -->
+          <button 
+            onmousedown={(e) => handleMouseDownScrub(-validatedStep, e)}
+            onmouseup={() => stopHoldScrub(-validatedStep)}
+            onmouseleave={() => stopHoldScrub(-validatedStep)}
+            ontouchstart={(e) => { e.preventDefault(); handleMouseDownScrub(-validatedStep, e); }}
+            ontouchend={() => stopHoldScrub(-validatedStep)}
+            ontouchcancel={() => stopHoldScrub(-validatedStep)}
+            oncontextmenu={(e) => e.preventDefault()}
             class="control-icon-btn step-btn" 
-            title="Previous frame (Left Arrow). Hold Shift to move faster."
+            title="Previous step (Left Arrow). Hold Shift to move faster."
           >
             <ChevronLeft size={24} />
           </button>
@@ -454,63 +474,94 @@
             {/if}
           </button>
 
-          <!-- Step +1 -->
+          <!-- Step Right -->
           <button 
-            onmousedown={(e) => handleMouseDownScrub(1, e)}
-            onmouseup={() => stopHoldScrub(1)}
-            onmouseleave={() => stopHoldScrub(1)}
-            ontouchstart={(e) => { e.preventDefault(); handleMouseDownScrub(1, e); }}
-            ontouchend={() => stopHoldScrub(1)}
+            onmousedown={(e) => handleMouseDownScrub(validatedStep, e)}
+            onmouseup={() => stopHoldScrub(validatedStep)}
+            onmouseleave={() => stopHoldScrub(validatedStep)}
+            ontouchstart={(e) => { e.preventDefault(); handleMouseDownScrub(validatedStep, e); }}
+            ontouchend={() => stopHoldScrub(validatedStep)}
+            ontouchcancel={() => stopHoldScrub(validatedStep)}
+            oncontextmenu={(e) => e.preventDefault()}
             class="control-icon-btn step-btn" 
-            title="Next frame (Right Arrow). Hold Shift to move faster."
+            title="Next step (Right Arrow). Hold Shift to move faster."
           >
             <ChevronRight size={24} />
           </button>
-          
-          <!-- Step +10 -->
-          <button onclick={() => stepFrames(10)} class="control-icon-btn jump-btn" title="Forward 10 frames (Up Arrow)">
-            +10
-          </button>
 
-          <!-- Jump to End -->
-          <button onclick={jumpToEnd} class="control-icon-btn title-btn" title="Jump to end">
-            <SkipForward size={18} />
+          <!-- Step +5 -->
+          <button 
+            onmousedown={(e) => handleMouseDownScrub(5, e)}
+            onmouseup={() => stopHoldScrub(5)}
+            onmouseleave={() => stopHoldScrub(5)}
+            ontouchstart={(e) => { e.preventDefault(); handleMouseDownScrub(5, e); }}
+            ontouchend={() => stopHoldScrub(5)}
+            ontouchcancel={() => stopHoldScrub(5)}
+            oncontextmenu={(e) => e.preventDefault()}
+            class="control-icon-btn jump-btn" 
+            title="Forward 5 frames"
+          >
+            +5
           </button>
         </div>
 
         <div class="keyboard-helper">
-          💡 Use <span class="kbd">←</span> <span class="kbd">→</span> (or hold down) for steps, hold <span class="kbd">Shift + ← / →</span> to scrub fast, <span class="kbd">↑</span> <span class="kbd">↓</span> for 10-frame jumps, and <span class="kbd">Space</span> to play/pause.
+          💡 Use <span class="kbd">←</span> <span class="kbd">→</span> (or hold down) for steps, hold <span class="kbd">Shift + ← / →</span> to scrub fast, <span class="kbd">↑</span> <span class="kbd">↓</span> for 10x jumps, and <span class="kbd">Space</span> to play/pause.
         </div>
 
-        <!-- Framerate Configurer -->
-        <div class="framerate-config font-primary">
-          <label for="fps-select" class="fps-label">FRAMERATE (FPS)</label>
-          <div class="fps-selectors">
-            <select id="fps-select" bind:value={fpsPreset} class="fps-dropdown">
-              <option value="24">24 FPS (Film)</option>
-              <option value="25">25 FPS (PAL)</option>
-              <option value="29.97">29.97 FPS (NTSC)</option>
-              <option value="30">30 FPS (Standard)</option>
-              <option value="50">50 FPS</option>
-              <option value="60">60 FPS (High-rate)</option>
-              <option value="custom">Custom FPS...</option>
+        <!-- Configurations: Step Size and Framerate -->
+        <div class="config-grid">
+          <!-- Step Size Configurer -->
+          <div class="config-item font-primary">
+            <label for="step-size-select" class="config-label">STEP SIZE</label>
+            <select id="step-size-select" bind:value={framesToMove} class="step-size-dropdown">
+              <option value={1}>1 frame</option>
+              <option value={2}>2 frames</option>
+              <option value={3}>3 frames</option>
+              <option value={4}>4 frames</option>
+              <option value={5}>5 frames</option>
+              <option value={6}>6 frames</option>
+              <option value={7}>7 frames</option>
+              <option value={8}>8 frames</option>
+              <option value={9}>9 frames</option>
+              <option value={10}>10 frames</option>
             </select>
+          </div>
 
-            {#if fpsPreset === 'custom'}
-              <div class="custom-fps-input-wrapper">
-                <input 
-                  type="number" 
-                  bind:value={customFps}
-                  min="0.1" 
-                  max="240" 
-                  step="0.001" 
-                  class="custom-fps-input"
-                />
-                <span class="custom-fps-suffix">fps</span>
-              </div>
-            {/if}
+          <!-- Framerate Configurer -->
+          <div class="config-item font-primary">
+            <label for="fps-select" class="config-label">FRAMERATE (FPS)</label>
+            <div class="fps-selectors">
+              <select id="fps-select" bind:value={fpsPreset} class="fps-dropdown">
+                <option value="24">24 FPS (Film)</option>
+                <option value="25">25 FPS (PAL)</option>
+                <option value="29.97">29.97 FPS (NTSC)</option>
+                <option value="30">30 FPS (Standard)</option>
+                <option value="50">50 FPS</option>
+                <option value="60">60 FPS (High-rate)</option>
+                <option value="custom">Custom FPS...</option>
+              </select>
+            </div>
           </div>
         </div>
+
+        {#if fpsPreset === 'custom'}
+          <div class="custom-fps-input-wrapper font-primary">
+            <label for="custom-fps-input" class="config-label">CUSTOM FPS</label>
+            <div class="custom-fps-input-box">
+              <input 
+                id="custom-fps-input"
+                type="number" 
+                bind:value={customFps}
+                min="0.1" 
+                max="240" 
+                step="0.001" 
+                class="custom-fps-input"
+              />
+              <span class="custom-fps-suffix">fps</span>
+            </div>
+          </div>
+        {/if}
 
         <!-- Snapshots / Quick Exports -->
         <div class="export-actions">
@@ -671,41 +722,37 @@
 
   // 2. Active Video Player Layout
   .player-layout {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 20px;
+    display: flex;
+    flex-direction: column;
     width: 100%;
     height: 100%;
     max-height: 100%;
     box-sizing: border-box;
-    overflow-y: auto;
-    padding: 10px;
+    padding: 12px;
+    gap: 12px;
+    overflow: hidden; /* Avoid main body scrollbars completely */
 
-    /* Viewports Matrix scaling: Tablet/Desktop grids */
+    /* Viewports Matrix scaling */
     @media (min-width: 640px) and (max-height: 550px) {
       // Landscape mobile
-      grid-template-columns: 1.3fr 1fr;
-      height: 100%;
-      max-height: calc(100vh - 80px);
-      overflow-y: hidden;
-      padding: 5px;
+      flex-direction: row;
+      padding: 8px;
       gap: 12px;
     }
 
     @media (min-width: 768px) {
-      // Tablet Mode
+      // Tablet and desktop side-by-side grid
+      display: grid;
       grid-template-columns: 1.6fr 1fr;
-      max-height: calc(100vh - 100px);
-      overflow-y: hidden;
+      gap: 20px;
+      padding: 16px;
     }
 
     @media (min-width: 1200px) {
-      // Desktop mode
+      // Desktop mode capped at max width/height
       grid-template-columns: 1.8fr 1fr;
       max-width: 1100px;
-      height: calc(100vh - 140px);
-      max-height: 720px;
-      overflow-y: hidden;
+      margin: 0 auto;
     }
   }
 
@@ -719,10 +766,16 @@
     padding: 16px;
     box-sizing: border-box;
     min-height: 0;
+    flex: 1 1 auto;
+
+    @media (max-width: 768px) {
+      padding: 10px;
+    }
 
     @media (min-width: 640px) and (max-height: 550px) {
-      padding: 10px;
+      flex: 1.3 1 0%;
       height: 100%;
+      padding: 8px;
     }
 
     .video-meta-header {
@@ -771,6 +824,9 @@
 
     .video-wrapper {
       flex-grow: 1;
+      flex-shrink: 1;
+      flex-basis: 0%;
+      min-height: 0;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -779,10 +835,9 @@
       overflow: hidden;
       position: relative;
       border: 1px solid rgba(255, 255, 255, 0.03);
-      min-height: 220px;
 
-      @media (min-width: 640px) and (max-height: 550px) {
-        min-height: 120px;
+      @media (max-width: 768px) {
+        min-height: 140px;
       }
       
       .video-display {
@@ -791,6 +846,7 @@
         width: auto;
         height: auto;
         display: block;
+        object-fit: contain;
       }
     }
 
@@ -850,14 +906,30 @@
     border-radius: 12px;
     padding: 16px;
     box-sizing: border-box;
+    flex: 0 0 auto;
+
+    @media (max-width: 768px) {
+      padding: 12px;
+
+      .keyboard-helper {
+        display: none;
+      }
+
+      .panel-section-title {
+        font-size: 0.65rem;
+        margin-bottom: 8px;
+      }
+    }
 
     @media (min-width: 640px) and (max-height: 550px) {
+      flex: 1 1 0%;
       height: 100%;
+      padding: 8px;
       overflow-y: auto;
       &::-webkit-scrollbar { display: none; }
     }
 
-    @media (min-width: 768px) and (max-width: 1200px) {
+    @media (min-width: 768px) {
       height: 100%;
       overflow-y: auto;
     }
@@ -894,6 +966,13 @@
 
         &:active {
           transform: scale(0.95);
+        }
+
+        &.step-btn {
+          -webkit-touch-callout: none;
+          -webkit-user-select: none;
+          user-select: none;
+          touch-action: manipulation;
         }
 
         &.jump-btn {
@@ -949,52 +1028,65 @@
       }
     }
 
-    .framerate-config {
-      margin-bottom: 20px;
+    .config-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-shrink: 0;
+    }
+
+    .config-item {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .config-label {
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      color: rgba(255, 255, 255, 0.45);
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .step-size-dropdown,
+    .fps-dropdown {
+      background: rgba(15, 15, 22, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: white;
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 0.8rem;
+      outline: none;
+      width: 100%;
+      height: 38px;
+      cursor: pointer;
+      box-sizing: border-box;
+
+      option {
+        background: #0f0f16;
+      }
+
+      &:focus {
+        border-color: $color-neon-gold;
+      }
+    }
+
+    .custom-fps-input-wrapper {
+      margin-top: -4px;
+      margin-bottom: 16px;
       flex-shrink: 0;
 
-      .fps-label {
-        font-size: 0.72rem;
-        font-weight: 800;
-        letter-spacing: 0.1em;
-        color: rgba(255, 255, 255, 0.45);
-        display: block;
-        margin-bottom: 6px;
-      }
-
-      .fps-selectors {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
-
-      .fps-dropdown {
-        background: rgba(15, 15, 22, 0.6);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        color: white;
-        border-radius: 6px;
-        padding: 8px 12px;
-        font-size: 0.8rem;
-        outline: none;
-        width: 100%;
-        cursor: pointer;
-
-        option {
-          background: #0f0f16;
-        }
-
-        &:focus {
-          border-color: $color-neon-gold;
-        }
-      }
-
-      .custom-fps-input-wrapper {
+      .custom-fps-input-box {
         display: flex;
         align-items: center;
         background: rgba(15, 15, 22, 0.6);
         border: 1px solid rgba(255, 255, 255, 0.08);
         border-radius: 6px;
-        padding: 4px 10px;
+        padding: 8px 12px;
+        height: 38px;
+        box-sizing: border-box;
 
         &:focus-within {
           border-color: $color-neon-gold;
@@ -1045,8 +1137,6 @@
       }
     }
   }
-
-
 
   // Generic details
   .panel-section-title {
