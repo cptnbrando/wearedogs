@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1784495403,
+    "firstCommitTimestamp": 1784497946,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 149068
+    "averageLinesAltered": 149188
   },
   "entries": [
     {
       "version": "1.0.2",
       "name": "Master",
       "date": "2026-07-19",
-      "timestamp": 1784495331,
+      "timestamp": 1784498003,
       "commits": [
         {
-          "hash": "7d9df0e",
-          "message": "frames",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/7d9df0eb44da355dfc082aa8daee196b82882111",
-          "timestamp": 1784495403,
-          "linesChanged": 149068
+          "hash": "543d212",
+          "message": "perf(frames): bypass seeking check on initial click/tap to make step seeking instant",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/543d212e04c23119ff2e618a374c3e909172ca5f",
+          "timestamp": 1784497946,
+          "linesChanged": 149188
         }
       ]
     },
