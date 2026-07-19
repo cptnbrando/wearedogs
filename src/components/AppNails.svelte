@@ -13,6 +13,7 @@
     Gamepad,
     Eye,
     Mic,
+    Film,
   } from "lucide-svelte";
 
   let { appId } = $props();
@@ -150,6 +151,13 @@
     <Mic
       size={28}
       style="color: var(--color-neon-green, #00d75f); filter: drop-shadow(0 0 6px rgba(0, 215, 95, 0.4));"
+    />
+  </div>
+{:else if appId === "frames"}
+  <div class="flex items-center justify-center h-full">
+    <Film
+      size={28}
+      style="color: var(--color-neon-orange, #ff5e00); filter: drop-shadow(0 0 6px rgba(255, 94, 0, 0.4));"
     />
   </div>
 {/if}

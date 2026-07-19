@@ -23,6 +23,7 @@
     Component,
     Search,
     Mic,
+    Film,
   } from "lucide-svelte";
   import DogsLogo from "./DogsLogo.svelte";
   import AppCard from "./AppCard.svelte";
@@ -72,6 +73,7 @@
     windshieldwiper: "./apps/WindshieldWiper.svelte",
     missingcreatures: "./apps/MissingCreatures.svelte",
     wiretap: "./apps/Wiretap.svelte",
+    frames: "./apps/Frames.svelte",
   };
 
   // Lazy loaded app components caching
@@ -82,9 +84,15 @@
       const path = appPathMap[activeApp];
       const loader = appModules[path];
       if (loader) {
+        console.log("Loading app:", activeApp, "from path:", path);
         loader().then((m) => {
+          console.log("App loaded successfully:", activeApp);
           loadedApps[activeApp] = m.default;
+        }).catch((err) => {
+          console.error("Failed to load app:", activeApp, err);
         });
+      } else {
+        console.error("No loader found for app path:", path, "Available paths:", Object.keys(appModules));
       }
     }
   });
@@ -224,6 +232,7 @@
     changelog: "#00ff66",
     settings: "#ff3344",
     wiretap: "#00ff66",
+    frames: "#ff5e00",
   };
 
   // CRITICAL: The changelog and settings apps MUST always remain next to each other at the bottom of the toolbox list, with settings last.
@@ -323,6 +332,12 @@
       title: "MEMES",
       desc: "Create custom memes and explore pop culture.",
       icon: Smile,
+    },
+    {
+      id: "frames",
+      title: "Frames",
+      desc: "Upload a video and step through it precisely frame-by-frame.",
+      icon: Film,
     },
     // RESCUE, GOPRO, DATAFLASH, CHANGELOG, AND SETTINGS MUST ALWAYS BE LAST IN THIS LIST
     {
