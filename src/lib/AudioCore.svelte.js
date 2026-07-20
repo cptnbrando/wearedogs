@@ -33,10 +33,11 @@ export class AudioCore {
   userPrefersInstrumental = $state(false);
   currentTrackIndex = $state(0);
   isLoading = $state(false);
-  isShuffled = $state(false);
+  isShuffled = $state(true);
   repeatMode = $state(1); // 0 = Off, 1 = Repeat All, 2 = Repeat One
   activeAudioType = $state("music"); // 'music' | 'video'
   fetchErrors = $state({});
+  waveformPeaks = $state({});
   /** Per-track instrumental load failures — set when inst fetch fails but vocal succeeds */
   instFailed = $state({});
 
@@ -174,7 +175,7 @@ export class AudioCore {
   }
 
 
-  async getAudioSource(url, type) {
+  async getAudioSource(url, type, trackId = null) {
     if (!url) return "";
     if (url.startsWith("https://data.wearedogs.net/")) {
       try {
@@ -184,6 +185,9 @@ export class AudioCore {
           const blobUrl = URL.createObjectURL(blob);
           if (type === "track") {
             this.activeTrackBlobUrl = blobUrl;
+            if (trackId) {
+              this.decodeTrackWaveform(trackId, blob);
+            }
           } else if (type === "inst") {
             this.activeInstBlobUrl = blobUrl;
           }
@@ -199,9 +203,50 @@ export class AudioCore {
     return url;
   }
 
+  async decodeTrackWaveform(trackId, blob) {
+    if (this.waveformPeaks[trackId]) return;
+    try {
+      const arrayBuffer = await blob.arrayBuffer();
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      const tempContext = new AudioContextClass();
+      const audioBuffer = await tempContext.decodeAudioData(arrayBuffer);
+      const channelData = audioBuffer.getChannelData(0);
+
+      const barsCount = 60;
+      const step = Math.ceil(channelData.length / barsCount);
+      const computedPeaks = [];
+
+      for (let i = 0; i < barsCount; i++) {
+        let max = 0;
+        const start = i * step;
+        const end = Math.min(start + step, channelData.length);
+
+        for (let j = start; j < end; j++) {
+          const val = Math.abs(channelData[j]);
+          if (val > max) max = val;
+        }
+        computedPeaks.push(max);
+      }
+
+      const maxPeak = Math.max(...computedPeaks) || 1.0;
+      const finalPeaks = computedPeaks.map((p) => {
+        const val = p / maxPeak;
+        return Math.max(10, Math.round(val * 80 + 15));
+      });
+
+      this.waveformPeaks[trackId] = finalPeaks;
+      tempContext.close();
+    } catch (err) {
+      console.warn(`Failed to decode audio buffer for ${trackId}:`, err);
+    }
+  }
+
   init(lib) {
     this.library = lib;
     this.setupMediaSession();
+    if (this.isShuffled) {
+      this.initShuffleQueue();
+    }
   }
 
   initContext() {
@@ -295,7 +340,7 @@ export class AudioCore {
     let loadFailed = false;
     let resolvedTrackSrc = "";
     try {
-      resolvedTrackSrc = await this.getAudioSource(track.src, "track");
+      resolvedTrackSrc = await this.getAudioSource(track.src, "track", track.id);
     } catch (err) {
       console.error("Error loading vocal track:", err);
       this.isPlaying = false;
@@ -307,7 +352,7 @@ export class AudioCore {
     let resolvedInstSrc = "";
     if (!loadFailed && track.instrumental) {
       try {
-        resolvedInstSrc = await this.getAudioSource(track.instrumental, "inst");
+        resolvedInstSrc = await this.getAudioSource(track.instrumental, "inst", track.id);
       } catch (err) {
         console.warn("Instrumental fetch failed, disabling inst side:", err);
         this.instFailed[track.id] = true;

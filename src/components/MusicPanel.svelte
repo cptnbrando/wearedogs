@@ -90,15 +90,28 @@
 
   // Generate deterministic peaks for the current track to show a mock waveform
   let waveformPeaks = $derived.by(() => {
-    const trackId = currentTrack?.id || "default";
+    const track = currentTrack;
+    if (!track) return Array(60).fill(10);
+    if (audioCore.waveformPeaks[track.id]) {
+      return audioCore.waveformPeaks[track.id];
+    }
+    const trackId = track.id;
     const peaks = [];
     let hash = 0;
     for (let i = 0; i < trackId.length; i++) {
-      hash = trackId.charCodeAt(i) + ((hash << 5) - hash);
+      hash = (hash << 5) - hash + trackId.charCodeAt(i);
+      hash |= 0;
     }
+    const seed = Math.abs(hash) % 1000;
     for (let i = 0; i < 60; i++) {
-      const pseudoRandom = Math.abs(Math.sin(hash + i)) * 80 + 20; // 20% to 100% height
-      peaks.push(pseudoRandom);
+      const t = i / 59;
+      const w1 = Math.sin(seed + t * Math.PI * 4); // 2 cycles
+      const w2 = Math.cos(seed * 1.5 + t * Math.PI * 10) * 0.4;
+      const w3 = Math.sin(seed * 2.3 + t * Math.PI * 22) * 0.15;
+      const wave = Math.abs(w1 + w2 + w3) / 1.55;
+      const envelope = Math.sin(t * Math.PI);
+      const height = (wave * 70 + 15) * envelope;
+      peaks.push(Math.max(10, Math.round(height)));
     }
     return peaks;
   });
@@ -1196,7 +1209,7 @@
                           : 0}
                       {@const barProgress = idx / 60}
                       <span
-                        class="waveform-bar transition-colors duration-100 rounded-t"
+                        class="waveform-bar transition-colors duration-100 rounded-full"
                         class:active={barProgress <= progress}
                         style="height: {peak}%; width: 3px;"
                       ></span>
@@ -1214,7 +1227,9 @@
                       audioCore.seek(parseFloat(e.target.value));
                     }}
                     onchange={(e) => {
-                      audioCore.play(parseFloat(e.target.value));
+                      if (!audioCore.isPlaying) {
+                        audioCore.play(parseFloat(e.target.value));
+                      }
                     }}
                     aria-label="Seek"
                   />
@@ -1227,7 +1242,7 @@
                 <button
                   class="ctrl ctrl-sm"
                   class:active-ctrl={audioCore.isShuffled}
-                  onclick={() => (audioCore.isShuffled = !audioCore.isShuffled)}
+                  onclick={() => audioCore.setShuffle(!audioCore.isShuffled)}
                   aria-label="Shuffle"
                 >
                   <Shuffle size={15} />
@@ -2151,17 +2166,39 @@
 
   /* ── Waveform seek slider styling ── */
   .waveform-slider-wrap {
-    background: rgba(0, 0, 0, 0.35);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    height: 36px;
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 6px;
+    transition: border-color 0.2s, background 0.2s;
+
+    .seek-input {
+      height: 100% !important;
+      inset: 0 !important;
+      margin: 0;
+    }
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.55);
+      border-color: rgba(255, 255, 255, 0.2);
+
+      .waveform-bar:not(.active) {
+        background-color: rgba(255, 255, 255, 0.22);
+      }
+      .waveform-bar.active {
+        box-shadow: 0 0 8px rgba(0, 240, 255, 0.6);
+      }
+    }
   }
 
   .waveform-bar {
-    background-color: rgba(255, 255, 255, 0.15);
+    background-color: rgba(255, 255, 255, 0.12);
+    border-radius: 9999px;
+    transition: background-color 0.2s, background 0.2s, box-shadow 0.2s;
 
     &.active {
       background: linear-gradient(180deg, #ff007f 0%, #00f0ff 100%);
-      box-shadow: 0 0 4px rgba(0, 240, 255, 0.3);
+      box-shadow: 0 0 4px rgba(0, 240, 255, 0.4);
     }
   }
 
