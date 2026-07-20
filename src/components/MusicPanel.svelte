@@ -313,6 +313,20 @@
       genre: "Hip-Hop",
       attrib: "https://shop.travisscott.com/",
     },
+    {
+      id: "slow",
+      title: "SLOW ft. DOGS",
+      artist: "Sweet Boy Sonnet",
+      album: "Where do I put my love?",
+      cover: "https://data.wearedogs.net/img/covers/2026/slow.webp",
+      altCover: "https://data.wearedogs.net/img/covers/2026/slow.png",
+      src: "https://data.wearedogs.net/music/2026/SLOW-FT-DOGS.mp3",
+      instrumental: "",
+      dateAdded: "2026-07-20T02:49:34-05:00",
+      year: 2026,
+      genre: "Electronic",
+      attrib: "https://sweetboysonnet.com/",
+    },
   ];
 
   // Derive sort values
