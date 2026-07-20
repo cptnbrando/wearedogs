@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1784534258,
+    "firstCommitTimestamp": 1784534961,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 149202
+    "averageLinesAltered": 149284
   },
   "entries": [
     {
       "version": "1.0.2",
       "name": "Master",
       "date": "2026-07-20",
-      "timestamp": 1784534190,
+      "timestamp": 1784534886,
       "commits": [
         {
-          "hash": "a88711c",
-          "message": "added slow",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/a88711cf8efd70bb8df4b1b0e0fc5c7692d1e4cf",
-          "timestamp": 1784534258,
-          "linesChanged": 149202
+          "hash": "fc69655",
+          "message": "waveform fix",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/fc696557afb393aca289ef4d7e8af8cdf72c55f3",
+          "timestamp": 1784534961,
+          "linesChanged": 149284
         }
       ]
     },
