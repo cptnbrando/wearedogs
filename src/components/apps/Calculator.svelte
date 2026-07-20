@@ -6,7 +6,6 @@
   let displayValue = $state("0");
   let equationDisplay = $state("");
   let keywordBuffer = $state([]);
-  let isChecking = $state(false);
   let errorFlash = $state(false);
   let calculationFinished = $state(false);
 
@@ -149,8 +148,6 @@
     if (keywordBuffer.length === 0) return;
     const concatenated = keywordBuffer.join("");
 
-    isChecking = true;
-
     try {
       const response = await fetch(
         `https://data.wearedogs.net/vid/popcorn/check.txt`,
@@ -185,21 +182,13 @@
         if (onUnlock) {
           onUnlock(targetApp, concatenated);
         }
-      } else {
-        errorFlash = true;
-        displayValue = "Error";
       }
     } catch (e) {
       console.warn("Passcode verification check failed or offline:", e);
-      errorFlash = true;
-      displayValue = "Error";
-    } finally {
-      isChecking = false;
     }
   }
 
   function handleKeydown(e) {
-    if (isChecking) return;
     let keyChar = e.key;
 
     if (keyChar >= "0" && keyChar <= "9") {
@@ -444,8 +433,8 @@
         onclick={() => handleKeyPress("=")}
         class="calc-btn equal-btn flex flex-col items-center justify-center p-3 rounded-2xl font-bold font-mono transition-all duration-150"
       >
-        <span class="text-sm">{isChecking ? "..." : "="}</span>
-        <span class="btn-sub">CHECK</span>
+        <span class="text-sm">=</span>
+        <span class="btn-sub">EQUAL</span>
       </button>
       <button
         onclick={() => handleKeyPress("+")}
