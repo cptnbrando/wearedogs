@@ -427,23 +427,39 @@
     }
   }
 
+  function handleBeforeUnload(e) {
+    if (!videoFile) return;
+    e.preventDefault();
+    e.returnValue = "Wait, all your data will be lost, please make sure that you want this to happen?";
+    return e.returnValue;
+  }
 
+  $: {
+    if (typeof window !== "undefined") {
+      window.hasUnsavedData = !!videoFile;
+    }
+  }
 
   onMount(() => {
     window.addEventListener("keydown", handleKeydown);
     window.addEventListener("keyup", handleKeyup);
     window.addEventListener("blur", handleBlur);
+    window.addEventListener("beforeunload", handleBeforeUnload);
   });
 
   onDestroy(() => {
     window.removeEventListener("keydown", handleKeydown);
     window.removeEventListener("keyup", handleKeyup);
     window.removeEventListener("blur", handleBlur);
+    window.removeEventListener("beforeunload", handleBeforeUnload);
     if (videoUrl) {
       URL.revokeObjectURL(videoUrl);
     }
     clearTimeout(notificationTimeout);
     stopHoldScrub();
+    if (typeof window !== "undefined") {
+      window.hasUnsavedData = false;
+    }
   });
 </script>
 

@@ -203,13 +203,37 @@
     }
   });
 
+  function confirmClose() {
+    if (typeof window === "undefined" || !window.hasUnsavedData) return true;
+    const confirmed = confirm("Wait, all your data will be lost, please make sure that you want this to happen?");
+    if (!confirmed) return false;
+    window.hasUnsavedData = false;
+    return true;
+  }
+
   function handleBack() {
     if (activeApp === "blog" && isReadingPost) {
       isReadingPost = false;
     } else if (history.state?.app) {
-      history.back();
+      if (confirmClose()) {
+        history.back();
+      }
     } else {
-      activeApp = null;
+      if (confirmClose()) {
+        activeApp = null;
+      }
+    }
+  }
+
+  function handleBackdropClick() {
+    if (confirmClose()) {
+      onClose();
+    }
+  }
+
+  function handleCloseClick() {
+    if (confirmClose()) {
+      onClose();
     }
   }
 
@@ -451,7 +475,7 @@
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="toolbox-panel-backdrop" onclick={onClose}>
+<div class="toolbox-panel-backdrop" onclick={handleBackdropClick}>
   <div
     class="toolbox-panel-container"
     class:closing={isClosing}
@@ -511,7 +535,7 @@
 
       <button
         class="close-btn"
-        onclick={activeApp !== null ? handleBack : onClose}
+        onclick={activeApp !== null ? handleBack : handleCloseClick}
         aria-label="Close panel"
       >
         <ArrowLeft size={20} />
