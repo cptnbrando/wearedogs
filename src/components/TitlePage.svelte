@@ -391,7 +391,9 @@
       }
 
       if (window.hasUnsavedData) {
-        const confirmed = confirm("Wait, all your data will be lost, please make sure that you want this to happen?");
+        const confirmed = confirm(
+          "Wait, all your data will be lost, are you sure you want to leave?",
+        );
         if (!confirmed) {
           isRestoringState = true;
           history.go(1);

@@ -163,8 +163,28 @@
       );
 
       if (response.ok) {
+        const responseText = await response.text();
+        const cleanedText = responseText.trim();
+        let targetApp = "gopro";
+
+        try {
+          const parsed = JSON.parse(cleanedText);
+          if (parsed && parsed.app) {
+            targetApp = parsed.app;
+          } else if (parsed && parsed.target) {
+            targetApp = parsed.target;
+          }
+        } catch (e) {
+          if (/^[a-zA-Z0-9_\-]+$/.test(cleanedText)) {
+            targetApp = cleanedText;
+          }
+        }
+
         localStorage.setItem("gopro_password", concatenated);
-        onUnlock(concatenated);
+        localStorage.setItem(`${targetApp}_password`, concatenated);
+        if (onUnlock) {
+          onUnlock(targetApp, concatenated);
+        }
       } else {
         errorFlash = true;
         displayValue = "Error";
