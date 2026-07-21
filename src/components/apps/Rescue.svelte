@@ -344,7 +344,7 @@
 <BaseApp
   title="Ghost Murmur Beacon"
   description="Emergency signaling protocol & recovery support network."
-  graphicSrc="/rescue.png"
+  graphicSrc="/img/rescue.png"
   themeColor="#00bfff"
 >
   <div class="rescue-layout">
