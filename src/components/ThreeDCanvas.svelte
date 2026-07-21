@@ -26,6 +26,20 @@
     return newArr;
   }
 
+  const BASE_MODEL_URL = "https://data.wearedogs.net/img/models/";
+
+  function getModelUrl(path) {
+    if (!path) return "";
+    if (
+      path.startsWith("http://") ||
+      path.startsWith("https://") ||
+      path.startsWith("/")
+    ) {
+      return path;
+    }
+    return BASE_MODEL_URL + path;
+  }
+
   // Fetch file size only for the selected model when it changes
   $effect(() => {
     if (selectedModel && !selectedModel.fileSize && selectedModel.path) {
@@ -33,7 +47,8 @@
       if (model && !model.fileSize) {
         (async () => {
           try {
-            const headRes = await fetch(model.path, { method: "HEAD" });
+            const targetUrl = getModelUrl(model.path);
+            const headRes = await fetch(targetUrl, { method: "HEAD" });
             const size = headRes.headers.get("content-length");
             if (size) {
               const bytes = parseInt(size, 10);
@@ -248,7 +263,7 @@
   <Canvas>
     <DogDisplay
       {isFlagColors}
-      modelPath={selectedModel?.path}
+      modelPath={getModelUrl(selectedModel?.path)}
       modelType={selectedModel?.type}
       scaleMultiplier={selectedModel?.scaleMultiplier ?? 1.0}
       centerOffset={selectedModel?.centerOffset ?? [0, 0, 0]}
@@ -292,14 +307,12 @@
         class="name block text-[11px] text-white font-bold tracking-wide uppercase leading-none"
       >
         {selectedModel.name}
-        {#if selectedModel.fileSize}
-          <span
-            class="file-size font-normal text-white/50"
-            class:colored={isFlagColors}
-          >
-            ({selectedModel.fileSize})
-          </span>
-        {/if}
+        <span
+          class="file-size font-normal text-white/50"
+          class:colored={isFlagColors}
+        >
+          ({selectedModel.fileSize || "...kb"})
+        </span>
       </span>
 
       {#if selectedModel.attribution}
