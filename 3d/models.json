@@ -10,8 +10,8 @@
     "id": "scooby",
     "name": "Scooby-Doo",
     "type": "glb",
-    "path": "/3d/scooby.glb",
-    "scaleMultiplier": 1.30,
+    "path": "scooby.glb",
+    "scaleMultiplier": 1.3,
     "centerOffset": [
       0,
       0.6,
@@ -27,7 +27,7 @@
     "id": "snoopy",
     "name": "Snoopy",
     "type": "glb",
-    "path": "/3d/snoopy.glb",
+    "path": "snoopy.glb",
     "scaleMultiplier": 3,
     "centerOffset": [
       0,
@@ -44,7 +44,7 @@
     "id": "gromit",
     "name": "Gromit",
     "type": "glb",
-    "path": "/3d/gromit.glb",
+    "path": "gromit.glb",
     "scaleMultiplier": 1.1,
     "centerOffset": [
       0,
@@ -61,7 +61,7 @@
     "id": "paw-patrol",
     "name": "Chase (PAW Patrol)",
     "type": "glb",
-    "path": "/3d/paw-patrol.glb",
+    "path": "paw-patrol.glb",
     "attribution": {
       "creator": "Guilherme Navarro (@guinavarro.al)",
       "license": "CC Attribution",
@@ -72,7 +72,7 @@
     "id": "courage",
     "name": "Courage the Cowardly Dog",
     "type": "glb",
-    "path": "/3d/courage.glb",
+    "path": "courage.glb",
     "attribution": {
       "creator": "@penguincoyosaurio",
       "license": "CC Attribution",
@@ -83,7 +83,7 @@
     "id": "dogs-life",
     "name": "Jake (Dog's Life)",
     "type": "glb",
-    "path": "/3d/dogs-life.glb",
+    "path": "dogs-life.glb",
     "scaleMultiplier": 0.03,
     "attribution": {
       "creator": "@DayTimeShows",
@@ -95,7 +95,7 @@
     "id": "jake-adventure-time",
     "name": "Jake (Adventure Time)",
     "type": "glb",
-    "path": "/3d/jake-adventure-time.glb",
+    "path": "jake-adventure-time.glb",
     "attribution": {
       "creator": "Lapshin Sergey (@serg111)",
       "license": "CC Attribution",
@@ -106,7 +106,7 @@
     "id": "big-dogs",
     "name": "Doberman",
     "type": "glb",
-    "path": "/3d/doberman.glb",
+    "path": "doberman.glb",
     "attribution": {
       "creator": "Paleo Modelist (@victory_)",
       "license": "CC Attribution",
@@ -117,7 +117,7 @@
     "id": "slink",
     "name": "Slink (Toy Story)",
     "type": "glb",
-    "path": "/3d/slink.glb",
+    "path": "slink.glb",
     "scaleMultiplier": 1.3,
     "attribution": {
       "creator": "@23200",
@@ -129,7 +129,7 @@
     "id": "pluto",
     "name": "Pluto",
     "type": "glb",
-    "path": "/3d/pluto.glb",
+    "path": "pluto.glb",
     "attribution": {
       "creator": "@anderlenolan",
       "license": "CC Attribution",
@@ -140,7 +140,7 @@
     "id": "goofy",
     "name": "Goofy",
     "type": "glb",
-    "path": "/3d/goofy.glb",
+    "path": "goofy.glb",
     "scaleMultiplier": 0.21,
     "centerOffset": [
       0,
@@ -157,7 +157,7 @@
     "id": "lady-and-the-tramp",
     "name": "Lady & Tramp",
     "type": "glb",
-    "path": "/3d/lady-tramp.glb",
+    "path": "lady-tramp.glb",
     "attribution": {
       "creator": "Stewart Budd (@StewartB)",
       "license": "CC Attribution",
@@ -168,7 +168,7 @@
     "id": "hot-dog",
     "name": "Hot Dog",
     "type": "glb",
-    "path": "/3d/hot-dog.glb",
+    "path": "hot-dog.glb",
     "attribution": {
       "creator": "Vlad's_Studios (@alexvladimircm)",
       "license": "CC Attribution",
@@ -179,7 +179,7 @@
     "id": "harvest-moon",
     "name": "Harvest Moon Dog",
     "type": "glb",
-    "path": "/3d/harvest-moon.glb",
+    "path": "harvest-moon.glb",
     "scaleMultiplier": 0.55,
     "centerOffset": [
       0,
@@ -196,7 +196,7 @@
     "id": "low-poly",
     "name": "Low Poly Dog Pack",
     "type": "glb",
-    "path": "/3d/low-poly-dogs.glb",
+    "path": "low-poly-dogs.glb",
     "scaleMultiplier": 2.6,
     "centerOffset": [
       0,
@@ -213,7 +213,7 @@
     "id": "nintendog",
     "name": "Nintendog (Smash Bros.)",
     "type": "glb",
-    "path": "/3d/nintendog1.glb",
+    "path": "nintendog1.glb",
     "scaleMultiplier": 0.15,
     "centerOffset": [
       0,
@@ -230,7 +230,7 @@
     "id": "puppy",
     "name": "Puppy",
     "type": "glb",
-    "path": "/3d/dog-puppy-v1.glb",
+    "path": "dog-puppy-v1.glb",
     "centerOffset": [
       0,
       1.2,
@@ -246,7 +246,7 @@
     "id": "dog2",
     "name": "Dog 2",
     "type": "glb",
-    "path": "/3d/dog2.glb",
+    "path": "dog2.glb",
     "scaleMultiplier": 0.9,
     "centerOffset": [
       0,
@@ -263,7 +263,7 @@
     "id": "brian",
     "name": "Brian (Family Guy)",
     "type": "glb",
-    "path": "/3d/brian.glb",
+    "path": "brian.glb",
     "scaleMultiplier": 2,
     "centerOffset": [
       0,
@@ -280,7 +280,7 @@
     "id": "dug",
     "name": "Dug (Up)",
     "type": "glb",
-    "path": "/3d/dug.glb",
+    "path": "dug.glb",
     "scaleMultiplier": 1.5,
     "centerOffset": [
       0,
@@ -297,7 +297,7 @@
     "id": "chop",
     "name": "Chop (GTA V)",
     "type": "glb",
-    "path": "/3d/chop.glb",
+    "path": "chop.glb",
     "scaleMultiplier": 2,
     "attribution": {
       "creator": "@Dudueyidk",
@@ -309,7 +309,7 @@
     "id": "parappa",
     "name": "PaRappa the Rapper",
     "type": "glb",
-    "path": "/3d/parappa.glb",
+    "path": "parappa.glb",
     "attribution": {
       "creator": "@THEREALBIGGRAFIS",
       "license": "CC Attribution",
@@ -320,7 +320,7 @@
     "id": "dogman",
     "name": "Dog Man",
     "type": "glb",
-    "path": "/3d/dogman.glb",
+    "path": "dogman.glb",
     "scaleMultiplier": 0.02,
     "centerOffset": [
       0,
