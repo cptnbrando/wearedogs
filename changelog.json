@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1784613331,
+    "firstCommitTimestamp": 1784613838,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 149297
+    "averageLinesAltered": 149271
   },
   "entries": [
     {
       "version": "1.0.2",
       "name": "Master",
       "date": "2026-07-21",
-      "timestamp": 1784613262,
+      "timestamp": 1784613762,
       "commits": [
         {
-          "hash": "ced8dd4",
-          "message": "polishing the silver",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/ced8dd4b6738cf2104369233a09cc135216e1456",
-          "timestamp": 1784613331,
-          "linesChanged": 149297
+          "hash": "968845c",
+          "message": "unused assets",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/968845cb60463c7cdb23a0dd024d5d979d923a06",
+          "timestamp": 1784613838,
+          "linesChanged": 149271
         }
       ]
     },
