@@ -12,6 +12,7 @@
     UtensilsCrossed,
     Sparkles,
     Music,
+    Globe,
   } from "lucide-svelte";
 
   let { isClosing = false, onClose } = $props();
@@ -25,12 +26,13 @@
       zoomY: 378,
       zoomW: 100,
       zoomH: 80,
-      lat: 36.1540,
+      lat: 36.154,
       lng: -95.9928,
       population: "413,000",
-      history: "Settled by the Creek Nation in 1836. Became the 'Oil Capital of the World' after major oil strikes in 1901.",
+      history:
+        "Settled by the Creek Nation in 1836. Became the 'Oil Capital of the World' after major oil strikes in 1901.",
       stateBird: "Scissor-tailed Flycatcher",
-      stateFlower: "Oklahoma Rose"
+      stateFlower: "Oklahoma Rose",
     },
     {
       name: "Dallas TX",
@@ -41,11 +43,12 @@
       zoomW: 100,
       zoomH: 80,
       lat: 32.7767,
-      lng: -96.7970,
+      lng: -96.797,
       population: "1.3 Million",
-      history: "Founded in 1841. Developed as a major cotton and oil center, now a leading financial and transportation hub.",
+      history:
+        "Founded in 1841. Developed as a major cotton and oil center, now a leading financial and transportation hub.",
       stateBird: "Northern Mockingbird",
-      stateFlower: "Bluebonnet"
+      stateFlower: "Bluebonnet",
     },
     {
       name: "Rochester NY",
@@ -58,18 +61,34 @@
       lat: 43.1566,
       lng: -77.6088,
       population: "211,000",
-      history: "Incorporated in 1834. Became a pioneer in flour milling (the Flour City) and later optics and imaging (the Flower City).",
+      history:
+        "Incorporated in 1834. Became a pioneer in flour milling (the Flour City) and later optics and imaging (the Flower City).",
       stateBird: "Eastern Bluebird",
-      stateFlower: "Rose"
+      stateFlower: "Rose",
+    },
+    {
+      name: "Cairns Australia",
+      x: 757,
+      y: 586,
+      zoomX: 707,
+      zoomY: 532,
+      zoomW: 100,
+      zoomH: 80,
+      lat: -16.9186,
+      lng: 145.7781,
+      population: "150,000",
+      history: "Gateway to Australia's Great Barrier Reef, founded in 1876.",
+      stateBird: "Brolga",
+      stateFlower: "Cooktown Orchid",
     },
   ];
 
   const STAR_COLORS = {
-    "platinum": "#f1f5f9",
-    "gold": "#fbbf24",
-    "silver": "#94a3b8",
-    "bronze": "#b45309",
-    "blood-red": "#991b1b"
+    platinum: "#f1f5f9",
+    gold: "#fbbf24",
+    silver: "#94a3b8",
+    bronze: "#b45309",
+    "blood-red": "#991b1b",
   };
 
   let selectedCity = $state(null);
@@ -88,6 +107,16 @@
 
   function selectCity(city) {
     temporaryZoom = false; // Manual selection overrides temporary zoom
+    if (selectedSpot) {
+      selectedSpot = null;
+      if (
+        typeof window !== "undefined" &&
+        window.location.hash.includes("spot=")
+      ) {
+        const url = `${window.location.pathname}${window.location.search}#/map`;
+        history.replaceState(history.state, "", url);
+      }
+    }
     if (selectedCity?.name === city.name) {
       // Toggle back to default
       selectedCity = null;
@@ -134,8 +163,10 @@
       },
       (error) => {
         console.error("Error getting location:", error);
-        alert("Unable to retrieve your location. Please select a city manually.");
-      }
+        alert(
+          "Unable to retrieve your location. Please select a city manually.",
+        );
+      },
     );
   }
 
@@ -195,7 +226,10 @@
   }
 
   function handleBackClick() {
-    if (typeof window !== "undefined" && window.location.hash.includes("spot=")) {
+    if (
+      typeof window !== "undefined" &&
+      window.location.hash.includes("spot=")
+    ) {
       // If we got here via hashing/history, use browser back to keep history stack correct
       history.back();
     } else {
@@ -241,7 +275,10 @@
   onMount(() => {
     // If deep-linked directly to a spot card, seed history stack with the base map directory
     // so that hitting back takes the user to the list rather than exiting the map panel.
-    if (typeof window !== "undefined" && window.location.hash.includes("spot=")) {
+    if (
+      typeof window !== "undefined" &&
+      window.location.hash.includes("spot=")
+    ) {
       const match = window.location.hash.match(/spot=([^&]+)/);
       if (match) {
         const spotId = match[1];
@@ -1659,6 +1696,16 @@
                 <div class="text-xs text-zinc-300">{selectedSpot.address}</div>
               {/if}
               <div class="flex gap-2 mt-1">
+                {#if selectedSpot.websiteUrl}
+                  <a
+                    href={selectedSpot.websiteUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    class="flex-1 py-1.5 bg-red-900/40 hover:bg-red-800/60 border border-red-500/30 text-white font-bold text-[10px] rounded-lg text-center transition-all flex items-center justify-center gap-1"
+                  >
+                    <Globe size={10} /> Website
+                  </a>
+                {/if}
                 <a
                   href={selectedSpot.mapsUrl ||
                     `https://maps.google.com/?q=${encodeURIComponent(selectedSpot.address || selectedSpot.name)}`}
@@ -1684,31 +1731,32 @@
               {@const tier = getRatingTier(selectedSpot.review.rating)}
               <div
                 class="border rounded-xl p-3.5 flex flex-col gap-2.5 transition-all duration-300"
-                class:border-platinum={tier === 'platinum'}
-                class:border-gold={tier === 'gold'}
-                class:border-silver={tier === 'silver'}
-                class:border-bronze={tier === 'bronze'}
-                class:border-blood-red={tier === 'blood-red'}
+                class:border-platinum={tier === "platinum"}
+                class:border-gold={tier === "gold"}
+                class:border-silver={tier === "silver"}
+                class:border-bronze={tier === "bronze"}
+                class:border-blood-red={tier === "blood-red"}
               >
                 <div
                   class="text-[9px] font-mono uppercase tracking-widest flex justify-between items-center"
                 >
-                  <span class="font-black"
-                    class:rating-platinum={tier === 'platinum'}
-                    class:rating-gold={tier === 'gold'}
-                    class:rating-silver={tier === 'silver'}
-                    class:rating-bronze={tier === 'bronze'}
-                    class:rating-blood-red={tier === 'blood-red'}
+                  <span
+                    class="font-black"
+                    class:rating-platinum={tier === "platinum"}
+                    class:rating-gold={tier === "gold"}
+                    class:rating-silver={tier === "silver"}
+                    class:rating-bronze={tier === "bronze"}
+                    class:rating-blood-red={tier === "blood-red"}
                   >
                     🐕 DOGS REVIEW
                   </span>
                   <span
                     class="font-black font-mono text-[10px]"
-                    class:rating-platinum={tier === 'platinum'}
-                    class:rating-gold={tier === 'gold'}
-                    class:rating-silver={tier === 'silver'}
-                    class:rating-bronze={tier === 'bronze'}
-                    class:rating-blood-red={tier === 'blood-red'}
+                    class:rating-platinum={tier === "platinum"}
+                    class:rating-gold={tier === "gold"}
+                    class:rating-silver={tier === "silver"}
+                    class:rating-bronze={tier === "bronze"}
+                    class:rating-blood-red={tier === "blood-red"}
                   >
                     ★ {selectedSpot.review.rating} / 5
                   </span>
@@ -1737,14 +1785,27 @@
       {:else}
         {#if selectedCity && !selectedSpot}
           <!-- City Info Card -->
-          <div class="bg-black/30 border border-white/5 rounded-xl p-3 flex flex-col gap-2 mb-3 text-xs leading-relaxed">
-            <div class="flex justify-between items-center border-b border-white/5 pb-1.5">
-              <span class="font-black text-sm text-red-500">{selectedCity.name} Info</span>
-              <span class="text-[10px] font-mono text-zinc-500">Pop: {selectedCity.population}</span>
+          <div
+            class="bg-black/30 border border-white/5 rounded-xl p-3 flex flex-col gap-2 mb-3 text-xs leading-relaxed"
+          >
+            <div
+              class="flex justify-between items-center border-b border-white/5 pb-1.5"
+            >
+              <span class="font-black text-sm text-red-500"
+                >{selectedCity.name} Info</span
+              >
+              <span class="text-[10px] font-mono text-zinc-500"
+                >Pop: {selectedCity.population}</span
+              >
             </div>
             <div class="text-zinc-400">
-              <p class="mb-2"><strong>History:</strong> {selectedCity.history}</p>
-              <div class="grid grid-cols-2 gap-2 text-[10px] font-mono text-zinc-500 pt-1 border-t border-white/5">
+              <p class="mb-2">
+                <strong>History:</strong>
+                {selectedCity.history}
+              </p>
+              <div
+                class="grid grid-cols-2 gap-2 text-[10px] font-mono text-zinc-500 pt-1 border-t border-white/5"
+              >
                 <div>🐦 Bird: {selectedCity.stateBird}</div>
                 <div>🌸 Flower: {selectedCity.stateFlower}</div>
               </div>
@@ -1768,19 +1829,38 @@
                 <div class="spot-card-head">
                   <div>
                     <h3 class="inline">{spot.name}</h3>
-                    <span class="text-[10px] text-zinc-500 font-mono ml-2 lowercase">
+                    <span
+                      class="text-[10px] text-zinc-500 font-mono ml-2 lowercase"
+                    >
                       ({spot.category}, {spot.subCategory})
                     </span>
                   </div>
-                  <a
-                    href={spot.mapsUrl}
-                    target="_blank"
-                    onclick={(e) => e.stopPropagation()}
-                    class="maps-link"
-                    aria-label="Open Google Maps"
-                  >
-                    <ExternalLink size={12} />
-                  </a>
+                  <div class="flex items-center gap-2">
+                    {#if spot.websiteUrl}
+                      <a
+                        href={spot.websiteUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        onclick={(e) => e.stopPropagation()}
+                        class="maps-link hover:text-red-400"
+                        aria-label="Visit Website"
+                        title="Visit Website"
+                      >
+                        <Globe size={12} />
+                      </a>
+                    {/if}
+                    <a
+                      href={spot.mapsUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      onclick={(e) => e.stopPropagation()}
+                      class="maps-link"
+                      aria-label="Open Google Maps"
+                      title="Open Google Maps"
+                    >
+                      <ExternalLink size={12} />
+                    </a>
+                  </div>
                 </div>
 
                 <!-- Custom Stars Component -->
@@ -1788,10 +1868,11 @@
                   {#each [1, 2, 3, 4, 5] as starNum}
                     {@const isFull = spot.rating >= starNum}
                     {@const isHalf = !isFull && spot.rating >= starNum - 0.5}
-                    <span class="relative inline-flex items-center"
-                      class:star-glow-platinum={tier === 'platinum'}
-                      class:star-glow-gold={tier === 'gold'}
-                      class:star-glow-silver={tier === 'silver'}
+                    <span
+                      class="relative inline-flex items-center"
+                      class:star-glow-platinum={tier === "platinum"}
+                      class:star-glow-gold={tier === "gold"}
+                      class:star-glow-silver={tier === "silver"}
                     >
                       {#if isFull}
                         <Star size={12} fill={starColor} stroke="none" />
@@ -1813,11 +1894,11 @@
                   {/each}
                   <span
                     class="rating-val"
-                    class:rating-platinum={tier === 'platinum'}
-                    class:rating-gold={tier === 'gold'}
-                    class:rating-silver={tier === 'silver'}
-                    class:rating-bronze={tier === 'bronze'}
-                    class:rating-blood-red={tier === 'blood-red'}
+                    class:rating-platinum={tier === "platinum"}
+                    class:rating-gold={tier === "gold"}
+                    class:rating-silver={tier === "silver"}
+                    class:rating-bronze={tier === "bronze"}
+                    class:rating-blood-red={tier === "blood-red"}
                   >
                     {spot.rating} / 5
                   </span>
@@ -1834,8 +1915,11 @@
             <!-- If no city selected, group by city with headers -->
             {#each Object.keys(groupedSpots) as cityName}
               <div class="city-header-section mb-4">
-                <div class="city-group-title flex items-center gap-1.5 text-xs font-black tracking-widest text-zinc-500 uppercase py-2 border-b border-white/5 mb-2">
-                  <MapPin size={10} /> {cityName}
+                <div
+                  class="city-group-title flex items-center gap-1.5 text-xs font-black tracking-widest text-zinc-500 uppercase py-2 border-b border-white/5 mb-2"
+                >
+                  <MapPin size={10} />
+                  {cityName}
                 </div>
                 <div class="flex flex-col gap-2">
                   {#each groupedSpots[cityName] as spot}
@@ -1850,30 +1934,51 @@
                       <div class="spot-card-head">
                         <div>
                           <h3 class="inline">{spot.name}</h3>
-                          <span class="text-[10px] text-zinc-500 font-mono ml-2 lowercase">
+                          <span
+                            class="text-[10px] text-zinc-500 font-mono ml-2 lowercase"
+                          >
                             ({spot.category}, {spot.subCategory})
                           </span>
                         </div>
-                        <a
-                          href={spot.mapsUrl}
-                          target="_blank"
-                          onclick={(e) => e.stopPropagation()}
-                          class="maps-link"
-                          aria-label="Open Google Maps"
-                        >
-                          <ExternalLink size={12} />
-                        </a>
+                        <div class="flex items-center gap-2">
+                          {#if spot.websiteUrl}
+                            <a
+                              href={spot.websiteUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              onclick={(e) => e.stopPropagation()}
+                              class="maps-link hover:text-red-400"
+                              aria-label="Visit Website"
+                              title="Visit Website"
+                            >
+                              <Globe size={12} />
+                            </a>
+                          {/if}
+                          <a
+                            href={spot.mapsUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            onclick={(e) => e.stopPropagation()}
+                            class="maps-link"
+                            aria-label="Open Google Maps"
+                            title="Open Google Maps"
+                          >
+                            <ExternalLink size={12} />
+                          </a>
+                        </div>
                       </div>
 
                       <!-- Custom Stars Component -->
                       <div class="star-rating-row">
                         {#each [1, 2, 3, 4, 5] as starNum}
                           {@const isFull = spot.rating >= starNum}
-                          {@const isHalf = !isFull && spot.rating >= starNum - 0.5}
-                          <span class="relative inline-flex items-center"
-                            class:star-glow-platinum={tier === 'platinum'}
-                            class:star-glow-gold={tier === 'gold'}
-                            class:star-glow-silver={tier === 'silver'}
+                          {@const isHalf =
+                            !isFull && spot.rating >= starNum - 0.5}
+                          <span
+                            class="relative inline-flex items-center"
+                            class:star-glow-platinum={tier === "platinum"}
+                            class:star-glow-gold={tier === "gold"}
+                            class:star-glow-silver={tier === "silver"}
                           >
                             {#if isFull}
                               <Star size={12} fill={starColor} stroke="none" />
@@ -1887,7 +1992,11 @@
                                 <span
                                   class="absolute top-0 left-0 w-1/2 overflow-hidden"
                                 >
-                                  <Star size={12} fill={starColor} stroke="none" />
+                                  <Star
+                                    size={12}
+                                    fill={starColor}
+                                    stroke="none"
+                                  />
                                 </span>
                               {/if}
                             {/if}
@@ -1895,11 +2004,11 @@
                         {/each}
                         <span
                           class="rating-val"
-                          class:rating-platinum={tier === 'platinum'}
-                          class:rating-gold={tier === 'gold'}
-                          class:rating-silver={tier === 'silver'}
-                          class:rating-bronze={tier === 'bronze'}
-                          class:rating-blood-red={tier === 'blood-red'}
+                          class:rating-platinum={tier === "platinum"}
+                          class:rating-gold={tier === "gold"}
+                          class:rating-silver={tier === "silver"}
+                          class:rating-bronze={tier === "bronze"}
+                          class:rating-blood-red={tier === "blood-red"}
                         >
                           {spot.rating} / 5
                         </span>
@@ -2222,13 +2331,25 @@
   /* Tiered Rating Borders */
   .border-platinum {
     border-color: rgba(241, 245, 249, 0.4);
-    background: radial-gradient(circle at 10% 20%, rgba(255, 255, 255, 0.08) 0%, transparent 80%), rgba(5, 5, 8, 0.4);
-    box-shadow: 0 0 15px rgba(255, 255, 255, 0.1), inset 0 0 10px rgba(255, 255, 255, 0.05);
+    background: radial-gradient(
+        circle at 10% 20%,
+        rgba(255, 255, 255, 0.08) 0%,
+        transparent 80%
+      ),
+      rgba(5, 5, 8, 0.4);
+    box-shadow:
+      0 0 15px rgba(255, 255, 255, 0.1),
+      inset 0 0 10px rgba(255, 255, 255, 0.05);
     animation: pulseGlow 3s infinite ease-in-out;
   }
   .border-gold {
     border-color: rgba(251, 191, 36, 0.3);
-    background: radial-gradient(circle at 10% 20%, rgba(251, 191, 36, 0.04) 0%, transparent 70%), rgba(5, 5, 8, 0.4);
+    background: radial-gradient(
+        circle at 10% 20%,
+        rgba(251, 191, 36, 0.04) 0%,
+        transparent 70%
+      ),
+      rgba(5, 5, 8, 0.4);
     box-shadow: 0 0 10px rgba(251, 191, 36, 0.05);
   }
   .border-silver {
@@ -2241,7 +2362,12 @@
   }
   .border-blood-red {
     border-color: rgba(239, 68, 68, 0.25);
-    background: radial-gradient(circle at 10% 20%, rgba(239, 68, 68, 0.03) 0%, transparent 60%), rgba(5, 5, 8, 0.4);
+    background: radial-gradient(
+        circle at 10% 20%,
+        rgba(239, 68, 68, 0.03) 0%,
+        transparent 60%
+      ),
+      rgba(5, 5, 8, 0.4);
     box-shadow: 0 0 8px rgba(239, 68, 68, 0.05);
   }
 
@@ -2257,12 +2383,17 @@
   }
 
   @keyframes pulseGlow {
-    0%, 100% {
-      box-shadow: 0 0 15px rgba(255, 255, 255, 0.08), inset 0 0 10px rgba(255, 255, 255, 0.03);
+    0%,
+    100% {
+      box-shadow:
+        0 0 15px rgba(255, 255, 255, 0.08),
+        inset 0 0 10px rgba(255, 255, 255, 0.03);
       border-color: rgba(241, 245, 249, 0.3);
     }
     50% {
-      box-shadow: 0 0 22px rgba(255, 255, 255, 0.18), inset 0 0 15px rgba(255, 255, 255, 0.08);
+      box-shadow:
+        0 0 22px rgba(255, 255, 255, 0.18),
+        inset 0 0 15px rgba(255, 255, 255, 0.08);
       border-color: rgba(255, 255, 255, 0.65);
     }
   }

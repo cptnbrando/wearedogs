@@ -6,6 +6,7 @@
     "category": "restaurant",
     "subCategory": "american",
     "rating": 5.0,
+    "websiteUrl": "https://chickenandthewolf.com/",
     "mapsUrl": "https://maps.app.goo.gl/ChickenAndTheWolfTulsa",
     "address": "3136 E 11th St, Tulsa, OK 74104",
     "description": "Tulsa's legendary Nashville hot chicken joint. Unbelievably crispy and juicy.",
@@ -30,6 +31,7 @@
     "category": "restaurant",
     "subCategory": "korean",
     "rating": 5.0,
+    "websiteUrl": "https://oppahousetulsa.com/",
     "mapsUrl": "https://maps.app.goo.gl/kbwKMzdc5qWFuR6V8",
     "address": "7001 S Garnett Rd, Broken Arrow, OK 74012",
     "description": "Authentic tabletop grilling experience with premium cuts and hot pot options.",
@@ -53,7 +55,8 @@
     "cityName": "Tulsa OK",
     "category": "bar",
     "subCategory": "dive bar",
-    "rating": 4.0,
+    "rating": 4.2,
+    "websiteUrl": "https://thecolonytulsa.com/",
     "mapsUrl": "https://maps.app.goo.gl/ColonyBarTulsa",
     "address": "2809 S Harvard Ave, Tulsa, OK 74114",
     "description": "Tulsa's historic Midtown dive bar and live music venue. Cozy pub interior and active outdoor patio.",
@@ -63,11 +66,108 @@
     "review": {
       "author": "CaptainBrando!",
       "text": "$4 shot and a beer. Artists bleeding on a stage. Always good folk on the patio.",
-      "rating": 4.0
+      "rating": 4.2
     },
     "directions": "Midtown Tulsa on S Harvard Ave.",
     "bestDishes": "$4 shot and a beer combo.",
     "bestTimes": "Nightly after 9:00 PM for live local music.",
     "moreInfo": "Great patio space and intimate live band settings."
+  },
+  {
+    "id": "seapot-plano",
+    "name": "Seapot Plano",
+    "cityName": "Dallas TX",
+    "category": "restaurant",
+    "subCategory": "asian / hot pot",
+    "rating": 4.6,
+    "websiteUrl": "https://seapotplano.com/",
+    "mapsUrl": "https://maps.google.com/?q=Seapot+Hotpot+%26+Dimsum+Plano+TX",
+    "address": "1900 North Central Expressway, Plano, TX 75074",
+    "description": "Premier all-you-can-eat Hot Pot and Dim Sum experience in Plano.",
+    "images": [
+      "https://static.spotapps.co/spots/2b/99f369bbb94a6c85716607d25d0b56/full",
+      "https://static.spotapps.co/spots/33/72218eff694310ae1efef40112faff/full"
+    ],
+    "review": {
+      "author": "CaptainBrando!",
+      "text": "Outstanding hot pot experience with automated conveyor delivery and fresh, high quality ingredients!",
+      "rating": 4.6
+    },
+    "directions": "Located in Plano near Coit Rd & W Park Blvd.",
+    "bestDishes": "Spicy Pork Bulgogi, Spicy Beef Bulgogi, Unlimited Cream Cheese Wontons, Dinner Snow Crab Legs, Spicy Miso Soup with Beef Toro",
+    "bestTimes": "Lunch or early dinner.",
+    "moreInfo": "Automated conveyor line serving fresh dim sum and ingredients directly to your table."
+  },
+  {
+    "id": "wings-over-rochester",
+    "name": "Wings Over Rochester",
+    "cityName": "Rochester NY",
+    "category": "restaurant",
+    "subCategory": "wings",
+    "rating": 5.0,
+    "websiteUrl": "https://wingsover.com/",
+    "mapsUrl": "https://maps.google.com/?q=Wings+Over+Rochester+NY",
+    "address": "Rochester, NY",
+    "description": "Famous Rochester wing and tender spot known for massive, hand-breaded chicken tenders. The best chicken wings I've ever had.",
+    "images": [
+      "https://images.unsplash.com/photo-1527477396000-e27163b481c2?w=500&q=80"
+    ],
+    "review": {
+      "author": "CaptainBrando!",
+      "text": "Cruisin Altitude 6 Tender Pack is the absolute way to go. Don't do bone-in or boneless here, trust me. The tenders are insanely good!",
+      "rating": 5.0
+    },
+    "directions": "Rochester, NY area.",
+    "bestDishes": "Cruisin Altitude 6 Tender Pack (Don't do bone-in or boneless here, trust me. The tenders are insanely good)",
+    "bestTimes": "Game days and late night craving runs.",
+    "moreInfo": "Signature fresh tenders hand-breaded and tossed in your favorite flavor."
+  },
+  {
+    "id": "henrietta-hots",
+    "name": "Henrietta Hots",
+    "cityName": "Rochester NY",
+    "category": "restaurant",
+    "subCategory": "american",
+    "rating": 4.1,
+    "websiteUrl": "https://henriettahots.com/",
+    "mapsUrl": "https://maps.google.com/?q=Henrietta+Hots+Rochester+NY",
+    "address": "3057 E Henrietta Rd, Henrietta, NY 14467",
+    "description": "Classic Upstate New York hots joint serving legendary Rochester Garbage Plates.",
+    "images": [
+      "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=500&q=80"
+    ],
+    "review": {
+      "author": "CaptainBrando!",
+      "text": "A staple Rochester institution. The Red Hot Garbage Plate is unmatched comfort food!",
+      "rating": 4.1
+    },
+    "directions": "Located on E Henrietta Rd in Henrietta, NY.",
+    "bestDishes": "Red Hot Garbage Plate",
+    "bestTimes": "Late night or classic Upstate lunch.",
+    "moreInfo": "Authentic Rochester hots joint known for giant portions and incredible meat sauce."
+  },
+  {
+    "id": "howlin-jays",
+    "name": "Howlin' Jays",
+    "cityName": "Cairns Australia",
+    "category": "restaurant",
+    "subCategory": "wings",
+    "rating": 5.0,
+    "websiteUrl": "https://www.howlinjays.com/",
+    "mapsUrl": "https://maps.google.com/?q=Howlin+Jays+Cairns+Australia",
+    "address": "1/1 Pier Point Rd, Cairns City QLD 4870, Australia",
+    "description": "Best chicken wings in the world. Giant, full, juicy, tender, beautiful chicken wings.",
+    "images": [
+      "https://images.squarespace-cdn.com/content/v1/58dc3e79bf629a2d3b8caee0/1736907672312-1842HLFNWX6PTAPMFMMC/DSCF7295.JPG?format=500w"
+    ],
+    "review": {
+      "author": "CaptainBrando!",
+      "text": "Best chicken wings in the world. Giant, full, juicy, tender, beautiful chicken wings.",
+      "rating": 5.0
+    },
+    "directions": "Located on the waterfront at Pier Point Rd, Cairns City.",
+    "bestDishes": "Giant, full, juicy, tender, beautiful chicken wings",
+    "bestTimes": "Lunch, dinner, or waterfront drinks.",
+    "moreInfo": "Nashville style fried chicken joint in tropical North Queensland right by the Marina."
   }
 ]
