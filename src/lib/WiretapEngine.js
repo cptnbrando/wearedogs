@@ -171,6 +171,9 @@ export class WiretapEngine {
 
     this.audioElement.addEventListener("play", () => {
       this.isPlaying = true;
+      if (!this.isRecording && !this.isRecognizing) {
+        this.startSpeechRecognition();
+      }
       this.triggerStateChange();
     });
 
@@ -274,7 +277,7 @@ export class WiretapEngine {
     this.audioUrl = null;
     this.peaks = [];
     this.livePeaks = [];
-    this.finalTranscript = "";
+    this.finalTranscript = this.finalTranscript ? this.finalTranscript.trim() + " " : "";
     this.interimTranscript = "";
     this.playbackProgress = 0;
     this.sampleIntervalMs = 100;
@@ -655,6 +658,9 @@ export class WiretapEngine {
 
       const audioBuffer = await tempContext.decodeAudioData(arrayBuffer);
       const channelData = audioBuffer.getChannelData(0);
+      if (audioBuffer.duration) {
+        this.recordingDuration = audioBuffer.duration;
+      }
 
       const step = Math.ceil(channelData.length / WAVEFORM_BARS_COUNT);
       const computedPeaks = [];
@@ -773,6 +779,105 @@ export class WiretapEngine {
     anchor.href = this.audioUrl;
     anchor.download = filename;
     anchor.click();
+  }
+
+  /**
+   * Load an external audio file (e.g. MP3, WAV, WebM) for playback, waveform generation, and transcription.
+   * @param {File|Blob} file 
+   */
+  async loadAudioFile(file) {
+    this.reset();
+
+    this.audioBlob = file;
+    this.audioUrl = URL.createObjectURL(file);
+    this.audioElement.src = this.audioUrl;
+    this.mimeType = file.type || "audio/mp3";
+
+    await new Promise((resolve) => {
+      const onLoaded = () => {
+        if (this.audioElement.duration && this.audioElement.duration !== Infinity) {
+          this.recordingDuration = this.audioElement.duration;
+        }
+        this.audioElement.removeEventListener("loadedmetadata", onLoaded);
+        resolve();
+      };
+      if (this.audioElement.readyState >= 1) {
+        if (this.audioElement.duration && this.audioElement.duration !== Infinity) {
+          this.recordingDuration = this.audioElement.duration;
+        }
+        resolve();
+      } else {
+        this.audioElement.addEventListener("loadedmetadata", onLoaded);
+      }
+    });
+
+    await this.decodeWaveform();
+    this.triggerStateChange();
+  }
+
+  /**
+   * Transcribe an uploaded audio file directly in-browser using WebAudio and a dedicated Web Worker.
+   * Completely silent (no speaker playback), off main thread (zero UI freeze), and offline (no mic).
+   * @param {File|Blob} file 
+   * @param {Function} onProgress 
+   */
+  async transcribeAudioFileOffline(file, onProgress) {
+    this.stopRecording();
+    this.stopMonitoring();
+    this.stopSpeechRecognition();
+    this.pause();
+
+    if (onProgress) onProgress(5, "Reading audio file...");
+
+    const arrayBuffer = await file.arrayBuffer();
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    const tempContext = new AudioContextClass();
+
+    const audioBuffer = await tempContext.decodeAudioData(arrayBuffer);
+    tempContext.close();
+
+    if (onProgress) onProgress(15, "Resampling audio to 16kHz...");
+
+    const sampleRate = 16000;
+    const offlineCtx = new OfflineAudioContext(1, Math.ceil(audioBuffer.duration * sampleRate), sampleRate);
+    const bufferSource = offlineCtx.createBufferSource();
+    bufferSource.buffer = audioBuffer;
+    bufferSource.connect(offlineCtx.destination);
+    bufferSource.start(0);
+
+    const renderedBuffer = await offlineCtx.startRendering();
+    const pcmData = renderedBuffer.getChannelData(0);
+
+    if (onProgress) onProgress(25, "Spawning background Web Worker...");
+
+    return new Promise((resolve, reject) => {
+      try {
+        const worker = new Worker(new URL("./transcriberWorker.js", import.meta.url), { type: "module" });
+
+        worker.onmessage = (e) => {
+          const { status, progress, text, error } = e.data;
+          if (status === "progress") {
+            if (onProgress) onProgress(progress || 50, text);
+          } else if (status === "complete") {
+            worker.terminate();
+            if (onProgress) onProgress(100, "Transcription complete.");
+            resolve(text);
+          } else if (status === "error") {
+            worker.terminate();
+            reject(new Error(error));
+          }
+        };
+
+        worker.onerror = (err) => {
+          worker.terminate();
+          reject(new Error("Worker thread error: " + err.message));
+        };
+
+        worker.postMessage({ type: "transcribe", pcmData });
+      } catch (err) {
+        reject(err);
+      }
+    });
   }
 
   /**

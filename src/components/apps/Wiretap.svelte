@@ -28,6 +28,9 @@
     Hourglass,
     List,
     FileText,
+    Upload,
+    RotateCcw,
+    RotateCw,
   } from "lucide-svelte";
 
   // State Management
@@ -109,6 +112,141 @@
   let deviceCoords = $state(null);
   let isLocating = $state(false);
 
+  // Audio File Upload State
+  let fileInputEl = $state(null);
+  let uploadedFileName = $state("");
+  let playbackSpeed = $state(1);
+  let isTranscribingFile = $state(false);
+  let transcribeProgressPct = $state(0);
+  let transcribeStatusText = $state("");
+  let enableMic = $state(true);
+  let accumulatedTranscript = $state("");
+
+  // Handle uploading external audio file for text transcription
+  async function handleAudioFileUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    uploadedFileName = file.name;
+    isTranscribingFile = true;
+    enableMic = false; // Turn off microphone when uploading an audio file!
+
+    // Completely stop microphone recording, monitoring, and speech recognition
+    if (engineState.isRecording) {
+      stopRecording();
+    }
+    engine.stopSpeechRecognition();
+    engine.stopMonitoring();
+
+    liveTranscript = {
+      final: "",
+      interim: `[INITIALIZING IN-BROWSER TRANSCRIBER FOR ${file.name.toUpperCase()}...]`,
+    };
+
+    await engine.loadAudioFile(file);
+
+    recordingStartDate = new Date(file.lastModified || Date.now());
+
+    playbackMedia = {
+      url: engine.audioUrl,
+      isVideo: file.type.startsWith("video"),
+      title: file.name,
+      duration: engine.recordingDuration || duration,
+      timestamp: recordingStartDate,
+      peaks: engine.peaks,
+    };
+
+    // Transcribe the audio file silently in-browser (no mic listening, no speaker playback)
+    try {
+      const fullText = await engine.transcribeAudioFileOffline(file, (progressPct, statusText) => {
+        transcribeProgressPct = progressPct;
+        transcribeStatusText = statusText;
+        liveTranscript = {
+          final: accumulatedTranscript,
+          interim: `[${statusText.toUpperCase()} (${progressPct}%)]`,
+        };
+      });
+
+      if (fullText) {
+        const fileHeader = `[FILE: ${file.name}]`;
+        const fileEntry = `${fileHeader}\n${fullText}`;
+        accumulatedTranscript = accumulatedTranscript
+          ? `${accumulatedTranscript.trim()}\n\n${fileEntry}`
+          : fileEntry;
+      }
+
+      liveTranscript = {
+        final: accumulatedTranscript,
+        interim: "",
+      };
+      engine.finalTranscript = accumulatedTranscript;
+    } catch (err) {
+      console.error("In-browser file transcription failed:", err);
+      liveTranscript = {
+        final: accumulatedTranscript,
+        interim: `[TRANSCRIPTION ERROR: ${err.message || "Failed to process audio file"}]`,
+      };
+    } finally {
+      isTranscribingFile = false;
+      transcribeProgressPct = 0;
+      transcribeStatusText = "";
+    }
+  }
+
+  function clearUploadedFile() {
+    uploadedFileName = "";
+    if (fileInputEl) fileInputEl.value = "";
+    playbackMedia = null;
+    enableMic = true;
+  }
+
+  function handlePlaybackPlay() {
+    isMediaPaused = false;
+    if (!engine.isRecognizing) {
+      engine.startSpeechRecognition();
+    }
+  }
+
+  function handlePlaybackPause() {
+    isMediaPaused = true;
+  }
+
+  function handleLeftScrubberPointerDown(e) {
+    const container = e.currentTarget;
+    const rect = container.getBoundingClientRect();
+
+    function updateProgress(clientX) {
+      const clickX = clientX - rect.left;
+      const pct = Math.max(0, Math.min(1, clickX / rect.width));
+      if (mediaPlaybackEl) {
+        mediaPlaybackEl.currentTime = pct * (mediaPlaybackEl.duration || playerDuration || 1);
+        playerCurrentTime = mediaPlaybackEl.currentTime;
+      }
+    }
+
+    updateProgress(e.clientX);
+
+    function onPointerMove(moveEvent) {
+      updateProgress(moveEvent.clientX);
+    }
+
+    function onPointerUp() {
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
+    }
+
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+  }
+
+  function skipPlaybackTime(seconds) {
+    if (!mediaPlaybackEl) return;
+    const dur = mediaPlaybackEl.duration || playerDuration || 0;
+    const newTime = Math.max(0, Math.min(dur, mediaPlaybackEl.currentTime + seconds));
+    mediaPlaybackEl.currentTime = newTime;
+    playerCurrentTime = newTime;
+  }
+
   // Canvas Drawing Loop Variables
   let canvasEl = null;
   let canvasCtx = null;
@@ -139,7 +277,10 @@
   };
 
   engine.onLiveTranscript = (transcript) => {
-    liveTranscript = transcript;
+    liveTranscript = {
+      final: transcript.final || accumulatedTranscript,
+      interim: transcript.interim || "",
+    };
     scrollTranscriptIntoView();
   };
 
@@ -183,10 +324,12 @@
     engine.cameraStream = cameraStream;
   });
 
-  // Start/stop live monitoring based on permission grant and audio device selection
+  // Start/stop live monitoring based on permission grant, mic toggle, and audio device selection
   $effect(() => {
-    if (isPermissionsGranted && selectedAudioDevice) {
+    if (isPermissionsGranted && selectedAudioDevice && enableMic && !uploadedFileName) {
       engine.startMonitoring(selectedAudioDevice);
+    } else {
+      engine.stopMonitoring();
     }
   });
 
@@ -494,6 +637,12 @@
       const canvasStream = canvasEl.captureStream(30);
       const videoTrack = canvasStream.getVideoTracks()[0];
 
+      // Enable mic and preserve existing transcript so new mic speech appends seamlessly
+      enableMic = true;
+      if (liveTranscript.final) {
+        engine.finalTranscript = liveTranscript.final.trim() + " ";
+      }
+
       await engine.startRecording(selectedAudioDevice, videoTrack);
       liveTranscript = { final: "", interim: "" };
     } catch (err) {
@@ -505,6 +654,9 @@
   function stopRecording() {
     engine.stopRecording();
     stopCanvasDrawLoop();
+    if (liveTranscript.final) {
+      accumulatedTranscript = liveTranscript.final;
+    }
   }
 
   // Custom pointer drag scrubbing logic for timeline
@@ -547,9 +699,18 @@
     });
   }
 
+  // Clear transcript text completely
+  function clearTranscriptText() {
+    accumulatedTranscript = "";
+    liveTranscript = { final: "", interim: "" };
+    engine.finalTranscript = "";
+    engine.interimTranscript = "";
+  }
+
   // Reset recording state
   function reset() {
     engine.reset();
+    accumulatedTranscript = "";
     liveTranscript = { final: "", interim: "" };
     liveWaveform = Array(32).fill(0);
     decodedPeaks = [];
@@ -561,6 +722,9 @@
     liveVolume = 0;
     playbackMedia = null;
     deviceCoords = null;
+    uploadedFileName = "";
+    enableMic = true;
+    if (fileInputEl) fileInputEl.value = "";
   }
 
   // Format seconds to readable timer format (MM:SS or H:MM:SS)
@@ -924,7 +1088,7 @@
         class="dashboard-grid w-full h-full flex flex-col xl:grid xl:grid-cols-12 gap-4 flex-grow overflow-hidden p-2"
       >
         <!-- Left Panel: Device Setup & Live Video Feed (Col 1-5 on Desktop) -->
-        <div class="xl:col-span-5 flex flex-col gap-4 min-h-0">
+        <div class="xl:col-span-5 flex flex-col gap-4 min-h-0 overflow-y-auto max-h-full pr-1">
           <!-- Device Settings Panel -->
           <div class="glass-card flex flex-col gap-3 p-4" data-card="inputs">
             <button
@@ -992,6 +1156,33 @@
                   </div>
                 </div>
 
+                <!-- Microphone Toggle -->
+                <div
+                  class="flex items-center justify-between border-t border-white/5 pt-3 mt-1"
+                >
+                  <span class="input-label">MICROPHONE</span>
+                  <button
+                    onclick={() => {
+                      enableMic = !enableMic;
+                      if (!enableMic) {
+                        engine.stopMonitoring();
+                        engine.stopSpeechRecognition();
+                      } else if (selectedAudioDevice && !uploadedFileName) {
+                        engine.startMonitoring(selectedAudioDevice);
+                      }
+                    }}
+                    class="flex items-center gap-2 px-3 py-1.5 rounded text-xs font-mono uppercase transition-all duration-200 border cursor-pointer {enableMic
+                      ? 'bg-[#00ff66] text-black border-[#00ff66]'
+                      : 'bg-transparent text-white/60 border-white/10'}"
+                  >
+                    {#if enableMic}
+                      <Mic class="w-3.5 h-3.5" /> MIC ON
+                    {:else}
+                      <MicOff class="w-3.5 h-3.5" /> MIC OFF
+                    {/if}
+                  </button>
+                </div>
+
                 <!-- Video Toggle -->
                 <div
                   class="flex items-center justify-between border-t border-white/5 pt-3 mt-1"
@@ -1009,6 +1200,66 @@
                       <VideoOff class="w-3.5 h-3.5" /> VIDEO OFF
                     {/if}
                   </button>
+                </div>
+
+                <!-- Audio File Upload -->
+                <div
+                  class="flex flex-col gap-1 border-t border-white/5 pt-3 mt-1"
+                >
+                  <label for="audio-upload-input" class="input-label"
+                    >AUDIO FILE TRANSCRIBE</label
+                  >
+                  <input
+                    id="audio-upload-input"
+                    type="file"
+                    accept="audio/*,.mp3,.wav,.ogg,.m4a,.webm,.flac,.aac,.mp4,.mov"
+                    onchange={handleAudioFileUpload}
+                    class="hidden"
+                    bind:this={fileInputEl}
+                  />
+                  <button
+                    onclick={() => fileInputEl?.click()}
+                    disabled={engineState.isRecording}
+                    class="w-full flex items-center justify-center gap-2 px-3 py-2 bg-[#00ff66]/10 hover:bg-[#00ff66]/20 text-[#00ff66] border border-[#00ff66]/30 hover:border-[#00ff66]/60 rounded text-xs font-mono uppercase tracking-wider transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_10px_rgba(0,255,102,0.1)]"
+                  >
+                    <Upload class="w-4 h-4 flex-shrink-0" />
+                    <span class="truncate">
+                      {uploadedFileName
+                        ? `FILE: ${uploadedFileName}`
+                        : "UPLOAD AUDIO FILE"}
+                    </span>
+                  </button>
+                  {#if uploadedFileName}
+                    <div
+                      class="flex items-center justify-between text-[10px] font-mono text-white/60 px-1 pt-1"
+                    >
+                      <span class="truncate max-w-[180px]" title={uploadedFileName}
+                        >{uploadedFileName}</span
+                      >
+                      <button
+                        onclick={clearUploadedFile}
+                        class="text-red-400 hover:text-red-300 underline cursor-pointer ml-2 flex-shrink-0"
+                      >
+                        CLEAR
+                      </button>
+                    </div>
+                  {/if}
+
+                  <!-- Background Web Worker Transcription Progress Bar -->
+                  {#if isTranscribingFile}
+                    <div class="flex flex-col gap-1 mt-2">
+                      <div class="flex items-center justify-between text-[9px] font-mono text-[#00ff66]">
+                        <span class="truncate">{transcribeStatusText || "TRANSCRIBING..."}</span>
+                        <span>{transcribeProgressPct}%</span>
+                      </div>
+                      <div class="w-full h-1.5 bg-black/60 border border-[#00ff66]/30 rounded overflow-hidden">
+                        <div
+                          class="h-full bg-[#00ff66] shadow-[0_0_8px_#00ff66] transition-all duration-200"
+                          style="width: {transcribeProgressPct}%"
+                        ></div>
+                      </div>
+                    </div>
+                  {/if}
                 </div>
 
                 <!-- Surveillance Location -->
@@ -1061,45 +1312,141 @@
 
               {#if playbackMedia}
                 {#if playbackMedia.isVideo}
-                  <!-- Playback Video Player -->
+                  <!-- Custom Playback Video Player (without default HTML controls) -->
                   <video
                     bind:this={mediaPlaybackEl}
                     bind:paused={isMediaPaused}
                     src={playbackMedia.url}
-                    controls
-                    autoplay
-                    class="w-full h-full object-contain bg-neutral-950 max-h-[300px] z-0"
+                    class="w-full h-full object-contain bg-neutral-950 max-h-[300px] z-0 cursor-pointer"
+                    onclick={() => {
+                      if (mediaPlaybackEl) {
+                        if (isMediaPaused) mediaPlaybackEl.play();
+                        else mediaPlaybackEl.pause();
+                      }
+                    }}
                     ontimeupdate={handlePlayerTimeUpdate}
+                    onplay={handlePlaybackPlay}
+                    onpause={handlePlaybackPause}
                   ></video>
                 {:else}
-                  <!-- Playback Audio Player with visualizer center stage -->
+                  <!-- Custom Playback Audio Centerpiece with interactive Waveform Scrubber -->
                   <div
-                    class="w-full h-[240px] flex flex-col justify-between items-center bg-neutral-950 p-4 pt-16 z-0"
+                    class="w-full h-[240px] flex flex-col justify-between items-center bg-neutral-950 p-4 pt-10 pb-16 z-0 relative select-none"
                   >
-                    <div
-                      class="flex-grow flex items-center justify-center gap-1.5 w-full max-w-[220px]"
-                    >
-                      {#each overlayWaveformBars as val, idx}
-                        {@const isFilled = idx / 20 <= playerProgress}
+                    <!-- Audio Waveform Center Scrubber -->
+                    <div class="w-full flex-grow flex flex-col justify-center items-center gap-2">
+                      <div
+                        class="w-full max-w-[320px] h-20 bg-black/60 border border-[#00ff66]/20 hover:border-[#00ff66]/50 rounded p-2 flex items-center justify-between gap-[2px] cursor-pointer relative shadow-[0_0_15px_rgba(0,255,102,0.05)]"
+                        onpointerdown={handleLeftScrubberPointerDown}
+                        title="Click or drag to seek audio"
+                      >
+                        <!-- Playhead indicator -->
                         <div
-                          class="w-1.5 rounded-sm transition-all duration-75 {isFilled
-                            ? 'bg-[#00ff66]'
-                            : 'bg-white/10'}"
-                          style="height: {Math.max(8, val * 100)}%;"
+                          class="absolute top-0 bottom-0 w-[2px] bg-[#00ff66] shadow-[0_0_8px_#00ff66] pointer-events-none z-20 transition-all duration-75"
+                          style="left: {playerProgress * 100}%"
                         ></div>
-                      {/each}
+
+                        {#each overlayWaveformBars as val, idx}
+                          {@const isFilled = idx / 20 <= playerProgress}
+                          <div
+                            class="flex-1 rounded-sm transition-all duration-75 {isFilled
+                              ? 'bg-[#00ff66]'
+                              : 'bg-white/15'} z-10 pointer-events-none"
+                            style="height: {Math.max(10, val * 90)}%;"
+                          ></div>
+                        {/each}
+                      </div>
                     </div>
+
+                    <!-- Hidden Audio Tag providing audio decoding/playback stream -->
                     <audio
                       bind:this={mediaPlaybackEl}
                       bind:paused={isMediaPaused}
                       src={playbackMedia.url}
-                      controls
-                      autoplay
-                      class="w-full max-w-[280px] h-8 mt-2 pointer-events-auto"
+                      class="hidden"
                       ontimeupdate={handlePlayerTimeUpdate}
+                      onplay={handlePlaybackPlay}
+                      onpause={handlePlaybackPause}
                     ></audio>
                   </div>
                 {/if}
+
+                <!-- Integrated Custom Control Bar for Viewport Scrubber & Timestamps -->
+                <div
+                  class="absolute bottom-0 left-0 right-0 z-30 bg-black/90 border-t border-[#00ff66]/30 px-3 py-2 flex flex-col gap-1.5 backdrop-blur-md"
+                >
+                  <!-- Timeline Scrubber Bar -->
+                  <div
+                    class="w-full h-2 bg-white/10 hover:bg-white/20 rounded cursor-pointer relative overflow-hidden flex items-center"
+                    onpointerdown={handleLeftScrubberPointerDown}
+                    title="Seek timeline"
+                  >
+                    <div
+                      class="h-full bg-[#00ff66] shadow-[0_0_10px_#00ff66] transition-all duration-75"
+                      style="width: {playerProgress * 100}%"
+                    ></div>
+                  </div>
+
+                  <!-- Controls Row: Play/Pause, Skip -5s/+5s, Timestamps -->
+                  <div class="flex items-center justify-between text-xs font-mono">
+                    <div class="flex items-center gap-2">
+                      <!-- Play / Pause -->
+                      <button
+                        onclick={() => {
+                          if (mediaPlaybackEl) {
+                            if (isMediaPaused) mediaPlaybackEl.play();
+                            else mediaPlaybackEl.pause();
+                          }
+                        }}
+                        class="px-2 py-1 bg-[#00ff66] hover:bg-[#00d75f] text-black rounded font-bold transition-all active:scale-95 cursor-pointer flex items-center gap-1 shadow-[0_0_10px_rgba(0,255,102,0.3)] text-[10px]"
+                        title={isMediaPaused ? "Play" : "Pause"}
+                      >
+                        {#if isMediaPaused}
+                          <Play class="w-3 h-3 fill-black" /> PLAY
+                        {:else}
+                          <Pause class="w-3 h-3 fill-black" /> PAUSE
+                        {/if}
+                      </button>
+
+                      <!-- Skip Back 5s -->
+                      <button
+                        onclick={() => skipPlaybackTime(-5)}
+                        class="p-1 bg-white/5 hover:bg-white/15 text-white/80 hover:text-white border border-white/10 rounded transition-all active:scale-95 cursor-pointer text-[10px] flex items-center gap-1"
+                        title="Rewind 5s"
+                      >
+                        <RotateCcw class="w-3 h-3" /> -5s
+                      </button>
+
+                      <!-- Skip Forward 5s -->
+                      <button
+                        onclick={() => skipPlaybackTime(5)}
+                        class="p-1 bg-white/5 hover:bg-white/15 text-white/80 hover:text-white border border-white/10 rounded transition-all active:scale-95 cursor-pointer text-[10px] flex items-center gap-1"
+                        title="Forward 5s"
+                      >
+                        <RotateCw class="w-3 h-3" /> +5s
+                      </button>
+
+                      <!-- Playback Speed Toggle for Rapid Transcription -->
+                      <button
+                        onclick={() => {
+                          playbackSpeed = playbackSpeed === 1 ? 1.5 : playbackSpeed === 1.5 ? 2 : 1;
+                          if (mediaPlaybackEl) {
+                            mediaPlaybackEl.playbackRate = playbackSpeed;
+                          }
+                        }}
+                        class="px-1.5 py-1 bg-[#00ff66]/10 hover:bg-[#00ff66]/20 text-[#00ff66] border border-[#00ff66]/30 rounded transition-all active:scale-95 cursor-pointer text-[10px] font-bold"
+                        title="Fast Transcribe Speed"
+                      >
+                        SPEED {playbackSpeed}X
+                      </button>
+                    </div>
+
+                    <!-- Timestamp counter -->
+                    <div class="text-[#00ff66] text-[10px] font-bold tracking-wider">
+                      {formatTime(playerCurrentTime)} / {formatTime(playerDuration)}
+                    </div>
+                  </div>
+                </div>
               {:else}
                 <!-- Live Video Feed -->
                 <video
@@ -1242,26 +1589,52 @@
                   Live Transcript
                 </h3>
 
-                <button
-                  onclick={copyTranscript}
-                  disabled={!liveTranscript.final}
-                  class="flex items-center gap-1.5 text-[10px] text-white/50 hover:text-[#00ff66] font-mono bg-white/5 border border-white/10 hover:border-[#00ff66]/35 rounded px-2.5 py-1 transition-all cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
-                >
-                  {#if isCopied}
-                    <Check class="w-3 h-3 text-[#00ff66]" /> COPIED
-                  {:else}
-                    <Copy class="w-3 h-3" /> COPY
-                  {/if}
-                </button>
+                <div class="flex items-center gap-2">
+                  <button
+                    onclick={copyTranscript}
+                    disabled={!liveTranscript.final}
+                    class="flex items-center gap-1.5 text-[10px] text-white/50 hover:text-[#00ff66] font-mono bg-white/5 border border-white/10 hover:border-[#00ff66]/35 rounded px-2.5 py-1 transition-all cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
+                  >
+                    {#if isCopied}
+                      <Check class="w-3 h-3 text-[#00ff66]" /> COPIED
+                    {:else}
+                      <Copy class="w-3 h-3" /> COPY
+                    {/if}
+                  </button>
+
+                  <button
+                    onclick={clearTranscriptText}
+                    disabled={!liveTranscript.final && !liveTranscript.interim}
+                    class="flex items-center gap-1.5 text-[10px] text-white/50 hover:text-red-400 font-mono bg-white/5 border border-white/10 hover:border-red-500/35 rounded px-2.5 py-1 transition-all cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
+                    title="Clear live transcript text"
+                  >
+                    <Trash2 class="w-3 h-3" /> CLEAR
+                  </button>
+                </div>
               </div>
 
               <!-- Scrolling Transcript Content -->
               <div
                 bind:this={transcriptContainer}
-                class="flex-grow overflow-y-auto bg-black/40 border border-white/5 rounded p-3 font-mono text-sm leading-relaxed text-white/85 max-h-[220px] xl:max-h-none"
+                class="flex-grow overflow-y-auto bg-black/40 border border-white/5 rounded p-3 font-mono text-sm leading-relaxed text-white/85 max-h-[220px] xl:max-h-none select-text cursor-text whitespace-pre-wrap"
               >
-                {#if engineState.isRecording}
-                  <span class="text-white">{liveTranscript.final}</span>
+                {#if isTranscribingFile}
+                  <div class="mb-3 p-2 bg-[#00ff66]/10 border border-[#00ff66]/30 rounded flex flex-col gap-1">
+                    <div class="flex items-center justify-between text-[10px] font-mono text-[#00ff66] font-bold">
+                      <span>{transcribeStatusText || "BACKGROUND WORKER TRANSCRIBING..."}</span>
+                      <span>{transcribeProgressPct}%</span>
+                    </div>
+                    <div class="w-full h-1.5 bg-black/60 border border-[#00ff66]/30 rounded overflow-hidden">
+                      <div
+                        class="h-full bg-[#00ff66] shadow-[0_0_8px_#00ff66] transition-all duration-200"
+                        style="width: {transcribeProgressPct}%"
+                      ></div>
+                    </div>
+                  </div>
+                {/if}
+
+                {#if engineState.isRecording || playbackMedia || accumulatedTranscript}
+                  <span class="text-white">{liveTranscript.final} </span>
                   <span class="text-[#00ff66]/80 italic"
                     >{liveTranscript.interim}</span
                   >
@@ -1275,7 +1648,7 @@
                 {:else}
                   <span class="text-white">
                     {liveTranscript.final ||
-                      "Press Record to capture speech-to-text transcript."}
+                      "Press Record or Upload an Audio File to capture speech-to-text transcript."}
                   </span>
                 {/if}
               </div>
@@ -1500,7 +1873,7 @@
                   <div
                     class="flex items-center justify-between w-full h-16 gap-[2px] bg-black/45 border rounded px-2 relative select-none {engineState.isRecording
                       ? 'border-[#ff3344]/30'
-                      : 'border-white/10 hover:border-white/20 cursor-ew-resize'}"
+                      : 'border-white/10 hover:border-white/20 cursor-pointer'}"
                     onpointerdown={!engineState.isRecording
                       ? handleWaveformPointerDown
                       : null}
