@@ -55,7 +55,7 @@
     "cityName": "Tulsa OK",
     "category": "bar",
     "subCategory": "dive bar",
-    "rating": 4.2,
+    "rating": 4.4,
     "websiteUrl": "https://thecolonytulsa.com/",
     "mapsUrl": "https://maps.app.goo.gl/ColonyBarTulsa",
     "address": "2809 S Harvard Ave, Tulsa, OK 74114",
@@ -66,7 +66,7 @@
     "review": {
       "author": "CaptainBrando!",
       "text": "$4 shot and a beer. Artists bleeding on a stage. Always good folk on the patio.",
-      "rating": 4.2
+      "rating": 4.4
     },
     "directions": "Midtown Tulsa on S Harvard Ave.",
     "bestDishes": "$4 shot and a beer combo.",
@@ -128,7 +128,7 @@
     "cityName": "Rochester NY",
     "category": "restaurant",
     "subCategory": "american",
-    "rating": 4.1,
+    "rating": 4.4,
     "websiteUrl": "https://henriettahots.com/",
     "mapsUrl": "https://maps.google.com/?q=Henrietta+Hots+Rochester+NY",
     "address": "3057 E Henrietta Rd, Henrietta, NY 14467",
@@ -139,7 +139,7 @@
     "review": {
       "author": "CaptainBrando!",
       "text": "A staple Rochester institution. The Red Hot Garbage Plate is unmatched comfort food!",
-      "rating": 4.1
+      "rating": 4.4
     },
     "directions": "Located on E Henrietta Rd in Henrietta, NY.",
     "bestDishes": "Red Hot Garbage Plate",
@@ -176,7 +176,7 @@
     "cityName": "Dallas TX",
     "category": "restaurant",
     "subCategory": "steakhouse",
-    "rating": 4.5,
+    "rating": 4.6,
     "websiteUrl": "https://perryssteakhouse.com/locations/tx/dallas/park-district/",
     "mapsUrl": "https://maps.google.com/?q=Perry%27s+Steakhouse+%26+Grille+Dallas+TX",
     "address": "2100 Olive St #100, Dallas, TX 75201",
@@ -186,12 +186,108 @@
     ],
     "review": {
       "author": "CaptainBrando!",
-      "text": "This is the place to get a steak in Dallas. Attentive, professional staff. A steak crust that'll sharpen your teeth. Very pricey, but this place does it right. Elegant. Modern. Chic.",
-      "rating": 4.5
+      "text": "This is the place to get a steak in Dallas. Attentive, professional staff. A steak crust that'll sharpen your teeth. Very pricey, but this place does it right. Elegant. Modern. Chic. When I win the lottery I'll probably be here every night.",
+      "rating": 4.6
     },
     "directions": "Located in Park District, Downtown / Uptown Dallas on Olive St.",
     "bestDishes": "Prime Pork Chop, Filet Mignon, Table-side Steak Flambé.",
     "bestTimes": "Special occasions & evening dinner.",
     "moreInfo": "Upscale steakhouse famous for their signature pork chop and prime steaks."
+  },
+  {
+    "id": "nolas-creole-cocktails",
+    "name": "Nola's Creole & Cocktails",
+    "cityName": "Tulsa OK",
+    "category": "restaurant",
+    "subCategory": "creole / cajun",
+    "rating": 4.7,
+    "websiteUrl": "https://www.nolastulsa.com/",
+    "mapsUrl": "https://maps.google.com/?q=Nola%27s+Creole+%26+Cocktails+Tulsa+OK",
+    "address": "1334 E 15th St, Tulsa, OK 74120",
+    "description": "Vibrant New Orleans-style eatery serving classic Creole fare and craft cocktails.",
+    "images": [
+      "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=500&q=80"
+    ],
+    "review": {
+      "author": "CaptainBrando!",
+      "text": "Happy Hour $1 Oysters and $15 Beaucoup Fried Platter with Lobster Mac & Cheese is the ultimate Creole vibe!",
+      "rating": 4.7
+    },
+    "directions": "Located on Cherry Street (15th St) in Midtown Tulsa.",
+    "bestDishes": "Happy Hour $1 Oysters and $15 Beaucoup Fried Platter, Lobster Mac & Cheese",
+    "bestTimes": "Happy hour (3-6 PM) & dinner cocktails.",
+    "moreInfo": "Authentic NOLA speakeasy atmosphere in the heart of Tulsa's Cherry Street district."
+  },
+  {
+    "id": "brewd-awakening-coffee",
+    "name": "Brew'd Awakening Coffee House",
+    "cityName": "Lowell MA",
+    "category": "restaurant",
+    "subCategory": "coffee",
+    "rating": 5.0,
+    "websiteUrl": "https://brewdawakening.com/",
+    "mapsUrl": "https://maps.google.com/?q=Brew%27d+Awakening+Coffee+House+Lowell+MA",
+    "address": "61 Market St, Lowell, MA 01852",
+    "description": "Artisanal coffee house in historic downtown Lowell with custom espresso creations.",
+    "images": [
+      "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=500&q=80"
+    ],
+    "review": {
+      "author": "CaptainBrando!",
+      "text": "Luxurious espresso. Perhaps the best espresso I've ever had actually. Baristas can make anything you want. I had a banana white chocolate latte. I just asked if they could do it and they did it and it sent me into the stratosphere with comfort, zip, jazz, magic, wind, life, elation. I'm now very upset that the only place in this giant godforsaken world to get a banana white chocolate latte is here. Even if anyone else made it the espresso wouldn't be like they do it here. Damn. Yeah this place rocks.",
+      "rating": 5.0
+    },
+    "directions": "Located on Market St in Downtown Lowell, MA.",
+    "bestDishes": "Banana White Chocolate Latte, Espresso",
+    "bestTimes": "Morning coffee runs and afternoon pickup.",
+    "moreInfo": "Legendary independent coffee house with unmatched custom barista drinks."
+  },
+  {
+    "id": "yokozuna-downtown-tulsa",
+    "name": "Yokozuna",
+    "cityName": "Tulsa OK",
+    "category": "restaurant",
+    "subCategory": "japanese / ramen / sushi",
+    "rating": 5.0,
+    "websiteUrl": "http://yokozunasushi.com/locations/yokozuna-downtown-tulsa/",
+    "mapsUrl": "https://maps.google.com/?q=Yokozuna+Downtown+Tulsa+OK",
+    "address": "309 E 2nd St, Tulsa, OK 74120",
+    "description": "Asian street food, sushi, and rich pork belly ramen in Downtown Tulsa's Blue Dome District.",
+    "images": [
+      "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=500&q=80"
+    ],
+    "review": {
+      "author": "CaptainBrando!",
+      "text": "The best pork belly ramen you gon find. A luxurious broth, spectacular toppings, it's just the kinda bowl that can bring a man to life, kill him, then bring him back again. Out of this world! Delightful sushi, great sake, just an awesome place in an awesome city",
+      "rating": 5.0
+    },
+    "directions": "Located in the Blue Dome District at E 2nd St & S Detroit Ave.",
+    "bestDishes": "Pork Belly Ramen, Sushi, Sake",
+    "bestTimes": "Dinner and late night drinks.",
+    "moreInfo": "Energetic Blue Dome District Asian concept with exceptional ramen broth."
+  },
+  {
+    "id": "east-village-bohemian-pizzeria",
+    "name": "East Village Bohemian Pizzeria",
+    "cityName": "Tulsa OK",
+    "category": "restaurant",
+    "subCategory": "pizza",
+    "rating": 4.8,
+    "websiteUrl": "https://www.bohemianpizzeria.com/",
+    "mapsUrl": "https://maps.google.com/?q=East+Village+Bohemian+Pizzeria+Tulsa+OK",
+    "address": "823 E 3rd St, Tulsa, OK 74120",
+    "description": "Wood-fired, Neapolitan-style thin crust pizzas and vibrant outdoor patio dining in the East Village.",
+    "images": [
+      "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=500&q=80"
+    ],
+    "review": {
+      "author": "CaptainBrando!",
+      "text": "Ah yeah, this is a good spot. Nice happy hour 3-5 Tuesday-friday, pizza that'll stay in your memories. I get this Mt Vesuvius one, delightful experience. If you want thin crust, come here",
+      "rating": 4.8
+    },
+    "directions": "Located in the East Village district at E 3rd St & S Lansing Ave.",
+    "bestDishes": "Mount Vesuvius Pizza",
+    "bestTimes": "Happy hour 3-5 PM Tuesday through Friday.",
+    "moreInfo": "Rustic wood-fired oven pizzas with lush garden patio ambiance."
   }
 ]

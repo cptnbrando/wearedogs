@@ -52,7 +52,7 @@
     },
     {
       name: "Rochester NY",
-      x: 242,
+      x: 237,
       y: 412,
       zoomX: 192,
       zoomY: 372,
@@ -81,6 +81,22 @@
       stateBird: "Brolga",
       stateFlower: "Cooktown Orchid",
     },
+    {
+      name: "Lowell MA",
+      x: 253,
+      y: 412,
+      zoomX: 205,
+      zoomY: 372,
+      zoomW: 100,
+      zoomH: 80,
+      lat: 42.6334,
+      lng: -71.3162,
+      population: "115,000",
+      history:
+        "Cradle of the American Industrial Revolution, founded in the 1820s.",
+      stateBird: "Black-capped Chickadee",
+      stateFlower: "Mayflower",
+    },
   ];
 
   const STAR_COLORS = {
@@ -99,22 +115,55 @@
   let selectedSpot = $state(null);
   let selectedSpotImgIdx = $state(0);
 
+  const BLURBS = [
+    { text: "If it ain't here, I don't know what to tell ya" },
+    { text: "Dogs know how to eat" },
+    { text: "DOGS EAT DOGS EAT DOGS EAT" },
+    { text: "The damn DOGS be eating better than me" },
+    { text: "Where to go when you want to live" },
+    {
+      text: "Been to America, been to Europe, it's the same $#!%",
+      link: "https://www.youtube.com/watch?v=06ZLNLz2yGI&list=RD06ZLNLz2yGI",
+    },
+    { text: "Where to go, and where not to go" },
+  ];
+
+  let currentBlurb = $state(null);
+
+  function pickRandomBlurb() {
+    let next;
+    do {
+      next = BLURBS[Math.floor(Math.random() * BLURBS.length)];
+    } while (
+      BLURBS.length > 1 &&
+      currentBlurb &&
+      next.text === currentBlurb.text
+    );
+    currentBlurb = next;
+  }
+
   // Map view springs matching world-map.svg bounds: 30.767 241.591 784.077 458.627
   const mapX = spring(30.767, { stiffness: 0.1, damping: 0.8 });
   const mapY = spring(241.591, { stiffness: 0.1, damping: 0.8 });
   const mapW = spring(784.077, { stiffness: 0.1, damping: 0.8 });
   const mapH = spring(458.627, { stiffness: 0.1, damping: 0.8 });
 
+  function getBaseMapUrl() {
+    if (typeof window === "undefined") return "/map";
+    return window.location.pathname;
+  }
+
   function selectCity(city) {
     temporaryZoom = false; // Manual selection overrides temporary zoom
     if (selectedSpot) {
       selectedSpot = null;
+      pickRandomBlurb();
       if (
         typeof window !== "undefined" &&
-        window.location.hash.includes("spot=")
+        (window.location.hash.includes("spot=") ||
+          window.location.hash.includes("map"))
       ) {
-        const url = `${window.location.pathname}${window.location.search}#/map`;
-        history.replaceState(history.state, "", url);
+        history.replaceState(history.state, "", getBaseMapUrl());
       }
     }
     if (selectedCity?.name === city.name) {
@@ -180,9 +229,9 @@
 
   function updateHash(spotId) {
     if (typeof window !== "undefined") {
-      const url = `${window.location.pathname}${window.location.search}#/map?spot=${spotId}`;
+      const url = `${getBaseMapUrl()}#spot=${spotId}`;
       if (!window.location.hash.includes(`spot=${spotId}`)) {
-        history.pushState(history.state, "", url);
+        history.replaceState(history.state, "", url);
       }
     }
   }
@@ -209,9 +258,9 @@
 
   function leaveSpotReview() {
     selectedSpot = null;
+    pickRandomBlurb();
     if (typeof window !== "undefined") {
-      const url = `${window.location.pathname}${window.location.search}#/map`;
-      history.replaceState(history.state, "", url);
+      history.replaceState(history.state, "", getBaseMapUrl());
     }
 
     // Zoom back out if the zoom was temporary
@@ -226,15 +275,7 @@
   }
 
   function handleBackClick() {
-    if (
-      typeof window !== "undefined" &&
-      window.location.hash.includes("spot=")
-    ) {
-      // If we got here via hashing/history, use browser back to keep history stack correct
-      history.back();
-    } else {
-      leaveSpotReview();
-    }
+    leaveSpotReview();
   }
 
   function handleHashChange() {
@@ -260,6 +301,7 @@
       if (selectedSpot) {
         // Leave the listing
         selectedSpot = null;
+        pickRandomBlurb();
         if (temporaryZoom) {
           selectedCity = null;
           mapX.set(30.767);
@@ -273,6 +315,7 @@
   }
 
   onMount(() => {
+    pickRandomBlurb();
     // If deep-linked directly to a spot card, seed history stack with the base map directory
     // so that hitting back takes the user to the list rather than exiting the map panel.
     if (
@@ -282,9 +325,9 @@
       const match = window.location.hash.match(/spot=([^&]+)/);
       if (match) {
         const spotId = match[1];
-        const baseUrl = `${window.location.pathname}${window.location.search}#/map`;
+        const baseUrl = getBaseMapUrl();
         history.replaceState(history.state, "", baseUrl);
-        const spotUrl = `${window.location.pathname}${window.location.search}#/map?spot=${spotId}`;
+        const spotUrl = `${baseUrl}#spot=${spotId}`;
         history.pushState(history.state, "", spotUrl);
       }
     }
@@ -1773,7 +1816,7 @@
             <button
               class="w-full py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs text-white font-bold flex items-center justify-center gap-1.5 transition-all"
               onclick={() => {
-                const link = `${window.location.origin}${window.location.pathname}#/map?spot=${selectedSpot.id}`;
+                const link = `${window.location.origin}${getBaseMapUrl()}#spot=${selectedSpot.id}`;
                 navigator.clipboard.writeText(link);
                 alert("Shareable spot link copied to clipboard!");
               }}
@@ -1783,6 +1826,29 @@
           </div>
         </div>
       {:else}
+        {#if currentBlurb}
+          <div
+            class="blurb-banner bg-gradient-to-r from-red-950/40 via-black/40 to-red-950/40 border border-red-500/20 rounded-xl p-2.5 mb-3 text-center transition-all shrink-0"
+          >
+            <p
+              class="text-xs font-mono font-bold italic tracking-wide text-zinc-300"
+            >
+              {#if currentBlurb.link}
+                <a
+                  href={currentBlurb.link}
+                  target="_blank"
+                  rel="noreferrer"
+                  class="underline hover:text-red-400 text-red-300 transition-colors"
+                >
+                  "{currentBlurb.text}"
+                </a>
+              {:else}
+                "{currentBlurb.text}"
+              {/if}
+            </p>
+          </div>
+        {/if}
+
         {#if selectedCity && !selectedSpot}
           <!-- City Info Card -->
           <div
