@@ -108,7 +108,7 @@
     "websiteUrl": "https://wingsover.com/",
     "mapsUrl": "https://maps.google.com/?q=Wings+Over+Rochester+NY",
     "address": "Rochester, NY",
-    "description": "Famous Rochester wing and tender spot known for massive, hand-breaded chicken tenders. The best chicken wings I've ever had.",
+    "description": "Famous Rochester wing and tender spot known for massive, hand-breaded chicken tenders. The best chicken wings in America.",
     "images": [
       "https://images.unsplash.com/photo-1527477396000-e27163b481c2?w=500&q=80"
     ],
@@ -166,8 +166,32 @@
       "rating": 5.0
     },
     "directions": "Located on the waterfront at Pier Point Rd, Cairns City.",
-    "bestDishes": "Giant, full, juicy, tender, beautiful chicken wings",
+    "bestDishes": "3x Whole Wings. Yup. Here, you get the entire drumette, flat, and tip. Luxurious!",
     "bestTimes": "Lunch, dinner, or waterfront drinks.",
     "moreInfo": "Nashville style fried chicken joint in tropical North Queensland right by the Marina."
+  },
+  {
+    "id": "perrys-steakhouse",
+    "name": "Perry's Steakhouse and Grille",
+    "cityName": "Dallas TX",
+    "category": "restaurant",
+    "subCategory": "steakhouse",
+    "rating": 4.5,
+    "websiteUrl": "https://perryssteakhouse.com/locations/tx/dallas/park-district/",
+    "mapsUrl": "https://maps.google.com/?q=Perry%27s+Steakhouse+%26+Grille+Dallas+TX",
+    "address": "2100 Olive St #100, Dallas, TX 75201",
+    "description": "This is the place to get a steak in Dallas.",
+    "images": [
+      "https://images.unsplash.com/photo-1544025162-d76694265947?w=500&q=80"
+    ],
+    "review": {
+      "author": "CaptainBrando!",
+      "text": "This is the place to get a steak in Dallas. Attentive, professional staff. A steak crust that'll sharpen your teeth. Very pricey, but this place does it right. Elegant. Modern. Chic.",
+      "rating": 4.5
+    },
+    "directions": "Located in Park District, Downtown / Uptown Dallas on Olive St.",
+    "bestDishes": "Prime Pork Chop, Filet Mignon, Table-side Steak Flambé.",
+    "bestTimes": "Special occasions & evening dinner.",
+    "moreInfo": "Upscale steakhouse famous for their signature pork chop and prime steaks."
   }
 ]
