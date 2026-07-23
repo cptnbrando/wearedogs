@@ -3,6 +3,8 @@
   import BasePanel from "./BasePanel.svelte";
   import mapSpots from "../lib/data/mapSpots.json";
   import { spring } from "svelte/motion";
+  import { fade, slide, fly } from "svelte/transition";
+  import { cubicOut } from "svelte/easing";
   import {
     Star,
     MapPin,
@@ -231,7 +233,7 @@
     if (typeof window !== "undefined") {
       const url = `${getBaseMapUrl()}#spot=${spotId}`;
       if (!window.location.hash.includes(`spot=${spotId}`)) {
-        history.replaceState(history.state, "", url);
+        history.pushState(history.state, "", url);
       }
     }
   }
@@ -358,10 +360,87 @@
     }
     return groups;
   });
+
+  let sortMode = $state("alpha"); // 'alpha' | 'equator' | 'population' | 'listings'
+
+  function parsePopulation(popStr) {
+    const clean = popStr.toLowerCase().replace(/,/g, '');
+    if (clean.includes('million')) {
+      return parseFloat(clean) * 1000000;
+    }
+    return parseFloat(clean) || 0;
+  }
+
+  let sortedCityNames = $derived.by(() => {
+    const cities = Object.keys(groupedSpots);
+    if (sortMode === "alpha") {
+      return cities.sort((a, b) => a.localeCompare(b));
+    } else if (sortMode === "equator") {
+      return cities.sort((a, b) => {
+        const cityA = CITIES.find((c) => c.name === a);
+        const cityB = CITIES.find((c) => c.name === b);
+        const distA = cityA ? Math.abs(cityA.lat) : 0;
+        const distB = cityB ? Math.abs(cityB.lat) : 0;
+        return distA - distB;
+      });
+    } else if (sortMode === "population") {
+      return cities.sort((a, b) => {
+        const cityA = CITIES.find((c) => c.name === a);
+        const cityB = CITIES.find((c) => c.name === b);
+        const popA = cityA ? parsePopulation(cityA.population) : 0;
+        const popB = cityB ? parsePopulation(cityB.population) : 0;
+        return popB - popA; // Highest first
+      });
+    } else if (sortMode === "listings") {
+      return cities.sort((a, b) => {
+        const countA = groupedSpots[a]?.length || 0;
+        const countB = groupedSpots[b]?.length || 0;
+        return countB - countA; // Most listings first
+      });
+    }
+    return cities;
+  });
+
+  const SORT_MODES = ["alpha", "equator", "population", "listings"];
+  function cycleSortMode() {
+    const idx = SORT_MODES.indexOf(sortMode);
+    sortMode = SORT_MODES[(idx + 1) % SORT_MODES.length];
+  }
+
+  function getSortModeLabel(mode) {
+    if (mode === "alpha") return "A-Z";
+    if (mode === "equator") return "Equator Distance";
+    if (mode === "population") return "Population";
+    if (mode === "listings") return "Most Listings";
+    return mode;
+  }
 </script>
 
 <BasePanel title="DOGS MAP" {isClosing} {onClose}>
   <div class="map-explorer-layout">
+    {#if currentBlurb}
+      <div
+        class="blurb-banner mobile-blurb bg-gradient-to-r from-red-950/40 via-black/40 to-red-950/40 border border-red-500/20 rounded-xl p-2.5 text-center transition-all shrink-0"
+        transition:slide={{ duration: 200 }}
+      >
+        <p
+          class="text-xs font-mono font-bold italic tracking-wide text-zinc-300"
+        >
+          {#if currentBlurb.link}
+            <a
+              href={currentBlurb.link}
+              target="_blank"
+              rel="noreferrer"
+              class="underline hover:text-red-400 text-red-300 transition-colors"
+            >
+              "{currentBlurb.text}"
+            </a>
+          {:else}
+            "{currentBlurb.text}"
+          {/if}
+        </p>
+      </div>
+    {/if}
     <!-- Map Canvas Side -->
     <div class="map-canvas-side">
       <div class="cities-bar">
@@ -1626,6 +1705,7 @@
         <!-- Full-on review page! -->
         <div
           class="full-review-page flex flex-col h-full bg-zinc-950 text-white relative"
+          transition:fly={{ x: 40, duration: 250, easing: cubicOut }}
         >
           <!-- Back button -->
           <div
@@ -1828,7 +1908,8 @@
       {:else}
         {#if currentBlurb}
           <div
-            class="blurb-banner bg-gradient-to-r from-red-950/40 via-black/40 to-red-950/40 border border-red-500/20 rounded-xl p-2.5 mb-3 text-center transition-all shrink-0"
+            class="blurb-banner desktop-blurb bg-gradient-to-r from-red-950/40 via-black/40 to-red-950/40 border border-red-500/20 rounded-xl p-2.5 mb-3 text-center transition-all shrink-0"
+            transition:slide={{ duration: 200 }}
           >
             <p
               class="text-xs font-mono font-bold italic tracking-wide text-zinc-300"
@@ -1849,12 +1930,25 @@
           </div>
         {/if}
 
+        {#if !selectedCity && !selectedSpot}
+          <div class="flex justify-between items-center px-1 mb-2">
+            <span class="text-[10px] uppercase tracking-widest font-mono text-zinc-500">All Locations</span>
+            <button
+              class="text-[10px] font-mono bg-white/5 border border-white/10 hover:bg-white/10 text-zinc-300 px-2 py-0.5 rounded-full flex items-center gap-1 cursor-pointer transition-all active:scale-95"
+              onclick={cycleSortMode}
+            >
+              Sort: {getSortModeLabel(sortMode)}
+            </button>
+          </div>
+        {/if}
+
         <!-- Directory List -->
         <div class="spots-list scroll-container">
           {#if selectedCity && !selectedSpot}
             <!-- City Info Card -->
             <div
               class="bg-black/30 border border-white/5 rounded-xl p-3 flex flex-col gap-2 mb-1 text-xs leading-relaxed"
+              transition:slide={{ duration: 200 }}
             >
               <div
                 class="flex justify-between items-center border-b border-white/5 pb-1.5"
@@ -1876,6 +1970,8 @@
                 >
                   <div>🐦 Bird: {selectedCity.stateBird}</div>
                   <div>🌸 Flower: {selectedCity.stateFlower}</div>
+                  <div>📍 Lat: {selectedCity.lat}°</div>
+                  <div>🌐 Lng: {selectedCity.lng}°</div>
                 </div>
               </div>
             </div>
@@ -1891,6 +1987,7 @@
               <div
                 class="spot-card animated-pane cursor-pointer"
                 onclick={() => selectSpotCard(spot)}
+                transition:fade={{ duration: 150 }}
               >
                 <div class="spot-card-head">
                   <div>
@@ -1979,7 +2076,7 @@
             {/each}
           {:else}
             <!-- If no city selected, group by city with headers -->
-            {#each Object.keys(groupedSpots) as cityName}
+            {#each sortedCityNames as cityName}
               <div class="city-header-section mb-4">
                 <div
                   class="city-group-title flex items-center gap-1.5 text-xs font-black tracking-widest text-zinc-500 uppercase py-2 border-b border-white/5 mb-2"
@@ -1996,6 +2093,7 @@
                     <div
                       class="spot-card animated-pane cursor-pointer"
                       onclick={() => selectSpotCard(spot)}
+                      transition:fade={{ duration: 150 }}
                     >
                       <div class="spot-card-head">
                         <div>
@@ -2098,6 +2196,13 @@
 </BasePanel>
 
 <style>
+  .mobile-blurb {
+    display: none;
+  }
+  .desktop-blurb {
+    display: block;
+  }
+
   .map-explorer-layout {
     display: grid;
     grid-template-columns: 1.2fr 1fr;
@@ -2111,11 +2216,18 @@
   @media (max-width: 900px) {
     .map-explorer-layout {
       grid-template-columns: 1fr;
-      grid-template-rows: 170px 1fr; /* 30% shorter than 240px */
+      grid-template-rows: auto 170px 1fr; /* Add auto for mobile-blurb */
       overflow: hidden; /* Static map, prevent overall scroll shifting map up */
       height: 100%;
       padding: 0;
       gap: 0;
+    }
+    .mobile-blurb {
+      display: block;
+      margin: 8px 8px 0 8px;
+    }
+    .desktop-blurb {
+      display: none;
     }
     .map-canvas-side {
       border: none;
@@ -2178,6 +2290,11 @@
   .city-btn:hover {
     color: white;
     background: rgba(255, 255, 255, 0.08);
+    transform: scale(1.03);
+  }
+
+  .city-btn:active {
+    transform: scale(0.97);
   }
 
   .city-btn.active {
@@ -2240,11 +2357,28 @@
   .city-pin {
     cursor: pointer;
     outline: none;
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transform-origin: center;
+    transform-box: fill-box;
+  }
+
+  .city-pin:hover {
+    transform: scale(1.22);
+  }
+
+  .city-pin.active {
+    transform: scale(1.3);
   }
 
   .pin-dot {
     fill: #ff3344;
     filter: drop-shadow(0 0 4px #ff3344);
+    transition: r 0.25s ease, fill 0.25s ease, filter 0.25s ease;
+  }
+
+  .city-pin.active .pin-dot {
+    r: 6px;
+    filter: drop-shadow(0 0 8px #ff3344);
   }
 
   .pin-pulse {
