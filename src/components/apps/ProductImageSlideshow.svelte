@@ -159,7 +159,7 @@
         out:slideOut={{ duration: 350, direction: scrollDirection }}
         src={displayImages[activeIdx]}
         alt={`${productTitle} - Image ${activeIdx + 1}`}
-        class="absolute inset-0 w-full h-full object-contain sm:object-cover transition-transform duration-300 group-hover:scale-102"
+        class="absolute inset-0 w-full h-full object-contain p-2 transition-transform duration-300 group-hover:scale-102"
         draggable="false"
       />
     {/key}
@@ -216,7 +216,7 @@
           <img
             src={imgUrl}
             alt={`Thumbnail ${idx + 1}`}
-            class="w-full h-full object-cover"
+            class="w-full h-full object-contain p-0.5"
           />
         </button>
       {/each}

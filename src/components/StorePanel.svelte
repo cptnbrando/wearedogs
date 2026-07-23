@@ -606,19 +606,19 @@
   >
     <!-- Header Controls -->
     <div
-      class="flex justify-between items-center px-4 py-3 bg-zinc-950/20 border-b border-zinc-800"
+      class="flex justify-between items-center px-4 h-14 bg-zinc-950/20 border-b border-zinc-800 shrink-0"
     >
-      <div>
+      <div class="flex items-center h-full">
         {#if currentStoreMode === "merch" && selectedProduct}
           <button
-            class="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors duration-200 text-sm font-semibold cursor-pointer"
+            class="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors duration-200 text-sm font-semibold cursor-pointer py-1 px-2.5 hover:bg-zinc-900/60 rounded-lg"
             onclick={deselectProduct}
           >
             <ArrowLeft size={16} /> BACK TO CATALOG
           </button>
         {:else if currentStoreMode === "fundraising" && selectedCampaign}
           <button
-            class="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors duration-200 text-sm font-semibold cursor-pointer"
+            class="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors duration-200 text-sm font-semibold cursor-pointer py-1 px-2.5 hover:bg-zinc-900/60 rounded-lg"
             onclick={deselectCampaign}
           >
             <ArrowLeft size={16} /> BACK TO CAMPAIGNS
