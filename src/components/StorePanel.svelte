@@ -30,7 +30,7 @@
   let selectedProduct = $state(null);
   let selectedCampaign = $state(null);
   let campaignBioText = $state("");
-  let currentStoreMode = $state("merch"); // "merch" or "fundraising"
+  let currentStoreMode = $state("fundraising"); // Default to "fundraising" per user requirement
   let activeImageIdx = $state(0);
   let scrollDirection = $state(1);
   let isVideoPlaying = $state(false);
@@ -584,6 +584,21 @@
           transition:fade={{ duration: 200 }}
         >
           {#if !selectedProduct}
+            <!-- WARNING NOTICE BANNER -->
+            <div
+              class="max-w-7xl mx-auto mb-6 p-4 bg-red-950/40 border border-red-500/40 rounded-xl text-red-200 font-mono text-xs flex items-center gap-3 shadow-lg"
+            >
+              <span class="text-xl select-none">⚠️</span>
+              <div>
+                <span class="font-bold text-red-400 uppercase tracking-wider block text-xs sm:text-sm">
+                  NOTHING FOR SALE RIGHT NOW
+                </span>
+                <span class="text-[11px] text-zinc-400 font-sans mt-0.5 block">
+                  All official merchandise is currently out of stock or unavailable. Please check back later or visit our active Fundraisers tab!
+                </span>
+              </div>
+            </div>
+
             <!-- MERCHANDISE GRID VIEW -->
             <div
               class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 max-w-7xl mx-auto animate-fade-in"
