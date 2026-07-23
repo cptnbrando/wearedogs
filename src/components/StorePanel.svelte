@@ -218,45 +218,56 @@
     };
   }
 
-  function terminalGlitchIn(node, { duration = 180 } = {}) {
-    const randomSkew = (Math.random() * 10 - 5).toFixed(2);
-    const randomShiftX = (Math.random() * 16 - 8).toFixed(1);
-    const randomRed = (Math.random() * 4 - 2).toFixed(0);
-    const randomCyan = -randomRed;
-
+  function terminalGlitchIn(node, { duration = 300 } = {}) {
     return {
       duration,
-      css: (t, u) => `
-        opacity: ${t};
-        transform: translate3d(${randomShiftX * u}px, 0, 0) skewX(${randomSkew * u}deg);
-        filter: drop-shadow(${randomRed * u}px 0 0 rgba(239, 68, 68, ${0.4 * u})) drop-shadow(${randomCyan * u}px 0 0 rgba(16, 185, 129, ${0.4 * u}));
-      `
+      css: (t, u) => {
+        if (u === 0) return `opacity: 1; transform: none; filter: none;`;
+        const randomSkew = (Math.random() * 30 - 15).toFixed(2);
+        const randomShiftX = (Math.random() * 30 - 15).toFixed(1);
+        const randomShiftY = (Math.random() * 8 - 4).toFixed(1);
+        const randomRed = (Math.random() * 6 - 3).toFixed(0);
+        const randomCyan = -randomRed;
+
+        return `
+          opacity: ${t > 0.15 ? 0.8 + Math.random() * 0.2 : t};
+          transform: translate3d(${randomShiftX}px, ${randomShiftY}px, 0) skewX(${randomSkew}deg);
+          filter: drop-shadow(${randomRed}px 0 0 rgba(239, 68, 68, 0.6)) drop-shadow(${randomCyan}px 0 0 rgba(16, 185, 129, 0.6));
+        `;
+      }
     };
   }
 
-  function terminalGlitchOut(node, { duration = 140 } = {}) {
-    const randomSkew = (Math.random() * 10 - 5).toFixed(2);
-    const randomShiftX = (Math.random() * 16 - 8).toFixed(1);
-
+  function terminalGlitchOut(node, { duration = 250 } = {}) {
     return {
       duration,
-      css: (t, u) => `
-        opacity: ${t};
-        transform: translate3d(${randomShiftX * u}px, 0, 0) skewX(${randomSkew * u}deg);
-      `
+      css: (t, u) => {
+        if (t === 0) return `opacity: 0; transform: none; filter: none;`;
+        const randomSkew = (Math.random() * 35 - 17.5).toFixed(2);
+        const randomShiftX = (Math.random() * 35 - 17.5).toFixed(1);
+        const randomShiftY = (Math.random() * 8 - 4).toFixed(1);
+        const randomRed = (Math.random() * 6 - 3).toFixed(0);
+        const randomCyan = -randomRed;
+
+        return `
+          opacity: ${t};
+          transform: translate3d(${randomShiftX}px, ${randomShiftY}px, 0) skewX(${randomSkew}deg);
+          filter: drop-shadow(${randomRed}px 0 0 rgba(239, 68, 68, 0.6)) drop-shadow(${randomCyan}px 0 0 rgba(16, 185, 129, 0.6));
+        `;
+      }
     };
   }
 
   function conditionalGlitchIn(node, options) {
     if (selectedProduct && selectedProduct.id === "fight-the-ceo") {
-      return terminalGlitchIn(node, { duration: 200 });
+      return terminalGlitchIn(node, { duration: 300 });
     }
     return fade(node, { duration: 120 });
   }
 
   function conditionalGlitchOut(node, options) {
     if (lastSelectedProductId === "fight-the-ceo") {
-      return terminalGlitchOut(node, { duration: 150 });
+      return terminalGlitchOut(node, { duration: 250 });
     }
     return fade(node, { duration: 80 });
   }
