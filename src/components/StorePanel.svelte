@@ -154,93 +154,7 @@
   });
 
   // Navigation handlers that update URL history
-  function playRockCrunchSound() {
-    try {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContext) return;
-      const ctx = new AudioContext();
-      if (ctx.state === "suspended") {
-        ctx.resume();
-      }
-
-      const now = ctx.currentTime;
-      const freqs = [82.41, 123.47, 164.81]; // Rock E5 power chord
-
-      const distortion = ctx.createWaveShaper();
-      const samples = 44100;
-      const curve = new Float32Array(samples);
-      const deg = Math.PI / 180;
-      const k = 45;
-      for (let i = 0; i < samples; ++i) {
-        const x = (i * 2) / samples - 1;
-        curve[i] = ((3 + k) * x * 20 * deg) / (Math.PI + k * Math.abs(x));
-      }
-      distortion.curve = curve;
-      distortion.oversample = "4x";
-
-      const masterGain = ctx.createGain();
-      masterGain.gain.setValueAtTime(0.01, now);
-      masterGain.gain.linearRampToValueAtTime(0.28, now + 0.015);
-      masterGain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
-
-      const filter = ctx.createBiquadFilter();
-      filter.type = "lowpass";
-      filter.frequency.setValueAtTime(1800, now);
-      filter.Q.setValueAtTime(2.5, now);
-
-      distortion.connect(filter);
-      filter.connect(masterGain);
-      masterGain.connect(ctx.destination);
-
-      freqs.forEach((freq) => {
-        const osc = ctx.createOscillator();
-        osc.type = "sawtooth";
-        osc.frequency.setValueAtTime(freq, now);
-        osc.frequency.exponentialRampToValueAtTime(freq * 0.98, now + 0.2);
-        osc.connect(distortion);
-        osc.start(now);
-        osc.stop(now + 0.21);
-      });
-
-      setTimeout(() => {
-        if (ctx.state !== "closed") ctx.close();
-      }, 250);
-    } catch (err) {
-      // Audio context fallbacks
-    }
-  }
-
-  function terminalGlitchIn(node, { duration = 180 } = {}) {
-    const randomSkew = (Math.random() * 10 - 5).toFixed(2);
-    const randomShiftX = (Math.random() * 16 - 8).toFixed(1);
-    const randomRed = (Math.random() * 4 - 2).toFixed(0);
-    const randomCyan = -randomRed;
-
-    return {
-      duration,
-      css: (t, u) => `
-        opacity: ${t};
-        transform: translate3d(${randomShiftX * u}px, 0, 0) skewX(${randomSkew * u}deg);
-        filter: drop-shadow(${randomRed * u}px 0 0 rgba(239, 68, 68, ${0.4 * u})) drop-shadow(${randomCyan * u}px 0 0 rgba(16, 185, 129, ${0.4 * u}));
-      `
-    };
-  }
-
-  function terminalGlitchOut(node, { duration = 140 } = {}) {
-    const randomSkew = (Math.random() * 10 - 5).toFixed(2);
-    const randomShiftX = (Math.random() * 16 - 8).toFixed(1);
-
-    return {
-      duration,
-      css: (t, u) => `
-        opacity: ${t};
-        transform: translate3d(${randomShiftX * u}px, 0, 0) skewX(${randomSkew * u}deg);
-      `
-    };
-  }
-
   function selectProduct(product) {
-    playRockCrunchSound();
     selectedProduct = product;
     initialProductId = product.id;
     currentStoreMode = "merch";
@@ -253,7 +167,6 @@
   }
 
   function deselectProduct() {
-    playRockCrunchSound();
     selectedProduct = null;
     initialProductId = null;
     if (history.state?.productId) {
@@ -776,8 +689,8 @@
             <!-- MERCHANDISE GRID VIEW -->
             <div
               class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 max-w-7xl mx-auto"
-              in:terminalGlitchIn={{ duration: 180 }}
-              out:terminalGlitchOut={{ duration: 140 }}
+              in:fade={{ duration: 120 }}
+              out:fade={{ duration: 80 }}
             >
               {#each products as product}
                 <div
@@ -902,8 +815,8 @@
             <!-- DETAIL VIEW -->
             <div
               class="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-stretch"
-              in:terminalGlitchIn={{ duration: 200 }}
-              out:terminalGlitchOut={{ duration: 150 }}
+              in:fade={{ duration: 120 }}
+              out:fade={{ duration: 80 }}
             >
               <!-- Left: Product Picture Slideshow -->
               <div
