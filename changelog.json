@@ -1,7 +1,7 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1784786064,
+    "firstCommitTimestamp": 1784801638,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
     "averageLinesAltered": 152028
@@ -11,13 +11,13 @@
       "version": "1.0.2",
       "name": "Master",
       "date": "2026-07-23",
-      "timestamp": 1784785988,
+      "timestamp": 1784801568,
       "commits": [
         {
-          "hash": "d1041b3",
-          "message": "feat: add MusicPanel component with tracklist, audio controls, and visualizer engine integration",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/d1041b3933c457914067cf38b7dc02275fe3902f",
-          "timestamp": 1784786064,
+          "hash": "33700e9",
+          "message": "feat: implement MapPanel component with city selection, geolocation support, and deep-linking to map spots",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/33700e90d24aed31e25b3acfad54c12be454c215",
+          "timestamp": 1784801638,
           "linesChanged": 152028
         }
       ]
