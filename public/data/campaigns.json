@@ -64,6 +64,52 @@
     }
   },
   {
+    "id": "sidewalk-chalk-defense",
+    "title": "SIDEWALK CHALK ART DEFENSE FUND",
+    "status": "active",
+    "goal": "$15,000",
+    "raised": "$4,250",
+    "bioUrl": "/fundraiser/sidewalk-chalk.txt",
+    "description": "Defending street artists, kids, and community members facing fines or police harassment for creating temporary, washable sidewalk chalk art on public walkways. Chalk isn't vandalism—it washes away with rain and brings life to concrete!",
+    "images": [
+      "https://images.unsplash.com/photo-1596464716127-f2a82984de30?w=1200&q=80",
+      "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=1200&q=80"
+    ],
+    "media": [
+      {
+        "type": "image",
+        "url": "https://images.unsplash.com/photo-1596464716127-f2a82984de30?w=1200&q=80"
+      },
+      {
+        "type": "image",
+        "url": "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=1200&q=80"
+      }
+    ],
+    "milestones": [
+      {
+        "label": "Initial Legal Retainer & Emergency Defense Fund",
+        "percentage": 25,
+        "achieved": true
+      },
+      {
+        "label": "Artist Citation & Fine Reimbursement Pool",
+        "percentage": 50,
+        "achieved": false
+      },
+      {
+        "label": "Community Chalk Drive & Public Awareness",
+        "percentage": 75,
+        "achieved": false
+      },
+      {
+        "label": "Nationwide Municipal Chalk Ordinance Reform",
+        "percentage": 100,
+        "achieved": false
+      }
+    ],
+    "cashAppUrl": "https://cash.app/$cptnbrando"
+  },
+  {
     "id": "justice-for-rusty",
     "title": "Justice for Rusty",
     "status": "active",
