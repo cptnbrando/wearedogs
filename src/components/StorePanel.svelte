@@ -238,15 +238,111 @@
       });
   }
 
+  // Texas Representatives Geolocation & Metadata Mapping
+  const TEXAS_REPS_META = [
+    { email: "dan.patrick@ltgov.texas.gov", name: "Lt. Gov. Dan Patrick", title: "President of the Senate", region: "Statewide / Austin", lat: 30.2747, lng: -97.7404 },
+    { email: "speaker@house.texas.gov", name: "Speaker of the House", title: "House Speaker", region: "Statewide / Austin", lat: 30.2747, lng: -97.7404 },
+    { email: "senator.bettencourt@senate.texas.gov", name: "Sen. Paul Bettencourt", title: "District 7", region: "Houston", lat: 29.7604, lng: -95.3698 },
+    { email: "senator.creighton@senate.texas.gov", name: "Sen. Brandon Creighton", title: "District 4", region: "Conroe / The Woodlands", lat: 30.3119, lng: -95.4560 },
+    { email: "senator.hall@senate.texas.gov", name: "Sen. Bob Hall", title: "District 2", region: "Rockwall / East TX", lat: 32.9312, lng: -96.4597 },
+    { email: "senator.huffman@senate.texas.gov", name: "Sen. Joan Huffman", title: "District 17", region: "Houston / Brazoria", lat: 29.5636, lng: -95.2750 },
+    { email: "senator.hughes@senate.texas.gov", name: "Sen. Bryan Hughes", title: "District 1", region: "Tyler / East TX", lat: 32.3513, lng: -95.3011 },
+    { email: "senator.kolkhorst@senate.texas.gov", name: "Sen. Lois Kolkhorst", title: "District 18", region: "Brenham / Victoria", lat: 30.1669, lng: -96.3977 },
+    { email: "senator.middleton@senate.texas.gov", name: "Sen. Mayes Middleton", title: "District 11", region: "Galveston / Gulf Coast", lat: 29.3013, lng: -94.7977 },
+    { email: "senator.perry@senate.texas.gov", name: "Sen. Charles Perry", title: "District 28", region: "Lubbock / West TX", lat: 33.5779, lng: -101.8552 },
+    { email: "senator.schwertner@senate.texas.gov", name: "Sen. Charles Schwertner", title: "District 5", region: "Georgetown / Central TX", lat: 30.6333, lng: -97.6772 },
+    { email: "senator.zaffirini@senate.texas.gov", name: "Sen. Judith Zaffirini", title: "District 21", region: "Laredo / San Antonio", lat: 27.5306, lng: -99.4803 }
+  ];
+
   // Email Lawmakers Action System
   let showEmailCopiedAlert = $state(false);
-  let showRepsList = $state(false);
+  let showSortMailPanel = $state(false);
+  let selectedReps = $state([]);
+  let isLocating = $state(false);
+  let locationStatusText = $state("");
   let emailCopyTimeout = null;
 
-  function handleEmailReps(contactReps) {
+  // Sync selected reps when campaign changes
+  $effect(() => {
+    if (selectedCampaign?.contactReps?.emails) {
+      selectedReps = [...selectedCampaign.contactReps.emails];
+      locationStatusText = "";
+    }
+  });
+
+  function getRepInfo(email) {
+    const meta = TEXAS_REPS_META.find((r) => r.email === email);
+    if (meta) return meta;
+    const namePart = email.split("@")[0].replace("senator.", "").replace(".", " ");
+    const formattedName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
+    return { email, name: formattedName, title: "Representative", region: "Texas" };
+  }
+
+  function handleBlastEm(contactReps) {
     if (!contactReps || !contactReps.emails) return;
     const mailtoUrl = `mailto:?bcc=${encodeURIComponent(contactReps.emails.join(","))}&subject=${encodeURIComponent(contactReps.subject)}&body=${encodeURIComponent(contactReps.body)}`;
     window.location.href = mailtoUrl;
+  }
+
+  function handleEmailSelected(contactReps) {
+    if (!contactReps || selectedReps.length === 0) return;
+    const mailtoUrl = `mailto:?bcc=${encodeURIComponent(selectedReps.join(","))}&subject=${encodeURIComponent(contactReps.subject)}&body=${encodeURIComponent(contactReps.body)}`;
+    window.location.href = mailtoUrl;
+  }
+
+  function handleToggleRep(email) {
+    if (selectedReps.includes(email)) {
+      selectedReps = selectedReps.filter((e) => e !== email);
+    } else {
+      selectedReps = [...selectedReps, email];
+    }
+  }
+
+  function handleSelectAllReps(emails) {
+    selectedReps = [...emails];
+  }
+
+  function handleDeselectAllReps() {
+    selectedReps = [];
+  }
+
+  function handleUseLocation(allEmails) {
+    if (!navigator.geolocation) {
+      locationStatusText = "Geolocation is not supported by your browser.";
+      return;
+    }
+    isLocating = true;
+    locationStatusText = "Locating nearby Texas representatives...";
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        isLocating = false;
+        const userLat = pos.coords.latitude;
+        const userLng = pos.coords.longitude;
+
+        // Calculate distance to each rep
+        const sorted = TEXAS_REPS_META.map((rep) => {
+          const dist = Math.hypot(rep.lat - userLat, rep.lng - userLng);
+          return { email: rep.email, dist, name: rep.name };
+        }).sort((a, b) => a.dist - b.dist);
+
+        // Pick closest 4 reps
+        const closestEmails = sorted.slice(0, 4).map((r) => r.email);
+
+        // Filter by emails present in current campaign
+        const validClosest = closestEmails.filter((e) => allEmails.includes(e));
+        selectedReps = validClosest.length > 0 ? validClosest : allEmails.slice(0, 3);
+
+        const topNames = validClosest.map(e => getRepInfo(e).name).slice(0, 2).join(", ");
+        locationStatusText = `📍 Selected closest reps (${topNames})`;
+      },
+      (err) => {
+        isLocating = false;
+        // Fallback: auto-select top central leadership reps
+        selectedReps = allEmails.slice(0, 3);
+        locationStatusText = "📍 Location access unavailable. Auto-selected key leadership reps.";
+      },
+      { timeout: 8000 }
+    );
   }
 
   function handleCopyRepsEmails(emails) {
@@ -1251,34 +1347,126 @@
                       <!-- Representative Contact Tool (if available) -->
                       {#if selectedCampaign.contactReps}
                         <div class="mb-4 flex flex-col gap-2.5">
+                          <!-- BLAST 'EM Primary Action Button -->
                           <button
-                            onclick={() => handleEmailReps(selectedCampaign.contactReps)}
-                            class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-black font-black rounded-xl text-xs tracking-widest transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-emerald-900/25 cursor-pointer text-center"
+                            onclick={() => handleBlastEm(selectedCampaign.contactReps)}
+                            class="w-full py-4 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-black font-black rounded-xl text-xs sm:text-sm tracking-widest uppercase transition-all duration-200 flex items-center justify-center gap-2 shadow-xl shadow-emerald-950/40 hover:scale-[1.01] active:scale-[0.99] cursor-pointer text-center"
                           >
-                            📩 EMAIL ALL TEXAS LAWMAKERS NOW
+                            💥 BLAST 'EM (EMAIL ALL LAWMAKERS)
                           </button>
 
+                          <!-- Secondary Tool Buttons -->
                           <div class="flex gap-2">
                             <button
-                              onclick={() => handleCopyRepsEmails(selectedCampaign.contactReps.emails)}
-                              class="flex-1 py-2.5 bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-300 hover:text-white font-bold rounded-lg text-[11px] tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                              onclick={() => (showSortMailPanel = !showSortMailPanel)}
+                              class="flex-1 py-2.5 px-3 bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-emerald-400 hover:text-emerald-300 font-bold rounded-xl text-[11px] tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow"
                             >
-                              📋 COPY LAWMAKER EMAILS
+                              📬 SORT THE MAIL FOR 'EM {showSortMailPanel ? "▲" : "▼"}
                             </button>
                             <button
-                              onclick={() => (showRepsList = !showRepsList)}
-                              class="px-3 py-2.5 bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-400 hover:text-white font-mono text-[11px] rounded-lg transition-all cursor-pointer"
+                              onclick={() => handleCopyRepsEmails(selectedCampaign.contactReps.emails)}
+                              class="py-2.5 px-3 bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-300 hover:text-white font-bold rounded-xl text-[11px] tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow"
+                              title="Copy all email addresses"
                             >
-                              {showRepsList ? "HIDE EMAILS ▲" : `REPS (${selectedCampaign.contactReps.emails.length}) ▼`}
+                              📋 COPY ALL
                             </button>
                           </div>
 
-                          {#if showRepsList}
-                            <div transition:fade={{ duration: 150 }} class="p-3 bg-zinc-950/90 border border-zinc-800 rounded-xl text-[10px] font-mono text-zinc-400 max-h-36 overflow-y-auto custom-scrollbar flex flex-col gap-1">
-                              <span class="font-bold text-zinc-300 uppercase tracking-widest mb-1">Target Texas Representatives & Officials:</span>
-                              {#each selectedCampaign.contactReps.emails as email}
-                                <div class="select-all hover:text-white transition-colors">{email}</div>
-                              {/each}
+                          <!-- SORT THE MAIL Interactive Selection Dropdown Panel -->
+                          {#if showSortMailPanel}
+                            <div
+                              transition:fade={{ duration: 150 }}
+                              class="p-3.5 bg-zinc-950/95 border border-zinc-800 rounded-xl flex flex-col gap-3 shadow-2xl animate-fade-in"
+                            >
+                              <!-- Geolocation & Region Selector -->
+                              <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pb-2.5 border-b border-zinc-850">
+                                <button
+                                  onclick={() => handleUseLocation(selectedCampaign.contactReps.emails)}
+                                  disabled={isLocating}
+                                  class="py-2 px-3 bg-emerald-950/60 hover:bg-emerald-900/60 border border-emerald-500/40 text-emerald-300 font-mono text-[11px] font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                                >
+                                  📍 {isLocating ? "LOCATING..." : "USE LOCATION (AUTO-SELECT CLOSEST)"}
+                                </button>
+
+                                <div class="flex items-center gap-2 text-[10px] font-mono text-zinc-400 self-end sm:self-auto">
+                                  <button
+                                    onclick={() => handleSelectAllReps(selectedCampaign.contactReps.emails)}
+                                    class="text-emerald-400 hover:underline cursor-pointer"
+                                  >
+                                    Select All
+                                  </button>
+                                  <span>•</span>
+                                  <button
+                                    onclick={handleDeselectAllReps}
+                                    class="text-zinc-500 hover:text-zinc-300 hover:underline cursor-pointer"
+                                  >
+                                    Deselect All
+                                  </button>
+                                </div>
+                              </div>
+
+                              {#if locationStatusText}
+                                <div class="text-[10px] font-mono text-emerald-400 bg-emerald-950/30 p-2 rounded border border-emerald-500/20">
+                                  {locationStatusText}
+                                </div>
+                              {/if}
+
+                              <!-- Checked Counter & List -->
+                              <div class="text-[10px] font-mono text-zinc-400 font-bold uppercase tracking-wider flex justify-between items-center">
+                                <span>SELECT SPECIFIC REPRESENTATIVES:</span>
+                                <span class="text-emerald-400">{selectedReps.length} / {selectedCampaign.contactReps.emails.length} Selected</span>
+                              </div>
+
+                              <div class="max-h-44 overflow-y-auto custom-scrollbar flex flex-col gap-1.5 pr-1">
+                                {#each selectedCampaign.contactReps.emails as email}
+                                  {@const meta = getRepInfo(email)}
+                                  {@const isChecked = selectedReps.includes(email)}
+                                  <!-- svelte-ignore a11y_click_events_have_key_events -->
+                                  <!-- svelte-ignore a11y_no_static_element_interactions -->
+                                  <div
+                                    onclick={() => handleToggleRep(email)}
+                                    class="flex items-center gap-2.5 p-2 rounded-lg border transition-all cursor-pointer select-none text-[11px]"
+                                    class:bg-emerald-950\/30={isChecked}
+                                    class:border-emerald-500\/40={isChecked}
+                                    class:text-zinc-100={isChecked}
+                                    class:bg-zinc-900\/40={!isChecked}
+                                    class:border-zinc-850={!isChecked}
+                                    class:text-zinc-400={!isChecked}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={isChecked}
+                                      onchange={() => handleToggleRep(email)}
+                                      class="accent-emerald-500 w-3.5 h-3.5 cursor-pointer"
+                                    />
+                                    <div class="flex-1 min-w-0 flex flex-col">
+                                      <div class="font-bold flex items-center justify-between gap-1">
+                                        <span class="truncate">{meta.name}</span>
+                                        <span class="text-[9px] font-mono text-zinc-500 shrink-0">{meta.region}</span>
+                                      </div>
+                                      <div class="text-[10px] font-mono text-zinc-500 truncate">{email}</div>
+                                    </div>
+                                  </div>
+                                {/each}
+                              </div>
+
+                              <!-- Action for Selected -->
+                              <div class="pt-2 border-t border-zinc-850 flex gap-2">
+                                <button
+                                  onclick={() => handleEmailSelected(selectedCampaign.contactReps)}
+                                  disabled={selectedReps.length === 0}
+                                  class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-black font-black rounded-lg text-xs tracking-wider transition-all duration-200 flex items-center justify-center gap-1.5 shadow cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                                >
+                                  📩 EMAIL SELECTED REPS ({selectedReps.length})
+                                </button>
+                                <button
+                                  onclick={() => handleCopyRepsEmails(selectedReps)}
+                                  disabled={selectedReps.length === 0}
+                                  class="px-3 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-bold rounded-lg text-[11px] transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                                >
+                                  📋 COPY
+                                </button>
+                              </div>
                             </div>
                           {/if}
                         </div>
