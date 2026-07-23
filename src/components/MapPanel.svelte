@@ -1849,38 +1849,38 @@
           </div>
         {/if}
 
-        {#if selectedCity && !selectedSpot}
-          <!-- City Info Card -->
-          <div
-            class="bg-black/30 border border-white/5 rounded-xl p-3 flex flex-col gap-2 mb-3 text-xs leading-relaxed"
-          >
-            <div
-              class="flex justify-between items-center border-b border-white/5 pb-1.5"
-            >
-              <span class="font-black text-sm text-red-500"
-                >{selectedCity.name} Info</span
-              >
-              <span class="text-[10px] font-mono text-zinc-500"
-                >Pop: {selectedCity.population}</span
-              >
-            </div>
-            <div class="text-zinc-400">
-              <p class="mb-2">
-                <strong>History:</strong>
-                {selectedCity.history}
-              </p>
-              <div
-                class="grid grid-cols-2 gap-2 text-[10px] font-mono text-zinc-500 pt-1 border-t border-white/5"
-              >
-                <div>🐦 Bird: {selectedCity.stateBird}</div>
-                <div>🌸 Flower: {selectedCity.stateFlower}</div>
-              </div>
-            </div>
-          </div>
-        {/if}
-
         <!-- Directory List -->
         <div class="spots-list scroll-container">
+          {#if selectedCity && !selectedSpot}
+            <!-- City Info Card -->
+            <div
+              class="bg-black/30 border border-white/5 rounded-xl p-3 flex flex-col gap-2 mb-1 text-xs leading-relaxed"
+            >
+              <div
+                class="flex justify-between items-center border-b border-white/5 pb-1.5"
+              >
+                <span class="font-black text-sm text-red-500"
+                  >{selectedCity.name} Info</span
+                >
+                <span class="text-[10px] font-mono text-zinc-500"
+                  >Pop: {selectedCity.population}</span
+                >
+              </div>
+              <div class="text-zinc-400">
+                <p class="mb-2">
+                  <strong>History:</strong>
+                  {selectedCity.history}
+                </p>
+                <div
+                  class="grid grid-cols-2 gap-2 text-[10px] font-mono text-zinc-500 pt-1 border-t border-white/5"
+                >
+                  <div>🐦 Bird: {selectedCity.stateBird}</div>
+                  <div>🌸 Flower: {selectedCity.stateFlower}</div>
+                </div>
+              </div>
+            </div>
+          {/if}
+
           {#if selectedCity}
             <!-- If city selected, just list the spots -->
             {#each filteredSpots as spot}
