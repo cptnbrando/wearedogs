@@ -380,6 +380,20 @@
       genre: "Hip-Hop",
       attrib: "https://nxnjaa.beatstars.com/",
     },
+    {
+      id: "exile",
+      title: "What's Beneath the Chicken Coop",
+      artist: "Trevor Sensor",
+      album: "On Account of Exile, Vol. 2",
+      cover: "https://data.wearedogs.net/img/covers/2026/exile.webp",
+      altCover: "https://data.wearedogs.net/img/covers/2026/exile.png",
+      src: "https://data.wearedogs.net/music/2026/exile.mp3",
+      instrumental: "",
+      dateAdded: "2026-07-23T00:52:43-05:00",
+      year: 2021,
+      genre: "Indie Rock",
+      attrib: "https://trevorsensorofficial.com/",
+    },
   ];
 
   // Derive sort values
