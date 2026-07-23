@@ -7,11 +7,11 @@
   } = $props();
 
   const DEFAULT_BRANDO_IMAGES = [
-    "https://data.wearedogs.net/img/people/brando/brando1.png",
-    "https://data.wearedogs.net/img/people/brando/brando2.png",
-    "https://data.wearedogs.net/img/people/brando/brando3.png",
-    "https://data.wearedogs.net/img/people/brando/brando4.png",
-    "https://data.wearedogs.net/img/people/brando/brando5.png",
+    "https://data.wearedogs.net/img/people/brando/brando1.jpg",
+    "https://data.wearedogs.net/img/people/brando/brando2.jpg",
+    "https://data.wearedogs.net/img/people/brando/brando3.jpg",
+    "https://data.wearedogs.net/img/people/brando/brando4.jpg",
+    "https://data.wearedogs.net/img/people/brando/brando5.jpg",
   ];
 
   let displayImages = $derived(
