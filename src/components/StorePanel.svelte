@@ -1107,7 +1107,7 @@
 
                   <div class="mt-2 sm:mt-3 pb-3 border-b border-zinc-800/80">
                     <p
-                      class="text-zinc-400 text-xs sm:text-sm leading-relaxed line-clamp-4 font-sans"
+                      class="text-zinc-400 text-xs sm:text-sm leading-relaxed font-sans"
                     >
                       {selectedProduct.description}
                     </p>
