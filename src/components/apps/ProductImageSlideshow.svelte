@@ -184,17 +184,17 @@
 
     <!-- Indicator Dots Overlay -->
     <div
-      class="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-20 pointer-events-auto bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10"
+      class="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-20 pointer-events-auto bg-black/75 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20 shadow-xl"
     >
       {#each displayImages as _, idx}
-        <!-- svelte-ignore a11y_click_events_have_key_events -->
-        <!-- svelte-ignore a11y_no_static_element_interactions -->
-        <span
+        <button
+          type="button"
           onclick={() => selectIndex(idx)}
-          class="w-2 h-2 rounded-full cursor-pointer transition-all duration-200 {activeIdx === idx
-            ? 'bg-emerald-400 scale-125 shadow-[0_0_8px_#10b981]'
+          class="w-2.5 h-2.5 rounded-full cursor-pointer transition-all duration-200 border-none p-0 flex-shrink-0 {activeIdx === idx
+            ? 'bg-emerald-400 scale-125 shadow-[0_0_10px_#10b981]'
             : 'bg-white/40 hover:bg-white/70'}"
-        ></span>
+          title={`Go to image ${idx + 1}`}
+        ></button>
       {/each}
     </div>
   </div>

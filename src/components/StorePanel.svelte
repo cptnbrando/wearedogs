@@ -816,7 +816,7 @@
             >
               <!-- Left: Product Picture Slideshow -->
               <div
-                class="w-full aspect-[896/1088] bg-black/40 border border-zinc-800 rounded-2xl flex items-center justify-center p-3 relative overflow-hidden mx-auto h-auto min-h-[300px] max-h-[440px] sm:max-h-[480px] md:max-h-[520px] lg:max-h-[560px] 2xl:max-h-[640px] sm:sticky sm:top-4 md:top-6 lg:top-8"
+                class="w-full bg-black/40 border border-zinc-800 rounded-2xl flex flex-col items-center justify-center p-3 relative overflow-hidden mx-auto h-auto sm:sticky sm:top-4 md:top-6 lg:top-8"
               >
                 <ProductImageSlideshow
                   images={selectedProduct.images || (selectedProduct.image ? [selectedProduct.image] : [])}
