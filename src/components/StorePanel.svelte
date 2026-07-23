@@ -812,11 +812,11 @@
           {:else}
             <!-- DETAIL VIEW -->
             <div
-              class="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-start animate-fade-in"
+              class="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-stretch animate-fade-in"
             >
               <!-- Left: Product Picture Slideshow -->
               <div
-                class="w-full bg-black/40 border border-zinc-800 rounded-2xl flex flex-col items-center justify-center p-3 relative overflow-hidden mx-auto h-auto sm:sticky sm:top-4 md:top-6 lg:top-8"
+                class="w-full bg-black/40 border border-zinc-800 rounded-2xl flex flex-col items-center justify-between p-3 relative overflow-hidden mx-auto h-full max-h-[380px] lg:max-h-[460px] xl:max-h-[500px]"
               >
                 <ProductImageSlideshow
                   images={selectedProduct.images || (selectedProduct.image ? [selectedProduct.image] : [])}
@@ -826,34 +826,34 @@
 
               <!-- Right: Details -->
               <div
-                class="flex flex-col justify-between h-full bg-zinc-900/20 border border-zinc-800/60 p-4 sm:p-5 lg:p-6 rounded-2xl"
+                class="flex flex-col justify-between h-full bg-zinc-900/20 border border-zinc-800/60 p-4 sm:p-5 rounded-2xl max-h-[380px] lg:max-h-[460px] xl:max-h-[500px] overflow-y-auto custom-scrollbar"
               >
                 <div>
-                  <div class="flex justify-between items-start gap-4">
+                  <div class="flex justify-between items-start gap-3">
                     <h1
-                      class="text-xl sm:text-2xl lg:text-3xl font-extrabold tracking-wider"
+                      class="text-lg sm:text-xl lg:text-2xl font-extrabold tracking-wider"
                     >
                       {selectedProduct.title}
                     </h1>
                     <div class="flex items-center gap-2 shrink-0">
                       <span
-                        class="text-lg sm:text-xl lg:text-2xl text-red-500 font-black"
+                        class="text-base sm:text-lg lg:text-xl text-red-500 font-black"
                         >{selectedProduct.price}</span
                       >
                       <button
                         onclick={(e) =>
                           handleShare("product", selectedProduct.id, e)}
-                        class="p-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-850 hover:border-zinc-700 rounded-lg text-zinc-400 hover:text-white transition-all cursor-pointer"
+                        class="p-1.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-850 hover:border-zinc-700 rounded-lg text-zinc-400 hover:text-white transition-all cursor-pointer"
                         title="Copy Share Link"
                       >
-                        <Share2 size={16} />
+                        <Share2 size={15} />
                       </button>
                     </div>
                   </div>
 
-                  <div class="mt-3 sm:mt-4 pb-4 border-b border-zinc-800/80">
+                  <div class="mt-2 sm:mt-3 pb-3 border-b border-zinc-800/80">
                     <p
-                      class="text-zinc-400 text-sm md:text-base leading-relaxed"
+                      class="text-zinc-400 text-xs sm:text-sm leading-relaxed line-clamp-4 font-sans"
                     >
                       {selectedProduct.description}
                     </p>
@@ -863,7 +863,7 @@
                   {#if selectedProduct.id === "fight-the-ceo" || (selectedProduct.checkoutUrl && (!selectedProduct.sizes || selectedProduct.sizes.length === 0))}
                     <!-- No size selector for FIGHT THE CEO or direct Cash App checkout items -->
                   {:else if selectedProduct.sizes && selectedProduct.sizes.length > 0 && selectedProduct.sizes[0] !== "One Size"}
-                    <div class="mt-4 sm:mt-6">
+                    <div class="mt-3 sm:mt-4">
                       <span
                         class="text-xs font-semibold text-zinc-500 uppercase tracking-widest block mb-2"
                         >SELECT SIZE</span
@@ -881,7 +881,7 @@
                       </div>
                     </div>
                   {:else}
-                    <div class="mt-4 sm:mt-6">
+                    <div class="mt-3 sm:mt-4">
                       <span
                         class="text-xs font-semibold text-zinc-500 uppercase tracking-widest block mb-1"
                         >SIZE</span
@@ -894,20 +894,20 @@
                 </div>
 
                 <div
-                  class="mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-zinc-800/80"
+                  class="mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-zinc-800/80 shrink-0"
                 >
                   {#if selectedProduct.id === "fight-the-ceo" || selectedProduct.checkoutUrl}
                     <a
                       href={selectedProduct.checkoutUrl || "https://cash.app/$cptnbrando"}
                       target="_blank"
                       rel="noopener noreferrer"
-                      class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-black font-black rounded-xl text-xs sm:text-sm tracking-widest uppercase transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-emerald-900/30 cursor-pointer text-center"
+                      class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-black font-black rounded-xl text-xs sm:text-sm tracking-widest uppercase transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-emerald-900/30 cursor-pointer text-center"
                     >
                       🟢 PAY & CHALLENGE VIA CASH APP ($cptnbrando)
                     </a>
                   {:else}
                     <button
-                      class="w-full py-2.5 sm:py-3.5 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl text-sm tracking-widest transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-red-900/30 cursor-pointer"
+                      class="w-full py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl text-sm tracking-widest transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-red-900/30 cursor-pointer"
                       onclick={() =>
                         window.open("https://cash.app/$cptnbrando", "_blank")}
                     >

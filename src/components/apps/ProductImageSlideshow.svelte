@@ -141,13 +141,13 @@
 </script>
 
 <div
-  class="flex flex-col gap-3 w-full h-full select-none"
+  class="flex flex-col gap-2 w-full h-full min-h-0 select-none justify-between"
   onmouseenter={() => (isHovered = true)}
   onmouseleave={() => (isHovered = false)}
 >
   <!-- Main Display Showcase Area -->
   <div
-    class="relative w-full aspect-[896/1088] bg-black/50 border border-zinc-800 rounded-2xl overflow-hidden shadow-2xl group flex items-center justify-center cursor-grab active:cursor-grabbing touch-pan-y"
+    class="relative w-full flex-1 min-h-0 aspect-[896/1088] bg-black/50 border border-zinc-800 rounded-2xl overflow-hidden shadow-2xl group flex items-center justify-center cursor-grab active:cursor-grabbing touch-pan-y"
     onpointerdown={handlePointerDown}
     onpointerup={handlePointerUp}
     ontouchstart={handleTouchStart}
