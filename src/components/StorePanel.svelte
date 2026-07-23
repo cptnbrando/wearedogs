@@ -1,3 +1,5 @@
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<!-- svelte-ignore a11y_click_events_have_key_events -->
 <script>
   import { onMount, onDestroy, untrack } from "svelte";
   import { fade, scale, fly } from "svelte/transition";
@@ -234,7 +236,7 @@
           transform: translate3d(${randomShiftX}px, ${randomShiftY}px, 0) skewX(${randomSkew}deg);
           filter: drop-shadow(${randomRed}px 0 0 rgba(239, 68, 68, 0.6)) drop-shadow(${randomCyan}px 0 0 rgba(16, 185, 129, 0.6));
         `;
-      }
+      },
     };
   }
 
@@ -254,7 +256,7 @@
           transform: translate3d(${randomShiftX}px, ${randomShiftY}px, 0) skewX(${randomSkew}deg);
           filter: drop-shadow(${randomRed}px 0 0 rgba(239, 68, 68, 0.6)) drop-shadow(${randomCyan}px 0 0 rgba(16, 185, 129, 0.6));
         `;
-      }
+      },
     };
   }
 
@@ -901,6 +903,8 @@
       onpointerup={handleWorkspacePointerUp}
       ontouchstart={handleWorkspaceTouchStart}
       ontouchend={handleWorkspaceTouchEnd}
+      role="region"
+      aria-label="Store Catalog Panel"
     >
       {#if currentStoreMode === "merch"}
         <div
@@ -1577,7 +1581,7 @@
 
                     <hr class="border-zinc-850 my-2" />
 
-                    <!-- GoFundMe & CashApp buttons immediately underneath -->
+                    <!-- Donation & Social Link Buttons -->
                     {#if selectedCampaign.goFundMeUrl}
                       <div class="mb-3 mt-3">
                         <a
@@ -1591,8 +1595,23 @@
                       </div>
                     {/if}
 
+                    {#if selectedCampaign.venmoUrl}
+                      <div class="mb-3">
+                        <a
+                          href={selectedCampaign.venmoUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="w-full py-3.5 bg-[#008CFF] hover:bg-[#0074D9] text-white font-black rounded-xl text-xs tracking-widest transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-blue-900/20 cursor-pointer text-center"
+                        >
+                          💙 SECURE DONATE VIA VENMO (@{selectedCampaign.venmoUrl.substring(
+                            selectedCampaign.venmoUrl.lastIndexOf("/") + 1,
+                          )})
+                        </a>
+                      </div>
+                    {/if}
+
                     {#if selectedCampaign.cashAppUrl}
-                      <div class="mb-4">
+                      <div class="mb-3">
                         <a
                           href={selectedCampaign.cashAppUrl}
                           target="_blank"
@@ -1602,6 +1621,38 @@
                           🟢 SECURE DONATE VIA CASH APP ({selectedCampaign.cashAppUrl.substring(
                             selectedCampaign.cashAppUrl.lastIndexOf("/") + 1,
                           )})
+                        </a>
+                      </div>
+                    {/if}
+
+                    {#if selectedCampaign.petitionUrl}
+                      <div class="mb-3">
+                        <a
+                          href={selectedCampaign.petitionUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="w-full py-3.5 bg-[#EC2C22] hover:bg-[#D61E15] text-white font-black rounded-xl text-xs tracking-widest transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-red-900/20 cursor-pointer text-center"
+                        >
+                          ✍️ SIGN THE CHANGE.ORG PETITION
+                        </a>
+                      </div>
+                    {/if}
+
+                    {#if selectedCampaign.instagramUrl}
+                      <div class="mb-4">
+                        <a
+                          href={selectedCampaign.instagramUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="w-full py-3.5 bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F56040] hover:opacity-95 text-white font-black rounded-xl text-xs tracking-widest transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-pink-900/20 cursor-pointer text-center"
+                        >
+                          📸 FOLLOW ON INSTAGRAM (@{selectedCampaign.instagramUrl
+                            .replace(/\/$/, "")
+                            .substring(
+                              selectedCampaign.instagramUrl
+                                .replace(/\/$/, "")
+                                .lastIndexOf("/") + 1,
+                            )})
                         </a>
                       </div>
                     {/if}
@@ -1660,10 +1711,11 @@
                                 handleBlastEm(selectedCampaign.contactReps)}
                               class="w-full py-4 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-black font-black rounded-xl text-xs sm:text-sm tracking-widest uppercase transition-all duration-200 flex items-center justify-center gap-2 shadow-xl shadow-emerald-950/40 hover:scale-[1.01] active:scale-[0.99] cursor-pointer text-center"
                             >
+                              💌
                               {#if selectedCampaign.id === "browser-age-api"}
-                                ✉️ SEND PETITION EMAIL (CONTACT ALL)
+                                SEND PETITION EMAIL (CONTACT ALL)
                               {:else}
-                                🔫 BLAST 'EM (EMAIL ALL LAWMAKERS)
+                                BLAST 'EM (EMAIL ALL LAWMAKERS)
                               {/if}
                             </button>
                           {:else}
@@ -1676,10 +1728,11 @@
                               class="w-full py-3 px-4 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-black font-black rounded-xl text-xs sm:text-sm tracking-widest uppercase transition-all duration-200 flex flex-col items-center justify-center gap-0.5 shadow-xl shadow-emerald-950/40 hover:scale-[1.01] active:scale-[0.99] cursor-pointer text-center disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               <span class="flex items-center gap-1.5">
+                                💌
                                 {#if selectedCampaign.id === "browser-age-api"}
-                                  ✉️ SEND PETITION ({selectedReps.length})
+                                  SEND PETITION ({selectedReps.length})
                                 {:else}
-                                  🔫 SEND MAIL ({selectedReps.length})
+                                  SEND MAIL ({selectedReps.length})
                                 {/if}
                               </span>
                               <span
@@ -1892,9 +1945,24 @@
                         </div>
                       {/if}
 
+                      {#if selectedCampaign.venmoUrl}
+                        <div class="mb-3">
+                          <a
+                            href={selectedCampaign.venmoUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="w-full py-3.5 bg-[#008CFF] hover:bg-[#0074D9] text-white font-black rounded-xl text-xs tracking-widest transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-blue-900/20 cursor-pointer text-center"
+                          >
+                            💙 SECURE DONATE VIA VENMO (@{selectedCampaign.venmoUrl.substring(
+                              selectedCampaign.venmoUrl.lastIndexOf("/") + 1,
+                            )})
+                          </a>
+                        </div>
+                      {/if}
+
                       <!-- Cash App Link button -->
                       {#if selectedCampaign.cashAppUrl}
-                        <div class="mb-4">
+                        <div class="mb-3">
                           <a
                             href={selectedCampaign.cashAppUrl}
                             target="_blank"
@@ -1904,6 +1972,38 @@
                             🟢 SECURE DONATE VIA CASH APP ({selectedCampaign.cashAppUrl.substring(
                               selectedCampaign.cashAppUrl.lastIndexOf("/") + 1,
                             )})
+                          </a>
+                        </div>
+                      {/if}
+
+                      {#if selectedCampaign.petitionUrl}
+                        <div class="mb-3">
+                          <a
+                            href={selectedCampaign.petitionUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="w-full py-3.5 bg-[#EC2C22] hover:bg-[#D61E15] text-white font-black rounded-xl text-xs tracking-widest transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-red-900/20 cursor-pointer text-center"
+                          >
+                            ✍️ SIGN THE CHANGE.ORG PETITION
+                          </a>
+                        </div>
+                      {/if}
+
+                      {#if selectedCampaign.instagramUrl}
+                        <div class="mb-4">
+                          <a
+                            href={selectedCampaign.instagramUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="w-full py-3.5 bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F56040] hover:opacity-95 text-white font-black rounded-xl text-xs tracking-widest transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-pink-900/20 cursor-pointer text-center"
+                          >
+                            📸 FOLLOW ON INSTAGRAM (@{selectedCampaign.instagramUrl
+                              .replace(/\/$/, "")
+                              .substring(
+                                selectedCampaign.instagramUrl
+                                  .replace(/\/$/, "")
+                                  .lastIndexOf("/") + 1,
+                              )})
                           </a>
                         </div>
                       {/if}
