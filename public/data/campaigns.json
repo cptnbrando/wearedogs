@@ -1,5 +1,69 @@
 [
   {
+    "id": "save-texas-hemp",
+    "title": "KEEP MARIJUANA & HEMP IN TEXAS",
+    "status": "active",
+    "goal": "$100,000",
+    "raised": "$0",
+    "bioUrl": "/fundraiser/texas-marijuana.txt",
+    "description": "The State of Texas is attempting to ban low-dose consumable hemp & cannabis beverages (5mg & 10mg THC products). Join us to fight the prohibition ban, email Texas state representatives & senators directly, protect consumer freedom, and fund the legal groundwork for Texas's first official adult-use cannabis dispensary store!",
+    "images": [
+      "https://images.unsplash.com/photo-1536939459926-301728717817?w=1200&q=80",
+      "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1200&q=80"
+    ],
+    "media": [
+      {
+        "type": "image",
+        "url": "https://images.unsplash.com/photo-1536939459926-301728717817?w=1200&q=80"
+      },
+      {
+        "type": "image",
+        "url": "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1200&q=80"
+      }
+    ],
+    "milestones": [
+      {
+        "label": "Texas Representative Mass Email Action",
+        "percentage": 10,
+        "achieved": true
+      },
+      {
+        "label": "Stripe Payment Gateway Integration",
+        "percentage": 25,
+        "achieved": false
+      },
+      {
+        "label": "Texas Hemp & Cannabis Legal Defense Fund",
+        "percentage": 60,
+        "achieved": false
+      },
+      {
+        "label": "First Legal Adult-Use Dispensary Lease in TX",
+        "percentage": 100,
+        "achieved": false
+      }
+    ],
+    "donationsStatus": "coming_soon",
+    "contactReps": {
+      "subject": "URGENT CONSTITUENT NOTICE: OPPOSE CANNABIS & HEMP BEVERAGE BAN IN TEXAS",
+      "emails": [
+        "dan.patrick@ltgov.texas.gov",
+        "speaker@house.texas.gov",
+        "senator.bettencourt@senate.texas.gov",
+        "senator.creighton@senate.texas.gov",
+        "senator.hall@senate.texas.gov",
+        "senator.huffman@senate.texas.gov",
+        "senator.hughes@senate.texas.gov",
+        "senator.kolkhorst@senate.texas.gov",
+        "senator.middleton@senate.texas.gov",
+        "senator.perry@senate.texas.gov",
+        "senator.schwertner@senate.texas.gov",
+        "senator.zaffirini@senate.texas.gov"
+      ],
+      "body": "Dear Honorable Texas Lawmaker,\n\nI am writing as a concerned Texas voter to express my strong opposition to any proposed bans or criminalization of low-dose consumable hemp and cannabis beverages (including 5mg and 10mg Delta-9 THC products) in Texas.\n\nMillions of Texans responsibly choose these lab-tested beverages as a safer alternative to alcohol and prescription medications. Banning these products will ruin hundreds of Texas small businesses, eliminate thousands of jobs, strip away vital tax revenue, and infringe on personal freedoms.\n\nRather than passing prohibition, Texas should enact sensible regulations and support opening Texas's first official legal adult-use cannabis dispensaries.\n\nPlease vote NO on any consumable hemp ban and stand up for Texas consumer choice and economic freedom!\n\nSincerely,\nA Concerned Texas Citizen & Voter"
+    }
+  },
+  {
     "id": "justice-for-rusty",
     "title": "Justice for Rusty",
     "status": "active",

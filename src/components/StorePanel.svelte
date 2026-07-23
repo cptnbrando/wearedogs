@@ -238,6 +238,34 @@
       });
   }
 
+  // Email Lawmakers Action System
+  let showEmailCopiedAlert = $state(false);
+  let showRepsList = $state(false);
+  let emailCopyTimeout = null;
+
+  function handleEmailReps(contactReps) {
+    if (!contactReps || !contactReps.emails) return;
+    const mailtoUrl = `mailto:?bcc=${encodeURIComponent(contactReps.emails.join(","))}&subject=${encodeURIComponent(contactReps.subject)}&body=${encodeURIComponent(contactReps.body)}`;
+    window.location.href = mailtoUrl;
+  }
+
+  function handleCopyRepsEmails(emails) {
+    if (!emails || emails.length === 0) return;
+    navigator.clipboard
+      .writeText(emails.join(", "))
+      .then(() => {
+        showEmailCopiedAlert = true;
+        if (emailCopyTimeout) clearTimeout(emailCopyTimeout);
+        emailCopyTimeout = setTimeout(() => {
+          showEmailCopiedAlert = false;
+        }, 2000);
+      })
+      .catch((err) => {
+        console.error("Failed to copy emails:", err);
+      });
+  }
+
+
   // Load products and campaigns on mount
   onMount(async () => {
     try {
@@ -1205,6 +1233,54 @@
                         ></div>
                       </div>
 
+                      <!-- Representative Contact Tool (if available) -->
+                      {#if selectedCampaign.contactReps}
+                        <div class="mb-4 flex flex-col gap-2.5">
+                          <button
+                            onclick={() => handleEmailReps(selectedCampaign.contactReps)}
+                            class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-black font-black rounded-xl text-xs tracking-widest transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-emerald-900/25 cursor-pointer text-center"
+                          >
+                            📩 EMAIL ALL TEXAS LAWMAKERS NOW
+                          </button>
+
+                          <div class="flex gap-2">
+                            <button
+                              onclick={() => handleCopyRepsEmails(selectedCampaign.contactReps.emails)}
+                              class="flex-1 py-2.5 bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-300 hover:text-white font-bold rounded-lg text-[11px] tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                            >
+                              📋 COPY LAWMAKER EMAILS
+                            </button>
+                            <button
+                              onclick={() => (showRepsList = !showRepsList)}
+                              class="px-3 py-2.5 bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-400 hover:text-white font-mono text-[11px] rounded-lg transition-all cursor-pointer"
+                            >
+                              {showRepsList ? "HIDE EMAILS ▲" : `REPS (${selectedCampaign.contactReps.emails.length}) ▼`}
+                            </button>
+                          </div>
+
+                          {#if showRepsList}
+                            <div transition:fade={{ duration: 150 }} class="p-3 bg-zinc-950/90 border border-zinc-800 rounded-xl text-[10px] font-mono text-zinc-400 max-h-36 overflow-y-auto custom-scrollbar flex flex-col gap-1">
+                              <span class="font-bold text-zinc-300 uppercase tracking-widest mb-1">Target Texas Representatives & Officials:</span>
+                              {#each selectedCampaign.contactReps.emails as email}
+                                <div class="select-all hover:text-white transition-colors">{email}</div>
+                              {/each}
+                            </div>
+                          {/if}
+                        </div>
+                      {/if}
+
+                      <!-- Donations Status / Pending Notice -->
+                      {#if selectedCampaign.donationsStatus === "coming_soon"}
+                        <div class="mb-4 p-3.5 bg-amber-950/30 border border-amber-500/40 rounded-xl text-amber-300 font-mono text-xs flex flex-col gap-1.5 shadow-lg">
+                          <div class="flex items-center gap-2 font-bold text-amber-400">
+                            <span class="text-base">💳</span> DONATIONS CURRENTLY INACTIVE
+                          </div>
+                          <p class="text-[11px] text-amber-200/80 leading-relaxed font-sans">
+                            Stripe payment gateway integration is currently being configured for this campaign. Direct financial contributions are not active yet. In the meantime, please use the button above to email Texas lawmakers directly!
+                          </p>
+                        </div>
+                      {/if}
+
                       <!-- GoFundMe Link button (if exists) -->
                       {#if selectedCampaign.goFundMeUrl}
                         <div class="mb-3">
@@ -1417,6 +1493,15 @@
         class="absolute bottom-6 left-1/2 -translate-x-1/2 bg-zinc-950/90 text-red-500 font-extrabold text-[10px] sm:text-xs uppercase tracking-widest px-4 py-2.5 rounded-xl shadow-2xl border border-red-500/40 z-50 flex items-center gap-2"
       >
         <span>✓ SHARE LINK COPIED</span>
+      </div>
+    {/if}
+
+    {#if showEmailCopiedAlert}
+      <div
+        transition:fade={{ duration: 150 }}
+        class="absolute bottom-6 left-1/2 -translate-x-1/2 bg-zinc-950/90 text-emerald-400 font-extrabold text-[10px] sm:text-xs uppercase tracking-widest px-4 py-2.5 rounded-xl shadow-2xl border border-emerald-500/40 z-50 flex items-center gap-2"
+      >
+        <span>✓ LAWMAKER EMAILS COPIED</span>
       </div>
     {/if}
   </div>
