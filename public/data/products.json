@@ -1,5 +1,20 @@
 [
   {
+    "id": "fight-the-ceo",
+    "title": "FIGHT THE CEO",
+    "price": "$50,000",
+    "description": "Price does NOT include 1st class round-trip flight tickets. Purchaser must provide 1st class airfare for both parties to meet at an agreed duel location (preferably somewhere tropical like Fiji). Choose your battle mode: Mixed Martial Arts (bareknuckle or gloves), Pool Noodle Lightsabers, Nunchucks, or Baseball Bats (provided full protective sparring gear is available). 100% of proceeds directly fund legal defense and dog rescue operations worldwide.",
+    "sizes": [
+      "MMA (Bareknuckle / Gloves)",
+      "Pool Noodle Lightsabers",
+      "Nunchucks Duel",
+      "Baseball Bats (w/ Sparring Gear)"
+    ],
+    "inStock": true,
+    "image": "https://images.unsplash.com/photo-1549719386-74dfcbf7dbed?w=800&q=80",
+    "checkoutUrl": "https://cash.app/$cptnbrando"
+  },
+  {
     "id": "1",
     "title": "WOOF CLASSIC T-SHIRT",
     "price": "$29.99",
@@ -21,7 +36,7 @@
       "5XL",
       "6XL"
     ],
-    "inStock": true,
+    "inStock": false,
     "image": "/images/classic-tshirt.png",
     "checkoutUrl": "https://cash.app/$cptnbrando"
   },

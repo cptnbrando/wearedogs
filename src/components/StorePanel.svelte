@@ -240,18 +240,20 @@
 
   // Texas Representatives Geolocation & Metadata Mapping
   const TEXAS_REPS_META = [
-    { email: "dan.patrick@ltgov.texas.gov", name: "Lt. Gov. Dan Patrick", title: "President of the Senate", region: "Statewide / Austin", lat: 30.2747, lng: -97.7404 },
-    { email: "speaker@house.texas.gov", name: "Speaker of the House", title: "House Speaker", region: "Statewide / Austin", lat: 30.2747, lng: -97.7404 },
-    { email: "senator.bettencourt@senate.texas.gov", name: "Sen. Paul Bettencourt", title: "District 7", region: "Houston", lat: 29.7604, lng: -95.3698 },
-    { email: "senator.creighton@senate.texas.gov", name: "Sen. Brandon Creighton", title: "District 4", region: "Conroe / The Woodlands", lat: 30.3119, lng: -95.4560 },
-    { email: "senator.hall@senate.texas.gov", name: "Sen. Bob Hall", title: "District 2", region: "Rockwall / East TX", lat: 32.9312, lng: -96.4597 },
-    { email: "senator.huffman@senate.texas.gov", name: "Sen. Joan Huffman", title: "District 17", region: "Houston / Brazoria", lat: 29.5636, lng: -95.2750 },
-    { email: "senator.hughes@senate.texas.gov", name: "Sen. Bryan Hughes", title: "District 1", region: "Tyler / East TX", lat: 32.3513, lng: -95.3011 },
-    { email: "senator.kolkhorst@senate.texas.gov", name: "Sen. Lois Kolkhorst", title: "District 18", region: "Brenham / Victoria", lat: 30.1669, lng: -96.3977 },
-    { email: "senator.middleton@senate.texas.gov", name: "Sen. Mayes Middleton", title: "District 11", region: "Galveston / Gulf Coast", lat: 29.3013, lng: -94.7977 },
+    { email: "dan.patrick@ltgov.texas.gov", name: "Lt. Gov. Dan Patrick", title: "President of the Senate", region: "Statewide / Austin Capitol", lat: 30.2747, lng: -97.7404 },
+    { email: "speaker@house.texas.gov", name: "Speaker of the House", title: "House Speaker", region: "Statewide / Austin Capitol", lat: 30.2747, lng: -97.7404 },
+    { email: "senator.johnson@senate.texas.gov", name: "Sen. Nathan Johnson", title: "District 16", region: "Dallas City / DFW Metro", lat: 32.7767, lng: -96.7970 },
+    { email: "senator.west@senate.texas.gov", name: "Sen. Royce West", title: "District 23", region: "Dallas County / DFW Metro", lat: 32.7300, lng: -96.8200 },
+    { email: "senator.hall@senate.texas.gov", name: "Sen. Bob Hall", title: "District 2", region: "Dallas Suburbs / Rockwall", lat: 32.9312, lng: -96.4597 },
+    { email: "senator.bettencourt@senate.texas.gov", name: "Sen. Paul Bettencourt", title: "District 7", region: "Houston Metro", lat: 29.7604, lng: -95.3698 },
+    { email: "senator.huffman@senate.texas.gov", name: "Sen. Joan Huffman", title: "District 17", region: "Houston / Fort Bend", lat: 29.5636, lng: -95.2750 },
+    { email: "senator.creighton@senate.texas.gov", name: "Sen. Brandon Creighton", title: "District 4", region: "North Houston / The Woodlands", lat: 30.3119, lng: -95.4560 },
+    { email: "senator.schwertner@senate.texas.gov", name: "Sen. Charles Schwertner", title: "District 5", region: "Austin Metro / Georgetown", lat: 30.6333, lng: -97.6772 },
+    { email: "senator.zaffirini@senate.texas.gov", name: "Sen. Judith Zaffirini", title: "District 21", region: "San Antonio / Laredo", lat: 27.5306, lng: -99.4803 },
     { email: "senator.perry@senate.texas.gov", name: "Sen. Charles Perry", title: "District 28", region: "Lubbock / West TX", lat: 33.5779, lng: -101.8552 },
-    { email: "senator.schwertner@senate.texas.gov", name: "Sen. Charles Schwertner", title: "District 5", region: "Georgetown / Central TX", lat: 30.6333, lng: -97.6772 },
-    { email: "senator.zaffirini@senate.texas.gov", name: "Sen. Judith Zaffirini", title: "District 21", region: "Laredo / San Antonio", lat: 27.5306, lng: -99.4803 }
+    { email: "senator.hughes@senate.texas.gov", name: "Sen. Bryan Hughes", title: "District 1", region: "Tyler / Longview / East TX", lat: 32.3513, lng: -95.3011 },
+    { email: "senator.middleton@senate.texas.gov", name: "Sen. Mayes Middleton", title: "District 11", region: "Galveston / Gulf Coast", lat: 29.3013, lng: -94.7977 },
+    { email: "senator.kolkhorst@senate.texas.gov", name: "Sen. Lois Kolkhorst", title: "District 18", region: "Brenham / Victoria", lat: 30.1669, lng: -96.3977 }
   ];
 
   // Email Lawmakers Action System
@@ -654,20 +656,6 @@
           </div>
         {/if}
       </div>
-
-      <button
-        class="cart-toggle-btn relative p-2 bg-zinc-900 border border-zinc-800 rounded-lg hover:border-zinc-500 hover:text-white transition-all duration-200 cursor-pointer"
-        onclick={() => (isCartOpen = true)}
-      >
-        <ShoppingCart size={20} />
-        {#if cart.length > 0}
-          <span
-            class="absolute -top-1.5 -right-1.5 bg-red-600 text-white font-bold text-[10px] w-5 h-5 flex items-center justify-center rounded-full animate-pulse"
-          >
-            {cart.reduce((a, b) => a + b.quantity, 0)}
-          </span>
-        {/if}
-      </button>
     </div>
 
     <!-- Main Workspace -->
@@ -681,19 +669,21 @@
         >
           {#if !selectedProduct}
             <!-- WARNING NOTICE BANNER -->
-            <div
-              class="max-w-7xl mx-auto mb-6 p-4 bg-red-950/40 border border-red-500/40 rounded-xl text-red-200 font-mono text-xs flex items-center gap-3 shadow-lg"
-            >
-              <span class="text-xl select-none">⚠️</span>
-              <div>
-                <span class="font-bold text-red-400 uppercase tracking-wider block text-xs sm:text-sm">
-                  NOTHING FOR SALE RIGHT NOW
-                </span>
-                <span class="text-[11px] text-zinc-400 font-sans mt-0.5 block">
-                  All official merchandise is currently out of stock or unavailable. Please check back later or visit our active Fundraisers tab!
-                </span>
+            {#if !products.some((p) => p.inStock)}
+              <div
+                class="max-w-7xl mx-auto mb-6 p-4 bg-red-950/40 border border-red-500/40 rounded-xl text-red-200 font-mono text-xs flex items-center gap-3 shadow-lg"
+              >
+                <span class="text-xl select-none">⚠️</span>
+                <div>
+                  <span class="font-bold text-red-400 uppercase tracking-wider block text-xs sm:text-sm">
+                    NOTHING FOR SALE RIGHT NOW
+                  </span>
+                  <span class="text-[11px] text-zinc-400 font-sans mt-0.5 block">
+                    All official merchandise is currently out of stock or unavailable. Please check back later or visit our active Fundraisers tab!
+                  </span>
+                </div>
               </div>
-            </div>
+            {/if}
 
             <!-- MERCHANDISE GRID VIEW -->
             <div
@@ -720,13 +710,18 @@
                   <!-- svelte-ignore a11y_click_events_have_key_events -->
                   <!-- svelte-ignore a11y_no_static_element_interactions -->
                   <div
-                    class="aspect-square bg-black/20 border-b border-zinc-800/60 flex flex-col items-center justify-center relative cursor-pointer"
+                    class="aspect-square bg-black/20 border-b border-zinc-800/60 flex flex-col items-center justify-center relative cursor-pointer overflow-hidden"
                     onclick={() => product.inStock && selectProduct(product)}
                   >
-                    <div
-                      class="w-24 h-24 text-zinc-700 group-hover:text-zinc-500 transition-colors duration-300 flex items-center justify-center"
-                    >
-                      {#if product.title.includes("T-SHIRT")}
+                    {#if product.image && product.image.startsWith("http")}
+                      <img src={product.image} alt={product.title} class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                    {:else}
+                      <div
+                        class="w-24 h-24 text-zinc-700 group-hover:text-zinc-500 transition-colors duration-300 flex items-center justify-center"
+                      >
+                        {#if product.title.includes("FIGHT") || product.title.includes("CEO")}
+                          <span class="text-5xl select-none">🥊</span>
+                        {:else if product.title.includes("T-SHIRT")}
                         <svg
                           viewBox="0 0 24 24"
                           class="w-16 h-16 fill-none stroke-current"
@@ -776,6 +771,7 @@
                         </svg>
                       {/if}
                     </div>
+                    {/if}
                     <span
                       class="absolute bottom-3 text-[10px] text-zinc-500 font-bold tracking-widest"
                       >WEAREDOGS LABS</span
@@ -864,7 +860,7 @@
                     <div class="mt-4 sm:mt-6">
                       <span
                         class="text-xs font-semibold text-zinc-500 uppercase tracking-widest block mb-2"
-                        >SELECT SIZE</span
+                        >{selectedProduct.title.includes("FIGHT") || selectedProduct.title.includes("CEO") ? "SELECT COMBAT STYLE / WEAPON" : "SELECT SIZE"}</span
                       >
                       <div class="flex flex-wrap gap-2">
                         {#each selectedProduct.sizes as size}
@@ -990,60 +986,62 @@
               </div>
 
               <!-- Completed Campaigns Section -->
-              <div>
-                <h2
-                  class="text-sm font-bold text-zinc-500 tracking-widest uppercase mb-4 border-b border-zinc-850 pb-2"
-                >
-                  ✓ COMPLETED CAMPAIGNS
-                </h2>
-                <div
-                  class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 opacity-75 hover:opacity-100 transition-opacity duration-200"
-                >
-                  {#each campaigns.filter((c) => c.status === "completed") as campaign}
-                    <!-- svelte-ignore a11y_click_events_have_key_events -->
-                    <!-- svelte-ignore a11y_no_static_element_interactions -->
-                    <div
-                      class="bg-zinc-900/20 border border-zinc-900 hover:border-zinc-800 rounded-xl p-4 flex flex-col justify-between cursor-pointer transition-all duration-300 group"
-                      onclick={() => selectCampaign(campaign)}
-                    >
-                      <div>
-                        <div
-                          class="aspect-video w-full rounded-lg overflow-hidden bg-black/45 border border-zinc-900 mb-3 relative grayscale"
-                        >
-                          <img
-                            src={campaign.images[0]}
-                            alt={campaign.title}
-                            class="w-full h-full object-cover"
-                          />
-                          <span
-                            class="absolute top-2 left-2 px-1.5 py-0.5 bg-orange-600 text-white font-bold font-mono text-[9px] tracking-widest uppercase rounded"
-                            >COMPLETED</span
+              {#if campaigns.some((c) => c.status === "completed")}
+                <div>
+                  <h2
+                    class="text-sm font-bold text-zinc-500 tracking-widest uppercase mb-4 border-b border-zinc-850 pb-2"
+                  >
+                    ✓ COMPLETED CAMPAIGNS
+                  </h2>
+                  <div
+                    class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 opacity-75 hover:opacity-100 transition-opacity duration-200"
+                  >
+                    {#each campaigns.filter((c) => c.status === "completed") as campaign}
+                      <!-- svelte-ignore a11y_click_events_have_key_events -->
+                      <!-- svelte-ignore a11y_no_static_element_interactions -->
+                      <div
+                        class="bg-zinc-900/20 border border-zinc-900 hover:border-zinc-800 rounded-xl p-4 flex flex-col justify-between cursor-pointer transition-all duration-300 group"
+                        onclick={() => selectCampaign(campaign)}
+                      >
+                        <div>
+                          <div
+                            class="aspect-video w-full rounded-lg overflow-hidden bg-black/45 border border-zinc-900 mb-3 relative grayscale"
                           >
+                            <img
+                              src={campaign.images[0]}
+                              alt={campaign.title}
+                              class="w-full h-full object-cover"
+                            />
+                            <span
+                              class="absolute top-2 left-2 px-1.5 py-0.5 bg-orange-600 text-white font-bold font-mono text-[9px] tracking-widest uppercase rounded"
+                              >COMPLETED</span
+                            >
+                          </div>
+                          <h3
+                            class="font-bold text-sm text-zinc-400 group-hover:text-white uppercase transition-colors"
+                          >
+                            {campaign.title}
+                          </h3>
+                          <p class="text-xs text-zinc-650 line-clamp-2 mt-1.5">
+                            {campaign.description}
+                          </p>
                         </div>
-                        <h3
-                          class="font-bold text-sm text-zinc-400 group-hover:text-white uppercase transition-colors"
-                        >
-                          {campaign.title}
-                        </h3>
-                        <p class="text-xs text-zinc-650 line-clamp-2 mt-1.5">
-                          {campaign.description}
-                        </p>
-                      </div>
 
-                      <div class="mt-4 pt-3 border-t border-zinc-900">
-                        <div
-                          class="flex justify-between items-center text-[10px] font-mono text-zinc-500"
-                        >
-                          <span>Funded: 100%+</span>
-                          <span class="text-emerald-500 font-bold"
-                            >{campaign.raised} raised</span
+                        <div class="mt-4 pt-3 border-t border-zinc-900">
+                          <div
+                            class="flex justify-between items-center text-[10px] font-mono text-zinc-500"
                           >
+                            <span>Funded: 100%+</span>
+                            <span class="text-emerald-500 font-bold"
+                              >{campaign.raised} raised</span
+                            >
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  {/each}
+                    {/each}
+                  </div>
                 </div>
-              </div>
+              {/if}
             </div>
           {:else}
             {@const raisedNum = parseFloat(
@@ -1347,13 +1345,28 @@
                       <!-- Representative Contact Tool (if available) -->
                       {#if selectedCampaign.contactReps}
                         <div class="mb-4 flex flex-col gap-2.5">
-                          <!-- BLAST 'EM Primary Action Button -->
-                          <button
-                            onclick={() => handleBlastEm(selectedCampaign.contactReps)}
-                            class="w-full py-4 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-black font-black rounded-xl text-xs sm:text-sm tracking-widest uppercase transition-all duration-200 flex items-center justify-center gap-2 shadow-xl shadow-emerald-950/40 hover:scale-[1.01] active:scale-[0.99] cursor-pointer text-center"
-                          >
-                            💥 BLAST 'EM (EMAIL ALL LAWMAKERS)
-                          </button>
+                          <!-- BLAST 'EM / SEND MAIL Primary Action Button -->
+                          {#if !showSortMailPanel}
+                            <button
+                              onclick={() => handleBlastEm(selectedCampaign.contactReps)}
+                              class="w-full py-4 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-black font-black rounded-xl text-xs sm:text-sm tracking-widest uppercase transition-all duration-200 flex items-center justify-center gap-2 shadow-xl shadow-emerald-950/40 hover:scale-[1.01] active:scale-[0.99] cursor-pointer text-center"
+                            >
+                              🔫 BLAST 'EM (EMAIL ALL LAWMAKERS)
+                            </button>
+                          {:else}
+                            <button
+                              onclick={() => handleEmailSelected(selectedCampaign.contactReps)}
+                              disabled={selectedReps.length === 0}
+                              class="w-full py-3 px-4 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-black font-black rounded-xl text-xs sm:text-sm tracking-widest uppercase transition-all duration-200 flex flex-col items-center justify-center gap-0.5 shadow-xl shadow-emerald-950/40 hover:scale-[1.01] active:scale-[0.99] cursor-pointer text-center disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              <span class="flex items-center gap-1.5">
+                                🔫 SEND MAIL ({selectedReps.length})
+                              </span>
+                              <span class="text-[10px] font-mono text-zinc-950/80 font-semibold normal-case tracking-normal truncate max-w-full px-2">
+                                {selectedReps.length > 0 ? selectedReps.join(", ") : "No emails selected"}
+                              </span>
+                            </button>
+                          {/if}
 
                           <!-- Secondary Tool Buttons -->
                           <div class="flex gap-2">
@@ -1425,13 +1438,7 @@
                                   <!-- svelte-ignore a11y_no_static_element_interactions -->
                                   <div
                                     onclick={() => handleToggleRep(email)}
-                                    class="flex items-center gap-2.5 p-2 rounded-lg border transition-all cursor-pointer select-none text-[11px]"
-                                    class:bg-emerald-950\/30={isChecked}
-                                    class:border-emerald-500\/40={isChecked}
-                                    class:text-zinc-100={isChecked}
-                                    class:bg-zinc-900\/40={!isChecked}
-                                    class:border-zinc-850={!isChecked}
-                                    class:text-zinc-400={!isChecked}
+                                    class="flex items-center gap-2.5 p-2 rounded-lg border transition-all cursor-pointer select-none text-[11px] {isChecked ? 'bg-emerald-950/30 border-emerald-500/40 text-zinc-100' : 'bg-zinc-900/40 border-zinc-850 text-zinc-400'}"
                                   >
                                     <input
                                       type="checkbox"

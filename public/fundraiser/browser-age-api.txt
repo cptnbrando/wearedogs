@@ -1,0 +1,21 @@
+BROWSER AGE API PETITION: ADD AGE TO THE WEB BROWSER
+
+PROBLEM: REPETITIVE AGE GATES & PRIVACY DESTRUCTION
+Every day, internet users are forced to manually enter their birthdates or upload sensitive government IDs to third-party websites just to pass age verification gates (18+, 21+, alcohol, adult content, social media, gaming). This creates massive honeypots of personal data, exposes users to identity theft, and creates endless unnecessary friction across the web.
+
+SOLUTION: NATIVE BROWSER AGE API
+We are petitioning the W3C, Google Chrome, Apple WebKit, and Mozilla Firefox teams to implement a native, open Browser Age API directly into the web platform.
+
+HOW THE BROWSER AGE API WORKS:
+1. ONE-TIME SECURE VERIFICATION: You verify your age once inside your web browser using your Google account, Apple Secure Enclave, or government ID.
+2. PRIVACY BY DEFAULT (BIRTH YEAR ONLY): When a standard website requests your age, the browser cryptographically shares ONLY your birth year (or a simple boolean 18+/21+ zero-knowledge proof). Websites never get your exact birth date, full name, or identity.
+3. HIGH-SECURITY PERMISSIONED ACCESS: Only verified high-security institutions (like banks, healthcare providers, or official financial services) can request permissioned access to exact month/day/year.
+4. ZERO-KNOWLEDGE CRYPTOGRAPHIC ATTESTATION: The browser signs cryptographic attestations verified by trusted issuers (e.g. Google, Apple, or government ID providers) without transmitting raw personal documentation to third parties.
+
+WE ARE TAKING ACTION TO:
+1. Rally web developers, privacy advocates, and internet users to sign the petition urging major browser vendors (Google, Apple, Mozilla, W3C) to standardize navigator.age.
+2. Build an open-source Browser Extension Prototype & Zero-Knowledge Cryptographic SDK demonstrating seamless, private age attestation.
+3. Submit formal legislative and W3C web standards proposals for privacy-preserving browser-level age verification.
+
+HOW YOU CAN HELP IMMEDIATELY:
+Tap the "BLAST 'EM" or "SEND MAIL" button below to email key web standards committees, major browser engineering leads, and digital privacy organizations. Your voice will demand a safer, more private, and seamless web for everyone!

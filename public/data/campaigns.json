@@ -49,9 +49,11 @@
       "emails": [
         "dan.patrick@ltgov.texas.gov",
         "speaker@house.texas.gov",
+        "senator.johnson@senate.texas.gov",
+        "senator.west@senate.texas.gov",
+        "senator.hall@senate.texas.gov",
         "senator.bettencourt@senate.texas.gov",
         "senator.creighton@senate.texas.gov",
-        "senator.hall@senate.texas.gov",
         "senator.huffman@senate.texas.gov",
         "senator.hughes@senate.texas.gov",
         "senator.kolkhorst@senate.texas.gov",
@@ -207,6 +209,65 @@
         "achieved": false
       }
     ],
+    "cashAppUrl": "https://cash.app/$cptnbrando"
+  },
+  {
+    "id": "browser-age-api",
+    "title": "BROWSER AGE API PETITION: ADD AGE TO THE BROWSER",
+    "status": "active",
+    "goal": "$50,000",
+    "raised": "$12,350",
+    "bioUrl": "/fundraiser/browser-age-api.txt",
+    "description": "A petition & web standard advocacy campaign to add a native Browser Age API to web browsers (Chrome, Safari, Firefox). Users verify their identity once in the browser (via Google, Apple Secure Enclave, or ID), and browsers cryptographically share zero-knowledge age verification. By default, it delivers just the birth year (or 18+/21+ proof) to websites. Only high-security services (like banks) can request permissioned access to exact month and day—ending repetitive age gates, honeypots, and data tracking forever!",
+    "images": [
+      "https://images.unsplash.com/photo-1563986768609-322da13575f3?w=1200&q=80",
+      "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=1200&q=80"
+    ],
+    "media": [
+      {
+        "type": "image",
+        "url": "https://images.unsplash.com/photo-1563986768609-322da13575f3?w=1200&q=80"
+      },
+      {
+        "type": "image",
+        "url": "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=1200&q=80"
+      }
+    ],
+    "milestones": [
+      {
+        "label": "W3C Specification Draft for Browser Age API",
+        "percentage": 25,
+        "achieved": true
+      },
+      {
+        "label": "Open-Source Browser Extension Prototype & ZK SDK",
+        "percentage": 50,
+        "achieved": false
+      },
+      {
+        "label": "Petition Delivery to W3C, Chrome, Mozilla & WebKit Teams",
+        "percentage": 75,
+        "achieved": false
+      },
+      {
+        "label": "Global Browser Integration & Regulatory Standard",
+        "percentage": 100,
+        "achieved": false
+      }
+    ],
+    "donationsStatus": "coming_soon",
+    "contactReps": {
+      "subject": "PETITION: IMPLEMENT NATIVE BROWSER AGE API (ZERO-KNOWLEDGE AGE VERIFICATION STANDARD)",
+      "emails": [
+        "w3c-contact@w3.org",
+        "privacy@chromium.org",
+        "firefox-privacy@mozilla.org",
+        "webkit-privacy@apple.com",
+        "contact@ftc.gov",
+        "privacy@eff.org"
+      ],
+      "body": "To W3C Web Standards Committees, Major Browser Engineers, and Digital Rights Regulators,\n\nI am signing this petition and constituent demand to standardize a privacy-first Browser Age API across modern web browsers.\n\nEvery day, internet users are forced to manually enter their birthdates or upload sensitive government IDs to third-party websites just to pass age verification gates. This creates massive honeypots of personal data, exposes users to identity theft, and creates unnecessary friction.\n\nWe demand a native, open Browser Age API built directly into web browsers:\n1. ONE-TIME VERIFICATION: Users verify their age once in their browser (via Google, Apple Secure Enclave, or Government ID).\n2. PRIVACY BY DEFAULT: Websites only receive a cryptographically signed birth year or age-gate boolean (e.g. 18+ / 21+) without accessing exact birth dates.\n3. SECURE ZERO-KNOWLEDGE PROOFS: Only high-security institutions (like banks) can request permissioned access to exact month/day/year.\n4. CRYPTOGRAPHIC PROOFS: Eliminate third-party tracking while providing verifiable proof of age.\n\nStop forcing us to re-enter our birthdates everywhere. Add Age to the Browser!\n\nSincerely,\nA Concerned Internet User & Digital Privacy Advocate"
+    },
     "cashAppUrl": "https://cash.app/$cptnbrando"
   }
 ]

@@ -1659,7 +1659,7 @@
 
     <footer class="mp-footer">
       <div class="mp-status">
-        <span class="mp-dot"></span><span>WE ARE DOGS</span>
+        <span class="mp-dot"></span><span>🐕</span>
       </div>
       <span>MUSIC</span>
     </footer>
@@ -2170,7 +2170,9 @@
     background: rgba(0, 0, 0, 0.45);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 6px;
-    transition: border-color 0.2s, background 0.2s;
+    transition:
+      border-color 0.2s,
+      background 0.2s;
 
     .seek-input {
       height: 100% !important;
@@ -2194,7 +2196,10 @@
   .waveform-bar {
     background-color: rgba(255, 255, 255, 0.12);
     border-radius: 9999px;
-    transition: background-color 0.2s, background 0.2s, box-shadow 0.2s;
+    transition:
+      background-color 0.2s,
+      background 0.2s,
+      box-shadow 0.2s;
 
     &.active {
       background: linear-gradient(180deg, #ff007f 0%, #00f0ff 100%);

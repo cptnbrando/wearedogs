@@ -66,8 +66,8 @@
     <!-- Footer / Status Bar -->
     <footer class="panel-footer">
       <div class="sys-status">
-        <span class="status-indicator-green"></span>
-        <span>WE ARE DOGS</span>
+        <!-- <span class="status-indicator-green"></span> -->
+        <!-- <span>🐕</span> -->
       </div>
       <div class="stats-counter">
         <span>DOGS DOGS DOGS</span>
@@ -309,13 +309,13 @@
     font-family: monospace;
   }
 
-  .status-indicator-green {
+  /* .status-indicator-green {
     width: 6px;
     height: 6px;
     background: #00ff66;
     border-radius: 50%;
     display: inline-block;
-  }
+  } */
 
   .stats-counter {
     display: flex;
