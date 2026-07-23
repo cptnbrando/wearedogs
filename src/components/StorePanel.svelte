@@ -688,7 +688,9 @@
 
             <!-- MERCHANDISE GRID VIEW -->
             <div
-              class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 max-w-7xl mx-auto animate-fade-in"
+              class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 max-w-7xl mx-auto"
+              in:fade={{ duration: 200 }}
+              out:fade={{ duration: 150 }}
             >
               {#each products as product}
                 <div
@@ -812,7 +814,9 @@
           {:else}
             <!-- DETAIL VIEW -->
             <div
-              class="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-stretch animate-fade-in"
+              class="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-stretch"
+              in:fly={{ y: 20, duration: 250 }}
+              out:fly={{ y: -15, duration: 180 }}
             >
               <!-- Left: Product Picture Slideshow -->
               <div
