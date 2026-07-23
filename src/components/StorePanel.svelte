@@ -2,6 +2,7 @@
   import { onMount, onDestroy, untrack } from "svelte";
   import { fade, fly } from "svelte/transition";
   import BasePanel from "./BasePanel.svelte";
+  import ProductImageSlideshow from "./apps/ProductImageSlideshow.svelte";
   import ThreeDShirtCanvas from "./apps/ThreeDShirtCanvas.svelte";
   import {
     ShoppingCart,
@@ -813,11 +814,14 @@
             <div
               class="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-start animate-fade-in"
             >
-              <!-- Left: 3D Shirt Canvas -->
+              <!-- Left: Product Picture Slideshow -->
               <div
                 class="w-full aspect-square bg-black/40 border border-zinc-800 rounded-2xl flex items-center justify-center p-4 relative overflow-hidden mx-auto h-auto min-h-[250px] max-h-[300px] sm:min-h-0 sm:max-h-[280px] md:max-h-[340px] lg:max-h-[360px] xl:max-h-[380px] 2xl:max-h-[480px] sm:sticky sm:top-4 md:top-6 lg:top-8"
               >
-                <ThreeDShirtCanvas productTitle={selectedProduct.title} />
+                <ProductImageSlideshow
+                  images={selectedProduct.images || (selectedProduct.image ? [selectedProduct.image] : [])}
+                  productTitle={selectedProduct.title}
+                />
               </div>
 
               <!-- Right: Details -->
