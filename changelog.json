@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1784801638,
+    "firstCommitTimestamp": 1784801973,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 152028
+    "averageLinesAltered": 152162
   },
   "entries": [
     {
       "version": "1.0.2",
       "name": "Master",
       "date": "2026-07-23",
-      "timestamp": 1784801568,
+      "timestamp": 1784801897,
       "commits": [
         {
-          "hash": "33700e9",
-          "message": "feat: implement MapPanel component with city selection, geolocation support, and deep-linking to map spots",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/33700e90d24aed31e25b3acfad54c12be454c215",
-          "timestamp": 1784801638,
-          "linesChanged": 152028
+          "hash": "d48dab3",
+          "message": "map",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/d48dab347d48433f33ef47541ca8149f57082917",
+          "timestamp": 1784801973,
+          "linesChanged": 152162
         }
       ]
     },
