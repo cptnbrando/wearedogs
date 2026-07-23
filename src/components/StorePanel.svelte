@@ -1,6 +1,6 @@
 <script>
   import { onMount, onDestroy, untrack } from "svelte";
-  import { fade, scale } from "svelte/transition";
+  import { fade, scale, fly } from "svelte/transition";
   import BasePanel from "./BasePanel.svelte";
   import ProductImageSlideshow from "./apps/ProductImageSlideshow.svelte";
   import ThreeDShirtCanvas from "./apps/ThreeDShirtCanvas.svelte";
@@ -29,6 +29,7 @@
   let isCartOpen = $state(false);
   let cartHistoryPushed = $state(false);
   let selectedProduct = $state(null);
+  let lastSelectedProductId = $state("");
   let selectedCampaign = $state(null);
   let campaignBioText = $state("");
   let currentStoreMode = $state("fundraising"); // Default to "fundraising" per user requirement
@@ -53,6 +54,12 @@
     "5XL",
     "6XL",
   ];
+
+  $effect(() => {
+    if (selectedProduct) {
+      lastSelectedProductId = selectedProduct.id;
+    }
+  });
 
   // Resolve initial deep links on mount after data is loaded
   $effect(() => {
@@ -131,10 +138,14 @@
         .replace(/'/g, "&#039;");
 
       // Replace custom anchor tags like &lt;a href=&quot;url&quot;&gt;phrase&lt;/a&gt;
-      const customAnchorRegex = /&lt;a href=&quot;(.+?)&quot;&gt;([\s\S]+?)&lt;\/a&gt;/g;
-      const processed = escaped.replace(customAnchorRegex, (match, url, phrase) => {
-        return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-red-500 hover:text-red-400 underline decoration-red-500/30 hover:decoration-red-400 transition-colors duration-200">${phrase}</a>`;
-      });
+      const customAnchorRegex =
+        /&lt;a href=&quot;(.+?)&quot;&gt;([\s\S]+?)&lt;\/a&gt;/g;
+      const processed = escaped.replace(
+        customAnchorRegex,
+        (match, url, phrase) => {
+          return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-red-500 hover:text-red-400 underline decoration-red-500/30 hover:decoration-red-400 transition-colors duration-200">${phrase}</a>`;
+        },
+      );
 
       // Replace URL formats like &lt;https://...&gt; with clickable anchor tags
       const urlRegex = /&lt;(https?:\/\/[^&]+)&gt;/g;
@@ -207,6 +218,104 @@
     };
   }
 
+  function terminalGlitchIn(node, { duration = 180 } = {}) {
+    const randomSkew = (Math.random() * 10 - 5).toFixed(2);
+    const randomShiftX = (Math.random() * 16 - 8).toFixed(1);
+    const randomRed = (Math.random() * 4 - 2).toFixed(0);
+    const randomCyan = -randomRed;
+
+    return {
+      duration,
+      css: (t, u) => `
+        opacity: ${t};
+        transform: translate3d(${randomShiftX * u}px, 0, 0) skewX(${randomSkew * u}deg);
+        filter: drop-shadow(${randomRed * u}px 0 0 rgba(239, 68, 68, ${0.4 * u})) drop-shadow(${randomCyan * u}px 0 0 rgba(16, 185, 129, ${0.4 * u}));
+      `
+    };
+  }
+
+  function terminalGlitchOut(node, { duration = 140 } = {}) {
+    const randomSkew = (Math.random() * 10 - 5).toFixed(2);
+    const randomShiftX = (Math.random() * 16 - 8).toFixed(1);
+
+    return {
+      duration,
+      css: (t, u) => `
+        opacity: ${t};
+        transform: translate3d(${randomShiftX * u}px, 0, 0) skewX(${randomSkew * u}deg);
+      `
+    };
+  }
+
+  function conditionalGlitchIn(node, options) {
+    if (selectedProduct && selectedProduct.id === "fight-the-ceo") {
+      return terminalGlitchIn(node, { duration: 200 });
+    }
+    return fade(node, { duration: 120 });
+  }
+
+  function conditionalGlitchOut(node, options) {
+    if (lastSelectedProductId === "fight-the-ceo") {
+      return terminalGlitchOut(node, { duration: 150 });
+    }
+    return fade(node, { duration: 80 });
+  }
+
+  // Workspace Swiping System
+  let swipeStartX = 0;
+  let swipeStartY = 0;
+  let isSwiping = false;
+
+  function handleWorkspacePointerDown(e) {
+    if (e.button !== 0) return;
+    isSwiping = true;
+    swipeStartX = e.clientX;
+    swipeStartY = e.clientY;
+  }
+
+  function handleWorkspacePointerUp(e) {
+    if (!isSwiping) return;
+    isSwiping = false;
+    const deltaX = e.clientX - swipeStartX;
+    const deltaY = e.clientY - swipeStartY;
+    handleSwipeGesture(deltaX, deltaY);
+  }
+
+  function handleWorkspaceTouchStart(e) {
+    if (e.touches.length === 1) {
+      isSwiping = true;
+      swipeStartX = e.touches[0].clientX;
+      swipeStartY = e.touches[0].clientY;
+    }
+  }
+
+  function handleWorkspaceTouchEnd(e) {
+    if (!isSwiping) return;
+    isSwiping = false;
+    const touch = e.changedTouches[0];
+    if (!touch) return;
+    const deltaX = touch.clientX - swipeStartX;
+    const deltaY = touch.clientY - swipeStartY;
+    handleSwipeGesture(deltaX, deltaY);
+  }
+
+  function handleSwipeGesture(deltaX, deltaY) {
+    if (selectedProduct || selectedCampaign) return;
+    if (Math.abs(deltaX) > 60 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
+      if (deltaX < 0) {
+        if (currentStoreMode === "merch") {
+          currentStoreMode = "fundraising";
+          deselectCampaign();
+        }
+      } else {
+        if (currentStoreMode === "fundraising") {
+          currentStoreMode = "merch";
+          deselectProduct();
+        }
+      }
+    }
+  }
+
   function deselectCampaign() {
     selectedCampaign = null;
     initialCampaignId = null;
@@ -241,20 +350,118 @@
 
   // Texas Representatives Geolocation & Metadata Mapping
   const TEXAS_REPS_META = [
-    { email: "dan.patrick@ltgov.texas.gov", name: "Lt. Gov. Dan Patrick", title: "President of the Senate", region: "Statewide / Austin Capitol", lat: 30.2747, lng: -97.7404 },
-    { email: "speaker@house.texas.gov", name: "Speaker of the House", title: "House Speaker", region: "Statewide / Austin Capitol", lat: 30.2747, lng: -97.7404 },
-    { email: "senator.johnson@senate.texas.gov", name: "Sen. Nathan Johnson", title: "District 16", region: "Dallas City / DFW Metro", lat: 32.7767, lng: -96.7970 },
-    { email: "senator.west@senate.texas.gov", name: "Sen. Royce West", title: "District 23", region: "Dallas County / DFW Metro", lat: 32.7300, lng: -96.8200 },
-    { email: "senator.hall@senate.texas.gov", name: "Sen. Bob Hall", title: "District 2", region: "Dallas Suburbs / Rockwall", lat: 32.9312, lng: -96.4597 },
-    { email: "senator.bettencourt@senate.texas.gov", name: "Sen. Paul Bettencourt", title: "District 7", region: "Houston Metro", lat: 29.7604, lng: -95.3698 },
-    { email: "senator.huffman@senate.texas.gov", name: "Sen. Joan Huffman", title: "District 17", region: "Houston / Fort Bend", lat: 29.5636, lng: -95.2750 },
-    { email: "senator.creighton@senate.texas.gov", name: "Sen. Brandon Creighton", title: "District 4", region: "North Houston / The Woodlands", lat: 30.3119, lng: -95.4560 },
-    { email: "senator.schwertner@senate.texas.gov", name: "Sen. Charles Schwertner", title: "District 5", region: "Austin Metro / Georgetown", lat: 30.6333, lng: -97.6772 },
-    { email: "senator.zaffirini@senate.texas.gov", name: "Sen. Judith Zaffirini", title: "District 21", region: "San Antonio / Laredo", lat: 27.5306, lng: -99.4803 },
-    { email: "senator.perry@senate.texas.gov", name: "Sen. Charles Perry", title: "District 28", region: "Lubbock / West TX", lat: 33.5779, lng: -101.8552 },
-    { email: "senator.hughes@senate.texas.gov", name: "Sen. Bryan Hughes", title: "District 1", region: "Tyler / Longview / East TX", lat: 32.3513, lng: -95.3011 },
-    { email: "senator.middleton@senate.texas.gov", name: "Sen. Mayes Middleton", title: "District 11", region: "Galveston / Gulf Coast", lat: 29.3013, lng: -94.7977 },
-    { email: "senator.kolkhorst@senate.texas.gov", name: "Sen. Lois Kolkhorst", title: "District 18", region: "Brenham / Victoria", lat: 30.1669, lng: -96.3977 }
+    {
+      email: "dan.patrick@ltgov.texas.gov",
+      name: "Lt. Gov. Dan Patrick",
+      title: "President of the Senate",
+      region: "Statewide / Austin Capitol",
+      lat: 30.2747,
+      lng: -97.7404,
+    },
+    {
+      email: "speaker@house.texas.gov",
+      name: "Speaker of the House",
+      title: "House Speaker",
+      region: "Statewide / Austin Capitol",
+      lat: 30.2747,
+      lng: -97.7404,
+    },
+    {
+      email: "senator.johnson@senate.texas.gov",
+      name: "Sen. Nathan Johnson",
+      title: "District 16",
+      region: "Dallas City / DFW Metro",
+      lat: 32.7767,
+      lng: -96.797,
+    },
+    {
+      email: "senator.west@senate.texas.gov",
+      name: "Sen. Royce West",
+      title: "District 23",
+      region: "Dallas County / DFW Metro",
+      lat: 32.73,
+      lng: -96.82,
+    },
+    {
+      email: "senator.hall@senate.texas.gov",
+      name: "Sen. Bob Hall",
+      title: "District 2",
+      region: "Dallas Suburbs / Rockwall",
+      lat: 32.9312,
+      lng: -96.4597,
+    },
+    {
+      email: "senator.bettencourt@senate.texas.gov",
+      name: "Sen. Paul Bettencourt",
+      title: "District 7",
+      region: "Houston Metro",
+      lat: 29.7604,
+      lng: -95.3698,
+    },
+    {
+      email: "senator.huffman@senate.texas.gov",
+      name: "Sen. Joan Huffman",
+      title: "District 17",
+      region: "Houston / Fort Bend",
+      lat: 29.5636,
+      lng: -95.275,
+    },
+    {
+      email: "senator.creighton@senate.texas.gov",
+      name: "Sen. Brandon Creighton",
+      title: "District 4",
+      region: "North Houston / The Woodlands",
+      lat: 30.3119,
+      lng: -95.456,
+    },
+    {
+      email: "senator.schwertner@senate.texas.gov",
+      name: "Sen. Charles Schwertner",
+      title: "District 5",
+      region: "Austin Metro / Georgetown",
+      lat: 30.6333,
+      lng: -97.6772,
+    },
+    {
+      email: "senator.zaffirini@senate.texas.gov",
+      name: "Sen. Judith Zaffirini",
+      title: "District 21",
+      region: "San Antonio / Laredo",
+      lat: 27.5306,
+      lng: -99.4803,
+    },
+    {
+      email: "senator.perry@senate.texas.gov",
+      name: "Sen. Charles Perry",
+      title: "District 28",
+      region: "Lubbock / West TX",
+      lat: 33.5779,
+      lng: -101.8552,
+    },
+    {
+      email: "senator.hughes@senate.texas.gov",
+      name: "Sen. Bryan Hughes",
+      title: "District 1",
+      region: "Tyler / Longview / East TX",
+      lat: 32.3513,
+      lng: -95.3011,
+    },
+    {
+      email: "senator.middleton@senate.texas.gov",
+      name: "Sen. Mayes Middleton",
+      title: "District 11",
+      region: "Galveston / Gulf Coast",
+      lat: 29.3013,
+      lng: -94.7977,
+    },
+    {
+      email: "senator.kolkhorst@senate.texas.gov",
+      name: "Sen. Lois Kolkhorst",
+      title: "District 18",
+      region: "Brenham / Victoria",
+      lat: 30.1669,
+      lng: -96.3977,
+    },
   ];
 
   // Email Lawmakers Action System
@@ -276,9 +483,17 @@
   function getRepInfo(email) {
     const meta = TEXAS_REPS_META.find((r) => r.email === email);
     if (meta) return meta;
-    const namePart = email.split("@")[0].replace("senator.", "").replace(".", " ");
+    const namePart = email
+      .split("@")[0]
+      .replace("senator.", "")
+      .replace(".", " ");
     const formattedName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
-    return { email, name: formattedName, title: "Representative", region: "Texas" };
+    return {
+      email,
+      name: formattedName,
+      title: "Representative",
+      region: "Texas",
+    };
   }
 
   function handleBlastEm(contactReps) {
@@ -333,18 +548,23 @@
 
         // Filter by emails present in current campaign
         const validClosest = closestEmails.filter((e) => allEmails.includes(e));
-        selectedReps = validClosest.length > 0 ? validClosest : allEmails.slice(0, 3);
+        selectedReps =
+          validClosest.length > 0 ? validClosest : allEmails.slice(0, 3);
 
-        const topNames = validClosest.map(e => getRepInfo(e).name).slice(0, 2).join(", ");
+        const topNames = validClosest
+          .map((e) => getRepInfo(e).name)
+          .slice(0, 2)
+          .join(", ");
         locationStatusText = `📍 Selected closest reps (${topNames})`;
       },
       (err) => {
         isLocating = false;
         // Fallback: auto-select top central leadership reps
         selectedReps = allEmails.slice(0, 3);
-        locationStatusText = "📍 Location access unavailable. Auto-selected key leadership reps.";
+        locationStatusText =
+          "📍 Location access unavailable. Auto-selected key leadership reps.";
       },
-      { timeout: 8000 }
+      { timeout: 8000 },
     );
   }
 
@@ -363,7 +583,6 @@
         console.error("Failed to copy emails:", err);
       });
   }
-
 
   // Load products and campaigns on mount
   onMount(async () => {
@@ -558,7 +777,10 @@
       const diffX = touchStartX - touchEndX;
       const diffY = touchStartY - touchEndY;
       const swipeThreshold = 50;
-      if (Math.abs(diffX) > swipeThreshold && Math.abs(diffX) > Math.abs(diffY)) {
+      if (
+        Math.abs(diffX) > swipeThreshold &&
+        Math.abs(diffX) > Math.abs(diffY)
+      ) {
         if (diffX > 0) {
           // Swipe left -> Next image/video
           scrollDirection = 1;
@@ -566,7 +788,8 @@
         } else {
           // Swipe right -> Previous image/video
           scrollDirection = -1;
-          activeImageIdx = (activeImageIdx - 1 + campaignMedia.length) % campaignMedia.length;
+          activeImageIdx =
+            (activeImageIdx - 1 + campaignMedia.length) % campaignMedia.length;
         }
       }
     }
@@ -576,7 +799,8 @@
   let campaignMedia = $derived(
     selectedCampaign?.media?.length > 0
       ? selectedCampaign.media
-      : (selectedCampaign?.images?.map(img => ({ type: 'image', url: img })) || [])
+      : selectedCampaign?.images?.map((img) => ({ type: "image", url: img })) ||
+          [],
   );
 
   let currentMediaItem = $derived(campaignMedia[activeImageIdx] || null);
@@ -662,6 +886,10 @@
     <!-- Main Workspace -->
     <div
       class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 grid grid-cols-1 grid-rows-1"
+      onpointerdown={handleWorkspacePointerDown}
+      onpointerup={handleWorkspacePointerUp}
+      ontouchstart={handleWorkspaceTouchStart}
+      ontouchend={handleWorkspaceTouchEnd}
     >
       {#if currentStoreMode === "merch"}
         <div
@@ -676,11 +904,17 @@
               >
                 <span class="text-xl select-none">⚠️</span>
                 <div>
-                  <span class="font-bold text-red-400 uppercase tracking-wider block text-xs sm:text-sm">
+                  <span
+                    class="font-bold text-red-400 uppercase tracking-wider block text-xs sm:text-sm"
+                  >
                     NOTHING FOR SALE RIGHT NOW
                   </span>
-                  <span class="text-[11px] text-zinc-400 font-sans mt-0.5 block">
-                    All official merchandise is currently out of stock or unavailable. Please check back later or visit our active Fundraisers tab!
+                  <span
+                    class="text-[11px] text-zinc-400 font-sans mt-0.5 block"
+                  >
+                    All official merchandise is currently out of stock or
+                    unavailable. Please check back later or visit our active
+                    Fundraisers tab!
                   </span>
                 </div>
               </div>
@@ -717,7 +951,11 @@
                     onclick={() => product.inStock && selectProduct(product)}
                   >
                     {#if product.image && product.image.startsWith("http")}
-                      <img src={product.image} alt={product.title} class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                      <img
+                        src={product.image}
+                        alt={product.title}
+                        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
                     {:else}
                       <div
                         class="w-24 h-24 text-zinc-700 group-hover:text-zinc-500 transition-colors duration-300 flex items-center justify-center"
@@ -725,60 +963,56 @@
                         {#if product.title.includes("FIGHT") || product.title.includes("CEO")}
                           <span class="text-5xl select-none">🥊</span>
                         {:else if product.title.includes("T-SHIRT")}
-                        <svg
-                          viewBox="0 0 24 24"
-                          class="w-16 h-16 fill-none stroke-current"
-                          stroke-width="1.5"
-                        >
-                          <path
-                            d="M4 8.5V20a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8.5M4 8.5L8 5m-4 3.5l-2-1.5L4 4m16 4.5l-4-3.5m4 3.5l2-1.5L20 4M8 5a4 4 0 0 1 8 0"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                          />
-                        </svg>
-                      {:else if product.title.includes("HOODIE")}
-                        <svg
-                          viewBox="0 0 24 24"
-                          class="w-16 h-16 fill-none stroke-current"
-                          stroke-width="1.5"
-                        >
-                          <path
-                            d="M5 9v11a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9m-14 0l3-5m11 5l-3-5m-8 0h6m-3 0v4m0 0a2 2 0 1 0 0 4 2 2 0 1 0 0-4"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                          />
-                        </svg>
-                      {:else if product.title.includes("HAT")}
-                        <svg
-                          viewBox="0 0 24 24"
-                          class="w-16 h-16 fill-none stroke-current"
-                          stroke-width="1.5"
-                        >
-                          <path
-                            d="M2 17h20M6 17v-4a6 6 0 0 1 12 0v4M12 7V4m0 0l-2 1m2-1l2 1"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                          />
-                        </svg>
-                      {:else}
-                        <svg
-                          viewBox="0 0 24 24"
-                          class="w-16 h-16 fill-none stroke-current"
-                          stroke-width="1.5"
-                        >
-                          <path
-                            d="M7 4h10v12a4 4 0 0 1-8 0V4zM7 8h10M9 16h6"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                          />
-                        </svg>
-                      {/if}
-                    </div>
+                          <svg
+                            viewBox="0 0 24 24"
+                            class="w-16 h-16 fill-none stroke-current"
+                            stroke-width="1.5"
+                          >
+                            <path
+                              d="M4 8.5V20a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8.5M4 8.5L8 5m-4 3.5l-2-1.5L4 4m16 4.5l-4-3.5m4 3.5l2-1.5L20 4M8 5a4 4 0 0 1 8 0"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            />
+                          </svg>
+                        {:else if product.title.includes("HOODIE")}
+                          <svg
+                            viewBox="0 0 24 24"
+                            class="w-16 h-16 fill-none stroke-current"
+                            stroke-width="1.5"
+                          >
+                            <path
+                              d="M5 9v11a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9m-14 0l3-5m11 5l-3-5m-8 0h6m-3 0v4m0 0a2 2 0 1 0 0 4 2 2 0 1 0 0-4"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            />
+                          </svg>
+                        {:else if product.title.includes("HAT")}
+                          <svg
+                            viewBox="0 0 24 24"
+                            class="w-16 h-16 fill-none stroke-current"
+                            stroke-width="1.5"
+                          >
+                            <path
+                              d="M2 17h20M6 17v-4a6 6 0 0 1 12 0v4M12 7V4m0 0l-2 1m2-1l2 1"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            />
+                          </svg>
+                        {:else}
+                          <svg
+                            viewBox="0 0 24 24"
+                            class="w-16 h-16 fill-none stroke-current"
+                            stroke-width="1.5"
+                          >
+                            <path
+                              d="M7 4h10v12a4 4 0 0 1-8 0V4zM7 8h10M9 16h6"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            />
+                          </svg>
+                        {/if}
+                      </div>
                     {/if}
-                    <span
-                      class="absolute bottom-3 text-[10px] text-zinc-500 font-bold tracking-widest"
-                      >WEAREDOGS LABS</span
-                    >
                   </div>
 
                   <!-- Product Details -->
@@ -815,15 +1049,16 @@
             <!-- DETAIL VIEW -->
             <div
               class="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-stretch"
-              in:fade={{ duration: 120 }}
-              out:fade={{ duration: 80 }}
+              in:conditionalGlitchIn
+              out:conditionalGlitchOut
             >
               <!-- Left: Product Picture Slideshow -->
               <div
                 class="w-full bg-black/40 border border-zinc-800 rounded-2xl flex flex-col items-center justify-between p-3 relative overflow-hidden mx-auto h-full max-h-[380px] lg:max-h-[460px] xl:max-h-[500px]"
               >
                 <ProductImageSlideshow
-                  images={selectedProduct.images || (selectedProduct.image ? [selectedProduct.image] : [])}
+                  images={selectedProduct.images ||
+                    (selectedProduct.image ? [selectedProduct.image] : [])}
                   productTitle={selectedProduct.title}
                 />
               </div>
@@ -902,7 +1137,8 @@
                 >
                   {#if selectedProduct.id === "fight-the-ceo" || selectedProduct.checkoutUrl}
                     <a
-                      href={selectedProduct.checkoutUrl || "https://cash.app/$cptnbrando"}
+                      href={selectedProduct.checkoutUrl ||
+                        "https://cash.app/$cptnbrando"}
                       target="_blank"
                       rel="noopener noreferrer"
                       class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-black font-black rounded-xl text-xs sm:text-sm tracking-widest uppercase transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-emerald-900/30 cursor-pointer text-center"
@@ -1097,12 +1333,18 @@
                         {#if isVideoPlaying}
                           {#if currentMediaItem.url.includes("youtube.com") || currentMediaItem.url.includes("youtu.be")}
                             <iframe
-                              in:slideIn={{ duration: 300, direction: scrollDirection }}
+                              in:slideIn={{
+                                duration: 300,
+                                direction: scrollDirection,
+                              }}
                               out:slideOut={{
                                 duration: 300,
                                 direction: scrollDirection,
                               }}
-                              src={currentMediaItem.url + (currentMediaItem.url.includes("?") ? "&autoplay=1" : "?autoplay=1")}
+                              src={currentMediaItem.url +
+                                (currentMediaItem.url.includes("?")
+                                  ? "&autoplay=1"
+                                  : "?autoplay=1")}
                               title="Fundraiser video player"
                               class="absolute inset-0 w-full h-full"
                               style="border: none;"
@@ -1112,7 +1354,10 @@
                             ></iframe>
                           {:else}
                             <video
-                              in:slideIn={{ duration: 300, direction: scrollDirection }}
+                              in:slideIn={{
+                                duration: 300,
+                                direction: scrollDirection,
+                              }}
                               out:slideOut={{
                                 duration: 300,
                                 direction: scrollDirection,
@@ -1129,30 +1374,45 @@
                         {:else}
                           <!-- svelte-ignore a11y_click_events_have_key_events -->
                           <!-- svelte-ignore a11y_no_static_element_interactions -->
-                          <div 
-                            class="absolute inset-0 w-full h-full cursor-pointer" 
-                            onclick={() => isVideoPlaying = true}
+                          <div
+                            class="absolute inset-0 w-full h-full cursor-pointer"
+                            onclick={() => (isVideoPlaying = true)}
                           >
                             <img
-                              in:slideIn={{ duration: 300, direction: scrollDirection }}
+                              in:slideIn={{
+                                duration: 300,
+                                direction: scrollDirection,
+                              }}
                               out:slideOut={{
                                 duration: 300,
                                 direction: scrollDirection,
                               }}
-                              src={currentMediaItem.thumbnail || (selectedCampaign.images && selectedCampaign.images[0])}
+                              src={currentMediaItem.thumbnail ||
+                                (selectedCampaign.images &&
+                                  selectedCampaign.images[0])}
                               alt={selectedCampaign.title}
                               class="absolute inset-0 w-full h-full object-cover"
                             />
-                            <div class="absolute inset-0 flex items-center justify-center bg-black/35 hover:bg-black/45 transition-colors duration-200">
-                              <div class="w-16 h-16 rounded-full bg-black/70 hover:bg-red-600 border border-white/10 flex items-center justify-center transition-all duration-300 shadow-2xl scale-95 hover:scale-105">
-                                <span class="text-white text-2xl ml-1 select-none">▶</span>
+                            <div
+                              class="absolute inset-0 flex items-center justify-center bg-black/35 hover:bg-black/45 transition-colors duration-200"
+                            >
+                              <div
+                                class="w-16 h-16 rounded-full bg-black/70 hover:bg-red-600 border border-white/10 flex items-center justify-center transition-all duration-300 shadow-2xl scale-95 hover:scale-105"
+                              >
+                                <span
+                                  class="text-white text-2xl ml-1 select-none"
+                                  >▶</span
+                                >
                               </div>
                             </div>
                           </div>
                         {/if}
                       {:else}
                         <img
-                          in:slideIn={{ duration: 300, direction: scrollDirection }}
+                          in:slideIn={{
+                            duration: 300,
+                            direction: scrollDirection,
+                          }}
                           out:slideOut={{
                             duration: 300,
                             direction: scrollDirection,
@@ -1221,13 +1481,15 @@
                       class:border-red-500={activeImageIdx === idx}
                       class:border-zinc-800={activeImageIdx !== idx}
                     >
-                      {#if mediaItem.type === 'video'}
+                      {#if mediaItem.type === "video"}
                         <img
                           src={mediaItem.thumbnail || mediaItem.url}
                           alt="Video Thumbnail"
                           class="w-full h-full object-cover opacity-80"
                         />
-                        <div class="absolute inset-0 flex items-center justify-center bg-black/40">
+                        <div
+                          class="absolute inset-0 flex items-center justify-center bg-black/40"
+                        >
                           <span class="text-white text-xs select-none">▶</span>
                         </div>
                       {:else}
@@ -1280,17 +1542,23 @@
                     </button>
                   </div>
 
-                  {#if selectedCampaign.id === 'justice-for-rusty'}
+                  {#if selectedCampaign.id === "justice-for-rusty"}
                     <!-- Full scroll bio, no max-height scrollbar constraint -->
-                    <div class="mt-3 sm:mt-4 pb-4 flex flex-col gap-4 selectable-bio">
+                    <div
+                      class="mt-3 sm:mt-4 pb-4 flex flex-col gap-4 selectable-bio"
+                    >
                       {#if campaignBioText}
                         {#each formatBioText(campaignBioText) as paragraph}
-                          <p class="text-zinc-400 text-sm leading-relaxed font-sans">
+                          <p
+                            class="text-zinc-400 text-sm leading-relaxed font-sans"
+                          >
                             {@html paragraph}
                           </p>
                         {/each}
                       {:else}
-                        <p class="text-zinc-400 text-sm leading-relaxed font-sans">
+                        <p
+                          class="text-zinc-400 text-sm leading-relaxed font-sans"
+                        >
                           {selectedCampaign.description}
                         </p>
                       {/if}
@@ -1320,21 +1588,29 @@
                           rel="noopener noreferrer"
                           class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-black font-black rounded-xl text-xs tracking-widest transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-emerald-900/25 cursor-pointer text-center"
                         >
-                          🟢 SECURE DONATE VIA CASH APP ({selectedCampaign.cashAppUrl.substring(selectedCampaign.cashAppUrl.lastIndexOf('/') + 1)})
+                          🟢 SECURE DONATE VIA CASH APP ({selectedCampaign.cashAppUrl.substring(
+                            selectedCampaign.cashAppUrl.lastIndexOf("/") + 1,
+                          )})
                         </a>
                       </div>
                     {/if}
                   {:else}
                     <!-- Legacy/Standard layout for other campaigns with milestones/progress -->
-                    <div class="mt-3 sm:mt-4 pb-4 flex flex-col gap-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar selectable-bio">
+                    <div
+                      class="mt-3 sm:mt-4 pb-4 flex flex-col gap-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar selectable-bio"
+                    >
                       {#if campaignBioText}
                         {#each formatBioText(campaignBioText) as paragraph}
-                          <p class="text-zinc-400 text-sm leading-relaxed font-sans">
+                          <p
+                            class="text-zinc-400 text-sm leading-relaxed font-sans"
+                          >
                             {@html paragraph}
                           </p>
                         {/each}
                       {:else}
-                        <p class="text-zinc-400 text-sm leading-relaxed font-sans">
+                        <p
+                          class="text-zinc-400 text-sm leading-relaxed font-sans"
+                        >
                           {selectedCampaign.description}
                         </p>
                       {/if}
@@ -1369,10 +1645,11 @@
                           <!-- BLAST 'EM / SEND MAIL Primary Action Button -->
                           {#if !showSortMailPanel}
                             <button
-                              onclick={() => handleBlastEm(selectedCampaign.contactReps)}
+                              onclick={() =>
+                                handleBlastEm(selectedCampaign.contactReps)}
                               class="w-full py-4 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-black font-black rounded-xl text-xs sm:text-sm tracking-widest uppercase transition-all duration-200 flex items-center justify-center gap-2 shadow-xl shadow-emerald-950/40 hover:scale-[1.01] active:scale-[0.99] cursor-pointer text-center"
                             >
-                              {#if selectedCampaign.id === 'browser-age-api'}
+                              {#if selectedCampaign.id === "browser-age-api"}
                                 ✉️ SEND PETITION EMAIL (CONTACT ALL)
                               {:else}
                                 🔫 BLAST 'EM (EMAIL ALL LAWMAKERS)
@@ -1380,19 +1657,26 @@
                             </button>
                           {:else}
                             <button
-                              onclick={() => handleEmailSelected(selectedCampaign.contactReps)}
+                              onclick={() =>
+                                handleEmailSelected(
+                                  selectedCampaign.contactReps,
+                                )}
                               disabled={selectedReps.length === 0}
                               class="w-full py-3 px-4 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-black font-black rounded-xl text-xs sm:text-sm tracking-widest uppercase transition-all duration-200 flex flex-col items-center justify-center gap-0.5 shadow-xl shadow-emerald-950/40 hover:scale-[1.01] active:scale-[0.99] cursor-pointer text-center disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               <span class="flex items-center gap-1.5">
-                                {#if selectedCampaign.id === 'browser-age-api'}
+                                {#if selectedCampaign.id === "browser-age-api"}
                                   ✉️ SEND PETITION ({selectedReps.length})
                                 {:else}
                                   🔫 SEND MAIL ({selectedReps.length})
                                 {/if}
                               </span>
-                              <span class="text-[10px] font-mono text-zinc-950/80 font-semibold normal-case tracking-normal truncate max-w-full px-2">
-                                {selectedReps.length > 0 ? selectedReps.join(", ") : "No emails selected"}
+                              <span
+                                class="text-[10px] font-mono text-zinc-950/80 font-semibold normal-case tracking-normal truncate max-w-full px-2"
+                              >
+                                {selectedReps.length > 0
+                                  ? selectedReps.join(", ")
+                                  : "No emails selected"}
                               </span>
                             </button>
                           {/if}
@@ -1400,17 +1684,25 @@
                           <!-- Secondary Tool Buttons -->
                           <div class="flex gap-2">
                             <button
-                              onclick={() => (showSortMailPanel = !showSortMailPanel)}
+                              onclick={() =>
+                                (showSortMailPanel = !showSortMailPanel)}
                               class="flex-1 py-2.5 px-3 bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-emerald-400 hover:text-emerald-300 font-bold rounded-xl text-[11px] tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow"
                             >
-                              {#if selectedCampaign.id === 'browser-age-api'}
-                                📬 SELECT RECIPIENTS {showSortMailPanel ? "▲" : "▼"}
+                              {#if selectedCampaign.id === "browser-age-api"}
+                                📬 SELECT RECIPIENTS {showSortMailPanel
+                                  ? "▲"
+                                  : "▼"}
                               {:else}
-                                📬 SORT THE MAIL FOR 'EM {showSortMailPanel ? "▲" : "▼"}
+                                📬 SORT THE MAIL FOR 'EM {showSortMailPanel
+                                  ? "▲"
+                                  : "▼"}
                               {/if}
                             </button>
                             <button
-                              onclick={() => handleCopyRepsEmails(selectedCampaign.contactReps.emails)}
+                              onclick={() =>
+                                handleCopyRepsEmails(
+                                  selectedCampaign.contactReps.emails,
+                                )}
                               class="py-2.5 px-3 bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-300 hover:text-white font-bold rounded-xl text-[11px] tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow"
                               title="Copy all email addresses"
                             >
@@ -1425,18 +1717,30 @@
                               class="p-3.5 bg-zinc-950/95 border border-zinc-800 rounded-xl flex flex-col gap-3 shadow-2xl animate-fade-in"
                             >
                               <!-- Geolocation & Region Selector -->
-                              <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pb-2.5 border-b border-zinc-850">
+                              <div
+                                class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pb-2.5 border-b border-zinc-850"
+                              >
                                 <button
-                                  onclick={() => handleUseLocation(selectedCampaign.contactReps.emails)}
+                                  onclick={() =>
+                                    handleUseLocation(
+                                      selectedCampaign.contactReps.emails,
+                                    )}
                                   disabled={isLocating}
                                   class="py-2 px-3 bg-emerald-950/60 hover:bg-emerald-900/60 border border-emerald-500/40 text-emerald-300 font-mono text-[11px] font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
                                 >
-                                  📍 {isLocating ? "LOCATING..." : "USE LOCATION (AUTO-SELECT CLOSEST)"}
+                                  📍 {isLocating
+                                    ? "LOCATING..."
+                                    : "USE LOCATION (AUTO-SELECT CLOSEST)"}
                                 </button>
 
-                                <div class="flex items-center gap-2 text-[10px] font-mono text-zinc-400 self-end sm:self-auto">
+                                <div
+                                  class="flex items-center gap-2 text-[10px] font-mono text-zinc-400 self-end sm:self-auto"
+                                >
                                   <button
-                                    onclick={() => handleSelectAllReps(selectedCampaign.contactReps.emails)}
+                                    onclick={() =>
+                                      handleSelectAllReps(
+                                        selectedCampaign.contactReps.emails,
+                                      )}
                                     class="text-emerald-400 hover:underline cursor-pointer"
                                   >
                                     Select All
@@ -1452,26 +1756,38 @@
                               </div>
 
                               {#if locationStatusText}
-                                <div class="text-[10px] font-mono text-emerald-400 bg-emerald-950/30 p-2 rounded border border-emerald-500/20">
+                                <div
+                                  class="text-[10px] font-mono text-emerald-400 bg-emerald-950/30 p-2 rounded border border-emerald-500/20"
+                                >
                                   {locationStatusText}
                                 </div>
                               {/if}
 
                               <!-- Checked Counter & List -->
-                              <div class="text-[10px] font-mono text-zinc-400 font-bold uppercase tracking-wider flex justify-between items-center">
+                              <div
+                                class="text-[10px] font-mono text-zinc-400 font-bold uppercase tracking-wider flex justify-between items-center"
+                              >
                                 <span>SELECT SPECIFIC REPRESENTATIVES:</span>
-                                <span class="text-emerald-400">{selectedReps.length} / {selectedCampaign.contactReps.emails.length} Selected</span>
+                                <span class="text-emerald-400"
+                                  >{selectedReps.length} / {selectedCampaign
+                                    .contactReps.emails.length} Selected</span
+                                >
                               </div>
 
-                              <div class="max-h-44 overflow-y-auto custom-scrollbar flex flex-col gap-1.5 pr-1">
+                              <div
+                                class="max-h-44 overflow-y-auto custom-scrollbar flex flex-col gap-1.5 pr-1"
+                              >
                                 {#each selectedCampaign.contactReps.emails as email}
                                   {@const meta = getRepInfo(email)}
-                                  {@const isChecked = selectedReps.includes(email)}
+                                  {@const isChecked =
+                                    selectedReps.includes(email)}
                                   <!-- svelte-ignore a11y_click_events_have_key_events -->
                                   <!-- svelte-ignore a11y_no_static_element_interactions -->
                                   <div
                                     onclick={() => handleToggleRep(email)}
-                                    class="flex items-center gap-2.5 p-2 rounded-lg border transition-all cursor-pointer select-none text-[11px] {isChecked ? 'bg-emerald-950/30 border-emerald-500/40 text-zinc-100' : 'bg-zinc-900/40 border-zinc-850 text-zinc-400'}"
+                                    class="flex items-center gap-2.5 p-2 rounded-lg border transition-all cursor-pointer select-none text-[11px] {isChecked
+                                      ? 'bg-emerald-950/30 border-emerald-500/40 text-zinc-100'
+                                      : 'bg-zinc-900/40 border-zinc-850 text-zinc-400'}"
                                   >
                                     <input
                                       type="checkbox"
@@ -1480,27 +1796,43 @@
                                       class="accent-emerald-500 w-3.5 h-3.5 cursor-pointer"
                                     />
                                     <div class="flex-1 min-w-0 flex flex-col">
-                                      <div class="font-bold flex items-center justify-between gap-1">
-                                        <span class="truncate">{meta.name}</span>
-                                        <span class="text-[9px] font-mono text-zinc-500 shrink-0">{meta.region}</span>
+                                      <div
+                                        class="font-bold flex items-center justify-between gap-1"
+                                      >
+                                        <span class="truncate">{meta.name}</span
+                                        >
+                                        <span
+                                          class="text-[9px] font-mono text-zinc-500 shrink-0"
+                                          >{meta.region}</span
+                                        >
                                       </div>
-                                      <div class="text-[10px] font-mono text-zinc-500 truncate">{email}</div>
+                                      <div
+                                        class="text-[10px] font-mono text-zinc-500 truncate"
+                                      >
+                                        {email}
+                                      </div>
                                     </div>
                                   </div>
                                 {/each}
                               </div>
 
                               <!-- Action for Selected -->
-                              <div class="pt-2 border-t border-zinc-850 flex gap-2">
+                              <div
+                                class="pt-2 border-t border-zinc-850 flex gap-2"
+                              >
                                 <button
-                                  onclick={() => handleEmailSelected(selectedCampaign.contactReps)}
+                                  onclick={() =>
+                                    handleEmailSelected(
+                                      selectedCampaign.contactReps,
+                                    )}
                                   disabled={selectedReps.length === 0}
                                   class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-black font-black rounded-lg text-xs tracking-wider transition-all duration-200 flex items-center justify-center gap-1.5 shadow cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                                 >
                                   📩 EMAIL SELECTED REPS ({selectedReps.length})
                                 </button>
                                 <button
-                                  onclick={() => handleCopyRepsEmails(selectedReps)}
+                                  onclick={() =>
+                                    handleCopyRepsEmails(selectedReps)}
                                   disabled={selectedReps.length === 0}
                                   class="px-3 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-bold rounded-lg text-[11px] transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                                 >
@@ -1514,12 +1846,23 @@
 
                       <!-- Donations Status / Pending Notice -->
                       {#if selectedCampaign.donationsStatus === "coming_soon"}
-                        <div class="mb-4 p-3.5 bg-amber-950/30 border border-amber-500/40 rounded-xl text-amber-300 font-mono text-xs flex flex-col gap-1.5 shadow-lg">
-                          <div class="flex items-center gap-2 font-bold text-amber-400">
-                            <span class="text-base">💳</span> DONATIONS CURRENTLY INACTIVE
+                        <div
+                          class="mb-4 p-3.5 bg-amber-950/30 border border-amber-500/40 rounded-xl text-amber-300 font-mono text-xs flex flex-col gap-1.5 shadow-lg"
+                        >
+                          <div
+                            class="flex items-center gap-2 font-bold text-amber-400"
+                          >
+                            <span class="text-base">💳</span> DONATIONS CURRENTLY
+                            INACTIVE
                           </div>
-                          <p class="text-[11px] text-amber-200/80 leading-relaxed font-sans">
-                            Stripe payment gateway integration is currently being configured for this campaign. Direct financial contributions are not active yet. In the meantime, please use the button above to email Texas lawmakers directly!
+                          <p
+                            class="text-[11px] text-amber-200/80 leading-relaxed font-sans"
+                          >
+                            Stripe payment gateway integration is currently
+                            being configured for this campaign. Direct financial
+                            contributions are not active yet. In the meantime,
+                            please use the button above to email Texas lawmakers
+                            directly!
                           </p>
                         </div>
                       {/if}
@@ -1547,7 +1890,9 @@
                             rel="noopener noreferrer"
                             class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-black font-black rounded-xl text-xs tracking-widest transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-emerald-900/25 cursor-pointer text-center"
                           >
-                            🟢 SECURE DONATE VIA CASH APP ({selectedCampaign.cashAppUrl.substring(selectedCampaign.cashAppUrl.lastIndexOf('/') + 1)})
+                            🟢 SECURE DONATE VIA CASH APP ({selectedCampaign.cashAppUrl.substring(
+                              selectedCampaign.cashAppUrl.lastIndexOf("/") + 1,
+                            )})
                           </a>
                         </div>
                       {/if}
