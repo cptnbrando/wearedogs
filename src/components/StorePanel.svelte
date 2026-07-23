@@ -856,11 +856,13 @@
                   </div>
 
                   <!-- Size selector -->
-                  {#if selectedProduct.sizes && selectedProduct.sizes.length > 0 && selectedProduct.sizes[0] !== "One Size"}
+                  {#if selectedProduct.id === "fight-the-ceo" || (selectedProduct.checkoutUrl && (!selectedProduct.sizes || selectedProduct.sizes.length === 0))}
+                    <!-- No size selector for FIGHT THE CEO or direct Cash App checkout items -->
+                  {:else if selectedProduct.sizes && selectedProduct.sizes.length > 0 && selectedProduct.sizes[0] !== "One Size"}
                     <div class="mt-4 sm:mt-6">
                       <span
                         class="text-xs font-semibold text-zinc-500 uppercase tracking-widest block mb-2"
-                        >{selectedProduct.title.includes("FIGHT") || selectedProduct.title.includes("CEO") ? "SELECT COMBAT STYLE / WEAPON" : "SELECT SIZE"}</span
+                        >SELECT SIZE</span
                       >
                       <div class="flex flex-wrap gap-2">
                         {#each selectedProduct.sizes as size}
@@ -890,13 +892,24 @@
                 <div
                   class="mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-zinc-800/80"
                 >
-                  <button
-                    class="w-full py-2.5 sm:py-3.5 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl text-sm tracking-widest transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-red-900/30 cursor-pointer"
-                    onclick={() =>
-                      window.open("https://cash.app/$cptnbrando", "_blank")}
-                  >
-                    <ShoppingCart size={18} /> ADD TO CART
-                  </button>
+                  {#if selectedProduct.id === "fight-the-ceo" || selectedProduct.checkoutUrl}
+                    <a
+                      href={selectedProduct.checkoutUrl || "https://cash.app/$cptnbrando"}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-black font-black rounded-xl text-xs sm:text-sm tracking-widest uppercase transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-emerald-900/30 cursor-pointer text-center"
+                    >
+                      🟢 PAY & CHALLENGE VIA CASH APP ($cptnbrando)
+                    </a>
+                  {:else}
+                    <button
+                      class="w-full py-2.5 sm:py-3.5 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl text-sm tracking-widest transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-red-900/30 cursor-pointer"
+                      onclick={() =>
+                        window.open("https://cash.app/$cptnbrando", "_blank")}
+                    >
+                      <ShoppingCart size={18} /> ADD TO CART
+                    </button>
+                  {/if}
                 </div>
               </div>
             </div>
@@ -1351,7 +1364,11 @@
                               onclick={() => handleBlastEm(selectedCampaign.contactReps)}
                               class="w-full py-4 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-black font-black rounded-xl text-xs sm:text-sm tracking-widest uppercase transition-all duration-200 flex items-center justify-center gap-2 shadow-xl shadow-emerald-950/40 hover:scale-[1.01] active:scale-[0.99] cursor-pointer text-center"
                             >
-                              🔫 BLAST 'EM (EMAIL ALL LAWMAKERS)
+                              {#if selectedCampaign.id === 'browser-age-api'}
+                                ✉️ SEND PETITION EMAIL (CONTACT ALL)
+                              {:else}
+                                🔫 BLAST 'EM (EMAIL ALL LAWMAKERS)
+                              {/if}
                             </button>
                           {:else}
                             <button
@@ -1360,7 +1377,11 @@
                               class="w-full py-3 px-4 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-black font-black rounded-xl text-xs sm:text-sm tracking-widest uppercase transition-all duration-200 flex flex-col items-center justify-center gap-0.5 shadow-xl shadow-emerald-950/40 hover:scale-[1.01] active:scale-[0.99] cursor-pointer text-center disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               <span class="flex items-center gap-1.5">
-                                🔫 SEND MAIL ({selectedReps.length})
+                                {#if selectedCampaign.id === 'browser-age-api'}
+                                  ✉️ SEND PETITION ({selectedReps.length})
+                                {:else}
+                                  🔫 SEND MAIL ({selectedReps.length})
+                                {/if}
                               </span>
                               <span class="text-[10px] font-mono text-zinc-950/80 font-semibold normal-case tracking-normal truncate max-w-full px-2">
                                 {selectedReps.length > 0 ? selectedReps.join(", ") : "No emails selected"}
@@ -1374,7 +1395,11 @@
                               onclick={() => (showSortMailPanel = !showSortMailPanel)}
                               class="flex-1 py-2.5 px-3 bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-emerald-400 hover:text-emerald-300 font-bold rounded-xl text-[11px] tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow"
                             >
-                              📬 SORT THE MAIL FOR 'EM {showSortMailPanel ? "▲" : "▼"}
+                              {#if selectedCampaign.id === 'browser-age-api'}
+                                📬 SELECT RECIPIENTS {showSortMailPanel ? "▲" : "▼"}
+                              {:else}
+                                📬 SORT THE MAIL FOR 'EM {showSortMailPanel ? "▲" : "▼"}
+                              {/if}
                             </button>
                             <button
                               onclick={() => handleCopyRepsEmails(selectedCampaign.contactReps.emails)}

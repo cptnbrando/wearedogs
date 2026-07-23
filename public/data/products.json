@@ -2,14 +2,9 @@
   {
     "id": "fight-the-ceo",
     "title": "FIGHT THE CEO",
-    "price": "$50,000",
-    "description": "Price does NOT include 1st class round-trip flight tickets. Purchaser must provide 1st class airfare for both parties to meet at an agreed duel location (preferably somewhere tropical like Fiji). Choose your battle mode: Mixed Martial Arts (bareknuckle or gloves), Pool Noodle Lightsabers, Nunchucks, or Baseball Bats (provided full protective sparring gear is available). 100% of proceeds directly fund legal defense and dog rescue operations worldwide.",
-    "sizes": [
-      "MMA (Bareknuckle / Gloves)",
-      "Pool Noodle Lightsabers",
-      "Nunchucks Duel",
-      "Baseball Bats (w/ Sparring Gear)"
-    ],
+    "price": "$69,420",
+    "description": "For this price, I will buy us world class accomodations at a tropical resort location, motorcycle helmets and hockey pads, 2 sets of taekwondo weapons (Jahng Bong, Ssang Jeol Gon, Bahng Mahng Ee), tesla rental cars, and whoop your ass in a series of duels. Locations will include unlimited booze and food passes, beaches, nightclubs, and jetski rentals.",
+    "sizes": [],
     "inStock": true,
     "image": "https://images.unsplash.com/photo-1549719386-74dfcbf7dbed?w=800&q=80",
     "checkoutUrl": "https://cash.app/$cptnbrando"
