@@ -1234,24 +1234,36 @@
                         </p>
                       </div>
 
-                      <div class="mt-4 pt-3 border-t border-zinc-800/40">
-                        <div
-                          class="flex justify-between items-center text-[10px] font-mono text-zinc-400 mb-1.5"
-                        >
-                          <span>Progress: {progressVal}%</span>
-                          <span class="text-red-500 font-bold"
-                            >{campaign.raised} / {campaign.goal}</span
-                          >
-                        </div>
-                        <div
-                          class="w-full h-1.5 bg-zinc-950 border border-zinc-850 rounded-full overflow-hidden"
-                        >
+                      {#if campaign.id !== "save-texas-hemp"}
+                        <div class="mt-4 pt-3 border-t border-zinc-800/40">
                           <div
-                            class="h-full bg-red-500"
-                            style="width: {progressVal}%"
-                          ></div>
+                            class="flex justify-between items-center text-[10px] font-mono text-zinc-400 mb-1.5"
+                          >
+                            <span>
+                              {#if campaign.id === "sidewalk-chalk-defense" || campaign.id === "browser-age-api"}
+                                Signatures: {progressVal}%
+                              {:else}
+                                Progress: {progressVal}%
+                              {/if}
+                            </span>
+                            <span class="text-red-500 font-bold">
+                              {#if campaign.id === "sidewalk-chalk-defense" || campaign.id === "browser-age-api"}
+                                {campaign.raised.replace('$', '')} / {campaign.goal.replace('$', '')}
+                              {:else}
+                                {campaign.raised} / {campaign.goal}
+                              {/if}
+                            </span>
+                          </div>
+                          <div
+                            class="w-full h-1.5 bg-zinc-950 border border-zinc-850 rounded-full overflow-hidden"
+                          >
+                            <div
+                              class="h-full bg-red-500"
+                              style="width: {progressVal}%"
+                            ></div>
+                          </div>
                         </div>
-                      </div>
+                      {/if}
                     </div>
                   {/each}
                 </div>
@@ -1681,25 +1693,35 @@
                     <hr class="border-zinc-850 my-2" />
 
                     <div class="milestones-section mt-3 sm:mt-4">
-                      <div
-                        class="flex justify-between items-center mb-2 font-bold font-mono text-xs"
-                      >
-                        <span class="text-zinc-500 uppercase tracking-widest"
-                          >FUNDING PERCENTAGE</span
-                        >
-                        <span class="text-red-500 text-sm"
-                          >{selectedCampaign.raised} / {selectedCampaign.goal} ({progressPct}%)</span
-                        >
-                      </div>
-
-                      <div
-                        class="w-full h-3 bg-zinc-950 border border-zinc-800 rounded-full overflow-hidden relative mb-4"
-                      >
+                      {#if selectedCampaign.id !== "save-texas-hemp"}
                         <div
-                          class="h-full bg-gradient-to-r from-red-600 to-red-400 rounded-full"
-                          style="width: {progressPct}%"
-                        ></div>
-                      </div>
+                          class="flex justify-between items-center mb-2 font-bold font-mono text-xs"
+                        >
+                          <span class="text-zinc-500 uppercase tracking-widest">
+                            {#if selectedCampaign.id === "sidewalk-chalk-defense" || selectedCampaign.id === "browser-age-api"}
+                              PETITION SIGNATURES
+                            {:else}
+                              FUNDING PERCENTAGE
+                            {/if}
+                          </span>
+                          <span class="text-red-500 text-sm">
+                            {#if selectedCampaign.id === "sidewalk-chalk-defense" || selectedCampaign.id === "browser-age-api"}
+                              {selectedCampaign.raised.replace('$', '')} / {selectedCampaign.goal.replace('$', '')} Signatures ({progressPct}%)
+                            {:else}
+                              {selectedCampaign.raised} / {selectedCampaign.goal} ({progressPct}%)
+                            {/if}
+                          </span>
+                        </div>
+
+                        <div
+                          class="w-full h-3 bg-zinc-950 border border-zinc-800 rounded-full overflow-hidden relative mb-4"
+                        >
+                          <div
+                            class="h-full bg-gradient-to-r from-red-600 to-red-400 rounded-full"
+                            style="width: {progressPct}%"
+                          ></div>
+                        </div>
+                      {/if}
 
                       <!-- Representative Contact Tool (if available) -->
                       {#if selectedCampaign.contactReps}
