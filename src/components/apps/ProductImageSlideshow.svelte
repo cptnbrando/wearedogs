@@ -147,7 +147,7 @@
 >
   <!-- Main Display Showcase Area -->
   <div
-    class="relative w-full aspect-square bg-black/50 border border-zinc-800 rounded-2xl overflow-hidden shadow-2xl group flex items-center justify-center cursor-grab active:cursor-grabbing touch-pan-y"
+    class="relative w-full aspect-[896/1088] bg-black/50 border border-zinc-800 rounded-2xl overflow-hidden shadow-2xl group flex items-center justify-center cursor-grab active:cursor-grabbing touch-pan-y"
     onpointerdown={handlePointerDown}
     onpointerup={handlePointerUp}
     ontouchstart={handleTouchStart}
@@ -159,7 +159,7 @@
         out:slideOut={{ duration: 350, direction: scrollDirection }}
         src={displayImages[activeIdx]}
         alt={`${productTitle} - Image ${activeIdx + 1}`}
-        class="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-102"
+        class="absolute inset-0 w-full h-full object-contain sm:object-cover transition-transform duration-300 group-hover:scale-102"
         draggable="false"
       />
     {/key}
@@ -205,7 +205,7 @@
       {#each displayImages as imgUrl, idx}
         <button
           onclick={() => selectIndex(idx)}
-          class="relative w-16 aspect-square rounded-xl border overflow-hidden cursor-pointer transition-all duration-200 bg-zinc-950 shrink-0 hover:scale-105 shadow-md"
+          class="relative w-14 aspect-[896/1088] rounded-lg border overflow-hidden cursor-pointer transition-all duration-200 bg-zinc-950 shrink-0 hover:scale-105 shadow-md"
           class:border-emerald-500={activeIdx === idx}
           class:ring-2={activeIdx === idx}
           class:ring-emerald-500={activeIdx === idx}
