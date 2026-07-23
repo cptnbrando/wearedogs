@@ -125,6 +125,8 @@ export class WiretapEngine {
     this.clipEndTime = 0;
     this.clipStartTime = null;
     this.clipStartPerformanceTime = null;
+    this.burstStartTime = 0;
+    this.burstEndTime = 0;
     this.mimeType = "audio/webm";
 
     // Callbacks
@@ -288,6 +290,8 @@ export class WiretapEngine {
     this.activeClipPeaks = [];
     this.headerChunk = null;
     this.clipCapturingState = "idle";
+    this.burstStartTime = 0;
+    this.burstEndTime = 0;
 
     // Start speech recognition synchronously in the user gesture call stack
     this.startSpeechRecognition();
@@ -465,13 +469,15 @@ export class WiretapEngine {
       }
 
       if (this.mode === "prick" && this.isRecording) {
+        const now = performance.now();
         if (amp > this.threshold) {
-          const now = performance.now();
           if (this.clipCapturingState === "idle") {
             this.clipCapturingState = "capturing";
             this.triggerStateChange();
             this.clipStartTime = new Date(Date.now() - this.clipLength * 1000);
             this.clipStartPerformanceTime = now - this.clipLength * 1000;
+            this.burstStartTime = now;
+            this.burstEndTime = now;
 
             // Collect the pre-recorded chunks & peaks
             this.activeClipChunks = this.rollingChunks.map((c) => c.chunk);
@@ -479,9 +485,14 @@ export class WiretapEngine {
 
             this.clipEndTime = now + this.clipLength * 1000;
           } else if (this.clipCapturingState === "capturing") {
+            this.burstEndTime = now;
             // Extend the clip recording, but cap it to prevent infinite capture loops
             const maxClipEndTime = this.clipStartPerformanceTime + (this.clipLength * 4) * 1000;
             this.clipEndTime = Math.min(now + this.clipLength * 1000, maxClipEndTime);
+          }
+        } else if (this.clipCapturingState === "capturing") {
+          if (amp > this.threshold * 0.35) {
+            this.burstEndTime = now;
           }
         }
       }
@@ -718,10 +729,30 @@ export class WiretapEngine {
     const clipDuration = (performance.now() - this.clipStartPerformanceTime) / 1000;
     const clipPeaks = resamplePeaksStretched(this.activeClipPeaks, WAVEFORM_BARS_COUNT);
 
+    // Calculate sound burst duration (a prick is a sudden burst < 1.0s)
+    const rawBurstDuration = (this.burstEndTime && this.burstStartTime && this.burstEndTime >= this.burstStartTime)
+      ? (this.burstEndTime - this.burstStartTime) / 1000
+      : 0;
+
+    let peakAboveCount = 0;
+    for (const p of this.activeClipPeaks) {
+      if (p > this.threshold * 0.35) {
+        peakAboveCount++;
+      }
+    }
+    const peakBurstDuration = peakAboveCount * (this.sampleIntervalMs / 1000);
+    const burstDuration = Math.max(rawBurstDuration, peakBurstDuration);
+    const isPrick = burstDuration < 1.0;
+    const isNotJustAPrick = !isPrick;
+
     const newClip = {
       id: Date.now() + Math.random(),
       timestamp: this.clipStartTime,
       duration: clipDuration,
+      burstDuration: burstDuration,
+      isPrick: isPrick,
+      isNotJustAPrick: isNotJustAPrick,
+      mode: this.mode,
       blob: clipBlob,
       url: clipUrl,
       isVideo: this.mimeType.startsWith("video"),
@@ -733,9 +764,11 @@ export class WiretapEngine {
       this.onClipAdded(newClip, this.clips);
     }
 
-    // Reset chunks and peaks to clear state
+    // Reset chunks, peaks, and timing counters to clear state
     this.activeClipChunks = [];
     this.activeClipPeaks = [];
+    this.burstStartTime = 0;
+    this.burstEndTime = 0;
   }
 
   /**
