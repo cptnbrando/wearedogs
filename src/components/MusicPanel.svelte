@@ -38,6 +38,7 @@
 
   import SwipeTabNav from "./SwipeTabNav.svelte";
   import { fade } from "svelte/transition";
+  import arigatoText from "./music/arigato.txt?raw";
 
   const title = "MUSIC";
 
@@ -87,6 +88,31 @@
   let visualizerEngine = null;
   let tracklistHistoryPushed = false;
   let hasMusicPlayed = $state(false);
+
+  let showArigatoModal = $state(false);
+
+  // Parse arigato text into [intro, termsOfService, outro]
+  const arigatoParts = $derived.by(() => {
+    const parts = arigatoText.split(/`{5,}/);
+    return {
+      intro: parts[0] || "",
+      tos: parts[1] || "",
+      outro: parts[2] || "",
+    };
+  });
+
+  function linkify(text) {
+    if (!text) return "";
+    let formatted = text.replace(
+      /(https?:\/\/[^\s]+)/g,
+      '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>',
+    );
+    formatted = formatted.replace(
+      /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/g,
+      '<a href="mailto:$1">$1</a>',
+    );
+    return formatted.replace(/\n/g, "<br>");
+  }
 
   // Generate deterministic peaks for the current track to show a mock waveform
   let waveformPeaks = $derived.by(() => {
@@ -339,6 +365,34 @@
       year: 2026,
       genre: "Electronic",
       attrib: "https://sweetboysonnet.com/",
+    },
+    {
+      id: "arigato",
+      title: "ARIGATO",
+      artist: "Nxnja",
+      album: "ARIGATO",
+      cover: "https://data.wearedogs.net/img/covers/2026/arigato.webp",
+      altCover: "https://data.wearedogs.net/img/covers/2026/arigato.png",
+      src: "",
+      instrumental: "https://data.wearedogs.net/music/2026/arigato.mp3",
+      dateAdded: "2026-07-23T00:39:56-05:00",
+      year: 2026,
+      genre: "Hip-Hop",
+      attrib: "https://nxnjaa.beatstars.com/",
+    },
+    {
+      id: "exile",
+      title: "What's Beneath the Chicken Coop",
+      artist: "Trevor Sensor",
+      album: "On Account of Exile, Vol. 2",
+      cover: "https://data.wearedogs.net/img/covers/2026/exile.webp",
+      altCover: "https://data.wearedogs.net/img/covers/2026/exile.png",
+      src: "https://data.wearedogs.net/music/2026/exile.mp3",
+      instrumental: "",
+      dateAdded: "2026-07-23T00:52:43-05:00",
+      year: 2021,
+      genre: "Indie Rock",
+      attrib: "https://trevorsensorofficial.com/",
     },
   ];
 
@@ -1515,11 +1569,24 @@
                   <div class="flex items-center gap-2 flex-shrink-0">
                     {#if track.attrib}
                       <span class="inst-chip-link">
-                        <a
-                          href={track.attrib}
-                          target="_blank"
-                          onclick={(e) => e.stopPropagation()}>i</a
-                        >
+                        {#if track.id === "arigato"}
+                          <button
+                            onclick={(e) => {
+                              e.stopPropagation();
+                              showArigatoModal = true;
+                            }}
+                            class="cursor-pointer"
+                            style="background: none; border: none; padding: 0; color: inherit; font: inherit;"
+                          >
+                            i
+                          </button>
+                        {:else}
+                          <a
+                            href={track.attrib}
+                            target="_blank"
+                            onclick={(e) => e.stopPropagation()}>i</a
+                          >
+                        {/if}
                       </span>
                     {/if}
                     <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -1711,6 +1778,47 @@
   {/if}
   <canvas bind:this={faderFxCanvas} class="fader-fx-canvas pointer-events-none"
   ></canvas>
+
+  {#if showArigatoModal}
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div
+      class="arigato-modal-backdrop"
+      onclick={() => (showArigatoModal = false)}
+      transition:fade={{ duration: 150 }}
+    >
+      <div class="arigato-modal-content" onclick={(e) => e.stopPropagation()}>
+        <header class="arigato-modal-header">
+          <h2>ARIGATO INFO</h2>
+          <button
+            class="arigato-close-btn"
+            onclick={() => (showArigatoModal = false)}
+          >
+            <ArrowLeft size={16} />
+          </button>
+        </header>
+        <div class="arigato-modal-body scroll-y">
+          <div class="merch-link-container">
+            <a
+              href="https://nxnjaa.beatstars.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="merch-link-btn"
+            >
+              <ExternalLink size={14} /> NXNJA MERCH & MUSIC
+            </a>
+          </div>
+          <p class="intro-text">{@html linkify(arigatoParts.intro)}</p>
+          <div class="tos-box">
+            <div class="tos-microtext">
+              {@html linkify(arigatoParts.tos)}
+            </div>
+          </div>
+          <p class="outro-text">{@html linkify(arigatoParts.outro)}</p>
+        </div>
+      </div>
+    </div>
+  {/if}
 </div>
 
 <style lang="scss">
@@ -2714,6 +2822,168 @@
     }
     100% {
       transform: scaleY(0.85) skewX(2deg);
+    }
+  }
+
+  /* Arigato modal details styles */
+  .arigato-modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.75);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  .arigato-modal-content {
+    background: linear-gradient(135deg, #121214 0%, #0a0a0c 100%);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    box-shadow:
+      0 20px 50px rgba(0, 0, 0, 0.8),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    width: 90vw;
+    max-width: 600px;
+    height: 80vh;
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    color: #e4e4e7;
+    font-family: monospace;
+
+    @media (max-width: 640px) {
+      width: 95vw;
+      height: 85vh;
+    }
+  }
+
+  .arigato-modal-header {
+    padding: 16px 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(255, 255, 255, 0.02);
+
+    h2 {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      color: #ef4444;
+      text-transform: uppercase;
+    }
+  }
+
+  .arigato-close-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 50%;
+    color: rgba(255, 255, 255, 0.6);
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: rgba(239, 68, 68, 0.2);
+      color: white;
+      border-color: rgba(239, 68, 68, 0.4);
+      transform: translateX(-2px);
+    }
+  }
+
+  .arigato-modal-body {
+    padding: 24px;
+    flex: 1;
+    overflow-y: auto;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: #a1a1aa;
+
+    .intro-text,
+    .outro-text {
+      margin-bottom: 16px;
+      white-space: pre-wrap;
+      :global(a) {
+        color: #ef4444;
+        text-decoration: underline;
+        &:hover {
+          color: white;
+        }
+      }
+    }
+
+    .tos-box {
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px dashed rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 12px;
+      margin: 16px 0;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .tos-microtext {
+      font-size: 5px;
+      line-height: 1.2;
+      letter-spacing: 0;
+      color: #71717a;
+      word-break: break-all;
+      white-space: pre-wrap;
+      text-transform: none;
+      font-family: monospace;
+
+      :global(a) {
+        color: #ef4444;
+        text-decoration: underline;
+        &:hover {
+          color: white;
+        }
+      }
+    }
+  }
+
+  .merch-link-container {
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: center;
+  }
+
+  .merch-link-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+    color: white;
+    font-weight: 850;
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    padding: 8px 18px;
+    border-radius: 9999px;
+    text-decoration: none;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: linear-gradient(135deg, #ff6b6b 0%, #ef4444 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
+      color: white;
+    }
+
+    &:active {
+      transform: translateY(0);
     }
   }
 </style>
