@@ -516,8 +516,38 @@
 
   // Lawmaker geolocation & metadata now lives with the campaign in
   // campaigns.json, so the roster can be corrected without a code change.
-  let lawmakers = $derived(selectedCampaign?.lawmakers ?? []);
-  let hasLawmakerMap = $derived(lawmakers.length > 0);
+  // Priority offices lead the roster — they're the confirmed addresses and the
+  // ones worth hitting first, so they head the list and act as the fallback
+  // selection whenever geolocation can't narrow things down.
+  let lawmakers = $derived(
+    [...(selectedCampaign?.lawmakers ?? [])].sort(
+      (a, b) => (a.priority ?? 9) - (b.priority ?? 9),
+    ),
+  );
+
+  let priorityEmails = $derived(
+    lawmakers.filter((l) => l.priority === 1).map((l) => l.email),
+  );
+
+  // The lawmaker roster is the single source of truth for who gets mailed.
+  // Campaigns that predate it can still supply a bare contactReps.emails list.
+  let campaignRecipients = $derived(
+    lawmakers.length > 0
+      ? lawmakers.map((l) => l.email)
+      : (selectedCampaign?.contactReps?.emails ?? []),
+  );
+
+  /** Who to select when we can't do better — the confirmed priority offices. */
+  let fallbackReps = $derived(
+    priorityEmails.length > 0 ? priorityEmails : campaignRecipients.slice(0, 3),
+  );
+
+  // Only a roster with real coordinates can be drawn.
+  let hasLawmakerMap = $derived(
+    lawmakers.some(
+      (l) => typeof l.lat === "number" && typeof l.lng === "number",
+    ),
+  );
 
   // Email Lawmakers Action System
   let showEmailCopiedAlert = $state(false);
@@ -529,8 +559,8 @@
 
   // Sync selected reps when campaign changes
   $effect(() => {
-    if (selectedCampaign?.contactReps?.emails) {
-      selectedReps = [...selectedCampaign.contactReps.emails];
+    if (campaignRecipients.length > 0) {
+      selectedReps = [...campaignRecipients];
       locationStatusText = "";
     }
   });
@@ -552,8 +582,8 @@
   }
 
   function handleBlastEm(contactReps) {
-    if (!contactReps || !contactReps.emails) return;
-    const mailtoUrl = `mailto:?bcc=${encodeURIComponent(contactReps.emails.join(","))}&subject=${encodeURIComponent(contactReps.subject)}&body=${encodeURIComponent(contactReps.body)}`;
+    if (!contactReps || campaignRecipients.length === 0) return;
+    const mailtoUrl = `mailto:?bcc=${encodeURIComponent(campaignRecipients.join(","))}&subject=${encodeURIComponent(contactReps.subject)}&body=${encodeURIComponent(contactReps.body)}`;
     window.location.href = mailtoUrl;
   }
 
@@ -620,13 +650,21 @@
       .slice(0, 4);
 
     if (validClosest.length === 0) {
-      selectedReps = allEmails.slice(0, 3);
+      selectedReps = [...fallbackReps];
       locationStatusText =
-        "📍 Found you, but no mapped reps matched this campaign. Selected key leadership instead.";
+        "📍 Found you, but no mapped reps matched. Selected the priority offices instead.";
       return;
     }
 
-    selectedReps = validClosest.map((r) => r.email);
+    // Always keep the confirmed priority offices in the send, then add whoever
+    // is nearest — a local rep is persuasive, but the priority list is the
+    // one that actually moves this.
+    const closestEmails = validClosest.map((r) => r.email);
+    selectedReps = [
+      ...priorityEmails,
+      ...closestEmails.filter((e) => !priorityEmails.includes(e)),
+    ];
+
     const topNames = validClosest
       .slice(0, 2)
       .map((r) => r.name)
@@ -634,7 +672,7 @@
     const accuracy = pos.coords.accuracy
       ? ` ±${Math.round(pos.coords.accuracy / 1609) || "<1"}mi`
       : "";
-    locationStatusText = `📍 Selected your ${validClosest.length} closest reps${accuracy} — ${topNames}`;
+    locationStatusText = `📍 Priority offices + your closest reps${accuracy} — ${topNames}`;
   }
 
   /**
@@ -667,18 +705,18 @@
       applyClosestReps(pos, allEmails);
     };
 
+    // Any failure falls back to the confirmed priority offices — never to
+    // nothing, and never to an unverified address.
     const giveUp = (err) => {
       isLocating = false;
-      selectedReps = allEmails.slice(0, 3);
+      selectedReps = [...fallbackReps];
+      const tail = `Selected the ${fallbackReps.length} priority offices — or tick the boxes below.`;
       if (err && err.code === 1) {
-        locationStatusText =
-          "📍 Location permission was denied. Auto-selected key leadership reps — or tick the boxes below.";
+        locationStatusText = `📍 Location permission was denied. ${tail}`;
       } else if (err && err.code === 3) {
-        locationStatusText =
-          "📍 Location timed out. Auto-selected key leadership reps — try again or tick the boxes below.";
+        locationStatusText = `📍 Location timed out. ${tail}`;
       } else {
-        locationStatusText =
-          "📍 Location unavailable right now. Auto-selected key leadership reps — or tick the boxes below.";
+        locationStatusText = `📍 Location unavailable right now. ${tail}`;
       }
     };
 
@@ -686,7 +724,7 @@
     navigator.geolocation.getCurrentPosition(
       succeed,
       () => {
-        locationStatusText = "Still locating — asking for a precise fix...";
+        locationStatusText = "Still locating...";
         // Pass 2: force a fresh high-accuracy fix with a generous budget.
         navigator.geolocation.getCurrentPosition(succeed, giveUp, {
           enableHighAccuracy: true,
@@ -970,6 +1008,19 @@
     if (showSortMailPanel) jumpToMap();
   }
 
+  /**
+   * The carousel must fit the panel without scrolling on desktop. Guessing with
+   * `vh` doesn't work — the workspace is shorter than the viewport by a varying
+   * amount of panel chrome — so measure it and cap the media box directly,
+   * leaving room for the thumbnail strip and gaps beneath it.
+   */
+  let workspaceH = $state(0);
+  // thumbnail strip + its gap + the workspace's own vertical padding
+  const CAROUSEL_CHROME_PX = 152;
+  let mediaMaxPx = $derived(
+    workspaceH > 0 ? Math.max(240, workspaceH - CAROUSEL_CHROME_PX) : 0,
+  );
+
   // "JUMP TO EMAIL" — scroll the send buttons into view from the countdown widget.
   let emailActionEl = $state(null);
   let emailActionFlash = $state(false);
@@ -1003,7 +1054,10 @@
       el.getBoundingClientRect().top -
       sc.getBoundingClientRect().top -
       Math.max(0, (sc.clientHeight - el.clientHeight) / 2);
-    const dest = Math.max(0, Math.min(offset, sc.scrollHeight - sc.clientHeight));
+    const dest = Math.max(
+      0,
+      Math.min(offset, sc.scrollHeight - sc.clientHeight),
+    );
 
     sc.scrollTo({ top: dest, behavior: "smooth" });
     setTimeout(() => {
@@ -1100,6 +1154,7 @@
     <!-- Main Workspace -->
     <div
       class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 grid grid-cols-1 grid-rows-1"
+      bind:clientHeight={workspaceH}
       onpointerdown={handleWorkspacePointerDown}
       onpointerup={handleWorkspacePointerUp}
       ontouchstart={handleWorkspaceTouchStart}
@@ -1575,15 +1630,20 @@
             >
               <!-- Left Side: Media Carousel (Col 7) -->
               <div
-                class="sm:col-span-7 flex flex-col gap-3 sm:gap-4 sm:sticky sm:top-4 md:top-6 lg:top-8"
+                class="sm:col-span-7 flex flex-col gap-3 sm:gap-4 min-w-0 min-h-0 sm:sticky sm:top-4 md:top-6 lg:top-8"
               >
                 <!-- Big Image Showcase -->
-                <!-- The map needs more vertical room than a 16:9 photo does -->
+                <!-- The map needs more vertical room than a 16:9 photo does.
+                     Both are capped against the viewport so the carousel and
+                     its thumbnail strip always fit on screen without scrolling. -->
                 <div
                   class="relative w-full bg-black/40 border border-zinc-800 rounded-2xl overflow-hidden shadow-lg group touch-pan-y {currentMediaItem?.type ===
                   'map'
-                    ? 'aspect-[4/3] max-h-[420px] sm:max-h-[480px] md:max-h-[520px] lg:max-h-[580px] xl:max-h-[620px]'
-                    : 'aspect-video max-h-[280px] sm:max-h-[320px] md:max-h-[360px] lg:max-h-[420px] xl:max-h-[460px]'}"
+                    ? 'aspect-[4/3]'
+                    : 'aspect-video'}"
+                  style={mediaMaxPx
+                    ? `max-height: ${currentMediaItem?.type === "map" ? mediaMaxPx : Math.min(mediaMaxPx, 460)}px`
+                    : undefined}
                   ontouchstart={handleTouchStart}
                   ontouchend={handleTouchEnd}
                   role="region"
@@ -2153,9 +2213,7 @@
                             </button>
                             <button
                               onclick={() =>
-                                handleCopyRepsEmails(
-                                  selectedCampaign.contactReps.emails,
-                                )}
+                                handleCopyRepsEmails(campaignRecipients)}
                               class="py-2.5 px-3 bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-300 hover:text-white font-bold rounded-xl text-[11px] tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow"
                               title="Copy all email addresses"
                             >
@@ -2175,9 +2233,7 @@
                               >
                                 <button
                                   onclick={() =>
-                                    handleUseLocation(
-                                      selectedCampaign.contactReps.emails,
-                                    )}
+                                    handleUseLocation(campaignRecipients)}
                                   disabled={isLocating}
                                   class="py-2 px-3 bg-emerald-950/60 hover:bg-emerald-900/60 border border-emerald-500/40 text-emerald-300 font-mono text-[11px] font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
                                 >
@@ -2191,9 +2247,7 @@
                                 >
                                   <button
                                     onclick={() =>
-                                      handleSelectAllReps(
-                                        selectedCampaign.contactReps.emails,
-                                      )}
+                                      handleSelectAllReps(campaignRecipients)}
                                     class="text-emerald-400 hover:underline cursor-pointer"
                                   >
                                     Select All
@@ -2222,25 +2276,41 @@
                               >
                                 <span>SELECT SPECIFIC REPRESENTATIVES:</span>
                                 <span class="text-emerald-400"
-                                  >{selectedReps.length} / {selectedCampaign
-                                    .contactReps.emails.length} Selected</span
+                                  >{selectedReps.length} / {campaignRecipients.length}
+                                  Selected</span
                                 >
                               </div>
 
                               <div
                                 class="max-h-44 overflow-y-auto custom-scrollbar flex flex-col gap-1.5 pr-1"
                               >
-                                {#each selectedCampaign.contactReps.emails as email}
+                                {#each campaignRecipients as email, rIdx}
                                   {@const meta = getRepInfo(email)}
                                   {@const isChecked =
                                     selectedReps.includes(email)}
+                                  {@const isPriority = meta.priority === 1}
+                                  {#if isPriority && rIdx === 0}
+                                    <div
+                                      class="text-[9px] font-mono font-bold tracking-widest text-amber-400/90 uppercase pt-0.5"
+                                    >
+                                      ★ Priority offices
+                                    </div>
+                                  {:else if !isPriority && getRepInfo(campaignRecipients[rIdx - 1])?.priority === 1}
+                                    <div
+                                      class="text-[9px] font-mono font-bold tracking-widest text-zinc-600 uppercase pt-1.5"
+                                    >
+                                      Everyone else
+                                    </div>
+                                  {/if}
                                   <!-- svelte-ignore a11y_click_events_have_key_events -->
                                   <!-- svelte-ignore a11y_no_static_element_interactions -->
                                   <div
                                     onclick={() => handleToggleRep(email)}
                                     class="flex items-center gap-2.5 p-2 rounded-lg border transition-all cursor-pointer select-none text-[11px] {isChecked
                                       ? 'bg-emerald-950/30 border-emerald-500/40 text-zinc-100'
-                                      : 'bg-zinc-900/40 border-zinc-850 text-zinc-400'}"
+                                      : 'bg-zinc-900/40 border-zinc-850 text-zinc-400'} {isPriority
+                                      ? 'ring-1 ring-amber-500/30'
+                                      : ''}"
                                   >
                                     <input
                                       type="checkbox"
@@ -2252,7 +2322,12 @@
                                       <div
                                         class="font-bold flex items-center justify-between gap-1"
                                       >
-                                        <span class="truncate">{meta.name}</span
+                                        <span
+                                          class="truncate flex items-center gap-1.5"
+                                          >{#if isPriority}<span
+                                              class="text-amber-400 shrink-0"
+                                              >★</span
+                                            >{/if}{meta.name}</span
                                         >
                                         <span
                                           class="text-[9px] font-mono text-zinc-500 shrink-0"

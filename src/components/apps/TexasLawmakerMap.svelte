@@ -15,6 +15,8 @@
     WATER_LABELS,
     RIVERS,
     RIO_GRANDE,
+    CITY_CELLS,
+    TEXAS_PATH,
     DEFAULT_VIEW,
     viewAround,
   } from "../../lib/texasGeo.js";
@@ -30,11 +32,17 @@
   let hoveredEmail = $state(null);
   let showLegend = $state(false);
 
+  // Roads and rivers are useful once you're in close, but they're noise on the
+  // first look — off by default.
+  let showRoads = $state(false);
+  let showRivers = $state(false);
+  let showBorders = $state(true);
+
   // Spring-animated viewBox, matching the pan/zoom feel of the main /map panel.
-  const vx = spring(DEFAULT_VIEW.x, { stiffness: 0.16, damping: 0.86 });
-  const vy = spring(DEFAULT_VIEW.y, { stiffness: 0.16, damping: 0.86 });
-  const vw = spring(DEFAULT_VIEW.w, { stiffness: 0.16, damping: 0.86 });
-  const vh = spring(DEFAULT_VIEW.h, { stiffness: 0.16, damping: 0.86 });
+  const vx = spring(DEFAULT_VIEW.x, { stiffness: 0.24, damping: 0.78, precision: 0.05 });
+  const vy = spring(DEFAULT_VIEW.y, { stiffness: 0.24, damping: 0.78, precision: 0.05 });
+  const vw = spring(DEFAULT_VIEW.w, { stiffness: 0.24, damping: 0.78, precision: 0.05 });
+  const vh = spring(DEFAULT_VIEW.h, { stiffness: 0.24, damping: 0.78, precision: 0.05 });
 
   let zoomFactor = $derived(DEFAULT_VIEW.w / $vw);
 
@@ -112,7 +120,13 @@
       .toUpperCase();
   }
 
+  // The springs report an interpolated value mid-flight. Zoom steps must work
+  // off where we're *going*, or a click during the animation snaps the view
+  // back to wherever the tween happened to be.
+  let target = { ...DEFAULT_VIEW };
+
   function setView(v) {
+    target = { ...v };
     vx.set(v.x);
     vy.set(v.y);
     vw.set(v.w);
@@ -136,29 +150,190 @@
     setView(viewAround(rep.lng, rep.lat, 300));
   }
 
-  function zoomToCity(city) {
+  function zoomToCity(city, height = 220) {
     if (activeCity === city.name) {
       resetView();
       return;
     }
     activeEmail = null;
     activeCity = city.name;
-    setView(viewAround(city.lng, city.lat, 340));
+    setView(viewAround(city.lng, city.lat, height));
   }
 
+  // Deep enough to pick out individual DFW suburbs.
+  const MIN_VIEW_W = 40;
+
   function stepZoom(factor) {
-    const cx = $vx + $vw / 2;
-    const cy = $vy + $vh / 2;
-    const nw = Math.min(DEFAULT_VIEW.w, Math.max(180, $vw * factor));
+    const cx = target.x + target.w / 2;
+    const cy = target.y + target.h / 2;
+    const nw = Math.min(DEFAULT_VIEW.w, Math.max(MIN_VIEW_W, target.w * factor));
     const nh = (nw * 9) / 16;
-    vw.set(nw);
-    vh.set(nh);
-    vx.set(cx - nw / 2);
-    vy.set(cy - nh / 2);
+    setView({ x: cx - nw / 2, y: cy - nh / 2, w: nw, h: nh });
   }
 
   function isSelected(email) {
     return selectedEmails.includes(email);
+  }
+
+  let focusedEmail = $derived(activeEmail || hoveredEmail);
+  let focusedRep = $derived(
+    lawmakers.find((l) => l.email === focusedEmail) || null,
+  );
+
+  const CELL_BY_NAME = new Map(CITY_CELLS.map((c) => [c.name, c.d]));
+
+  /**
+   * City names sit beside their dot on the map, but a name is only drawn if
+   * its box doesn't collide with one already placed. Candidates are tried in
+   * importance order (big cities first) and each gets four candidate
+   * positions, so DFW reads cleanly instead of turning into a smear. Lawmaker
+   * pins reserve their space first — their names must never be obscured.
+   */
+  function boxesOverlap(a, b) {
+    return (
+      a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y
+    );
+  }
+
+  let inViewport = $derived(
+    (x, y) =>
+      x > $vx - u(30) &&
+      x < $vx + $vw + u(30) &&
+      y > $vy - u(20) &&
+      y < $vy + $vh + u(20),
+  );
+
+  /**
+   * Lawmaker names get the same collision treatment as cities — six DFW
+   * offices sit on top of each other, and drawing all six names produced an
+   * unreadable stack. Names that can't find clear space are dropped; hover or
+   * zoom in to see them.
+   */
+  let pinLabels = $derived.by(() => {
+    if (!renderScale || !showDetail || focusedEmail) return [];
+    const placed = [];
+    const out = [];
+
+    for (const rep of lawmakers) {
+      const x = px(rep.lng);
+      const y = py(rep.lat);
+      if (!inViewport(x, y)) continue;
+
+      const hw = u(nameHalfWidth(rep));
+      const h = u(26 * ts);
+      const options = [
+        { oy: -u(15) },
+        { oy: u(30) },
+        { oy: -u(34) },
+        { oy: u(49) },
+      ];
+
+      for (const o of options) {
+        const box = { x: x - hw, y: y + o.oy - u(13 * ts), w: hw * 2, h };
+        if (placed.some((p) => boxesOverlap(p, box))) continue;
+        placed.push(box);
+        out.push({ rep, x, y: y + o.oy, box });
+        break;
+      }
+    }
+    return out;
+  });
+
+  let cityLabels = $derived.by(() => {
+    if (!renderScale) return [];
+
+    const inView = inViewport;
+
+    // Lawmaker names claim their space first — they're the point of the map.
+    // A bare pin is just a dot, and label plates sit behind their text, so a
+    // dot under a label is fine; only a drawn *name* needs the room.
+    const placed = pinLabels.map((p) => p.box);
+    if (focusedRep) {
+      const hw = u(nameHalfWidth(focusedRep));
+      placed.push({
+        x: px(focusedRep.lng) - hw,
+        y: py(focusedRep.lat) - u(32 * ts),
+        w: hw * 2,
+        h: u(46 * ts),
+      });
+    }
+
+    const out = [];
+    const candidates = CITIES.filter((c) => labelVisible(c.tier)).sort(
+      (a, b) => a.tier - b.tier,
+    );
+
+    for (const c of candidates) {
+      const dx = px(c.lng);
+      const dy = py(c.lat);
+      if (!inView(dx, dy)) continue;
+
+      const fs = (c.tier === 1 ? 12.5 : c.tier === 2 ? 10.5 : 9) * ts;
+      const w = u(c.name.length * fs * 0.66 + 12);
+      const h = u(fs + 8);
+
+      const options = [
+        { ox: u(11), oy: u(3.5), anchor: "start" },
+        { ox: -u(11), oy: u(3.5), anchor: "end" },
+        { ox: 0, oy: -u(12), anchor: "middle" },
+        { ox: 0, oy: u(18), anchor: "middle" },
+      ];
+
+      for (const o of options) {
+        const tx = dx + o.ox;
+        const ty = dy + o.oy;
+        const bx =
+          o.anchor === "start" ? tx - u(4) : o.anchor === "end" ? tx - w + u(4) : tx - w / 2;
+        const box = { x: bx, y: ty - h * 0.78, w, h };
+        if (placed.some((p) => boxesOverlap(p, box))) continue;
+        placed.push(box);
+        out.push({ city: c, tx, ty, anchor: o.anchor, fs, box });
+        break;
+      }
+    }
+    return out;
+  });
+
+  /** Cells belonging to a labelled city get a brighter outline. */
+  let labelledCells = $derived(
+    cityLabels.map((l) => CELL_BY_NAME.get(l.city.name)).filter(Boolean),
+  );
+
+  /** Landmarks place last — they yield to every lawmaker and city name. */
+  let landmarkLabels = $derived.by(() => {
+    if (!renderScale || !showDetail) return [];
+    const placed = [
+      ...pinLabels.map((p) => p.box),
+      ...cityLabels.map((c) => c.box),
+    ];
+    const out = [];
+
+    for (const lm of LANDMARKS) {
+      if (!dotVisible(lm.tier)) continue;
+      const x = px(lm.lng);
+      const y = py(lm.lat);
+      if (!inViewport(x, y)) continue;
+
+      const fs = 8.5 * ts;
+      const w = u(lm.name.length * fs * 0.62 + 10);
+      const h = u(fs + 6);
+      const box = { x: x - w / 2, y: y + u(11 * ts), w, h };
+      // The icon needs clear space too, not just the caption.
+      const iconBox = { x: x - u(9), y: y - u(9), w: u(18), h: u(18) };
+      if (placed.some((p) => boxesOverlap(p, box) || boxesOverlap(p, iconBox)))
+        continue;
+      placed.push(box, iconBox);
+      out.push({ lm, x, y, box, fs });
+    }
+    return out;
+  });
+
+  /** Rough half-width of the name plate, in screen px. */
+  function nameHalfWidth(rep) {
+    const label = rep.shortName || rep.name;
+    const title = rep.title || "";
+    const chars = Math.max(label.length * 9, title.length * 5.6);
+    return Math.max(34, chars / 2 + 8) * ts;
   }
 
   /**
@@ -187,13 +362,15 @@
   // of DFW and none of them are readable.
   function dotVisible(tier) {
     if (tier === 1 || tier === 2) return true;
-    return zoomFactor >= 1.6;
+    if (tier === 3) return zoomFactor >= 1.6;
+    return zoomFactor >= 3.2;
   }
 
   function labelVisible(tier) {
     if (tier === 1) return true;
     if (tier === 2) return zoomFactor >= 1.3;
-    return zoomFactor >= 2.2;
+    if (tier === 3) return zoomFactor >= 2.2;
+    return zoomFactor >= 4.5;
   }
 
   // Zoomed out the map is about *where the cities are*. River names, highway
@@ -211,9 +388,27 @@
       <span class="tx-title-text">{title}</span>
     </div>
     <div class="tx-tools">
-      <button class="tx-btn" onclick={() => stepZoom(0.65)} title="Zoom in">+</button>
-      <button class="tx-btn" onclick={() => stepZoom(1.55)} title="Zoom out">−</button>
+      <button class="tx-btn" onclick={() => stepZoom(0.6)} title="Zoom in">+</button>
+      <button class="tx-btn" onclick={() => stepZoom(1.6)} title="Zoom out">−</button>
       <button class="tx-btn" onclick={resetView} title="Reset view">RESET</button>
+      <button
+        class="tx-btn"
+        class:tx-btn-on={showBorders}
+        onclick={() => (showBorders = !showBorders)}
+        title="Toggle city boundaries">BORDERS</button
+      >
+      <button
+        class="tx-btn"
+        class:tx-btn-on={showRoads}
+        onclick={() => (showRoads = !showRoads)}
+        title="Toggle highways">HWY</button
+      >
+      <button
+        class="tx-btn"
+        class:tx-btn-on={showRivers}
+        onclick={() => (showRivers = !showRivers)}
+        title="Toggle rivers">RIV</button
+      >
       <button
         class="tx-btn"
         class:tx-btn-on={showLegend}
@@ -234,7 +429,7 @@
       <button
         class="tx-chip"
         class:on={activeCity === c.name}
-        onclick={() => zoomToCity(c)}>{c.name}</button
+        onclick={() => zoomToCity(c, 130)}>{c.name}</button
       >
     {/each}
   </div>
@@ -252,10 +447,23 @@
           <stop offset="0%" stop-color="#10b981" stop-opacity="0.5" />
           <stop offset="100%" stop-color="#10b981" stop-opacity="0" />
         </radialGradient>
-        <linearGradient id="txFill" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#10b981" stop-opacity="0.12" />
-          <stop offset="100%" stop-color="#059669" stop-opacity="0.05" />
+        <linearGradient id="txFill" x1="0.1" y1="0" x2="0.9" y2="1">
+          <stop offset="0%" stop-color="#f472b6" stop-opacity="0.16" />
+          <stop offset="45%" stop-color="#a855f7" stop-opacity="0.1" />
+          <stop offset="100%" stop-color="#22d3ee" stop-opacity="0.08" />
         </linearGradient>
+        <linearGradient id="txEdge" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#f472b6" />
+          <stop offset="55%" stop-color="#c084fc" />
+          <stop offset="100%" stop-color="#22d3ee" />
+        </linearGradient>
+        <radialGradient id="txVignette" cx="50%" cy="45%" r="75%">
+          <stop offset="55%" stop-color="#000" stop-opacity="0" />
+          <stop offset="100%" stop-color="#000" stop-opacity="0.55" />
+        </radialGradient>
+        <clipPath id="txClip">
+          <path d={TEXAS_PATH} />
+        </clipPath>
       </defs>
 
       <!-- Gulf / open water backdrop -->
@@ -278,12 +486,30 @@
       <!-- Texas -->
       <path d={texasPath} class="tx-state" vector-effect="non-scaling-stroke" />
 
+      <!-- City territory borders, clipped to the state outline -->
+      {#if showBorders}
+        <g clip-path="url(#txClip)" transition:fade={{ duration: 180 }}>
+          {#each CITY_CELLS as cell}
+            <path
+              d={cell.d}
+              class="tx-cell"
+              class:tx-cell-major={cell.tier <= 2}
+              vector-effect="non-scaling-stroke"
+            />
+          {/each}
+        </g>
+      {/if}
+
       <!-- Rivers -->
-      <path d={rioGrandePath} class="tx-river" vector-effect="non-scaling-stroke" />
-      {#each riverPaths as r}
-        <path d={r.d} class="tx-river" vector-effect="non-scaling-stroke" />
-      {/each}
-      {#if showDetail}
+      {#if showRivers}
+        <g transition:fade={{ duration: 180 }}>
+          <path d={rioGrandePath} class="tx-river" vector-effect="non-scaling-stroke" />
+          {#each riverPaths as r}
+            <path d={r.d} class="tx-river" vector-effect="non-scaling-stroke" />
+          {/each}
+        </g>
+      {/if}
+      {#if showDetail && showRivers}
         {#each RIVERS as r}
           <text
             transition:fade={{ duration: 160 }}
@@ -300,17 +526,21 @@
       {/if}
 
       <!-- Highways -->
-      {#each highwayPaths as h}
-        <path
-          d={h.d}
-          class="tx-hwy"
-          class:tx-hwy-us={h.kind === "us"}
-          vector-effect="non-scaling-stroke"
-        />
-      {/each}
+      {#if showRoads}
+        <g transition:fade={{ duration: 180 }}>
+          {#each highwayPaths as h}
+            <path
+              d={h.d}
+              class="tx-hwy"
+              class:tx-hwy-us={h.kind === "us"}
+              vector-effect="non-scaling-stroke"
+            />
+          {/each}
+        </g>
+      {/if}
 
       <!-- Highway shields -->
-      {#if showDetail}
+      {#if showDetail && showRoads}
         {#each HIGHWAYS as h}
           <g transition:fade={{ duration: 160 }}>
             <rect
@@ -352,33 +582,51 @@
       {/each}
 
       <!-- Landmarks -->
-      {#each LANDMARKS as lm}
-        {#if dotVisible(lm.tier)}
-          <g transition:fade={{ duration: 180 }}>
-            <text
-              x={px(lm.lng)}
-              y={py(lm.lat) + u(5)}
-              text-anchor="middle"
-              style="font-size: {u(15 * ts)}px">{lm.icon}</text
-            >
-            {#if showDetail}
-              <text
-                transition:fade={{ duration: 160 }}
-                x={px(lm.lng)}
-                y={py(lm.lat) + u(18 * ts)}
-                class="tx-landmark-label"
-                text-anchor="middle"
-                style="font-size: {u(8.5 * ts)}px">{lm.name}</text
-              >
-            {/if}
-          </g>
-        {/if}
+      <!-- Landmarks are pictorial; they'd cheapen the wide shot, so they only
+           appear once you've zoomed in — and only where they don't collide. -->
+      {#each landmarkLabels as ll (ll.lm.name)}
+        <g transition:fade={{ duration: 180 }} class="tx-callout">
+          <text
+            x={ll.x}
+            y={ll.y + u(5)}
+            text-anchor="middle"
+            style="font-size: {u(15 * ts)}px">{ll.lm.icon}</text
+          >
+          <rect
+            x={ll.box.x}
+            y={ll.box.y}
+            width={ll.box.w}
+            height={ll.box.h}
+            rx={u(3)}
+            class="tx-label-plate"
+          />
+          <text
+            x={ll.x}
+            y={ll.y + u(18 * ts)}
+            class="tx-landmark-label"
+            text-anchor="middle"
+            style="font-size: {u(ll.fs)}px">{ll.lm.name}</text
+          >
+        </g>
       {/each}
 
       <!-- Cities -->
       {#each CITIES as c}
         {#if dotVisible(c.tier)}
-          <g transition:fade={{ duration: 180 }}>
+          <g
+            transition:fade={{ duration: 180 }}
+            class="tx-city-hit"
+            onclick={() => zoomToCity(c, c.tier >= 3 ? 90 : 220)}
+            role="button"
+            tabindex="-1"
+          >
+            <!-- clickable target so any town can be zoomed straight into -->
+            <circle
+              cx={px(c.lng)}
+              cy={py(c.lat)}
+              r={u(9)}
+              fill="transparent"
+            />
             {#if c.capital}
               <path
                 d="M{px(c.lng)},{py(c.lat) - u(7)} L{px(c.lng) + u(6.5)},{py(
@@ -397,28 +645,48 @@
                 vector-effect="non-scaling-stroke"
               />
             {/if}
-            {#if labelVisible(c.tier)}
-              <text
-                transition:fade={{ duration: 160 }}
-                x={px(c.lng) + (c.anchor === "end" ? -u(8) : u(8))}
-                y={py(c.lat) + u(4.5)}
-                text-anchor={c.anchor === "end" ? "end" : "start"}
-                class="tx-city-label"
-                class:tx-city-label-major={c.tier === 1}
-                style="font-size: {u(
-                  (c.tier === 1 ? 15 : c.tier === 2 ? 11.5 : 9.5) * ts,
-                )}px">{c.name}</text
-              >
-            {/if}
           </g>
         {/if}
       {/each}
 
-      <!-- Lawmaker pins -->
+      <!-- Territory outline of every city that got a name this frame -->
+      <g clip-path="url(#txClip)">
+        {#each labelledCells as d}
+          <path d={d} class="tx-cell-called" vector-effect="non-scaling-stroke" />
+        {/each}
+      </g>
+
+      <!-- City names, placed beside their dot and never overlapping -->
+      {#each cityLabels as l (l.city.name)}
+        <g class="tx-callout">
+          <rect
+            x={l.box.x}
+            y={l.box.y}
+            width={l.box.w}
+            height={l.box.h}
+            rx={u(3)}
+            class="tx-label-plate"
+            class:tx-label-plate-major={l.city.tier === 1}
+          />
+          <text
+            x={l.tx}
+            y={l.ty}
+            text-anchor={l.anchor}
+            class="tx-city-label"
+            class:tx-city-label-major={l.city.tier === 1}
+            style="font-size: {u(l.fs)}px">{l.city.name}</text
+          >
+        </g>
+      {/each}
+
+      <!-- Lawmaker pins. Order is deliberately stable: reordering the nodes
+           under the cursor makes the browser fire mouseleave and the hover
+           flickers. The focused label is drawn in an overlay layer below. -->
       {#each lawmakers as rep}
         {@const isOn = isSelected(rep.email)}
         {@const isActive = activeEmail === rep.email}
         {@const isHot = hoveredEmail === rep.email}
+        {@const isFocused = isActive || isHot}
         <g
           class="tx-pin"
           class:tx-pin-active={isActive}
@@ -459,29 +727,71 @@
             class:tx-pin-on={isOn}
           />
           <!-- Names stay off the map until you point at a dot or zoom in —
-               fifteen labels at once is an unreadable pile. -->
-          {#if isActive || isHot || showDetail}
-            <text
-              transition:fade={{ duration: 130 }}
-              x={px(rep.lng)}
-              y={py(rep.lat) - u(15)}
-              text-anchor="middle"
-              class="tx-pin-label"
-              class:tx-pin-label-active={isActive || isHot}
-              style="font-size: {u((isActive || isHot ? 15 : 12.5) * ts)}px"
-              >{rep.shortName || rep.name}</text
-            >
-            <text
-              transition:fade={{ duration: 130 }}
-              x={px(rep.lng)}
-              y={py(rep.lat) - u(15) + u(11 * ts)}
-              text-anchor="middle"
-              class="tx-pin-sub"
-              style="font-size: {u(9 * ts)}px">{rep.title}</text
-            >
-          {/if}
+               fifteen labels at once is an unreadable pile. Once one rep is
+               focused the others step back so its name is never buried. -->
         </g>
       {/each}
+
+      <!-- Lawmaker names, collision-culled so they never stack -->
+      {#each pinLabels as pl (pl.rep.email)}
+        <g class="tx-callout">
+          <rect
+            x={pl.box.x}
+            y={pl.box.y}
+            width={pl.box.w}
+            height={pl.box.h}
+            rx={u(3)}
+            class="tx-pin-plate tx-pin-plate-quiet"
+            vector-effect="non-scaling-stroke"
+          />
+          <text
+            x={pl.x}
+            y={pl.y}
+            text-anchor="middle"
+            class="tx-pin-label"
+            style="font-size: {u(11.5 * ts)}px"
+            >{pl.rep.shortName || pl.rep.name}</text
+          >
+          <text
+            x={pl.x}
+            y={pl.y + u(10 * ts)}
+            text-anchor="middle"
+            class="tx-pin-sub"
+            style="font-size: {u(8 * ts)}px">{pl.rep.title}</text
+          >
+        </g>
+      {/each}
+
+      <!-- Focused lawmaker's name, drawn above every other layer so it is
+           never buried by a city label or another pin. -->
+      {#if focusedRep}
+        <g class="tx-focus-label">
+          <rect
+            x={px(focusedRep.lng) - u(nameHalfWidth(focusedRep))}
+            y={py(focusedRep.lat) - u(15) - u(13 * ts)}
+            width={u(nameHalfWidth(focusedRep) * 2)}
+            height={u(28 * ts)}
+            rx={u(4)}
+            class="tx-pin-plate"
+            vector-effect="non-scaling-stroke"
+          />
+          <text
+            x={px(focusedRep.lng)}
+            y={py(focusedRep.lat) - u(15)}
+            text-anchor="middle"
+            class="tx-pin-label tx-pin-label-active"
+            style="font-size: {u(15 * ts)}px"
+            >{focusedRep.shortName || focusedRep.name}</text
+          >
+          <text
+            x={px(focusedRep.lng)}
+            y={py(focusedRep.lat) - u(15) + u(11 * ts)}
+            text-anchor="middle"
+            class="tx-pin-sub"
+            style="font-size: {u(9 * ts)}px">{focusedRep.title}</text
+          >
+        </g>
+      {/if}
     </svg>
 
     <!-- Legend -->
@@ -491,11 +801,12 @@
         <div class="tx-legend-row"><span class="sw sw-on"></span> Selected recipient</div>
         <div class="tx-legend-row"><span class="sw sw-off"></span> Lawmaker office</div>
         <div class="tx-legend-row"><span class="sw sw-capital"></span> State capital</div>
+        <div class="tx-legend-row"><span class="sw sw-cell"></span> City boundary</div>
         <div class="tx-legend-row"><span class="sw sw-hwy"></span> Interstate</div>
         <div class="tx-legend-row"><span class="sw sw-us"></span> US highway</div>
         <div class="tx-legend-row"><span class="sw sw-river"></span> Major river</div>
         <div class="tx-legend-note">
-          Hover a pin for detail · tap to zoom · tap again to zoom out
+          Hover a pin for detail · tap any dot to zoom in · tap again to zoom out
         </div>
       </div>
     {/if}
@@ -503,7 +814,11 @@
     <!-- Lawmaker detail — follows hover, stays pinned on the clicked pin -->
     {#if infoRep}
       {#key infoRep.email}
-        <div class="tx-card" transition:fly={{ y: 12, duration: 160 }}>
+        <div
+          class="tx-card"
+          class:tx-card-ghost={!activeRep}
+          transition:fly={{ y: -10, duration: 160 }}
+        >
           <div class="tx-card-head">
             <div
               class="tx-avatar"
@@ -562,6 +877,8 @@
 
     <!-- Zoom readout -->
     <div class="tx-zoom">{zoomFactor.toFixed(1)}×</div>
+    <div class="tx-vignette"></div>
+    <div class="tx-scanlines"></div>
   </div>
 </div>
 
@@ -571,7 +888,19 @@
     inset: 0;
     display: flex;
     flex-direction: column;
-    background: radial-gradient(circle at 50% 40%, #0b1220 0%, #05070c 100%);
+    min-height: 0;
+    background:
+      radial-gradient(
+        ellipse at 22% 12%,
+        rgba(244, 114, 182, 0.16) 0%,
+        transparent 55%
+      ),
+      radial-gradient(
+        ellipse at 82% 88%,
+        rgba(34, 211, 238, 0.14) 0%,
+        transparent 55%
+      ),
+      linear-gradient(165deg, #140a24 0%, #080814 55%, #04040c 100%);
     overflow: hidden;
   }
 
@@ -715,20 +1044,84 @@
   }
 
   /* --- geography --- */
-  .tx-water { fill: #060a12; }
+  .tx-water { fill: #05060f; }
 
   .tx-neighbor {
-    fill: rgba(255, 255, 255, 0.04);
-    stroke: rgba(255, 255, 255, 0.22);
-    stroke-width: 1.2px;
+    fill: rgba(255, 255, 255, 0.025);
+    stroke: rgba(196, 181, 253, 0.2);
+    stroke-width: 1px;
   }
 
   .tx-state {
     fill: url(#txFill);
-    stroke: #10b981;
-    stroke-width: 2.2px;
+    stroke: url(#txEdge);
+    stroke-width: 2.4px;
     stroke-linejoin: round;
-    filter: drop-shadow(0 0 6px rgba(16, 185, 129, 0.35));
+    filter: drop-shadow(0 0 10px rgba(244, 114, 182, 0.4));
+  }
+
+  /* Derived city territories — the "where am I" layer */
+  .tx-cell {
+    fill: none;
+    stroke: rgba(34, 211, 238, 0.34);
+    stroke-width: 0.85px;
+  }
+
+  .tx-cell-major {
+    stroke: rgba(244, 114, 182, 0.45);
+    stroke-width: 1.2px;
+  }
+
+  .tx-cell-called {
+    fill: rgba(34, 211, 238, 0.06);
+    stroke: rgba(103, 232, 249, 0.85);
+    stroke-width: 1.5px;
+    filter: drop-shadow(0 0 4px rgba(34, 211, 238, 0.5));
+  }
+
+  .tx-city-hit { cursor: zoom-in; }
+
+  .tx-callout { pointer-events: none; }
+
+  /* Plate behind each city name so the dots never eat the text */
+  .tx-label-plate {
+    fill: rgba(5, 6, 15, 0.78);
+    stroke: rgba(34, 211, 238, 0.18);
+    stroke-width: 0.6px;
+    pointer-events: none;
+  }
+
+  .tx-label-plate-major {
+    fill: rgba(5, 6, 15, 0.88);
+    stroke: rgba(244, 114, 182, 0.4);
+  }
+
+  /* Cinematic finish */
+  .tx-vignette {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(
+      ellipse at 50% 45%,
+      transparent 52%,
+      rgba(2, 2, 8, 0.62) 100%
+    );
+    z-index: 4;
+  }
+
+  .tx-scanlines {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.16;
+    background: repeating-linear-gradient(
+      0deg,
+      rgba(255, 255, 255, 0.05) 0px,
+      rgba(255, 255, 255, 0.05) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+    z-index: 4;
   }
 
   .tx-river {
@@ -855,27 +1248,43 @@
   .tx-pin { cursor: pointer; }
 
   .tx-pin-halo {
-    fill: rgba(239, 68, 68, 0.14);
-    stroke: #ef4444;
+    fill: rgba(244, 63, 94, 0.1);
+    stroke: #fb7185;
     stroke-width: 1.6px;
     transition: all 0.2s ease;
   }
 
   .tx-pin-core {
-    fill: #ef4444;
+    fill: #fb7185;
     transition: all 0.2s ease;
+    filter: drop-shadow(0 0 5px rgba(251, 113, 133, 0.8));
   }
 
   .tx-pin-halo.tx-pin-on {
-    fill: rgba(16, 185, 129, 0.18);
-    stroke: #10b981;
+    fill: rgba(16, 185, 129, 0.12);
+    stroke: #34d399;
   }
 
-  .tx-pin-core.tx-pin-on { fill: #10b981; }
+  .tx-pin-core.tx-pin-on {
+    fill: #34d399;
+    filter: drop-shadow(0 0 6px rgba(52, 211, 153, 0.85));
+  }
 
   .tx-pin:hover .tx-pin-halo { stroke-width: 2.4px; }
 
   .tx-pin-active .tx-pin-core { filter: drop-shadow(0 0 8px currentColor); }
+
+  .tx-pin-plate {
+    fill: rgba(4, 8, 14, 0.92);
+    stroke: rgba(16, 185, 129, 0.55);
+    stroke-width: 1px;
+    pointer-events: none;
+  }
+
+  .tx-pin-plate-quiet {
+    fill: rgba(4, 6, 14, 0.8);
+    stroke: rgba(16, 185, 129, 0.28);
+  }
 
   .tx-pin-label {
     fill: #fff;
@@ -909,7 +1318,7 @@
   /* --- overlays --- */
   .tx-legend {
     position: absolute;
-    left: 8px;
+    right: 8px;
     bottom: 8px;
     background: rgba(5, 7, 12, 0.92);
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -954,6 +1363,11 @@
   .sw-hwy { background: #f59e0b; height: 3px; border-radius: 2px; }
   .sw-us { background: #94a3b8; height: 3px; border-radius: 2px; }
   .sw-river { background: #38bdf8; height: 3px; border-radius: 2px; }
+  .sw-cell {
+    background: none;
+    border: 1px solid rgba(226, 232, 240, 0.6);
+    border-radius: 2px;
+  }
 
   .tx-legend-note {
     margin-top: 5px;
@@ -964,11 +1378,15 @@
     line-height: 1.5;
   }
 
+  /* Parked in the top-left, out of the way of the state itself. While it's
+     only following the pointer it ignores the mouse entirely — otherwise
+     hovering a pin that sits under the card fights with the card and the
+     hover flickers. Once a pin is clicked the card becomes interactive. */
   .tx-card {
     position: absolute;
-    right: 8px;
-    bottom: 8px;
-    width: min(272px, calc(100% - 16px));
+    left: 8px;
+    top: 8px;
+    width: min(268px, calc(100% - 16px));
     max-height: calc(100% - 16px);
     overflow-y: auto;
     background: rgba(5, 7, 12, 0.96);
@@ -978,6 +1396,10 @@
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
     font-family: ui-monospace, monospace;
     z-index: 7;
+  }
+
+  .tx-card-ghost {
+    pointer-events: none;
   }
 
   .tx-card-head {
