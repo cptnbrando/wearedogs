@@ -415,15 +415,31 @@
       lng: -97.7404,
     },
     {
-      email: "speaker@house.texas.gov",
-      name: "Speaker of the House",
-      title: "House Speaker",
-      region: "Statewide / Austin Capitol",
-      lat: 30.2747,
-      lng: -97.7404,
+      email: "angela.paxton@senate.texas.gov",
+      name: "Sen. Angela Paxton",
+      title: "District 8",
+      region: "Collin County / Prosper",
+      lat: 33.1972,
+      lng: -96.6398,
     },
     {
-      email: "senator.johnson@senate.texas.gov",
+      email: "tan.parker@senate.texas.gov",
+      name: "Sen. Tan Parker",
+      title: "District 12",
+      region: "Denton / North DFW",
+      lat: 33.2148,
+      lng: -97.1331,
+    },
+    {
+      email: "drew.springer@senate.texas.gov",
+      name: "Sen. Drew Springer",
+      title: "District 30",
+      region: "North Texas / DFW Border",
+      lat: 33.6218,
+      lng: -97.1517,
+    },
+    {
+      email: "nathan.johnson@senate.texas.gov",
       name: "Sen. Nathan Johnson",
       title: "District 16",
       region: "Dallas City / DFW Metro",
@@ -431,7 +447,7 @@
       lng: -96.797,
     },
     {
-      email: "senator.west@senate.texas.gov",
+      email: "royce.west@senate.texas.gov",
       name: "Sen. Royce West",
       title: "District 23",
       region: "Dallas County / DFW Metro",
@@ -439,7 +455,7 @@
       lng: -96.82,
     },
     {
-      email: "senator.hall@senate.texas.gov",
+      email: "bob.hall@senate.texas.gov",
       name: "Sen. Bob Hall",
       title: "District 2",
       region: "Dallas Suburbs / Rockwall",
@@ -447,7 +463,7 @@
       lng: -96.4597,
     },
     {
-      email: "senator.bettencourt@senate.texas.gov",
+      email: "paul.bettencourt@senate.texas.gov",
       name: "Sen. Paul Bettencourt",
       title: "District 7",
       region: "Houston Metro",
@@ -455,7 +471,7 @@
       lng: -95.3698,
     },
     {
-      email: "senator.huffman@senate.texas.gov",
+      email: "joan.huffman@senate.texas.gov",
       name: "Sen. Joan Huffman",
       title: "District 17",
       region: "Houston / Fort Bend",
@@ -463,7 +479,7 @@
       lng: -95.275,
     },
     {
-      email: "senator.creighton@senate.texas.gov",
+      email: "brandon.creighton@senate.texas.gov",
       name: "Sen. Brandon Creighton",
       title: "District 4",
       region: "North Houston / The Woodlands",
@@ -471,7 +487,7 @@
       lng: -95.456,
     },
     {
-      email: "senator.schwertner@senate.texas.gov",
+      email: "charles.schwertner@senate.texas.gov",
       name: "Sen. Charles Schwertner",
       title: "District 5",
       region: "Austin Metro / Georgetown",
@@ -479,7 +495,7 @@
       lng: -97.6772,
     },
     {
-      email: "senator.zaffirini@senate.texas.gov",
+      email: "judith.zaffirini@senate.texas.gov",
       name: "Sen. Judith Zaffirini",
       title: "District 21",
       region: "San Antonio / Laredo",
@@ -487,7 +503,7 @@
       lng: -99.4803,
     },
     {
-      email: "senator.perry@senate.texas.gov",
+      email: "charles.perry@senate.texas.gov",
       name: "Sen. Charles Perry",
       title: "District 28",
       region: "Lubbock / West TX",
@@ -495,7 +511,7 @@
       lng: -101.8552,
     },
     {
-      email: "senator.hughes@senate.texas.gov",
+      email: "bryan.hughes@senate.texas.gov",
       name: "Sen. Bryan Hughes",
       title: "District 1",
       region: "Tyler / Longview / East TX",
@@ -503,7 +519,7 @@
       lng: -95.3011,
     },
     {
-      email: "senator.middleton@senate.texas.gov",
+      email: "mayes.middleton@senate.texas.gov",
       name: "Sen. Mayes Middleton",
       title: "District 11",
       region: "Galveston / Gulf Coast",
@@ -511,7 +527,7 @@
       lng: -94.7977,
     },
     {
-      email: "senator.kolkhorst@senate.texas.gov",
+      email: "lois.kolkhorst@senate.texas.gov",
       name: "Sen. Lois Kolkhorst",
       title: "District 18",
       region: "Brenham / Victoria",
