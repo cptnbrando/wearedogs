@@ -1038,7 +1038,9 @@
                       >
                         {product.title}
                       </h3>
-                      <p class="text-xs text-zinc-500 line-clamp-2 mt-1">
+                      <p
+                        class="text-xs text-zinc-500 mt-1 max-h-24 overflow-y-auto overscroll-contain custom-scrollbar pr-1"
+                      >
                         {product.description}
                       </p>
                     </div>
@@ -1229,7 +1231,9 @@
                         >
                           {campaign.title}
                         </h3>
-                        <p class="text-xs text-zinc-500 line-clamp-2 mt-1.5">
+                        <p
+                          class="text-xs text-zinc-500 mt-1.5 max-h-24 overflow-y-auto overscroll-contain custom-scrollbar pr-1"
+                        >
                           {campaign.description}
                         </p>
                       </div>
@@ -1306,7 +1310,9 @@
                           >
                             {campaign.title}
                           </h3>
-                          <p class="text-xs text-zinc-650 line-clamp-2 mt-1.5">
+                          <p
+                            class="text-xs text-zinc-650 mt-1.5 max-h-24 overflow-y-auto overscroll-contain custom-scrollbar pr-1"
+                          >
                             {campaign.description}
                           </p>
                         </div>

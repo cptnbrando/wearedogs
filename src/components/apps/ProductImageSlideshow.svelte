@@ -20,7 +20,14 @@
     images && images.length > 0 ? images : DEFAULT_BRANDO_IMAGES
   );
 
+  const VIDEO_EXT = /\.(mp4|webm|ogv|ogg|mov|m4v)(\?.*)?$/i;
+
+  function isVideo(url) {
+    return typeof url === "string" && VIDEO_EXT.test(url);
+  }
+
   let activeIdx = $state(0);
+  let activeIsVideo = $derived(isVideo(displayImages[activeIdx]));
   let scrollDirection = $state(1);
   let timerId = null;
   let isHovered = $state(false);
@@ -49,7 +56,8 @@
   function startAutoScrollTimer() {
     stopAutoScrollTimer();
     timerId = setInterval(() => {
-      if (!isHovered && !isDragging) {
+      // Let a video play out instead of yanking it away mid-clip
+      if (!isHovered && !isDragging && !activeIsVideo) {
         scrollDirection = 1;
         activeIdx = (activeIdx + 1) % displayImages.length;
       }
@@ -83,7 +91,14 @@
   }
 
   // Pointer & Touch Handlers
+  // Don't hijack drags on the video element — scrubbing its controls would
+  // otherwise read as a swipe and flip the slide.
+  function isVideoTarget(e) {
+    return e.target instanceof HTMLVideoElement;
+  }
+
   function handlePointerDown(e) {
+    if (isVideoTarget(e)) return;
     isDragging = true;
     dragStartX = e.clientX;
     dragStartY = e.clientY;
@@ -106,6 +121,7 @@
   }
 
   function handleTouchStart(e) {
+    if (isVideoTarget(e)) return;
     if (e.touches.length === 1) {
       isDragging = true;
       dragStartX = e.touches[0].clientX;
@@ -154,14 +170,31 @@
     ontouchend={handleTouchEnd}
   >
     {#key activeIdx}
-      <img
-        in:slideIn={{ duration: 350, direction: scrollDirection }}
-        out:slideOut={{ duration: 350, direction: scrollDirection }}
-        src={displayImages[activeIdx]}
-        alt={`${productTitle} - Image ${activeIdx + 1}`}
-        class="absolute inset-0 w-full h-full object-contain p-2 transition-transform duration-300 group-hover:scale-102"
-        draggable="false"
-      />
+      {#if isVideo(displayImages[activeIdx])}
+        <!-- svelte-ignore a11y_media_has_caption -->
+        <video
+          in:slideIn={{ duration: 350, direction: scrollDirection }}
+          out:slideOut={{ duration: 350, direction: scrollDirection }}
+          src={displayImages[activeIdx]}
+          class="absolute inset-0 w-full h-full object-contain p-2 z-10"
+          controls
+          playsinline
+          autoplay
+          muted
+          loop
+          preload="metadata"
+          draggable="false"
+        ></video>
+      {:else}
+        <img
+          in:slideIn={{ duration: 350, direction: scrollDirection }}
+          out:slideOut={{ duration: 350, direction: scrollDirection }}
+          src={displayImages[activeIdx]}
+          alt={`${productTitle} - Image ${activeIdx + 1}`}
+          class="absolute inset-0 w-full h-full object-contain p-2 transition-transform duration-300 group-hover:scale-102"
+          draggable="false"
+        />
+      {/if}
     {/key}
 
     <!-- Left & Right Clickable Navigation Chevrons -->
@@ -184,7 +217,9 @@
 
     <!-- Indicator Dots Overlay -->
     <div
-      class="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-20 pointer-events-auto bg-black/75 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20 shadow-xl"
+      class="absolute left-1/2 -translate-x-1/2 flex gap-2 z-20 pointer-events-auto bg-black/75 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20 shadow-xl transition-all duration-200 {activeIsVideo
+        ? 'bottom-16'
+        : 'bottom-6'}"
     >
       {#each displayImages as _, idx}
         <button
@@ -211,13 +246,31 @@
           class:ring-emerald-500={activeIdx === idx}
           class:border-zinc-800={activeIdx !== idx}
           class:opacity-50={activeIdx !== idx}
-          title={`View image ${idx + 1}`}
+          title={isVideo(imgUrl)
+            ? `Play video ${idx + 1}`
+            : `View image ${idx + 1}`}
         >
-          <img
-            src={imgUrl}
-            alt={`Thumbnail ${idx + 1}`}
-            class="w-full h-full object-contain p-0.5"
-          />
+          {#if isVideo(imgUrl)}
+            <!-- svelte-ignore a11y_media_has_caption -->
+            <video
+              src={imgUrl}
+              class="w-full h-full object-contain p-0.5 pointer-events-none"
+              muted
+              playsinline
+              preload="metadata"
+            ></video>
+            <span
+              class="absolute inset-0 flex items-center justify-center text-white text-[10px] bg-black/40 pointer-events-none"
+            >
+              ▶
+            </span>
+          {:else}
+            <img
+              src={imgUrl}
+              alt={`Thumbnail ${idx + 1}`}
+              class="w-full h-full object-contain p-0.5"
+            />
+          {/if}
         </button>
       {/each}
     </div>
