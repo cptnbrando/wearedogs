@@ -6,6 +6,7 @@
   import BasePanel from "./BasePanel.svelte";
   import ProductImageSlideshow from "./apps/ProductImageSlideshow.svelte";
   import ThreeDShirtCanvas from "./apps/ThreeDShirtCanvas.svelte";
+  import TexasLawmakerMap from "./apps/TexasLawmakerMap.svelte";
   import {
     ShoppingCart,
     ArrowLeft,
@@ -198,6 +199,115 @@
         return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-red-500 hover:text-red-400 underline decoration-red-500/30 hover:decoration-red-400 transition-colors duration-200 break-all">${url}</a>`;
       });
     });
+  }
+
+  /**
+   * Emphasis pass for the critical Texas cannabis campaign. Money, hard
+   * statistics, deadlines and the load-bearing phrases get pulled out of the
+   * wall of text so the argument reads at a glance.
+   */
+  const MONTHS =
+    "January|February|March|April|May|June|July|August|September|October|November|December";
+
+  const KEY_PHRASES = [
+    "will of the people",
+    "real people",
+    "real lives",
+    "real businesses",
+    "catastrophic losses",
+    "shut their doors",
+    "sudden closure",
+    "overnight",
+    "permanently",
+    "illicit street market",
+    "illegal street dealer scene",
+    "unregulated",
+    "untaxed",
+    "far more dangerous",
+    "extremely rare",
+    "not the will of the people",
+    "reconsider",
+  ];
+
+  /**
+   * Order matters: the long clauses are listed first so they swallow the
+   * numbers inside them and land as one emphasised statement rather than a
+   * string of separately-highlighted fragments.
+   */
+  const CRITICAL_RE = new RegExp(
+    [
+      // 1 — the headline: what actually happens on Friday
+      "(All delta-8[\\s\\S]{0,80}?pulled off all Texas shelves on Friday,?\\s*July\\s*31(?:st)?)",
+      // 2 — what the ban destroys
+      "(destroys hundreds of Texas small businesses[\\s\\S]{0,140}?wipes out millions in tax revenue" +
+        "|thousands of people get fired[\\s\\S]{0,240}?produce nothing of value f(?:or|rom) Texas)",
+      // 3 — procedural detail, deliberately played down
+      "(\\b21[- ]day\\b|\\bJuly\\s*10(?:th)?\\b|\\bTexas Register\\b|\\bTexas DSHS\\b)",
+      // 4 — money
+      "(\\$\\s?\\d[\\d,]*(?:\\.\\d+)?(?:\\s*(?:billion|million|thousand))?(?:\\s*dollars?)?|\\bmulti-billion dollar\\b|\\b\\d+(?:\\.\\d+)?\\s*billion dollars?\\b)",
+      // 5 — hard statistics
+      "(\\b\\d{1,3}(?:,\\d{3})+\\b|\\b\\d+(?:\\.\\d+)?%|~\\d[\\d,]*\\b)",
+      // 6 — deadlines
+      `((?:Friday,?\\s+)?(?:${MONTHS})\\s+\\d{1,2}(?:st|nd|rd|th)?\\b|\\bFriday\\b|\\bNovember\\b)`,
+      // 7 — load-bearing phrases
+      `(${KEY_PHRASES.join("|")})`,
+    ].join("|"),
+    "gi",
+  );
+
+  const CRITICAL_CLASSES = [
+    "em-alarm",
+    "em-harm",
+    "em-muted",
+    "em-money",
+    "em-stat",
+    "em-deadline",
+    "em-key",
+  ];
+
+  function emphasizeCritical(html) {
+    if (!html) return html;
+    // Only transform text nodes — never the inside of an existing tag.
+    return html
+      .split(/(<[^>]*>)/)
+      .map((chunk, i) => {
+        if (i % 2 === 1) return chunk; // this chunk is a tag
+        return chunk.replace(CRITICAL_RE, (match, ...groups) => {
+          const hit = groups.findIndex(
+            (g, gi) => gi < CRITICAL_CLASSES.length && g !== undefined,
+          );
+          const cls = CRITICAL_CLASSES[hit] || "em-key";
+          const tag = cls === "em-muted" ? "span" : "b";
+          return `<${tag} class="crit ${cls}">${match}</${tag}>`;
+        });
+      })
+      .join("");
+  }
+
+  let isCriticalCampaign = $derived(selectedCampaign?.id === "save-texas-hemp");
+
+  /** Fade + lift each paragraph as it scrolls into view. */
+  function reveal(node, { delay = 0 } = {}) {
+    node.style.setProperty("--reveal-delay", `${delay}ms`);
+    if (typeof IntersectionObserver === "undefined") {
+      node.classList.add("revealed");
+      return {};
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            node.classList.add("revealed");
+            io.unobserve(node);
+          }
+        }
+      },
+      // Reveal a little before the paragraph reaches the viewport, so the
+      // column never shows a block of blank space.
+      { threshold: 0, rootMargin: "0px 0px 240px 0px" },
+    );
+    io.observe(node);
+    return { destroy: () => io.disconnect() };
   }
 
   $effect(() => {
@@ -404,137 +514,10 @@
       });
   }
 
-  // Texas Representatives Geolocation & Metadata Mapping
-  const TEXAS_REPS_META = [
-    {
-      email: "dan.patrick@ltgov.texas.gov",
-      name: "Lt. Gov. Dan Patrick",
-      title: "President of the Senate",
-      region: "Statewide / Austin Capitol",
-      lat: 30.2747,
-      lng: -97.7404,
-    },
-    {
-      email: "angela.paxton@senate.texas.gov",
-      name: "Sen. Angela Paxton",
-      title: "District 8",
-      region: "Collin County / Prosper",
-      lat: 33.1972,
-      lng: -96.6398,
-    },
-    {
-      email: "tan.parker@senate.texas.gov",
-      name: "Sen. Tan Parker",
-      title: "District 12",
-      region: "Denton / North DFW",
-      lat: 33.2148,
-      lng: -97.1331,
-    },
-    {
-      email: "drew.springer@senate.texas.gov",
-      name: "Sen. Drew Springer",
-      title: "District 30",
-      region: "North Texas / DFW Border",
-      lat: 33.6218,
-      lng: -97.1517,
-    },
-    {
-      email: "nathan.johnson@senate.texas.gov",
-      name: "Sen. Nathan Johnson",
-      title: "District 16",
-      region: "Dallas City / DFW Metro",
-      lat: 32.7767,
-      lng: -96.797,
-    },
-    {
-      email: "royce.west@senate.texas.gov",
-      name: "Sen. Royce West",
-      title: "District 23",
-      region: "Dallas County / DFW Metro",
-      lat: 32.73,
-      lng: -96.82,
-    },
-    {
-      email: "bob.hall@senate.texas.gov",
-      name: "Sen. Bob Hall",
-      title: "District 2",
-      region: "Dallas Suburbs / Rockwall",
-      lat: 32.9312,
-      lng: -96.4597,
-    },
-    {
-      email: "paul.bettencourt@senate.texas.gov",
-      name: "Sen. Paul Bettencourt",
-      title: "District 7",
-      region: "Houston Metro",
-      lat: 29.7604,
-      lng: -95.3698,
-    },
-    {
-      email: "joan.huffman@senate.texas.gov",
-      name: "Sen. Joan Huffman",
-      title: "District 17",
-      region: "Houston / Fort Bend",
-      lat: 29.5636,
-      lng: -95.275,
-    },
-    {
-      email: "brandon.creighton@senate.texas.gov",
-      name: "Sen. Brandon Creighton",
-      title: "District 4",
-      region: "North Houston / The Woodlands",
-      lat: 30.3119,
-      lng: -95.456,
-    },
-    {
-      email: "charles.schwertner@senate.texas.gov",
-      name: "Sen. Charles Schwertner",
-      title: "District 5",
-      region: "Austin Metro / Georgetown",
-      lat: 30.6333,
-      lng: -97.6772,
-    },
-    {
-      email: "judith.zaffirini@senate.texas.gov",
-      name: "Sen. Judith Zaffirini",
-      title: "District 21",
-      region: "San Antonio / Laredo",
-      lat: 27.5306,
-      lng: -99.4803,
-    },
-    {
-      email: "charles.perry@senate.texas.gov",
-      name: "Sen. Charles Perry",
-      title: "District 28",
-      region: "Lubbock / West TX",
-      lat: 33.5779,
-      lng: -101.8552,
-    },
-    {
-      email: "bryan.hughes@senate.texas.gov",
-      name: "Sen. Bryan Hughes",
-      title: "District 1",
-      region: "Tyler / Longview / East TX",
-      lat: 32.3513,
-      lng: -95.3011,
-    },
-    {
-      email: "mayes.middleton@senate.texas.gov",
-      name: "Sen. Mayes Middleton",
-      title: "District 11",
-      region: "Galveston / Gulf Coast",
-      lat: 29.3013,
-      lng: -94.7977,
-    },
-    {
-      email: "lois.kolkhorst@senate.texas.gov",
-      name: "Sen. Lois Kolkhorst",
-      title: "District 18",
-      region: "Brenham / Victoria",
-      lat: 30.1669,
-      lng: -96.3977,
-    },
-  ];
+  // Lawmaker geolocation & metadata now lives with the campaign in
+  // campaigns.json, so the roster can be corrected without a code change.
+  let lawmakers = $derived(selectedCampaign?.lawmakers ?? []);
+  let hasLawmakerMap = $derived(lawmakers.length > 0);
 
   // Email Lawmakers Action System
   let showEmailCopiedAlert = $state(false);
@@ -553,7 +536,7 @@
   });
 
   function getRepInfo(email) {
-    const meta = TEXAS_REPS_META.find((r) => r.email === email);
+    const meta = lawmakers.find((r) => r.email === email);
     if (meta) return meta;
     const namePart = email
       .split("@")[0]
@@ -580,11 +563,19 @@
     window.location.href = mailtoUrl;
   }
 
+  // Drives the map: ticking a name flies to them, unticking pulls back out.
+  let mapFocusRequest = $state(null);
+  let mapFocusSeq = 0;
+
   function handleToggleRep(email) {
-    if (selectedReps.includes(email)) {
+    const wasSelected = selectedReps.includes(email);
+    if (wasSelected) {
       selectedReps = selectedReps.filter((e) => e !== email);
     } else {
       selectedReps = [...selectedReps, email];
+    }
+    if (lawmakers.some((l) => l.email === email)) {
+      mapFocusRequest = { email, zoomIn: !wasSelected, seq: ++mapFocusSeq };
     }
   }
 
@@ -596,47 +587,114 @@
     selectedReps = [];
   }
 
-  function handleUseLocation(allEmails) {
-    if (!navigator.geolocation) {
-      locationStatusText = "Geolocation is not supported by your browser.";
+  /** Great-circle distance in miles — plain lat/lng deltas badly distort at Texas' latitude. */
+  function haversineMiles(lat1, lng1, lat2, lng2) {
+    const R = 3958.8;
+    const toRad = (d) => (d * Math.PI) / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLng = toRad(lng2 - lng1);
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(a));
+  }
+
+  function applyClosestReps(pos, allEmails) {
+    const userLat = pos.coords.latitude;
+    const userLng = pos.coords.longitude;
+
+    const sorted = lawmakers
+      .filter(
+        (rep) => typeof rep.lat === "number" && typeof rep.lng === "number",
+      )
+      .map((rep) => ({
+        email: rep.email,
+        name: rep.name,
+        dist: haversineMiles(userLat, userLng, rep.lat, rep.lng),
+      }))
+      .sort((a, b) => a.dist - b.dist);
+
+    // Keep only reps this campaign actually mails, then take the closest four.
+    const validClosest = sorted
+      .filter((r) => allEmails.includes(r.email))
+      .slice(0, 4);
+
+    if (validClosest.length === 0) {
+      selectedReps = allEmails.slice(0, 3);
+      locationStatusText =
+        "📍 Found you, but no mapped reps matched this campaign. Selected key leadership instead.";
       return;
     }
+
+    selectedReps = validClosest.map((r) => r.email);
+    const topNames = validClosest
+      .slice(0, 2)
+      .map((r) => r.name)
+      .join(", ");
+    const accuracy = pos.coords.accuracy
+      ? ` ±${Math.round(pos.coords.accuracy / 1609) || "<1"}mi`
+      : "";
+    locationStatusText = `📍 Selected your ${validClosest.length} closest reps${accuracy} — ${topNames}`;
+  }
+
+  /**
+   * Android's "approximate location" resolves through the network provider,
+   * which routinely needs more than the old 8s budget and often has a usable
+   * cached fix already. Try a cheap cached/low-accuracy read first, then
+   * escalate to a high-accuracy attempt before giving up.
+   */
+  function handleUseLocation(allEmails) {
+    if (!navigator.geolocation) {
+      locationStatusText =
+        "⚠️ This browser does not support location. Pick your reps from the list below.";
+      return;
+    }
+    if (
+      typeof window !== "undefined" &&
+      !window.isSecureContext &&
+      window.location.hostname !== "localhost"
+    ) {
+      locationStatusText =
+        "⚠️ Location needs a secure (https) connection. Pick your reps from the list below.";
+      return;
+    }
+
     isLocating = true;
     locationStatusText = "Locating nearby Texas representatives...";
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        isLocating = false;
-        const userLat = pos.coords.latitude;
-        const userLng = pos.coords.longitude;
 
-        // Calculate distance to each rep
-        const sorted = TEXAS_REPS_META.map((rep) => {
-          const dist = Math.hypot(rep.lat - userLat, rep.lng - userLng);
-          return { email: rep.email, dist, name: rep.name };
-        }).sort((a, b) => a.dist - b.dist);
+    const succeed = (pos) => {
+      isLocating = false;
+      applyClosestReps(pos, allEmails);
+    };
 
-        // Pick closest 4 reps
-        const closestEmails = sorted.slice(0, 4).map((r) => r.email);
-
-        // Filter by emails present in current campaign
-        const validClosest = closestEmails.filter((e) => allEmails.includes(e));
-        selectedReps =
-          validClosest.length > 0 ? validClosest : allEmails.slice(0, 3);
-
-        const topNames = validClosest
-          .map((e) => getRepInfo(e).name)
-          .slice(0, 2)
-          .join(", ");
-        locationStatusText = `📍 Selected closest reps (${topNames})`;
-      },
-      (err) => {
-        isLocating = false;
-        // Fallback: auto-select top central leadership reps
-        selectedReps = allEmails.slice(0, 3);
+    const giveUp = (err) => {
+      isLocating = false;
+      selectedReps = allEmails.slice(0, 3);
+      if (err && err.code === 1) {
         locationStatusText =
-          "📍 Location access unavailable. Auto-selected key leadership reps.";
+          "📍 Location permission was denied. Auto-selected key leadership reps — or tick the boxes below.";
+      } else if (err && err.code === 3) {
+        locationStatusText =
+          "📍 Location timed out. Auto-selected key leadership reps — try again or tick the boxes below.";
+      } else {
+        locationStatusText =
+          "📍 Location unavailable right now. Auto-selected key leadership reps — or tick the boxes below.";
+      }
+    };
+
+    // Pass 1: accept a recent cached fix, low accuracy is plenty for "nearest rep".
+    navigator.geolocation.getCurrentPosition(
+      succeed,
+      () => {
+        locationStatusText = "Still locating — asking for a precise fix...";
+        // Pass 2: force a fresh high-accuracy fix with a generous budget.
+        navigator.geolocation.getCurrentPosition(succeed, giveUp, {
+          enableHighAccuracy: true,
+          timeout: 25000,
+          maximumAge: 0,
+        });
       },
-      { timeout: 8000 },
+      { enableHighAccuracy: false, timeout: 12000, maximumAge: 600000 },
     );
   }
 
@@ -844,6 +902,8 @@
   let touchEndY = 0;
 
   function handleTouchStart(e) {
+    // The map slide owns its own gestures — don't let a tap on it swipe away.
+    if (currentMediaItem?.type === "map") return;
     if (e.changedTouches && e.changedTouches.length > 0) {
       touchStartX = e.changedTouches[0].clientX;
       touchStartY = e.changedTouches[0].clientY;
@@ -851,6 +911,7 @@
   }
 
   function handleTouchEnd(e) {
+    if (currentMediaItem?.type === "map") return;
     if (e.changedTouches && e.changedTouches.length > 0) {
       touchEndX = e.changedTouches[0].clientX;
       touchEndY = e.changedTouches[0].clientY;
@@ -875,15 +936,88 @@
     }
   }
 
-  // Reactive/derived values for campaign media (support video & images)
-  let campaignMedia = $derived(
-    selectedCampaign?.media?.length > 0
-      ? selectedCampaign.media
-      : selectedCampaign?.images?.map((img) => ({ type: "image", url: img })) ||
-          [],
-  );
+  // Reactive/derived values for campaign media (support video, images & the map)
+  let campaignMedia = $derived.by(() => {
+    const base =
+      selectedCampaign?.media?.length > 0
+        ? selectedCampaign.media
+        : selectedCampaign?.images?.map((img) => ({
+            type: "image",
+            url: img,
+          })) || [];
+    // Campaigns that ship a lawmaker roster get an interactive map slide on
+    // the end — "SORT THE MAIL" jumps straight to it.
+    return selectedCampaign?.lawmakers?.length > 0
+      ? [...base, { type: "map", url: "lawmaker-map" }]
+      : base;
+  });
 
   let currentMediaItem = $derived(campaignMedia[activeImageIdx] || null);
+
+  let mapSlideIdx = $derived(campaignMedia.findIndex((m) => m.type === "map"));
+
+  /** Bring the lawmaker map into view in the carousel. */
+  function jumpToMap() {
+    if (mapSlideIdx < 0) return;
+    scrollDirection = activeImageIdx > mapSlideIdx ? -1 : 1;
+    activeImageIdx = mapSlideIdx;
+  }
+
+  function toggleSortMailPanel() {
+    showSortMailPanel = !showSortMailPanel;
+    // Opening the sorter jumps the carousel to the map so you can see who you
+    // are actually mailing while you tick the boxes.
+    if (showSortMailPanel) jumpToMap();
+  }
+
+  // "JUMP TO EMAIL" — scroll the send buttons into view from the countdown widget.
+  let emailActionEl = $state(null);
+  let emailActionFlash = $state(false);
+  let emailFlashTimeout = null;
+
+  /**
+   * The store workspace is a nested scroll container that silently ignores
+   * `scrollIntoView({behavior:"smooth"})`, so drive its scrollTop directly and
+   * snap into place if the smooth animation never happens.
+   */
+  function scrollIntoViewSmart(el) {
+    if (!el) return;
+    let sc = el.parentElement;
+    while (sc && sc !== document.body) {
+      const cs = getComputedStyle(sc);
+      if (
+        /(auto|scroll)/.test(cs.overflowY) &&
+        sc.scrollHeight > sc.clientHeight + 2
+      )
+        break;
+      sc = sc.parentElement;
+    }
+
+    if (!sc || sc === document.body) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+
+    const offset =
+      sc.scrollTop +
+      el.getBoundingClientRect().top -
+      sc.getBoundingClientRect().top -
+      Math.max(0, (sc.clientHeight - el.clientHeight) / 2);
+    const dest = Math.max(0, Math.min(offset, sc.scrollHeight - sc.clientHeight));
+
+    sc.scrollTo({ top: dest, behavior: "smooth" });
+    setTimeout(() => {
+      if (Math.abs(sc.scrollTop - dest) > 8) sc.scrollTop = dest;
+    }, 450);
+  }
+
+  function jumpToEmailActions() {
+    if (!emailActionEl) return;
+    scrollIntoViewSmart(emailActionEl);
+    emailActionFlash = true;
+    if (emailFlashTimeout) clearTimeout(emailFlashTimeout);
+    emailFlashTimeout = setTimeout(() => (emailActionFlash = false), 2200);
+  }
 
   function handlePopState(e) {
     if (!e.state?.cartOpen && isCartOpen) {
@@ -1444,8 +1578,12 @@
                 class="sm:col-span-7 flex flex-col gap-3 sm:gap-4 sm:sticky sm:top-4 md:top-6 lg:top-8"
               >
                 <!-- Big Image Showcase -->
+                <!-- The map needs more vertical room than a 16:9 photo does -->
                 <div
-                  class="relative w-full aspect-video bg-black/40 border border-zinc-800 rounded-2xl overflow-hidden shadow-lg group max-h-[280px] sm:max-h-[320px] md:max-h-[360px] lg:max-h-[420px] xl:max-h-[460px] touch-pan-y"
+                  class="relative w-full bg-black/40 border border-zinc-800 rounded-2xl overflow-hidden shadow-lg group touch-pan-y {currentMediaItem?.type ===
+                  'map'
+                    ? 'aspect-[4/3] max-h-[420px] sm:max-h-[480px] md:max-h-[520px] lg:max-h-[580px] xl:max-h-[620px]'
+                    : 'aspect-video max-h-[280px] sm:max-h-[320px] md:max-h-[360px] lg:max-h-[420px] xl:max-h-[460px]'}"
                   ontouchstart={handleTouchStart}
                   ontouchend={handleTouchEnd}
                   role="region"
@@ -1453,7 +1591,19 @@
                 >
                   {#key activeImageIdx}
                     {#if currentMediaItem}
-                      {#if currentMediaItem.type === "video"}
+                      {#if currentMediaItem.type === "map"}
+                        <div
+                          class="absolute inset-0"
+                          in:fade={{ duration: 200 }}
+                        >
+                          <TexasLawmakerMap
+                            {lawmakers}
+                            selectedEmails={selectedReps}
+                            focusRequest={mapFocusRequest}
+                            title="{lawmakers.length} OFFICES"
+                          />
+                        </div>
+                      {:else if currentMediaItem.type === "video"}
                         {#if isVideoPlaying}
                           {#if currentMediaItem.url.includes("youtube.com") || currentMediaItem.url.includes("youtu.be")}
                             <iframe
@@ -1633,7 +1783,19 @@
                       class:border-red-500={activeImageIdx === idx}
                       class:border-zinc-800={activeImageIdx !== idx}
                     >
-                      {#if mediaItem.type === "video"}
+                      {#if mediaItem.type === "map"}
+                        <div
+                          class="w-full h-full flex flex-col items-center justify-center gap-0.5 bg-gradient-to-br from-emerald-950 to-black"
+                        >
+                          <span class="text-base leading-none select-none"
+                            >🗺️</span
+                          >
+                          <span
+                            class="text-[7px] font-mono font-bold text-emerald-400 tracking-widest"
+                            >MAP</span
+                          >
+                        </div>
+                      {:else if mediaItem.type === "video"}
                         <img
                           src={mediaItem.thumbnail || mediaItem.url}
                           alt="Video Thumbnail"
@@ -1703,14 +1865,15 @@
                     {@const timer = getCountdown(selectedCampaign.endDate, now)}
                     {#if timer}
                       <div
-                        class="mt-3 p-2.5 sm:p-3 rounded-xl bg-gradient-to-r from-red-950/80 via-zinc-900/90 to-red-950/80 border border-red-500/50 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 shadow-lg shadow-red-950/30 shrink-0"
+                        class="mt-3 p-2.5 sm:p-3 rounded-xl bg-gradient-to-r from-red-950/80 via-zinc-900/90 to-red-950/80 border border-red-500/50 flex flex-col gap-2 shadow-lg shadow-red-950/30 shrink-0"
                       >
+                        <!-- Row 1: the deadline and the ticking clock -->
                         <div class="flex items-center gap-2 min-w-0">
                           <span
                             class="text-sm sm:text-base animate-pulse shrink-0"
                             >⏳</span
                           >
-                          <div class="flex flex-col min-w-0">
+                          <div class="flex flex-col min-w-0 flex-1">
                             <span
                               class="text-[9px] font-mono uppercase tracking-widest text-red-400 font-extrabold truncate"
                             >
@@ -1726,37 +1889,47 @@
                               {/if}
                             </span>
                           </div>
+
+                          <!-- Compact Ticking Digital Clock -->
+                          <div
+                            class="flex items-center gap-1 font-mono text-xs font-bold text-white bg-black/85 px-2.5 py-1 rounded-lg border border-red-500/40 shrink-0 shadow-inner"
+                          >
+                            <span class="text-white"
+                              >{String(timer.days).padStart(2, "0")}d</span
+                            >
+                            <span
+                              class="text-red-500 font-extrabold text-[10px] animate-pulse"
+                              >:</span
+                            >
+                            <span class="text-white"
+                              >{String(timer.hours).padStart(2, "0")}h</span
+                            >
+                            <span
+                              class="text-red-500 font-extrabold text-[10px] animate-pulse"
+                              >:</span
+                            >
+                            <span class="text-white"
+                              >{String(timer.minutes).padStart(2, "0")}m</span
+                            >
+                            <span
+                              class="text-red-500 font-extrabold text-[10px] animate-pulse"
+                              >:</span
+                            >
+                            <span class="text-red-400 font-black animate-pulse"
+                              >{String(timer.seconds).padStart(2, "0")}s</span
+                            >
+                          </div>
                         </div>
 
-                        <!-- Compact Ticking Digital Clock -->
-                        <div
-                          class="flex items-center gap-1 font-mono text-xs font-bold text-white bg-black/85 px-2.5 py-1 rounded-lg border border-red-500/40 shrink-0 shadow-inner"
-                        >
-                          <span class="text-white"
-                            >{String(timer.days).padStart(2, "0")}d</span
+                        <!-- Row 2: straight to the action from the top of the page -->
+                        {#if selectedCampaign.contactReps}
+                          <button
+                            onclick={jumpToEmailActions}
+                            class="jump-to-email w-full py-2 px-3 bg-emerald-500 hover:bg-emerald-400 text-black font-black rounded-lg text-[10px] sm:text-[11px] tracking-widest uppercase transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-lg shadow-emerald-950/40 active:scale-95"
                           >
-                          <span
-                            class="text-red-500 font-extrabold text-[10px] animate-pulse"
-                            >:</span
-                          >
-                          <span class="text-white"
-                            >{String(timer.hours).padStart(2, "0")}h</span
-                          >
-                          <span
-                            class="text-red-500 font-extrabold text-[10px] animate-pulse"
-                            >:</span
-                          >
-                          <span class="text-white"
-                            >{String(timer.minutes).padStart(2, "0")}m</span
-                          >
-                          <span
-                            class="text-red-500 font-extrabold text-[10px] animate-pulse"
-                            >:</span
-                          >
-                          <span class="text-red-400 font-black animate-pulse"
-                            >{String(timer.seconds).padStart(2, "0")}s</span
-                          >
-                        </div>
+                            💌 JUMP TO EMAIL <span class="jump-arrow">↓</span>
+                          </button>
+                        {/if}
                       </div>
                     {/if}
                   {/if}
@@ -1865,22 +2038,21 @@
                     <!-- Full bio, no max-height constraint: the panel scrolls, the text never compacts -->
                     <div
                       class="mt-3 sm:mt-4 pb-4 flex flex-col gap-4 selectable-bio"
+                      class:critical-bio={isCriticalCampaign}
                     >
-                      {#if campaignBioText}
-                        {#each formatBioText(campaignBioText) as paragraph}
-                          <p
-                            class="text-zinc-400 text-sm leading-relaxed font-sans"
-                          >
-                            {@html paragraph}
-                          </p>
-                        {/each}
-                      {:else}
+                      <!-- Falls back to the inline description, still in full -->
+                      {#each formatBioText(campaignBioText || selectedCampaign.description) as paragraph, pIdx}
                         <p
                           class="text-zinc-400 text-sm leading-relaxed font-sans"
+                          class:bio-para={isCriticalCampaign}
+                          class:bio-lede={isCriticalCampaign && pIdx === 0}
+                          use:reveal={{ delay: Math.min(pIdx, 8) * 55 }}
                         >
-                          {selectedCampaign.description}
+                          {@html isCriticalCampaign
+                            ? emphasizeCritical(paragraph)
+                            : paragraph}
                         </p>
-                      {/if}
+                      {/each}
                     </div>
 
                     <hr class="border-zinc-850 my-2" />
@@ -1922,7 +2094,11 @@
 
                       <!-- Representative Contact Tool (if available) -->
                       {#if selectedCampaign.contactReps}
-                        <div class="mb-4 flex flex-col gap-2.5">
+                        <div
+                          bind:this={emailActionEl}
+                          class="mb-4 flex flex-col gap-2.5 rounded-xl transition-all duration-500"
+                          class:email-flash={emailActionFlash}
+                        >
                           <!-- BLAST 'EM / SEND MAIL Primary Action Button -->
                           {#if !showSortMailPanel}
                             <button
@@ -1962,8 +2138,7 @@
                           <!-- Secondary Tool Buttons -->
                           <div class="flex gap-2">
                             <button
-                              onclick={() =>
-                                (showSortMailPanel = !showSortMailPanel)}
+                              onclick={toggleSortMailPanel}
                               class="flex-1 py-2.5 px-3 bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-emerald-400 hover:text-emerald-300 font-bold rounded-xl text-[11px] tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow"
                             >
                               {#if selectedCampaign.id === "browser-age-api"}
@@ -2549,5 +2724,224 @@
     -webkit-user-select: text !important;
     -moz-user-select: text !important;
     -ms-user-select: text !important;
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* Critical campaign bio — emphasis + scroll-in motion               */
+  /* ---------------------------------------------------------------- */
+
+  .bio-para {
+    opacity: 0;
+    transform: translateY(14px);
+    transition:
+      opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+      transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    transition-delay: var(--reveal-delay, 0ms);
+    will-change: opacity, transform;
+  }
+
+  .bio-para:global(.revealed) {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* Opening paragraph carries the argument — give it weight. */
+  .bio-lede {
+    font-size: 0.95rem !important;
+    line-height: 1.65 !important;
+    color: #e4e4e7 !important;
+    font-weight: 500;
+    border-left: 3px solid #10b981;
+    padding-left: 0.85rem;
+    background: linear-gradient(
+      90deg,
+      rgba(16, 185, 129, 0.09),
+      transparent 65%
+    );
+    border-radius: 0 8px 8px 0;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+
+  /* Nothing here may push past the panel edge on a narrow phone. */
+  .critical-bio {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .critical-bio p {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    hyphens: auto;
+    max-width: 100%;
+  }
+
+  .critical-bio :global(b.crit),
+  .critical-bio :global(span.crit) {
+    font-weight: 800;
+    padding: 0 0.18em;
+    border-radius: 3px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  /* Short figures only — keep "$5.5 billion" from splitting across lines. */
+  .critical-bio :global(b.em-money),
+  .critical-bio :global(b.em-stat) {
+    white-space: nowrap;
+  }
+
+  /* Dollars — the market this ban erases. */
+  .critical-bio :global(b.em-money) {
+    color: #34d399;
+    background: rgba(16, 185, 129, 0.13);
+    box-shadow: inset 0 -0.42em 0 rgba(16, 185, 129, 0.16);
+  }
+
+  /* Hard numbers — deaths, licensees, percentages. */
+  .critical-bio :global(b.em-stat) {
+    color: #fbbf24;
+    background: rgba(251, 191, 36, 0.12);
+    box-shadow: inset 0 -0.42em 0 rgba(251, 191, 36, 0.14);
+  }
+
+  /* Deadlines — the whole point of the campaign. Light enough to actually read. */
+  .critical-bio :global(b.em-deadline) {
+    color: #fee2e2;
+    background: rgba(239, 68, 68, 0.28);
+    border-bottom: 1.5px solid rgba(248, 113, 113, 0.8);
+    animation: critPulse 2.6s ease-in-out infinite;
+  }
+
+  /* The headline fact: what actually happens on Friday. */
+  .critical-bio :global(b.em-alarm) {
+    display: inline;
+    color: #fff;
+    font-weight: 900;
+    font-size: 1.06em;
+    letter-spacing: 0.01em;
+    background: linear-gradient(
+      90deg,
+      rgba(239, 68, 68, 0.42),
+      rgba(239, 68, 68, 0.24)
+    );
+    border-bottom: 2px solid #f87171;
+    border-radius: 4px;
+    padding: 0.1em 0.28em;
+    white-space: normal;
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+    animation: alarmGlow 3s ease-in-out infinite;
+  }
+
+  /* What the ban actually costs. */
+  .critical-bio :global(b.em-harm) {
+    display: inline;
+    color: #fef3c7;
+    font-weight: 800;
+    background: linear-gradient(
+      180deg,
+      transparent 12%,
+      rgba(245, 158, 11, 0.24) 12%
+    );
+    border-bottom: 1.5px solid rgba(245, 158, 11, 0.75);
+    border-radius: 3px;
+    padding: 0.06em 0.2em;
+    white-space: normal;
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+  }
+
+  /* Procedural detail — present, but out of the way. */
+  .critical-bio :global(span.em-muted) {
+    color: rgba(113, 113, 122, 0.9);
+    font-weight: 400;
+    font-size: 0.94em;
+  }
+
+  @keyframes alarmGlow {
+    0%,
+    100% {
+      box-shadow: 0 0 0 rgba(239, 68, 68, 0);
+    }
+    50% {
+      box-shadow: 0 0 16px rgba(239, 68, 68, 0.4);
+    }
+  }
+
+  /* Load-bearing phrases. */
+  .critical-bio :global(b.em-key) {
+    color: #f4f4f5;
+    background: linear-gradient(
+      180deg,
+      transparent 58%,
+      rgba(244, 244, 245, 0.18) 58%
+    );
+    white-space: normal;
+  }
+
+  @keyframes critPulse {
+    0%,
+    100% {
+      background-color: rgba(239, 68, 68, 0.16);
+      border-bottom-color: rgba(239, 68, 68, 0.55);
+    }
+    50% {
+      background-color: rgba(239, 68, 68, 0.3);
+      border-bottom-color: rgba(239, 68, 68, 0.95);
+    }
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* Jump-to-email affordance                                          */
+  /* ---------------------------------------------------------------- */
+
+  .jump-arrow {
+    display: inline-block;
+    animation: jumpBob 1.4s ease-in-out infinite;
+  }
+
+  @keyframes jumpBob {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(3px);
+    }
+  }
+
+  .email-flash {
+    box-shadow:
+      0 0 0 2px rgba(16, 185, 129, 0.85),
+      0 0 26px rgba(16, 185, 129, 0.45);
+    animation: emailFlash 2.2s ease-out;
+  }
+
+  @keyframes emailFlash {
+    0% {
+      box-shadow:
+        0 0 0 3px rgba(16, 185, 129, 1),
+        0 0 34px rgba(16, 185, 129, 0.7);
+    }
+    100% {
+      box-shadow:
+        0 0 0 0 rgba(16, 185, 129, 0),
+        0 0 0 rgba(16, 185, 129, 0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .bio-para {
+      opacity: 1;
+      transform: none;
+      transition: none;
+    }
+    .critical-bio :global(b.em-deadline),
+    .critical-bio :global(b.em-alarm),
+    .jump-arrow,
+    .email-flash {
+      animation: none;
+    }
   }
 </style>
