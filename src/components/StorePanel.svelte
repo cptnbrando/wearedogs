@@ -15,6 +15,7 @@
     Check,
     X,
     Share2,
+    Maximize2,
   } from "lucide-svelte";
 
   let {
@@ -36,6 +37,48 @@
   let campaignBioText = $state("");
   let currentStoreMode = $state("fundraising"); // Default to "fundraising" per user requirement
   let activeImageIdx = $state(0);
+  let isImageFullscreen = $state(false);
+  let now = $state(Date.now());
+  let countdownInterval;
+
+  function handleKeyDown(e) {
+    if (e.key === "Escape" && isImageFullscreen) {
+      isImageFullscreen = false;
+    }
+  }
+
+  /**
+   * Calculates real-time countdown to a target date.
+   * @param {string|number} endDateTarget
+   * @param {number} currentMs
+   * @returns {{ days: number, hours: number, minutes: number, seconds: number, isZero: boolean, totalMs: number, formattedDaysLeft: string }}
+   */
+  function getCountdown(endDateTarget, currentMs) {
+    if (!endDateTarget) return null;
+    const targetMs = new Date(endDateTarget).getTime();
+    if (isNaN(targetMs)) return null;
+    const diff = Math.max(0, targetMs - currentMs);
+    const isZero = diff <= 0;
+
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+    const minutes = Math.floor((diff / (1000 * 60)) % 60);
+    const seconds = Math.floor((diff / 1000) % 60);
+
+    const formattedDaysLeft = isZero
+      ? "0 DAYS LEFT"
+      : `${days} DAY${days === 1 ? "" : "S"} LEFT`;
+
+    return {
+      days,
+      hours,
+      minutes,
+      seconds,
+      isZero,
+      totalMs: diff,
+      formattedDaysLeft,
+    };
+  }
   let scrollDirection = $state(1);
   let isVideoPlaying = $state(false);
   let selectedSize = $state("M");
@@ -599,6 +642,10 @@
 
   // Load products and campaigns on mount
   onMount(async () => {
+    countdownInterval = setInterval(() => {
+      now = Date.now();
+    }, 1000);
+
     try {
       const res = await fetch("/data/products.json");
       if (res.ok) {
@@ -616,6 +663,10 @@
       console.error("Error loading campaigns:", e);
     }
     loadCart();
+  });
+
+  onDestroy(() => {
+    if (countdownInterval) clearInterval(countdownInterval);
   });
 
   // Load cart from localStorage and re-verify stock
@@ -1038,9 +1089,7 @@
                       >
                         {product.title}
                       </h3>
-                      <p
-                        class="text-xs text-zinc-500 mt-1 max-h-24 overflow-y-auto overscroll-contain custom-scrollbar pr-1"
-                      >
+                      <p class="text-xs text-zinc-500 line-clamp-2 mt-1">
                         {product.description}
                       </p>
                     </div>
@@ -1082,72 +1131,73 @@
 
               <!-- Right: Details -->
               <div
-                class="flex flex-col justify-between h-full bg-zinc-900/20 border border-zinc-800/60 p-4 sm:p-5 rounded-2xl max-h-[380px] lg:max-h-[460px] xl:max-h-[500px] overflow-y-auto custom-scrollbar"
+                class="flex flex-col min-h-0 h-full bg-zinc-900/20 border border-zinc-800/60 p-4 sm:p-5 rounded-2xl max-h-[380px] lg:max-h-[460px] xl:max-h-[500px] overflow-hidden"
               >
-                <div>
-                  <div class="flex justify-between items-start gap-3">
-                    <h1
-                      class="text-lg sm:text-xl lg:text-2xl font-extrabold tracking-wider"
+                <div class="flex justify-between items-start gap-3 shrink-0">
+                  <h1
+                    class="text-lg sm:text-xl lg:text-2xl font-extrabold tracking-wider"
+                  >
+                    {selectedProduct.title}
+                  </h1>
+                  <div class="flex items-center gap-2 shrink-0">
+                    <span
+                      class="text-base sm:text-lg lg:text-xl text-red-500 font-black"
+                      >{selectedProduct.price}</span
                     >
-                      {selectedProduct.title}
-                    </h1>
-                    <div class="flex items-center gap-2 shrink-0">
-                      <span
-                        class="text-base sm:text-lg lg:text-xl text-red-500 font-black"
-                        >{selectedProduct.price}</span
-                      >
-                      <button
-                        onclick={(e) =>
-                          handleShare("product", selectedProduct.id, e)}
-                        class="p-1.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-850 hover:border-zinc-700 rounded-lg text-zinc-400 hover:text-white transition-all cursor-pointer"
-                        title="Copy Share Link"
-                      >
-                        <Share2 size={15} />
-                      </button>
-                    </div>
-                  </div>
-
-                  <div class="mt-2 sm:mt-3 pb-3 border-b border-zinc-800/80">
-                    <p
-                      class="text-zinc-400 text-xs sm:text-sm leading-relaxed font-sans"
+                    <button
+                      onclick={(e) =>
+                        handleShare("product", selectedProduct.id, e)}
+                      class="p-1.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-850 hover:border-zinc-700 rounded-lg text-zinc-400 hover:text-white transition-all cursor-pointer"
+                      title="Copy Share Link"
                     >
-                      {selectedProduct.description}
-                    </p>
+                      <Share2 size={15} />
+                    </button>
                   </div>
-
-                  <!-- Size selector -->
-                  {#if selectedProduct.id === "fight-the-ceo" || (selectedProduct.checkoutUrl && (!selectedProduct.sizes || selectedProduct.sizes.length === 0))}
-                    <!-- No size selector for FIGHT THE CEO or direct Cash App checkout items -->
-                  {:else if selectedProduct.sizes && selectedProduct.sizes.length > 0 && selectedProduct.sizes[0] !== "One Size"}
-                    <div class="mt-3 sm:mt-4">
-                      <span
-                        class="text-xs font-semibold text-zinc-500 uppercase tracking-widest block mb-2"
-                        >SELECT SIZE</span
-                      >
-                      <div class="flex flex-wrap gap-2">
-                        {#each selectedProduct.sizes as size}
-                          <button
-                            class="px-3 py-1.5 border border-zinc-800 rounded text-xs font-bold hover:border-zinc-500 transition-all duration-200 cursor-pointer"
-                            class:active-size={selectedSize === size}
-                            onclick={() => (selectedSize = size)}
-                          >
-                            {size}
-                          </button>
-                        {/each}
-                      </div>
-                    </div>
-                  {:else}
-                    <div class="mt-3 sm:mt-4">
-                      <span
-                        class="text-xs font-semibold text-zinc-500 uppercase tracking-widest block mb-1"
-                        >SIZE</span
-                      >
-                      <span class="text-sm font-bold text-zinc-400"
-                        >ONE SIZE</span
-                      >
-                    </div>
-                  {/if}
                 </div>
+
+                <!-- Description: always full text, never clamped. Owns the
+                     panel's scroll so it can never be compacted away. -->
+                <div
+                  class="flex-1 min-h-0 overflow-y-auto overscroll-contain custom-scrollbar mt-2 sm:mt-3 pb-3 pr-1 border-b border-zinc-800/80"
+                >
+                  <p
+                    class="text-zinc-400 text-xs sm:text-sm leading-relaxed font-sans"
+                  >
+                    {selectedProduct.description}
+                  </p>
+                </div>
+
+                <!-- Size selector -->
+                {#if selectedProduct.id === "fight-the-ceo" || (selectedProduct.checkoutUrl && (!selectedProduct.sizes || selectedProduct.sizes.length === 0))}
+                  <!-- No size selector for FIGHT THE CEO or direct Cash App checkout items -->
+                {:else if selectedProduct.sizes && selectedProduct.sizes.length > 0 && selectedProduct.sizes[0] !== "One Size"}
+                  <div class="mt-3 sm:mt-4 shrink-0">
+                    <span
+                      class="text-xs font-semibold text-zinc-500 uppercase tracking-widest block mb-2"
+                      >SELECT SIZE</span
+                    >
+                    <div class="flex flex-wrap gap-2">
+                      {#each selectedProduct.sizes as size}
+                        <button
+                          class="px-3 py-1.5 border border-zinc-800 rounded text-xs font-bold hover:border-zinc-500 transition-all duration-200 cursor-pointer"
+                          class:active-size={selectedSize === size}
+                          onclick={() => (selectedSize = size)}
+                        >
+                          {size}
+                        </button>
+                      {/each}
+                    </div>
+                  </div>
+                {:else}
+                  <div class="mt-3 sm:mt-4 shrink-0">
+                    <span
+                      class="text-xs font-semibold text-zinc-500 uppercase tracking-widest block mb-1"
+                      >SIZE</span
+                    >
+                    <span class="text-sm font-bold text-zinc-400">ONE SIZE</span
+                    >
+                  </div>
+                {/if}
 
                 <div
                   class="mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-zinc-800/80 shrink-0"
@@ -1222,18 +1272,42 @@
                             class="w-full h-full object-cover group-hover:scale-103 transition-transform duration-300"
                           />
                           <span
-                            class="absolute top-2 left-2 px-1.5 py-0.5 bg-emerald-600 text-white font-bold font-mono text-[9px] tracking-widest uppercase rounded"
+                            class="absolute top-2 left-2 px-1.5 py-0.5 bg-emerald-600 text-white font-bold font-mono text-[9px] tracking-widest uppercase rounded z-10"
                             >ACTIVE</span
                           >
+
+                          {#if campaign.endDate}
+                            {@const timer = getCountdown(campaign.endDate, now)}
+                            {#if timer}
+                              <div
+                                class="absolute top-2.5 right-2.5 px-2 py-1 bg-red-950/85 border border-red-500/80 text-white font-mono rounded-md shadow-lg shadow-red-950/70 backdrop-blur-md flex items-center gap-1.5 z-10 animate-pulse"
+                              >
+                                <span class="text-[10px] sm:text-xs">⏳</span>
+                                <span
+                                  class="font-extrabold text-[10px] sm:text-xs tracking-wider uppercase text-red-100"
+                                  >{timer.formattedDaysLeft}</span
+                                >
+                                <span
+                                  class="hidden md:inline text-[10px] text-zinc-300 font-semibold border-l border-red-500/40 pl-1.5"
+                                >
+                                  {String(timer.days).padStart(2, "0")}d {String(
+                                    timer.hours,
+                                  ).padStart(2, "0")}h {String(
+                                    timer.minutes,
+                                  ).padStart(2, "0")}m {String(
+                                    timer.seconds,
+                                  ).padStart(2, "0")}s
+                                </span>
+                              </div>
+                            {/if}
+                          {/if}
                         </div>
                         <h3
                           class="font-bold text-sm text-zinc-100 group-hover:text-white uppercase transition-colors"
                         >
                           {campaign.title}
                         </h3>
-                        <p
-                          class="text-xs text-zinc-500 mt-1.5 max-h-24 overflow-y-auto overscroll-contain custom-scrollbar pr-1"
-                        >
+                        <p class="text-xs text-zinc-500 line-clamp-2 mt-1.5">
                           {campaign.description}
                         </p>
                       </div>
@@ -1252,7 +1326,10 @@
                             </span>
                             <span class="text-red-500 font-bold">
                               {#if campaign.id === "sidewalk-chalk-defense" || campaign.id === "browser-age-api"}
-                                {campaign.raised.replace('$', '')} / {campaign.goal.replace('$', '')}
+                                {campaign.raised.replace("$", "")} / {campaign.goal.replace(
+                                  "$",
+                                  "",
+                                )}
                               {:else}
                                 {campaign.raised} / {campaign.goal}
                               {/if}
@@ -1310,9 +1387,7 @@
                           >
                             {campaign.title}
                           </h3>
-                          <p
-                            class="text-xs text-zinc-650 mt-1.5 max-h-24 overflow-y-auto overscroll-contain custom-scrollbar pr-1"
-                          >
+                          <p class="text-xs text-zinc-650 line-clamp-2 mt-1.5">
                             {campaign.description}
                           </p>
                         </div>
@@ -1354,7 +1429,7 @@
               >
                 <!-- Big Image Showcase -->
                 <div
-                  class="relative w-full aspect-video bg-black/40 border border-zinc-800 rounded-2xl overflow-hidden shadow-lg group max-h-[200px] sm:max-h-[260px] md:max-h-[320px] lg:max-h-[360px] xl:max-h-[400px] touch-pan-y"
+                  class="relative w-full aspect-video bg-black/40 border border-zinc-800 rounded-2xl overflow-hidden shadow-lg group max-h-[280px] sm:max-h-[320px] md:max-h-[360px] lg:max-h-[420px] xl:max-h-[460px] touch-pan-y"
                   ontouchstart={handleTouchStart}
                   ontouchend={handleTouchEnd}
                   role="region"
@@ -1408,9 +1483,16 @@
                           <!-- svelte-ignore a11y_click_events_have_key_events -->
                           <!-- svelte-ignore a11y_no_static_element_interactions -->
                           <div
-                            class="absolute inset-0 w-full h-full cursor-pointer"
+                            class="absolute inset-0 w-full h-full cursor-pointer overflow-hidden flex items-center justify-center bg-black/80"
                             onclick={() => (isVideoPlaying = true)}
                           >
+                            <img
+                              src={currentMediaItem.thumbnail ||
+                                (selectedCampaign.images &&
+                                  selectedCampaign.images[0])}
+                              alt=""
+                              class="absolute inset-0 w-full h-full object-cover blur-2xl opacity-30 scale-125 pointer-events-none"
+                            />
                             <img
                               in:slideIn={{
                                 duration: 300,
@@ -1424,7 +1506,7 @@
                                 (selectedCampaign.images &&
                                   selectedCampaign.images[0])}
                               alt={selectedCampaign.title}
-                              class="absolute inset-0 w-full h-full object-cover"
+                              class="relative w-full h-full object-contain z-10 p-0.5"
                             />
                             <div
                               class="absolute inset-0 flex items-center justify-center bg-black/35 hover:bg-black/45 transition-colors duration-200"
@@ -1441,19 +1523,40 @@
                           </div>
                         {/if}
                       {:else}
-                        <img
-                          in:slideIn={{
-                            duration: 300,
-                            direction: scrollDirection,
-                          }}
-                          out:slideOut={{
-                            duration: 300,
-                            direction: scrollDirection,
-                          }}
-                          src={currentMediaItem.url}
-                          alt={selectedCampaign.title}
-                          class="absolute inset-0 w-full h-full object-cover"
-                        />
+                        <button
+                          type="button"
+                          aria-label="Expand image fullscreen"
+                          class="absolute inset-0 w-full h-full flex items-center justify-center bg-black/80 overflow-hidden cursor-zoom-in group/img border-none p-0 appearance-none bg-transparent"
+                          onclick={() => (isImageFullscreen = true)}
+                        >
+                          <img
+                            src={currentMediaItem.url}
+                            alt=""
+                            class="absolute inset-0 w-full h-full object-cover blur-2xl opacity-30 scale-125 pointer-events-none"
+                          />
+                          <img
+                            in:slideIn={{
+                              duration: 300,
+                              direction: scrollDirection,
+                            }}
+                            out:slideOut={{
+                              duration: 300,
+                              direction: scrollDirection,
+                            }}
+                            src={currentMediaItem.url}
+                            alt={selectedCampaign.title}
+                            class="relative w-full h-full object-contain z-10 p-0.5"
+                          />
+                          <div
+                            class="absolute bottom-2.5 right-2.5 px-2 py-1 bg-black/75 border border-zinc-700/80 rounded-md text-white text-[10px] font-mono font-bold flex items-center gap-1.5 opacity-80 group-hover/img:opacity-100 transition-opacity z-20 pointer-events-none shadow-md backdrop-blur-sm"
+                          >
+                            <Maximize2 size={12} class="text-zinc-300" />
+                            <span
+                              class="hidden sm:inline uppercase tracking-wider text-[9px]"
+                              >Tap to expand</span
+                            >
+                          </div>
+                        </button>
                       {/if}
                     {/if}
                   {/key}
@@ -1528,8 +1631,13 @@
                       {:else}
                         <img
                           src={mediaItem.url}
+                          alt=""
+                          class="absolute inset-0 w-full h-full object-cover blur-md opacity-30 pointer-events-none"
+                        />
+                        <img
+                          src={mediaItem.url}
                           alt="Thumbnail"
-                          class="w-full h-full object-cover"
+                          class="relative w-full h-full object-contain z-10 p-0.5"
                         />
                       {/if}
                     </div>
@@ -1574,6 +1682,68 @@
                       <Share2 size={16} />
                     </button>
                   </div>
+
+                  {#if selectedCampaign.endDate}
+                    {@const timer = getCountdown(selectedCampaign.endDate, now)}
+                    {#if timer}
+                      <div
+                        class="mt-3 p-2.5 sm:p-3 rounded-xl bg-gradient-to-r from-red-950/80 via-zinc-900/90 to-red-950/80 border border-red-500/50 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 shadow-lg shadow-red-950/30 shrink-0"
+                      >
+                        <div class="flex items-center gap-2 min-w-0">
+                          <span
+                            class="text-sm sm:text-base animate-pulse shrink-0"
+                            >⏳</span
+                          >
+                          <div class="flex flex-col min-w-0">
+                            <span
+                              class="text-[9px] font-mono uppercase tracking-widest text-red-400 font-extrabold truncate"
+                            >
+                              JULY 31ST BAN DECISION
+                            </span>
+                            <span
+                              class="text-xs sm:text-sm font-black text-white uppercase tracking-wider truncate"
+                            >
+                              {#if timer.isZero}
+                                DECISION DAY IS HERE — 0 DAYS LEFT!
+                              {:else}
+                                ONLY {timer.formattedDaysLeft}!
+                              {/if}
+                            </span>
+                          </div>
+                        </div>
+
+                        <!-- Compact Ticking Digital Clock -->
+                        <div
+                          class="flex items-center gap-1 font-mono text-xs font-bold text-white bg-black/85 px-2.5 py-1 rounded-lg border border-red-500/40 shrink-0 shadow-inner"
+                        >
+                          <span class="text-white"
+                            >{String(timer.days).padStart(2, "0")}d</span
+                          >
+                          <span
+                            class="text-red-500 font-extrabold text-[10px] animate-pulse"
+                            >:</span
+                          >
+                          <span class="text-white"
+                            >{String(timer.hours).padStart(2, "0")}h</span
+                          >
+                          <span
+                            class="text-red-500 font-extrabold text-[10px] animate-pulse"
+                            >:</span
+                          >
+                          <span class="text-white"
+                            >{String(timer.minutes).padStart(2, "0")}m</span
+                          >
+                          <span
+                            class="text-red-500 font-extrabold text-[10px] animate-pulse"
+                            >:</span
+                          >
+                          <span class="text-red-400 font-black animate-pulse"
+                            >{String(timer.seconds).padStart(2, "0")}s</span
+                          >
+                        </div>
+                      </div>
+                    {/if}
+                  {/if}
 
                   {#if selectedCampaign.id === "justice-for-rusty"}
                     <!-- Full scroll bio, no max-height scrollbar constraint -->
@@ -1676,8 +1846,9 @@
                     {/if}
                   {:else}
                     <!-- Legacy/Standard layout for other campaigns with milestones/progress -->
+                    <!-- Full bio, no max-height constraint: the panel scrolls, the text never compacts -->
                     <div
-                      class="mt-3 sm:mt-4 pb-4 flex flex-col gap-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar selectable-bio"
+                      class="mt-3 sm:mt-4 pb-4 flex flex-col gap-4 selectable-bio"
                     >
                       {#if campaignBioText}
                         {#each formatBioText(campaignBioText) as paragraph}
@@ -1712,9 +1883,13 @@
                           </span>
                           <span class="text-red-500 text-sm">
                             {#if selectedCampaign.id === "sidewalk-chalk-defense" || selectedCampaign.id === "browser-age-api"}
-                              {selectedCampaign.raised.replace('$', '')} / {selectedCampaign.goal.replace('$', '')} Signatures ({progressPct}%)
+                              {selectedCampaign.raised.replace("$", "")} / {selectedCampaign.goal.replace(
+                                "$",
+                                "",
+                              )} Signatures ({progressPct}%)
                             {:else}
-                              {selectedCampaign.raised} / {selectedCampaign.goal} ({progressPct}%)
+                              {selectedCampaign.raised} / {selectedCampaign.goal}
+                              ({progressPct}%)
                             {/if}
                           </span>
                         </div>
@@ -1739,12 +1914,7 @@
                                 handleBlastEm(selectedCampaign.contactReps)}
                               class="w-full py-4 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-black font-black rounded-xl text-xs sm:text-sm tracking-widest uppercase transition-all duration-200 flex items-center justify-center gap-2 shadow-xl shadow-emerald-950/40 hover:scale-[1.01] active:scale-[0.99] cursor-pointer text-center"
                             >
-                              💌
-                              {#if selectedCampaign.id === "browser-age-api"}
-                                SEND PETITION EMAIL (CONTACT ALL)
-                              {:else}
-                                BLAST 'EM (EMAIL ALL LAWMAKERS)
-                              {/if}
+                              💌 SEND PETITION EMAIL (CONTACT ALL)
                             </button>
                           {:else}
                             <button
@@ -2229,6 +2399,86 @@
         class="absolute bottom-6 left-1/2 -translate-x-1/2 bg-zinc-950/90 text-emerald-400 font-extrabold text-[10px] sm:text-xs uppercase tracking-widest px-4 py-2.5 rounded-xl shadow-2xl border border-emerald-500/40 z-50 flex items-center gap-2"
       >
         <span>✓ LAWMAKER EMAILS COPIED</span>
+      </div>
+    {/if}
+
+    <!-- FULLSCREEN IMAGE LIGHTBOX OVERLAY -->
+    {#if isImageFullscreen && currentMediaItem}
+      <!-- svelte-ignore a11y_click_events_have_key_events -->
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <div
+        class="fixed inset-0 z-[99999] bg-black/95 backdrop-blur-md flex flex-col items-center justify-between p-3 sm:p-6"
+        transition:fade={{ duration: 200 }}
+        onclick={() => (isImageFullscreen = false)}
+      >
+        <!-- Top Control Bar -->
+        <div
+          class="w-full flex justify-between items-center z-10 max-w-7xl mx-auto px-2"
+        >
+          <div
+            class="text-zinc-300 font-mono text-xs sm:text-sm font-semibold truncate max-w-[70%]"
+          >
+            {selectedCampaign?.title} ({activeImageIdx + 1} / {campaignMedia.length})
+          </div>
+          <button
+            onclick={(e) => {
+              e.stopPropagation();
+              isImageFullscreen = false;
+            }}
+            class="w-10 h-10 rounded-full bg-zinc-900/90 border border-zinc-700 hover:bg-zinc-800 text-white flex items-center justify-center transition-all cursor-pointer shadow-xl hover:scale-105 active:scale-95"
+            aria-label="Close Fullscreen"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <!-- Main Image Container -->
+        <div
+          class="relative flex-1 w-full max-w-7xl flex items-center justify-center my-2 overflow-hidden select-none"
+          onclick={(e) => e.stopPropagation()}
+        >
+          <img
+            src={currentMediaItem.url}
+            alt={selectedCampaign?.title}
+            class="max-w-full max-h-[82vh] object-contain rounded-xl shadow-2xl transition-transform duration-300"
+            transition:scale={{ duration: 250, start: 0.95 }}
+          />
+
+          <!-- Navigation Chevrons in Fullscreen -->
+          {#if campaignMedia.length > 1}
+            <button
+              class="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 bg-black/80 hover:bg-black border border-zinc-700 text-white rounded-full w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center transition-all cursor-pointer shadow-2xl hover:scale-110 active:scale-95 z-20"
+              onclick={(e) => {
+                e.stopPropagation();
+                scrollDirection = -1;
+                activeImageIdx =
+                  (activeImageIdx - 1 + campaignMedia.length) %
+                  campaignMedia.length;
+              }}
+              aria-label="Previous Image"
+            >
+              <span class="text-lg sm:text-xl font-bold">◀</span>
+            </button>
+            <button
+              class="absolute right-2 sm:left-auto sm:right-4 top-1/2 -translate-y-1/2 bg-black/80 hover:bg-black border border-zinc-700 text-white rounded-full w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center transition-all cursor-pointer shadow-2xl hover:scale-110 active:scale-95 z-20"
+              onclick={(e) => {
+                e.stopPropagation();
+                scrollDirection = 1;
+                activeImageIdx = (activeImageIdx + 1) % campaignMedia.length;
+              }}
+              aria-label="Next Image"
+            >
+              <span class="text-lg sm:text-xl font-bold">▶</span>
+            </button>
+          {/if}
+        </div>
+
+        <!-- Footer Hint -->
+        <div
+          class="text-zinc-500 font-mono text-[10px] sm:text-xs tracking-wider uppercase z-10 text-center"
+        >
+          Tap anywhere outside or press ESC to exit
+        </div>
       </div>
     {/if}
   </div>
