@@ -80,6 +80,28 @@
       formattedDaysLeft,
     };
   }
+
+  /**
+   * The Texas campaign runs on two deadlines: the July 31st state shelf pull
+   * that takes everything but Delta-9, then the November 12th federal
+   * reclassification that takes the rest. Once the first lapses the countdown
+   * rolls onto the second on its own, no redeploy needed.
+   * @param {any} campaign
+   * @param {number} currentMs
+   * @returns {{ target: string, label: string } | null}
+   */
+  function getActiveDeadline(campaign, currentMs) {
+    if (!campaign) return null;
+    const stages = [
+      { target: campaign.endDate, label: campaign.endDateLabel },
+      { target: campaign.finalEndDate, label: campaign.finalEndDateLabel },
+    ].filter((s) => s.target && !isNaN(new Date(s.target).getTime()));
+    if (stages.length === 0) return null;
+    const upcoming = stages.find(
+      (s) => new Date(s.target).getTime() > currentMs,
+    );
+    return upcoming || stages[stages.length - 1];
+  }
   let scrollDirection = $state(1);
   let isVideoPlaying = $state(false);
   let selectedSize = $state("M");
@@ -166,6 +188,19 @@
     }
   });
 
+  const BIO_LINK_CLASS =
+    "text-red-500 hover:text-red-400 underline decoration-red-500/30 hover:decoration-red-400 transition-colors duration-200";
+
+  /**
+   * @param {string} url
+   * @param {string} label
+   * @param {string} [extraClass]
+   */
+  function bioAnchor(url, label, extraClass = "") {
+    const cls = extraClass ? `${BIO_LINK_CLASS} ${extraClass}` : BIO_LINK_CLASS;
+    return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="${cls}">${label}</a>`;
+  }
+
   /**
    * Helper to format a plain text bio into paragraphs with HTML links.
    * @param {string} text - The raw plaintext bio.
@@ -186,18 +221,39 @@
       // Replace custom anchor tags like &lt;a href=&quot;url&quot;&gt;phrase&lt;/a&gt;
       const customAnchorRegex =
         /&lt;a href=&quot;(.+?)&quot;&gt;([\s\S]+?)&lt;\/a&gt;/g;
-      const processed = escaped.replace(
+      const withAnchors = escaped.replace(
         customAnchorRegex,
-        (match, url, phrase) => {
-          return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-red-500 hover:text-red-400 underline decoration-red-500/30 hover:decoration-red-400 transition-colors duration-200">${phrase}</a>`;
-        },
+        (match, url, phrase) => bioAnchor(url, phrase),
       );
 
       // Replace URL formats like &lt;https://...&gt; with clickable anchor tags
       const urlRegex = /&lt;(https?:\/\/[^&]+)&gt;/g;
-      return processed.replace(urlRegex, (match, url) => {
-        return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-red-500 hover:text-red-400 underline decoration-red-500/30 hover:decoration-red-400 transition-colors duration-200 break-all">${url}</a>`;
-      });
+      const processed = withAnchors.replace(urlRegex, (match, url) =>
+        bioAnchor(url, url, "break-all"),
+      );
+
+      // Last pass: a URL pasted into a bio on its own, with no wrapper syntax,
+      // used to render as dead plain text. Link those too. Tag chunks and the
+      // insides of the anchors built above are skipped so neither explicit
+      // syntax ends up double-wrapped or nested.
+      const bareUrlRegex = /https?:\/\/(?:(?!&quot;|&#039;)[^\s<>"'])+/g;
+      let anchorDepth = 0;
+      return processed
+        .split(/(<[^>]*>)/)
+        .map((chunk) => {
+          if (chunk.startsWith("<")) {
+            if (/^<a\b/i.test(chunk)) anchorDepth++;
+            else if (/^<\/a\s*>/i.test(chunk)) anchorDepth--;
+            return chunk;
+          }
+          if (anchorDepth > 0) return chunk;
+          return chunk.replace(bareUrlRegex, (url) => {
+            // Don't swallow the punctuation that ends the sentence.
+            const link = url.replace(/[.,;:!?)\]]+$/, "");
+            return bioAnchor(link, link, "break-all") + url.slice(link.length);
+          });
+        })
+        .join("");
     });
   }
 
@@ -236,8 +292,9 @@
    */
   const CRITICAL_RE = new RegExp(
     [
-      // 1 — the headline: what actually happens on Friday
-      "(All delta-8[\\s\\S]{0,80}?pulled off all Texas shelves on Friday,?\\s*July\\s*31(?:st)?)",
+      // 1 — the headline: what happens on Friday, and what November takes
+      "(On Friday,?\\s*July\\s*31(?:st)?[\\s\\S]{0,90}?pulled off all Texas shelves" +
+        "|Come November\\s*12(?:th)?[\\s\\S]{0,140}?Delta-9 included, is gone)",
       // 2 — what the ban destroys
       "(destroys hundreds of Texas small businesses[\\s\\S]{0,140}?wipes out millions in tax revenue" +
         "|thousands of people get fired[\\s\\S]{0,240}?produce nothing of value f(?:or|rom) Texas)",
@@ -1482,7 +1539,8 @@
                           >
 
                           {#if campaign.endDate}
-                            {@const timer = getCountdown(campaign.endDate, now)}
+                            {@const deadline = getActiveDeadline(campaign, now)}
+                            {@const timer = getCountdown(deadline?.target, now)}
                             {#if timer}
                               <div
                                 class="absolute top-2.5 right-2.5 px-2 py-1 bg-red-950/85 border border-red-500/80 text-white font-mono rounded-md shadow-lg shadow-red-950/70 backdrop-blur-md flex items-center gap-1.5 z-10 animate-pulse"
@@ -1922,7 +1980,8 @@
                   </div>
 
                   {#if selectedCampaign.endDate}
-                    {@const timer = getCountdown(selectedCampaign.endDate, now)}
+                    {@const deadline = getActiveDeadline(selectedCampaign, now)}
+                    {@const timer = getCountdown(deadline?.target, now)}
                     {#if timer}
                       <div
                         class="mt-3 p-2.5 sm:p-3 rounded-xl bg-gradient-to-r from-red-950/80 via-zinc-900/90 to-red-950/80 border border-red-500/50 flex flex-col gap-2 shadow-lg shadow-red-950/30 shrink-0"
@@ -1937,7 +1996,7 @@
                             <span
                               class="text-[9px] font-mono uppercase tracking-widest text-red-400 font-extrabold truncate"
                             >
-                              JULY 31ST BAN DECISION
+                              {deadline.label || "BAN DECISION DEADLINE"}
                             </span>
                             <span
                               class="text-xs sm:text-sm font-black text-white uppercase tracking-wider truncate"
