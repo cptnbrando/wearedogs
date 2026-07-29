@@ -31,21 +31,6 @@
       {
         "label": "Texas Representative Mass Email Action",
         "percentage": 10,
-        "achieved": true
-      },
-      {
-        "label": "Stripe Payment Gateway Integration",
-        "percentage": 25,
-        "achieved": false
-      },
-      {
-        "label": "Texas Hemp & Cannabis Legal Defense Fund",
-        "percentage": 60,
-        "achieved": false
-      },
-      {
-        "label": "First Legal Adult-Use Dispensary Lease in TX",
-        "percentage": 100,
         "achieved": false
       }
     ],
