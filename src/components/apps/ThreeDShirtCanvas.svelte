@@ -1,8 +1,9 @@
 <script>
   import { onMount, onDestroy } from "svelte";
   import * as THREE from "three";
+  import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
-  let { productTitle = "WOOF CLASSIC T-SHIRT" } = $props();
+  let { productTitle = "WOOF CLASSIC T-SHIRT", modelUrl = "" } = $props();
 
   let containerEl = $state(null);
   let renderer, scene, camera, shirtGroup;
@@ -67,53 +68,81 @@
     dirLight2.position.set(-5, -5, -2);
     scene.add(dirLight2);
 
-    // 4. Create 3D Shirt Model
+    // 4. Create 3D Model
     shirtGroup = new THREE.Group();
 
-    // Materials
-    const texture = createLogoTexture(productTitle);
-    const frontMaterial = new THREE.MeshStandardMaterial({
-      map: texture,
-      roughness: 0.7,
-      metalness: 0.1,
-      color: 0x222222,
-    });
-    const baseMaterial = new THREE.MeshStandardMaterial({
-      roughness: 0.7,
-      metalness: 0.1,
-      color: 0x222222,
-    });
+    if (modelUrl) {
+      const loader = new GLTFLoader();
+      loader.load(
+        modelUrl,
+        (gltf) => {
+          const loadedModel = gltf.scene;
+          // Auto center and scale model
+          const box = new THREE.Box3().setFromObject(loadedModel);
+          const center = box.getCenter(new THREE.Vector3());
+          const size = box.getSize(new THREE.Vector3());
+          const maxDim = Math.max(size.x, size.y, size.z);
+          const scale = maxDim > 0 ? 3.5 / maxDim : 1;
+          loadedModel.scale.set(scale, scale, scale);
+          loadedModel.position.sub(center.multiplyScalar(scale));
 
-    // Torso (Cylinder)
-    const torsoGeom = new THREE.CylinderGeometry(1.2, 1.2, 2.5, 32);
-    // Apply front material just to a specific part, or just wrap around
-    const torso = new THREE.Mesh(torsoGeom, [
-      baseMaterial,
-      frontMaterial,
-      baseMaterial,
-    ]);
-    shirtGroup.add(torso);
+          shirtGroup.add(loadedModel);
+        },
+        undefined,
+        (err) => {
+          console.warn("Failed to load GLTF model, fallback to default procedural model:", err);
+          createProceduralModel();
+        }
+      );
+    } else {
+      createProceduralModel();
+    }
 
-    // Left Sleeve
-    const leftSleeveGeom = new THREE.CylinderGeometry(0.4, 0.45, 1.0, 16);
-    const leftSleeve = new THREE.Mesh(leftSleeveGeom, baseMaterial);
-    leftSleeve.position.set(-1.4, 0.7, 0);
-    leftSleeve.rotation.z = Math.PI / 4;
-    shirtGroup.add(leftSleeve);
+    function createProceduralModel() {
+      // Materials
+      const texture = createLogoTexture(productTitle);
+      const frontMaterial = new THREE.MeshStandardMaterial({
+        map: texture,
+        roughness: 0.7,
+        metalness: 0.1,
+        color: 0x222222,
+      });
+      const baseMaterial = new THREE.MeshStandardMaterial({
+        roughness: 0.7,
+        metalness: 0.1,
+        color: 0x222222,
+      });
 
-    // Right Sleeve
-    const rightSleeveGeom = new THREE.CylinderGeometry(0.4, 0.45, 1.0, 16);
-    const rightSleeve = new THREE.Mesh(rightSleeveGeom, baseMaterial);
-    rightSleeve.position.set(1.4, 0.7, 0);
-    rightSleeve.rotation.z = -Math.PI / 4;
-    shirtGroup.add(rightSleeve);
+      // Torso (Cylinder)
+      const torsoGeom = new THREE.CylinderGeometry(1.2, 1.2, 2.5, 32);
+      const torso = new THREE.Mesh(torsoGeom, [
+        baseMaterial,
+        frontMaterial,
+        baseMaterial,
+      ]);
+      shirtGroup.add(torso);
 
-    // Neck Collar (Torus)
-    const collarGeom = new THREE.TorusGeometry(0.5, 0.1, 16, 100);
-    const collar = new THREE.Mesh(collarGeom, baseMaterial);
-    collar.position.set(0, 1.25, 0);
-    collar.rotation.x = Math.PI / 2;
-    shirtGroup.add(collar);
+      // Left Sleeve
+      const leftSleeveGeom = new THREE.CylinderGeometry(0.4, 0.45, 1.0, 16);
+      const leftSleeve = new THREE.Mesh(leftSleeveGeom, baseMaterial);
+      leftSleeve.position.set(-1.4, 0.7, 0);
+      leftSleeve.rotation.z = Math.PI / 4;
+      shirtGroup.add(leftSleeve);
+
+      // Right Sleeve
+      const rightSleeveGeom = new THREE.CylinderGeometry(0.4, 0.45, 1.0, 16);
+      const rightSleeve = new THREE.Mesh(rightSleeveGeom, baseMaterial);
+      rightSleeve.position.set(1.4, 0.7, 0);
+      rightSleeve.rotation.z = -Math.PI / 4;
+      shirtGroup.add(rightSleeve);
+
+      // Neck Collar (Torus)
+      const collarGeom = new THREE.TorusGeometry(0.5, 0.1, 16, 100);
+      const collar = new THREE.Mesh(collarGeom, baseMaterial);
+      collar.position.set(0, 1.25, 0);
+      collar.rotation.x = Math.PI / 2;
+      shirtGroup.add(collar);
+    }
 
     scene.add(shirtGroup);
 

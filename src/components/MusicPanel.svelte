@@ -268,7 +268,7 @@
     },
     {
       id: "rain",
-      title: "Pourin Rain (feat. Skratch Bastid)",
+      title: "Pourin Rain (ft. Skratch Bastid)",
       artist: "Zeds Dead",
       album:
         "Return to the Return (of the Spectrum of Intergalactic Happiness)",
@@ -340,7 +340,7 @@
     },
     {
       id: "skitzo",
-      title: "Skitzo (feat. Young Thug)",
+      title: "Skitzo (ft. Young Thug)",
       artist: "Travis Scott",
       album: "UTOPIA",
       cover: "https://data.wearedogs.net/img/covers/2026/utopia.webp",
@@ -354,7 +354,7 @@
     },
     {
       id: "slow",
-      title: "SLOW ft. DOGS",
+      title: "SLOW FT. DOGS",
       artist: "Sweet Boy Sonnet",
       album: "Where do I put my love?",
       cover: "https://data.wearedogs.net/img/covers/2026/slow.webp",
@@ -1726,7 +1726,7 @@
 
     <footer class="mp-footer">
       <div class="mp-status">
-        <span class="mp-dot"></span><span>WE ARE DOGS</span>
+        <span class="mp-dot"></span><span>🐕</span>
       </div>
       <span>MUSIC</span>
     </footer>

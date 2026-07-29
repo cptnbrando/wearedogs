@@ -607,7 +607,7 @@
     <footer class="panel-footer">
       <div class="sys-status">
         <span class="status-indicator-green"></span>
-        <span>WE ARE DOGS</span>
+        <span>🐕</span>
       </div>
       <div class="stats-counter">
         <span>BARKBARKBARKBARK</span>

@@ -1,7 +1,10 @@
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<!-- svelte-ignore a11y_click_events_have_key_events -->
 <script>
   import { onMount, onDestroy, untrack } from "svelte";
-  import { fade, fly } from "svelte/transition";
+  import { fade, scale, fly } from "svelte/transition";
   import BasePanel from "./BasePanel.svelte";
+  import ProductImageSlideshow from "./apps/ProductImageSlideshow.svelte";
   import ThreeDShirtCanvas from "./apps/ThreeDShirtCanvas.svelte";
   import {
     ShoppingCart,
@@ -12,6 +15,7 @@
     Check,
     X,
     Share2,
+    Maximize2,
   } from "lucide-svelte";
 
   let {
@@ -28,10 +32,53 @@
   let isCartOpen = $state(false);
   let cartHistoryPushed = $state(false);
   let selectedProduct = $state(null);
+  let lastSelectedProductId = $state("");
   let selectedCampaign = $state(null);
   let campaignBioText = $state("");
-  let currentStoreMode = $state("merch"); // "merch" or "fundraising"
+  let currentStoreMode = $state("fundraising"); // Default to "fundraising" per user requirement
   let activeImageIdx = $state(0);
+  let isImageFullscreen = $state(false);
+  let now = $state(Date.now());
+  let countdownInterval;
+
+  function handleKeyDown(e) {
+    if (e.key === "Escape" && isImageFullscreen) {
+      isImageFullscreen = false;
+    }
+  }
+
+  /**
+   * Calculates real-time countdown to a target date.
+   * @param {string|number} endDateTarget
+   * @param {number} currentMs
+   * @returns {{ days: number, hours: number, minutes: number, seconds: number, isZero: boolean, totalMs: number, formattedDaysLeft: string }}
+   */
+  function getCountdown(endDateTarget, currentMs) {
+    if (!endDateTarget) return null;
+    const targetMs = new Date(endDateTarget).getTime();
+    if (isNaN(targetMs)) return null;
+    const diff = Math.max(0, targetMs - currentMs);
+    const isZero = diff <= 0;
+
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+    const minutes = Math.floor((diff / (1000 * 60)) % 60);
+    const seconds = Math.floor((diff / 1000) % 60);
+
+    const formattedDaysLeft = isZero
+      ? "0 DAYS LEFT"
+      : `${days} DAY${days === 1 ? "" : "S"} LEFT`;
+
+    return {
+      days,
+      hours,
+      minutes,
+      seconds,
+      isZero,
+      totalMs: diff,
+      formattedDaysLeft,
+    };
+  }
   let scrollDirection = $state(1);
   let isVideoPlaying = $state(false);
   let selectedSize = $state("M");
@@ -52,6 +99,12 @@
     "5XL",
     "6XL",
   ];
+
+  $effect(() => {
+    if (selectedProduct) {
+      lastSelectedProductId = selectedProduct.id;
+    }
+  });
 
   // Resolve initial deep links on mount after data is loaded
   $effect(() => {
@@ -130,10 +183,14 @@
         .replace(/'/g, "&#039;");
 
       // Replace custom anchor tags like &lt;a href=&quot;url&quot;&gt;phrase&lt;/a&gt;
-      const customAnchorRegex = /&lt;a href=&quot;(.+?)&quot;&gt;([\s\S]+?)&lt;\/a&gt;/g;
-      const processed = escaped.replace(customAnchorRegex, (match, url, phrase) => {
-        return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-red-500 hover:text-red-400 underline decoration-red-500/30 hover:decoration-red-400 transition-colors duration-200">${phrase}</a>`;
-      });
+      const customAnchorRegex =
+        /&lt;a href=&quot;(.+?)&quot;&gt;([\s\S]+?)&lt;\/a&gt;/g;
+      const processed = escaped.replace(
+        customAnchorRegex,
+        (match, url, phrase) => {
+          return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-red-500 hover:text-red-400 underline decoration-red-500/30 hover:decoration-red-400 transition-colors duration-200">${phrase}</a>`;
+        },
+      );
 
       // Replace URL formats like &lt;https://...&gt; with clickable anchor tags
       const urlRegex = /&lt;(https?:\/\/[^&]+)&gt;/g;
@@ -206,6 +263,115 @@
     };
   }
 
+  function terminalGlitchIn(node, { duration = 300 } = {}) {
+    return {
+      duration,
+      css: (t, u) => {
+        if (u === 0) return `opacity: 1; transform: none; filter: none;`;
+        const randomSkew = (Math.random() * 30 - 15).toFixed(2);
+        const randomShiftX = (Math.random() * 30 - 15).toFixed(1);
+        const randomShiftY = (Math.random() * 8 - 4).toFixed(1);
+        const randomRed = (Math.random() * 6 - 3).toFixed(0);
+        const randomCyan = -randomRed;
+
+        return `
+          opacity: ${t > 0.15 ? 0.8 + Math.random() * 0.2 : t};
+          transform: translate3d(${randomShiftX}px, ${randomShiftY}px, 0) skewX(${randomSkew}deg);
+          filter: drop-shadow(${randomRed}px 0 0 rgba(239, 68, 68, 0.6)) drop-shadow(${randomCyan}px 0 0 rgba(16, 185, 129, 0.6));
+        `;
+      },
+    };
+  }
+
+  function terminalGlitchOut(node, { duration = 250 } = {}) {
+    return {
+      duration,
+      css: (t, u) => {
+        if (t === 0) return `opacity: 0; transform: none; filter: none;`;
+        const randomSkew = (Math.random() * 35 - 17.5).toFixed(2);
+        const randomShiftX = (Math.random() * 35 - 17.5).toFixed(1);
+        const randomShiftY = (Math.random() * 8 - 4).toFixed(1);
+        const randomRed = (Math.random() * 6 - 3).toFixed(0);
+        const randomCyan = -randomRed;
+
+        return `
+          opacity: ${t};
+          transform: translate3d(${randomShiftX}px, ${randomShiftY}px, 0) skewX(${randomSkew}deg);
+          filter: drop-shadow(${randomRed}px 0 0 rgba(239, 68, 68, 0.6)) drop-shadow(${randomCyan}px 0 0 rgba(16, 185, 129, 0.6));
+        `;
+      },
+    };
+  }
+
+  function conditionalGlitchIn(node, options) {
+    if (selectedProduct && selectedProduct.id === "fight-the-ceo") {
+      return terminalGlitchIn(node, { duration: 300 });
+    }
+    return fade(node, { duration: 120 });
+  }
+
+  function conditionalGlitchOut(node, options) {
+    if (lastSelectedProductId === "fight-the-ceo") {
+      return terminalGlitchOut(node, { duration: 250 });
+    }
+    return fade(node, { duration: 80 });
+  }
+
+  // Workspace Swiping System
+  let swipeStartX = 0;
+  let swipeStartY = 0;
+  let isSwiping = false;
+
+  function handleWorkspacePointerDown(e) {
+    if (e.button !== 0) return;
+    isSwiping = true;
+    swipeStartX = e.clientX;
+    swipeStartY = e.clientY;
+  }
+
+  function handleWorkspacePointerUp(e) {
+    if (!isSwiping) return;
+    isSwiping = false;
+    const deltaX = e.clientX - swipeStartX;
+    const deltaY = e.clientY - swipeStartY;
+    handleSwipeGesture(deltaX, deltaY);
+  }
+
+  function handleWorkspaceTouchStart(e) {
+    if (e.touches.length === 1) {
+      isSwiping = true;
+      swipeStartX = e.touches[0].clientX;
+      swipeStartY = e.touches[0].clientY;
+    }
+  }
+
+  function handleWorkspaceTouchEnd(e) {
+    if (!isSwiping) return;
+    isSwiping = false;
+    const touch = e.changedTouches[0];
+    if (!touch) return;
+    const deltaX = touch.clientX - swipeStartX;
+    const deltaY = touch.clientY - swipeStartY;
+    handleSwipeGesture(deltaX, deltaY);
+  }
+
+  function handleSwipeGesture(deltaX, deltaY) {
+    if (selectedProduct || selectedCampaign) return;
+    if (Math.abs(deltaX) > 60 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
+      if (deltaX < 0) {
+        if (currentStoreMode === "merch") {
+          currentStoreMode = "fundraising";
+          deselectCampaign();
+        }
+      } else {
+        if (currentStoreMode === "fundraising") {
+          currentStoreMode = "merch";
+          deselectProduct();
+        }
+      }
+    }
+  }
+
   function deselectCampaign() {
     selectedCampaign = null;
     initialCampaignId = null;
@@ -238,8 +404,264 @@
       });
   }
 
+  // Texas Representatives Geolocation & Metadata Mapping
+  const TEXAS_REPS_META = [
+    {
+      email: "dan.patrick@ltgov.texas.gov",
+      name: "Lt. Gov. Dan Patrick",
+      title: "President of the Senate",
+      region: "Statewide / Austin Capitol",
+      lat: 30.2747,
+      lng: -97.7404,
+    },
+    {
+      email: "angela.paxton@senate.texas.gov",
+      name: "Sen. Angela Paxton",
+      title: "District 8",
+      region: "Collin County / Prosper",
+      lat: 33.1972,
+      lng: -96.6398,
+    },
+    {
+      email: "tan.parker@senate.texas.gov",
+      name: "Sen. Tan Parker",
+      title: "District 12",
+      region: "Denton / North DFW",
+      lat: 33.2148,
+      lng: -97.1331,
+    },
+    {
+      email: "drew.springer@senate.texas.gov",
+      name: "Sen. Drew Springer",
+      title: "District 30",
+      region: "North Texas / DFW Border",
+      lat: 33.6218,
+      lng: -97.1517,
+    },
+    {
+      email: "nathan.johnson@senate.texas.gov",
+      name: "Sen. Nathan Johnson",
+      title: "District 16",
+      region: "Dallas City / DFW Metro",
+      lat: 32.7767,
+      lng: -96.797,
+    },
+    {
+      email: "royce.west@senate.texas.gov",
+      name: "Sen. Royce West",
+      title: "District 23",
+      region: "Dallas County / DFW Metro",
+      lat: 32.73,
+      lng: -96.82,
+    },
+    {
+      email: "bob.hall@senate.texas.gov",
+      name: "Sen. Bob Hall",
+      title: "District 2",
+      region: "Dallas Suburbs / Rockwall",
+      lat: 32.9312,
+      lng: -96.4597,
+    },
+    {
+      email: "paul.bettencourt@senate.texas.gov",
+      name: "Sen. Paul Bettencourt",
+      title: "District 7",
+      region: "Houston Metro",
+      lat: 29.7604,
+      lng: -95.3698,
+    },
+    {
+      email: "joan.huffman@senate.texas.gov",
+      name: "Sen. Joan Huffman",
+      title: "District 17",
+      region: "Houston / Fort Bend",
+      lat: 29.5636,
+      lng: -95.275,
+    },
+    {
+      email: "brandon.creighton@senate.texas.gov",
+      name: "Sen. Brandon Creighton",
+      title: "District 4",
+      region: "North Houston / The Woodlands",
+      lat: 30.3119,
+      lng: -95.456,
+    },
+    {
+      email: "charles.schwertner@senate.texas.gov",
+      name: "Sen. Charles Schwertner",
+      title: "District 5",
+      region: "Austin Metro / Georgetown",
+      lat: 30.6333,
+      lng: -97.6772,
+    },
+    {
+      email: "judith.zaffirini@senate.texas.gov",
+      name: "Sen. Judith Zaffirini",
+      title: "District 21",
+      region: "San Antonio / Laredo",
+      lat: 27.5306,
+      lng: -99.4803,
+    },
+    {
+      email: "charles.perry@senate.texas.gov",
+      name: "Sen. Charles Perry",
+      title: "District 28",
+      region: "Lubbock / West TX",
+      lat: 33.5779,
+      lng: -101.8552,
+    },
+    {
+      email: "bryan.hughes@senate.texas.gov",
+      name: "Sen. Bryan Hughes",
+      title: "District 1",
+      region: "Tyler / Longview / East TX",
+      lat: 32.3513,
+      lng: -95.3011,
+    },
+    {
+      email: "mayes.middleton@senate.texas.gov",
+      name: "Sen. Mayes Middleton",
+      title: "District 11",
+      region: "Galveston / Gulf Coast",
+      lat: 29.3013,
+      lng: -94.7977,
+    },
+    {
+      email: "lois.kolkhorst@senate.texas.gov",
+      name: "Sen. Lois Kolkhorst",
+      title: "District 18",
+      region: "Brenham / Victoria",
+      lat: 30.1669,
+      lng: -96.3977,
+    },
+  ];
+
+  // Email Lawmakers Action System
+  let showEmailCopiedAlert = $state(false);
+  let showSortMailPanel = $state(false);
+  let selectedReps = $state([]);
+  let isLocating = $state(false);
+  let locationStatusText = $state("");
+  let emailCopyTimeout = null;
+
+  // Sync selected reps when campaign changes
+  $effect(() => {
+    if (selectedCampaign?.contactReps?.emails) {
+      selectedReps = [...selectedCampaign.contactReps.emails];
+      locationStatusText = "";
+    }
+  });
+
+  function getRepInfo(email) {
+    const meta = TEXAS_REPS_META.find((r) => r.email === email);
+    if (meta) return meta;
+    const namePart = email
+      .split("@")[0]
+      .replace("senator.", "")
+      .replace(".", " ");
+    const formattedName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
+    return {
+      email,
+      name: formattedName,
+      title: "Representative",
+      region: "Texas",
+    };
+  }
+
+  function handleBlastEm(contactReps) {
+    if (!contactReps || !contactReps.emails) return;
+    const mailtoUrl = `mailto:?bcc=${encodeURIComponent(contactReps.emails.join(","))}&subject=${encodeURIComponent(contactReps.subject)}&body=${encodeURIComponent(contactReps.body)}`;
+    window.location.href = mailtoUrl;
+  }
+
+  function handleEmailSelected(contactReps) {
+    if (!contactReps || selectedReps.length === 0) return;
+    const mailtoUrl = `mailto:?bcc=${encodeURIComponent(selectedReps.join(","))}&subject=${encodeURIComponent(contactReps.subject)}&body=${encodeURIComponent(contactReps.body)}`;
+    window.location.href = mailtoUrl;
+  }
+
+  function handleToggleRep(email) {
+    if (selectedReps.includes(email)) {
+      selectedReps = selectedReps.filter((e) => e !== email);
+    } else {
+      selectedReps = [...selectedReps, email];
+    }
+  }
+
+  function handleSelectAllReps(emails) {
+    selectedReps = [...emails];
+  }
+
+  function handleDeselectAllReps() {
+    selectedReps = [];
+  }
+
+  function handleUseLocation(allEmails) {
+    if (!navigator.geolocation) {
+      locationStatusText = "Geolocation is not supported by your browser.";
+      return;
+    }
+    isLocating = true;
+    locationStatusText = "Locating nearby Texas representatives...";
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        isLocating = false;
+        const userLat = pos.coords.latitude;
+        const userLng = pos.coords.longitude;
+
+        // Calculate distance to each rep
+        const sorted = TEXAS_REPS_META.map((rep) => {
+          const dist = Math.hypot(rep.lat - userLat, rep.lng - userLng);
+          return { email: rep.email, dist, name: rep.name };
+        }).sort((a, b) => a.dist - b.dist);
+
+        // Pick closest 4 reps
+        const closestEmails = sorted.slice(0, 4).map((r) => r.email);
+
+        // Filter by emails present in current campaign
+        const validClosest = closestEmails.filter((e) => allEmails.includes(e));
+        selectedReps =
+          validClosest.length > 0 ? validClosest : allEmails.slice(0, 3);
+
+        const topNames = validClosest
+          .map((e) => getRepInfo(e).name)
+          .slice(0, 2)
+          .join(", ");
+        locationStatusText = `📍 Selected closest reps (${topNames})`;
+      },
+      (err) => {
+        isLocating = false;
+        // Fallback: auto-select top central leadership reps
+        selectedReps = allEmails.slice(0, 3);
+        locationStatusText =
+          "📍 Location access unavailable. Auto-selected key leadership reps.";
+      },
+      { timeout: 8000 },
+    );
+  }
+
+  function handleCopyRepsEmails(emails) {
+    if (!emails || emails.length === 0) return;
+    navigator.clipboard
+      .writeText(emails.join(", "))
+      .then(() => {
+        showEmailCopiedAlert = true;
+        if (emailCopyTimeout) clearTimeout(emailCopyTimeout);
+        emailCopyTimeout = setTimeout(() => {
+          showEmailCopiedAlert = false;
+        }, 2000);
+      })
+      .catch((err) => {
+        console.error("Failed to copy emails:", err);
+      });
+  }
+
   // Load products and campaigns on mount
   onMount(async () => {
+    countdownInterval = setInterval(() => {
+      now = Date.now();
+    }, 1000);
+
     try {
       const res = await fetch("/data/products.json");
       if (res.ok) {
@@ -257,6 +679,10 @@
       console.error("Error loading campaigns:", e);
     }
     loadCart();
+  });
+
+  onDestroy(() => {
+    if (countdownInterval) clearInterval(countdownInterval);
   });
 
   // Load cart from localStorage and re-verify stock
@@ -431,7 +857,10 @@
       const diffX = touchStartX - touchEndX;
       const diffY = touchStartY - touchEndY;
       const swipeThreshold = 50;
-      if (Math.abs(diffX) > swipeThreshold && Math.abs(diffX) > Math.abs(diffY)) {
+      if (
+        Math.abs(diffX) > swipeThreshold &&
+        Math.abs(diffX) > Math.abs(diffY)
+      ) {
         if (diffX > 0) {
           // Swipe left -> Next image/video
           scrollDirection = 1;
@@ -439,7 +868,8 @@
         } else {
           // Swipe right -> Previous image/video
           scrollDirection = -1;
-          activeImageIdx = (activeImageIdx - 1 + campaignMedia.length) % campaignMedia.length;
+          activeImageIdx =
+            (activeImageIdx - 1 + campaignMedia.length) % campaignMedia.length;
         }
       }
     }
@@ -449,7 +879,8 @@
   let campaignMedia = $derived(
     selectedCampaign?.media?.length > 0
       ? selectedCampaign.media
-      : (selectedCampaign?.images?.map(img => ({ type: 'image', url: img })) || [])
+      : selectedCampaign?.images?.map((img) => ({ type: "image", url: img })) ||
+          [],
   );
 
   let currentMediaItem = $derived(campaignMedia[activeImageIdx] || null);
@@ -479,19 +910,19 @@
   >
     <!-- Header Controls -->
     <div
-      class="flex justify-between items-center px-4 py-3 bg-zinc-950/20 border-b border-zinc-800"
+      class="flex justify-between items-center px-4 h-14 bg-zinc-950/20 border-b border-zinc-800 shrink-0"
     >
-      <div>
+      <div class="flex items-center h-full">
         {#if currentStoreMode === "merch" && selectedProduct}
           <button
-            class="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors duration-200 text-sm font-semibold cursor-pointer"
+            class="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors duration-200 text-sm font-semibold cursor-pointer py-1 px-2.5 hover:bg-zinc-900/60 rounded-lg"
             onclick={deselectProduct}
           >
             <ArrowLeft size={16} /> BACK TO CATALOG
           </button>
         {:else if currentStoreMode === "fundraising" && selectedCampaign}
           <button
-            class="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors duration-200 text-sm font-semibold cursor-pointer"
+            class="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors duration-200 text-sm font-semibold cursor-pointer py-1 px-2.5 hover:bg-zinc-900/60 rounded-lg"
             onclick={deselectCampaign}
           >
             <ArrowLeft size={16} /> BACK TO CAMPAIGNS
@@ -530,25 +961,17 @@
           </div>
         {/if}
       </div>
-
-      <button
-        class="cart-toggle-btn relative p-2 bg-zinc-900 border border-zinc-800 rounded-lg hover:border-zinc-500 hover:text-white transition-all duration-200 cursor-pointer"
-        onclick={() => (isCartOpen = true)}
-      >
-        <ShoppingCart size={20} />
-        {#if cart.length > 0}
-          <span
-            class="absolute -top-1.5 -right-1.5 bg-red-600 text-white font-bold text-[10px] w-5 h-5 flex items-center justify-center rounded-full animate-pulse"
-          >
-            {cart.reduce((a, b) => a + b.quantity, 0)}
-          </span>
-        {/if}
-      </button>
     </div>
 
     <!-- Main Workspace -->
     <div
       class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 grid grid-cols-1 grid-rows-1"
+      onpointerdown={handleWorkspacePointerDown}
+      onpointerup={handleWorkspacePointerUp}
+      ontouchstart={handleWorkspaceTouchStart}
+      ontouchend={handleWorkspaceTouchEnd}
+      role="region"
+      aria-label="Store Catalog Panel"
     >
       {#if currentStoreMode === "merch"}
         <div
@@ -556,9 +979,34 @@
           transition:fade={{ duration: 200 }}
         >
           {#if !selectedProduct}
+            <!-- WARNING NOTICE BANNER -->
+            {#if !products.some((p) => p.inStock)}
+              <div
+                class="max-w-7xl mx-auto mb-6 p-4 bg-red-950/40 border border-red-500/40 rounded-xl text-red-200 font-mono text-xs flex items-center gap-3 shadow-lg"
+              >
+                <span class="text-xl select-none">⚠️</span>
+                <div>
+                  <span
+                    class="font-bold text-red-400 uppercase tracking-wider block text-xs sm:text-sm"
+                  >
+                    NOTHING FOR SALE RIGHT NOW
+                  </span>
+                  <span
+                    class="text-[11px] text-zinc-400 font-sans mt-0.5 block"
+                  >
+                    All official merchandise is currently out of stock or
+                    unavailable. Please check back later or visit our active
+                    Fundraisers tab!
+                  </span>
+                </div>
+              </div>
+            {/if}
+
             <!-- MERCHANDISE GRID VIEW -->
             <div
-              class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 max-w-7xl mx-auto animate-fade-in"
+              class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 max-w-7xl mx-auto"
+              in:fade={{ duration: 120 }}
+              out:fade={{ duration: 80 }}
             >
               {#each products as product}
                 <div
@@ -581,66 +1029,72 @@
                   <!-- svelte-ignore a11y_click_events_have_key_events -->
                   <!-- svelte-ignore a11y_no_static_element_interactions -->
                   <div
-                    class="aspect-square bg-black/20 border-b border-zinc-800/60 flex flex-col items-center justify-center relative cursor-pointer"
+                    class="aspect-square bg-black/20 border-b border-zinc-800/60 flex flex-col items-center justify-center relative cursor-pointer overflow-hidden"
                     onclick={() => product.inStock && selectProduct(product)}
                   >
-                    <div
-                      class="w-24 h-24 text-zinc-700 group-hover:text-zinc-500 transition-colors duration-300 flex items-center justify-center"
-                    >
-                      {#if product.title.includes("T-SHIRT")}
-                        <svg
-                          viewBox="0 0 24 24"
-                          class="w-16 h-16 fill-none stroke-current"
-                          stroke-width="1.5"
-                        >
-                          <path
-                            d="M4 8.5V20a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8.5M4 8.5L8 5m-4 3.5l-2-1.5L4 4m16 4.5l-4-3.5m4 3.5l2-1.5L20 4M8 5a4 4 0 0 1 8 0"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                          />
-                        </svg>
-                      {:else if product.title.includes("HOODIE")}
-                        <svg
-                          viewBox="0 0 24 24"
-                          class="w-16 h-16 fill-none stroke-current"
-                          stroke-width="1.5"
-                        >
-                          <path
-                            d="M5 9v11a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9m-14 0l3-5m11 5l-3-5m-8 0h6m-3 0v4m0 0a2 2 0 1 0 0 4 2 2 0 1 0 0-4"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                          />
-                        </svg>
-                      {:else if product.title.includes("HAT")}
-                        <svg
-                          viewBox="0 0 24 24"
-                          class="w-16 h-16 fill-none stroke-current"
-                          stroke-width="1.5"
-                        >
-                          <path
-                            d="M2 17h20M6 17v-4a6 6 0 0 1 12 0v4M12 7V4m0 0l-2 1m2-1l2 1"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                          />
-                        </svg>
-                      {:else}
-                        <svg
-                          viewBox="0 0 24 24"
-                          class="w-16 h-16 fill-none stroke-current"
-                          stroke-width="1.5"
-                        >
-                          <path
-                            d="M7 4h10v12a4 4 0 0 1-8 0V4zM7 8h10M9 16h6"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                          />
-                        </svg>
-                      {/if}
-                    </div>
-                    <span
-                      class="absolute bottom-3 text-[10px] text-zinc-500 font-bold tracking-widest"
-                      >WEAREDOGS LABS</span
-                    >
+                    {#if product.image && product.image.startsWith("http")}
+                      <img
+                        src={product.image}
+                        alt={product.title}
+                        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    {:else}
+                      <div
+                        class="w-24 h-24 text-zinc-700 group-hover:text-zinc-500 transition-colors duration-300 flex items-center justify-center"
+                      >
+                        {#if product.title.includes("FIGHT") || product.title.includes("CEO")}
+                          <span class="text-5xl select-none">🥊</span>
+                        {:else if product.title.includes("T-SHIRT")}
+                          <svg
+                            viewBox="0 0 24 24"
+                            class="w-16 h-16 fill-none stroke-current"
+                            stroke-width="1.5"
+                          >
+                            <path
+                              d="M4 8.5V20a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8.5M4 8.5L8 5m-4 3.5l-2-1.5L4 4m16 4.5l-4-3.5m4 3.5l2-1.5L20 4M8 5a4 4 0 0 1 8 0"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            />
+                          </svg>
+                        {:else if product.title.includes("HOODIE")}
+                          <svg
+                            viewBox="0 0 24 24"
+                            class="w-16 h-16 fill-none stroke-current"
+                            stroke-width="1.5"
+                          >
+                            <path
+                              d="M5 9v11a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9m-14 0l3-5m11 5l-3-5m-8 0h6m-3 0v4m0 0a2 2 0 1 0 0 4 2 2 0 1 0 0-4"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            />
+                          </svg>
+                        {:else if product.title.includes("HAT")}
+                          <svg
+                            viewBox="0 0 24 24"
+                            class="w-16 h-16 fill-none stroke-current"
+                            stroke-width="1.5"
+                          >
+                            <path
+                              d="M2 17h20M6 17v-4a6 6 0 0 1 12 0v4M12 7V4m0 0l-2 1m2-1l2 1"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            />
+                          </svg>
+                        {:else}
+                          <svg
+                            viewBox="0 0 24 24"
+                            class="w-16 h-16 fill-none stroke-current"
+                            stroke-width="1.5"
+                          >
+                            <path
+                              d="M7 4h10v12a4 4 0 0 1-8 0V4zM7 8h10M9 16h6"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            />
+                          </svg>
+                        {/if}
+                      </div>
+                    {/if}
                   </div>
 
                   <!-- Product Details -->
@@ -676,92 +1130,113 @@
           {:else}
             <!-- DETAIL VIEW -->
             <div
-              class="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-start animate-fade-in"
+              class="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-stretch"
+              in:conditionalGlitchIn
+              out:conditionalGlitchOut
             >
-              <!-- Left: 3D Shirt Canvas -->
+              <!-- Left: Product Picture Slideshow -->
               <div
-                class="w-full aspect-square bg-black/40 border border-zinc-800 rounded-2xl flex items-center justify-center p-4 relative overflow-hidden mx-auto h-auto min-h-[250px] max-h-[300px] sm:min-h-0 sm:max-h-[280px] md:max-h-[340px] lg:max-h-[360px] xl:max-h-[380px] 2xl:max-h-[480px] sm:sticky sm:top-4 md:top-6 lg:top-8"
+                class="w-full bg-black/40 border border-zinc-800 rounded-2xl flex flex-col items-center justify-between p-3 relative overflow-hidden mx-auto h-full max-h-[380px] lg:max-h-[460px] xl:max-h-[500px]"
               >
-                <ThreeDShirtCanvas productTitle={selectedProduct.title} />
+                <ProductImageSlideshow
+                  images={selectedProduct.images ||
+                    (selectedProduct.image ? [selectedProduct.image] : [])}
+                  productTitle={selectedProduct.title}
+                />
               </div>
 
               <!-- Right: Details -->
               <div
-                class="flex flex-col justify-between h-full bg-zinc-900/20 border border-zinc-800/60 p-4 sm:p-5 lg:p-6 rounded-2xl"
+                class="flex flex-col min-h-0 h-full bg-zinc-900/20 border border-zinc-800/60 p-4 sm:p-5 rounded-2xl max-h-[380px] lg:max-h-[460px] xl:max-h-[500px] overflow-hidden"
               >
-                <div>
-                  <div class="flex justify-between items-start gap-4">
-                    <h1
-                      class="text-xl sm:text-2xl lg:text-3xl font-extrabold tracking-wider"
+                <div class="flex justify-between items-start gap-3 shrink-0">
+                  <h1
+                    class="text-lg sm:text-xl lg:text-2xl font-extrabold tracking-wider"
+                  >
+                    {selectedProduct.title}
+                  </h1>
+                  <div class="flex items-center gap-2 shrink-0">
+                    <span
+                      class="text-base sm:text-lg lg:text-xl text-red-500 font-black"
+                      >{selectedProduct.price}</span
                     >
-                      {selectedProduct.title}
-                    </h1>
-                    <div class="flex items-center gap-2 shrink-0">
-                      <span
-                        class="text-lg sm:text-xl lg:text-2xl text-red-500 font-black"
-                        >{selectedProduct.price}</span
-                      >
-                      <button
-                        onclick={(e) =>
-                          handleShare("product", selectedProduct.id, e)}
-                        class="p-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-850 hover:border-zinc-700 rounded-lg text-zinc-400 hover:text-white transition-all cursor-pointer"
-                        title="Copy Share Link"
-                      >
-                        <Share2 size={16} />
-                      </button>
-                    </div>
-                  </div>
-
-                  <div class="mt-3 sm:mt-4 pb-4 border-b border-zinc-800/80">
-                    <p
-                      class="text-zinc-400 text-sm md:text-base leading-relaxed"
+                    <button
+                      onclick={(e) =>
+                        handleShare("product", selectedProduct.id, e)}
+                      class="p-1.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-850 hover:border-zinc-700 rounded-lg text-zinc-400 hover:text-white transition-all cursor-pointer"
+                      title="Copy Share Link"
                     >
-                      {selectedProduct.description}
-                    </p>
+                      <Share2 size={15} />
+                    </button>
                   </div>
-
-                  <!-- Size selector -->
-                  {#if selectedProduct.sizes && selectedProduct.sizes.length > 0 && selectedProduct.sizes[0] !== "One Size"}
-                    <div class="mt-4 sm:mt-6">
-                      <span
-                        class="text-xs font-semibold text-zinc-500 uppercase tracking-widest block mb-2"
-                        >SELECT SIZE</span
-                      >
-                      <div class="flex flex-wrap gap-2">
-                        {#each selectedProduct.sizes as size}
-                          <button
-                            class="px-3 py-1.5 border border-zinc-800 rounded text-xs font-bold hover:border-zinc-500 transition-all duration-200 cursor-pointer"
-                            class:active-size={selectedSize === size}
-                            onclick={() => (selectedSize = size)}
-                          >
-                            {size}
-                          </button>
-                        {/each}
-                      </div>
-                    </div>
-                  {:else}
-                    <div class="mt-4 sm:mt-6">
-                      <span
-                        class="text-xs font-semibold text-zinc-500 uppercase tracking-widest block mb-1"
-                        >SIZE</span
-                      >
-                      <span class="text-sm font-bold text-zinc-400"
-                        >ONE SIZE</span
-                      >
-                    </div>
-                  {/if}
                 </div>
 
+                <!-- Description: always full text, never clamped. Owns the
+                     panel's scroll so it can never be compacted away. -->
                 <div
-                  class="mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-zinc-800/80"
+                  class="flex-1 min-h-0 overflow-y-auto overscroll-contain custom-scrollbar mt-2 sm:mt-3 pb-3 pr-1 border-b border-zinc-800/80"
                 >
-                  <button
-                    class="w-full py-2.5 sm:py-3.5 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl text-sm tracking-widest transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-red-900/30 cursor-pointer"
-                    onclick={() =>
-                      window.open("https://cash.app/$cptnbrando", "_blank")}
+                  <p
+                    class="text-zinc-400 text-xs sm:text-sm leading-relaxed font-sans"
                   >
-                    <ShoppingCart size={18} /> ADD TO CART
-                  </button>
+                    {selectedProduct.description}
+                  </p>
+                </div>
+
+                <!-- Size selector -->
+                {#if selectedProduct.id === "fight-the-ceo" || (selectedProduct.checkoutUrl && (!selectedProduct.sizes || selectedProduct.sizes.length === 0))}
+                  <!-- No size selector for FIGHT THE CEO or direct Cash App checkout items -->
+                {:else if selectedProduct.sizes && selectedProduct.sizes.length > 0 && selectedProduct.sizes[0] !== "One Size"}
+                  <div class="mt-3 sm:mt-4 shrink-0">
+                    <span
+                      class="text-xs font-semibold text-zinc-500 uppercase tracking-widest block mb-2"
+                      >SELECT SIZE</span
+                    >
+                    <div class="flex flex-wrap gap-2">
+                      {#each selectedProduct.sizes as size}
+                        <button
+                          class="px-3 py-1.5 border border-zinc-800 rounded text-xs font-bold hover:border-zinc-500 transition-all duration-200 cursor-pointer"
+                          class:active-size={selectedSize === size}
+                          onclick={() => (selectedSize = size)}
+                        >
+                          {size}
+                        </button>
+                      {/each}
+                    </div>
+                  </div>
+                {:else}
+                  <div class="mt-3 sm:mt-4 shrink-0">
+                    <span
+                      class="text-xs font-semibold text-zinc-500 uppercase tracking-widest block mb-1"
+                      >SIZE</span
+                    >
+                    <span class="text-sm font-bold text-zinc-400">ONE SIZE</span
+                    >
+                  </div>
+                {/if}
+
+                <div
+                  class="mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-zinc-800/80 shrink-0"
+                >
+                  {#if selectedProduct.id === "fight-the-ceo" || selectedProduct.checkoutUrl}
+                    <a
+                      href={selectedProduct.checkoutUrl ||
+                        "https://cash.app/$cptnbrando"}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-black font-black rounded-xl text-xs sm:text-sm tracking-widest uppercase transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-emerald-900/30 cursor-pointer text-center"
+                    >
+                      🟢 PAY & CHALLENGE VIA CASH APP ($cptnbrando)
+                    </a>
+                  {:else}
+                    <button
+                      class="w-full py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl text-sm tracking-widest transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-red-900/30 cursor-pointer"
+                      onclick={() =>
+                        window.open("https://cash.app/$cptnbrando", "_blank")}
+                    >
+                      <ShoppingCart size={18} /> ADD TO CART
+                    </button>
+                  {/if}
                 </div>
               </div>
             </div>
@@ -813,9 +1288,35 @@
                             class="w-full h-full object-cover group-hover:scale-103 transition-transform duration-300"
                           />
                           <span
-                            class="absolute top-2 left-2 px-1.5 py-0.5 bg-emerald-600 text-white font-bold font-mono text-[9px] tracking-widest uppercase rounded"
+                            class="absolute top-2 left-2 px-1.5 py-0.5 bg-emerald-600 text-white font-bold font-mono text-[9px] tracking-widest uppercase rounded z-10"
                             >ACTIVE</span
                           >
+
+                          {#if campaign.endDate}
+                            {@const timer = getCountdown(campaign.endDate, now)}
+                            {#if timer}
+                              <div
+                                class="absolute top-2.5 right-2.5 px-2 py-1 bg-red-950/85 border border-red-500/80 text-white font-mono rounded-md shadow-lg shadow-red-950/70 backdrop-blur-md flex items-center gap-1.5 z-10 animate-pulse"
+                              >
+                                <span class="text-[10px] sm:text-xs">⏳</span>
+                                <span
+                                  class="font-extrabold text-[10px] sm:text-xs tracking-wider uppercase text-red-100"
+                                  >{timer.formattedDaysLeft}</span
+                                >
+                                <span
+                                  class="hidden md:inline text-[10px] text-zinc-300 font-semibold border-l border-red-500/40 pl-1.5"
+                                >
+                                  {String(timer.days).padStart(2, "0")}d {String(
+                                    timer.hours,
+                                  ).padStart(2, "0")}h {String(
+                                    timer.minutes,
+                                  ).padStart(2, "0")}m {String(
+                                    timer.seconds,
+                                  ).padStart(2, "0")}s
+                                </span>
+                              </div>
+                            {/if}
+                          {/if}
                         </div>
                         <h3
                           class="font-bold text-sm text-zinc-100 group-hover:text-white uppercase transition-colors"
@@ -827,84 +1328,101 @@
                         </p>
                       </div>
 
-                      <div class="mt-4 pt-3 border-t border-zinc-800/40">
-                        <div
-                          class="flex justify-between items-center text-[10px] font-mono text-zinc-400 mb-1.5"
-                        >
-                          <span>Progress: {progressVal}%</span>
-                          <span class="text-red-500 font-bold"
-                            >{campaign.raised} / {campaign.goal}</span
-                          >
-                        </div>
-                        <div
-                          class="w-full h-1.5 bg-zinc-950 border border-zinc-850 rounded-full overflow-hidden"
-                        >
+                      {#if campaign.id !== "save-texas-hemp"}
+                        <div class="mt-4 pt-3 border-t border-zinc-800/40">
                           <div
-                            class="h-full bg-red-500"
-                            style="width: {progressVal}%"
-                          ></div>
+                            class="flex justify-between items-center text-[10px] font-mono text-zinc-400 mb-1.5"
+                          >
+                            <span>
+                              {#if campaign.id === "sidewalk-chalk-defense" || campaign.id === "browser-age-api"}
+                                Signatures: {progressVal}%
+                              {:else}
+                                Progress: {progressVal}%
+                              {/if}
+                            </span>
+                            <span class="text-red-500 font-bold">
+                              {#if campaign.id === "sidewalk-chalk-defense" || campaign.id === "browser-age-api"}
+                                {campaign.raised.replace("$", "")} / {campaign.goal.replace(
+                                  "$",
+                                  "",
+                                )}
+                              {:else}
+                                {campaign.raised} / {campaign.goal}
+                              {/if}
+                            </span>
+                          </div>
+                          <div
+                            class="w-full h-1.5 bg-zinc-950 border border-zinc-850 rounded-full overflow-hidden"
+                          >
+                            <div
+                              class="h-full bg-red-500"
+                              style="width: {progressVal}%"
+                            ></div>
+                          </div>
                         </div>
-                      </div>
+                      {/if}
                     </div>
                   {/each}
                 </div>
               </div>
 
               <!-- Completed Campaigns Section -->
-              <div>
-                <h2
-                  class="text-sm font-bold text-zinc-500 tracking-widest uppercase mb-4 border-b border-zinc-850 pb-2"
-                >
-                  ✓ COMPLETED CAMPAIGNS
-                </h2>
-                <div
-                  class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 opacity-75 hover:opacity-100 transition-opacity duration-200"
-                >
-                  {#each campaigns.filter((c) => c.status === "completed") as campaign}
-                    <!-- svelte-ignore a11y_click_events_have_key_events -->
-                    <!-- svelte-ignore a11y_no_static_element_interactions -->
-                    <div
-                      class="bg-zinc-900/20 border border-zinc-900 hover:border-zinc-800 rounded-xl p-4 flex flex-col justify-between cursor-pointer transition-all duration-300 group"
-                      onclick={() => selectCampaign(campaign)}
-                    >
-                      <div>
-                        <div
-                          class="aspect-video w-full rounded-lg overflow-hidden bg-black/45 border border-zinc-900 mb-3 relative grayscale"
-                        >
-                          <img
-                            src={campaign.images[0]}
-                            alt={campaign.title}
-                            class="w-full h-full object-cover"
-                          />
-                          <span
-                            class="absolute top-2 left-2 px-1.5 py-0.5 bg-orange-600 text-white font-bold font-mono text-[9px] tracking-widest uppercase rounded"
-                            >COMPLETED</span
+              {#if campaigns.some((c) => c.status === "completed")}
+                <div>
+                  <h2
+                    class="text-sm font-bold text-zinc-500 tracking-widest uppercase mb-4 border-b border-zinc-850 pb-2"
+                  >
+                    ✓ COMPLETED CAMPAIGNS
+                  </h2>
+                  <div
+                    class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 opacity-75 hover:opacity-100 transition-opacity duration-200"
+                  >
+                    {#each campaigns.filter((c) => c.status === "completed") as campaign}
+                      <!-- svelte-ignore a11y_click_events_have_key_events -->
+                      <!-- svelte-ignore a11y_no_static_element_interactions -->
+                      <div
+                        class="bg-zinc-900/20 border border-zinc-900 hover:border-zinc-800 rounded-xl p-4 flex flex-col justify-between cursor-pointer transition-all duration-300 group"
+                        onclick={() => selectCampaign(campaign)}
+                      >
+                        <div>
+                          <div
+                            class="aspect-video w-full rounded-lg overflow-hidden bg-black/45 border border-zinc-900 mb-3 relative grayscale"
                           >
+                            <img
+                              src={campaign.images[0]}
+                              alt={campaign.title}
+                              class="w-full h-full object-cover"
+                            />
+                            <span
+                              class="absolute top-2 left-2 px-1.5 py-0.5 bg-orange-600 text-white font-bold font-mono text-[9px] tracking-widest uppercase rounded"
+                              >COMPLETED</span
+                            >
+                          </div>
+                          <h3
+                            class="font-bold text-sm text-zinc-400 group-hover:text-white uppercase transition-colors"
+                          >
+                            {campaign.title}
+                          </h3>
+                          <p class="text-xs text-zinc-650 line-clamp-2 mt-1.5">
+                            {campaign.description}
+                          </p>
                         </div>
-                        <h3
-                          class="font-bold text-sm text-zinc-400 group-hover:text-white uppercase transition-colors"
-                        >
-                          {campaign.title}
-                        </h3>
-                        <p class="text-xs text-zinc-650 line-clamp-2 mt-1.5">
-                          {campaign.description}
-                        </p>
-                      </div>
 
-                      <div class="mt-4 pt-3 border-t border-zinc-900">
-                        <div
-                          class="flex justify-between items-center text-[10px] font-mono text-zinc-500"
-                        >
-                          <span>Funded: 100%+</span>
-                          <span class="text-emerald-500 font-bold"
-                            >{campaign.raised} raised</span
+                        <div class="mt-4 pt-3 border-t border-zinc-900">
+                          <div
+                            class="flex justify-between items-center text-[10px] font-mono text-zinc-500"
                           >
+                            <span>Funded: 100%+</span>
+                            <span class="text-emerald-500 font-bold"
+                              >{campaign.raised} raised</span
+                            >
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  {/each}
+                    {/each}
+                  </div>
                 </div>
-              </div>
+              {/if}
             </div>
           {:else}
             {@const raisedNum = parseFloat(
@@ -927,7 +1445,7 @@
               >
                 <!-- Big Image Showcase -->
                 <div
-                  class="relative w-full aspect-video bg-black/40 border border-zinc-800 rounded-2xl overflow-hidden shadow-lg group max-h-[200px] sm:max-h-[260px] md:max-h-[320px] lg:max-h-[360px] xl:max-h-[400px] touch-pan-y"
+                  class="relative w-full aspect-video bg-black/40 border border-zinc-800 rounded-2xl overflow-hidden shadow-lg group max-h-[280px] sm:max-h-[320px] md:max-h-[360px] lg:max-h-[420px] xl:max-h-[460px] touch-pan-y"
                   ontouchstart={handleTouchStart}
                   ontouchend={handleTouchEnd}
                   role="region"
@@ -939,12 +1457,18 @@
                         {#if isVideoPlaying}
                           {#if currentMediaItem.url.includes("youtube.com") || currentMediaItem.url.includes("youtu.be")}
                             <iframe
-                              in:slideIn={{ duration: 300, direction: scrollDirection }}
+                              in:slideIn={{
+                                duration: 300,
+                                direction: scrollDirection,
+                              }}
                               out:slideOut={{
                                 duration: 300,
                                 direction: scrollDirection,
                               }}
-                              src={currentMediaItem.url + (currentMediaItem.url.includes("?") ? "&autoplay=1" : "?autoplay=1")}
+                              src={currentMediaItem.url +
+                                (currentMediaItem.url.includes("?")
+                                  ? "&autoplay=1"
+                                  : "?autoplay=1")}
                               title="Fundraiser video player"
                               class="absolute inset-0 w-full h-full"
                               style="border: none;"
@@ -954,7 +1478,10 @@
                             ></iframe>
                           {:else}
                             <video
-                              in:slideIn={{ duration: 300, direction: scrollDirection }}
+                              in:slideIn={{
+                                duration: 300,
+                                direction: scrollDirection,
+                              }}
                               out:slideOut={{
                                 duration: 300,
                                 direction: scrollDirection,
@@ -971,38 +1498,81 @@
                         {:else}
                           <!-- svelte-ignore a11y_click_events_have_key_events -->
                           <!-- svelte-ignore a11y_no_static_element_interactions -->
-                          <div 
-                            class="absolute inset-0 w-full h-full cursor-pointer" 
-                            onclick={() => isVideoPlaying = true}
+                          <div
+                            class="absolute inset-0 w-full h-full cursor-pointer overflow-hidden flex items-center justify-center bg-black/80"
+                            onclick={() => (isVideoPlaying = true)}
                           >
                             <img
-                              in:slideIn={{ duration: 300, direction: scrollDirection }}
+                              src={currentMediaItem.thumbnail ||
+                                (selectedCampaign.images &&
+                                  selectedCampaign.images[0])}
+                              alt=""
+                              class="absolute inset-0 w-full h-full object-cover blur-2xl opacity-30 scale-125 pointer-events-none"
+                            />
+                            <img
+                              in:slideIn={{
+                                duration: 300,
+                                direction: scrollDirection,
+                              }}
                               out:slideOut={{
                                 duration: 300,
                                 direction: scrollDirection,
                               }}
-                              src={currentMediaItem.thumbnail || (selectedCampaign.images && selectedCampaign.images[0])}
+                              src={currentMediaItem.thumbnail ||
+                                (selectedCampaign.images &&
+                                  selectedCampaign.images[0])}
                               alt={selectedCampaign.title}
-                              class="absolute inset-0 w-full h-full object-cover"
+                              class="relative w-full h-full object-contain z-10 p-0.5"
                             />
-                            <div class="absolute inset-0 flex items-center justify-center bg-black/35 hover:bg-black/45 transition-colors duration-200">
-                              <div class="w-16 h-16 rounded-full bg-black/70 hover:bg-red-600 border border-white/10 flex items-center justify-center transition-all duration-300 shadow-2xl scale-95 hover:scale-105">
-                                <span class="text-white text-2xl ml-1 select-none">▶</span>
+                            <div
+                              class="absolute inset-0 flex items-center justify-center bg-black/35 hover:bg-black/45 transition-colors duration-200"
+                            >
+                              <div
+                                class="w-16 h-16 rounded-full bg-black/70 hover:bg-red-600 border border-white/10 flex items-center justify-center transition-all duration-300 shadow-2xl scale-95 hover:scale-105"
+                              >
+                                <span
+                                  class="text-white text-2xl ml-1 select-none"
+                                  >▶</span
+                                >
                               </div>
                             </div>
                           </div>
                         {/if}
                       {:else}
-                        <img
-                          in:slideIn={{ duration: 300, direction: scrollDirection }}
-                          out:slideOut={{
-                            duration: 300,
-                            direction: scrollDirection,
-                          }}
-                          src={currentMediaItem.url}
-                          alt={selectedCampaign.title}
-                          class="absolute inset-0 w-full h-full object-cover"
-                        />
+                        <button
+                          type="button"
+                          aria-label="Expand image fullscreen"
+                          class="absolute inset-0 w-full h-full flex items-center justify-center bg-black/80 overflow-hidden cursor-zoom-in group/img border-none p-0 appearance-none bg-transparent"
+                          onclick={() => (isImageFullscreen = true)}
+                        >
+                          <img
+                            src={currentMediaItem.url}
+                            alt=""
+                            class="absolute inset-0 w-full h-full object-cover blur-2xl opacity-30 scale-125 pointer-events-none"
+                          />
+                          <img
+                            in:slideIn={{
+                              duration: 300,
+                              direction: scrollDirection,
+                            }}
+                            out:slideOut={{
+                              duration: 300,
+                              direction: scrollDirection,
+                            }}
+                            src={currentMediaItem.url}
+                            alt={selectedCampaign.title}
+                            class="relative w-full h-full object-contain z-10 p-0.5"
+                          />
+                          <div
+                            class="absolute bottom-2.5 right-2.5 px-2 py-1 bg-black/75 border border-zinc-700/80 rounded-md text-white text-[10px] font-mono font-bold flex items-center gap-1.5 opacity-80 group-hover/img:opacity-100 transition-opacity z-20 pointer-events-none shadow-md backdrop-blur-sm"
+                          >
+                            <Maximize2 size={12} class="text-zinc-300" />
+                            <span
+                              class="hidden sm:inline uppercase tracking-wider text-[9px]"
+                              >Tap to expand</span
+                            >
+                          </div>
+                        </button>
                       {/if}
                     {/if}
                   {/key}
@@ -1063,20 +1633,27 @@
                       class:border-red-500={activeImageIdx === idx}
                       class:border-zinc-800={activeImageIdx !== idx}
                     >
-                      {#if mediaItem.type === 'video'}
+                      {#if mediaItem.type === "video"}
                         <img
                           src={mediaItem.thumbnail || mediaItem.url}
                           alt="Video Thumbnail"
                           class="w-full h-full object-cover opacity-80"
                         />
-                        <div class="absolute inset-0 flex items-center justify-center bg-black/40">
+                        <div
+                          class="absolute inset-0 flex items-center justify-center bg-black/40"
+                        >
                           <span class="text-white text-xs select-none">▶</span>
                         </div>
                       {:else}
                         <img
                           src={mediaItem.url}
+                          alt=""
+                          class="absolute inset-0 w-full h-full object-cover blur-md opacity-30 pointer-events-none"
+                        />
+                        <img
+                          src={mediaItem.url}
                           alt="Thumbnail"
-                          class="w-full h-full object-cover"
+                          class="relative w-full h-full object-contain z-10 p-0.5"
                         />
                       {/if}
                     </div>
@@ -1122,17 +1699,85 @@
                     </button>
                   </div>
 
-                  {#if selectedCampaign.id === 'justice-for-rusty'}
+                  {#if selectedCampaign.endDate}
+                    {@const timer = getCountdown(selectedCampaign.endDate, now)}
+                    {#if timer}
+                      <div
+                        class="mt-3 p-2.5 sm:p-3 rounded-xl bg-gradient-to-r from-red-950/80 via-zinc-900/90 to-red-950/80 border border-red-500/50 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 shadow-lg shadow-red-950/30 shrink-0"
+                      >
+                        <div class="flex items-center gap-2 min-w-0">
+                          <span
+                            class="text-sm sm:text-base animate-pulse shrink-0"
+                            >⏳</span
+                          >
+                          <div class="flex flex-col min-w-0">
+                            <span
+                              class="text-[9px] font-mono uppercase tracking-widest text-red-400 font-extrabold truncate"
+                            >
+                              JULY 31ST BAN DECISION
+                            </span>
+                            <span
+                              class="text-xs sm:text-sm font-black text-white uppercase tracking-wider truncate"
+                            >
+                              {#if timer.isZero}
+                                DECISION DAY IS HERE — 0 DAYS LEFT!
+                              {:else}
+                                ONLY {timer.formattedDaysLeft}!
+                              {/if}
+                            </span>
+                          </div>
+                        </div>
+
+                        <!-- Compact Ticking Digital Clock -->
+                        <div
+                          class="flex items-center gap-1 font-mono text-xs font-bold text-white bg-black/85 px-2.5 py-1 rounded-lg border border-red-500/40 shrink-0 shadow-inner"
+                        >
+                          <span class="text-white"
+                            >{String(timer.days).padStart(2, "0")}d</span
+                          >
+                          <span
+                            class="text-red-500 font-extrabold text-[10px] animate-pulse"
+                            >:</span
+                          >
+                          <span class="text-white"
+                            >{String(timer.hours).padStart(2, "0")}h</span
+                          >
+                          <span
+                            class="text-red-500 font-extrabold text-[10px] animate-pulse"
+                            >:</span
+                          >
+                          <span class="text-white"
+                            >{String(timer.minutes).padStart(2, "0")}m</span
+                          >
+                          <span
+                            class="text-red-500 font-extrabold text-[10px] animate-pulse"
+                            >:</span
+                          >
+                          <span class="text-red-400 font-black animate-pulse"
+                            >{String(timer.seconds).padStart(2, "0")}s</span
+                          >
+                        </div>
+                      </div>
+                    {/if}
+                  {/if}
+
+                  {#if selectedCampaign.id === "justice-for-rusty"}
                     <!-- Full scroll bio, no max-height scrollbar constraint -->
-                    <div class="mt-3 sm:mt-4 pb-4 flex flex-col gap-4 selectable-bio">
+                    <div
+                      class="mt-3 sm:mt-4 pb-4 flex flex-col gap-4 selectable-bio"
+                    >
                       {#if campaignBioText}
                         {#each formatBioText(campaignBioText) as paragraph}
-                          <p class="text-zinc-400 text-sm leading-relaxed font-sans">
+                          <p
+                            class="text-zinc-400 text-sm leading-relaxed font-sans"
+                          >
                             {@html paragraph}
                           </p>
                         {/each}
                       {:else}
-                        <p class="text-zinc-400 text-sm leading-relaxed font-sans">
+                        <p
+                          class="text-zinc-400 text-sm leading-relaxed font-sans"
+                        >
                           {selectedCampaign.description}
                         </p>
                       {/if}
@@ -1140,7 +1785,7 @@
 
                     <hr class="border-zinc-850 my-2" />
 
-                    <!-- GoFundMe & CashApp buttons immediately underneath -->
+                    <!-- Donation & Social Link Buttons -->
                     {#if selectedCampaign.goFundMeUrl}
                       <div class="mb-3 mt-3">
                         <a
@@ -1154,29 +1799,85 @@
                       </div>
                     {/if}
 
+                    {#if selectedCampaign.venmoUrl}
+                      <div class="mb-3">
+                        <a
+                          href={selectedCampaign.venmoUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="w-full py-3.5 bg-[#008CFF] hover:bg-[#0074D9] text-white font-black rounded-xl text-xs tracking-widest transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-blue-900/20 cursor-pointer text-center"
+                        >
+                          💙 SECURE DONATE VIA VENMO (@{selectedCampaign.venmoUrl.substring(
+                            selectedCampaign.venmoUrl.lastIndexOf("/") + 1,
+                          )})
+                        </a>
+                      </div>
+                    {/if}
+
                     {#if selectedCampaign.cashAppUrl}
-                      <div class="mb-4">
+                      <div class="mb-3">
                         <a
                           href={selectedCampaign.cashAppUrl}
                           target="_blank"
                           rel="noopener noreferrer"
                           class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-black font-black rounded-xl text-xs tracking-widest transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-emerald-900/25 cursor-pointer text-center"
                         >
-                          🟢 SECURE DONATE VIA CASH APP ({selectedCampaign.cashAppUrl.substring(selectedCampaign.cashAppUrl.lastIndexOf('/') + 1)})
+                          🟢 SECURE DONATE VIA CASH APP ({selectedCampaign.cashAppUrl.substring(
+                            selectedCampaign.cashAppUrl.lastIndexOf("/") + 1,
+                          )})
+                        </a>
+                      </div>
+                    {/if}
+
+                    {#if selectedCampaign.petitionUrl}
+                      <div class="mb-3">
+                        <a
+                          href={selectedCampaign.petitionUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="w-full py-3.5 bg-[#EC2C22] hover:bg-[#D61E15] text-white font-black rounded-xl text-xs tracking-widest transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-red-900/20 cursor-pointer text-center"
+                        >
+                          ✍️ SIGN THE CHANGE.ORG PETITION
+                        </a>
+                      </div>
+                    {/if}
+
+                    {#if selectedCampaign.instagramUrl}
+                      <div class="mb-4">
+                        <a
+                          href={selectedCampaign.instagramUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="w-full py-3.5 bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F56040] hover:opacity-95 text-white font-black rounded-xl text-xs tracking-widest transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-pink-900/20 cursor-pointer text-center"
+                        >
+                          📸 FOLLOW ON INSTAGRAM (@{selectedCampaign.instagramUrl
+                            .replace(/\/$/, "")
+                            .substring(
+                              selectedCampaign.instagramUrl
+                                .replace(/\/$/, "")
+                                .lastIndexOf("/") + 1,
+                            )})
                         </a>
                       </div>
                     {/if}
                   {:else}
                     <!-- Legacy/Standard layout for other campaigns with milestones/progress -->
-                    <div class="mt-3 sm:mt-4 pb-4 flex flex-col gap-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar selectable-bio">
+                    <!-- Full bio, no max-height constraint: the panel scrolls, the text never compacts -->
+                    <div
+                      class="mt-3 sm:mt-4 pb-4 flex flex-col gap-4 selectable-bio"
+                    >
                       {#if campaignBioText}
                         {#each formatBioText(campaignBioText) as paragraph}
-                          <p class="text-zinc-400 text-sm leading-relaxed font-sans">
+                          <p
+                            class="text-zinc-400 text-sm leading-relaxed font-sans"
+                          >
                             {@html paragraph}
                           </p>
                         {/each}
                       {:else}
-                        <p class="text-zinc-400 text-sm leading-relaxed font-sans">
+                        <p
+                          class="text-zinc-400 text-sm leading-relaxed font-sans"
+                        >
                           {selectedCampaign.description}
                         </p>
                       {/if}
@@ -1185,25 +1886,264 @@
                     <hr class="border-zinc-850 my-2" />
 
                     <div class="milestones-section mt-3 sm:mt-4">
-                      <div
-                        class="flex justify-between items-center mb-2 font-bold font-mono text-xs"
-                      >
-                        <span class="text-zinc-500 uppercase tracking-widest"
-                          >FUNDING PERCENTAGE</span
-                        >
-                        <span class="text-red-500 text-sm"
-                          >{selectedCampaign.raised} / {selectedCampaign.goal} ({progressPct}%)</span
-                        >
-                      </div>
-
-                      <div
-                        class="w-full h-3 bg-zinc-950 border border-zinc-800 rounded-full overflow-hidden relative mb-4"
-                      >
+                      {#if selectedCampaign.id !== "save-texas-hemp"}
                         <div
-                          class="h-full bg-gradient-to-r from-red-600 to-red-400 rounded-full"
-                          style="width: {progressPct}%"
-                        ></div>
-                      </div>
+                          class="flex justify-between items-center mb-2 font-bold font-mono text-xs"
+                        >
+                          <span class="text-zinc-500 uppercase tracking-widest">
+                            {#if selectedCampaign.id === "sidewalk-chalk-defense" || selectedCampaign.id === "browser-age-api"}
+                              PETITION SIGNATURES
+                            {:else}
+                              FUNDING PERCENTAGE
+                            {/if}
+                          </span>
+                          <span class="text-red-500 text-sm">
+                            {#if selectedCampaign.id === "sidewalk-chalk-defense" || selectedCampaign.id === "browser-age-api"}
+                              {selectedCampaign.raised.replace("$", "")} / {selectedCampaign.goal.replace(
+                                "$",
+                                "",
+                              )} Signatures ({progressPct}%)
+                            {:else}
+                              {selectedCampaign.raised} / {selectedCampaign.goal}
+                              ({progressPct}%)
+                            {/if}
+                          </span>
+                        </div>
+
+                        <div
+                          class="w-full h-3 bg-zinc-950 border border-zinc-800 rounded-full overflow-hidden relative mb-4"
+                        >
+                          <div
+                            class="h-full bg-gradient-to-r from-red-600 to-red-400 rounded-full"
+                            style="width: {progressPct}%"
+                          ></div>
+                        </div>
+                      {/if}
+
+                      <!-- Representative Contact Tool (if available) -->
+                      {#if selectedCampaign.contactReps}
+                        <div class="mb-4 flex flex-col gap-2.5">
+                          <!-- BLAST 'EM / SEND MAIL Primary Action Button -->
+                          {#if !showSortMailPanel}
+                            <button
+                              onclick={() =>
+                                handleBlastEm(selectedCampaign.contactReps)}
+                              class="w-full py-4 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-black font-black rounded-xl text-xs sm:text-sm tracking-widest uppercase transition-all duration-200 flex items-center justify-center gap-2 shadow-xl shadow-emerald-950/40 hover:scale-[1.01] active:scale-[0.99] cursor-pointer text-center"
+                            >
+                              💌 SEND PETITION EMAIL (CONTACT ALL)
+                            </button>
+                          {:else}
+                            <button
+                              onclick={() =>
+                                handleEmailSelected(
+                                  selectedCampaign.contactReps,
+                                )}
+                              disabled={selectedReps.length === 0}
+                              class="w-full py-3 px-4 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-black font-black rounded-xl text-xs sm:text-sm tracking-widest uppercase transition-all duration-200 flex flex-col items-center justify-center gap-0.5 shadow-xl shadow-emerald-950/40 hover:scale-[1.01] active:scale-[0.99] cursor-pointer text-center disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              <span class="flex items-center gap-1.5">
+                                💌
+                                {#if selectedCampaign.id === "browser-age-api"}
+                                  SEND PETITION ({selectedReps.length})
+                                {:else}
+                                  SEND MAIL ({selectedReps.length})
+                                {/if}
+                              </span>
+                              <span
+                                class="text-[10px] font-mono text-zinc-950/80 font-semibold normal-case tracking-normal truncate max-w-full px-2"
+                              >
+                                {selectedReps.length > 0
+                                  ? selectedReps.join(", ")
+                                  : "No emails selected"}
+                              </span>
+                            </button>
+                          {/if}
+
+                          <!-- Secondary Tool Buttons -->
+                          <div class="flex gap-2">
+                            <button
+                              onclick={() =>
+                                (showSortMailPanel = !showSortMailPanel)}
+                              class="flex-1 py-2.5 px-3 bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-emerald-400 hover:text-emerald-300 font-bold rounded-xl text-[11px] tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow"
+                            >
+                              {#if selectedCampaign.id === "browser-age-api"}
+                                📬 SELECT RECIPIENTS {showSortMailPanel
+                                  ? "▲"
+                                  : "▼"}
+                              {:else}
+                                📬 SORT THE MAIL FOR 'EM {showSortMailPanel
+                                  ? "▲"
+                                  : "▼"}
+                              {/if}
+                            </button>
+                            <button
+                              onclick={() =>
+                                handleCopyRepsEmails(
+                                  selectedCampaign.contactReps.emails,
+                                )}
+                              class="py-2.5 px-3 bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-300 hover:text-white font-bold rounded-xl text-[11px] tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow"
+                              title="Copy all email addresses"
+                            >
+                              📋 COPY ALL
+                            </button>
+                          </div>
+
+                          <!-- SORT THE MAIL Interactive Selection Dropdown Panel -->
+                          {#if showSortMailPanel}
+                            <div
+                              transition:fade={{ duration: 150 }}
+                              class="p-3.5 bg-zinc-950/95 border border-zinc-800 rounded-xl flex flex-col gap-3 shadow-2xl animate-fade-in"
+                            >
+                              <!-- Geolocation & Region Selector -->
+                              <div
+                                class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pb-2.5 border-b border-zinc-850"
+                              >
+                                <button
+                                  onclick={() =>
+                                    handleUseLocation(
+                                      selectedCampaign.contactReps.emails,
+                                    )}
+                                  disabled={isLocating}
+                                  class="py-2 px-3 bg-emerald-950/60 hover:bg-emerald-900/60 border border-emerald-500/40 text-emerald-300 font-mono text-[11px] font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                                >
+                                  📍 {isLocating
+                                    ? "LOCATING..."
+                                    : "USE LOCATION (AUTO-SELECT CLOSEST)"}
+                                </button>
+
+                                <div
+                                  class="flex items-center gap-2 text-[10px] font-mono text-zinc-400 self-end sm:self-auto"
+                                >
+                                  <button
+                                    onclick={() =>
+                                      handleSelectAllReps(
+                                        selectedCampaign.contactReps.emails,
+                                      )}
+                                    class="text-emerald-400 hover:underline cursor-pointer"
+                                  >
+                                    Select All
+                                  </button>
+                                  <span>•</span>
+                                  <button
+                                    onclick={handleDeselectAllReps}
+                                    class="text-zinc-500 hover:text-zinc-300 hover:underline cursor-pointer"
+                                  >
+                                    Deselect All
+                                  </button>
+                                </div>
+                              </div>
+
+                              {#if locationStatusText}
+                                <div
+                                  class="text-[10px] font-mono text-emerald-400 bg-emerald-950/30 p-2 rounded border border-emerald-500/20"
+                                >
+                                  {locationStatusText}
+                                </div>
+                              {/if}
+
+                              <!-- Checked Counter & List -->
+                              <div
+                                class="text-[10px] font-mono text-zinc-400 font-bold uppercase tracking-wider flex justify-between items-center"
+                              >
+                                <span>SELECT SPECIFIC REPRESENTATIVES:</span>
+                                <span class="text-emerald-400"
+                                  >{selectedReps.length} / {selectedCampaign
+                                    .contactReps.emails.length} Selected</span
+                                >
+                              </div>
+
+                              <div
+                                class="max-h-44 overflow-y-auto custom-scrollbar flex flex-col gap-1.5 pr-1"
+                              >
+                                {#each selectedCampaign.contactReps.emails as email}
+                                  {@const meta = getRepInfo(email)}
+                                  {@const isChecked =
+                                    selectedReps.includes(email)}
+                                  <!-- svelte-ignore a11y_click_events_have_key_events -->
+                                  <!-- svelte-ignore a11y_no_static_element_interactions -->
+                                  <div
+                                    onclick={() => handleToggleRep(email)}
+                                    class="flex items-center gap-2.5 p-2 rounded-lg border transition-all cursor-pointer select-none text-[11px] {isChecked
+                                      ? 'bg-emerald-950/30 border-emerald-500/40 text-zinc-100'
+                                      : 'bg-zinc-900/40 border-zinc-850 text-zinc-400'}"
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={isChecked}
+                                      onchange={() => handleToggleRep(email)}
+                                      class="accent-emerald-500 w-3.5 h-3.5 cursor-pointer"
+                                    />
+                                    <div class="flex-1 min-w-0 flex flex-col">
+                                      <div
+                                        class="font-bold flex items-center justify-between gap-1"
+                                      >
+                                        <span class="truncate">{meta.name}</span
+                                        >
+                                        <span
+                                          class="text-[9px] font-mono text-zinc-500 shrink-0"
+                                          >{meta.region}</span
+                                        >
+                                      </div>
+                                      <div
+                                        class="text-[10px] font-mono text-zinc-500 truncate"
+                                      >
+                                        {email}
+                                      </div>
+                                    </div>
+                                  </div>
+                                {/each}
+                              </div>
+
+                              <!-- Action for Selected -->
+                              <div
+                                class="pt-2 border-t border-zinc-850 flex gap-2"
+                              >
+                                <button
+                                  onclick={() =>
+                                    handleEmailSelected(
+                                      selectedCampaign.contactReps,
+                                    )}
+                                  disabled={selectedReps.length === 0}
+                                  class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-black font-black rounded-lg text-xs tracking-wider transition-all duration-200 flex items-center justify-center gap-1.5 shadow cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                                >
+                                  📩 EMAIL SELECTED REPS ({selectedReps.length})
+                                </button>
+                                <button
+                                  onclick={() =>
+                                    handleCopyRepsEmails(selectedReps)}
+                                  disabled={selectedReps.length === 0}
+                                  class="px-3 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-bold rounded-lg text-[11px] transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                                >
+                                  📋 COPY
+                                </button>
+                              </div>
+                            </div>
+                          {/if}
+                        </div>
+                      {/if}
+
+                      <!-- Donations Status / Pending Notice -->
+                      {#if selectedCampaign.donationsStatus === "coming_soon"}
+                        <div
+                          class="mb-4 p-3.5 bg-amber-950/30 border border-amber-500/40 rounded-xl text-amber-300 font-mono text-xs flex flex-col gap-1.5 shadow-lg"
+                        >
+                          <div
+                            class="flex items-center gap-2 font-bold text-amber-400"
+                          >
+                            <span class="text-base">💳</span> DONATIONS CURRENTLY
+                            INACTIVE
+                          </div>
+                          <p
+                            class="text-[11px] text-amber-200/80 leading-relaxed font-sans"
+                          >
+                            Stripe payment gateway integration is currently
+                            being configured for this campaign. Direct financial
+                            contributions are not active yet. In the meantime,
+                            please use the button above to email Texas lawmakers
+                            directly!
+                          </p>
+                        </div>
+                      {/if}
 
                       <!-- GoFundMe Link button (if exists) -->
                       {#if selectedCampaign.goFundMeUrl}
@@ -1219,16 +2159,65 @@
                         </div>
                       {/if}
 
+                      {#if selectedCampaign.venmoUrl}
+                        <div class="mb-3">
+                          <a
+                            href={selectedCampaign.venmoUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="w-full py-3.5 bg-[#008CFF] hover:bg-[#0074D9] text-white font-black rounded-xl text-xs tracking-widest transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-blue-900/20 cursor-pointer text-center"
+                          >
+                            💙 SECURE DONATE VIA VENMO (@{selectedCampaign.venmoUrl.substring(
+                              selectedCampaign.venmoUrl.lastIndexOf("/") + 1,
+                            )})
+                          </a>
+                        </div>
+                      {/if}
+
                       <!-- Cash App Link button -->
                       {#if selectedCampaign.cashAppUrl}
-                        <div class="mb-4">
+                        <div class="mb-3">
                           <a
                             href={selectedCampaign.cashAppUrl}
                             target="_blank"
                             rel="noopener noreferrer"
                             class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-black font-black rounded-xl text-xs tracking-widest transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-emerald-900/25 cursor-pointer text-center"
                           >
-                            🟢 SECURE DONATE VIA CASH APP ({selectedCampaign.cashAppUrl.substring(selectedCampaign.cashAppUrl.lastIndexOf('/') + 1)})
+                            🟢 SECURE DONATE VIA CASH APP ({selectedCampaign.cashAppUrl.substring(
+                              selectedCampaign.cashAppUrl.lastIndexOf("/") + 1,
+                            )})
+                          </a>
+                        </div>
+                      {/if}
+
+                      {#if selectedCampaign.petitionUrl}
+                        <div class="mb-3">
+                          <a
+                            href={selectedCampaign.petitionUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="w-full py-3.5 bg-[#EC2C22] hover:bg-[#D61E15] text-white font-black rounded-xl text-xs tracking-widest transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-red-900/20 cursor-pointer text-center"
+                          >
+                            ✍️ SIGN THE CHANGE.ORG PETITION
+                          </a>
+                        </div>
+                      {/if}
+
+                      {#if selectedCampaign.instagramUrl}
+                        <div class="mb-4">
+                          <a
+                            href={selectedCampaign.instagramUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="w-full py-3.5 bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F56040] hover:opacity-95 text-white font-black rounded-xl text-xs tracking-widest transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-pink-900/20 cursor-pointer text-center"
+                          >
+                            📸 FOLLOW ON INSTAGRAM (@{selectedCampaign.instagramUrl
+                              .replace(/\/$/, "")
+                              .substring(
+                                selectedCampaign.instagramUrl
+                                  .replace(/\/$/, "")
+                                  .lastIndexOf("/") + 1,
+                              )})
                           </a>
                         </div>
                       {/if}
@@ -1417,6 +2406,95 @@
         class="absolute bottom-6 left-1/2 -translate-x-1/2 bg-zinc-950/90 text-red-500 font-extrabold text-[10px] sm:text-xs uppercase tracking-widest px-4 py-2.5 rounded-xl shadow-2xl border border-red-500/40 z-50 flex items-center gap-2"
       >
         <span>✓ SHARE LINK COPIED</span>
+      </div>
+    {/if}
+
+    {#if showEmailCopiedAlert}
+      <div
+        transition:fade={{ duration: 150 }}
+        class="absolute bottom-6 left-1/2 -translate-x-1/2 bg-zinc-950/90 text-emerald-400 font-extrabold text-[10px] sm:text-xs uppercase tracking-widest px-4 py-2.5 rounded-xl shadow-2xl border border-emerald-500/40 z-50 flex items-center gap-2"
+      >
+        <span>✓ LAWMAKER EMAILS COPIED</span>
+      </div>
+    {/if}
+
+    <!-- FULLSCREEN IMAGE LIGHTBOX OVERLAY -->
+    {#if isImageFullscreen && currentMediaItem}
+      <!-- svelte-ignore a11y_click_events_have_key_events -->
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <div
+        class="fixed inset-0 z-[99999] bg-black/95 backdrop-blur-md flex flex-col items-center justify-between p-3 sm:p-6"
+        transition:fade={{ duration: 200 }}
+        onclick={() => (isImageFullscreen = false)}
+      >
+        <!-- Top Control Bar -->
+        <div
+          class="w-full flex justify-between items-center z-10 max-w-7xl mx-auto px-2"
+        >
+          <div
+            class="text-zinc-300 font-mono text-xs sm:text-sm font-semibold truncate max-w-[70%]"
+          >
+            {selectedCampaign?.title} ({activeImageIdx + 1} / {campaignMedia.length})
+          </div>
+          <button
+            onclick={(e) => {
+              e.stopPropagation();
+              isImageFullscreen = false;
+            }}
+            class="w-10 h-10 rounded-full bg-zinc-900/90 border border-zinc-700 hover:bg-zinc-800 text-white flex items-center justify-center transition-all cursor-pointer shadow-xl hover:scale-105 active:scale-95"
+            aria-label="Close Fullscreen"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <!-- Main Image Container -->
+        <div
+          class="relative flex-1 w-full max-w-7xl flex items-center justify-center my-2 overflow-hidden select-none"
+          onclick={(e) => e.stopPropagation()}
+        >
+          <img
+            src={currentMediaItem.url}
+            alt={selectedCampaign?.title}
+            class="max-w-full max-h-[82vh] object-contain rounded-xl shadow-2xl transition-transform duration-300"
+            transition:scale={{ duration: 250, start: 0.95 }}
+          />
+
+          <!-- Navigation Chevrons in Fullscreen -->
+          {#if campaignMedia.length > 1}
+            <button
+              class="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 bg-black/80 hover:bg-black border border-zinc-700 text-white rounded-full w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center transition-all cursor-pointer shadow-2xl hover:scale-110 active:scale-95 z-20"
+              onclick={(e) => {
+                e.stopPropagation();
+                scrollDirection = -1;
+                activeImageIdx =
+                  (activeImageIdx - 1 + campaignMedia.length) %
+                  campaignMedia.length;
+              }}
+              aria-label="Previous Image"
+            >
+              <span class="text-lg sm:text-xl font-bold">◀</span>
+            </button>
+            <button
+              class="absolute right-2 sm:left-auto sm:right-4 top-1/2 -translate-y-1/2 bg-black/80 hover:bg-black border border-zinc-700 text-white rounded-full w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center transition-all cursor-pointer shadow-2xl hover:scale-110 active:scale-95 z-20"
+              onclick={(e) => {
+                e.stopPropagation();
+                scrollDirection = 1;
+                activeImageIdx = (activeImageIdx + 1) % campaignMedia.length;
+              }}
+              aria-label="Next Image"
+            >
+              <span class="text-lg sm:text-xl font-bold">▶</span>
+            </button>
+          {/if}
+        </div>
+
+        <!-- Footer Hint -->
+        <div
+          class="text-zinc-500 font-mono text-[10px] sm:text-xs tracking-wider uppercase z-10 text-center"
+        >
+          Tap anywhere outside or press ESC to exit
+        </div>
       </div>
     {/if}
   </div>
