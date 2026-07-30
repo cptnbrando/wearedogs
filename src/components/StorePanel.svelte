@@ -2034,9 +2034,12 @@
                     </button>
                   </div>
 
-                  {#if selectedCampaign.endDate}
+                  {#if selectedCampaign.endDate && !isMapFullscreen}
                     {@const deadline = getActiveDeadline(selectedCampaign, now)}
                     {@const timer = getCountdown(deadline?.target, now)}
+                    <!-- The clock's pulsing/blurred layers composite above the
+                         fullscreen map overlay, so it isn't just covered — it
+                         has to actually unmount while the map owns the screen. -->
                     {#if timer}
                       <div
                         class="mt-3 p-2.5 sm:p-3 rounded-xl bg-gradient-to-r from-red-950/80 via-zinc-900/90 to-red-950/80 border border-red-500/50 flex flex-col gap-2 shadow-lg shadow-red-950/30 shrink-0"

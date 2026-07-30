@@ -390,6 +390,97 @@
     vh.set(v.h);
   }
 
+  /** Same as setView but skips the spring, so a drag tracks the finger exactly. */
+  function setViewHard(v) {
+    target = { ...v };
+    vx.set(v.x, { hard: true });
+    vy.set(v.y, { hard: true });
+    vw.set(v.w, { hard: true });
+    vh.set(v.h, { hard: true });
+  }
+
+  /**
+   * Drag to pan, mouse and touch through the same pointer events. A press only
+   * becomes a pan past a few pixels, so tapping a pin still selects it rather
+   * than nudging the map. Once it IS a pan the detail card is dismissed — it
+   * covers the corner you're dragging toward and pins to a rep you've moved
+   * away from.
+   */
+  let isPanning = $state(false);
+  let panMoved = false;
+  let panStart = null;
+
+  function onPanStart(e) {
+    if (e.button !== undefined && e.button !== 0) return;
+    panMoved = false;
+    panStart = {
+      id: e.pointerId,
+      x: e.clientX,
+      y: e.clientY,
+      vx: target.x,
+      vy: target.y,
+    };
+  }
+
+  function onPanMove(e) {
+    if (!panStart || e.pointerId !== panStart.id || !renderScale) return;
+    const dxPx = e.clientX - panStart.x;
+    const dyPx = e.clientY - panStart.y;
+
+    if (!panMoved) {
+      if (Math.hypot(dxPx, dyPx) < 5) return;
+      panMoved = true;
+      isPanning = true;
+      activeKey = null;
+      hoveredKey = null;
+      activeCity = null;
+      e.currentTarget.setPointerCapture?.(e.pointerId);
+    }
+
+    // The view centre stays inside the default frame, so a hard fling can
+    // never lose Texas off the edge of the screen.
+    setViewHard({
+      x: Math.max(
+        DEFAULT_VIEW.x - target.w / 2,
+        Math.min(
+          DEFAULT_VIEW.x + DEFAULT_VIEW.w - target.w / 2,
+          panStart.vx - dxPx / renderScale,
+        ),
+      ),
+      y: Math.max(
+        DEFAULT_VIEW.y - target.h / 2,
+        Math.min(
+          DEFAULT_VIEW.y + DEFAULT_VIEW.h - target.h / 2,
+          panStart.vy - dyPx / renderScale,
+        ),
+      ),
+      w: target.w,
+      h: target.h,
+    });
+  }
+
+  function onPanEnd(e) {
+    if (panStart && e?.pointerId === panStart.id) {
+      e.currentTarget?.releasePointerCapture?.(e.pointerId);
+    }
+    panStart = null;
+    isPanning = false;
+    // panMoved stays true until the next press so the click that ends a drag
+    // doesn't also zoom to whatever was under the cursor.
+  }
+
+  /**
+   * The click a drag releases would still land on whatever pin or city the
+   * pointer happened to stop over. Caught on the way down and killed before
+   * any zoomTo sees it; a clean press resets panMoved in onPanStart.
+   */
+  function onStageClickCapture(e) {
+    if (!panMoved) return;
+    panMoved = false;
+    e.stopPropagation();
+    e.preventDefault();
+  }
+
   function resetView() {
     activeKey = null;
     activeCity = null;
@@ -706,12 +797,22 @@
     bind:clientWidth={stageW}
     bind:clientHeight={stageH}
   >
+    <!-- Touch events stop here: the carousel behind the map treats a
+         horizontal swipe as "next slide", and a pan is exactly that gesture. -->
     <svg
       viewBox="{$vx} {$vy} {$vw} {$vh}"
       preserveAspectRatio="xMidYMid meet"
       xmlns="http://www.w3.org/2000/svg"
       role="img"
       aria-label="Interactive map of Texas showing state lawmakers"
+      class:tx-panning={isPanning}
+      onpointerdown={onPanStart}
+      onpointermove={onPanMove}
+      onpointerup={onPanEnd}
+      onpointercancel={onPanEnd}
+      onclickcapture={onStageClickCapture}
+      ontouchstart={(e) => e.stopPropagation()}
+      ontouchend={(e) => e.stopPropagation()}
     >
       <defs>
         <radialGradient id="txGlow" cx="50%" cy="50%" r="50%">
@@ -2279,7 +2380,11 @@
     height: 100%;
     display: block;
     touch-action: none;
+    cursor: grab;
   }
+
+  .tx-stage svg.tx-panning { cursor: grabbing; }
+  .tx-stage svg.tx-panning * { cursor: grabbing; }
 
   /* --- geography --- */
   .tx-water { fill: #05060f; }
