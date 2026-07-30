@@ -30,8 +30,23 @@
     onToggleFullscreen = null,
   } = $props();
 
-  let activeEmail = $state(null);
-  let hoveredEmail = $state(null);
+  /**
+   * Identity key for focus and navigation. NOT the email address: the federal
+   * offices don't publish one, so all three carry email:"" and any email-keyed
+   * lookup collapses them onto whichever comes first — stepping past Ted Cruz
+   * looked like the list had dead-ended. Mail-list membership still keys off
+   * email, because that's the thing actually being mailed.
+   */
+  function keyOf(rep) {
+    if (!rep) return null;
+    return rep.email ? `email:${rep.email}` : `name:${rep.name}`;
+  }
+
+  let activeKey = $state(null);
+  let hoveredKey = $state(null);
+
+  /** Which way the card slides in: +1 stepping forward, -1 stepping back. */
+  let stepDirection = $state(1);
   let showLegend = $state(false);
 
   // Roads and rivers are useful once you're in close, but they're noise on the
@@ -67,7 +82,7 @@
   let ts = $derived(compact ? 0.82 : 1);
 
   let activeRep = $derived(
-    lawmakers.find((l) => l.email === activeEmail) || null,
+    lawmakers.find((l) => keyOf(l) === activeKey) || null,
   );
 
   /**
@@ -76,7 +91,7 @@
    * when nothing is pinned.
    */
   let infoRep = $derived(
-    activeRep || lawmakers.find((l) => l.email === hoveredEmail) || null,
+    activeRep || lawmakers.find((l) => keyOf(l) === hoveredKey) || null,
   );
 
   const texasPath = toPath(TEXAS_OUTLINE, true);
@@ -87,11 +102,10 @@
 
   // Quick-jump chips for the places people actually look for.
   const CHIP_NAMES = [
-    "DALLAS",
+    "DALLAS–FORT WORTH",
     "HOUSTON",
     "AUSTIN",
     "SAN ANTONIO",
-    "FORT WORTH",
     "EL PASO",
     "LUBBOCK",
     "AMARILLO",
@@ -107,6 +121,135 @@
   );
 
   let activeCity = $state(null);
+
+  /**
+   * How likely this office is to vote for the ban, 1 (supports legal hemp) to
+   * 5 (driving the ban). 0/absent means we have no record for them yet, which
+   * is shown as unrated rather than guessed at.
+   */
+  const STANCE = {
+    1: { label: "SUPPORTS LEGAL HEMP", tone: "s1" },
+    2: { label: "PREFERS REGULATION", tone: "s2" },
+    3: { label: "MIXED / UNCLEAR", tone: "s3" },
+    4: { label: "LEANS TOWARD BAN", tone: "s4" },
+    5: { label: "DRIVING THE BAN", tone: "s5" },
+  };
+
+  function stanceOf(rep) {
+    const n = Number(rep?.banLikelihood);
+    if (!Number.isFinite(n) || n < 1 || n > 5) {
+      return { label: "NO RECORD YET", tone: "s0", score: 0 };
+    }
+    return { ...STANCE[Math.round(n)], score: Math.round(n) };
+  }
+
+  /** Party letter for the badge — R red, D blue, anything else neutral. */
+  function partyTone(party) {
+    if (party === "R") return "rep";
+    if (party === "D") return "dem";
+    return "ind";
+  }
+
+  /** Stubs with no coordinates would otherwise plot at 0,0 out in the Atlantic. */
+  function hasCoords(rep) {
+    return (
+      typeof rep?.lat === "number" &&
+      typeof rep?.lng === "number" &&
+      Number.isFinite(rep.lat) &&
+      Number.isFinite(rep.lng) &&
+      !(rep.lat === 0 && rep.lng === 0)
+    );
+  }
+
+  /** Only offices that can actually be shown on the map are navigable. */
+  let navigableReps = $derived(lawmakers.filter(hasCoords));
+
+  /**
+   * Arrow / swipe stepping through the roster. Wraps at both ends, and starts
+   * from the first office when nothing is open yet.
+   */
+  function stepRep(delta) {
+    const list = navigableReps;
+    if (list.length === 0) return;
+    stepDirection = delta > 0 ? 1 : -1;
+    const current = list.findIndex((l) => keyOf(l) === activeKey);
+    // Wraps both ways: next past the last office comes back to the first.
+    const next =
+      current === -1
+        ? list[delta > 0 ? 0 : list.length - 1]
+        : list[(current + delta + list.length) % list.length];
+    if (!next) return;
+    activeCity = null;
+    activeKey = keyOf(next);
+    setView(viewAround(next.lng, next.lat, 300));
+  }
+
+  /**
+   * ← / → step between senators too, but only while the map is actually on
+   * screen. Its carousel slide stays mounted while the reader scrolls down
+   * through the bio, and re-aiming a map they can't see would be a ghost
+   * interaction. Typing in a field always wins.
+   */
+  let stageEl = $state(null);
+  let mapOnScreen = $state(false);
+
+  $effect(() => {
+    if (!stageEl) return;
+    if (typeof IntersectionObserver === "undefined") {
+      mapOnScreen = true;
+      return;
+    }
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        mapOnScreen = entry.isIntersecting;
+      },
+      { threshold: 0.2 },
+    );
+    io.observe(stageEl);
+    return () => io.disconnect();
+  });
+
+  function isTypingTarget(el) {
+    if (!el) return false;
+    const tag = el.tagName;
+    return (
+      tag === "INPUT" ||
+      tag === "TEXTAREA" ||
+      tag === "SELECT" ||
+      el.isContentEditable
+    );
+  }
+
+  function handleArrowKeys(e) {
+    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+    if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
+    if (isTypingTarget(document.activeElement)) return;
+    if (!mapOnScreen || navigableReps.length < 2) return;
+    // Stop the browser scrolling the panel sideways as well.
+    e.preventDefault();
+    stepRep(e.key === "ArrowRight" ? 1 : -1);
+  }
+
+  // Horizontal swipe on the card steps between senators; vertical scrolling of
+  // the card's own text is left alone.
+  let touchStartX = 0;
+  let touchStartY = 0;
+
+  function onCardTouchStart(e) {
+    const t = e.changedTouches?.[0];
+    if (!t) return;
+    touchStartX = t.clientX;
+    touchStartY = t.clientY;
+  }
+
+  function onCardTouchEnd(e) {
+    const t = e.changedTouches?.[0];
+    if (!t) return;
+    const dx = t.clientX - touchStartX;
+    const dy = t.clientY - touchStartY;
+    if (Math.abs(dx) < 45 || Math.abs(dx) < Math.abs(dy) * 1.4) return;
+    stepRep(dx < 0 ? 1 : -1);
+  }
 
   function initialsOf(rep) {
     const stripped = rep.name.replace(
@@ -136,19 +279,19 @@
   }
 
   function resetView() {
-    activeEmail = null;
+    activeKey = null;
     activeCity = null;
     setView(DEFAULT_VIEW);
   }
 
   function zoomTo(rep) {
     // Clicking the already-focused lawmaker zooms back out — "in and out of their name".
-    if (activeEmail === rep.email) {
+    if (activeKey === keyOf(rep)) {
       resetView();
       return;
     }
     activeCity = null;
-    activeEmail = rep.email;
+    activeKey = keyOf(rep);
     setView(viewAround(rep.lng, rep.lat, 300));
   }
 
@@ -157,7 +300,7 @@
       resetView();
       return;
     }
-    activeEmail = null;
+    activeKey = null;
     activeCity = city.name;
     setView(viewAround(city.lng, city.lat, height));
   }
@@ -177,9 +320,9 @@
     return selectedEmails.includes(email);
   }
 
-  let focusedEmail = $derived(activeEmail || hoveredEmail);
+  let focusedKey = $derived(activeKey || hoveredKey);
   let focusedRep = $derived(
-    lawmakers.find((l) => l.email === focusedEmail) || null,
+    lawmakers.find((l) => keyOf(l) === focusedKey) || null,
   );
 
   const CELL_BY_NAME = new Map(CITY_CELLS.map((c) => [c.name, c.d]));
@@ -212,7 +355,7 @@
    * zoom in to see them.
    */
   let pinLabels = $derived.by(() => {
-    if (!renderScale || !showDetail || focusedEmail) return [];
+    if (!renderScale || !showDetail || focusedKey) return [];
     const placed = [];
     const out = [];
 
@@ -271,7 +414,8 @@
       if (!inView(dx, dy)) continue;
 
       const fs = (c.tier === 1 ? 12.5 : c.tier === 2 ? 10.5 : 9) * ts;
-      const w = u(c.name.length * fs * 0.66 + 12);
+      // Size the plate to the text that actually gets drawn, not the full name.
+      const w = u((c.short || c.name).length * fs * 0.66 + 12);
       const h = u(fs + 8);
 
       const options = [
@@ -352,7 +496,7 @@
     if (!rep) return;
     if (req.zoomIn) {
       activeCity = null;
-      activeEmail = rep.email;
+      activeKey = keyOf(rep);
       setView(viewAround(rep.lng, rep.lat, 300));
     } else {
       resetView();
@@ -381,6 +525,8 @@
   // point at their dot.
   let showDetail = $derived(zoomFactor >= 1.6);
 </script>
+
+<svelte:window onkeydown={handleArrowKeys} />
 
 <div class="tx-map">
   <!-- Header -->
@@ -417,16 +563,6 @@
         onclick={() => (showLegend = !showLegend)}
         title="Toggle legend">KEY</button
       >
-      {#if onToggleFullscreen}
-        <button
-          class="tx-btn tx-btn-full"
-          class:tx-btn-on={isFullscreen}
-          onclick={onToggleFullscreen}
-          title={isFullscreen ? "Exit full screen (Esc)" : "Full screen"}
-          aria-label={isFullscreen ? "Exit full screen" : "Full screen"}
-          >{isFullscreen ? "⤡ EXIT" : "⤢ FULL"}</button
-        >
-      {/if}
     </div>
   </div>
 
@@ -434,7 +570,7 @@
   <div class="tx-chips">
     <button
       class="tx-chip tx-chip-all"
-      class:on={!activeCity && !activeEmail}
+      class:on={!activeCity && !activeKey}
       onclick={resetView}>ALL TEXAS</button
     >
     {#each chipCities as c}
@@ -446,7 +582,12 @@
     {/each}
   </div>
 
-  <div class="tx-stage" bind:clientWidth={stageW} bind:clientHeight={stageH}>
+  <div
+    class="tx-stage"
+    bind:this={stageEl}
+    bind:clientWidth={stageW}
+    bind:clientHeight={stageH}
+  >
     <svg
       viewBox="{$vx} {$vy} {$vw} {$vh}"
       preserveAspectRatio="xMidYMid meet"
@@ -485,14 +626,32 @@
       {#each neighborPaths as n}
         <path d={n.d} class="tx-neighbor" vector-effect="non-scaling-stroke" />
       {/each}
+      <!-- Neighbour labels: postal code, cannabis status, and what that market
+           is worth a year. The money crossing the state line is the argument. -->
       {#each neighborPaths as n}
+        {@const lx = px(n.labelAt[0])}
+        {@const ly = py(n.labelAt[1])}
         <text
-          x={px(n.labelAt[0])}
-          y={py(n.labelAt[1])}
+          x={lx}
+          y={ly}
           class="tx-state-label"
           text-anchor="middle"
-          style="font-size: {u(14 * ts)}px">{n.name}</text
+          style="font-size: {u(17 * ts)}px"
+          >{n.abbr || n.name}{#if n.cannabis}<tspan
+              class="tx-weed-{n.cannabis}"
+              style="font-size: {u(15 * ts)}px"
+              >  {n.cannabis === "rec" ? "🌿" : "⚕"}</tspan
+            >{/if}</text
         >
+        {#if n.revenue}
+          <text
+            x={lx}
+            y={ly + u(14 * ts)}
+            class="tx-state-revenue tx-weed-{n.cannabis}"
+            text-anchor="middle"
+            style="font-size: {u(9.5 * ts)}px">{n.revenue}</text
+          >
+        {/if}
       {/each}
 
       <!-- Texas -->
@@ -686,7 +845,7 @@
             text-anchor={l.anchor}
             class="tx-city-label"
             class:tx-city-label-major={l.city.tier === 1}
-            style="font-size: {u(l.fs)}px">{l.city.name}</text
+            style="font-size: {u(l.fs)}px">{l.city.short || l.city.name}</text
           >
         </g>
       {/each}
@@ -694,17 +853,17 @@
       <!-- Lawmaker pins. Order is deliberately stable: reordering the nodes
            under the cursor makes the browser fire mouseleave and the hover
            flickers. The focused label is drawn in an overlay layer below. -->
-      {#each lawmakers as rep}
+      {#each navigableReps as rep}
         {@const isOn = isSelected(rep.email)}
-        {@const isActive = activeEmail === rep.email}
-        {@const isHot = hoveredEmail === rep.email}
+        {@const isActive = activeKey === keyOf(rep)}
+        {@const isHot = hoveredKey === keyOf(rep)}
         {@const isFocused = isActive || isHot}
         <g
           class="tx-pin"
           class:tx-pin-active={isActive}
           onclick={() => zoomTo(rep)}
-          onmouseenter={() => (hoveredEmail = rep.email)}
-          onmouseleave={() => (hoveredEmail = null)}
+          onmouseenter={() => (hoveredKey = keyOf(rep))}
+          onmouseleave={() => (hoveredKey = null)}
           role="button"
           tabindex="0"
         >
@@ -817,80 +976,198 @@
         <div class="tx-legend-row"><span class="sw sw-hwy"></span> Interstate</div>
         <div class="tx-legend-row"><span class="sw sw-us"></span> US highway</div>
         <div class="tx-legend-row"><span class="sw sw-river"></span> Major river</div>
+        <div class="tx-legend-row">
+          <span class="sw-glyph tx-legend-rec">🌿</span> Neighbour: adult-use retail
+        </div>
+        <div class="tx-legend-row">
+          <span class="sw-glyph tx-legend-med">⚕</span> Neighbour: medical only
+        </div>
         <div class="tx-legend-note">
           Hover a pin for detail · tap any dot to zoom in · tap again to zoom out
+        </div>
+        <div class="tx-legend-note">
+          Neighbour sales figures are approximate annual retail totals.
         </div>
       </div>
     {/if}
 
     <!-- Lawmaker detail — follows hover, stays pinned on the clicked pin -->
     {#if infoRep}
-      {#key infoRep.email}
-        <div
-          class="tx-card"
-          class:tx-card-ghost={!activeRep}
-          transition:fly={{ y: -10, duration: 160 }}
-        >
-          <div class="tx-card-head">
-            <div
-              class="tx-avatar"
-              class:on={isSelected(infoRep.email)}
-              class:dem={infoRep.party === "D"}
-            >
-              {initialsOf(infoRep)}
-            </div>
-            <div class="tx-card-idbox">
-              <div class="tx-card-name">{infoRep.name}</div>
-              <div class="tx-card-title">
-                {infoRep.title}{infoRep.party ? ` · ${infoRep.party}` : ""}
+      {@const stance = stanceOf(infoRep)}
+      <div
+        class="tx-card"
+        class:tx-card-ghost={!activeRep}
+        ontouchstart={onCardTouchStart}
+        ontouchend={onCardTouchEnd}
+      >
+        <!-- Keyed on the identity key, not the email: the federal offices share
+             an empty address, so an email key never changed between them and the
+             card never re-animated. -->
+        {#key keyOf(infoRep)}
+          <!-- Entrance only. An out transition would keep the outgoing copy in
+               the flow and visibly double the card's height mid-swap. -->
+          <div in:fly={{ x: stepDirection * 18, y: -6, duration: 200 }}>
+            <div class="tx-card-head">
+              <div
+                class="tx-avatar"
+                class:on={isSelected(infoRep.email)}
+                class:dem={infoRep.party === "D"}
+              >
+                {initialsOf(infoRep)}
               </div>
+              <div class="tx-card-idbox">
+                <div class="tx-card-name">
+                  {#if infoRep.party}
+                    <span
+                      class="tx-party tx-party-{partyTone(infoRep.party)}"
+                      title={infoRep.party === "R"
+                        ? "Republican"
+                        : infoRep.party === "D"
+                          ? "Democrat"
+                          : infoRep.party}>{infoRep.party}</span
+                    >
+                  {/if}
+                  {infoRep.name}
+                </div>
+                <div class="tx-card-title">{infoRep.title}</div>
+              </div>
+              {#if navigableReps.length > 1}
+                <div class="tx-card-nav">
+                  <button
+                    class="tx-card-step"
+                    onclick={() => stepRep(-1)}
+                    aria-label="Previous senator"
+                    title="Previous senator">‹</button
+                  >
+                  <button
+                    class="tx-card-step"
+                    onclick={() => stepRep(1)}
+                    aria-label="Next senator"
+                    title="Next senator">›</button
+                  >
+                </div>
+              {/if}
+              {#if activeRep}
+                <button class="tx-card-x" onclick={resetView} aria-label="Close"
+                  >✕</button
+                >
+              {/if}
             </div>
-            {#if activeRep}
-              <button class="tx-card-x" onclick={resetView} aria-label="Close"
-                >✕</button
+
+            <!-- Where they stand, at a glance: 1 supports, 5 driving the ban. -->
+            <div class="tx-stance tx-stance-{stance.tone}">
+              <span class="tx-stance-label">{stance.label}</span>
+              <span class="tx-stance-meter" aria-hidden="true">
+                {#each [1, 2, 3, 4, 5] as step}
+                  <i class:lit={stance.score >= step}></i>
+                {/each}
+              </span>
+              {#if stance.score}
+                <span class="tx-stance-score">{stance.score}/5</span>
+              {/if}
+            </div>
+
+            <div class="tx-card-meta">
+              {#if infoRep.position}
+                <span class="tx-card-position">{infoRep.position}</span>
+              {/if}
+              <span>📍 {infoRep.hometown || infoRep.region}</span>
+              {#if infoRep.phone}
+                <a class="tx-card-tel" href="tel:{infoRep.phone.replace(/[^\d+]/g, '')}"
+                  >☎ {infoRep.phone}</a
+                >
+              {/if}
+            </div>
+
+            {#if infoRep.record}
+              <div class="tx-card-record tx-record-{stance.tone}">
+                <span class="tx-tag tx-tag-hot">ON THIS ISSUE</span>
+                {infoRep.record}
+              </div>
+            {/if}
+
+            {#if infoRep.counties}
+              <div class="tx-card-counties">
+                <span class="tx-tag">REPRESENTS</span>
+                {infoRep.counties}
+              </div>
+            {/if}
+
+            {#if infoRep.email}
+              <a class="tx-card-email" href="mailto:{infoRep.email}"
+                >{infoRep.email}</a
+              >
+            {:else if infoRep.contactUrl}
+              <!-- Federal offices don't publish a mailbox; the webform is the
+                   only real route in. -->
+              <a
+                class="tx-card-email tx-card-form"
+                href={infoRep.contactUrl}
+                target="_blank"
+                rel="noopener noreferrer">✉ Official contact form ↗</a
               >
             {/if}
+            {#if infoRep.emailVerified === false && infoRep.email}
+              <div class="tx-card-warn">
+                ⚠ Address unconfirmed — verify before sending
+              </div>
+            {/if}
+
+            {#if infoRep.email}
+              <div class="tx-card-status" class:on={isSelected(infoRep.email)}>
+                {isSelected(infoRep.email)
+                  ? "✓ ON YOUR MAIL LIST"
+                  : "○ NOT ON YOUR MAIL LIST"}
+              </div>
+            {/if}
+
+            {#if navigableReps.length > 1}
+              <div class="tx-card-hint">
+                ‹ swipe, tap arrows or press ← → ›
+              </div>
+            {/if}
           </div>
-
-          <div class="tx-card-meta">
-            <span>📍 {infoRep.hometown || infoRep.region}</span>
-            {#if infoRep.phone}<span>☎ {infoRep.phone}</span>{/if}
-          </div>
-
-          {#if infoRep.record}
-            <div class="tx-card-record">
-              <span class="tx-tag tx-tag-hot">ON THIS ISSUE</span>
-              {infoRep.record}
-            </div>
-          {/if}
-
-          {#if infoRep.counties}
-            <div class="tx-card-counties">
-              <span class="tx-tag">REPRESENTS</span>
-              {infoRep.counties}
-            </div>
-          {/if}
-
-          <div class="tx-card-email">{infoRep.email}</div>
-          {#if infoRep.emailVerified === false}
-            <div class="tx-card-warn">
-              ⚠ Address unconfirmed — verify before sending
-            </div>
-          {/if}
-
-          <div class="tx-card-status" class:on={isSelected(infoRep.email)}>
-            {isSelected(infoRep.email)
-              ? "✓ ON YOUR MAIL LIST"
-              : "○ NOT ON YOUR MAIL LIST"}
-          </div>
-        </div>
-      {/key}
+        {/key}
+      </div>
     {/if}
 
     <!-- Zoom readout -->
     <div class="tx-zoom">{zoomFactor.toFixed(1)}×</div>
     <div class="tx-vignette"></div>
     <div class="tx-scanlines"></div>
+  </div>
+
+  <!-- Primary controls, under the map where a thumb can reach them without
+       scrolling the toolbar above. -->
+  <div class="tx-foot">
+    <button
+      class="tx-foot-btn"
+      onclick={() => stepZoom(0.6)}
+      aria-label="Zoom in"
+      title="Zoom in">+</button
+    >
+    <button
+      class="tx-foot-btn"
+      onclick={() => stepZoom(1.6)}
+      aria-label="Zoom out"
+      title="Zoom out">−</button
+    >
+    <button
+      class="tx-foot-btn tx-foot-wide"
+      onclick={resetView}
+      aria-label="Reset view"
+      title="Reset view">RESET</button
+    >
+    {#if onToggleFullscreen}
+      <button
+        class="tx-foot-btn tx-foot-wide tx-foot-full"
+        class:on={isFullscreen}
+        onclick={onToggleFullscreen}
+        title={isFullscreen ? "Exit full screen (Esc)" : "Full screen"}
+        aria-label={isFullscreen ? "Exit full screen" : "Full screen"}
+        >{isFullscreen ? "⤡ EXIT FULL SCREEN" : "⤢ FULL SCREEN"}</button
+      >
+    {/if}
   </div>
 </div>
 
@@ -926,6 +1203,61 @@
     background: rgba(0, 0, 0, 0.55);
     z-index: 5;
     flex-shrink: 0;
+    min-width: 0;
+  }
+
+  /* Bottom control bar: the actions worth reaching for, always visible. */
+  .tx-foot {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 8px;
+    border-top: 1px solid rgba(16, 185, 129, 0.2);
+    background: rgba(0, 0, 0, 0.62);
+    z-index: 6;
+    flex-shrink: 0;
+  }
+
+  .tx-foot-btn {
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    color: rgba(255, 255, 255, 0.82);
+    font-family: ui-monospace, monospace;
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    border-radius: 6px;
+    cursor: pointer;
+    /* Thumb-sized rather than toolbar-sized. */
+    min-width: 34px;
+    min-height: 28px;
+    padding: 0 8px;
+    transition: all 0.15s ease;
+  }
+
+  .tx-foot-wide {
+    flex: 1;
+  }
+
+  .tx-foot-btn:hover {
+    background: rgba(16, 185, 129, 0.2);
+    border-color: rgba(16, 185, 129, 0.55);
+    color: #fff;
+  }
+
+  .tx-foot-btn:active {
+    transform: scale(0.96);
+  }
+
+  .tx-foot-full {
+    border-color: rgba(16, 185, 129, 0.45);
+    color: #d1fae5;
+  }
+
+  .tx-foot-full.on {
+    background: rgba(16, 185, 129, 0.26);
+    border-color: rgba(16, 185, 129, 0.65);
+    color: #fff;
   }
 
   .tx-title {
@@ -961,10 +1293,25 @@
     50% { opacity: 0.45; transform: scale(0.8); }
   }
 
+  /* The toolbar can't fit on a phone, so it scrolls sideways instead of
+     squashing every button into an unreadable sliver. */
   .tx-tools {
     display: flex;
     gap: 4px;
-    flex-shrink: 0;
+    min-width: 0;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 1px;
+  }
+
+  .tx-tools::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tx-tools .tx-btn {
+    flex: 0 0 auto;
   }
 
   .tx-btn {
@@ -1196,13 +1543,27 @@
   }
 
   .tx-state-label {
-    fill: rgba(255, 255, 255, 0.34);
+    fill: rgba(255, 255, 255, 0.42);
     font-family: ui-monospace, monospace;
     font-weight: 800;
     letter-spacing: 0.3em;
     pointer-events: none;
     user-select: none;
   }
+
+  /* What the market next door is worth every year. */
+  .tx-state-revenue {
+    font-family: ui-monospace, monospace;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    pointer-events: none;
+    user-select: none;
+    opacity: 0.85;
+  }
+
+  /* 🌿 adult-use retail, ⚕ medical programme only. */
+  .tx-weed-rec { fill: #34d399; }
+  .tx-weed-med { fill: #60a5fa; }
 
   .tx-water-label {
     fill: rgba(56, 189, 248, 0.45);
@@ -1371,6 +1732,18 @@
     flex-shrink: 0;
   }
 
+  /* Glyph swatches line up with the dot swatches above them. */
+  .sw-glyph {
+    width: 9px;
+    flex-shrink: 0;
+    font-size: 8px;
+    line-height: 1;
+    text-align: center;
+  }
+
+  .tx-legend-rec { color: #34d399; }
+  .tx-legend-med { color: #60a5fa; }
+
   .sw-on { background: #10b981; box-shadow: 0 0 6px #10b981; }
   .sw-off { background: #ef4444; }
   .sw-capital {
@@ -1478,6 +1851,133 @@
 
   .tx-card-x:hover { color: #fff; }
 
+  /* Party affiliation, readable at a glance next to the name. */
+  .tx-party {
+    display: inline-block;
+    min-width: 1.05em;
+    padding: 0 0.28em;
+    margin-right: 4px;
+    border-radius: 3px;
+    font-size: 0.62rem;
+    font-weight: 900;
+    line-height: 1.35;
+    text-align: center;
+    vertical-align: baseline;
+  }
+
+  .tx-party-rep {
+    background: rgba(239, 68, 68, 0.9);
+    color: #fff;
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.45);
+  }
+
+  .tx-party-dem {
+    background: rgba(59, 130, 246, 0.9);
+    color: #fff;
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.45);
+  }
+
+  .tx-party-ind {
+    background: rgba(161, 161, 170, 0.85);
+    color: #18181b;
+  }
+
+  /* Prev/next through the roster. */
+  .tx-card-nav {
+    display: flex;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+
+  .tx-card-step {
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    color: rgba(255, 255, 255, 0.75);
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.78rem;
+    font-weight: 900;
+    line-height: 1;
+    /* Big enough to hit with a thumb without crowding the card. */
+    min-width: 22px;
+    min-height: 22px;
+    padding: 0;
+    transition: all 0.15s ease;
+  }
+
+  .tx-card-step:hover {
+    background: rgba(16, 185, 129, 0.24);
+    border-color: rgba(16, 185, 129, 0.6);
+    color: #fff;
+  }
+
+  .tx-card-step:active { transform: scale(0.92); }
+
+  .tx-card-hint {
+    margin-top: 6px;
+    font-size: 0.44rem;
+    letter-spacing: 0.1em;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.3);
+    text-transform: uppercase;
+  }
+
+  /* --- stance: 1 supports legal hemp … 5 driving the ban --- */
+  .tx-stance {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 7px;
+    padding: 3px 6px;
+    border-radius: 6px;
+    border: 1px solid currentColor;
+    font-size: 0.47rem;
+    font-weight: 900;
+    letter-spacing: 0.09em;
+  }
+
+  .tx-stance-label { flex: 1; min-width: 0; }
+  .tx-stance-score { opacity: 0.85; font-variant-numeric: tabular-nums; }
+
+  .tx-stance-meter {
+    display: inline-flex;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+
+  .tx-stance-meter i {
+    width: 5px;
+    height: 9px;
+    border-radius: 1.5px;
+    background: currentColor;
+    opacity: 0.22;
+  }
+
+  .tx-stance-meter i.lit { opacity: 1; }
+
+  .tx-stance-s0 { color: #a1a1aa; background: rgba(161, 161, 170, 0.1); }
+  .tx-stance-s1 { color: #34d399; background: rgba(16, 185, 129, 0.14); }
+  .tx-stance-s2 { color: #a3e635; background: rgba(163, 230, 53, 0.13); }
+  .tx-stance-s3 { color: #fbbf24; background: rgba(251, 191, 36, 0.13); }
+  .tx-stance-s4 { color: #fb923c; background: rgba(251, 146, 60, 0.14); }
+  .tx-stance-s5 { color: #f87171; background: rgba(239, 68, 68, 0.16); }
+
+  /* The record text carries the same colour, so the language and the rating
+     agree without having to read the label. */
+  .tx-record-s0 { border-left: 2px solid rgba(161, 161, 170, 0.5); }
+  .tx-record-s1 { border-left: 2px solid #34d399; }
+  .tx-record-s2 { border-left: 2px solid #a3e635; }
+  .tx-record-s3 { border-left: 2px solid #fbbf24; }
+  .tx-record-s4 { border-left: 2px solid #fb923c; }
+  .tx-record-s5 { border-left: 2px solid #f87171; }
+
+  .tx-card-record[class*="tx-record-"] {
+    padding-left: 7px;
+  }
+
+  .tx-record-s1, .tx-record-s2 { color: rgba(236, 253, 245, 0.9); }
+  .tx-record-s4, .tx-record-s5 { color: rgba(254, 242, 242, 0.9); }
+
   .tx-card-title {
     font-size: 0.56rem;
     color: #6ee7b7;
@@ -1489,10 +1989,19 @@
   .tx-card-meta {
     display: flex;
     flex-wrap: wrap;
+    align-items: center;
     gap: 8px;
     font-size: 0.53rem;
     color: rgba(255, 255, 255, 0.62);
     margin-top: 6px;
+  }
+
+  /* Office title, sitting to the left of where they're based. */
+  .tx-card-position {
+    color: #6ee7b7;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
   }
 
   .tx-tag {
@@ -1529,10 +2038,38 @@
   }
 
   .tx-card-email {
+    display: block;
     font-size: 0.5rem;
     color: rgba(255, 255, 255, 0.55);
     margin-top: 5px;
     word-break: break-all;
+    text-decoration: none;
+  }
+
+  .tx-card-email:hover {
+    color: #6ee7b7;
+    text-decoration: underline;
+  }
+
+  .tx-card-form {
+    color: #93c5fd;
+    font-weight: 700;
+  }
+
+  .tx-card-form:hover { color: #fff; }
+
+  /* Tappable on a phone — the whole point of showing the number. */
+  .tx-card-tel {
+    color: #6ee7b7;
+    font-weight: 700;
+    text-decoration: none;
+    border-bottom: 1px dotted rgba(110, 231, 183, 0.5);
+    white-space: nowrap;
+  }
+
+  .tx-card-tel:hover {
+    color: #fff;
+    border-bottom-color: #fff;
   }
 
   .tx-card-warn {
