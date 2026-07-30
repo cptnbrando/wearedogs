@@ -2128,7 +2128,7 @@
     font-weight: 800;
     letter-spacing: 0.12em;
     color: #d4d4d8;
-    min-width: 59px;
+    min-width: 67px;
   }
 
   .tx-title-text {
