@@ -20,6 +20,13 @@
     DEFAULT_VIEW,
     viewAround,
   } from "../../lib/texasGeo.js";
+  import {
+    TEXAS_STATS,
+    NEIGHBOR_STATS,
+    CITY_STATS,
+    CITY_STATS_METHOD,
+    STATS_SOURCES,
+  } from "../../lib/hempStats.js";
 
   let {
     lawmakers = [],
@@ -121,6 +128,91 @@
   );
 
   let activeCity = $state(null);
+  let showStats = $state(false);
+
+  /**
+   * Bar length as a percentage of the biggest value in a set. Texas is included
+   * in the neighbour scale on purpose — seeing $5.5B next to $590M is the point.
+   */
+  function barPct(value, max) {
+    if (!value || !max) return 0;
+    return Math.max(1.5, (value / max) * 100);
+  }
+
+  const NEIGHBOR_MAX = Math.max(
+    TEXAS_STATS.retailValue,
+    ...NEIGHBOR_STATS.map((n) => n.revenueValue || 0),
+  );
+  const NEIGHBOR_TAX_MAX = Math.max(
+    TEXAS_STATS.taxValue,
+    ...NEIGHBOR_STATS.map((n) => n.taxValue || 0),
+  );
+  const CITY_MAX = Math.max(...CITY_STATS.map((c) => c.revenueValue || 0));
+
+  /**
+   * Pin rings carry two facts at once: the inner edge is the party, the outer
+   * edge is how likely they are to vote for the ban. The core dot stays the
+   * mail-list colour so "are they on my list" is still the loudest signal.
+   */
+  const PARTY_HUE = { rep: "#ef4444", dem: "#3b82f6", ind: "#a1a1aa" };
+  const STANCE_HUE = {
+    s0: "#a1a1aa",
+    s1: "#34d399",
+    s2: "#a3e635",
+    s3: "#fbbf24",
+    s4: "#fb923c",
+    s5: "#f87171",
+  };
+
+  function ringId(rep) {
+    return `txRing-${partyTone(rep.party)}-${stanceOf(rep).tone}`;
+  }
+
+  /** One gradient per party/stance pair actually present — 18 pins, a few defs. */
+  let ringGradients = $derived.by(() => {
+    const seen = new Map();
+    for (const rep of navigableReps) {
+      const id = ringId(rep);
+      if (seen.has(id)) continue;
+      seen.set(id, {
+        id,
+        from: PARTY_HUE[partyTone(rep.party)],
+        to: STANCE_HUE[stanceOf(rep).tone],
+      });
+    }
+    return [...seen.values()];
+  });
+
+  /** Sortable senator table inside the stats sheet. */
+  let statsSort = $state({ key: "stance", dir: -1 });
+
+  const STATS_COLUMNS = [
+    { key: "name", label: "NAME" },
+    { key: "party", label: "P" },
+    { key: "position", label: "OFFICE" },
+    { key: "stance", label: "BAN" },
+    { key: "region", label: "REGION" },
+    { key: "phone", label: "PHONE" },
+  ];
+
+  function sortBy(key) {
+    statsSort =
+      statsSort.key === key
+        ? { key, dir: -statsSort.dir }
+        : { key, dir: key === "stance" ? -1 : 1 };
+  }
+
+  let sortedLawmakers = $derived.by(() => {
+    const { key, dir } = statsSort;
+    return [...lawmakers].sort((a, b) => {
+      if (key === "stance") {
+        return ((a.banLikelihood ?? 0) - (b.banLikelihood ?? 0)) * dir;
+      }
+      const av = String(a[key] ?? "").toLowerCase();
+      const bv = String(b[key] ?? "").toLowerCase();
+      return av.localeCompare(bv) * dir;
+    });
+  });
 
   /**
    * How likely this office is to vote for the ban, 1 (supports legal hemp) to
@@ -220,10 +312,23 @@
     );
   }
 
-  function handleArrowKeys(e) {
+  function handleMapKeys(e) {
+    if (isTypingTarget(document.activeElement)) return;
+
+    // Esc closes the stats sheet first. Caught in the capture phase and stopped
+    // dead, because TitlePage also listens on window and would otherwise close
+    // the whole store panel out from under it.
+    if (e.key === "Escape" && showStats) {
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      showStats = false;
+      return;
+    }
+
     if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
     if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
-    if (isTypingTarget(document.activeElement)) return;
+    // While the stats sheet is up the arrows belong to its scrolling tables.
+    if (showStats) return;
     if (!mapOnScreen || navigableReps.length < 2) return;
     // Stop the browser scrolling the panel sideways as well.
     e.preventDefault();
@@ -526,7 +631,7 @@
   let showDetail = $derived(zoomFactor >= 1.6);
 </script>
 
-<svelte:window onkeydown={handleArrowKeys} />
+<svelte:window onkeydowncapture={handleMapKeys} />
 
 <div class="tx-map">
   <!-- Header -->
@@ -536,9 +641,15 @@
       <span class="tx-title-text">{title}</span>
     </div>
     <div class="tx-tools">
-      <button class="tx-btn" onclick={() => stepZoom(0.6)} title="Zoom in">+</button>
-      <button class="tx-btn" onclick={() => stepZoom(1.6)} title="Zoom out">−</button>
-      <button class="tx-btn" onclick={resetView} title="Reset view">RESET</button>
+      <!-- Zoom and reset live in the bar under the map now; this row is for
+           layers and the stats sheet. -->
+      <button
+        class="tx-btn tx-btn-stats"
+        class:tx-btn-stats-on={showStats}
+        onclick={() => (showStats = !showStats)}
+        title="Money on the table: revenue and tax, state by state"
+        aria-expanded={showStats}>★ STATS</button
+      >
       <button
         class="tx-btn"
         class:tx-btn-on={showBorders}
@@ -617,6 +728,14 @@
         <clipPath id="txClip">
           <path d={TEXAS_PATH} />
         </clipPath>
+        <!-- Pin rings: party colour on the inner edge, ban-likelihood on the
+             outer, so one glance gives you both. -->
+        {#each ringGradients as g (g.id)}
+          <linearGradient id={g.id} x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color={g.from} />
+            <stop offset="100%" stop-color={g.to} />
+          </linearGradient>
+        {/each}
       </defs>
 
       <!-- Gulf / open water backdrop -->
@@ -788,7 +907,14 @@
             transition:fade={{ duration: 180 }}
             class="tx-city-hit"
             onclick={() => zoomToCity(c, c.tier >= 3 ? 90 : 220)}
+            onkeydown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                zoomToCity(c, c.tier >= 3 ? 90 : 220);
+              }
+            }}
             role="button"
+            aria-label="Zoom to {c.name}"
             tabindex="-1"
           >
             <!-- clickable target so any town can be zoomed straight into -->
@@ -862,9 +988,18 @@
           class="tx-pin"
           class:tx-pin-active={isActive}
           onclick={() => zoomTo(rep)}
+          onkeydown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              zoomTo(rep);
+            }
+          }}
           onmouseenter={() => (hoveredKey = keyOf(rep))}
           onmouseleave={() => (hoveredKey = null)}
+          onfocus={() => (hoveredKey = keyOf(rep))}
+          onblur={() => (hoveredKey = null)}
           role="button"
+          aria-label="{rep.position || 'Lawmaker'} {rep.name}"
           tabindex="0"
         >
           {#if isActive || isHot}
@@ -886,6 +1021,7 @@
             )}
             class="tx-pin-halo"
             class:tx-pin-on={isOn}
+            style="stroke: url(#{ringId(rep)})"
             vector-effect="non-scaling-stroke"
           />
           <circle
@@ -999,6 +1135,8 @@
         class:tx-card-ghost={!activeRep}
         ontouchstart={onCardTouchStart}
         ontouchend={onCardTouchEnd}
+        role="group"
+        aria-label="Lawmaker detail — swipe or use the arrow keys to move between offices"
       >
         <!-- Keyed on the identity key, not the email: the federal offices share
              an empty address, so an email key never changed between them and the
@@ -1131,6 +1269,319 @@
       </div>
     {/if}
 
+    <!-- STATS sheet. Sits over the stage so it works the same collapsed or
+         full screen, and scrolls internally rather than growing the map. -->
+    {#if showStats}
+      <div class="tx-stats" transition:fade={{ duration: 130 }}>
+        <div class="tx-stats-head">
+          <span class="tx-stats-title">★ MONEY ON THE TABLE</span>
+          <button
+            class="tx-stats-x"
+            onclick={() => (showStats = false)}
+            aria-label="Close stats">✕</button
+          >
+        </div>
+
+        <div class="tx-stats-body">
+          <!-- Texas -->
+          <section>
+            <h5>TEXAS — WHAT THE BAN ERASES</h5>
+            <div class="tx-stat-grid">
+              <div class="tx-stat big">
+                <span class="v">{TEXAS_STATS.retail}</span>
+                <span class="k">Annual sales</span>
+              </div>
+              <div class="tx-stat">
+                <span class="v">{TEXAS_STATS.tax}</span>
+                <span class="k">Tax the state collects</span>
+              </div>
+              <div class="tx-stat">
+                <span class="v">{TEXAS_STATS.impact}</span>
+                <span class="k">Total economic impact</span>
+              </div>
+              <div class="tx-stat">
+                <span class="v">{TEXAS_STATS.jobs}</span>
+                <span class="k">Jobs</span>
+              </div>
+              <div class="tx-stat">
+                <span class="v">{TEXAS_STATS.businesses}</span>
+                <span class="k">Businesses</span>
+              </div>
+              <div class="tx-stat">
+                <span class="v">{TEXAS_STATS.retailerSales}</span>
+                <span class="k">From {TEXAS_STATS.retailers} retailers</span>
+              </div>
+            </div>
+            <!-- Where that $5.5B sits, metro by metro. Estimated splits. -->
+            <div class="tx-chips-row">
+              {#each CITY_STATS as c}
+                <span class="tx-city-chip">
+                  <b>{c.city.replace("Dallas–Fort Worth", "Dallas")}</b>
+                  {c.revenue}
+                </span>
+              {/each}
+              <span class="tx-city-chip tx-city-chip-note">est.</span>
+            </div>
+
+            <p class="tx-stats-note">{TEXAS_STATS.note}</p>
+            <p class="tx-stats-note tx-stats-src">{TEXAS_STATS.source}</p>
+          </section>
+
+          <!-- Neighbours, as a chart. Texas is on the same scale deliberately:
+               the gap between $5.5B and everyone else IS the argument. -->
+          <section>
+            <h5>SALES PER YEAR — TEXAS vs THE STATE LINE</h5>
+            <div class="tx-chart">
+              <div class="tx-bar-row tx-bar-tx">
+                <span class="tx-bar-label">TX</span>
+                <span class="tx-bar-track">
+                  <span
+                    class="tx-bar tx-bar-fill-tx"
+                    style="width: {barPct(
+                      TEXAS_STATS.retailValue,
+                      NEIGHBOR_MAX,
+                    )}%"
+                  ></span>
+                </span>
+                <span class="tx-bar-value">{TEXAS_STATS.retail}</span>
+              </div>
+              {#each NEIGHBOR_STATS as n}
+                <div class="tx-bar-row">
+                  <span class="tx-bar-label">{n.abbr}</span>
+                  <span class="tx-bar-track">
+                    {#if n.revenueValue}
+                      <span
+                        class="tx-bar tx-bar-fill-{n.status}"
+                        style="width: {barPct(n.revenueValue, NEIGHBOR_MAX)}%"
+                      ></span>
+                    {:else}
+                      <span class="tx-bar-none">{n.revenue}</span>
+                    {/if}
+                  </span>
+                  <span class="tx-bar-value"
+                    >{n.revenueValue ? n.revenue : "—"}</span
+                  >
+                </div>
+              {/each}
+            </div>
+
+            <h5 class="tx-h5-gap">TAX COLLECTED PER YEAR</h5>
+            <div class="tx-chart">
+              <div class="tx-bar-row tx-bar-tx">
+                <span class="tx-bar-label">TX</span>
+                <span class="tx-bar-track">
+                  <span
+                    class="tx-bar tx-bar-fill-tx"
+                    style="width: {barPct(
+                      TEXAS_STATS.taxValue,
+                      NEIGHBOR_TAX_MAX,
+                    )}%"
+                  ></span>
+                </span>
+                <span class="tx-bar-value">{TEXAS_STATS.tax}</span>
+              </div>
+              {#each NEIGHBOR_STATS as n}
+                <div class="tx-bar-row">
+                  <span class="tx-bar-label">{n.abbr}</span>
+                  <span class="tx-bar-track">
+                    {#if n.taxValue}
+                      <span
+                        class="tx-bar tx-bar-fill-{n.status}"
+                        style="width: {barPct(n.taxValue, NEIGHBOR_TAX_MAX)}%"
+                      ></span>
+                    {:else}
+                      <span class="tx-bar-none">{n.tax}</span>
+                    {/if}
+                  </span>
+                  <span class="tx-bar-value">{n.tax}</span>
+                </div>
+              {/each}
+            </div>
+
+            <div class="tx-table-wrap tx-table-gap">
+              <table class="tx-table">
+                <thead>
+                  <tr>
+                    <th>STATE</th>
+                    <th>STATUS</th>
+                    <th class="num">SALES</th>
+                    <th class="num">TAX</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {#each NEIGHBOR_STATS as n}
+                    <tr>
+                      <td class="strong">{n.abbr}</td>
+                      <td>
+                        <span class="tx-pill tx-pill-{n.status}"
+                          >{n.status === "rec"
+                            ? "🌿"
+                            : n.status === "med"
+                              ? "⚕"
+                              : "✕"} {n.statusLabel}</span
+                        >
+                      </td>
+                      <td class="num">{n.revenue}</td>
+                      <td class="num strong">{n.tax}</td>
+                    </tr>
+                    <tr class="tx-table-sub">
+                      <td colspan="4">
+                        <span class="tx-basis tx-basis-{n.basis}"
+                          >{n.basis}</span
+                        >
+                        {n.period !== "—" ? `${n.period} · ` : ""}{n.taxRate} · {n.drive}{n.note
+                          ? ` — ${n.note}`
+                          : ""}
+                      </td>
+                    </tr>
+                  {/each}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- Cities -->
+          <section>
+            <h5>TEXAS METROS — ESTIMATED SHARE</h5>
+            <div class="tx-chart">
+              {#each CITY_STATS as c}
+                <div class="tx-bar-row">
+                  <span class="tx-bar-label tx-bar-label-wide">{c.city}</span>
+                  <span class="tx-bar-track">
+                    <span
+                      class="tx-bar tx-bar-fill-city"
+                      style="width: {barPct(c.revenueValue, CITY_MAX)}%"
+                    ></span>
+                  </span>
+                  <span class="tx-bar-value">{c.revenue}</span>
+                </div>
+              {/each}
+            </div>
+            <div class="tx-table-wrap tx-table-gap">
+              <table class="tx-table">
+                <thead>
+                  <tr>
+                    <th>METRO</th>
+                    <th class="num">POP</th>
+                    <th class="num">SHARE</th>
+                    <th class="num">EST. SALES</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {#each CITY_STATS as c}
+                    <tr>
+                      <td class="strong">{c.city}</td>
+                      <td class="num">{c.metroPop}</td>
+                      <td class="num">{c.share}</td>
+                      <td class="num strong">{c.revenue}</td>
+                    </tr>
+                  {/each}
+                </tbody>
+              </table>
+            </div>
+            <p class="tx-stats-note tx-stats-warn">
+              ⚠ {CITY_STATS_METHOD}
+            </p>
+          </section>
+
+          <!-- Senators -->
+          <section>
+            <h5>
+              THE {lawmakers.length} OFFICES — TAP A COLUMN TO SORT
+            </h5>
+            <div class="tx-table-wrap">
+              <table class="tx-table tx-table-reps">
+                <thead>
+                  <tr>
+                    {#each STATS_COLUMNS as col}
+                      <th>
+                        <button
+                          class="tx-sort"
+                          class:on={statsSort.key === col.key}
+                          onclick={() => sortBy(col.key)}
+                        >
+                          {col.label}{statsSort.key === col.key
+                            ? statsSort.dir > 0
+                              ? " ▲"
+                              : " ▼"
+                            : ""}
+                        </button>
+                      </th>
+                    {/each}
+                  </tr>
+                </thead>
+                <tbody>
+                  {#each sortedLawmakers as rep (keyOf(rep))}
+                    {@const s = stanceOf(rep)}
+                    <!-- Row click is a shortcut to focus them on the map; the
+                         same is reachable from the pins and the ← → keys, so
+                         the row itself stays a plain table row. -->
+                    <!-- svelte-ignore a11y_click_events_have_key_events -->
+                    <!-- svelte-ignore a11y_no_static_element_interactions -->
+                    <tr
+                      class="tx-rep-row"
+                      class:on={activeKey === keyOf(rep)}
+                      onclick={() => hasCoords(rep) && zoomTo(rep)}
+                    >
+                      <td class="strong">
+                        <!-- Photo slot: falls back to initials until images land. -->
+                        <span class="tx-rep-face" class:dem={rep.party === "D"}>
+                          {#if rep.photo}
+                            <img src={rep.photo} alt="" />
+                          {:else}
+                            {initialsOf(rep)}
+                          {/if}
+                        </span>
+                        {rep.name}
+                      </td>
+                      <td>
+                        <span class="tx-party tx-party-{partyTone(rep.party)}"
+                          >{rep.party}</span
+                        >
+                      </td>
+                      <td class="dim">{rep.position || ""}</td>
+                      <td>
+                        <span class="tx-score tx-score-{s.tone}"
+                          >{s.score || "–"}</span
+                        >
+                      </td>
+                      <td class="dim">{rep.region || ""}</td>
+                      <td>
+                        {#if rep.phone}
+                          <a
+                            class="tx-card-tel"
+                            href="tel:{rep.phone.replace(/[^\d+]/g, '')}"
+                            onclick={(e) => e.stopPropagation()}>{rep.phone}</a
+                          >
+                        {/if}
+                      </td>
+                    </tr>
+                    <tr class="tx-table-sub">
+                      <td colspan="6">
+                        <strong>{s.label}</strong> · {rep.email ||
+                          "no public email — contact form"}{rep.counties
+                          ? ` · ${rep.counties}`
+                          : ""}
+                      </td>
+                    </tr>
+                  {/each}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section>
+            <h5>WHERE THESE NUMBERS COME FROM</h5>
+            <ul class="tx-sources">
+              {#each STATS_SOURCES as s}
+                <li>{s}</li>
+              {/each}
+            </ul>
+          </section>
+        </div>
+      </div>
+    {/if}
+
     <!-- Zoom readout -->
     <div class="tx-zoom">{zoomFactor.toFixed(1)}×</div>
     <div class="tx-vignette"></div>
@@ -1165,7 +1616,7 @@
         onclick={onToggleFullscreen}
         title={isFullscreen ? "Exit full screen (Esc)" : "Full screen"}
         aria-label={isFullscreen ? "Exit full screen" : "Full screen"}
-        >{isFullscreen ? "⤡ EXIT FULL SCREEN" : "⤢ FULL SCREEN"}</button
+        >{isFullscreen ? "⤡ FULL" : "⤢ FULL"}</button
       >
     {/if}
   </div>
@@ -1206,12 +1657,16 @@
     min-width: 0;
   }
 
-  /* Bottom control bar: the actions worth reaching for, always visible. */
+  /* Bottom control bar: the actions worth reaching for, always visible.
+     The safe-area inset lives here rather than on the fullscreen wrapper —
+     .tx-map is absolute/inset-0, which lines up with the wrapper's PADDING box,
+     so padding out there never moved these buttons off the home bar. */
   .tx-foot {
     display: flex;
     align-items: center;
     gap: 5px;
     padding: 5px 8px;
+    padding-bottom: max(5px, env(safe-area-inset-bottom));
     border-top: 1px solid rgba(16, 185, 129, 0.2);
     background: rgba(0, 0, 0, 0.62);
     z-index: 6;
@@ -1269,7 +1724,7 @@
     font-weight: 800;
     letter-spacing: 0.12em;
     color: #d4d4d8;
-    min-width: 0;
+    min-width: 59px;
   }
 
   .tx-title-text {
@@ -1340,6 +1795,407 @@
     border-color: rgba(16, 185, 129, 0.6);
     color: #fff;
   }
+
+  /* Gold, so it reads as the one button on this row worth pressing. */
+  .tx-btn-stats {
+    background: rgba(251, 191, 36, 0.16);
+    border-color: rgba(251, 191, 36, 0.6);
+    color: #fde68a;
+  }
+
+  .tx-btn-stats:hover {
+    background: rgba(251, 191, 36, 0.3);
+    border-color: rgba(251, 191, 36, 0.85);
+    color: #fff;
+  }
+
+  .tx-btn-stats-on {
+    background: rgba(251, 191, 36, 0.85);
+    border-color: #fbbf24;
+    color: #1c1917;
+  }
+
+  /* --- stats sheet --- */
+  .tx-stats {
+    position: absolute;
+    inset: 0;
+    z-index: 40;
+    display: flex;
+    flex-direction: column;
+    background: rgba(4, 4, 12, 0.97);
+    backdrop-filter: blur(3px);
+  }
+
+  .tx-stats-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 9px;
+    border-bottom: 1px solid rgba(251, 191, 36, 0.35);
+    background: rgba(251, 191, 36, 0.1);
+    flex-shrink: 0;
+  }
+
+  .tx-stats-title {
+    font-family: ui-monospace, monospace;
+    font-size: 0.6rem;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    color: #fde68a;
+  }
+
+  .tx-stats-x {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.55);
+    cursor: pointer;
+    font-size: 0.75rem;
+    line-height: 1;
+    padding: 2px 4px;
+  }
+
+  .tx-stats-x:hover { color: #fff; }
+
+  .tx-stats-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 9px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .tx-stats-body h5 {
+    margin: 0 0 6px;
+    font-family: ui-monospace, monospace;
+    font-size: 0.5rem;
+    font-weight: 900;
+    letter-spacing: 0.16em;
+    color: rgba(251, 191, 36, 0.9);
+  }
+
+  .tx-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+    gap: 6px;
+  }
+
+  .tx-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    padding: 6px 7px;
+    border-radius: 7px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .tx-stat .v {
+    font-family: ui-monospace, monospace;
+    font-size: 0.78rem;
+    font-weight: 900;
+    color: #fff;
+    line-height: 1.15;
+  }
+
+  .tx-stat.big .v {
+    font-size: 1.05rem;
+    color: #34d399;
+  }
+
+  .tx-stat .k {
+    font-size: 0.46rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+  /* Metro splits as small chips, directly under the headline numbers. */
+  .tx-chips-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    margin-top: 6px;
+  }
+
+  .tx-city-chip {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 3px;
+    padding: 1px 5px;
+    border-radius: 4px;
+    border: 1px solid rgba(251, 191, 36, 0.28);
+    background: rgba(251, 191, 36, 0.08);
+    font-family: ui-monospace, monospace;
+    font-size: 0.44rem;
+    line-height: 1.6;
+    color: #fde68a;
+    white-space: nowrap;
+  }
+
+  .tx-city-chip b {
+    color: rgba(255, 255, 255, 0.55);
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .tx-city-chip-note {
+    border-style: dashed;
+    border-color: rgba(255, 255, 255, 0.18);
+    background: none;
+    color: rgba(255, 255, 255, 0.35);
+    font-style: italic;
+  }
+
+  .tx-stats-note {
+    margin: 6px 0 0;
+    font-size: 0.46rem;
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.42);
+  }
+
+  .tx-stats-warn { color: rgba(251, 191, 36, 0.75); }
+  .tx-stats-src { color: rgba(255, 255, 255, 0.3); font-style: italic; }
+
+  .tx-h5-gap { margin-top: 12px !important; }
+  .tx-table-gap { margin-top: 10px; }
+
+  /* --- bar charts. Plain divs: no chart library for six bars. --- */
+  .tx-chart {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .tx-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: ui-monospace, monospace;
+    font-size: 0.47rem;
+  }
+
+  .tx-bar-label {
+    flex: 0 0 22px;
+    font-weight: 900;
+    color: rgba(255, 255, 255, 0.62);
+    letter-spacing: 0.06em;
+  }
+
+  .tx-bar-label-wide {
+    flex: 0 0 84px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .tx-bar-track {
+    flex: 1;
+    min-width: 0;
+    height: 11px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.06);
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+  }
+
+  .tx-bar {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .tx-bar-fill-tx {
+    background: linear-gradient(90deg, #f472b6, #c084fc);
+  }
+
+  .tx-bar-fill-rec { background: linear-gradient(90deg, #10b981, #34d399); }
+  .tx-bar-fill-med { background: linear-gradient(90deg, #2563eb, #60a5fa); }
+  .tx-bar-fill-none { background: rgba(239, 68, 68, 0.5); }
+  .tx-bar-fill-city { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+
+  .tx-bar-none {
+    padding-left: 5px;
+    font-size: 0.42rem;
+    color: rgba(255, 255, 255, 0.32);
+    white-space: nowrap;
+  }
+
+  .tx-bar-value {
+    flex: 0 0 auto;
+    min-width: 46px;
+    text-align: right;
+    font-weight: 800;
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .tx-bar-tx .tx-bar-label,
+  .tx-bar-tx .tx-bar-value { color: #f9a8d4; }
+
+  /* How much weight a figure carries. */
+  .tx-basis {
+    display: inline-block;
+    margin-right: 4px;
+    padding: 0 3px;
+    border-radius: 3px;
+    font-size: 0.38rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    vertical-align: 1px;
+  }
+
+  .tx-basis-reported { background: rgba(16, 185, 129, 0.28); color: #6ee7b7; }
+  .tx-basis-derived { background: rgba(96, 165, 250, 0.25); color: #93c5fd; }
+  .tx-basis-modelled { background: rgba(251, 191, 36, 0.25); color: #fde68a; }
+  .tx-basis-contested { background: rgba(239, 68, 68, 0.25); color: #fca5a5; }
+  .tx-basis-none { background: rgba(161, 161, 170, 0.25); color: #d4d4d8; }
+
+  .tx-sources {
+    margin: 0;
+    padding-left: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .tx-sources li {
+    font-size: 0.44rem;
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.4);
+  }
+
+  .tx-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tx-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: ui-monospace, monospace;
+    font-size: 0.5rem;
+  }
+
+  .tx-table th {
+    text-align: left;
+    padding: 3px 5px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.44rem;
+    letter-spacing: 0.1em;
+    white-space: nowrap;
+  }
+
+  .tx-table td {
+    padding: 4px 5px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.75);
+    vertical-align: middle;
+  }
+
+  .tx-table .num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .tx-table .strong { color: #fff; font-weight: 800; }
+  .tx-table .dim { color: rgba(255, 255, 255, 0.5); }
+
+  /* Context line under each row — small, wraps, never fights the numbers. */
+  .tx-table-sub td {
+    padding: 0 5px 5px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    font-size: 0.43rem;
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.36);
+    white-space: normal;
+  }
+
+  .tx-pill {
+    display: inline-block;
+    padding: 1px 4px;
+    border-radius: 4px;
+    font-size: 0.42rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+
+  .tx-pill-rec { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; }
+  .tx-pill-med { background: rgba(96, 165, 250, 0.18); color: #93c5fd; }
+  .tx-pill-none { background: rgba(239, 68, 68, 0.18); color: #fca5a5; }
+
+  .tx-sort {
+    background: none;
+    border: none;
+    padding: 0;
+    color: inherit;
+    font: inherit;
+    letter-spacing: inherit;
+    cursor: pointer;
+    text-transform: uppercase;
+  }
+
+  .tx-sort:hover { color: #fde68a; }
+  .tx-sort.on { color: #fbbf24; }
+
+  .tx-rep-row { cursor: pointer; }
+  .tx-rep-row:hover td { background: rgba(255, 255, 255, 0.05); }
+  .tx-rep-row.on td { background: rgba(16, 185, 129, 0.12); }
+
+  /* Placeholder until real portraits are dropped in. */
+  .tx-rep-face {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    margin-right: 4px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: rgba(239, 68, 68, 0.75);
+    color: #fff;
+    font-size: 0.4rem;
+    font-weight: 900;
+    vertical-align: middle;
+    flex-shrink: 0;
+  }
+
+  .tx-rep-face.dem { background: rgba(59, 130, 246, 0.8); }
+
+  .tx-rep-face img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* Solid chip, dark text. Deliberately its own class set: reusing the card's
+     .tx-stance-* here would drag their `color` in and the digit would end up the
+     same colour as its own background. */
+  .tx-score {
+    display: inline-block;
+    min-width: 14px;
+    padding: 0 3px;
+    border-radius: 3px;
+    text-align: center;
+    font-weight: 900;
+    color: #0c0a09;
+  }
+
+  .tx-score-s0 { background: #a1a1aa; }
+  .tx-score-s1 { background: #34d399; }
+  .tx-score-s2 { background: #a3e635; }
+  .tx-score-s3 { background: #fbbf24; }
+  .tx-score-s4 { background: #fb923c; }
+  .tx-score-s5 { background: #f87171; }
 
   /* Sits with the other tools but reads as the primary action on the map. */
   .tx-btn-full {
@@ -1626,11 +2482,15 @@
   /* --- lawmaker pins --- */
   .tx-pin { cursor: pointer; }
 
+  /* stroke comes from a per-rep gradient set inline; a little thicker than
+     before so the party/stance blend is actually readable at pin size. */
   .tx-pin-halo {
     fill: rgba(244, 63, 94, 0.1);
     stroke: #fb7185;
-    stroke-width: 1.6px;
-    transition: all 0.2s ease;
+    stroke-width: 2.2px;
+    transition:
+      fill 0.2s ease,
+      stroke-width 0.2s ease;
   }
 
   .tx-pin-core {
@@ -1639,9 +2499,10 @@
     filter: drop-shadow(0 0 5px rgba(251, 113, 133, 0.8));
   }
 
+  /* Being on the mail list tints the ring's fill; the gradient stroke stays so
+     party and stance are never lost. */
   .tx-pin-halo.tx-pin-on {
-    fill: rgba(16, 185, 129, 0.12);
-    stroke: #34d399;
+    fill: rgba(16, 185, 129, 0.2);
   }
 
   .tx-pin-core.tx-pin-on {
@@ -1695,17 +2556,31 @@
   }
 
   /* --- overlays --- */
+  /* Collapsed, the map stage is only ~270px tall, and the key had grown past
+     it. Cap it to the stage and let it scroll rather than spill. */
   .tx-legend {
     position: absolute;
     right: 8px;
     bottom: 8px;
-    background: rgba(5, 7, 12, 0.92);
+    top: 8px;
+    background: rgba(5, 7, 12, 0.94);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 8px;
-    padding: 8px 10px;
+    padding: 7px 9px;
     font-family: ui-monospace, monospace;
     z-index: 6;
-    max-width: 190px;
+    width: min(180px, 58%);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+
+  /* Roomy enough on a real screen to sit as a small card again. */
+  @media (min-height: 520px) {
+    .tx-legend {
+      top: auto;
+      max-height: calc(100% - 16px);
+    }
   }
 
   .tx-legend h4 {

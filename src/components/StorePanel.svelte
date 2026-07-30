@@ -1782,7 +1782,7 @@
                              copy keeps the map's zoom, pan and open rep card. -->
                         <div
                           class={isMapFullscreen
-                            ? "fixed inset-0 z-[99999] bg-black p-2 sm:p-4"
+                            ? "fixed inset-0 z-[99999] bg-black overflow-hidden p-2 sm:p-4 max-h-[100dvh]"
                             : "absolute inset-0"}
                           in:fade={{ duration: 200 }}
                         >
@@ -1790,7 +1790,7 @@
                             {lawmakers}
                             selectedEmails={selectedReps}
                             focusRequest={mapFocusRequest}
-                            title="{lawmakers.length} OFFICES"
+                            title="{lawmakers.length} 🐘🫏"
                             isFullscreen={isMapFullscreen}
                             onToggleFullscreen={() =>
                               (isMapFullscreen = !isMapFullscreen)}
