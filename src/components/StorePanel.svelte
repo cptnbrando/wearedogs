@@ -1296,7 +1296,7 @@
 
     <!-- Main Workspace -->
     <div
-      class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 grid grid-cols-1 grid-rows-1"
+      class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 grid grid-cols-1 grid-rows-1 image-panel"
       bind:clientHeight={workspaceH}
       onpointerdown={handleWorkspacePointerDown}
       onpointerup={handleWorkspacePointerUp}
@@ -3132,6 +3132,10 @@
     color: rgba(113, 113, 122, 0.9);
     font-weight: 400;
     font-size: 0.94em;
+  }
+
+  .image-panel {
+    padding: 15px;
   }
 
   @keyframes alarmGlow {
