@@ -1419,6 +1419,28 @@
               </div>
             {/if}
 
+            <!-- Every claim in the record above is traceable, so the citations
+                 ship with it rather than living in a spreadsheet somewhere. -->
+            {#if infoRep.sources?.length}
+              <details class="tx-card-sources">
+                <summary
+                  ><span class="tx-tag">SOURCES</span>
+                  {infoRep.sources.length} cited</summary
+                >
+                <ul>
+                  {#each infoRep.sources as source (source.url)}
+                    <li>
+                      <a
+                        href={source.url}
+                        target="_blank"
+                        rel="noopener noreferrer">{source.label} ↗</a
+                      >
+                    </li>
+                  {/each}
+                </ul>
+              </details>
+            {/if}
+
             {#if infoRep.email}
               <a class="tx-card-email" href="mailto:{infoRep.email}"
                 >{infoRep.email}</a
@@ -1838,10 +1860,11 @@
                 {/each}
               </div>
               <p class="tx-stats-note">
-                A 1 supports legal hemp; a 5 is driving the ban. Most offices
-                have no researched record yet — that's the homework, and it's
-                exactly why this page exists. Tap any row in the table below to
-                fly to them on the map.
+                A 1 supports legal hemp; a 5 is driving the ban. Every office
+                here is now rated from its own roll call — SB 3 in the House and
+                on Senate concurrence, HB 46, and authorship of the ban bills —
+                with the citations on each card. Tap any row in the table below
+                to fly to them on the map.
               </p>
             </section>
 
@@ -3346,6 +3369,49 @@
     color: rgba(255, 255, 255, 0.45);
     margin-top: 5px;
     line-height: 1.45;
+  }
+
+  .tx-card-sources {
+    font-size: 0.5rem;
+    color: rgba(255, 255, 255, 0.45);
+    margin-top: 5px;
+    line-height: 1.45;
+  }
+
+  .tx-card-sources summary {
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .tx-card-sources summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .tx-card-sources ul {
+    margin: 4px 0 0;
+    padding-left: 10px;
+    list-style: none;
+  }
+
+  .tx-card-sources li {
+    margin-top: 3px;
+    text-indent: -6px;
+    padding-left: 6px;
+  }
+
+  .tx-card-sources li::before {
+    content: "· ";
+    color: rgba(255, 255, 255, 0.3);
+  }
+
+  .tx-card-sources a {
+    color: rgba(255, 255, 255, 0.5);
+    text-decoration: none;
+  }
+
+  .tx-card-sources a:hover {
+    color: #6ee7b7;
+    text-decoration: underline;
   }
 
   .tx-card-email {

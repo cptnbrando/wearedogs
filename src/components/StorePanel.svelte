@@ -2372,12 +2372,12 @@
                               {/if}
                             </button>
                             <button
-                              onclick={() =>
-                                handleCopyRepsEmails(campaignRecipients)}
-                              class="py-2.5 px-3 bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-300 hover:text-white font-bold rounded-xl text-[11px] tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow"
-                              title="Copy all email addresses"
+                              onclick={() => handleCopyRepsEmails(selectedReps)}
+                              disabled={selectedReps.length === 0}
+                              class="py-2.5 px-3 bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-300 hover:text-white font-bold rounded-xl text-[11px] tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow disabled:opacity-50 disabled:cursor-not-allowed"
+                              title="Copy selected email addresses"
                             >
-                              📋 COPY ALL
+                              📋 COPY
                             </button>
                           </div>
 
