@@ -1,0 +1,42 @@
+ONGOING EMERGENCY: FIGHTING THE TEXAS CANNABIS & HEMP BAN
+
+On Friday July 31st, every consumable THC product except Delta-9 is being pulled off all Texas shelves, after a 21 day formal notice was published in the Texas Register by the Texas DSHS on July 10th. Come November 12th, the federal reclassification deadline takes the rest: every remaining THC product in Texas, Delta-9 included, is gone. This is a decision that harms Texas more than it helps.
+
+Banning these products destroys hundreds of Texas small businesses, eliminates thousands of local jobs, wipes out millions in tax revenue (this is a $5.5 billion dollars / yr Texas industry), and severely curtails personal liberty. It means thousands of people get fired, thousands of businesses shut down permanently, and billions of dollars of revenue go to illegal untested markets that harm more people and produce nothing of value for Texas.
+
+The State of Texas and state regulatory bodies are taking aggressive steps to criminalize and ban low-dose consumable hemp and Delta-9 THC beverages (5mg and 10mg products). Millions of Texans rely on these safe, lab-tested, hemp-derived beverages as a healthy alternative to alcohol and pharmaceutical drugs.
+
+Austin police say they will treat possession of Delta-8 as a state jail felony, which carries a punishment of 180 days to 2 years behind bars and a fine of up to $10,000. [\[From KUT\]](https://www.kut.org/business/2026-07-28/austin-tx-delta-8-ban-police-felony-thc-dshs)
+
+WE ARE TAKING ACTION TO:
+
+Rally Texas voters and consumers to demand their state representatives vote NO on any consumable hemp ban.
+
+HOW YOU CAN HELP IMMEDIATELY:
+Tap the "EMAIL ALL TEXAS LAWMAKERS NOW" button below. It will automatically load your email app with pre-selected state senators, the Lt. Governor, and the Speaker of the House, along with an official constituent letter urging them to protect hemp and cannabis rights in Texas.
+
+Visit [Total Wine's Texas hemp action page](https://totalwineandmore.quorum.us/campaigns/161953) for more ways to contact our leaders.
+
+Since 2018 CBD and THC Delta-8 products have entered Texas gas stations, smoke shops, and liquor stores. They now take at least 5 billion dollars annually. This revenue growth in just 8 years almost guarantees it will overtake the alcohol market in Texas at some point. And it should- alcohol is far more dangerous. Any person who consumes these toxins will agree: society is safer with a bottle of willie nelson's tonic than a bottle of jack daniels. There's significantly less aggression, less physical damage of the liver and body, less long term side effects, less pain.
+
+And with a market share like that, it is clear banning these products are not the will of the people. Not by any measure of any kind.
+
+The right solution here is to continue discussion. For the kid who goes to a party for the first time, would you prefer they had THC or liquor? For the veteran seeking pain relief, THC or liquor?
+
+13,701 people die from alcohol every year in Texas alone. Alcohol-related deaths in Texas significantly outpace all drug overdoses combined (which peaked around ~5,500 deaths per year in Texas, with fentanyl accounting for ~1,900). 26.8% of Texas adults report heavy drinking. Deaths related to cannabinoids are extremely rare.
+
+This ban does not aid any of these statistics, it very much worsens the problems we face.
+
+By wiping out a multi-billion dollar legal market overnight, you are not eliminating demand. You are simply forcing consumers back into dangerous alternatives. For some, that means turning to the unregulated illicit street market. For others, it means things worse than weed or alcohol.
+
+I am asking for the decision to be extended to the federal November 12th reclassification deadline.
+
+Continuing with the upcoming Friday ban, the small 21 day notice, it means real businesses lose real wages. A sharp hit against a very young industry for this state, that means real businesses closing down real employees getting fired real people being hurt and displaced.
+
+As I said above, this decision is not the will of the people. The 5 billion dollar market share speaks for itself, and that market doesn't just end. Illegal weed does very very real harm. The cheap illegal vapes, cartridges, and other products being sold send people to the ER frequently. Millions of dollars of new entirely unregulated, untaxed illegal sales, that's just the first month. Second month that illegal market only continues to grow.
+
+A real solution involves FDA regulations, better guidelines (guardrails, not an outright ban), more oversight, more investment. New Mexico is 10 hours away, Arkansas is 5 hours away, Oklahoma is 3 hours away, all of them have massive taxed regulated markets for these products and Texas hands it to them and the multi-billion dollar illegal street dealer scene. For nothing in return. That is what Friday is about, and I am suggesting to push it to November for now.
+
+By extending this decision to November, Texas businesses stand a far better chance of handling the financial shock of their upfront investments. Over 9,100 licensed hemp retailers and producers across Texas operate in a multi-billion dollar legal industry. Eliminating so many major product lines on a sudden 21-day notice erases 10% to 20% or more of an average storefront's revenue overnight— on top of existing regulatory pressures that have already gutted product inventory. Businesses holding hundreds of thousands of dollars in compliant inventory face catastrophic losses, inventory embargos, and sudden closure. Real people will be fired, dozens of small Texas businesses will shut their doors permanently, and Texas workers will bear the brunt of an unworked timeline.
+
+An extension to the federal November deadline saves real people, and real lives. Please, we implore you to reconsider this.
