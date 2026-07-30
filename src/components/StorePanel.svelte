@@ -578,10 +578,15 @@
 
   // The lawmaker roster is the single source of truth for who gets mailed.
   // Campaigns that predate it can still supply a bare contactReps.emails list.
+  // Offices without an address are skipped: the federal ones take constituent
+  // mail through a webform, and an empty entry would put a stray comma in the
+  // mailto and an unusable blank row in the picker.
   let campaignRecipients = $derived(
     lawmakers.length > 0
-      ? lawmakers.map((l) => l.email)
-      : (selectedCampaign?.contactReps?.emails ?? []),
+      ? lawmakers.map((l) => l.email).filter((e) => e && e.trim())
+      : (selectedCampaign?.contactReps?.emails ?? []).filter(
+          (e) => e && e.trim(),
+        ),
   );
 
   /** Who to select when we can't do better — the confirmed priority offices. */
@@ -1080,11 +1085,12 @@
             type: "image",
             url: img,
           })) || [];
-    // Campaigns that ship a lawmaker roster get an interactive map slide on
-    // the end — "SORT THE MAIL" jumps straight to it.
-    return selectedCampaign?.lawmakers?.length > 0
-      ? [...base, { type: "map", url: "lawmaker-map" }]
-      : base;
+    // Campaigns that ship a lawmaker roster get an interactive map slide. It
+    // goes second — right after the lead image — because the map is the thing
+    // that actually does something, and buried on the end nobody found it.
+    if (!(selectedCampaign?.lawmakers?.length > 0)) return base;
+    const map = { type: "map", url: "lawmaker-map" };
+    return base.length === 0 ? [map] : [base[0], map, ...base.slice(1)];
   });
 
   let currentMediaItem = $derived(campaignMedia[activeImageIdx] || null);
@@ -1214,21 +1220,22 @@
   <div
     class="store-container w-full h-full relative font-mono text-zinc-100 flex flex-col"
   >
-    <!-- Header Controls -->
+    <!-- Header Controls. Shorter on a phone: this bar sits above the fold on
+         every campaign, so its height is pure cost on a small screen. -->
     <div
-      class="flex justify-between items-center px-4 h-14 bg-zinc-950/20 border-b border-zinc-800 shrink-0"
+      class="flex justify-between items-center px-2.5 sm:px-4 h-9 sm:h-14 bg-zinc-950/20 border-b border-zinc-800 shrink-0"
     >
       <div class="flex items-center h-full">
         {#if currentStoreMode === "merch" && selectedProduct}
           <button
-            class="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors duration-200 text-sm font-semibold cursor-pointer py-1 px-2.5 hover:bg-zinc-900/60 rounded-lg"
+            class="flex items-center gap-1.5 sm:gap-2 text-zinc-400 hover:text-white transition-colors duration-200 text-[11px] sm:text-sm font-semibold cursor-pointer py-0.5 sm:py-1 px-1.5 sm:px-2.5 hover:bg-zinc-900/60 rounded-lg whitespace-nowrap"
             onclick={deselectProduct}
           >
             <ArrowLeft size={16} /> BACK TO CATALOG
           </button>
         {:else if currentStoreMode === "fundraising" && selectedCampaign}
           <button
-            class="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors duration-200 text-sm font-semibold cursor-pointer py-1 px-2.5 hover:bg-zinc-900/60 rounded-lg"
+            class="flex items-center gap-1.5 sm:gap-2 text-zinc-400 hover:text-white transition-colors duration-200 text-[11px] sm:text-sm font-semibold cursor-pointer py-0.5 sm:py-1 px-1.5 sm:px-2.5 hover:bg-zinc-900/60 rounded-lg whitespace-nowrap"
             onclick={deselectCampaign}
           >
             <ArrowLeft size={16} /> BACK TO CAMPAIGNS
@@ -1913,30 +1920,10 @@
                     {/if}
                   {/key}
 
-                  <!-- Navigation Chevrons -->
-                  {#if campaignMedia.length > 1}
-                    <button
-                      class="absolute left-3 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/85 border border-zinc-800 text-white rounded-full w-8 h-8 flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 cursor-pointer z-20"
-                      onclick={() => {
-                        scrollDirection = -1;
-                        activeImageIdx =
-                          (activeImageIdx - 1 + campaignMedia.length) %
-                          campaignMedia.length;
-                      }}
-                    >
-                      ◀
-                    </button>
-                    <button
-                      class="absolute right-3 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/85 border border-zinc-800 text-white rounded-full w-8 h-8 flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 cursor-pointer z-20"
-                      onclick={() => {
-                        scrollDirection = 1;
-                        activeImageIdx =
-                          (activeImageIdx + 1) % campaignMedia.length;
-                      }}
-                    >
-                      ▶
-                    </button>
-                  {/if}
+                  <!-- No inline carousel chevrons: they sat on top of the map's
+                       lawmaker popup and swallowed taps meant for it. The
+                       thumbnail strip, the dots and swipe all still change
+                       slides, and the fullscreen view keeps its own arrows. -->
 
                   <!-- Indicator dots -->
                   <div
@@ -2451,26 +2438,64 @@
                                       onchange={() => handleToggleRep(email)}
                                       class="accent-emerald-500 w-3.5 h-3.5 cursor-pointer"
                                     />
-                                    <div class="flex-1 min-w-0 flex flex-col">
+                                    <!-- Three stacked rows: name, then the areas
+                                         they serve, then how to reach them. The
+                                         name and region used to share one row
+                                         and collided on a phone. -->
+                                    <div
+                                      class="flex-1 min-w-0 flex flex-col gap-0.5"
+                                    >
                                       <div
-                                        class="font-bold flex items-center justify-between gap-1"
+                                        class="font-bold flex items-center gap-1.5 leading-tight"
                                       >
-                                        <span
-                                          class="truncate flex items-center gap-1.5"
-                                          >{#if isPriority}<span
-                                              class="text-amber-400 shrink-0"
-                                              >★</span
-                                            >{/if}{meta.name}</span
-                                        >
-                                        <span
-                                          class="text-[9px] font-mono text-zinc-500 shrink-0"
-                                          >{meta.region}</span
+                                        {#if isPriority}
+                                          <span class="text-amber-400 shrink-0"
+                                            >★</span
+                                          >
+                                        {/if}
+                                        {#if meta.party}
+                                          <span
+                                            class="shrink-0 px-1 rounded text-[9px] font-black leading-tight {meta.party ===
+                                            'R'
+                                              ? 'bg-red-600 text-white'
+                                              : meta.party === 'D'
+                                                ? 'bg-blue-600 text-white'
+                                                : 'bg-zinc-500 text-black'}"
+                                            title={meta.party === "R"
+                                              ? "Republican"
+                                              : meta.party === "D"
+                                                ? "Democrat"
+                                                : meta.party}>{meta.party}</span
+                                          >
+                                        {/if}
+                                        <span class="min-w-0 break-words"
+                                          >{meta.name}</span
                                         >
                                       </div>
+
+                                      {#if meta.region || meta.counties}
+                                        <div
+                                          class="text-[10px] font-mono text-zinc-400 leading-snug break-words"
+                                        >
+                                          {meta.region || meta.counties}
+                                        </div>
+                                      {/if}
+
                                       <div
-                                        class="text-[10px] font-mono text-zinc-500 truncate"
+                                        class="text-[10px] font-mono text-zinc-500 leading-snug flex flex-col gap-0.5"
                                       >
-                                        {email}
+                                        <span class="break-all">{email}</span>
+                                        {#if meta.phone}
+                                          <a
+                                            href="tel:{meta.phone.replace(
+                                              /[^\d+]/g,
+                                              '',
+                                            )}"
+                                            onclick={(e) => e.stopPropagation()}
+                                            class="text-emerald-400 hover:text-emerald-300 underline decoration-emerald-500/40 w-fit"
+                                            >☎ {meta.phone}</a
+                                          >
+                                        {/if}
                                       </div>
                                     </div>
                                   </div>

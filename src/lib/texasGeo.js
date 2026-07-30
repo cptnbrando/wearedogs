@@ -175,10 +175,24 @@ export const TEXAS_OUTLINE = [
 /* Neighbouring states & Mexico — simplified context shapes            */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Neighbouring states carry their cannabis status and roughly what that market
+ * is worth a year, because "the money walks across the state line" is the whole
+ * economic argument of the campaign.
+ *
+ * `cannabis`: "rec" = adult-use retail, "med" = medical programme only,
+ * null = no claim made.
+ * `revenue` figures are ANNUAL RETAIL SALES, rounded and approximate — they move
+ * every reporting period, so treat them as orders of magnitude and re-check
+ * before quoting them anywhere official.
+ */
 export const NEIGHBORS = [
   {
     id: "ok",
     name: "OKLAHOMA",
+    abbr: "OK",
+    cannabis: "med",
+    revenue: "~$700M/yr",
     labelAt: [-97.5, 35.6],
     coords: [
       [-103.0, 37.0],
@@ -194,6 +208,9 @@ export const NEIGHBORS = [
   {
     id: "nm",
     name: "NEW MEXICO",
+    abbr: "NM",
+    cannabis: "rec",
+    revenue: "~$1.1B/yr",
     labelAt: [-105.6, 34.2],
     coords: [
       [-109.05, 37.0],
@@ -210,6 +227,9 @@ export const NEIGHBORS = [
   {
     id: "ar",
     name: "ARKANSAS",
+    abbr: "AR",
+    cannabis: "med",
+    revenue: "~$280M/yr",
     labelAt: [-92.6, 34.8],
     coords: [
       [-94.62, 36.5],
@@ -228,6 +248,9 @@ export const NEIGHBORS = [
   {
     id: "la",
     name: "LOUISIANA",
+    abbr: "LA",
+    cannabis: "med",
+    revenue: "~$100M/yr",
     labelAt: [-92.2, 31.2],
     coords: [
       [-94.0431, 33.0195],
@@ -245,7 +268,13 @@ export const NEIGHBORS = [
   },
   {
     id: "mx",
+    // Deliberately no cannabis claim: possession is decriminalised and a medical
+    // framework exists, but there's no regulated retail market to put a number
+    // on, so asserting either symbol here would be wrong.
     name: "MEXICO",
+    abbr: "MX",
+    cannabis: null,
+    revenue: null,
     labelAt: [-102.8, 26.6],
     coords: [
       ...RIO_GRANDE,
@@ -604,10 +633,20 @@ export const RIVERS = [
 export const CITIES = [
   { name: "HOUSTON", lng: -95.3698, lat: 29.7604, tier: 1, pop: "2.3M" },
   { name: "SAN ANTONIO", lng: -98.4936, lat: 29.4241, tier: 1, pop: "1.5M", anchor: "end" },
-  { name: "DALLAS", lng: -96.797, lat: 32.7767, tier: 1, pop: "1.3M" },
+  // Dallas and Fort Worth are one metro on this map. Two tier-1 labels 28 miles
+  // apart just stacked on each other, so they read as the single place people
+  // actually call it — the midpoint of the two city centres. `short` is what the
+  // map draws (a 17-character label swamped the metroplex); the full name is
+  // kept for the quick-jump chip.
+  {
+    name: "DALLAS–FORT WORTH",
+    short: "DFW",
+    lng: -97.064,
+    lat: 32.766,
+    tier: 1,
+    pop: "2.3M",
+  },
   { name: "AUSTIN", lng: -97.7431, lat: 30.2672, tier: 1, pop: "980K", capital: true },
-  // Fort Worth sits just west of Dallas — flip its label so the two don't stack.
-  { name: "FORT WORTH", lng: -97.3308, lat: 32.7555, tier: 1, pop: "980K", anchor: "end" },
   { name: "EL PASO", lng: -106.485, lat: 31.7619, tier: 1, pop: "680K" },
 
   { name: "ARLINGTON", lng: -97.1081, lat: 32.7357, tier: 2, pop: "400K" },
