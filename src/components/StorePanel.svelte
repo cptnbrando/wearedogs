@@ -613,16 +613,37 @@
   let locationStatusText = $state("");
   let emailCopyTimeout = null;
 
-  // Sync selected reps when campaign changes. Defaults to the Senate and
-  // statewide offices: all 150 House districts at once would push the mailto
-  // past what most mail clients accept, so the House comes in through Find My
-  // Location, the checkboxes, or an explicit Select All.
+  /**
+   * Recipients per mailto hand-off. Mail clients cap the URL they accept —
+   * Windows hands ShellExecute roughly 2,000 characters and the petition body
+   * already eats most of that — so a single 181-address blast gets silently
+   * truncated or dropped on the floor. Forty addresses is inside every client
+   * worth supporting, and keeps the number of hand-offs down to something a
+   * person will actually finish.
+   */
+  const MAIL_BATCH_SIZE = 40;
+
+  /**
+   * The standardised default send: every Senate, statewide and federal office
+   * that publishes an address. It's a fixed list that fits in one mailto, so
+   * the big green button does something valid and predictable before anyone
+   * touches a checkbox. All 150 House districts at once would blow the limit —
+   * those come in through Find My Location, the stance buttons, or REACH ALL.
+   */
+  let defaultReps = $derived.by(() => {
+    const nonHouse = lawmakers
+      .filter((l) => l.email && l.email.trim() && l.chamber !== "house")
+      .map((l) => l.email);
+    if (nonHouse.length > 0) return nonHouse;
+    return campaignRecipients.slice(0, MAIL_BATCH_SIZE);
+  });
+
+  const DEFAULT_GROUP_LABEL = "Senate, statewide & federal offices";
+
+  // Sync selected reps when campaign changes.
   $effect(() => {
     if (campaignRecipients.length > 0) {
-      const nonHouse = lawmakers
-        .filter((l) => l.email && l.email.trim() && l.chamber !== "house")
-        .map((l) => l.email);
-      selectedReps = nonHouse.length > 0 ? nonHouse : [...campaignRecipients];
+      selectedReps = [...defaultReps];
       locationStatusText = "";
     }
   });
@@ -643,16 +664,50 @@
     };
   }
 
+  function buildMailto(emails, contactReps) {
+    return (
+      `mailto:?bcc=${encodeURIComponent(emails.join(","))}` +
+      `&subject=${encodeURIComponent(contactReps?.subject ?? "")}` +
+      `&body=${encodeURIComponent(contactReps?.body ?? "")}`
+    );
+  }
+
+  function chunkEmails(emails, size = MAIL_BATCH_SIZE) {
+    const out = [];
+    for (let i = 0; i < emails.length; i += size) out.push(emails.slice(i, i + size));
+    return out;
+  }
+
+  /**
+   * One send, however many recipients. Anything that fits goes straight to the
+   * mail client; anything that doesn't opens the batch sheet rather than
+   * handing the OS a URL it will quietly truncate.
+   */
+  function sendToEmails(emails, contactReps, kind = "selection") {
+    const list = emails.filter((e) => e && e.trim());
+    if (!contactReps || list.length === 0) return;
+    if (list.length > MAIL_BATCH_SIZE) {
+      openBatchSheet(list, contactReps, kind);
+      return;
+    }
+    window.location.href = buildMailto(list, contactReps);
+  }
+
+  /**
+   * The primary button, with the sorter closed. Falls back to the standardised
+   * default group so it is never a dead click, even if someone opened the
+   * sorter, cleared every box and collapsed it again.
+   */
   function handleBlastEm(contactReps) {
-    if (!contactReps || campaignRecipients.length === 0) return;
-    const mailtoUrl = `mailto:?bcc=${encodeURIComponent(campaignRecipients.join(","))}&subject=${encodeURIComponent(contactReps.subject)}&body=${encodeURIComponent(contactReps.body)}`;
-    window.location.href = mailtoUrl;
+    sendToEmails(
+      selectedReps.length > 0 ? selectedReps : defaultReps,
+      contactReps,
+      "selection",
+    );
   }
 
   function handleEmailSelected(contactReps) {
-    if (!contactReps || selectedReps.length === 0) return;
-    const mailtoUrl = `mailto:?bcc=${encodeURIComponent(selectedReps.join(","))}&subject=${encodeURIComponent(contactReps.subject)}&body=${encodeURIComponent(contactReps.body)}`;
-    window.location.href = mailtoUrl;
+    sendToEmails(selectedReps, contactReps, "selection");
   }
 
   // Drives the map: ticking a name flies to them, unticking pulls back out.
@@ -870,6 +925,167 @@
       .catch((err) => {
         console.error("Failed to copy emails:", err);
       });
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Sorting the mail by where they actually stand                       */
+  /* ------------------------------------------------------------------ */
+
+  /**
+   * banLikelihood runs 1 (supports legal hemp) to 5 (driving the ban); 0 or
+   * absent means we have no record for that office and it stays out of every
+   * stance bucket rather than being guessed at.
+   */
+  function stanceScore(rep) {
+    const n = Number(rep?.banLikelihood);
+    return Number.isFinite(n) && n >= 1 && n <= 5 ? Math.round(n) : 0;
+  }
+
+  const STANCE_LABELS = {
+    0: "No record yet",
+    1: "Supports legal hemp",
+    2: "Prefers regulation over a ban",
+    3: "Mixed / unclear",
+    4: "Leans toward the ban",
+    5: "Driving the ban",
+  };
+
+  // Full class strings, not interpolated ones — Tailwind scans this file as
+  // plain text and never sees a class it has to compute.
+  const STANCE_GROUPS = [
+    {
+      id: "for",
+      label: "🌿 THOSE FOR WEED",
+      range: "SCORE 1–2",
+      blurb:
+        "Already voting your way. Thank them and ask them to hold the line.",
+      match: (s) => s === 1 || s === 2,
+      btn: "bg-emerald-950/50 hover:bg-emerald-900/60 border-emerald-500/40 text-emerald-300",
+      count: "text-emerald-400",
+    },
+    {
+      id: "middle",
+      label: "🤔 THOSE IN THE MIDDLE",
+      range: "SCORE 3",
+      blurb: "Mixed or unclear record — these are the votes still in play.",
+      match: (s) => s === 3,
+      btn: "bg-amber-950/50 hover:bg-amber-900/60 border-amber-500/40 text-amber-300",
+      count: "text-amber-400",
+    },
+    {
+      id: "against",
+      label: "🚫 THOSE AGAINST WEED",
+      range: "SCORE 4–5",
+      blurb: "Leaning toward the ban or driving it. They need to hear from you.",
+      match: (s) => s === 4 || s === 5,
+      btn: "bg-red-950/50 hover:bg-red-900/60 border-red-500/40 text-red-300",
+      count: "text-red-400",
+    },
+  ];
+
+  /** Mailable addresses per stance bucket, in roster order. */
+  let stanceBuckets = $derived.by(() => {
+    const out = {};
+    for (const g of STANCE_GROUPS) {
+      out[g.id] = lawmakers
+        .filter((l) => l.email && l.email.trim() && g.match(stanceScore(l)))
+        .map((l) => l.email);
+    }
+    return out;
+  });
+
+  /** Campaigns without a scored roster don't get the stance row at all. */
+  let hasStanceData = $derived(
+    STANCE_GROUPS.some((g) => (stanceBuckets[g.id] ?? []).length > 0),
+  );
+
+  function handleSelectStanceGroup(group) {
+    const emails = stanceBuckets[group.id] ?? [];
+    if (emails.length === 0) return;
+    selectedReps = [...emails];
+    locationStatusText = `${group.label} — ${emails.length} offices selected (${group.range.toLowerCase()}). ${group.blurb}`;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Reaching the whole roster, forty at a time                          */
+  /* ------------------------------------------------------------------ */
+
+  let showBatchSheet = $state(false);
+  let batchKind = $state("all");
+  let batchContactReps = $state(null);
+  let batchEmails = $state([]);
+  /** Batch indexes already handed to the mail client or copied. */
+  let batchesDone = $state([]);
+
+  let batches = $derived(chunkEmails(batchEmails));
+
+  function openBatchSheet(emails, contactReps, kind = "all") {
+    batchEmails = [...emails];
+    batchContactReps = contactReps;
+    batchKind = kind;
+    batchesDone = [];
+    showBatchSheet = true;
+  }
+
+  function markBatchDone(i) {
+    if (!batchesDone.includes(i)) batchesDone = [...batchesDone, i];
+  }
+
+  function handleOpenBatch(i) {
+    const batch = batches[i];
+    if (!batch || !batchContactReps) return;
+    markBatchDone(i);
+    window.location.href = buildMailto(batch, batchContactReps);
+  }
+
+  function handleCopyBatch(i) {
+    const batch = batches[i];
+    if (!batch) return;
+    markBatchDone(i);
+    handleCopyRepsEmails(batch);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* One random persuadable office                                       */
+  /* ------------------------------------------------------------------ */
+
+  /**
+   * Scores 2–4 are everyone who isn't a locked-in vote in either direction —
+   * the offices where one well-argued email is still worth sending. One name
+   * with a story attached is a far easier ask than a list of 181.
+   */
+  let persuadableReps = $derived(
+    lawmakers.filter((l) => {
+      const s = stanceScore(l);
+      return l.email && l.email.trim() && s >= 2 && s <= 4;
+    }),
+  );
+
+  let showRandomSheet = $state(false);
+  let randomRep = $state(null);
+
+  function rollRandomRep() {
+    const pool = persuadableReps.filter((l) => l.email !== randomRep?.email);
+    const from = pool.length > 0 ? pool : persuadableReps;
+    if (from.length === 0) return;
+    randomRep = from[Math.floor(Math.random() * from.length)];
+  }
+
+  function openRandomSheet() {
+    if (persuadableReps.length === 0) return;
+    randomRep = null;
+    rollRandomRep();
+    showRandomSheet = true;
+  }
+
+  function handleMailRandomRep(contactReps) {
+    if (!randomRep?.email) return;
+    sendToEmails([randomRep.email], contactReps, "random");
+  }
+
+  function handleAddRandomRep() {
+    if (!randomRep?.email || selectedReps.includes(randomRep.email)) return;
+    selectedReps = [...selectedReps, randomRep.email];
   }
 
   // Load products and campaigns on mount
@@ -2321,12 +2537,30 @@
                         >
                           <!-- BLAST 'EM / SEND MAIL Primary Action Button -->
                           {#if !showSortMailPanel}
+                            <!-- Untouched, this sends to the standardised
+                                 default group — a fixed list that fits in one
+                                 mailto — so the button is valid before anyone
+                                 opens the sorter. The subtitle spells out
+                                 exactly who is about to be mailed. -->
+                            {@const blastList =
+                              selectedReps.length > 0
+                                ? selectedReps
+                                : defaultReps}
                             <button
                               onclick={() =>
                                 handleBlastEm(selectedCampaign.contactReps)}
-                              class="w-full py-4 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-black font-black rounded-xl text-xs sm:text-sm tracking-widest uppercase transition-all duration-200 flex items-center justify-center gap-2 shadow-xl shadow-emerald-950/40 hover:scale-[1.01] active:scale-[0.99] cursor-pointer text-center"
+                              class="w-full py-4 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-black font-black rounded-xl text-xs sm:text-sm tracking-widest uppercase transition-all duration-200 flex flex-col items-center justify-center gap-0.5 shadow-xl shadow-emerald-950/40 hover:scale-[1.01] active:scale-[0.99] cursor-pointer text-center"
                             >
-                              💌 SEND PETITION EMAIL
+                              <span class="flex items-center gap-1.5">
+                                💌 SEND PETITION EMAIL ({blastList.length})
+                              </span>
+                              <span
+                                class="text-[10px] font-mono text-zinc-950/80 font-semibold normal-case tracking-normal px-2"
+                              >
+                                {blastList === defaultReps
+                                  ? DEFAULT_GROUP_LABEL
+                                  : `${blastList.length} selected recipients`}
+                              </span>
                             </button>
                           {:else}
                             <button
@@ -2366,7 +2600,7 @@
                                   ? "▲"
                                   : "▼"}
                               {:else}
-                                📬 SORT THE MAIL FOR 'EM {showSortMailPanel
+                                📬 SORT THE MAIL{showSortMailPanel
                                   ? "▲"
                                   : "▼"}
                               {/if}
@@ -2421,6 +2655,91 @@
                                   </button>
                                 </div>
                               </div>
+
+                              <!-- Sort by where they actually stand. Each
+                                   button replaces the selection outright, so
+                                   what the send button says is always what the
+                                   send button does. -->
+                              {#if hasStanceData}
+                                <div
+                                  class="flex flex-col gap-2 pb-2.5 border-b border-zinc-850"
+                                >
+                                  <div
+                                    class="text-[10px] font-mono text-zinc-400 font-bold uppercase tracking-wider"
+                                  >
+                                    SORT BY WHERE THEY STAND ON WEED
+                                  </div>
+
+                                  <div
+                                    class="grid grid-cols-1 sm:grid-cols-3 gap-2"
+                                  >
+                                    {#each STANCE_GROUPS as g (g.id)}
+                                      {@const groupEmails =
+                                        stanceBuckets[g.id] ?? []}
+                                      <button
+                                        onclick={() =>
+                                          handleSelectStanceGroup(g)}
+                                        disabled={groupEmails.length === 0}
+                                        title={g.blurb}
+                                        class="py-2 px-2.5 border rounded-lg font-mono text-[10px] font-bold transition-all flex flex-col items-center justify-center gap-0.5 text-center cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed {g.btn}"
+                                      >
+                                        <span class="leading-tight"
+                                          >{g.label}</span
+                                        >
+                                        <span
+                                          class="text-[9px] font-black {g.count}"
+                                          >{groupEmails.length} OFFICES · {g.range}</span
+                                        >
+                                      </button>
+                                    {/each}
+                                  </div>
+
+                                  <div class="grid grid-cols-2 gap-2">
+                                    <button
+                                      onclick={() =>
+                                        openBatchSheet(
+                                          campaignRecipients,
+                                          selectedCampaign.contactReps,
+                                          "all",
+                                        )}
+                                      disabled={campaignRecipients.length === 0}
+                                      title="Reach every office on the roster, in mail-client-sized batches"
+                                      class="py-2 px-2.5 bg-purple-950/50 hover:bg-purple-900/60 border border-purple-500/40 text-purple-200 rounded-lg font-mono text-[10px] font-bold transition-all flex flex-col items-center justify-center gap-0.5 text-center cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                                    >
+                                      <span class="leading-tight"
+                                        >📣 REACH ALL {campaignRecipients.length}</span
+                                      >
+                                      <span
+                                        class="text-[9px] font-black text-purple-300"
+                                        >IN BATCHES OF {MAIL_BATCH_SIZE}</span
+                                      >
+                                    </button>
+                                    <button
+                                      onclick={openRandomSheet}
+                                      disabled={persuadableReps.length === 0}
+                                      title="One persuadable office at random — score 2 to 4"
+                                      class="py-2 px-2.5 bg-sky-950/50 hover:bg-sky-900/60 border border-sky-500/40 text-sky-200 rounded-lg font-mono text-[10px] font-bold transition-all flex flex-col items-center justify-center gap-0.5 text-center cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                                    >
+                                      <span class="leading-tight"
+                                        >🎲 RANDOM REP</span
+                                      >
+                                      <span
+                                        class="text-[9px] font-black text-sky-300"
+                                        >PERSUADABLE · SCORE 2–4</span
+                                      >
+                                    </button>
+                                  </div>
+
+                                  <button
+                                    onclick={() =>
+                                      handleSelectAllReps(defaultReps)}
+                                    class="text-[10px] font-mono text-zinc-500 hover:text-emerald-400 underline decoration-zinc-700 transition-colors cursor-pointer self-start"
+                                  >
+                                    ↺ Reset to the default group ({defaultReps.length}
+                                    — {DEFAULT_GROUP_LABEL})
+                                  </button>
+                                </div>
+                              {/if}
 
                               {#if locationStatusText}
                                 <div
@@ -2558,9 +2877,18 @@
                                       selectedCampaign.contactReps,
                                     )}
                                   disabled={selectedReps.length === 0}
-                                  class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-black font-black rounded-lg text-xs tracking-wider transition-all duration-200 flex items-center justify-center gap-1.5 shadow cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                                  class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-black font-black rounded-lg text-xs tracking-wider transition-all duration-200 flex flex-col items-center justify-center gap-0.5 shadow cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                                 >
-                                  📩 EMAIL SELECTED REPS ({selectedReps.length})
+                                  <span
+                                    >📩 EMAIL SELECTED REPS ({selectedReps.length})</span
+                                  >
+                                  {#if selectedReps.length > MAIL_BATCH_SIZE}
+                                    <span
+                                      class="text-[9px] font-mono font-semibold normal-case tracking-normal text-zinc-950/80"
+                                      >too many for one email — opens the batch
+                                      sender</span
+                                    >
+                                  {/if}
                                 </button>
                                 <button
                                   onclick={() =>
@@ -2869,6 +3197,355 @@
         class="absolute bottom-6 left-1/2 -translate-x-1/2 bg-zinc-950/90 text-emerald-400 font-extrabold text-[10px] sm:text-xs uppercase tracking-widest px-4 py-2.5 rounded-xl shadow-2xl border border-emerald-500/40 z-50 flex items-center gap-2"
       >
         <span>✓ LAWMAKER EMAILS COPIED</span>
+      </div>
+    {/if}
+
+    <!-- BATCH SENDER — a mailto can't carry the whole roster, so hand it over
+         forty at a time. Every batch can be opened in the mail client or
+         copied into whatever the sender actually uses. -->
+    {#if showBatchSheet}
+      <!-- svelte-ignore a11y_click_events_have_key_events -->
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <div
+        transition:fade={{ duration: 140 }}
+        class="fixed inset-0 z-[99999] bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6"
+        onclick={() => (showBatchSheet = false)}
+      >
+        <div
+          transition:scale={{ duration: 180, start: 0.95 }}
+          class="w-full max-w-lg max-h-[88dvh] flex flex-col bg-zinc-950 border border-purple-500/40 rounded-2xl shadow-2xl overflow-hidden"
+          onclick={(e) => e.stopPropagation()}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Send to every representative in batches"
+        >
+          <!-- Header / the compliment -->
+          <div
+            class="p-4 sm:p-5 bg-gradient-to-br from-purple-950/70 to-zinc-950 border-b border-purple-500/25 flex flex-col gap-2"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div class="flex flex-col gap-1 min-w-0">
+                <span
+                  class="text-[10px] font-mono font-black tracking-widest text-purple-400 uppercase"
+                >
+                  {batchKind === "all"
+                    ? "🏆 Going for the whole roster"
+                    : "📬 More recipients than one email can hold"}
+                </span>
+                <h3
+                  class="text-base sm:text-lg font-black text-white leading-tight"
+                >
+                  {batchKind === "all"
+                    ? `Reaching all ${batchEmails.length} Texas offices`
+                    : `Sending to ${batchEmails.length} offices`}
+                </h3>
+              </div>
+              <button
+                onclick={() => (showBatchSheet = false)}
+                class="shrink-0 w-8 h-8 rounded-full bg-zinc-900 border border-zinc-700 hover:bg-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center transition-all cursor-pointer"
+                aria-label="Close batch sender"
+              >
+                <X size={15} />
+              </button>
+            </div>
+            <p class="text-[11px] sm:text-xs text-purple-100/80 leading-relaxed">
+              {#if batchKind === "all"}
+                Almost nobody does this. You're about to put the same letter in
+                front of every single office on the roster — the ones who agree
+                with you, the ones still deciding, and the ones writing the ban.
+                That is exactly how a bill dies.
+              {:else}
+                That's a big list, and it's more than a single email can carry.
+                Here it is, split into pieces your mail client will accept.
+              {/if}
+            </p>
+            <p
+              class="text-[10px] font-mono text-zinc-400 leading-relaxed border-l-2 border-purple-500/40 pl-2"
+            >
+              Mail clients cap how long a single link can be, so this is split
+              into {batches.length} batches of up to {MAIL_BATCH_SIZE}. Open each
+              one in your mail app, or copy the addresses and paste them in
+              yourself. Send them one at a time — your mail client will only
+              handle one hand-off at a time.
+            </p>
+          </div>
+
+          <!-- Progress -->
+          <div class="px-4 sm:px-5 py-2.5 border-b border-zinc-900 shrink-0">
+            <div
+              class="flex justify-between items-center text-[10px] font-mono font-bold uppercase tracking-wider mb-1.5"
+            >
+              <span class="text-zinc-500">Batches handled</span>
+              <span class="text-purple-300"
+                >{batchesDone.length} / {batches.length}</span
+              >
+            </div>
+            <div
+              class="w-full h-2 bg-zinc-900 border border-zinc-800 rounded-full overflow-hidden"
+            >
+              <div
+                class="h-full bg-gradient-to-r from-purple-600 to-purple-400 rounded-full transition-all duration-300"
+                style="width: {batches.length
+                  ? (batchesDone.length / batches.length) * 100
+                  : 0}%"
+              ></div>
+            </div>
+          </div>
+
+          <!-- Batch list -->
+          <div
+            class="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-5 flex flex-col gap-2"
+          >
+            {#each batches as batch, i}
+              {@const from = i * MAIL_BATCH_SIZE + 1}
+              {@const to = i * MAIL_BATCH_SIZE + batch.length}
+              {@const done = batchesDone.includes(i)}
+              <div
+                class="p-2.5 rounded-xl border flex items-center gap-2.5 transition-all {done
+                  ? 'bg-emerald-950/25 border-emerald-500/40'
+                  : 'bg-zinc-900/50 border-zinc-800'}"
+              >
+                <div class="flex-1 min-w-0 flex flex-col gap-0.5">
+                  <span
+                    class="text-[11px] font-black tracking-wide {done
+                      ? 'text-emerald-300'
+                      : 'text-zinc-200'}"
+                  >
+                    {done ? "✓" : "○"} BATCH {i + 1} — recipients {from}–{to}
+                  </span>
+                  <span
+                    class="text-[9px] font-mono text-zinc-500 truncate"
+                    title={batch.join(", ")}
+                  >
+                    {batch[0]}{batch.length > 1 ? ` … +${batch.length - 1}` : ""}
+                  </span>
+                </div>
+                <button
+                  onclick={() => handleOpenBatch(i)}
+                  class="shrink-0 px-2.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-black font-black rounded-lg text-[10px] tracking-wider transition-all cursor-pointer"
+                  title="Open this batch in your mail client"
+                >
+                  💌 MAIL
+                </button>
+                <button
+                  onclick={() => handleCopyBatch(i)}
+                  class="shrink-0 px-2.5 py-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-300 font-bold rounded-lg text-[10px] tracking-wider transition-all cursor-pointer"
+                  title="Copy this batch's addresses"
+                >
+                  📋 COPY
+                </button>
+              </div>
+            {/each}
+          </div>
+
+          <!-- Footer -->
+          <div
+            class="p-3.5 sm:p-4 border-t border-zinc-900 bg-zinc-900/25 flex flex-col gap-2 shrink-0"
+          >
+            {#if batches.length > 0 && batchesDone.length === batches.length}
+              <div
+                class="text-[11px] font-bold text-emerald-300 bg-emerald-950/30 border border-emerald-500/30 rounded-lg p-2.5 text-center"
+              >
+                🎉 That's all {batchEmails.length} of them. Every office on this
+                roster has your letter.
+              </div>
+            {/if}
+            <div class="flex gap-2">
+              <button
+                onclick={() => handleCopyRepsEmails(batchEmails)}
+                class="flex-1 py-2.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-200 font-bold rounded-lg text-[11px] tracking-wider transition-all cursor-pointer"
+              >
+                📋 COPY ALL {batchEmails.length} ADDRESSES
+              </button>
+              <button
+                onclick={() => (showBatchSheet = false)}
+                class="px-4 py-2.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-400 hover:text-white font-bold rounded-lg text-[11px] tracking-wider transition-all cursor-pointer"
+              >
+                DONE
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    {/if}
+
+    <!-- RANDOM REP — one persuadable office, their score, and what they've
+         actually said about weed. -->
+    {#if showRandomSheet && randomRep}
+      {@const score = stanceScore(randomRep)}
+      <!-- svelte-ignore a11y_click_events_have_key_events -->
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <div
+        transition:fade={{ duration: 140 }}
+        class="fixed inset-0 z-[99999] bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6"
+        onclick={() => (showRandomSheet = false)}
+      >
+        <div
+          transition:scale={{ duration: 180, start: 0.95 }}
+          class="w-full max-w-md max-h-[88dvh] flex flex-col bg-zinc-950 border border-sky-500/40 rounded-2xl shadow-2xl overflow-hidden"
+          onclick={(e) => e.stopPropagation()}
+          role="dialog"
+          aria-modal="true"
+          aria-label="A random persuadable representative"
+        >
+          <div
+            class="p-4 sm:p-5 bg-gradient-to-br from-sky-950/70 to-zinc-950 border-b border-sky-500/25 flex items-start justify-between gap-3 shrink-0"
+          >
+            <div class="flex flex-col gap-1 min-w-0">
+              <span
+                class="text-[10px] font-mono font-black tracking-widest text-sky-400 uppercase"
+              >
+                🎲 One persuadable office, at random
+              </span>
+              <h3 class="text-base sm:text-lg font-black text-white leading-tight">
+                {randomRep.name}
+              </h3>
+              <span class="text-[11px] font-mono text-sky-200/70 leading-snug">
+                {randomRep.title || randomRep.position}
+              </span>
+            </div>
+            <button
+              onclick={() => (showRandomSheet = false)}
+              class="shrink-0 w-8 h-8 rounded-full bg-zinc-900 border border-zinc-700 hover:bg-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center transition-all cursor-pointer"
+              aria-label="Close"
+            >
+              <X size={15} />
+            </button>
+          </div>
+
+          <div
+            class="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-5 flex flex-col gap-3"
+          >
+            <!-- Score -->
+            <div
+              class="p-3 rounded-xl border flex items-center gap-3 {score >= 4
+                ? 'bg-red-950/25 border-red-500/40'
+                : score === 3
+                  ? 'bg-amber-950/25 border-amber-500/40'
+                  : 'bg-emerald-950/25 border-emerald-500/40'}"
+            >
+              <span
+                class="text-2xl font-black shrink-0 {score >= 4
+                  ? 'text-red-400'
+                  : score === 3
+                    ? 'text-amber-400'
+                    : 'text-emerald-400'}">{score}<span class="text-sm">/5</span
+                ></span
+              >
+              <div class="flex flex-col gap-1 min-w-0">
+                <span
+                  class="text-[11px] font-black uppercase tracking-wider {score >=
+                  4
+                    ? 'text-red-300'
+                    : score === 3
+                      ? 'text-amber-300'
+                      : 'text-emerald-300'}">{STANCE_LABELS[score]}</span
+                >
+                <span class="flex gap-1" aria-hidden="true">
+                  {#each [1, 2, 3, 4, 5] as step}
+                    <span
+                      class="w-5 h-1.5 rounded-full {score >= step
+                        ? score >= 4
+                          ? 'bg-red-500'
+                          : score === 3
+                            ? 'bg-amber-500'
+                            : 'bg-emerald-500'
+                        : 'bg-zinc-800'}"
+                    ></span>
+                  {/each}
+                </span>
+                <span class="text-[9px] font-mono text-zinc-500"
+                  >1 = supports legal hemp · 5 = driving the ban</span
+                >
+              </div>
+            </div>
+
+            <!-- Who they are -->
+            <div class="flex flex-wrap items-center gap-1.5 text-[10px] font-mono">
+              {#if randomRep.party}
+                <span
+                  class="px-1.5 py-0.5 rounded font-black {randomRep.party === 'R'
+                    ? 'bg-red-600 text-white'
+                    : randomRep.party === 'D'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-zinc-500 text-black'}">{randomRep.party}</span
+                >
+              {/if}
+              {#if randomRep.position}
+                <span class="px-1.5 py-0.5 rounded bg-zinc-900 text-zinc-300"
+                  >{randomRep.position}</span
+                >
+              {/if}
+              {#if randomRep.hometown || randomRep.region}
+                <span class="text-zinc-400"
+                  >📍 {randomRep.hometown || randomRep.region}</span
+                >
+              {/if}
+              {#if randomRep.phone}
+                <a
+                  href="tel:{randomRep.phone.replace(/[^\d+]/g, '')}"
+                  class="text-emerald-400 hover:text-emerald-300 underline decoration-emerald-500/40"
+                  >☎ {randomRep.phone}</a
+                >
+              {/if}
+            </div>
+
+            {#if randomRep.counties}
+              <div class="text-[11px] text-zinc-400 leading-relaxed">
+                <span
+                  class="text-[9px] font-mono font-black tracking-widest text-zinc-600 uppercase block mb-0.5"
+                  >Represents</span
+                >
+                {randomRep.counties}
+              </div>
+            {/if}
+
+            <!-- How they actually feel about weed -->
+            {#if randomRep.record}
+              <div
+                class="p-3 rounded-xl bg-zinc-900/50 border border-zinc-800 text-[11px] text-zinc-300 leading-relaxed"
+              >
+                <span
+                  class="text-[9px] font-mono font-black tracking-widest text-amber-400/90 uppercase block mb-1"
+                  >Where they stand on weed</span
+                >
+                {randomRep.record}
+              </div>
+            {/if}
+
+            <div class="text-[10px] font-mono text-zinc-500 break-all">
+              {randomRep.email}
+            </div>
+          </div>
+
+          <div
+            class="p-3.5 sm:p-4 border-t border-zinc-900 bg-zinc-900/25 flex flex-col gap-2 shrink-0"
+          >
+            <button
+              onclick={() => handleMailRandomRep(selectedCampaign?.contactReps)}
+              class="w-full py-3 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-black font-black rounded-xl text-xs tracking-widest uppercase transition-all flex items-center justify-center gap-2 shadow-lg cursor-pointer"
+            >
+              💌 EMAIL {randomRep.shortName || randomRep.name}
+            </button>
+            <div class="flex gap-2">
+              <button
+                onclick={rollRandomRep}
+                class="flex-1 py-2.5 bg-sky-950/60 hover:bg-sky-900/60 border border-sky-500/40 text-sky-200 font-bold rounded-lg text-[11px] tracking-wider transition-all cursor-pointer"
+              >
+                🎲 ANOTHER ONE
+              </button>
+              <button
+                onclick={handleAddRandomRep}
+                disabled={selectedReps.includes(randomRep.email)}
+                class="flex-1 py-2.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-200 font-bold rounded-lg text-[11px] tracking-wider transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {selectedReps.includes(randomRep.email)
+                  ? "✓ ON YOUR LIST"
+                  : "+ ADD TO LIST"}
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     {/if}
 
