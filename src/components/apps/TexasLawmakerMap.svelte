@@ -88,6 +88,13 @@
   let compact = $derived(stageW > 0 && stageW < 520);
   let ts = $derived(compact ? 0.82 : 1);
 
+  // The money figures are sized for a phone stage, where they read fine — but
+  // they keep that size on a desktop column or a TV and turn microscopic
+  // relative to everything around them. The stats sheet and the neighbour
+  // revenue labels scale up with the measured stage instead; the rest of the
+  // map's type keeps its constant screen size.
+  let statScale = $derived(stageW > 520 ? Math.min(1.8, stageW / 520) : 1);
+
   let activeRep = $derived(
     lawmakers.find((l) => keyOf(l) === activeKey) || null,
   );
@@ -755,20 +762,20 @@
           y={ly}
           class="tx-state-label"
           text-anchor="middle"
-          style="font-size: {u(17 * ts)}px"
+          style="font-size: {u(17 * ts * statScale)}px"
           >{n.abbr || n.name}{#if n.cannabis}<tspan
               class="tx-weed-{n.cannabis}"
-              style="font-size: {u(15 * ts)}px"
+              style="font-size: {u(15 * ts * statScale)}px"
               >  {n.cannabis === "rec" ? "🌿" : "⚕"}</tspan
             >{/if}</text
         >
         {#if n.revenue}
           <text
             x={lx}
-            y={ly + u(14 * ts)}
+            y={ly + u(14 * ts * statScale)}
             class="tx-state-revenue tx-weed-{n.cannabis}"
             text-anchor="middle"
-            style="font-size: {u(9.5 * ts)}px">{n.revenue}</text
+            style="font-size: {u(9.5 * ts * statScale)}px">{n.revenue}</text
           >
         {/if}
       {/each}
@@ -1272,7 +1279,11 @@
     <!-- STATS sheet. Sits over the stage so it works the same collapsed or
          full screen, and scrolls internally rather than growing the map. -->
     {#if showStats}
-      <div class="tx-stats" transition:fade={{ duration: 130 }}>
+      <div
+        class="tx-stats"
+        style="--s: {statScale}"
+        transition:fade={{ duration: 130 }}
+      >
         <div class="tx-stats-head">
           <span class="tx-stats-title">★ MONEY ON THE TABLE</span>
           <button
@@ -1837,9 +1848,12 @@
     flex-shrink: 0;
   }
 
+  /* Everything in the sheet rides --s, the stage-width scale set inline on
+     .tx-stats — 1 on a phone, up to 1.8 on a TV. Boxes sized to fit text
+     (label columns, bar heights, avatars) scale with it or the type clips. */
   .tx-stats-title {
     font-family: ui-monospace, monospace;
-    font-size: 0.6rem;
+    font-size: calc(0.6rem * var(--s, 1));
     font-weight: 900;
     letter-spacing: 0.14em;
     color: #fde68a;
@@ -1850,7 +1864,7 @@
     border: none;
     color: rgba(255, 255, 255, 0.55);
     cursor: pointer;
-    font-size: 0.75rem;
+    font-size: calc(0.75rem * var(--s, 1));
     line-height: 1;
     padding: 2px 4px;
   }
@@ -1862,16 +1876,16 @@
     min-height: 0;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-    padding: 9px;
+    padding: calc(9px * var(--s, 1));
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: calc(14px * var(--s, 1));
   }
 
   .tx-stats-body h5 {
     margin: 0 0 6px;
     font-family: ui-monospace, monospace;
-    font-size: 0.5rem;
+    font-size: calc(0.5rem * var(--s, 1));
     font-weight: 900;
     letter-spacing: 0.16em;
     color: rgba(251, 191, 36, 0.9);
@@ -1879,7 +1893,10 @@
 
   .tx-stat-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+    grid-template-columns: repeat(
+      auto-fit,
+      minmax(calc(96px * var(--s, 1)), 1fr)
+    );
     gap: 6px;
   }
 
@@ -1895,19 +1912,19 @@
 
   .tx-stat .v {
     font-family: ui-monospace, monospace;
-    font-size: 0.78rem;
+    font-size: calc(0.78rem * var(--s, 1));
     font-weight: 900;
     color: #fff;
     line-height: 1.15;
   }
 
   .tx-stat.big .v {
-    font-size: 1.05rem;
+    font-size: calc(1.05rem * var(--s, 1));
     color: #34d399;
   }
 
   .tx-stat .k {
-    font-size: 0.46rem;
+    font-size: calc(0.46rem * var(--s, 1));
     letter-spacing: 0.06em;
     text-transform: uppercase;
     color: rgba(255, 255, 255, 0.5);
@@ -1930,7 +1947,7 @@
     border: 1px solid rgba(251, 191, 36, 0.28);
     background: rgba(251, 191, 36, 0.08);
     font-family: ui-monospace, monospace;
-    font-size: 0.44rem;
+    font-size: calc(0.44rem * var(--s, 1));
     line-height: 1.6;
     color: #fde68a;
     white-space: nowrap;
@@ -1953,7 +1970,7 @@
 
   .tx-stats-note {
     margin: 6px 0 0;
-    font-size: 0.46rem;
+    font-size: calc(0.46rem * var(--s, 1));
     line-height: 1.5;
     color: rgba(255, 255, 255, 0.42);
   }
@@ -1976,18 +1993,18 @@
     align-items: center;
     gap: 6px;
     font-family: ui-monospace, monospace;
-    font-size: 0.47rem;
+    font-size: calc(0.47rem * var(--s, 1));
   }
 
   .tx-bar-label {
-    flex: 0 0 22px;
+    flex: 0 0 calc(22px * var(--s, 1));
     font-weight: 900;
     color: rgba(255, 255, 255, 0.62);
     letter-spacing: 0.06em;
   }
 
   .tx-bar-label-wide {
-    flex: 0 0 84px;
+    flex: 0 0 calc(84px * var(--s, 1));
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -1996,7 +2013,7 @@
   .tx-bar-track {
     flex: 1;
     min-width: 0;
-    height: 11px;
+    height: calc(11px * var(--s, 1));
     border-radius: 3px;
     background: rgba(255, 255, 255, 0.06);
     display: flex;
@@ -2021,14 +2038,14 @@
 
   .tx-bar-none {
     padding-left: 5px;
-    font-size: 0.42rem;
+    font-size: calc(0.42rem * var(--s, 1));
     color: rgba(255, 255, 255, 0.32);
     white-space: nowrap;
   }
 
   .tx-bar-value {
     flex: 0 0 auto;
-    min-width: 46px;
+    min-width: calc(46px * var(--s, 1));
     text-align: right;
     font-weight: 800;
     color: #fff;
@@ -2044,7 +2061,7 @@
     margin-right: 4px;
     padding: 0 3px;
     border-radius: 3px;
-    font-size: 0.38rem;
+    font-size: calc(0.38rem * var(--s, 1));
     font-weight: 900;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -2066,7 +2083,7 @@
   }
 
   .tx-sources li {
-    font-size: 0.44rem;
+    font-size: calc(0.44rem * var(--s, 1));
     line-height: 1.5;
     color: rgba(255, 255, 255, 0.4);
   }
@@ -2080,7 +2097,7 @@
     width: 100%;
     border-collapse: collapse;
     font-family: ui-monospace, monospace;
-    font-size: 0.5rem;
+    font-size: calc(0.5rem * var(--s, 1));
   }
 
   .tx-table th {
@@ -2088,7 +2105,7 @@
     padding: 3px 5px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.16);
     color: rgba(255, 255, 255, 0.5);
-    font-size: 0.44rem;
+    font-size: calc(0.44rem * var(--s, 1));
     letter-spacing: 0.1em;
     white-space: nowrap;
   }
@@ -2113,7 +2130,7 @@
   .tx-table-sub td {
     padding: 0 5px 5px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-    font-size: 0.43rem;
+    font-size: calc(0.43rem * var(--s, 1));
     line-height: 1.5;
     color: rgba(255, 255, 255, 0.36);
     white-space: normal;
@@ -2123,7 +2140,7 @@
     display: inline-block;
     padding: 1px 4px;
     border-radius: 4px;
-    font-size: 0.42rem;
+    font-size: calc(0.42rem * var(--s, 1));
     font-weight: 800;
     letter-spacing: 0.05em;
     white-space: nowrap;
@@ -2156,14 +2173,14 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 16px;
-    height: 16px;
+    width: calc(16px * var(--s, 1));
+    height: calc(16px * var(--s, 1));
     margin-right: 4px;
     border-radius: 999px;
     overflow: hidden;
     background: rgba(239, 68, 68, 0.75);
     color: #fff;
-    font-size: 0.4rem;
+    font-size: calc(0.4rem * var(--s, 1));
     font-weight: 900;
     vertical-align: middle;
     flex-shrink: 0;
@@ -2182,7 +2199,7 @@
      same colour as its own background. */
   .tx-score {
     display: inline-block;
-    min-width: 14px;
+    min-width: calc(14px * var(--s, 1));
     padding: 0 3px;
     border-radius: 3px;
     text-align: center;
