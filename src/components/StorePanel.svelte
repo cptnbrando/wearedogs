@@ -107,8 +107,12 @@
   function getActiveDeadline(campaign, currentMs) {
     if (!campaign) return null;
     const stages = [
-      { target: campaign.endDate, label: campaign.endDateLabel },
-      { target: campaign.finalEndDate, label: campaign.finalEndDateLabel },
+      { target: campaign.endDate, label: campaign.endDateLabel, final: false },
+      {
+        target: campaign.finalEndDate,
+        label: campaign.finalEndDateLabel,
+        final: true,
+      },
     ].filter((s) => s.target && !isNaN(new Date(s.target).getTime()));
     if (stages.length === 0) return null;
     const upcoming = stages.find(
@@ -2041,72 +2045,91 @@
                          fullscreen map overlay, so it isn't just covered — it
                          has to actually unmount while the map owns the screen. -->
                     {#if timer}
+                      <!-- Two-stage clock: red for the July 31st shelf pull,
+                           amber once it lapses and the November 12th federal
+                           deadline takes over. Always three stacked rows —
+                           deadline, clock, jump button — never side by side. -->
+                      {@const fin = deadline.final}
                       <div
-                        class="mt-3 p-2.5 sm:p-3 rounded-xl bg-gradient-to-r from-red-950/80 via-zinc-900/90 to-red-950/80 border border-red-500/50 flex flex-col gap-2 shadow-lg shadow-red-950/30 shrink-0"
+                        class="mt-3 p-2.5 sm:p-3 rounded-xl bg-gradient-to-r {fin
+                          ? 'from-amber-950/80 via-zinc-900/90 to-amber-950/80 border-amber-500/50 shadow-amber-950/30'
+                          : 'from-red-950/80 via-zinc-900/90 to-red-950/80 border-red-500/50 shadow-red-950/30'} border flex flex-col gap-2 shadow-lg shrink-0"
                       >
-                        <!-- Row 1: the deadline and the ticking clock. On a
-                             narrow phone the fixed-width clock and the label
-                             can't share a line without crushing the label, so
-                             the clock drops to its own full-width row and the
-                             label wraps instead of truncating. -->
-                        <div
-                          class="flex flex-col sm:flex-row sm:items-center gap-2 min-w-0"
-                        >
-                          <div class="flex items-center gap-2 min-w-0 flex-1">
-                            <span
-                              class="text-sm sm:text-base animate-pulse shrink-0"
-                              >⏳</span
-                            >
-                            <div class="flex flex-col min-w-0 flex-1">
-                              <span
-                                class="text-[9px] font-mono uppercase tracking-widest text-red-400 font-extrabold leading-tight sm:truncate"
-                              >
-                                {deadline.label || "BAN DECISION DEADLINE"}
-                              </span>
-                              <span
-                                class="text-xs sm:text-sm font-black text-white uppercase tracking-wider leading-tight sm:truncate"
-                              >
-                                {#if timer.isZero}
-                                  DECISION DAY IS HERE — 0 DAYS LEFT!
-                                {:else}
-                                  ONLY {timer.formattedDaysLeft}!
-                                {/if}
-                              </span>
-                            </div>
-                          </div>
-
-                          <!-- Compact Ticking Digital Clock -->
-                          <div
-                            class="flex items-center justify-center gap-1 font-mono text-xs font-bold text-white bg-black/85 px-2.5 py-1 rounded-lg border border-red-500/40 w-full sm:w-auto shrink-0 shadow-inner"
+                        <!-- Row 1: which deadline this is -->
+                        <div class="flex items-center gap-2 min-w-0">
+                          <span
+                            class="text-sm sm:text-base animate-pulse shrink-0"
+                            >{fin ? "🚨" : "⏳"}</span
                           >
-                            <span class="text-white"
-                              >{String(timer.days).padStart(2, "0")}d</span
-                            >
+                          <div class="flex flex-col min-w-0 flex-1">
                             <span
-                              class="text-red-500 font-extrabold text-[10px] animate-pulse"
-                              >:</span
+                              class="text-[9px] font-mono uppercase tracking-widest {fin
+                                ? 'text-amber-400'
+                                : 'text-red-400'} font-extrabold leading-tight"
                             >
-                            <span class="text-white"
-                              >{String(timer.hours).padStart(2, "0")}h</span
-                            >
+                              {deadline.label || "BAN DECISION DEADLINE"}
+                            </span>
                             <span
-                              class="text-red-500 font-extrabold text-[10px] animate-pulse"
-                              >:</span
+                              class="text-xs sm:text-sm font-black text-white uppercase tracking-wider leading-tight"
                             >
-                            <span class="text-white"
-                              >{String(timer.minutes).padStart(2, "0")}m</span
-                            >
-                            <span
-                              class="text-red-500 font-extrabold text-[10px] animate-pulse"
-                              >:</span
-                            >
-                            <span class="text-red-400 font-black animate-pulse"
-                              >{String(timer.seconds).padStart(2, "0")}s</span
-                            >
+                              {#if fin}
+                                {#if timer.isZero}
+                                  FEDERAL DEADLINE IS HERE — 0 DAYS LEFT!
+                                {:else}
+                                  FINAL COUNTDOWN: {timer.formattedDaysLeft} FOR
+                                  DELTA-9!
+                                {/if}
+                              {:else if timer.isZero}
+                                DECISION DAY IS HERE — 0 DAYS LEFT!
+                              {:else}
+                                ONLY {timer.formattedDaysLeft}!
+                              {/if}
+                            </span>
                           </div>
                         </div>
 
-                        <!-- Row 2: straight to the action from the top of the page -->
+                        <!-- Row 2: the ticking digital clock -->
+                        <div
+                          class="flex items-center justify-center gap-1 font-mono text-xs font-bold text-white bg-black/85 px-2.5 py-1 rounded-lg border {fin
+                            ? 'border-amber-500/40'
+                            : 'border-red-500/40'} w-full shrink-0 shadow-inner"
+                        >
+                          <span class="text-white"
+                            >{String(timer.days).padStart(2, "0")}d</span
+                          >
+                          <span
+                            class="{fin
+                              ? 'text-amber-500'
+                              : 'text-red-500'} font-extrabold text-[10px] animate-pulse"
+                            >:</span
+                          >
+                          <span class="text-white"
+                            >{String(timer.hours).padStart(2, "0")}h</span
+                          >
+                          <span
+                            class="{fin
+                              ? 'text-amber-500'
+                              : 'text-red-500'} font-extrabold text-[10px] animate-pulse"
+                            >:</span
+                          >
+                          <span class="text-white"
+                            >{String(timer.minutes).padStart(2, "0")}m</span
+                          >
+                          <span
+                            class="{fin
+                              ? 'text-amber-500'
+                              : 'text-red-500'} font-extrabold text-[10px] animate-pulse"
+                            >:</span
+                          >
+                          <span
+                            class="{fin
+                              ? 'text-amber-400'
+                              : 'text-red-400'} font-black animate-pulse"
+                            >{String(timer.seconds).padStart(2, "0")}s</span
+                          >
+                        </div>
+
+                        <!-- Row 3: straight to the action from the top of the page -->
                         {#if selectedCampaign.contactReps}
                           <button
                             onclick={jumpToEmailActions}
