@@ -613,10 +613,16 @@
   let locationStatusText = $state("");
   let emailCopyTimeout = null;
 
-  // Sync selected reps when campaign changes
+  // Sync selected reps when campaign changes. Defaults to the Senate and
+  // statewide offices: all 150 House districts at once would push the mailto
+  // past what most mail clients accept, so the House comes in through Find My
+  // Location, the checkboxes, or an explicit Select All.
   $effect(() => {
     if (campaignRecipients.length > 0) {
-      selectedReps = [...campaignRecipients];
+      const nonHouse = lawmakers
+        .filter((l) => l.email && l.email.trim() && l.chamber !== "house")
+        .map((l) => l.email);
+      selectedReps = nonHouse.length > 0 ? nonHouse : [...campaignRecipients];
       locationStatusText = "";
     }
   });
@@ -696,14 +702,22 @@
       .map((rep) => ({
         email: rep.email,
         name: rep.name,
+        chamber: rep.chamber,
         dist: haversineMiles(userLat, userLng, rep.lat, rep.lng),
       }))
       .sort((a, b) => a.dist - b.dist);
 
-    // Keep only reps this campaign actually mails, then take the closest four.
-    const validClosest = sorted
-      .filter((r) => allEmails.includes(r.email))
-      .slice(0, 4);
+    // Closest two from each chamber, so the user's House rep makes the list
+    // instead of being crowded out by a cluster of nearby senators (or vice
+    // versa). Only reps this campaign actually mails count.
+    const eligible = sorted.filter((r) => allEmails.includes(r.email));
+    const closestHouse = eligible
+      .filter((r) => r.chamber === "house")
+      .slice(0, 2);
+    const closestSenate = eligible
+      .filter((r) => r.chamber !== "house")
+      .slice(0, 2);
+    const validClosest = [...closestHouse, ...closestSenate];
 
     if (validClosest.length === 0) {
       selectedReps = [...fallbackReps];
@@ -721,14 +735,14 @@
       ...closestEmails.filter((e) => !priorityEmails.includes(e)),
     ];
 
-    const topNames = validClosest
-      .slice(0, 2)
+    const topNames = [closestHouse[0], closestSenate[0]]
+      .filter(Boolean)
       .map((r) => r.name)
       .join(", ");
     const accuracy = pos.coords.accuracy
       ? ` ±${Math.round(pos.coords.accuracy / 1609) || "<1"}mi`
       : "";
-    locationStatusText = `📍 Priority offices + your closest reps${accuracy} — ${topNames}`;
+    locationStatusText = `📍 Priority offices + your closest House & Senate reps${accuracy} — ${topNames}`;
   }
 
   /**
@@ -2441,11 +2455,17 @@
                                     >
                                       ★ Priority offices
                                     </div>
+                                  {:else if meta.chamber === "house" && getRepInfo(campaignRecipients[rIdx - 1])?.chamber !== "house"}
+                                    <div
+                                      class="text-[9px] font-mono font-bold tracking-widest text-zinc-600 uppercase pt-1.5"
+                                    >
+                                      🏛 Texas House — find your district rep
+                                    </div>
                                   {:else if !isPriority && getRepInfo(campaignRecipients[rIdx - 1])?.priority === 1}
                                     <div
                                       class="text-[9px] font-mono font-bold tracking-widest text-zinc-600 uppercase pt-1.5"
                                     >
-                                      Everyone else
+                                      Senate, statewide &amp; federal
                                     </div>
                                   {/if}
                                   <!-- svelte-ignore a11y_click_events_have_key_events -->
