@@ -137,6 +137,33 @@
   let activeCity = $state(null);
   let showStats = $state(false);
 
+  /** Which page of the stats sheet is open. */
+  let statsTab = $state("money");
+
+  /**
+   * ALL / SENATE / HOUSE pin filter. "Senate" is shorthand for everything that
+   * isn't the House — state senators, the Lt. Governor and Governor, and the
+   * federal offices — because that's the group the map started with.
+   */
+  let chamberMode = $state("all");
+
+  function inChamber(rep) {
+    if (chamberMode === "all") return true;
+    if (chamberMode === "house") return rep.chamber === "house";
+    return rep.chamber !== "house";
+  }
+
+  let roster = $derived(lawmakers.filter((l) => inChamber(l)));
+
+  function cycleChamber() {
+    chamberMode =
+      chamberMode === "all" ? "senate" : chamberMode === "senate" ? "house" : "all";
+    // A focused pin that just got filtered out would leave a ghost card
+    // pointing at nothing.
+    hoveredKey = null;
+    if (activeRep && !inChamber(activeRep)) resetView();
+  }
+
   /**
    * Bar length as a percentage of the biggest value in a set. Texas is included
    * in the neighbour scale on purpose — seeing $5.5B next to $590M is the point.
@@ -156,12 +183,46 @@
   );
   const CITY_MAX = Math.max(...CITY_STATS.map((c) => c.revenueValue || 0));
 
+  /* --- REPRESENTATION tab: who actually holds the Texas Legislature. --- */
+  const HOUSE_SEATS = 150;
+  const SENATE_SEATS = 31;
+
+  let houseMembers = $derived(lawmakers.filter((l) => l.chamber === "house"));
+  let senateMembers = $derived(
+    lawmakers.filter((l) => l.chamber === "senate" && l.position === "Senator"),
+  );
+
+  function partySplit(list) {
+    const r = list.filter((l) => l.party === "R").length;
+    const d = list.filter((l) => l.party === "D").length;
+    return { r, d };
+  }
+
+  let houseParty = $derived(partySplit(houseMembers));
+  let senateParty = $derived(partySplit(senateMembers));
+
+  /** Ban-stance spread across every office on the map, unrated included. */
+  let stanceDist = $derived.by(() => {
+    const counts = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    for (const l of lawmakers) counts[stanceOf(l).score] += 1;
+    return counts;
+  });
+  let ratedCount = $derived(lawmakers.length - stanceDist[0]);
+
   /**
-   * Pin rings carry two facts at once: the inner edge is the party, the outer
-   * edge is how likely they are to vote for the ban. The core dot stays the
-   * mail-list colour so "are they on my list" is still the loudest signal.
+   * Each dot's fill blends party into ban stance. The party half is shaded by
+   * chamber — Senate & statewide run deep red/blue, the House runs light
+   * red/blue — so who's a senator and who's a House rep reads from colour
+   * alone, even at sizes where circle-vs-diamond is too small to tell.
    */
-  const PARTY_HUE = { rep: "#ef4444", dem: "#3b82f6", ind: "#a1a1aa" };
+  const PARTY_HUE = {
+    sen: { rep: "#b91c1c", dem: "#1d4ed8", ind: "#71717a" },
+    hou: { rep: "#fca5a5", dem: "#93c5fd", ind: "#d4d4d8" },
+  };
+
+  function chamberTone(rep) {
+    return rep.chamber === "house" ? "hou" : "sen";
+  }
   const STANCE_HUE = {
     s0: "#a1a1aa",
     s1: "#34d399",
@@ -172,10 +233,10 @@
   };
 
   function ringId(rep) {
-    return `txRing-${partyTone(rep.party)}-${stanceOf(rep).tone}`;
+    return `txRing-${chamberTone(rep)}-${partyTone(rep.party)}-${stanceOf(rep).tone}`;
   }
 
-  /** One gradient per party/stance pair actually present — 18 pins, a few defs. */
+  /** One gradient per chamber/party/stance combo actually present. */
   let ringGradients = $derived.by(() => {
     const seen = new Map();
     for (const rep of navigableReps) {
@@ -183,7 +244,7 @@
       if (seen.has(id)) continue;
       seen.set(id, {
         id,
-        from: PARTY_HUE[partyTone(rep.party)],
+        from: PARTY_HUE[chamberTone(rep)][partyTone(rep.party)],
         to: STANCE_HUE[stanceOf(rep).tone],
       });
     }
@@ -211,7 +272,7 @@
 
   let sortedLawmakers = $derived.by(() => {
     const { key, dir } = statsSort;
-    return [...lawmakers].sort((a, b) => {
+    return [...roster].sort((a, b) => {
       if (key === "stance") {
         return ((a.banLikelihood ?? 0) - (b.banLikelihood ?? 0)) * dir;
       }
@@ -261,7 +322,7 @@
   }
 
   /** Only offices that can actually be shown on the map are navigable. */
-  let navigableReps = $derived(lawmakers.filter(hasCoords));
+  let navigableReps = $derived(roster.filter(hasCoords));
 
   /**
    * Arrow / swipe stepping through the roster. Wraps at both ends, and starts
@@ -562,7 +623,7 @@
     const placed = [];
     const out = [];
 
-    for (const rep of lawmakers) {
+    for (const rep of navigableReps) {
       const x = px(rep.lng);
       const y = py(rep.lat);
       if (!inViewport(x, y)) continue;
@@ -742,6 +803,17 @@
       <!-- Zoom and reset live in the bar under the map now; this row is for
            layers and the stats sheet. -->
       <button
+        class="tx-btn tx-btn-chamber"
+        class:tx-btn-chamber-on={chamberMode !== "all"}
+        onclick={cycleChamber}
+        title="Cycle which offices are pinned: everyone, Senate & statewide, or the Texas House"
+        >{chamberMode === "all"
+          ? "⬥ ALL"
+          : chamberMode === "senate"
+            ? "● SENATE"
+            : "◆ HOUSE"}</button
+      >
+      <button
         class="tx-btn tx-btn-stats"
         class:tx-btn-stats-on={showStats}
         onclick={() => (showStats = !showStats)}
@@ -836,8 +908,8 @@
         <clipPath id="txClip">
           <path d={TEXAS_PATH} />
         </clipPath>
-        <!-- Pin rings: party colour on the inner edge, ban-likelihood on the
-             outer, so one glance gives you both. -->
+        <!-- Pin dot fills: party colour blending into ban-likelihood, so one
+             glance gives you both. One def per combo actually present. -->
         {#each ringGradients as g (g.id)}
           <linearGradient id={g.id} x1="0" y1="0" x2="1" y2="1">
             <stop offset="0%" stop-color={g.from} />
@@ -1092,6 +1164,9 @@
         {@const isActive = activeKey === keyOf(rep)}
         {@const isHot = hoveredKey === keyOf(rep)}
         {@const isFocused = isActive || isHot}
+        {@const cx = px(rep.lng)}
+        {@const cy = py(rep.lat)}
+        {@const rDot = u(isFocused ? 7 : showDetail ? 4 : 2.6)}
         <g
           class="tx-pin"
           class:tx-pin-active={isActive}
@@ -1111,36 +1186,36 @@
           tabindex="0"
         >
           {#if isActive || isHot}
-            <circle cx={px(rep.lng)} cy={py(rep.lat)} r={u(30)} fill="url(#txGlow)" />
+            <circle {cx} {cy} r={u(24)} fill="url(#txGlow)" />
           {/if}
-          <!-- Zoomed out, six DFW offices sit within a thumbnail of each other,
-               so pins stay small dots until you zoom in or point at one. -->
-          <circle
-            cx={px(rep.lng)}
-            cy={py(rep.lat)}
-            r={u(showDetail ? 20 : 11)}
-            fill="transparent"
-          />
-          <circle
-            cx={px(rep.lng)}
-            cy={py(rep.lat)}
-            r={u(
-              isActive || isHot ? (showDetail ? 12 : 8.5) : showDetail ? 9 : 4.5,
-            )}
-            class="tx-pin-halo"
-            class:tx-pin-on={isOn}
-            style="stroke: url(#{ringId(rep)})"
-            vector-effect="non-scaling-stroke"
-          />
-          <circle
-            cx={px(rep.lng)}
-            cy={py(rep.lat)}
-            r={u(
-              isActive || isHot ? (showDetail ? 5.5 : 4) : showDetail ? 4 : 2.2,
-            )}
-            class="tx-pin-core"
-            class:tx-pin-on={isOn}
-          />
+          <!-- Invisible hit target, bigger than the dot itself. -->
+          <circle {cx} {cy} r={u(showDetail ? 13 : 8)} fill="transparent" />
+          <!-- One small dot per office: 184 have to share the map, so each is
+               a single tiny mark. The fill gradient blends party colour into
+               ban stance; Senate & statewide are circles, House diamonds. -->
+          {#if rep.chamber === "house"}
+            <rect
+              x={cx - rDot}
+              y={cy - rDot}
+              width={rDot * 2}
+              height={rDot * 2}
+              transform="rotate(45 {cx} {cy})"
+              class="tx-pin-dot"
+              class:tx-pin-on={isOn}
+              style="fill: url(#{ringId(rep)})"
+              vector-effect="non-scaling-stroke"
+            />
+          {:else}
+            <circle
+              {cx}
+              {cy}
+              r={rDot}
+              class="tx-pin-dot"
+              class:tx-pin-on={isOn}
+              style="fill: url(#{ringId(rep)})"
+              vector-effect="non-scaling-stroke"
+            />
+          {/if}
           <!-- Names stay off the map until you point at a dot or zoom in —
                fifteen labels at once is an unreadable pile. Once one rep is
                focused the others step back so its name is never buried. -->
@@ -1148,7 +1223,7 @@
       {/each}
 
       <!-- Lawmaker names, collision-culled so they never stack -->
-      {#each pinLabels as pl (pl.rep.email)}
+      {#each pinLabels as pl (keyOf(pl.rep))}
         <g class="tx-callout">
           <rect
             x={pl.box.x}
@@ -1213,8 +1288,13 @@
     {#if showLegend}
       <div class="tx-legend" transition:fade={{ duration: 140 }}>
         <h4>MAP KEY</h4>
-        <div class="tx-legend-row"><span class="sw sw-on"></span> Selected recipient</div>
-        <div class="tx-legend-row"><span class="sw sw-off"></span> Lawmaker office</div>
+        <div class="tx-legend-row"><span class="sw sw-on"></span> On your mail list (green ring)</div>
+        <div class="tx-legend-row"><span class="sw sw-off"></span> Senate &amp; statewide — deep red/blue circle</div>
+        <div class="tx-legend-row"><span class="sw sw-house"></span> Texas House — light red/blue diamond</div>
+        <div class="tx-legend-note">
+          Dot colour blends party (red R · blue D) into ban stance (green
+          supports legal hemp → red driving the ban · grey no record).
+        </div>
         <div class="tx-legend-row"><span class="sw sw-capital"></span> State capital</div>
         <div class="tx-legend-row"><span class="sw sw-cell"></span> City boundary</div>
         <div class="tx-legend-row"><span class="sw sw-hwy"></span> Interstate</div>
@@ -1339,6 +1419,28 @@
               </div>
             {/if}
 
+            <!-- Every claim in the record above is traceable, so the citations
+                 ship with it rather than living in a spreadsheet somewhere. -->
+            {#if infoRep.sources?.length}
+              <details class="tx-card-sources">
+                <summary
+                  ><span class="tx-tag">SOURCES</span>
+                  {infoRep.sources.length} cited</summary
+                >
+                <ul>
+                  {#each infoRep.sources as source (source.url)}
+                    <li>
+                      <a
+                        href={source.url}
+                        target="_blank"
+                        rel="noopener noreferrer">{source.label} ↗</a
+                      >
+                    </li>
+                  {/each}
+                </ul>
+              </details>
+            {/if}
+
             {#if infoRep.email}
               <a class="tx-card-email" href="mailto:{infoRep.email}"
                 >{infoRep.email}</a
@@ -1386,7 +1488,7 @@
         transition:fade={{ duration: 130 }}
       >
         <div class="tx-stats-head">
-          <span class="tx-stats-title">★ MONEY ON THE TABLE</span>
+          <span class="tx-stats-title">★ TEXAS STATS</span>
           <button
             class="tx-stats-x"
             onclick={() => (showStats = false)}
@@ -1394,7 +1496,21 @@
           >
         </div>
 
+        <div class="tx-stats-tabs">
+          <button
+            class="tx-stats-tab"
+            class:on={statsTab === "money"}
+            onclick={() => (statsTab = "money")}>💰 MONEY ON THE TABLE</button
+          >
+          <button
+            class="tx-stats-tab"
+            class:on={statsTab === "reps"}
+            onclick={() => (statsTab = "reps")}>🏛 REPRESENTATION</button
+          >
+        </div>
+
         <div class="tx-stats-body">
+          {#if statsTab === "money"}
           <!-- Texas -->
           <section>
             <h5>TEXAS — WHAT THE BAN ERASES</h5>
@@ -1596,10 +1712,166 @@
             </p>
           </section>
 
-          <!-- Senators -->
+          {:else}
+            <!-- REPRESENTATION: who speaks for Texas, and what we know so far. -->
+            <section>
+              <h5>THE TEXAS LEGISLATURE — WHO SPEAKS FOR US</h5>
+              <div class="tx-stat-grid">
+                <div class="tx-stat big">
+                  <span class="v">{houseMembers.length}/{HOUSE_SEATS}</span>
+                  <span class="k">House seats filled</span>
+                </div>
+                <div class="tx-stat big">
+                  <span class="v">{senateMembers.length}/{SENATE_SEATS}</span>
+                  <span class="k">Senate seats filled</span>
+                </div>
+                <div class="tx-stat">
+                  <span class="v">{houseParty.r + senateParty.r}</span>
+                  <span class="k">Republicans</span>
+                </div>
+                <div class="tx-stat">
+                  <span class="v">{houseParty.d + senateParty.d}</span>
+                  <span class="k">Democrats</span>
+                </div>
+                <div class="tx-stat">
+                  <span class="v">{ratedCount}</span>
+                  <span class="k">Rated on the ban so far</span>
+                </div>
+                <div class="tx-stat">
+                  <span class="v">{lawmakers.length}</span>
+                  <span class="k">Offices on this map</span>
+                </div>
+              </div>
+              <p class="tx-stats-note">
+                Every Texas House district, every Senate district, the Lt.
+                Governor and the Governor — plus the three federal offices that
+                control the November 12th deadline.
+              </p>
+            </section>
+
+            <section>
+              <h5>PARTY CONTROL — TEXAS HOUSE ({HOUSE_SEATS} SEATS)</h5>
+              <div class="tx-chart">
+                <div class="tx-bar-row">
+                  <span class="tx-bar-label">REP</span>
+                  <span class="tx-bar-track">
+                    <span
+                      class="tx-bar tx-bar-fill-rparty"
+                      style="width: {barPct(houseParty.r, HOUSE_SEATS)}%"
+                    ></span>
+                  </span>
+                  <span class="tx-bar-value">{houseParty.r}</span>
+                </div>
+                <div class="tx-bar-row">
+                  <span class="tx-bar-label">DEM</span>
+                  <span class="tx-bar-track">
+                    <span
+                      class="tx-bar tx-bar-fill-dparty"
+                      style="width: {barPct(houseParty.d, HOUSE_SEATS)}%"
+                    ></span>
+                  </span>
+                  <span class="tx-bar-value">{houseParty.d}</span>
+                </div>
+                {#if HOUSE_SEATS - houseMembers.length > 0}
+                  <div class="tx-bar-row">
+                    <span class="tx-bar-label">—</span>
+                    <span class="tx-bar-track">
+                      <span
+                        class="tx-bar tx-bar-fill-vacant"
+                        style="width: {barPct(
+                          HOUSE_SEATS - houseMembers.length,
+                          HOUSE_SEATS,
+                        )}%"
+                      ></span>
+                    </span>
+                    <span class="tx-bar-value"
+                      >{HOUSE_SEATS - houseMembers.length} vacant</span
+                    >
+                  </div>
+                {/if}
+              </div>
+
+              <h5 class="tx-h5-gap">
+                PARTY CONTROL — TEXAS SENATE ({SENATE_SEATS} SEATS)
+              </h5>
+              <div class="tx-chart">
+                <div class="tx-bar-row">
+                  <span class="tx-bar-label">REP</span>
+                  <span class="tx-bar-track">
+                    <span
+                      class="tx-bar tx-bar-fill-rparty"
+                      style="width: {barPct(senateParty.r, SENATE_SEATS)}%"
+                    ></span>
+                  </span>
+                  <span class="tx-bar-value">{senateParty.r}</span>
+                </div>
+                <div class="tx-bar-row">
+                  <span class="tx-bar-label">DEM</span>
+                  <span class="tx-bar-track">
+                    <span
+                      class="tx-bar tx-bar-fill-dparty"
+                      style="width: {barPct(senateParty.d, SENATE_SEATS)}%"
+                    ></span>
+                  </span>
+                  <span class="tx-bar-value">{senateParty.d}</span>
+                </div>
+                {#if SENATE_SEATS - senateMembers.length > 0}
+                  <div class="tx-bar-row">
+                    <span class="tx-bar-label">—</span>
+                    <span class="tx-bar-track">
+                      <span
+                        class="tx-bar tx-bar-fill-vacant"
+                        style="width: {barPct(
+                          SENATE_SEATS - senateMembers.length,
+                          SENATE_SEATS,
+                        )}%"
+                      ></span>
+                    </span>
+                    <span class="tx-bar-value"
+                      >{SENATE_SEATS - senateMembers.length} vacant</span
+                    >
+                  </div>
+                {/if}
+              </div>
+            </section>
+
+            <section>
+              <h5>
+                WHERE THEY STAND ON THE BAN — {ratedCount} RATED, {stanceDist[0]}
+                UNKNOWN
+              </h5>
+              <div class="tx-chart">
+                {#each [5, 4, 3, 2, 1, 0] as s}
+                  <div class="tx-bar-row">
+                    <span class="tx-bar-label tx-bar-label-xwide"
+                      >{s === 0 ? "NO RECORD YET" : STANCE[s].label}</span
+                    >
+                    <span class="tx-bar-track">
+                      <span
+                        class="tx-bar"
+                        style="width: {barPct(
+                          stanceDist[s],
+                          lawmakers.length,
+                        )}%; background: {STANCE_HUE[`s${s}`]}"
+                      ></span>
+                    </span>
+                    <span class="tx-bar-value">{stanceDist[s]}</span>
+                  </div>
+                {/each}
+              </div>
+              <p class="tx-stats-note">
+                A 1 supports legal hemp; a 5 is driving the ban. Every office
+                here is now rated from its own roll call — SB 3 in the House and
+                on Senate concurrence, HB 46, and authorship of the ban bills —
+                with the citations on each card. Tap any row in the table below
+                to fly to them on the map.
+              </p>
+            </section>
+
+          <!-- The full roster, filtered by the ALL / SENATE / HOUSE toggle -->
           <section>
             <h5>
-              THE {lawmakers.length} OFFICES — TAP A COLUMN TO SORT
+              THE {roster.length} OFFICES — TAP A COLUMN TO SORT
             </h5>
             <div class="tx-table-wrap">
               <table class="tx-table tx-table-reps">
@@ -1682,12 +1954,32 @@
             </div>
           </section>
 
+          {/if}
+
           <section>
             <h5>WHERE THESE NUMBERS COME FROM</h5>
             <ul class="tx-sources">
-              {#each STATS_SOURCES as s}
-                <li>{s}</li>
-              {/each}
+              {#if statsTab === "money"}
+                {#each STATS_SOURCES as s}
+                  <li>{s}</li>
+                {/each}
+              {:else}
+                <li>
+                  Roster: 89th Texas Legislature member lists, pulled July 30,
+                  2026. House District 93 and Senate District 22 are vacant.
+                </li>
+                <li>
+                  House pins and the newly added Senate pins sit on the
+                  member's hometown, not a district office — same-city
+                  districts are spread a few miles apart so every pin stays
+                  clickable.
+                </li>
+                <li>
+                  Emails for the added offices follow each chamber's
+                  first.last convention and are UNVERIFIED — confirm before a
+                  mass send. House phone numbers are the Capitol switchboard.
+                </li>
+              {/if}
             </ul>
           </section>
         </div>
@@ -1908,6 +2200,14 @@
     color: #fff;
   }
 
+  /* Cyan while a chamber filter is active, so a "missing" chamber's pins are
+     explained by the toolbar and not mistaken for lost data. */
+  .tx-btn-chamber-on {
+    background: rgba(34, 211, 238, 0.22);
+    border-color: rgba(34, 211, 238, 0.65);
+    color: #a5f3fc;
+  }
+
   /* Gold, so it reads as the one button on this row worth pressing. */
   .tx-btn-stats {
     background: rgba(251, 191, 36, 0.16);
@@ -1971,6 +2271,36 @@
   }
 
   .tx-stats-x:hover { color: #fff; }
+
+  .tx-stats-tabs {
+    display: flex;
+    gap: 6px;
+    padding: calc(7px * var(--s, 1)) calc(9px * var(--s, 1)) 0;
+    flex-shrink: 0;
+  }
+
+  .tx-stats-tab {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 7px;
+    color: rgba(255, 255, 255, 0.6);
+    font-family: ui-monospace, monospace;
+    font-size: calc(0.5rem * var(--s, 1));
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    padding: calc(5px * var(--s, 1)) 4px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .tx-stats-tab:hover { color: #fff; }
+
+  .tx-stats-tab.on {
+    background: rgba(251, 191, 36, 0.85);
+    border-color: #fbbf24;
+    color: #1c1917;
+  }
 
   .tx-stats-body {
     flex: 1;
@@ -2111,6 +2441,14 @@
     white-space: nowrap;
   }
 
+  /* Stance names ("SUPPORTS LEGAL HEMP") need more room than metro names. */
+  .tx-bar-label-xwide {
+    flex: 0 0 calc(118px * var(--s, 1));
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .tx-bar-track {
     flex: 1;
     min-width: 0;
@@ -2136,6 +2474,9 @@
   .tx-bar-fill-med { background: linear-gradient(90deg, #2563eb, #60a5fa); }
   .tx-bar-fill-none { background: rgba(239, 68, 68, 0.5); }
   .tx-bar-fill-city { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+  .tx-bar-fill-rparty { background: linear-gradient(90deg, #dc2626, #f87171); }
+  .tx-bar-fill-dparty { background: linear-gradient(90deg, #2563eb, #60a5fa); }
+  .tx-bar-fill-vacant { background: rgba(161, 161, 170, 0.4); }
 
   .tx-bar-none {
     padding-left: 5px;
@@ -2604,37 +2945,24 @@
   /* --- lawmaker pins --- */
   .tx-pin { cursor: pointer; }
 
-  /* stroke comes from a per-rep gradient set inline; a little thicker than
-     before so the party/stance blend is actually readable at pin size. */
-  .tx-pin-halo {
-    fill: rgba(244, 63, 94, 0.1);
-    stroke: #fb7185;
-    stroke-width: 2.2px;
-    transition:
-      fill 0.2s ease,
-      stroke-width 0.2s ease;
+  /* The fill is a per-rep gradient set inline — party colour blending into
+     ban stance. The thin dark rim keeps pale dots visible over bright map
+     labels; the mail list is a green ring so the blend is never covered up. */
+  .tx-pin-dot {
+    stroke: rgba(0, 0, 0, 0.55);
+    stroke-width: 0.8px;
+    transition: stroke 0.2s ease;
   }
 
-  .tx-pin-core {
-    fill: #fb7185;
-    transition: all 0.2s ease;
-    filter: drop-shadow(0 0 5px rgba(251, 113, 133, 0.8));
+  .tx-pin-dot.tx-pin-on {
+    stroke: #34d399;
+    stroke-width: 1.6px;
   }
 
-  /* Being on the mail list tints the ring's fill; the gradient stroke stays so
-     party and stance are never lost. */
-  .tx-pin-halo.tx-pin-on {
-    fill: rgba(16, 185, 129, 0.2);
+  .tx-pin:hover .tx-pin-dot,
+  .tx-pin-active .tx-pin-dot {
+    filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.55));
   }
-
-  .tx-pin-core.tx-pin-on {
-    fill: #34d399;
-    filter: drop-shadow(0 0 6px rgba(52, 211, 153, 0.85));
-  }
-
-  .tx-pin:hover .tx-pin-halo { stroke-width: 2.4px; }
-
-  .tx-pin-active .tx-pin-core { filter: drop-shadow(0 0 8px currentColor); }
 
   .tx-pin-plate {
     fill: rgba(4, 8, 14, 0.92);
@@ -2741,8 +3069,17 @@
   .tx-legend-rec { color: #34d399; }
   .tx-legend-med { color: #60a5fa; }
 
-  .sw-on { background: #10b981; box-shadow: 0 0 6px #10b981; }
-  .sw-off { background: #ef4444; }
+  .sw-on {
+    background: linear-gradient(135deg, #ef4444, #fbbf24);
+    border: 2px solid #34d399;
+    box-shadow: 0 0 6px rgba(52, 211, 153, 0.7);
+  }
+  .sw-off { background: linear-gradient(135deg, #b91c1c, #1d4ed8); }
+  .sw-house {
+    background: linear-gradient(135deg, #fca5a5, #93c5fd);
+    border-radius: 2px;
+    transform: rotate(45deg) scale(0.85);
+  }
   .sw-capital {
     background: #fbbf24;
     border-radius: 0;
@@ -3032,6 +3369,49 @@
     color: rgba(255, 255, 255, 0.45);
     margin-top: 5px;
     line-height: 1.45;
+  }
+
+  .tx-card-sources {
+    font-size: 0.5rem;
+    color: rgba(255, 255, 255, 0.45);
+    margin-top: 5px;
+    line-height: 1.45;
+  }
+
+  .tx-card-sources summary {
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .tx-card-sources summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .tx-card-sources ul {
+    margin: 4px 0 0;
+    padding-left: 10px;
+    list-style: none;
+  }
+
+  .tx-card-sources li {
+    margin-top: 3px;
+    text-indent: -6px;
+    padding-left: 6px;
+  }
+
+  .tx-card-sources li::before {
+    content: "· ";
+    color: rgba(255, 255, 255, 0.3);
+  }
+
+  .tx-card-sources a {
+    color: rgba(255, 255, 255, 0.5);
+    text-decoration: none;
+  }
+
+  .tx-card-sources a:hover {
+    color: #6ee7b7;
+    text-decoration: underline;
   }
 
   .tx-card-email {

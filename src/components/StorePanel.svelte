@@ -613,10 +613,16 @@
   let locationStatusText = $state("");
   let emailCopyTimeout = null;
 
-  // Sync selected reps when campaign changes
+  // Sync selected reps when campaign changes. Defaults to the Senate and
+  // statewide offices: all 150 House districts at once would push the mailto
+  // past what most mail clients accept, so the House comes in through Find My
+  // Location, the checkboxes, or an explicit Select All.
   $effect(() => {
     if (campaignRecipients.length > 0) {
-      selectedReps = [...campaignRecipients];
+      const nonHouse = lawmakers
+        .filter((l) => l.email && l.email.trim() && l.chamber !== "house")
+        .map((l) => l.email);
+      selectedReps = nonHouse.length > 0 ? nonHouse : [...campaignRecipients];
       locationStatusText = "";
     }
   });
@@ -696,14 +702,22 @@
       .map((rep) => ({
         email: rep.email,
         name: rep.name,
+        chamber: rep.chamber,
         dist: haversineMiles(userLat, userLng, rep.lat, rep.lng),
       }))
       .sort((a, b) => a.dist - b.dist);
 
-    // Keep only reps this campaign actually mails, then take the closest four.
-    const validClosest = sorted
-      .filter((r) => allEmails.includes(r.email))
-      .slice(0, 4);
+    // Closest two from each chamber, so the user's House rep makes the list
+    // instead of being crowded out by a cluster of nearby senators (or vice
+    // versa). Only reps this campaign actually mails count.
+    const eligible = sorted.filter((r) => allEmails.includes(r.email));
+    const closestHouse = eligible
+      .filter((r) => r.chamber === "house")
+      .slice(0, 2);
+    const closestSenate = eligible
+      .filter((r) => r.chamber !== "house")
+      .slice(0, 2);
+    const validClosest = [...closestHouse, ...closestSenate];
 
     if (validClosest.length === 0) {
       selectedReps = [...fallbackReps];
@@ -721,14 +735,14 @@
       ...closestEmails.filter((e) => !priorityEmails.includes(e)),
     ];
 
-    const topNames = validClosest
-      .slice(0, 2)
+    const topNames = [closestHouse[0], closestSenate[0]]
+      .filter(Boolean)
       .map((r) => r.name)
       .join(", ");
     const accuracy = pos.coords.accuracy
       ? ` ±${Math.round(pos.coords.accuracy / 1609) || "<1"}mi`
       : "";
-    locationStatusText = `📍 Priority offices + your closest reps${accuracy} — ${topNames}`;
+    locationStatusText = `📍 Priority offices + your closest House & Senate reps${accuracy} — ${topNames}`;
   }
 
   /**
@@ -1282,7 +1296,7 @@
 
     <!-- Main Workspace -->
     <div
-      class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 grid grid-cols-1 grid-rows-1"
+      class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 grid grid-cols-1 grid-rows-1 image-panel"
       bind:clientHeight={workspaceH}
       onpointerdown={handleWorkspacePointerDown}
       onpointerup={handleWorkspacePointerUp}
@@ -2358,12 +2372,12 @@
                               {/if}
                             </button>
                             <button
-                              onclick={() =>
-                                handleCopyRepsEmails(campaignRecipients)}
-                              class="py-2.5 px-3 bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-300 hover:text-white font-bold rounded-xl text-[11px] tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow"
-                              title="Copy all email addresses"
+                              onclick={() => handleCopyRepsEmails(selectedReps)}
+                              disabled={selectedReps.length === 0}
+                              class="py-2.5 px-3 bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-300 hover:text-white font-bold rounded-xl text-[11px] tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow disabled:opacity-50 disabled:cursor-not-allowed"
+                              title="Copy selected email addresses"
                             >
-                              📋 COPY ALL
+                              📋 COPY
                             </button>
                           </div>
 
@@ -2441,11 +2455,17 @@
                                     >
                                       ★ Priority offices
                                     </div>
+                                  {:else if meta.chamber === "house" && getRepInfo(campaignRecipients[rIdx - 1])?.chamber !== "house"}
+                                    <div
+                                      class="text-[9px] font-mono font-bold tracking-widest text-zinc-600 uppercase pt-1.5"
+                                    >
+                                      🏛 Texas House — find your district rep
+                                    </div>
                                   {:else if !isPriority && getRepInfo(campaignRecipients[rIdx - 1])?.priority === 1}
                                     <div
                                       class="text-[9px] font-mono font-bold tracking-widest text-zinc-600 uppercase pt-1.5"
                                     >
-                                      Everyone else
+                                      Senate, statewide &amp; federal
                                     </div>
                                   {/if}
                                   <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -3112,6 +3132,10 @@
     color: rgba(113, 113, 122, 0.9);
     font-weight: 400;
     font-size: 0.94em;
+  }
+
+  .image-panel {
+    padding: 15px;
   }
 
   @keyframes alarmGlow {
