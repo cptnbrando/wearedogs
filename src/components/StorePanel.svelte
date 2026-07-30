@@ -1782,7 +1782,7 @@
                              copy keeps the map's zoom, pan and open rep card. -->
                         <div
                           class={isMapFullscreen
-                            ? "fixed inset-0 z-[99999] bg-black p-2 sm:p-4"
+                            ? "fixed inset-0 z-[99999] bg-black overflow-hidden p-2 sm:p-4 max-h-[100dvh]"
                             : "absolute inset-0"}
                           in:fade={{ duration: 200 }}
                         >
@@ -1790,7 +1790,7 @@
                             {lawmakers}
                             selectedEmails={selectedReps}
                             focusRequest={mapFocusRequest}
-                            title="{lawmakers.length} OFFICES"
+                            title="{lawmakers.length} 🐘🫏"
                             isFullscreen={isMapFullscreen}
                             onToggleFullscreen={() =>
                               (isMapFullscreen = !isMapFullscreen)}
@@ -2034,9 +2034,12 @@
                     </button>
                   </div>
 
-                  {#if selectedCampaign.endDate}
+                  {#if selectedCampaign.endDate && !isMapFullscreen}
                     {@const deadline = getActiveDeadline(selectedCampaign, now)}
                     {@const timer = getCountdown(deadline?.target, now)}
+                    <!-- The clock's pulsing/blurred layers composite above the
+                         fullscreen map overlay, so it isn't just covered — it
+                         has to actually unmount while the map owns the screen. -->
                     {#if timer}
                       <div
                         class="mt-3 p-2.5 sm:p-3 rounded-xl bg-gradient-to-r from-red-950/80 via-zinc-900/90 to-red-950/80 border border-red-500/50 flex flex-col gap-2 shadow-lg shadow-red-950/30 shrink-0"
