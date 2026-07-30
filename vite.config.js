@@ -2,6 +2,7 @@ import { defineConfig } from 'vite'
 import { svelte } from '@sveltejs/vite-plugin-svelte'
 import tailwindcss from '@tailwindcss/vite'
 import legacy from '@vitejs/plugin-legacy'
+import shareCards from './scripts/vite-plugin-share-cards.js'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -11,7 +12,10 @@ export default defineConfig({
     legacy({
       targets: ['defaults', 'chrome >= 40', 'not IE 11'],
       modernPolyfills: true,
-    })
+    }),
+    // Emits real HTML at each /store/campaign/<id> and /store/product/<id> so
+    // shared links preview with that item's own image, title and description.
+    shareCards({ origin: 'https://wearedogs.net' }),
   ],
   resolve: {
     conditions: ['browser'],

@@ -6,7 +6,7 @@ Banning these products destroys hundreds of Texas small businesses, eliminates t
 
 The State of Texas and state regulatory bodies are taking aggressive steps to criminalize and ban low-dose consumable hemp and Delta-9 THC beverages (5mg and 10mg products). Millions of Texans rely on these safe, lab-tested, hemp-derived beverages as a healthy alternative to alcohol and pharmaceutical drugs.
 
-Austin police say they will treat possession of Delta-8 as a state jail felony, which carries a punishment of 180 days to 2 years behind bars and a fine of up to $10,000. <a href="https://www.kut.org/business/2026-07-28/austin-tx-delta-8-ban-police-felony-thc-dshs">[From KUT]</a>
+Austin police say they will treat possession of Delta-8 as a state jail felony, which carries a punishment of 180 days to 2 years behind bars and a fine of up to $10,000. [\[From KUT\]](https://www.kut.org/business/2026-07-28/austin-tx-delta-8-ban-police-felony-thc-dshs)
 
 WE ARE TAKING ACTION TO:
 
@@ -15,7 +15,7 @@ Rally Texas voters and consumers to demand their state representatives vote NO o
 HOW YOU CAN HELP IMMEDIATELY:
 Tap the "EMAIL ALL TEXAS LAWMAKERS NOW" button below. It will automatically load your email app with pre-selected state senators, the Lt. Governor, and the Speaker of the House, along with an official constituent letter urging them to protect hemp and cannabis rights in Texas.
 
-Visit <a href="https://totalwineandmore.quorum.us/campaigns/161953">Total Wine's Texas hemp action page</a> for more ways to contact our leaders.
+Visit [Total Wine's Texas hemp action page](https://totalwineandmore.quorum.us/campaigns/161953) for more ways to contact our leaders.
 
 Since 2018 CBD and THC Delta-8 products have entered Texas gas stations, smoke shops, and liquor stores. They now take at least 5 billion dollars annually. This revenue growth in just 8 years almost guarantees it will overtake the alcohol market in Texas at some point. And it should- alcohol is far more dangerous. Any person who consumes these toxins will agree: society is safer with a bottle of willie nelson's tonic than a bottle of jack daniels. There's significantly less aggression, less physical damage of the liver and body, less long term side effects, less pain.
 

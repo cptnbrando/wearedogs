@@ -31,6 +31,7 @@
     "fflate": "^0.8.3",
     "jsqr": "^1.4.0",
     "lucide-svelte": "^1.0.1",
+    "marked": "^18.0.7",
     "qrcode": "^1.5.4",
     "svelte-i18n": "^4.0.1",
     "tesseract.js": "^7.0.0",
@@ -50,6 +51,7 @@
     "fflate": "Needed for catalytic converter to open zip files",
     "@lottiefiles/dotlottie-wc": "Used for dog logo animation",
     "tesseract.js": "Used for OCR image to text",
-    "@xenova/transformers": "Used for Wiretap to transcribe MP3 and audio files 100% offline in browser using Whisper"
+    "@xenova/transformers": "Used for Wiretap to transcribe MP3 and audio files 100% offline in browser using Whisper",
+    "marked": "Markdown parser for the fundraiser bios in public/fundraiser/. Reason: StorePanel had three hand-rolled regex passes to turn <a href> markup, <url> brackets and bare pasted URLs into links, and a bare URL silently rendered as dead text. One parser replaces all three, so bios are now plain markdown and inline formatting works for free. No install scripts."
   }
 }

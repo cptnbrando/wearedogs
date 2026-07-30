@@ -3,6 +3,7 @@
 <script>
   import { onMount, onDestroy, untrack } from "svelte";
   import { fade, scale, fly } from "svelte/transition";
+  import { marked } from "marked";
   import BasePanel from "./BasePanel.svelte";
   import ProductImageSlideshow from "./apps/ProductImageSlideshow.svelte";
   import ThreeDShirtCanvas from "./apps/ThreeDShirtCanvas.svelte";
@@ -39,13 +40,26 @@
   let currentStoreMode = $state("fundraising"); // Default to "fundraising" per user requirement
   let activeImageIdx = $state(0);
   let isImageFullscreen = $state(false);
+  let isMapFullscreen = $state(false);
   let now = $state(Date.now());
   let countdownInterval;
 
+  /**
+   * Escape has to be caught in the capture phase. TitlePage listens for it on
+   * window as well and closes the whole store, so an open overlay has to
+   * swallow the key before it gets that far. With nothing expanded we let it
+   * through untouched, and Escape still closes the panel as it always has.
+   */
   function handleKeyDown(e) {
-    if (e.key === "Escape" && isImageFullscreen) {
-      isImageFullscreen = false;
-    }
+    if (e.key !== "Escape") return;
+    if (!isImageFullscreen && !isMapFullscreen) return;
+    // stopImmediatePropagation as well: when the event is dispatched straight at
+    // window both listeners sit on the target, where stopPropagation alone
+    // wouldn't hold the other one back.
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+    if (isImageFullscreen) isImageFullscreen = false;
+    else isMapFullscreen = false;
   }
 
   /**
@@ -191,70 +205,45 @@
   const BIO_LINK_CLASS =
     "text-red-500 hover:text-red-400 underline decoration-red-500/30 hover:decoration-red-400 transition-colors duration-200";
 
+  // Bios are markdown. Markdown links, <url> autolinks and bare pasted URLs all
+  // resolve through the one parser now, so there are no bespoke link regexes to
+  // keep in sync — and any other inline markdown works for free.
+  marked.use({
+    gfm: true,
+    renderer: {
+      link({ href, tokens }) {
+        const label = this.parser.parseInline(tokens);
+        const isRawUrl = label === href;
+        return `<a href="${href}" target="_blank" rel="noopener noreferrer" class="${BIO_LINK_CLASS}${isRawUrl ? " break-all" : ""}">${label}</a>`;
+      },
+    },
+  });
+
   /**
-   * @param {string} url
-   * @param {string} label
-   * @param {string} [extraClass]
+   * Older bios embed raw <a> tags rather than markdown. marked passes those
+   * through untouched, so give them the same styling markdown links get.
    */
-  function bioAnchor(url, label, extraClass = "") {
-    const cls = extraClass ? `${BIO_LINK_CLASS} ${extraClass}` : BIO_LINK_CLASS;
-    return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="${cls}">${label}</a>`;
+  function styleRawAnchors(html) {
+    return html.replace(
+      /<a (?![^>]*\bclass=)([^>]*)>/g,
+      `<a $1 target="_blank" rel="noopener noreferrer" class="${BIO_LINK_CLASS}">`,
+    );
   }
 
   /**
-   * Helper to format a plain text bio into paragraphs with HTML links.
-   * @param {string} text - The raw plaintext bio.
+   * Renders a markdown bio into one HTML string per paragraph, so each stays a
+   * separate <p>. Inline-only parsing keeps a stray "1." or "- " in the older
+   * bios as literal text instead of silently turning it into a list.
+   * @param {string} text - The raw markdown bio.
    * @returns {string[]} An array of formatted HTML paragraph strings.
    */
   function formatBioText(text) {
     if (!text) return [];
-    const paragraphs = text.split(/\r?\n\r?\n/);
-    return paragraphs.map((para) => {
-      // Escape HTML characters
-      const escaped = para
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-
-      // Replace custom anchor tags like &lt;a href=&quot;url&quot;&gt;phrase&lt;/a&gt;
-      const customAnchorRegex =
-        /&lt;a href=&quot;(.+?)&quot;&gt;([\s\S]+?)&lt;\/a&gt;/g;
-      const withAnchors = escaped.replace(
-        customAnchorRegex,
-        (match, url, phrase) => bioAnchor(url, phrase),
-      );
-
-      // Replace URL formats like &lt;https://...&gt; with clickable anchor tags
-      const urlRegex = /&lt;(https?:\/\/[^&]+)&gt;/g;
-      const processed = withAnchors.replace(urlRegex, (match, url) =>
-        bioAnchor(url, url, "break-all"),
-      );
-
-      // Last pass: a URL pasted into a bio on its own, with no wrapper syntax,
-      // used to render as dead plain text. Link those too. Tag chunks and the
-      // insides of the anchors built above are skipped so neither explicit
-      // syntax ends up double-wrapped or nested.
-      const bareUrlRegex = /https?:\/\/(?:(?!&quot;|&#039;)[^\s<>"'])+/g;
-      let anchorDepth = 0;
-      return processed
-        .split(/(<[^>]*>)/)
-        .map((chunk) => {
-          if (chunk.startsWith("<")) {
-            if (/^<a\b/i.test(chunk)) anchorDepth++;
-            else if (/^<\/a\s*>/i.test(chunk)) anchorDepth--;
-            return chunk;
-          }
-          if (anchorDepth > 0) return chunk;
-          return chunk.replace(bareUrlRegex, (url) => {
-            // Don't swallow the punctuation that ends the sentence.
-            const link = url.replace(/[.,;:!?)\]]+$/, "");
-            return bioAnchor(link, link, "break-all") + url.slice(link.length);
-          });
-        })
-        .join("");
-    });
+    // Empty blocks are kept: a stray blank line already renders as an extra
+    // paragraph gap today, and dropping them would reflow the older bios.
+    return text
+      .split(/\r?\n\r?\n/)
+      .map((para) => styleRawAnchors(marked.parseInline(para.trim())));
   }
 
   /**
@@ -343,36 +332,15 @@
 
   let isCriticalCampaign = $derived(selectedCampaign?.id === "save-texas-hemp");
 
-  /** Fade + lift each paragraph as it scrolls into view. */
-  function reveal(node, { delay = 0 } = {}) {
-    node.style.setProperty("--reveal-delay", `${delay}ms`);
-    if (typeof IntersectionObserver === "undefined") {
-      node.classList.add("revealed");
-      return {};
-    }
-    const io = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            node.classList.add("revealed");
-            io.unobserve(node);
-          }
-        }
-      },
-      // Reveal a little before the paragraph reaches the viewport, so the
-      // column never shows a block of blank space.
-      { threshold: 0, rootMargin: "0px 0px 240px 0px" },
-    );
-    io.observe(node);
-    return { destroy: () => io.disconnect() };
-  }
-
   $effect(() => {
     // Reset video playing state when active slide index changes
     const _idx = activeImageIdx;
     const _camp = selectedCampaign;
     untrack(() => {
       isVideoPlaying = false;
+      // Sliding off the map (or switching campaigns) should never leave the
+      // next visit stuck in an expanded map.
+      isMapFullscreen = false;
     });
   });
 
@@ -571,6 +539,28 @@
       });
   }
 
+  // Head metadata for the open campaign, mirroring BlogApp's <svelte:head>.
+  // This is what keeps the browser tab correct while navigating inside the SPA;
+  // the crawler-facing copy of these same tags is baked into real HTML at build
+  // time by scripts/vite-plugin-share-cards.js, because link unfurlers never run
+  // JavaScript and would otherwise see the 404 shim.
+  let campaignShareTitle = $derived(
+    selectedCampaign ? `${selectedCampaign.title} — DOGS` : "DOGS",
+  );
+
+  let campaignShareDescription = $derived(
+    (selectedCampaign?.description ?? "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 200),
+  );
+
+  let campaignShareImage = $derived(
+    selectedCampaign?.media?.find((m) => m?.type === "image" && m.url)?.url ??
+      selectedCampaign?.images?.[0] ??
+      "",
+  );
+
   // Lawmaker geolocation & metadata now lives with the campaign in
   // campaigns.json, so the roster can be corrected without a code change.
   // Priority offices lead the roster — they're the confirmed addresses and the
@@ -733,41 +723,81 @@
   }
 
   /**
-   * Android's "approximate location" resolves through the network provider,
-   * which routinely needs more than the old 8s budget and often has a usable
-   * cached fix already. Try a cheap cached/low-accuracy read first, then
-   * escalate to a high-accuracy attempt before giving up.
+   * Picking the nearest senator needs city-level accuracy at best — the offices
+   * are tens of miles apart — so this asks for a cheap, cache-friendly,
+   * low-accuracy fix. Android's "approximate location" is already more than
+   * enough, and a recent cached fix comes back instantly.
+   *
+   * The subtle part is the timeout. Chrome starts the `timeout` clock the moment
+   * getCurrentPosition is called and runs the permission prompt on that same
+   * clock, so any timeout short enough to be useful for a fix will fire while
+   * the user is still reading the prompt — reported as a bogus "timed out".
+   * So the request goes out with no timeout at all, and we only start our own
+   * clock once the permission has actually been answered.
    */
-  function handleUseLocation(allEmails) {
+  const LOCATION_OPTS = {
+    enableHighAccuracy: false,
+    maximumAge: 300000,
+  };
+
+  /** How long to wait for a fix once the human is out of the loop. */
+  const FIX_TIMEOUT_MS = 15000;
+  /** Budget covering prompt + fix together, when we can't tell them apart. */
+  const BLIND_TIMEOUT_MS = 45000;
+
+  async function handleUseLocation(allEmails) {
+    const tail = `Selected the ${fallbackReps.length} priority offices — or tick the boxes below.`;
+
     if (!navigator.geolocation) {
       locationStatusText =
         "⚠️ This browser does not support location. Pick your reps from the list below.";
       return;
     }
-    if (
-      typeof window !== "undefined" &&
-      !window.isSecureContext &&
-      window.location.hostname !== "localhost"
-    ) {
+    // isSecureContext already treats localhost/127.0.0.1 as secure; anything
+    // else on plain http (a LAN IP from `vite --host`, say) can't geolocate.
+    if (typeof window !== "undefined" && !window.isSecureContext) {
       locationStatusText =
         "⚠️ Location needs a secure (https) connection. Pick your reps from the list below.";
       return;
     }
 
-    isLocating = true;
-    locationStatusText = "Locating nearby Texas representatives...";
+    // A site the user has already blocked fails instantly and silently in
+    // Chrome. Say so plainly instead of spinning on a request that can't win.
+    let permission = null;
+    try {
+      permission = await navigator.permissions.query({ name: "geolocation" });
+    } catch {
+      // Older Safari can't query this one — fall through and just ask.
+    }
+    if (permission?.state === "denied") {
+      selectedReps = [...fallbackReps];
+      locationStatusText = `📍 Location is blocked for this site in your browser settings. ${tail}`;
+      return;
+    }
 
-    const succeed = (pos) => {
+    isLocating = true;
+    const waitingOnHuman = permission?.state === "prompt";
+    locationStatusText = waitingOnHuman
+      ? "Waiting for location permission..."
+      : "Locating nearby Texas representatives...";
+
+    // First result wins; a late straggler can't re-fire either branch.
+    let settled = false;
+    let fixTimer = null;
+    const once = (fn) => (arg) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(fixTimer);
       isLocating = false;
-      applyClosestReps(pos, allEmails);
+      fn(arg);
     };
+
+    const succeed = once((pos) => applyClosestReps(pos, allEmails));
 
     // Any failure falls back to the confirmed priority offices — never to
     // nothing, and never to an unverified address.
-    const giveUp = (err) => {
-      isLocating = false;
+    const giveUp = once((err) => {
       selectedReps = [...fallbackReps];
-      const tail = `Selected the ${fallbackReps.length} priority offices — or tick the boxes below.`;
       if (err && err.code === 1) {
         locationStatusText = `📍 Location permission was denied. ${tail}`;
       } else if (err && err.code === 3) {
@@ -775,22 +805,32 @@
       } else {
         locationStatusText = `📍 Location unavailable right now. ${tail}`;
       }
+    });
+
+    const startFixClock = () => {
+      clearTimeout(fixTimer);
+      fixTimer = setTimeout(() => giveUp({ code: 3 }), FIX_TIMEOUT_MS);
     };
 
-    // Pass 1: accept a recent cached fix, low accuracy is plenty for "nearest rep".
-    navigator.geolocation.getCurrentPosition(
-      succeed,
-      () => {
-        locationStatusText = "Still locating...";
-        // Pass 2: force a fresh high-accuracy fix with a generous budget.
-        navigator.geolocation.getCurrentPosition(succeed, giveUp, {
-          enableHighAccuracy: true,
-          timeout: 25000,
-          maximumAge: 0,
-        });
-      },
-      { enableHighAccuracy: false, timeout: 12000, maximumAge: 600000 },
-    );
+    if (!permission) {
+      // No Permissions API: one generous budget has to cover both waits.
+      fixTimer = setTimeout(() => giveUp({ code: 3 }), BLIND_TIMEOUT_MS);
+    } else if (permission.state === "granted") {
+      startFixClock();
+    } else {
+      // Only start counting once the prompt is answered. A denial arrives as a
+      // code 1 on the error callback, so this only has to watch for the grant.
+      permission.addEventListener("change", function onDecision() {
+        permission.removeEventListener("change", onDecision);
+        if (settled) return;
+        if (permission.state === "granted") {
+          locationStatusText = "Locating nearby Texas representatives...";
+          startFixClock();
+        }
+      });
+    }
+
+    navigator.geolocation.getCurrentPosition(succeed, giveUp, LOCATION_OPTS);
   }
 
   function handleCopyRepsEmails(emails) {
@@ -1147,7 +1187,28 @@
   }
 </script>
 
-<svelte:window onpopstate={handlePopState} />
+<svelte:window
+  onpopstate={handlePopState}
+  onkeydowncapture={handleKeyDown}
+/>
+
+<svelte:head>
+  {#if selectedCampaign}
+    <title>{campaignShareTitle}</title>
+    <meta name="description" content={campaignShareDescription} />
+    <meta property="og:title" content={campaignShareTitle} />
+    <meta property="og:description" content={campaignShareDescription} />
+    <meta
+      property="og:url"
+      content="{window.location.origin}/store/campaign/{selectedCampaign.id}"
+    />
+    {#if campaignShareImage}
+      <meta property="og:image" content={campaignShareImage} />
+    {/if}
+    <meta property="twitter:title" content={campaignShareTitle} />
+    <meta property="twitter:description" content={campaignShareDescription} />
+  {/if}
+</svelte:head>
 
 <BasePanel title="DOGS SHOP" {isClosing} {onClose}>
   <div
@@ -1710,8 +1771,12 @@
                   {#key activeImageIdx}
                     {#if currentMediaItem}
                       {#if currentMediaItem.type === "map"}
+                        <!-- Expanding in place rather than mounting a second
+                             copy keeps the map's zoom, pan and open rep card. -->
                         <div
-                          class="absolute inset-0"
+                          class={isMapFullscreen
+                            ? "fixed inset-0 z-[99999] bg-black p-2 sm:p-4"
+                            : "absolute inset-0"}
                           in:fade={{ duration: 200 }}
                         >
                           <TexasLawmakerMap
@@ -1719,6 +1784,9 @@
                             selectedEmails={selectedReps}
                             focusRequest={mapFocusRequest}
                             title="{lawmakers.length} OFFICES"
+                            isFullscreen={isMapFullscreen}
+                            onToggleFullscreen={() =>
+                              (isMapFullscreen = !isMapFullscreen)}
                           />
                         </div>
                       {:else if currentMediaItem.type === "video"}
@@ -1986,32 +2054,40 @@
                       <div
                         class="mt-3 p-2.5 sm:p-3 rounded-xl bg-gradient-to-r from-red-950/80 via-zinc-900/90 to-red-950/80 border border-red-500/50 flex flex-col gap-2 shadow-lg shadow-red-950/30 shrink-0"
                       >
-                        <!-- Row 1: the deadline and the ticking clock -->
-                        <div class="flex items-center gap-2 min-w-0">
-                          <span
-                            class="text-sm sm:text-base animate-pulse shrink-0"
-                            >⏳</span
-                          >
-                          <div class="flex flex-col min-w-0 flex-1">
+                        <!-- Row 1: the deadline and the ticking clock. On a
+                             narrow phone the fixed-width clock and the label
+                             can't share a line without crushing the label, so
+                             the clock drops to its own full-width row and the
+                             label wraps instead of truncating. -->
+                        <div
+                          class="flex flex-col sm:flex-row sm:items-center gap-2 min-w-0"
+                        >
+                          <div class="flex items-center gap-2 min-w-0 flex-1">
                             <span
-                              class="text-[9px] font-mono uppercase tracking-widest text-red-400 font-extrabold truncate"
+                              class="text-sm sm:text-base animate-pulse shrink-0"
+                              >⏳</span
                             >
-                              {deadline.label || "BAN DECISION DEADLINE"}
-                            </span>
-                            <span
-                              class="text-xs sm:text-sm font-black text-white uppercase tracking-wider truncate"
-                            >
-                              {#if timer.isZero}
-                                DECISION DAY IS HERE — 0 DAYS LEFT!
-                              {:else}
-                                ONLY {timer.formattedDaysLeft}!
-                              {/if}
-                            </span>
+                            <div class="flex flex-col min-w-0 flex-1">
+                              <span
+                                class="text-[9px] font-mono uppercase tracking-widest text-red-400 font-extrabold leading-tight sm:truncate"
+                              >
+                                {deadline.label || "BAN DECISION DEADLINE"}
+                              </span>
+                              <span
+                                class="text-xs sm:text-sm font-black text-white uppercase tracking-wider leading-tight sm:truncate"
+                              >
+                                {#if timer.isZero}
+                                  DECISION DAY IS HERE — 0 DAYS LEFT!
+                                {:else}
+                                  ONLY {timer.formattedDaysLeft}!
+                                {/if}
+                              </span>
+                            </div>
                           </div>
 
                           <!-- Compact Ticking Digital Clock -->
                           <div
-                            class="flex items-center gap-1 font-mono text-xs font-bold text-white bg-black/85 px-2.5 py-1 rounded-lg border border-red-500/40 shrink-0 shadow-inner"
+                            class="flex items-center justify-center gap-1 font-mono text-xs font-bold text-white bg-black/85 px-2.5 py-1 rounded-lg border border-red-500/40 w-full sm:w-auto shrink-0 shadow-inner"
                           >
                             <span class="text-white"
                               >{String(timer.days).padStart(2, "0")}d</span
@@ -2163,9 +2239,7 @@
                       {#each formatBioText(campaignBioText || selectedCampaign.description) as paragraph, pIdx}
                         <p
                           class="text-zinc-400 text-sm leading-relaxed font-sans"
-                          class:bio-para={isCriticalCampaign}
                           class:bio-lede={isCriticalCampaign && pIdx === 0}
-                          use:reveal={{ delay: Math.min(pIdx, 8) * 55 }}
                         >
                           {@html isCriticalCampaign
                             ? emphasizeCritical(paragraph)
@@ -2225,7 +2299,7 @@
                                 handleBlastEm(selectedCampaign.contactReps)}
                               class="w-full py-4 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-black font-black rounded-xl text-xs sm:text-sm tracking-widest uppercase transition-all duration-200 flex items-center justify-center gap-2 shadow-xl shadow-emerald-950/40 hover:scale-[1.01] active:scale-[0.99] cursor-pointer text-center"
                             >
-                              💌 SEND PETITION EMAIL (CONTACT ALL)
+                              💌 SEND PETITION EMAIL
                             </button>
                           {:else}
                             <button
@@ -2733,7 +2807,7 @@
       <!-- svelte-ignore a11y_no_static_element_interactions -->
       <div
         class="fixed inset-0 z-[99999] bg-black/95 backdrop-blur-md flex flex-col items-center justify-between p-3 sm:p-6"
-        transition:fade={{ duration: 200 }}
+        transition:fade={{ duration: 110 }}
         onclick={() => (isImageFullscreen = false)}
       >
         <!-- Top Control Bar -->
@@ -2757,16 +2831,23 @@
           </button>
         </div>
 
-        <!-- Main Image Container -->
+        <!-- Main Image Container. No stopPropagation here: a click anywhere in
+             it should collapse the image, and the chevrons below already stop
+             their own events so paging doesn't close the lightbox. -->
         <div
           class="relative flex-1 w-full max-w-7xl flex items-center justify-center my-2 overflow-hidden select-none"
-          onclick={(e) => e.stopPropagation()}
         >
+          <!-- Click the image again to collapse it: same gesture that opened
+               it, so the carousel toggles instead of hunting for the X.
+               Esc and the backdrop both still close it. -->
+          <!-- svelte-ignore a11y_click_events_have_key_events -->
+          <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
           <img
             src={currentMediaItem.url}
             alt={selectedCampaign?.title}
-            class="max-w-full max-h-[82vh] object-contain rounded-xl shadow-2xl transition-transform duration-300"
-            transition:scale={{ duration: 250, start: 0.95 }}
+            class="max-w-full max-h-[82vh] object-contain rounded-xl shadow-2xl cursor-zoom-out"
+            transition:scale={{ duration: 130, start: 0.97 }}
+            onclick={() => (isImageFullscreen = false)}
           />
 
           <!-- Navigation Chevrons in Fullscreen -->
@@ -2861,23 +2942,12 @@
   }
 
   /* ---------------------------------------------------------------- */
-  /* Critical campaign bio — emphasis + scroll-in motion               */
+  /* Critical campaign bio — emphasis                                  */
   /* ---------------------------------------------------------------- */
 
-  .bio-para {
-    opacity: 0;
-    transform: translateY(14px);
-    transition:
-      opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-      transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-    transition-delay: var(--reveal-delay, 0ms);
-    will-change: opacity, transform;
-  }
-
-  .bio-para:global(.revealed) {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  /* The bio text is deliberately static. It used to fade and lift each
+     paragraph in on scroll, which fought with reading a long argument; the
+     panel's own intro transition still plays. */
 
   /* Opening paragraph carries the argument — give it weight. */
   .bio-lede {
@@ -3066,11 +3136,6 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .bio-para {
-      opacity: 1;
-      transform: none;
-      transition: none;
-    }
     .critical-bio :global(b.em-deadline),
     .critical-bio :global(b.em-alarm),
     .jump-arrow,
