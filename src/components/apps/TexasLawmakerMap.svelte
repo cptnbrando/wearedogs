@@ -26,6 +26,8 @@
     selectedEmails = [],
     focusRequest = null,
     title = "TEXAS LAWMAKERS",
+    isFullscreen = false,
+    onToggleFullscreen = null,
   } = $props();
 
   let activeEmail = $state(null);
@@ -415,6 +417,16 @@
         onclick={() => (showLegend = !showLegend)}
         title="Toggle legend">KEY</button
       >
+      {#if onToggleFullscreen}
+        <button
+          class="tx-btn tx-btn-full"
+          class:tx-btn-on={isFullscreen}
+          onclick={onToggleFullscreen}
+          title={isFullscreen ? "Exit full screen (Esc)" : "Full screen"}
+          aria-label={isFullscreen ? "Exit full screen" : "Full screen"}
+          >{isFullscreen ? "⤡ EXIT" : "⤢ FULL"}</button
+        >
+      {/if}
     </div>
   </div>
 
@@ -980,6 +992,12 @@
     background: rgba(16, 185, 129, 0.25);
     border-color: rgba(16, 185, 129, 0.6);
     color: #fff;
+  }
+
+  /* Sits with the other tools but reads as the primary action on the map. */
+  .tx-btn-full {
+    border-color: rgba(16, 185, 129, 0.42);
+    color: rgba(209, 250, 229, 0.95);
   }
 
   /* --- city jump chips --- */
