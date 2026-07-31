@@ -107,14 +107,7 @@
   function getActiveDeadline(campaign, currentMs) {
     if (!campaign) return null;
     const stages = [
-      {
-        target:
-          campaign.id === SALE_CAMPAIGN_ID && saleStartOverride
-            ? new Date(saleStartOverride).toISOString()
-            : campaign.endDate,
-        label: campaign.endDateLabel,
-        final: false,
-      },
+      { target: campaign.endDate, label: campaign.endDateLabel, final: false },
       {
         target: campaign.finalEndDate,
         label: campaign.finalEndDateLabel,
@@ -142,46 +135,26 @@
   const SALE_CAMPAIGN_ID = "save-texas-hemp";
   const SALE_DAY_MS = 24 * 60 * 60 * 1000;
 
-  // Preview hooks so the flip can be rehearsed before the real midnight:
-  //   ?saleday=1   — force sale mode on immediately
-  //   ?salein=20   — the countdown hits zero 20 seconds after load, fireworks
-  //                  and all, exactly as it will on the night
-  //   ?salefor=30  — shrink the sale to 30 seconds, so the August 1st revert
-  //                  can be watched too (combine with salein)
-  //   ?novday=1    — force the post-sale November mode on immediately
-  const saleParams =
-    typeof window !== "undefined"
-      ? new URLSearchParams(
-          window.__WAD_INITIAL_SEARCH || window.location.search,
-        )
-      : null;
   /**
-   * ✋ MANUAL SWITCH: flip to `true` to force SALE DAY styling on right now
-   * (identical to visiting with ?saleday=1). Flip back to `false` for real
-   * clock-driven behaviour. Remember to set it back before committing.
+   * ✋ MANUAL SWITCHES — code-only on purpose. Sale day is July 31st and
+   * nothing a URL can turn on or move. Flip SALE_PREVIEW to hand-force the
+   * gold takeover while developing, NOV_PREVIEW for the post-sale November
+   * mode. Both back to `false` before committing.
    */
   const SALE_PREVIEW = false;
-
-  const saleForced = SALE_PREVIEW || !!saleParams?.has("saleday");
-  const novForced = !!saleParams?.has("novday");
-  const saleStartOverride = saleParams?.has("salein")
-    ? Date.now() + Number(saleParams.get("salein") || 0) * 1000
-    : null;
-  const saleDurationOverride = saleParams?.has("salefor")
-    ? Number(saleParams.get("salefor") || 0) * 1000
-    : null;
+  const NOV_PREVIEW = false;
 
   /** The 24-hour window that starts when the shelf-pull countdown hits zero. */
   function saleWindowOf(campaign) {
     if (campaign?.id !== SALE_CAMPAIGN_ID) return null;
-    const start = saleStartOverride ?? new Date(campaign.endDate ?? NaN).getTime();
+    const start = new Date(campaign.endDate ?? NaN).getTime();
     if (!Number.isFinite(start)) return null;
-    return { start, end: start + (saleDurationOverride ?? SALE_DAY_MS) };
+    return { start, end: start + SALE_DAY_MS };
   }
 
   function isSaleNow(campaign, currentMs) {
     if (campaign?.id !== SALE_CAMPAIGN_ID) return false;
-    if (saleForced) return true;
+    if (SALE_PREVIEW) return true;
     const w = saleWindowOf(campaign);
     return !!w && currentMs >= w.start && currentMs < w.end;
   }
@@ -198,7 +171,7 @@
   let novActive = $derived(
     !saleActive &&
       selectedCampaign?.id === SALE_CAMPAIGN_ID &&
-      (novForced || (!!saleWindow && now >= saleWindow.end)),
+      (NOV_PREVIEW || (!!saleWindow && now >= saleWindow.end)),
   );
 
   /** Which letter the send buttons actually put in front of lawmakers. */
@@ -652,6 +625,30 @@
       isMapFullscreen = false;
     });
   });
+
+  /**
+   * A product's flash sale, but only while its window is open — outside it
+   * the listing silently reverts to full price, same clock discipline as the
+   * campaign takeover. Data lives on the product in products.json.
+   */
+  function productSaleNow(product) {
+    const s = product?.sale;
+    if (!s) return null;
+    const a = new Date(s.start ?? NaN).getTime();
+    const b = new Date(s.end ?? NaN).getTime();
+    if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
+    return now >= a && now < b ? s : null;
+  }
+
+  /** "WHY $100K OFF?" — hop from a product straight to its sale campaign. */
+  function openSaleCampaign(campaignId) {
+    const camp = campaigns.find((c) => c.id === campaignId);
+    if (!camp) return;
+    selectedProduct = null;
+    initialProductId = null;
+    currentStoreMode = "fundraising";
+    selectCampaign(camp);
+  }
 
   // Navigation handlers that update URL history
   function selectProduct(product) {
@@ -1625,11 +1622,13 @@
             url: img,
           })) || [];
     // Campaigns that ship a lawmaker roster get an interactive map slide. It
-    // goes second — right after the lead image — because the map is the thing
-    // that actually does something, and buried on the end nobody found it.
+    // goes FIRST — the map is the thing that actually does something, so it's
+    // the thing you land on. Share images are untouched by this: the meta
+    // tags and prerendered cards read campaign.media/images directly, never
+    // this assembled carousel order.
     if (!(selectedCampaign?.lawmakers?.length > 0)) return base;
     const map = { type: "map", url: "lawmaker-map" };
-    return base.length === 0 ? [map] : [base[0], map, ...base.slice(1)];
+    return [map, ...base];
   });
 
   let currentMediaItem = $derived(campaignMedia[activeImageIdx] || null);
@@ -1866,9 +1865,20 @@
               out:fade={{ duration: 80 }}
             >
               {#each products as product}
+                {@const pSale = productSaleNow(product)}
                 <div
-                  class="relative flex flex-col justify-between overflow-hidden bg-zinc-900/40 border border-zinc-800 rounded-xl transition-all duration-300 group hover:border-zinc-700"
+                  class="relative flex flex-col justify-between overflow-hidden bg-zinc-900/40 border rounded-xl transition-all duration-300 group {pSale
+                    ? 'border-yellow-500/60 hover:border-yellow-400 shadow-lg shadow-yellow-950/30'
+                    : 'border-zinc-800 hover:border-zinc-700'}"
                 >
+                  <!-- Flash-sale banner: one day only, priced to move -->
+                  {#if pSale}
+                    <div
+                      class="absolute top-2 left-2 z-20 px-2 py-1 bg-yellow-400 text-black font-black font-mono text-[9px] tracking-widest uppercase rounded shadow-lg animate-pulse pointer-events-none"
+                    >
+                      🤑 {pSale.amountOff} · TODAY ONLY
+                    </div>
+                  {/if}
                   <!-- Caution tape for sold-out items -->
                   {#if !product.inStock}
                     <div
@@ -1969,9 +1979,21 @@
                     <div
                       class="flex items-center justify-between mt-2 pt-2 border-t border-zinc-800/40"
                     >
-                      <span class="font-bold text-sm text-red-500"
-                        >{product.price}</span
-                      >
+                      {#if pSale}
+                        <span class="flex items-baseline gap-1.5 min-w-0">
+                          <span
+                            class="text-[10px] text-zinc-500 line-through font-mono shrink-0"
+                            >{product.price}</span
+                          >
+                          <span class="font-black text-sm text-yellow-400"
+                            >{pSale.price}</span
+                          >
+                        </span>
+                      {:else}
+                        <span class="font-bold text-sm text-red-500"
+                          >{product.price}</span
+                        >
+                      {/if}
                       <button
                         class="px-3 py-1 bg-white text-black font-bold text-xs rounded hover:bg-zinc-200 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer disabled:cursor-not-allowed"
                         disabled={!product.inStock}
@@ -1986,6 +2008,7 @@
             </div>
           {:else}
             <!-- DETAIL VIEW -->
+            {@const dSale = productSaleNow(selectedProduct)}
             <div
               class="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-stretch"
               in:conditionalGlitchIn
@@ -2013,10 +2036,23 @@
                     {selectedProduct.title}
                   </h1>
                   <div class="flex items-center gap-2 shrink-0">
-                    <span
-                      class="text-base sm:text-lg lg:text-xl text-red-500 font-black"
-                      >{selectedProduct.price}</span
-                    >
+                    {#if dSale}
+                      <span class="flex flex-col items-end leading-tight">
+                        <span
+                          class="text-[11px] sm:text-xs text-zinc-500 line-through font-mono"
+                          >{selectedProduct.price}</span
+                        >
+                        <span
+                          class="text-base sm:text-lg lg:text-xl text-yellow-400 font-black"
+                          >{dSale.price}</span
+                        >
+                      </span>
+                    {:else}
+                      <span
+                        class="text-base sm:text-lg lg:text-xl text-red-500 font-black"
+                        >{selectedProduct.price}</span
+                      >
+                    {/if}
                     <button
                       onclick={(e) =>
                         handleShare("product", selectedProduct.id, e)}
@@ -2075,6 +2111,13 @@
                 <div
                   class="mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-zinc-800/80 shrink-0"
                 >
+                  {#if dSale}
+                    <div
+                      class="mb-3 px-3 py-2 bg-yellow-400 text-black font-black font-mono text-[10px] sm:text-[11px] tracking-widest uppercase rounded-lg text-center animate-pulse"
+                    >
+                      🤑 {dSale.amountOff} — {dSale.label}
+                    </div>
+                  {/if}
                   {#if selectedProduct.id === "fight-the-ceo" || selectedProduct.checkoutUrl}
                     <a
                       href={selectedProduct.checkoutUrl ||
@@ -2085,6 +2128,14 @@
                     >
                       🟢 PAY & CHALLENGE VIA CASH APP ($cptnbrando)
                     </a>
+                    {#if dSale?.campaignId}
+                      <button
+                        onclick={() => openSaleCampaign(dSale.campaignId)}
+                        class="w-full mt-2.5 py-2.5 bg-gradient-to-r from-yellow-500/20 to-emerald-500/20 hover:from-yellow-500/35 hover:to-emerald-500/35 border border-yellow-500/50 text-yellow-300 font-black rounded-xl text-[10px] sm:text-xs tracking-widest uppercase transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer text-center"
+                      >
+                        {dSale.campaignLabel ?? "🌿 SEE THE SALE DAY CAMPAIGN"}
+                      </button>
+                    {/if}
                   {:else}
                     <button
                       class="w-full py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl text-sm tracking-widest transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-red-900/30 cursor-pointer"
@@ -2496,10 +2547,37 @@
                     {/if}
                   {/key}
 
-                  <!-- No inline carousel chevrons: they sat on top of the map's
-                       lawmaker popup and swallowed taps meant for it. The
-                       thumbnail strip, the dots and swipe all still change
-                       slides, and the fullscreen view keeps its own arrows. -->
+                  <!-- Inline chevrons — on every slide EXCEPT the map, where
+                       they sat on top of the lawmaker popup and swallowed
+                       taps meant for it. On the map slide the thumbnail strip
+                       still changes slides, as before. -->
+                  {#if campaignMedia.length > 1 && currentMediaItem?.type !== "map"}
+                    <button
+                      class="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-black/65 hover:bg-black/90 border border-zinc-700/80 text-white flex items-center justify-center transition-all cursor-pointer shadow-xl opacity-70 hover:opacity-100 active:scale-95"
+                      onclick={(e) => {
+                        e.stopPropagation();
+                        scrollDirection = -1;
+                        activeImageIdx =
+                          (activeImageIdx - 1 + campaignMedia.length) %
+                          campaignMedia.length;
+                      }}
+                      aria-label="Previous slide"
+                    >
+                      <span class="text-sm font-bold select-none">◀</span>
+                    </button>
+                    <button
+                      class="absolute right-2 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-black/65 hover:bg-black/90 border border-zinc-700/80 text-white flex items-center justify-center transition-all cursor-pointer shadow-xl opacity-70 hover:opacity-100 active:scale-95"
+                      onclick={(e) => {
+                        e.stopPropagation();
+                        scrollDirection = 1;
+                        activeImageIdx =
+                          (activeImageIdx + 1) % campaignMedia.length;
+                      }}
+                      aria-label="Next slide"
+                    >
+                      <span class="text-sm font-bold select-none">▶</span>
+                    </button>
+                  {/if}
 
                   <!-- Position ribbon: dots replaced by a serrated strip along
                        the bottom edge — one skewed segment per slide, filled
@@ -4934,29 +5012,14 @@
     background-color: rgba(10, 14, 42, 0.5);
   }
 
+  /* Static red-left / blue-right wash — parked cruiser, engine off. The
+     lights are present without flashing at the reader. */
   .detail-panel.cop-panel {
     background-color: rgba(9, 12, 36, 0.72) !important;
     border-color: rgba(129, 140, 248, 0.6) !important;
-    animation: copPanelGlow 1.6s ease-in-out infinite;
-  }
-
-  /* The panel edge strobes red-left / blue-right, like lights in the
-     rear-view mirror. */
-  @keyframes copPanelGlow {
-    0%,
-    45% {
-      box-shadow:
-        -20px 0 44px rgba(239, 68, 68, 0.3),
-        20px 0 44px rgba(59, 130, 246, 0.12),
-        0 0 0 1px rgba(239, 68, 68, 0.4);
-    }
-    55%,
-    100% {
-      box-shadow:
-        20px 0 44px rgba(59, 130, 246, 0.3),
-        -20px 0 44px rgba(239, 68, 68, 0.12),
-        0 0 0 1px rgba(59, 130, 246, 0.4);
-    }
+    box-shadow:
+      -18px 0 40px rgba(239, 68, 68, 0.16),
+      18px 0 40px rgba(59, 130, 246, 0.16);
   }
 
   /* Gold hands the title over to the lights. */
@@ -4974,7 +5037,6 @@
     .sale-bio :global(b.sale-em-deadline),
     .sale-bio :global(b.warn-em-sentence),
     .warn-banner,
-    .detail-panel.cop-panel,
     .jump-arrow,
     .email-flash,
     .sale-title,
