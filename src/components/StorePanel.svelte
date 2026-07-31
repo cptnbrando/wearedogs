@@ -1308,6 +1308,28 @@
     locationStatusText = `${group.label} — ${emails.length} offices selected (${group.range.toLowerCase()}). ${group.blurb}`;
   }
 
+  /**
+   * THIS MEANS WAR — the captain and his officers. Lt. Gov. Patrick runs
+   * the Senate calendar where every House reform bill since 2019 has died;
+   * Perry wrote SB 3; Shaheen killed the House's regulate-don't-ban
+   * substitute. One button aims the letter at the ban's actual architects
+   * instead of the whole fleet.
+   */
+  const WAR_TARGET_NAMES = ["Dan Patrick", "Charles Perry", "Matt Shaheen"];
+
+  let warTargets = $derived(
+    lawmakers
+      .filter((l) => WAR_TARGET_NAMES.includes(l.name) && l.email?.trim())
+      .map((l) => l.email),
+  );
+
+  function handleTargetCaptain() {
+    if (warTargets.length === 0) return;
+    selectedReps = [...warTargets];
+    locationStatusText =
+      "🏴‍☠️ Broadside loaded: Lt. Gov. Dan Patrick (captain of the anti-weed ship — his Senate calendar is where House reform dies), Sen. Charles Perry (wrote SB 3), Rep. Matt Shaheen (killed the House's regulate-don't-ban plan). Fire when ready.";
+  }
+
   /* ------------------------------------------------------------------ */
   /* Reaching the whole roster, forty at a time                          */
   /* ------------------------------------------------------------------ */
@@ -3239,6 +3261,25 @@
                                       </button>
                                     {/each}
                                   </div>
+
+                                  <!-- The captain and his officers: the ban's
+                                       actual architects, one broadside. -->
+                                  {#if warTargets.length > 0}
+                                    <button
+                                      onclick={handleTargetCaptain}
+                                      title="Select Lt. Gov. Patrick and the ban's architects"
+                                      class="w-full py-2.5 px-3 bg-gradient-to-r from-red-950/70 via-zinc-950 to-blue-950/70 hover:from-red-900/70 hover:to-blue-900/70 border border-red-500/50 hover:border-red-400 text-white rounded-lg font-mono text-[10px] font-black transition-all flex flex-col items-center justify-center gap-0.5 text-center cursor-pointer shadow-lg"
+                                    >
+                                      <span class="leading-tight tracking-widest"
+                                        >🏴‍☠️ THIS MEANS WAR — TARGET THE CAPTAIN</span
+                                      >
+                                      <span
+                                        class="text-[9px] font-bold text-red-200/80 normal-case tracking-normal"
+                                        >Lt. Gov. Patrick, Sen. Perry &amp; Rep.
+                                        Shaheen — the ban's architects ({warTargets.length})</span
+                                      >
+                                    </button>
+                                  {/if}
 
                                   <div class="grid grid-cols-2 gap-2">
                                     <button

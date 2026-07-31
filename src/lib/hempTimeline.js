@@ -86,6 +86,22 @@ export const WHY_TIMELINE = [
     ],
   },
   {
+    date: "APR 29, 2021",
+    title: "The Texas HOUSE votes to decriminalize — 88 to 40",
+    tone: "legal",
+    body: "Rep. Erin Zwiener's HB 441 — possession of up to an ounce becomes a Class C ticket, no jail, no arrest — passes the Texas House 88-40, with dozens of Republicans voting yes. It never gets a Senate vote. The House had passed decriminalization in 2019 too; same ending. Remember this every time someone says 'Texas' opposes reform: the People's chamber keeps voting FOR it, and the Senate is where it goes to die.",
+    links: [
+      {
+        label: "Texas Tribune: House passes bill lowering pot penalties",
+        url: "https://www.texastribune.org/2021/04/29/texas-marijuana-posession-penalties/",
+      },
+      {
+        label: "HB 441 (87R) — bill history",
+        url: "https://capitol.texas.gov/BillLookup/History.aspx?LegSess=87R&Bill=HB441",
+      },
+    ],
+  },
+  {
     date: "OCT 2021",
     title: "DSHS quietly re-bans delta-8; Hometown Hero sues",
     tone: "court",
@@ -106,6 +122,22 @@ export const WHY_TIMELINE = [
       {
         label: "KUT: Delta-8 is legal in Texas — for now",
         url: "https://www.kut.org/crime-justice/2021-11-08/delta-8-is-legal-in-texas-for-now-after-travis-county-judge-blocks-state-from-criminalizing-the-cannabis-extract",
+      },
+    ],
+  },
+  {
+    date: "MAY 7, 2022",
+    title: "Austin votes 85% to decriminalize",
+    tone: "legal",
+    body: "Proposition A passes with over 85% of the vote: Austin police stop citing and arresting for misdemeanor possession, and no-knock warrants are banned. Austin is the most pro-cannabis city in Texas — today's felony threats there are state law overriding a local landslide, not local will.",
+    links: [
+      {
+        label: "KUT: Austin decriminalizes small amounts of weed",
+        url: "https://www.kut.org/politics/2022-05-07/austin-no-knock-warrants-decriminalize-small-amounts-of-weed-2022-election",
+      },
+      {
+        label: "Ballotpedia: Austin Proposition A (May 2022)",
+        url: "https://ballotpedia.org/Austin,_Texas,_Proposition_A,_Marijuana_Decriminalization_and_Prohibit_No-Knock_Warrants_Initiative_(May_2022)",
       },
     ],
   },
@@ -158,6 +190,22 @@ export const WHY_TIMELINE = [
       {
         label: "Texas Tribune: majority of Texans oppose the ban",
         url: "https://www.texastribune.org/2025/06/25/texas-poll-voters-oppose-thc-ban-sb-3/",
+      },
+    ],
+  },
+  {
+    date: "AUG 2, 2025",
+    title: "A Republican DA lights up on TikTok",
+    tone: "legal",
+    body: "Sarah Stogner, the Republican district attorney for a West Texas judicial district, livestreams herself smoking a joint at 4:20pm to protest the ban push — 'Free the plant, Dan.' Even the GOP is split: 62% of Texans back full legalization, and the party's own platform supports expansions its Senate leadership keeps killing.",
+    links: [
+      {
+        label: "FOX 4: Republican DA smokes weed on TikTok",
+        url: "https://www.fox4news.com/news/sarah-stogner-texas-republican-weed-tiktok-thc",
+      },
+      {
+        label: "Newsweek: 62% of Texans back legalization",
+        url: "https://www.newsweek.com/texas-under-pressure-legalize-marijuana-drugs-2027226",
       },
     ],
   },
@@ -292,15 +340,33 @@ export const WHY_PLAYERS = [
   },
   {
     name: "Lt. Gov. Dan Patrick",
-    role: "Made the total THC ban his top legislative priority, twice, and publicly ripped the veto that stopped it.",
+    role: "Captain of the anti-weed ship. Controls the Senate calendar where every House reform bill since 2019 has died, made the total ban his #1 priority twice, and publicly ripped the veto that stopped it.",
     stance: "against",
     url: "https://www.texastribune.org/2025/06/23/texas-thc-ban-veto-dan-patrick-greg-abbott-sb-3/",
   },
   {
-    name: "Sen. Charles Perry",
-    role: "Authored SB 3, the total ban Abbott vetoed.",
+    name: "Sen. Charles Perry (Lubbock)",
+    role: "Authored SB 3, the total ban Abbott vetoed. Not from Austin — the ban's authors come from rural and suburban districts.",
     stance: "against",
     url: "https://capitol.texas.gov/BillLookup/History.aspx?LegSess=89R&Bill=SB3",
+  },
+  {
+    name: "Rep. Matt Shaheen (Plano)",
+    role: "Coauthored the amendment that struck the House's regulate-don't-ban substitute and restored the total ban.",
+    stance: "against",
+    url: "https://capitol.texas.gov/BillLookup/History.aspx?LegSess=89R&Bill=SB3",
+  },
+  {
+    name: "Rep. Erin Zwiener",
+    role: "Authored HB 441, the decriminalization bill the House passed 88-40 in 2021 — killed without a vote in Patrick's Senate.",
+    stance: "for",
+    url: "https://capitol.texas.gov/BillLookup/History.aspx?LegSess=87R&Bill=HB441",
+  },
+  {
+    name: "DA Sarah Stogner (West Texas)",
+    role: "Republican district attorney who livestreamed a joint at 4:20pm to protest the ban — 'Free the plant, Dan.'",
+    stance: "for",
+    url: "https://www.fox4news.com/news/sarah-stogner-texas-republican-weed-tiktok-thc",
   },
   {
     name: "Hometown Hero (Sky Marketing Corp.)",

@@ -2170,6 +2170,92 @@
               </div>
             </section>
 
+            <!-- The part the raw scores hide: the House keeps voting FOR
+                 reform. The blockage has an address, and it's the Senate. -->
+            <section>
+              <h5>THE HOUSE ALREADY VOTED FOR REFORM — THE SENATE IS WHERE IT DIES</h5>
+              <ul class="tx-facts">
+                <li>
+                  <b>2021:</b> the Texas House passed HB 441 — decriminalizing
+                  up to an ounce, no jail, no arrest — by <b>88 to 40</b>, 68%
+                  of those voting, dozens of Republicans included. It never got
+                  a Senate vote. The House had passed decriminalization in 2019
+                  too; same ending.
+                  <span class="tx-fact-links"
+                    ><a
+                      href="https://www.texastribune.org/2021/04/29/texas-marijuana-posession-penalties/"
+                      target="_blank"
+                      rel="noopener noreferrer">Texas Tribune ↗</a
+                    >
+                    <a
+                      href="https://capitol.texas.gov/BillLookup/History.aspx?LegSess=87R&Bill=HB441"
+                      target="_blank"
+                      rel="noopener noreferrer">HB 441 ↗</a
+                    ></span
+                  >
+                </li>
+                <li>
+                  <b>The voters:</b> 62% of Texans back full legalization, and
+                  the SB 3 total ban polled 50–34 <i>against</i>. This ban is
+                  not the will of the people — of either party.
+                  <span class="tx-fact-links"
+                    ><a
+                      href="https://www.newsweek.com/texas-under-pressure-legalize-marijuana-drugs-2027226"
+                      target="_blank"
+                      rel="noopener noreferrer">Newsweek ↗</a
+                    >
+                    <a
+                      href="https://www.texastribune.org/2025/06/25/texas-poll-voters-oppose-thc-ban-sb-3/"
+                      target="_blank"
+                      rel="noopener noreferrer">Tribune poll ↗</a
+                    ></span
+                  >
+                </li>
+                <li>
+                  <b>Austin is the cannabis capital of Texas:</b> Prop A
+                  (2022) decriminalized locally with <b>85%</b> of the vote,
+                  and Austin reps keep authoring the reform bills. Today's
+                  felony threats there are state law steamrolling a local
+                  landslide — and it was Austin's own Hometown Hero that held
+                  the courts for four years.
+                  <span class="tx-fact-links"
+                    ><a
+                      href="https://www.kut.org/politics/2022-05-07/austin-no-knock-warrants-decriminalize-small-amounts-of-weed-2022-election"
+                      target="_blank"
+                      rel="noopener noreferrer">KUT ↗</a
+                    >
+                    <a
+                      href="https://ballotpedia.org/Austin,_Texas,_Proposition_A,_Marijuana_Decriminalization_and_Prohibit_No-Knock_Warrants_Initiative_(May_2022)"
+                      target="_blank"
+                      rel="noopener noreferrer">Ballotpedia ↗</a
+                    ></span
+                  >
+                </li>
+                <li>
+                  <b>Even the GOP is split:</b> a West Texas Republican DA
+                  livestreamed a joint at 4:20pm to protest the ban — "Free
+                  the plant, Dan." The ban's authors are a small circle of
+                  Senate conservatives from rural and suburban districts —
+                  Perry (Lubbock), Shaheen (Plano) — captained by Lt. Gov.
+                  Dan Patrick, whose calendar is where House reform goes to
+                  die.
+                  <span class="tx-fact-links"
+                    ><a
+                      href="https://www.fox4news.com/news/sarah-stogner-texas-republican-weed-tiktok-thc"
+                      target="_blank"
+                      rel="noopener noreferrer">FOX 4 ↗</a
+                    ></span
+                  >
+                </li>
+              </ul>
+              <p class="tx-stats-note">
+                Note: the 1–5 scores on this map rate each office's record on
+                THIS hemp-ban fight (the SB 3 votes and related record), not
+                general legalization support — which is why the floor looks
+                redder here than the House's own decriminalization votes.
+              </p>
+            </section>
+
             <section>
               <h5>
                 WHERE THEY STAND ON THE BAN — {ratedCount} RATED, {stanceDist[0]}
@@ -4442,6 +4528,46 @@
     font-family: ui-monospace, monospace;
     font-size: calc(0.5rem * var(--s, 1));
     letter-spacing: 0.04em;
+  }
+
+  /* The House-vs-Senate facts on the REPRESENTATION tab. */
+  .tx-facts {
+    margin: 0;
+    padding-left: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: calc(7px * var(--s, 1));
+  }
+
+  .tx-facts li {
+    font-size: calc(0.48rem * var(--s, 1));
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  .tx-facts li b {
+    color: #fff;
+  }
+
+  .tx-fact-links {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    margin-left: 6px;
+  }
+
+  .tx-fact-links a {
+    font-family: ui-monospace, monospace;
+    font-size: calc(0.44rem * var(--s, 1));
+    font-weight: 700;
+    color: #67e8f9;
+    text-decoration: none;
+    border-bottom: 1px solid rgba(103, 232, 249, 0.35);
+  }
+
+  .tx-fact-links a:hover {
+    color: #fff;
+    border-bottom-color: #fff;
   }
 
   /* Who did what. */
