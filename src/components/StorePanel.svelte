@@ -568,6 +568,77 @@
     saleActive ? bioParas.findIndex((p) => p.includes(WARN_MARKER)) : -1,
   );
 
+  /**
+   * Only the hard-penalty paragraphs get the red/blue evidence boxes — a
+   * page where everything is highlighted highlights nothing. Matched by
+   * snippet so the copy can be reworded without breaking the styling.
+   */
+  const WARN_BOX_SNIPPETS = [
+    "Possession of up to 2 ounces",
+    "Over 2 ounces",
+    "But your vapes, your dabs",
+    "Selling or even",
+    "hunch trumps your sober evening",
+  ];
+
+  /** Box sequence number per paragraph (-1 = not boxed), for red/blue alternation. */
+  let warnBoxOrder = $derived.by(() => {
+    let n = 0;
+    return bioParas.map((p) => {
+      if (warnIdx < 0 || !WARN_BOX_SNIPPETS.some((s) => p.includes(s)))
+        return -1;
+      return n++;
+    });
+  });
+
+  /* ------------------------------------------------------------------ */
+  /* COP MODE — the warning section is on screen                         */
+  /* ------------------------------------------------------------------ */
+
+  /**
+   * How many warning paragraphs are currently visible. While any of them is
+   * on screen the whole page — panel, workspace, and the map — trades the
+   * bargain gold for police red & blue, and trades back the moment the
+   * reader scrolls up out of the section. Watching every paragraph (not
+   * just the banner) is what keeps the lights on while the reader is deep
+   * in the section with the banner already scrolled past.
+   */
+  let copSentinels = $state(0);
+  let copMode = $derived(saleActive && copSentinels > 0);
+
+  /** Svelte action: counts this node in/out of the viewport when active. */
+  function warnWatch(node, active) {
+    let io = null;
+    let visible = false;
+    const clear = () => {
+      if (visible) {
+        copSentinels -= 1;
+        visible = false;
+      }
+      io?.disconnect();
+      io = null;
+    };
+    const setup = (on) => {
+      clear();
+      if (!on || typeof IntersectionObserver === "undefined") return;
+      io = new IntersectionObserver(
+        ([entry]) => {
+          if (entry.isIntersecting && !visible) {
+            visible = true;
+            copSentinels += 1;
+          } else if (!entry.isIntersecting && visible) {
+            visible = false;
+            copSentinels -= 1;
+          }
+        },
+        { threshold: 0.1 },
+      );
+      io.observe(node);
+    };
+    setup(active);
+    return { update: setup, destroy: clear };
+  }
+
   let isCriticalCampaign = $derived(selectedCampaign?.id === "save-texas-hemp");
 
   $effect(() => {
@@ -1748,6 +1819,7 @@
     <div
       class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 grid grid-cols-1 grid-rows-1 image-panel store-workspace"
       class:sale-workspace={saleActive}
+      class:cop-workspace={copMode}
       class:campaign-open={currentStoreMode === "fundraising" &&
         !!selectedCampaign}
       bind:clientHeight={workspaceH}
@@ -2292,10 +2364,9 @@
                             {lawmakers}
                             selectedEmails={selectedReps}
                             focusRequest={mapFocusRequest}
-                            title={saleActive
-                              ? `💰 ${lawmakers.length} 🐘🫏 MUST GO 💰`
-                              : `${lawmakers.length} 🐘🫏`}
+                            title={`${lawmakers.length} 🐘🫏`}
                             saleMode={saleActive}
+                            {copMode}
                             isFullscreen={isMapFullscreen}
                             onToggleFullscreen={() =>
                               (isMapFullscreen = !isMapFullscreen)}
@@ -2430,16 +2501,20 @@
                        thumbnail strip, the dots and swipe all still change
                        slides, and the fullscreen view keeps its own arrows. -->
 
-                  <!-- Indicator dots -->
+                  <!-- Position ribbon: dots replaced by a serrated strip along
+                       the bottom edge — one skewed segment per slide, filled
+                       up to the current position, so it reads like a border
+                       that charges and drains as you page back and forth. -->
                   <div
-                    class="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-20 pointer-events-none"
+                    class="carousel-ribbon"
+                    class:sale-ribbon={saleActive}
+                    class:cop-ribbon={copMode}
+                    aria-hidden="true"
                   >
                     {#each campaignMedia as _, idx}
                       <span
-                        class="w-1.5 h-1.5 rounded-full transition-all duration-200 {activeImageIdx ===
-                        idx
-                          ? 'bg-white'
-                          : 'bg-white/30'}"
+                        class="ribbon-seg"
+                        class:filled={idx <= activeImageIdx}
                       ></span>
                     {/each}
                   </div>
@@ -2509,6 +2584,7 @@
               <div
                 class="sm:col-span-5 flex flex-col justify-between bg-zinc-900/20 border border-zinc-800/60 p-4 sm:p-5 lg:p-6 rounded-2xl detail-panel"
                 class:sale-panel={saleActive}
+                class:cop-panel={copMode}
               >
                 <div>
                   <div
@@ -2856,26 +2932,28 @@
                         <!-- Falls back to the inline description, still in full -->
                         {#each bioParas as paragraph, pIdx}
                           {@const inWarn = warnIdx >= 0 && pIdx >= warnIdx}
+                          {@const boxOrder = warnBoxOrder[pIdx] ?? -1}
                           <p
+                            use:warnWatch={inWarn}
                             class="text-zinc-400 text-sm leading-relaxed font-sans"
                             class:bio-lede={isCriticalCampaign &&
                               !saleActive &&
                               pIdx === 0}
                             class:sale-lede={saleActive && pIdx === 0}
                             class:warn-banner={inWarn && pIdx === warnIdx}
-                            class:warn-para={inWarn && pIdx !== warnIdx}
-                            class:warn-red={inWarn &&
-                              pIdx !== warnIdx &&
-                              (pIdx - warnIdx) % 2 === 1}
-                            class:warn-blue={inWarn &&
-                              pIdx !== warnIdx &&
-                              (pIdx - warnIdx) % 2 === 0}
+                            class:warn-para={boxOrder >= 0}
+                            class:warn-red={boxOrder >= 0 && boxOrder % 2 === 0}
+                            class:warn-blue={boxOrder >= 0 &&
+                              boxOrder % 2 === 1}
                           >
+                            <!-- Only the boxed penalty paragraphs carry inline
+                                 highlights; the rest of the article reads
+                                 plain, so the boxes actually land. -->
                             {@html isCriticalCampaign
                               ? saleActive
-                                ? inWarn
+                                ? boxOrder >= 0
                                   ? emphasizeWarning(paragraph)
-                                  : emphasizeSale(paragraph)
+                                  : paragraph
                                 : emphasizeCritical(paragraph)
                               : paragraph}
                           </p>
@@ -4345,6 +4423,54 @@
   }
 
   /* ---------------------------------------------------------------- */
+  /* Carousel position ribbon — the serrated strip under the border     */
+  /* ---------------------------------------------------------------- */
+
+  .carousel-ribbon {
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    bottom: 0;
+    height: 4px;
+    display: flex;
+    gap: 4px;
+    z-index: 20;
+    pointer-events: none;
+  }
+
+  /* Each slide is one skewed tooth; skew is the serration. */
+  .ribbon-seg {
+    flex: 1;
+    transform: skewX(-24deg);
+    border-radius: 1px;
+    background: rgba(255, 255, 255, 0.16);
+    transition:
+      background-color 0.35s ease,
+      box-shadow 0.35s ease;
+  }
+
+  .ribbon-seg.filled {
+    background: #ef4444;
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.75);
+  }
+
+  .sale-ribbon .ribbon-seg.filled {
+    background: #fbbf24;
+    box-shadow: 0 0 8px rgba(251, 191, 36, 0.75);
+  }
+
+  /* Cop mode: filled teeth alternate red and blue. */
+  .cop-ribbon .ribbon-seg.filled:nth-child(odd) {
+    background: #ef4444;
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.75);
+  }
+
+  .cop-ribbon .ribbon-seg.filled:nth-child(even) {
+    background: #3b82f6;
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.75);
+  }
+
+  /* ---------------------------------------------------------------- */
   /* Mobile landscape — the two-column campaign view, made to FIT       */
   /* ---------------------------------------------------------------- */
 
@@ -4798,6 +4924,49 @@
     white-space: normal;
   }
 
+  /* ---------------------------------------------------------------- */
+  /* COP MODE — the whole page goes red & blue while the warning is on  */
+  /* screen. Declared after the sale styles so it wins while both are   */
+  /* active; the existing 2s+ transitions animate the swap both ways.   */
+  /* ---------------------------------------------------------------- */
+
+  .cop-workspace {
+    background-color: rgba(10, 14, 42, 0.5);
+  }
+
+  .detail-panel.cop-panel {
+    background-color: rgba(9, 12, 36, 0.72) !important;
+    border-color: rgba(129, 140, 248, 0.6) !important;
+    animation: copPanelGlow 1.6s ease-in-out infinite;
+  }
+
+  /* The panel edge strobes red-left / blue-right, like lights in the
+     rear-view mirror. */
+  @keyframes copPanelGlow {
+    0%,
+    45% {
+      box-shadow:
+        -20px 0 44px rgba(239, 68, 68, 0.3),
+        20px 0 44px rgba(59, 130, 246, 0.12),
+        0 0 0 1px rgba(239, 68, 68, 0.4);
+    }
+    55%,
+    100% {
+      box-shadow:
+        20px 0 44px rgba(59, 130, 246, 0.3),
+        -20px 0 44px rgba(239, 68, 68, 0.12),
+        0 0 0 1px rgba(59, 130, 246, 0.4);
+    }
+  }
+
+  /* Gold hands the title over to the lights. */
+  .cop-panel .sale-title {
+    color: #e0e7ff;
+    text-shadow:
+      -6px 0 18px rgba(239, 68, 68, 0.6),
+      6px 0 18px rgba(59, 130, 246, 0.6);
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .critical-bio :global(b.em-deadline),
     .critical-bio :global(b.em-alarm),
@@ -4805,6 +4974,7 @@
     .sale-bio :global(b.sale-em-deadline),
     .sale-bio :global(b.warn-em-sentence),
     .warn-banner,
+    .detail-panel.cop-panel,
     .jump-arrow,
     .email-flash,
     .sale-title,

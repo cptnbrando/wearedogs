@@ -27,6 +27,12 @@
     CITY_STATS_METHOD,
     STATS_SOURCES,
   } from "../../lib/hempStats.js";
+  import {
+    STORE_DOTS,
+    STORE_TOTAL_LABEL,
+    STORE_DOT_RATIO,
+    STORE_COUNT_BY_NAME,
+  } from "../../lib/hempStores.js";
 
   let {
     lawmakers = [],
@@ -38,6 +44,10 @@
     // July 31st SALE DAY: re-lights the whole map in cash gold/green. Every
     // colour swap rides a CSS transition so the flip is watchable, not a cut.
     saleMode = false,
+    // Cop mode: while the reader is inside the "BUT BE WARNED" section the
+    // map trades its palette for police red & blue. Applied on top of
+    // saleMode — the tx-cop overrides win while both classes are present.
+    copMode = false,
   } = $props();
 
   /**
@@ -144,14 +154,17 @@
   let statsTab = $state("money");
 
   /**
-   * ALL / SENATE / HOUSE pin filter. "Senate" is shorthand for everything that
-   * isn't the House — state senators, the Lt. Governor and Governor, and the
-   * federal offices — because that's the group the map started with.
+   * ALL / SENATE / HOUSE / STORES pin filter. "Senate" is shorthand for
+   * everything that isn't the House — state senators, the Lt. Governor and
+   * Governor, and the federal offices — because that's the group the map
+   * started with. STORES swaps the lawmakers out entirely for the retailers
+   * the ban actually lands on.
    */
   let chamberMode = $state("all");
 
   function inChamber(rep) {
     if (chamberMode === "all") return true;
+    if (chamberMode === "stores") return false;
     if (chamberMode === "house") return rep.chamber === "house";
     return rep.chamber !== "house";
   }
@@ -160,7 +173,13 @@
 
   function cycleChamber() {
     chamberMode =
-      chamberMode === "all" ? "senate" : chamberMode === "senate" ? "house" : "all";
+      chamberMode === "all"
+        ? "senate"
+        : chamberMode === "senate"
+          ? "house"
+          : chamberMode === "house"
+            ? "stores"
+            : "all";
     // A focused pin that just got filtered out would leave a ghost card
     // pointing at nothing.
     hoveredKey = null;
@@ -664,15 +683,76 @@
       y < $vy + $vh + u(20),
   );
 
+  /** The focused lawmaker's plate, as a collision box. */
+  function focusedRepBox() {
+    const hw = u(nameHalfWidth(focusedRep));
+    return {
+      x: px(focusedRep.lng) - hw,
+      y: py(focusedRep.lat) - u(32 * ts),
+      w: hw * 2,
+      h: u(46 * ts),
+    };
+  }
+
+  /**
+   * Try the four candidate positions for one city name; claims space in
+   * `placed` and returns the label on success, null when everything collides.
+   */
+  function placeCity(c, placed) {
+    const dx = px(c.lng);
+    const dy = py(c.lat);
+    if (!inViewport(dx, dy)) return null;
+
+    const fs = (c.tier === 1 ? 12.5 : c.tier === 2 ? 10.5 : 9) * ts;
+    // Size the plate to the text that actually gets drawn, not the full name.
+    const w = u((c.short || c.name).length * fs * 0.66 + 12);
+    const h = u(fs + 8);
+
+    const options = [
+      { ox: u(11), oy: u(3.5), anchor: "start" },
+      { ox: -u(11), oy: u(3.5), anchor: "end" },
+      { ox: 0, oy: -u(12), anchor: "middle" },
+      { ox: 0, oy: u(18), anchor: "middle" },
+    ];
+
+    for (const o of options) {
+      const tx = dx + o.ox;
+      const ty = dy + o.oy;
+      const bx =
+        o.anchor === "start" ? tx - u(4) : o.anchor === "end" ? tx - w + u(4) : tx - w / 2;
+      const box = { x: bx, y: ty - h * 0.78, w, h };
+      if (placed.some((p) => boxesOverlap(p, box))) continue;
+      placed.push(box);
+      return { city: c, tx, ty, anchor: o.anchor, fs, box };
+    }
+    return null;
+  }
+
+  /**
+   * Tier-1 metro names place before everything else — Dallas must never
+   * disappear under a pile of senators. Only the focused lawmaker's plate
+   * outranks them, because that one is the user's own pointer talking.
+   */
+  let majorCityLabels = $derived.by(() => {
+    if (!renderScale) return [];
+    const placed = focusedRep ? [focusedRepBox()] : [];
+    const out = [];
+    for (const c of CITIES.filter((c) => c.tier === 1)) {
+      const l = placeCity(c, placed);
+      if (l) out.push(l);
+    }
+    return out;
+  });
+
   /**
    * Lawmaker names get the same collision treatment as cities — six DFW
    * offices sit on top of each other, and drawing all six names produced an
    * unreadable stack. Names that can't find clear space are dropped; hover or
-   * zoom in to see them.
+   * zoom in to see them. Big-city names have already claimed their room.
    */
   let pinLabels = $derived.by(() => {
     if (!renderScale || !showDetail || focusedKey) return [];
-    const placed = [];
+    const placed = majorCityLabels.map((l) => l.box);
     const out = [];
 
     for (const rep of navigableReps) {
@@ -703,55 +783,24 @@
   let cityLabels = $derived.by(() => {
     if (!renderScale) return [];
 
-    const inView = inViewport;
+    // Majors are already placed; everyone else fits in around them, the
+    // lawmaker plates, and the focused card. A bare pin is just a dot, and
+    // label plates sit behind their text, so a dot under a label is fine;
+    // only a drawn *name* needs the room.
+    const placed = [
+      ...majorCityLabels.map((l) => l.box),
+      ...pinLabels.map((p) => p.box),
+    ];
+    if (focusedRep) placed.push(focusedRepBox());
 
-    // Lawmaker names claim their space first — they're the point of the map.
-    // A bare pin is just a dot, and label plates sit behind their text, so a
-    // dot under a label is fine; only a drawn *name* needs the room.
-    const placed = pinLabels.map((p) => p.box);
-    if (focusedRep) {
-      const hw = u(nameHalfWidth(focusedRep));
-      placed.push({
-        x: px(focusedRep.lng) - hw,
-        y: py(focusedRep.lat) - u(32 * ts),
-        w: hw * 2,
-        h: u(46 * ts),
-      });
-    }
-
-    const out = [];
-    const candidates = CITIES.filter((c) => labelVisible(c.tier)).sort(
-      (a, b) => a.tier - b.tier,
-    );
+    const out = [...majorCityLabels];
+    const candidates = CITIES.filter(
+      (c) => c.tier > 1 && labelVisible(c.tier),
+    ).sort((a, b) => a.tier - b.tier);
 
     for (const c of candidates) {
-      const dx = px(c.lng);
-      const dy = py(c.lat);
-      if (!inView(dx, dy)) continue;
-
-      const fs = (c.tier === 1 ? 12.5 : c.tier === 2 ? 10.5 : 9) * ts;
-      // Size the plate to the text that actually gets drawn, not the full name.
-      const w = u((c.short || c.name).length * fs * 0.66 + 12);
-      const h = u(fs + 8);
-
-      const options = [
-        { ox: u(11), oy: u(3.5), anchor: "start" },
-        { ox: -u(11), oy: u(3.5), anchor: "end" },
-        { ox: 0, oy: -u(12), anchor: "middle" },
-        { ox: 0, oy: u(18), anchor: "middle" },
-      ];
-
-      for (const o of options) {
-        const tx = dx + o.ox;
-        const ty = dy + o.oy;
-        const bx =
-          o.anchor === "start" ? tx - u(4) : o.anchor === "end" ? tx - w + u(4) : tx - w / 2;
-        const box = { x: bx, y: ty - h * 0.78, w, h };
-        if (placed.some((p) => boxesOverlap(p, box))) continue;
-        placed.push(box);
-        out.push({ city: c, tx, ty, anchor: o.anchor, fs, box });
-        break;
-      }
+      const l = placeCity(c, placed);
+      if (l) out.push(l);
     }
     return out;
   });
@@ -844,7 +893,7 @@
 
 <svelte:window onkeydowncapture={handleMapKeys} />
 
-<div class="tx-map" class:tx-sale={saleMode}>
+<div class="tx-map" class:tx-sale={saleMode} class:tx-cop={copMode}>
   <!-- Header -->
   <div class="tx-head">
     <div class="tx-title">
@@ -856,14 +905,17 @@
            layers and the stats sheet. -->
       <button
         class="tx-btn tx-btn-chamber"
-        class:tx-btn-chamber-on={chamberMode !== "all"}
+        class:tx-btn-chamber-on={chamberMode !== "all" && chamberMode !== "stores"}
+        class:tx-btn-stores-on={chamberMode === "stores"}
         onclick={cycleChamber}
-        title="Cycle which offices are pinned: everyone, Senate & statewide, or the Texas House"
+        title="Cycle what's pinned: everyone, Senate & statewide, the Texas House, or every licensed hemp store the ban hits"
         >{chamberMode === "all"
           ? "⬥ ALL"
           : chamberMode === "senate"
             ? "● SENATE"
-            : "◆ HOUSE"}</button
+            : chamberMode === "house"
+              ? "◆ HOUSE"
+              : "🏪 STORES"}</button
       >
       <button
         class="tx-btn tx-btn-stats"
@@ -1180,35 +1232,22 @@
         {/if}
       {/each}
 
-      <!-- Territory outline of every city that got a name this frame -->
-      <g clip-path="url(#txClip)">
-        {#each labelledCells as d}
-          <path d={d} class="tx-cell-called" vector-effect="non-scaling-stroke" />
-        {/each}
-      </g>
-
-      <!-- City names, placed beside their dot and never overlapping -->
-      {#each cityLabels as l (l.city.name)}
-        <g class="tx-callout">
-          <rect
-            x={l.box.x}
-            y={l.box.y}
-            width={l.box.w}
-            height={l.box.h}
-            rx={u(3)}
-            class="tx-label-plate"
-            class:tx-label-plate-major={l.city.tier === 1}
-          />
-          <text
-            x={l.tx}
-            y={l.ty}
-            text-anchor={l.anchor}
-            class="tx-city-label"
-            class:tx-city-label-major={l.city.tier === 1}
-            style="font-size: {u(l.fs)}px">{l.city.short || l.city.name}</text
-          >
+      <!-- STORES: every licensed retailer the shelf pull hits, as a density
+           field. Clipped to the state outline so border-metro scatter never
+           lands in Mexico or the Gulf. Dots are decoration, not targets —
+           pointer-events stay off so panning never snags on 750 circles. -->
+      {#if chamberMode === "stores"}
+        <g clip-path="url(#txClip)" transition:fade={{ duration: 250 }}>
+          {#each STORE_DOTS as d}
+            <circle
+              cx={px(d.lng)}
+              cy={py(d.lat)}
+              r={u(1.7)}
+              class="tx-store-dot"
+            />
+          {/each}
         </g>
-      {/each}
+      {/if}
 
       <!-- Lawmaker pins. Order is deliberately stable: reordering the nodes
            under the cursor makes the browser fire mouseleave and the hover
@@ -1276,6 +1315,43 @@
         </g>
       {/each}
 
+      <!-- Territory outline of every city that got a name this frame -->
+      <g clip-path="url(#txClip)">
+        {#each labelledCells as d}
+          <path d={d} class="tx-cell-called" vector-effect="non-scaling-stroke" />
+        {/each}
+      </g>
+
+      <!-- City names. Drawn ABOVE the lawmaker pins: a metro name buried
+           under a pile of senator dots is a metro name nobody can read.
+           The plates never sit on a pin's NAME — big cities reserve their
+           space before pin labels place, and pin labels claim theirs before
+           the smaller city names fit in around them. -->
+      {#each cityLabels as l (l.city.name)}
+        <g class="tx-callout">
+          <rect
+            x={l.box.x}
+            y={l.box.y}
+            width={l.box.w}
+            height={l.box.h}
+            rx={u(3)}
+            class="tx-label-plate"
+            class:tx-label-plate-major={l.city.tier === 1}
+          />
+          <text
+            x={l.tx}
+            y={l.ty}
+            text-anchor={l.anchor}
+            class="tx-city-label"
+            class:tx-city-label-major={l.city.tier === 1}
+            style="font-size: {u(l.fs)}px"
+            >{l.city.short || l.city.name}{#if chamberMode === "stores" && STORE_COUNT_BY_NAME.get(l.city.name)}<tspan
+                class="tx-store-count"> ·🏪~{STORE_COUNT_BY_NAME.get(l.city.name)}</tspan
+              >{/if}</text
+          >
+        </g>
+      {/each}
+
       <!-- Lawmaker names, collision-culled so they never stack -->
       {#each pinLabels as pl (keyOf(pl.rep))}
         <g class="tx-callout">
@@ -1337,6 +1413,16 @@
         </g>
       {/if}
     </svg>
+
+    <!-- STORES mode: what the dots are, and what they aren't. -->
+    {#if chamberMode === "stores"}
+      <div class="tx-store-note" transition:fade={{ duration: 180 }}>
+        <b>🏪 {STORE_TOTAL_LABEL} licensed hemp retailers</b> — every single one
+        loses everything but Delta-9 at midnight, July 31st. Each dot ≈
+        {STORE_DOT_RATIO} registered stores. Spread is estimated from metro
+        population; DSHS publishes no store map.
+      </div>
+    {/if}
 
     <!-- Legend -->
     {#if showLegend}
@@ -3754,5 +3840,198 @@
 
   .tx-sale .tx-pin-plate {
     stroke: rgba(251, 191, 36, 0.6);
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* STORES — the retailers the ban actually lands on                   */
+  /* ---------------------------------------------------------------- */
+
+  .tx-btn-stores-on {
+    background: rgba(52, 211, 153, 0.25);
+    border-color: rgba(52, 211, 153, 0.7);
+    color: #a7f3d0;
+  }
+
+  .tx-store-dot {
+    fill: rgba(52, 211, 153, 0.75);
+    pointer-events: none;
+    transition: fill 2.4s ease;
+  }
+
+  .tx-store-count {
+    fill: #6ee7b7;
+    font-weight: 900;
+  }
+
+  .tx-store-note {
+    position: absolute;
+    left: 8px;
+    bottom: 8px;
+    max-width: min(340px, calc(100% - 16px));
+    padding: 7px 10px;
+    border-radius: 8px;
+    background: rgba(4, 12, 8, 0.92);
+    border: 1px solid rgba(52, 211, 153, 0.45);
+    color: rgba(209, 250, 229, 0.9);
+    font-size: 0.58rem;
+    line-height: 1.55;
+    z-index: 7;
+    pointer-events: none;
+  }
+
+  .tx-store-note b {
+    color: #6ee7b7;
+  }
+
+  .tx-sale .tx-store-dot {
+    fill: rgba(251, 191, 36, 0.8);
+  }
+
+  .tx-sale .tx-store-note {
+    border-color: rgba(251, 191, 36, 0.5);
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* COP MODE — the BUT BE WARNED section is on screen                  */
+  /* ---------------------------------------------------------------- */
+
+  /* Declared after .tx-sale so red & blue wins while both are active.
+     Same transition machinery: the palette rolls over, nothing cuts. */
+  .tx-map.tx-cop {
+    background:
+      radial-gradient(
+        ellipse at 18% 10%,
+        rgba(239, 68, 68, 0.18) 0%,
+        transparent 55%
+      ),
+      radial-gradient(
+        ellipse at 84% 88%,
+        rgba(59, 130, 246, 0.18) 0%,
+        transparent 55%
+      ),
+      linear-gradient(165deg, #1a0a10 0%, #0a0a1c 55%, #04040f 100%);
+  }
+
+  .tx-cop .txfill-a { stop-color: #ef4444; stop-opacity: 0.2; }
+  .tx-cop .txfill-b { stop-color: #312e81; stop-opacity: 0.16; }
+  .tx-cop .txfill-c { stop-color: #2563eb; stop-opacity: 0.2; }
+  .tx-cop .txedge-a { stop-color: #ef4444; }
+  .tx-cop .txedge-b { stop-color: #c7d2fe; }
+  .tx-cop .txedge-c { stop-color: #3b82f6; }
+
+  .tx-cop .tx-water { fill: #05081a; }
+
+  .tx-cop .tx-state {
+    filter: drop-shadow(0 0 12px rgba(129, 140, 248, 0.5));
+  }
+
+  .tx-cop .tx-neighbor {
+    stroke: rgba(147, 197, 253, 0.22);
+  }
+
+  .tx-cop .tx-cell {
+    stroke: rgba(59, 130, 246, 0.32);
+  }
+
+  .tx-cop .tx-cell-major {
+    stroke: rgba(239, 68, 68, 0.45);
+  }
+
+  .tx-cop .tx-cell-called {
+    fill: rgba(59, 130, 246, 0.07);
+    stroke: rgba(147, 197, 253, 0.85);
+    filter: drop-shadow(0 0 4px rgba(59, 130, 246, 0.55));
+  }
+
+  .tx-cop .tx-water-label {
+    fill: rgba(147, 197, 253, 0.45);
+  }
+
+  .tx-cop .tx-head,
+  .tx-cop .tx-foot {
+    border-color: rgba(129, 140, 248, 0.4);
+  }
+
+  .tx-cop .tx-title {
+    color: #e0e7ff;
+  }
+
+  /* The status dot becomes the roof rack. */
+  .tx-cop .tx-dot {
+    animation: txCopStrobe 1.1s steps(1) infinite;
+  }
+
+  @keyframes txCopStrobe {
+    0%, 100% {
+      background: #ef4444;
+      box-shadow: 0 0 9px #ef4444;
+    }
+    50% {
+      background: #3b82f6;
+      box-shadow: 0 0 9px #3b82f6;
+    }
+  }
+
+  .tx-cop .tx-btn:hover,
+  .tx-cop .tx-foot-btn:hover {
+    background: rgba(59, 130, 246, 0.22);
+    border-color: rgba(59, 130, 246, 0.6);
+  }
+
+  .tx-cop .tx-btn-on {
+    background: rgba(59, 130, 246, 0.28);
+    border-color: rgba(59, 130, 246, 0.65);
+  }
+
+  .tx-cop .tx-chip.on {
+    background: rgba(239, 68, 68, 0.24);
+    border-color: rgba(239, 68, 68, 0.6);
+    color: #fecaca;
+  }
+
+  .tx-cop .tx-card {
+    border-color: rgba(129, 140, 248, 0.55);
+    animation: txCopCardGlow 1.6s ease-in-out infinite;
+  }
+
+  @keyframes txCopCardGlow {
+    0%, 45% {
+      box-shadow: -14px 0 30px rgba(239, 68, 68, 0.3),
+        14px 0 30px rgba(59, 130, 246, 0.1);
+    }
+    55%, 100% {
+      box-shadow: 14px 0 30px rgba(59, 130, 246, 0.3),
+        -14px 0 30px rgba(239, 68, 68, 0.1);
+    }
+  }
+
+  .tx-cop .tx-pin-plate {
+    stroke: rgba(129, 140, 248, 0.6);
+  }
+
+  /* Store dots go half red, half blue — every shop's a siren now. */
+  .tx-cop .tx-store-dot:nth-child(odd) {
+    fill: rgba(248, 113, 113, 0.8);
+  }
+
+  .tx-cop .tx-store-dot:nth-child(even) {
+    fill: rgba(96, 165, 250, 0.8);
+  }
+
+  .tx-cop .tx-store-note {
+    border-color: rgba(129, 140, 248, 0.5);
+    background: rgba(6, 8, 24, 0.92);
+    color: rgba(219, 234, 254, 0.9);
+  }
+
+  .tx-cop .tx-store-note b {
+    color: #fca5a5;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tx-cop .tx-dot,
+    .tx-cop .tx-card {
+      animation: none;
+    }
   }
 </style>

@@ -44,11 +44,21 @@ But your vapes, your dabs, your gummies? Those count as THC CONCENTRATE, and pos
 
 Selling or even "delivering" to a friend climbs from there: a quarter ounce to 5 pounds is a felony, 2 to 20 years as the weight goes up.
 
-And here's the trap waiting on the roadside: there is no breathalyzer for weed. When police pull you over, you can walk the line perfectly and still ride downtown, because officer suspicion is the only field test that exists. Their hunch trumps your sober evening, and they can hold you up to 48 hours on it while a judge gets around to your name.
+And here's the best part: there is no breathalyzer for weed. When police pull you over, you can walk the line perfectly, answer coherently, maybe you have an accent, maybe you sound too exhausted after a 10 hour work day, maybe your face looks funny. Maybe you're not even driving maybe it's auto or a taxi.
 
-Oh, there ARE tests. CVS sells piss kits: you piss on the stick, dunk it in the science liquid, and it brightens right up if you've smoked in the last 30 DAYS. That's the punchline. The high lasts a couple of hours; the evidence lasts a month. The seltzer you drank LEGALLY on July 31st can read as guilty on an August drug screen. The test doesn't prove you're impaired — it proves you existed in July.
+Officer suspicion is the only field test that exists.
 
-And a conviction doesn't end at the jailhouse door. It follows you. It sits on the public record that every background check pulls, under every job application and every apartment application, next to every professional license you ever ask Texas for. A drug conviction suspends your Texas driver's license for 6 months even if you were nowhere near a car. A felony takes your right to own a firearm. The fines and court fees that go to collections can wreck your credit, and insurance companies read records too. One receipt's worth of gummies, re-priced at years of your life.
+Their hunch trumps your sober evening, and they can hold you up to 48 hours on it while a judge gets around to your name.
+
+Oh, there ARE tests. CVS sells piss kits: you piss on the stick, dunk it in the science liquid, and it brightens up if you've smoked in the last 30 DAYS. 30 DAYS!! The high lasts a couple of hours; the evidence lasts a month. The seltzer you drank LEGALLY, way back on July 4th can read as guilty on an August drug screen. The test doesn't prove you're impaired — it proves you existed in July.
+
+What if you're driving in from another state? 
+
+And a conviction doesn't end at the jailhouse door. It follows you. It sits on the public record that every background check pulls, under every job application and every apartment application, next to every professional license you ever ask Texas for.
+
+A drug conviction suspends your Texas driver's license for 6 months even if you were nowhere near a car.
+
+A felony takes your right to own a firearm. The fines and court fees that go to collections can wreck your credit, and insurance companies read records too. One receipt's worth of gummies, re-priced at years of your life.
 
 THAT is the after-midnight price tag, and it is the worst markup in retail history. So today, do both jobs: shop the sale of the century, then scroll down and tap SEND PETITION EMAIL — tell your lawmakers that turning a million paying customers into criminals at midnight is the worst deal Texas ever wrote. ❤️🚨💙
 
