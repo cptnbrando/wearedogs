@@ -2921,7 +2921,7 @@
                             class="text-[11px] text-amber-200/80 leading-relaxed font-sans flex flex-col gap-2"
                           >
                             <p>
-                              There are 183 squirrels in a bucket, the facts are
+                              There are 184 squirrels in a bucket, the facts are
                               that none of them represent any people or any land
                               whatsoever. In 2026, they represent their
                               re-election, and whoever hands them enough money
