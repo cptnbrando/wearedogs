@@ -25,6 +25,7 @@
     onClose,
     initialCampaignId = $bindable(null),
     initialProductId = $bindable(null),
+    initialStatsTab = $bindable(null),
     depth = $bindable(0),
   } = $props();
 
@@ -1657,6 +1658,21 @@
 
   let mapSlideIdx = $derived(campaignMedia.findIndex((m) => m.type === "map"));
 
+  /**
+   * A /stats/<tab> deep link has to land on the map slide before the map can
+   * open its sheet — the carousel only mounts the active slide. Runs once the
+   * campaign's media is actually assembled.
+   */
+  $effect(() => {
+    if (!initialStatsTab || mapSlideIdx < 0) return;
+    untrack(() => {
+      if (activeImageIdx !== mapSlideIdx) {
+        scrollDirection = activeImageIdx > mapSlideIdx ? -1 : 1;
+        activeImageIdx = mapSlideIdx;
+      }
+    });
+  });
+
   /** Bring the lawmaker map into view in the carousel. */
   function jumpToMap() {
     if (mapSlideIdx < 0) return;
@@ -2440,6 +2456,8 @@
                             title={`${lawmakers.length} 🐘🫏`}
                             saleMode={saleActive}
                             {copMode}
+                            bind:initialStatsTab
+                            campaignId={selectedCampaign.id}
                             isFullscreen={isMapFullscreen}
                             onToggleFullscreen={() =>
                               (isMapFullscreen = !isMapFullscreen)}
@@ -3271,7 +3289,7 @@
                                       class="w-full py-2.5 px-3 bg-gradient-to-r from-red-950/70 via-zinc-950 to-blue-950/70 hover:from-red-900/70 hover:to-blue-900/70 border border-red-500/50 hover:border-red-400 text-white rounded-lg font-mono text-[10px] font-black transition-all flex flex-col items-center justify-center gap-0.5 text-center cursor-pointer shadow-lg"
                                     >
                                       <span class="leading-tight tracking-widest"
-                                        >🏴‍☠️ THIS MEANS WAR — TARGET THE CAPTAIN</span
+                                        >🏴‍☠️ TALK TO THE ARCHITECTS</span
                                       >
                                       <span
                                         class="text-[9px] font-bold text-red-200/80 normal-case tracking-normal"

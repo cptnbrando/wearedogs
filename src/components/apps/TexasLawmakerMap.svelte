@@ -38,6 +38,16 @@
     WHY_GUMMY_STEPS,
     WHY_PLAYERS,
   } from "../../lib/hempTimeline.js";
+  import {
+    DEATH_STATS,
+    ED_STATS,
+    ED_SHARE,
+    ED_SHARE_NOTE,
+    ED_SHARE_SOURCE,
+    HEALTH_TAKEAWAYS,
+    HEALTH_RESEARCH,
+    HEALTH_METHOD,
+  } from "../../lib/hempHealth.js";
 
   let {
     lawmakers = [],
@@ -53,6 +63,10 @@
     // map trades its palette for police red & blue. Applied on top of
     // saleMode — the tx-cop overrides win while both classes are present.
     copMode = false,
+    // A /stats/<tab> deep link. Consumed once on arrival, then cleared so
+    // closing the sheet doesn't immediately re-open it.
+    initialStatsTab = $bindable(null),
+    campaignId = null,
   } = $props();
 
   /**
@@ -158,6 +172,64 @@
   /** Which page of the stats sheet is open. */
   let statsTab = $state("money");
 
+  /* ------------------------------------------------------------------ */
+  /* /stats/<tab> deep links                                             */
+  /* ------------------------------------------------------------------ */
+
+  /** Tab id → the URL slug it is shareable at. */
+  const STATS_TAB_SLUGS = {
+    money: "money",
+    reps: "representation",
+    health: "health",
+    why: "why",
+  };
+
+  // Open on arrival, then clear the request so the sheet can be closed.
+  $effect(() => {
+    const want = initialStatsTab;
+    if (!want || !STATS_TAB_SLUGS[want]) return;
+    statsTab = want;
+    showStats = true;
+    initialStatsTab = null;
+  });
+
+  /**
+   * Keep the address bar on the open tab so any view is shareable, without
+   * touching the campaign's own history entry — replaceState only, so Back
+   * still leaves the store rather than walking the tab strip.
+   */
+  function syncStatsUrl() {
+    if (typeof window === "undefined" || !campaignId) return;
+    const path = showStats
+      ? `/stats/${STATS_TAB_SLUGS[statsTab] ?? "money"}`
+      : `/store/campaign/${campaignId}`;
+    if (window.location.pathname === path) return;
+    history.replaceState(history.state, "", path);
+  }
+
+  $effect(() => {
+    // Read both so the effect re-runs on either.
+    const _t = statsTab;
+    const _open = showStats;
+    syncStatsUrl();
+    // Swiping off the map slide unmounts this component outright; without
+    // this the address bar would stay parked on /stats/… for a slide that
+    // isn't showing.
+    return () => {
+      if (
+        typeof window !== "undefined" &&
+        campaignId &&
+        window.location.pathname.startsWith("/stats/")
+      ) {
+        history.replaceState(
+          history.state,
+          "",
+          `/store/campaign/${campaignId}`,
+        );
+      }
+    };
+  });
+
   /**
    * ALL / SENATE / HOUSE / STORES pin filter. "Senate" is shorthand for
    * everything that isn't the House — state senators, the Lt. Governor and
@@ -209,6 +281,11 @@
     ...NEIGHBOR_STATS.map((n) => n.taxValue || 0),
   );
   const CITY_MAX = Math.max(...CITY_STATS.map((c) => c.revenueValue || 0));
+
+  // Health bars share one scale each, so the alcohol/everything-else gap is
+  // the thing you see first.
+  const DEATH_MAX = Math.max(...DEATH_STATS.map((d) => d.value || 0));
+  const ED_MAX = Math.max(...ED_STATS.map((e) => e.value || 0));
 
   /* --- REPRESENTATION tab: who actually holds the Texas Legislature. --- */
   const HOUSE_SEATS = 150;
@@ -283,6 +360,11 @@
   /** What share of a group's rated offices are on our side. */
   function proPct({ pro, anti }) {
     return pct(pro, pro + anti);
+  }
+
+  /** …and the mirror of it, for the opposition row. */
+  function antiPct({ pro, anti }) {
+    return pct(anti, pro + anti);
   }
 
   /**
@@ -1810,6 +1892,11 @@
           >
           <button
             class="tx-stats-tab"
+            class:on={statsTab === "health"}
+            onclick={() => (statsTab = "health")}>🏥 HEALTH</button
+          >
+          <button
+            class="tx-stats-tab"
             class:on={statsTab === "why"}
             onclick={() => (statsTab = "why")}>⏳ WHY</button
           >
@@ -2022,35 +2109,42 @@
             <!-- REPRESENTATION: who speaks for Texas, and what we know so far. -->
             <section>
               <h5>THE TEXAS LEGISLATURE — WHO SPEAKS FOR US</h5>
+              <!-- Two mirrored rows, fixed colours rather than lean-tinted:
+                   the top five count who is WITH us (green), the bottom five
+                   count the opposition (red). Same five cuts, both ways. -->
               <div class="tx-stat-grid">
-                <div class="tx-stat big split {splitTone(allSplit)}">
+                <div class="tx-stat big split t-for">
                   <span class="v"
                     ><span class="pro">{allSplit.pro}</span>/{lawmakers.length}</span
                   >
-                  <span class="k">Those for, of every office</span>
+                  <span class="k">Those for</span>
                   <span class="p"
-                    >{pct(allSplit.pro, lawmakers.length)}% of the whole floor</span
+                    >{pct(allSplit.pro, lawmakers.length)}% of the floor</span
                   >
                 </div>
-                <div class="tx-stat big split {splitTone(repSplit)}">
+                <div class="tx-stat big split t-for">
                   <span class="v"
                     ><span class="pro">{repSplit.pro}</span> vs <span
                       class="anti">{repSplit.anti}</span
                     ></span
                   >
-                  <span class="k">Republicans for vs against</span>
+                  <span class="k"
+                    ><span class="rparty">Republicans</span> for vs against</span
+                  >
                   <span class="p">{proPct(repSplit)}% of them are for</span>
                 </div>
-                <div class="tx-stat big split {splitTone(demSplit)}">
+                <div class="tx-stat big split t-for">
                   <span class="v"
                     ><span class="pro">{demSplit.pro}</span> vs <span
                       class="anti">{demSplit.anti}</span
                     ></span
                   >
-                  <span class="k">Democrats for vs against</span>
+                  <span class="k"
+                    ><span class="dparty">Democrats</span> for vs against</span
+                  >
                   <span class="p">{proPct(demSplit)}% of them are for</span>
                 </div>
-                <div class="tx-stat big split {splitTone(senSplit)}">
+                <div class="tx-stat big split t-for">
                   <span class="v"
                     ><span class="pro">{senSplit.pro}</span> vs <span
                       class="anti">{senSplit.anti}</span
@@ -2059,7 +2153,7 @@
                   <span class="k">Senators for vs against</span>
                   <span class="p">{proPct(senSplit)}% of them are for</span>
                 </div>
-                <div class="tx-stat big split {splitTone(houseSplit)}">
+                <div class="tx-stat big split t-for">
                   <span class="v"
                     ><span class="pro">{houseSplit.pro}</span> vs <span
                       class="anti">{houseSplit.anti}</span
@@ -2068,13 +2162,55 @@
                   <span class="k">House reps for vs against</span>
                   <span class="p">{proPct(houseSplit)}% of them are for</span>
                 </div>
-                <div class="tx-stat big split">
+
+                <div class="tx-stat big split t-against">
                   <span class="v"
-                    ><span class="rparty">{houseParty.r + senateParty.r}</span> /
-                    <span class="dparty">{houseParty.d + senateParty.d}</span
+                    ><span class="anti">{allSplit.anti}</span>/{lawmakers.length}</span
+                  >
+                  <span class="k">Those against</span>
+                  <span class="p"
+                    >{pct(allSplit.anti, lawmakers.length)}% of the floor</span
+                  >
+                </div>
+                <div class="tx-stat big split t-against">
+                  <span class="v"
+                    ><span class="anti">{repSplit.anti}</span> vs <span
+                      class="pro">{repSplit.pro}</span
                     ></span
                   >
-                  <span class="k">Republicans vs Democrats</span>
+                  <span class="k"
+                    ><span class="rparty">Republicans</span> against vs for</span
+                  >
+                  <span class="p">{antiPct(repSplit)}% of them are against</span>
+                </div>
+                <div class="tx-stat big split t-against">
+                  <span class="v"
+                    ><span class="anti">{demSplit.anti}</span> vs <span
+                      class="pro">{demSplit.pro}</span
+                    ></span
+                  >
+                  <span class="k"
+                    ><span class="dparty">Democrats</span> against vs for</span
+                  >
+                  <span class="p">{antiPct(demSplit)}% of them are against</span>
+                </div>
+                <div class="tx-stat big split t-against">
+                  <span class="v"
+                    ><span class="anti">{senSplit.anti}</span> vs <span
+                      class="pro">{senSplit.pro}</span
+                    ></span
+                  >
+                  <span class="k">Senators against vs for</span>
+                  <span class="p">{antiPct(senSplit)}% of them are against</span>
+                </div>
+                <div class="tx-stat big split t-against">
+                  <span class="v"
+                    ><span class="anti">{houseSplit.anti}</span> vs <span
+                      class="pro">{houseSplit.pro}</span
+                    ></span
+                  >
+                  <span class="k">House reps against vs for</span>
+                  <span class="p">{antiPct(houseSplit)}% of them are against</span>
                 </div>
               </div>
               <p class="tx-stats-note">
@@ -2375,6 +2511,124 @@
             </div>
           </section>
 
+          {:else if statsTab === "health"}
+            <!-- HEALTH: what actually kills Texans, next to what the state
+                 just made a felony. Includes the numbers that cut against
+                 us — a page that hides its weak spot isn't worth believing. -->
+            <section>
+              <h5>DEATHS PER YEAR — WHAT ACTUALLY KILLS TEXANS</h5>
+              <div class="tx-chart">
+                {#each DEATH_STATS as d (d.label)}
+                  <div class="tx-bar-row">
+                    <span class="tx-bar-label tx-bar-label-xwide">{d.label}</span>
+                    <span class="tx-bar-track">
+                      {#if d.value > 0}
+                        <span
+                          class="tx-bar tx-bar-h-{d.tone}"
+                          style="width: {barPct(d.value, DEATH_MAX)}%"
+                        ></span>
+                      {:else}
+                        <span class="tx-bar-none">no documented deaths</span>
+                      {/if}
+                    </span>
+                    <span class="tx-bar-value tx-bar-v-{d.tone}"
+                      >{d.display}</span
+                    >
+                  </div>
+                {/each}
+              </div>
+              <div class="tx-health-notes">
+                {#each DEATH_STATS as d (d.label)}
+                  <p class="tx-health-note tx-health-{d.tone}">
+                    <b>{d.label}:</b>
+                    {d.note}
+                    <a href={d.url} target="_blank" rel="noopener noreferrer"
+                      >{d.source} ↗</a
+                    >
+                  </p>
+                {/each}
+              </div>
+            </section>
+
+            <section>
+              <h5>EMERGENCY ROOMS — THE HONEST COMPARISON</h5>
+              <div class="tx-chart">
+                {#each ED_STATS as e (e.label)}
+                  <div class="tx-bar-row">
+                    <span class="tx-bar-label tx-bar-label-xwide">{e.label}</span>
+                    <span class="tx-bar-track">
+                      <span
+                        class="tx-bar tx-bar-h-{e.tone}"
+                        style="width: {barPct(e.value, ED_MAX)}%"
+                      ></span>
+                    </span>
+                    <span class="tx-bar-value tx-bar-v-{e.tone}"
+                      >{e.display}</span
+                    >
+                  </div>
+                {/each}
+              </div>
+              <div class="tx-health-notes">
+                {#each ED_STATS as e (e.label)}
+                  <p class="tx-health-note tx-health-{e.tone}">
+                    <b>{e.label}:</b>
+                    {e.note}
+                    <a href={e.url} target="_blank" rel="noopener noreferrer"
+                      >{e.source} ↗</a
+                    >
+                  </p>
+                {/each}
+              </div>
+
+              <h5 class="tx-h5-gap">SHARE OF ALL DRUG-RELATED ER VISITS</h5>
+              <div class="tx-chart">
+                {#each ED_SHARE as s (s.label)}
+                  <div class="tx-bar-row">
+                    <span class="tx-bar-label tx-bar-label-wide">{s.label}</span>
+                    <span class="tx-bar-track">
+                      <span
+                        class="tx-bar tx-bar-h-{s.tone}"
+                        style="width: {s.pct}%"
+                      ></span>
+                    </span>
+                    <span class="tx-bar-value tx-bar-v-{s.tone}"
+                      >{s.pct}%</span
+                    >
+                  </div>
+                {/each}
+              </div>
+              <p class="tx-stats-note">
+                {ED_SHARE_NOTE}
+                <a
+                  href={ED_SHARE_SOURCE.url}
+                  target="_blank"
+                  rel="noopener noreferrer">{ED_SHARE_SOURCE.label} ↗</a
+                >
+              </p>
+            </section>
+
+            <section>
+              <h5>THE BOTTOM LINE</h5>
+              <ul class="tx-facts">
+                {#each HEALTH_TAKEAWAYS as t (t)}
+                  <li>{t}</li>
+                {/each}
+              </ul>
+              <p class="tx-stats-note tx-stats-warn">⚠ {HEALTH_METHOD}</p>
+            </section>
+
+            <section>
+              <h5>READ THE RESEARCH YOURSELF</h5>
+              <ul class="tx-sources tx-research">
+                {#each HEALTH_RESEARCH as r (r.url)}
+                  <li>
+                    <a href={r.url} target="_blank" rel="noopener noreferrer"
+                      >{r.label} ↗</a
+                    >
+                  </li>
+                {/each}
+              </ul>
+            </section>
           {:else}
             <!-- WHY: the timeline that turned a legal gummy into a felony. -->
             <section>
@@ -2457,6 +2711,12 @@
                 {#each STATS_SOURCES as s}
                   <li>{s}</li>
                 {/each}
+              {:else if statsTab === "health"}
+                <li>
+                  Every figure above links the agency that published it — CDC,
+                  CDC/NCHS, SAMHSA, NIDA, DEA, USAFacts and Texas DSHS. Where a
+                  number cuts against our own argument, it is printed anyway.
+                </li>
               {:else if statsTab === "why"}
                 <li>
                   Every timeline entry above links its primary source — bill
@@ -2886,6 +3146,42 @@
   .tx-stat.t-fair .k, .tx-stat.t-fair .p { color: rgba(217, 249, 157, 0.72); }
   .tx-stat.t-poor .k, .tx-stat.t-poor .p { color: rgba(254, 215, 170, 0.75); }
   .tx-stat.t-bad .k, .tx-stat.t-bad .p { color: rgba(254, 202, 202, 0.78); }
+
+  /* The two mirrored rows don't take a lean tint — the row itself IS the
+     meaning. Green counts who's with us, red counts the opposition. */
+  .tx-stat.t-for {
+    border-color: rgba(52, 211, 153, 0.5);
+    background: linear-gradient(
+      160deg,
+      rgba(52, 211, 153, 0.16),
+      rgba(16, 185, 129, 0.07)
+    );
+  }
+
+  .tx-stat.t-against {
+    border-color: rgba(248, 113, 113, 0.5);
+    background: linear-gradient(
+      160deg,
+      rgba(248, 113, 113, 0.16),
+      rgba(220, 38, 38, 0.07)
+    );
+  }
+
+  .tx-stat.t-for .k { color: rgba(167, 243, 208, 0.9); }
+  .tx-stat.t-for .p { color: rgba(167, 243, 208, 0.6); }
+  .tx-stat.t-against .k { color: rgba(254, 202, 202, 0.9); }
+  .tx-stat.t-against .p { color: rgba(254, 202, 202, 0.6); }
+
+  /* Party names carry their party's colour wherever they appear in a chip. */
+  .tx-stat .k .rparty {
+    color: #f87171;
+    font-weight: 900;
+  }
+
+  .tx-stat .k .dparty {
+    color: #60a5fa;
+    font-weight: 900;
+  }
 
   .tx-stat .k {
     font-size: calc(0.46rem * var(--s, 1));
@@ -4529,6 +4825,61 @@
     font-size: calc(0.5rem * var(--s, 1));
     letter-spacing: 0.04em;
   }
+
+  /* --- HEALTH tab --- */
+
+  /* One tone set for every health bar and figure: red is what kills, amber
+     is what sends people to the ER, green is the zero. */
+  .tx-bar-h-bad { background: linear-gradient(90deg, #dc2626, #f87171); }
+  .tx-bar-h-warn { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+  .tx-bar-h-good { background: linear-gradient(90deg, #10b981, #34d399); }
+
+  .tx-bar-v-bad { color: #fca5a5; }
+  .tx-bar-v-warn { color: #fde68a; }
+  .tx-bar-v-good { color: #6ee7b7; }
+
+  .tx-health-notes {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-top: 8px;
+  }
+
+  .tx-health-note {
+    margin: 0;
+    padding: calc(5px * var(--s, 1)) calc(8px * var(--s, 1));
+    border-left: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 0 6px 6px 0;
+    background: rgba(255, 255, 255, 0.03);
+    font-size: calc(0.46rem * var(--s, 1));
+    line-height: 1.55;
+    color: rgba(255, 255, 255, 0.58);
+  }
+
+  .tx-health-note b { color: #fff; }
+
+  .tx-health-bad { border-left-color: #f87171; }
+  .tx-health-warn { border-left-color: #fbbf24; }
+  .tx-health-good {
+    border-left-color: #34d399;
+    background: rgba(52, 211, 153, 0.08);
+  }
+
+  .tx-health-note a,
+  .tx-research a {
+    color: #67e8f9;
+    text-decoration: none;
+    border-bottom: 1px solid rgba(103, 232, 249, 0.35);
+    font-weight: 700;
+  }
+
+  .tx-health-note a:hover,
+  .tx-research a:hover {
+    color: #fff;
+    border-bottom-color: #fff;
+  }
+
+  .tx-research li { color: rgba(255, 255, 255, 0.5); }
 
   /* The House-vs-Senate facts on the REPRESENTATION tab. */
   .tx-facts {
