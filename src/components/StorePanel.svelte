@@ -2904,8 +2904,57 @@
                         </div>
                       {/if}
 
-                      <!-- Donations Status / Pending Notice -->
-                      {#if selectedCampaign.donationsStatus === "coming_soon"}
+                      <!-- REPRESENTATION NOTICE — you are about to email offices
+                           that almost certainly don't cover your address. Say so
+                           plainly, and say why it doesn't much matter. -->
+                      {#if isCriticalCampaign}
+                        <div
+                          class="mb-4 p-3.5 bg-amber-950/30 border border-amber-500/40 rounded-xl text-amber-300 font-mono text-xs flex flex-col gap-2.5 shadow-lg"
+                        >
+                          <div
+                            class="flex items-center gap-2 font-bold text-amber-400"
+                          >
+                            <span class="text-base">⚠️</span> ON WRITING OFFICES
+                            OUTSIDE YOUR DISTRICT
+                          </div>
+                          <div
+                            class="text-[11px] text-amber-200/80 leading-relaxed font-sans flex flex-col gap-2"
+                          >
+                            <p>
+                              There are 183 squirrels in a bucket, the facts are
+                              that none of them represent any people or any land
+                              whatsoever. In 2026, they represent their
+                              re-election, and whoever hands them enough money
+                              for their family's vacation to the Bahamas. A
+                              market value of half the alcohol industry, yet
+                              representation of less than 30% proves this; due to
+                              tradition, and systems designed by men 300 years
+                              ago, it is impossible for the voice of the people
+                              to be represented adequately. All we can do is
+                              bark, and pray.
+                            </p>
+                            <p>
+                              DOGS LLC takes no responsibility for who you choose
+                              to talk to based on this webpage, it is difficult
+                              for one person to represent 31.7 million Texans let
+                              alone the 172,336 people this current system
+                              demands they represent (31,709,821 people
+                              divided by 184 representatives), but frankly, I pay
+                              enough taxes in this country for those hired to
+                              lead us to realize this dogshit system ain't working
+                              right. And millions in a silent majority are left to
+                              constantly face new obstacles, new hardships, new
+                              pain directly because of their representatives not
+                              representing all 172k they are supposed to
+                              represent.
+                            </p>
+                            <p class="font-bold text-amber-300">
+                              Do what you want to do. Bark. Bark as loud as
+                              possible. Always.
+                            </p>
+                          </div>
+                        </div>
+                      {:else if selectedCampaign.donationsStatus === "coming_soon"}
                         <div
                           class="mb-4 p-3.5 bg-amber-950/30 border border-amber-500/40 rounded-xl text-amber-300 font-mono text-xs flex flex-col gap-1.5 shadow-lg"
                         >
@@ -3216,6 +3265,7 @@
           class="w-full max-w-lg max-h-[88dvh] flex flex-col bg-zinc-950 border border-purple-500/40 rounded-2xl shadow-2xl overflow-hidden"
           onclick={(e) => e.stopPropagation()}
           role="dialog"
+          tabindex="-1"
           aria-modal="true"
           aria-label="Send to every representative in batches"
         >
@@ -3385,6 +3435,7 @@
           class="w-full max-w-md max-h-[88dvh] flex flex-col bg-zinc-950 border border-sky-500/40 rounded-2xl shadow-2xl overflow-hidden"
           onclick={(e) => e.stopPropagation()}
           role="dialog"
+          tabindex="-1"
           aria-modal="true"
           aria-label="A random persuadable representative"
         >
