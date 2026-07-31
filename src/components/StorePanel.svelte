@@ -107,7 +107,14 @@
   function getActiveDeadline(campaign, currentMs) {
     if (!campaign) return null;
     const stages = [
-      { target: campaign.endDate, label: campaign.endDateLabel, final: false },
+      {
+        target:
+          campaign.id === SALE_CAMPAIGN_ID && saleStartOverride
+            ? new Date(saleStartOverride).toISOString()
+            : campaign.endDate,
+        label: campaign.endDateLabel,
+        final: false,
+      },
       {
         target: campaign.finalEndDate,
         label: campaign.finalEndDateLabel,
@@ -120,6 +127,142 @@
     );
     return upcoming || stages[stages.length - 1];
   }
+
+  /* ------------------------------------------------------------------ */
+  /* SALE DAY — July 31st only                                           */
+  /* ------------------------------------------------------------------ */
+
+  /**
+   * The moment the shelf-pull countdown hits zero, the campaign flips into a
+   * one-day "SALE DAY" takeover: gold clock counting to midnight, money
+   * confetti, the bio swapped for the clearance pitch, the map re-lit in cash
+   * colours. At midnight into August 1st everything reverts on its own and the
+   * November federal countdown takes over — no redeploy either way.
+   */
+  const SALE_CAMPAIGN_ID = "save-texas-hemp";
+  const SALE_DAY_MS = 24 * 60 * 60 * 1000;
+
+  // Preview hooks so the flip can be rehearsed before the real midnight:
+  //   ?saleday=1   — force sale mode on immediately
+  //   ?salein=20   — the countdown hits zero 20 seconds after load, fireworks
+  //                  and all, exactly as it will on the night
+  //   ?salefor=30  — shrink the sale to 30 seconds, so the August 1st revert
+  //                  can be watched too (combine with salein)
+  //   ?novday=1    — force the post-sale November mode on immediately
+  const saleParams =
+    typeof window !== "undefined"
+      ? new URLSearchParams(
+          window.__WAD_INITIAL_SEARCH || window.location.search,
+        )
+      : null;
+  const saleForced = !!saleParams?.has("saleday");
+  const novForced = !!saleParams?.has("novday");
+  const saleStartOverride = saleParams?.has("salein")
+    ? Date.now() + Number(saleParams.get("salein") || 0) * 1000
+    : null;
+  const saleDurationOverride = saleParams?.has("salefor")
+    ? Number(saleParams.get("salefor") || 0) * 1000
+    : null;
+
+  /** The 24-hour window that starts when the shelf-pull countdown hits zero. */
+  function saleWindowOf(campaign) {
+    if (campaign?.id !== SALE_CAMPAIGN_ID) return null;
+    const start = saleStartOverride ?? new Date(campaign.endDate ?? NaN).getTime();
+    if (!Number.isFinite(start)) return null;
+    return { start, end: start + (saleDurationOverride ?? SALE_DAY_MS) };
+  }
+
+  function isSaleNow(campaign, currentMs) {
+    if (campaign?.id !== SALE_CAMPAIGN_ID) return false;
+    if (saleForced) return true;
+    const w = saleWindowOf(campaign);
+    return !!w && currentMs >= w.start && currentMs < w.end;
+  }
+
+  let saleWindow = $derived(saleWindowOf(selectedCampaign));
+  let saleActive = $derived(isSaleNow(selectedCampaign, now));
+
+  /**
+   * From August 1st onward the campaign speaks in the past tense: the shelf
+   * pull happened, the fight is the November 12th federal deadline. Bio and
+   * petition letter both swap to their November versions, and the amber
+   * "FINAL COUNTDOWN" clock (already handled by getActiveDeadline) takes over.
+   */
+  let novActive = $derived(
+    !saleActive &&
+      selectedCampaign?.id === SALE_CAMPAIGN_ID &&
+      (novForced || (!!saleWindow && now >= saleWindow.end)),
+  );
+
+  /** Which letter the send buttons actually put in front of lawmakers. */
+  let activeContactReps = $derived(
+    novActive && selectedCampaign?.novContactReps
+      ? selectedCampaign.novContactReps
+      : selectedCampaign?.contactReps,
+  );
+
+  /** Keys the bio block so each phase change re-animates the text in. */
+  let bioPhase = $derived(saleActive ? "sale" : novActive ? "nov" : "base");
+
+  const SALE_MARQUEE =
+    "💰 SALE DAY SALE DAY 💵 BIG BARGAINS 💶 ALL GOODS MUST GO 💷 EVERYTHING MUST GO 🏧 ONE DAY ONLY 🤑 ALL SALES FINAL 💸 ";
+
+  /* The fireworks display: money emoji launched from the bottom of the screen
+     the moment the sale flips on, while the clock visibly winds itself back. */
+  const SALE_EMOJI = ["💰", "💵", "💶", "💷", "🏧", "🤑", "💸", "🪙", "💳", "🛒", "🏷️", "🌿"];
+  let saleCelebrating = $state(false);
+  let saleBurst = $state([]);
+  let clockWinding = $state(false);
+  let saleCelebrationTimeout = null;
+  let clockWindTimeout = null;
+
+  function windTheClock() {
+    clockWinding = true;
+    if (clockWindTimeout) clearTimeout(clockWindTimeout);
+    clockWindTimeout = setTimeout(() => (clockWinding = false), 2600);
+  }
+
+  function startSaleCelebration() {
+    const pieces = [];
+    for (let i = 0; i < 54; i++) {
+      pieces.push({
+        id: i,
+        emoji: SALE_EMOJI[i % SALE_EMOJI.length],
+        left: Math.random() * 100,
+        delay: Math.random() * 4.5,
+        duration: 2.6 + Math.random() * 2.6,
+        size: 16 + Math.random() * 28,
+        drift: (Math.random() - 0.5) * 180,
+        spin: (Math.random() - 0.5) * 720,
+      });
+    }
+    saleBurst = pieces;
+    saleCelebrating = true;
+    windTheClock();
+    if (saleCelebrationTimeout) clearTimeout(saleCelebrationTimeout);
+    saleCelebrationTimeout = setTimeout(() => {
+      saleCelebrating = false;
+      saleBurst = [];
+    }, 10000);
+  }
+
+  // Fire on the rising edge (including a page opened mid-sale — walking in the
+  // door during the fireworks still gets you fireworks); wind the clock again
+  // on the falling edge as the November countdown takes back over.
+  let wasSaleActive = false;
+  $effect(() => {
+    const active = saleActive;
+    untrack(() => {
+      if (active && !wasSaleActive) startSaleCelebration();
+      else if (!active && wasSaleActive) windTheClock();
+      wasSaleActive = active;
+    });
+  });
+
+  onDestroy(() => {
+    if (saleCelebrationTimeout) clearTimeout(saleCelebrationTimeout);
+    if (clockWindTimeout) clearTimeout(clockWindTimeout);
+  });
   let scrollDirection = $state(1);
   let isVideoPlaying = $state(false);
   let selectedSize = $state("M");
@@ -191,8 +334,16 @@
 
   $effect(() => {
     const camp = selectedCampaign;
-    if (camp && camp.bioUrl) {
-      fetch(camp.bioUrl)
+    // During the July 31st sale window the pitch itself goes on clearance;
+    // from August 1st it speaks in the past tense about the November deadline.
+    const bioUrl =
+      camp && saleActive && camp.saleBioUrl
+        ? camp.saleBioUrl
+        : camp && novActive && camp.novBioUrl
+          ? camp.novBioUrl
+          : camp?.bioUrl;
+    if (camp && bioUrl) {
+      fetch(bioUrl)
         .then((res) => (res.ok ? res.text() : ""))
         .then((text) => {
           campaignBioText = text;
@@ -315,23 +466,57 @@
     "em-key",
   ];
 
-  function emphasizeCritical(html) {
+  function emphasizeWith(html, re, classes, fallback) {
     if (!html) return html;
     // Only transform text nodes — never the inside of an existing tag.
     return html
       .split(/(<[^>]*>)/)
       .map((chunk, i) => {
         if (i % 2 === 1) return chunk; // this chunk is a tag
-        return chunk.replace(CRITICAL_RE, (match, ...groups) => {
+        return chunk.replace(re, (match, ...groups) => {
           const hit = groups.findIndex(
-            (g, gi) => gi < CRITICAL_CLASSES.length && g !== undefined,
+            (g, gi) => gi < classes.length && g !== undefined,
           );
-          const cls = CRITICAL_CLASSES[hit] || "em-key";
+          const cls = classes[hit] || fallback;
           const tag = cls === "em-muted" ? "span" : "b";
           return `<${tag} class="crit ${cls}">${match}</${tag}>`;
         });
       })
       .join("");
+  }
+
+  function emphasizeCritical(html) {
+    return emphasizeWith(html, CRITICAL_RE, CRITICAL_CLASSES, "em-key");
+  }
+
+  /**
+   * Sale-day emphasis: the clearance pitch reads like a used-car lot flyer,
+   * so the highlighter follows suit — shouted slogans, money, and the
+   * midnight deadline.
+   */
+  const SALE_RE = new RegExp(
+    [
+      // 1 — the shouted slogans
+      "(SALE DAY SALE DAY|SALE SALE SALE(?:\\s+SALE)*|ALL GOODS MUST GO|ALL STOCK MUST GO|EVERYTHING MUST GO|ALL SALES ARE FINAL|MUST GO|BIG BARGAINS?)",
+      // 2 — money
+      "(\\$\\s?\\d[\\d,]*(?:\\.\\d+)?(?:\\s*(?:BILLION|MILLION|billion|million))?(?:\\s*DOLLARS?| dollars?)?(?:\\s*A YEAR)?|\\d+%\\s*(?:off|OFF)|\\b\\d{1,3}(?:,\\d{3})+\\b)",
+      // 3 — the deadline
+      "(MIDNIGHT(?: TONIGHT)?|TONIGHT|TODAY,?\\s*JULY 31ST|ONE DAY ONLY|TODAY ONLY|LAST DAY|FINAL (?:DAY|HOURS?)|November 12th|104-day)",
+      // 4 — the merchandise
+      "(SALE|CLEARANCE|DOORBUSTER|BARGAINS?|DEALS?|MARKDOWNS?|FREE)",
+    ].join("|"),
+    "g",
+  );
+
+  const SALE_CLASSES = [
+    "sale-em-shout",
+    "sale-em-money",
+    "sale-em-deadline",
+    "sale-em-key",
+  ];
+
+  function emphasizeSale(html) {
+    return emphasizeWith(html, SALE_RE, SALE_CLASSES, "sale-em-key");
   }
 
   let isCriticalCampaign = $derived(selectedCampaign?.id === "save-texas-hemp");
@@ -1457,7 +1642,7 @@
     <!-- Header Controls. Shorter on a phone: this bar sits above the fold on
          every campaign, so its height is pure cost on a small screen. -->
     <div
-      class="flex justify-between items-center px-2.5 sm:px-4 h-9 sm:h-14 bg-zinc-950/20 border-b border-zinc-800 shrink-0"
+      class="flex justify-between items-center px-2.5 sm:px-4 h-9 sm:h-14 bg-zinc-950/20 border-b border-zinc-800 shrink-0 store-header"
     >
       <div class="flex items-center h-full">
         {#if currentStoreMode === "merch" && selectedProduct}
@@ -1512,7 +1697,10 @@
 
     <!-- Main Workspace -->
     <div
-      class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 grid grid-cols-1 grid-rows-1 image-panel"
+      class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 grid grid-cols-1 grid-rows-1 image-panel store-workspace"
+      class:sale-workspace={saleActive}
+      class:campaign-open={currentStoreMode === "fundraising" &&
+        !!selectedCampaign}
       bind:clientHeight={workspaceH}
       onpointerdown={handleWorkspacePointerDown}
       onpointerup={handleWorkspacePointerUp}
@@ -1820,6 +2008,7 @@
                       100,
                       Math.round((raisedVal / goalVal) * 100),
                     )}
+                    {@const cardSale = isSaleNow(campaign, now)}
                     <!-- svelte-ignore a11y_click_events_have_key_events -->
                     <!-- svelte-ignore a11y_no_static_element_interactions -->
                     <div
@@ -1835,12 +2024,42 @@
                             alt={campaign.title}
                             class="w-full h-full object-cover group-hover:scale-103 transition-transform duration-300"
                           />
-                          <span
-                            class="absolute top-2 left-2 px-1.5 py-0.5 bg-emerald-600 text-white font-bold font-mono text-[9px] tracking-widest uppercase rounded z-10"
-                            >ACTIVE</span
-                          >
+                          {#if cardSale}
+                            <span
+                              class="absolute top-2 left-2 px-1.5 py-0.5 bg-yellow-400 text-black font-bold font-mono text-[9px] tracking-widest uppercase rounded z-10"
+                              >🤑 SALE</span
+                            >
+                          {:else}
+                            <span
+                              class="absolute top-2 left-2 px-1.5 py-0.5 bg-emerald-600 text-white font-bold font-mono text-[9px] tracking-widest uppercase rounded z-10"
+                              >ACTIVE</span
+                            >
+                          {/if}
 
-                          {#if campaign.endDate}
+                          {#if cardSale}
+                            {@const saleW = saleWindowOf(campaign)}
+                            {@const saleT = getCountdown(saleW?.end, now)}
+                            {#if saleT}
+                              <div
+                                class="absolute top-2.5 right-2.5 px-2 py-1 bg-yellow-400/95 border border-yellow-200 text-black font-mono rounded-md shadow-lg shadow-yellow-900/60 backdrop-blur-md flex items-center gap-1.5 z-10 animate-pulse"
+                              >
+                                <span class="text-[10px] sm:text-xs">💰</span>
+                                <span
+                                  class="font-extrabold text-[10px] sm:text-xs tracking-wider uppercase"
+                                  >SALE DAY SALE DAY</span
+                                >
+                                <span
+                                  class="hidden md:inline text-[10px] font-bold border-l border-black/30 pl-1.5"
+                                >
+                                  {String(saleT.hours).padStart(2, "0")}h {String(
+                                    saleT.minutes,
+                                  ).padStart(2, "0")}m {String(
+                                    saleT.seconds,
+                                  ).padStart(2, "0")}s LEFT
+                                </span>
+                              </div>
+                            {/if}
+                          {:else if campaign.endDate}
                             {@const deadline = getActiveDeadline(campaign, now)}
                             {@const timer = getCountdown(deadline?.target, now)}
                             {#if timer}
@@ -1986,18 +2205,18 @@
             )}
             <!-- STEAM-STYLE CAMPAIGN VIEW -->
             <div
-              class="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-12 gap-4 sm:gap-6 lg:gap-8 items-start animate-fade-in"
+              class="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-12 gap-4 sm:gap-6 lg:gap-8 items-start animate-fade-in campaign-grid"
             >
               <!-- Left Side: Media Carousel (Col 7) -->
               <div
-                class="sm:col-span-7 flex flex-col gap-3 sm:gap-4 min-w-0 min-h-0 sm:sticky sm:top-4 md:top-6 lg:top-8"
+                class="sm:col-span-7 flex flex-col gap-3 sm:gap-4 min-w-0 min-h-0 sm:sticky sm:top-4 md:top-6 lg:top-8 campaign-media-col"
               >
                 <!-- Big Image Showcase -->
                 <!-- The map needs more vertical room than a 16:9 photo does.
                      Both are capped against the viewport so the carousel and
                      its thumbnail strip always fit on screen without scrolling. -->
                 <div
-                  class="relative w-full bg-black/40 border border-zinc-800 rounded-2xl overflow-hidden shadow-lg group touch-pan-y {currentMediaItem?.type ===
+                  class="relative w-full bg-black/40 border border-zinc-800 rounded-2xl overflow-hidden shadow-lg group touch-pan-y campaign-media-box {currentMediaItem?.type ===
                   'map'
                     ? 'aspect-[4/3]'
                     : 'aspect-video'}"
@@ -2024,7 +2243,10 @@
                             {lawmakers}
                             selectedEmails={selectedReps}
                             focusRequest={mapFocusRequest}
-                            title="{lawmakers.length} 🐘🫏"
+                            title={saleActive
+                              ? `💰 ${lawmakers.length} 🐘🫏 MUST GO 💰`
+                              : `${lawmakers.length} 🐘🫏`}
+                            saleMode={saleActive}
                             isFullscreen={isMapFullscreen}
                             onToggleFullscreen={() =>
                               (isMapFullscreen = !isMapFullscreen)}
@@ -2175,7 +2397,7 @@
                 </div>
 
                 <!-- Thumbnails row -->
-                <div class="flex gap-3 overflow-x-auto pb-1">
+                <div class="flex gap-3 overflow-x-auto pb-1 campaign-thumbs">
                   {#each campaignMedia as mediaItem, idx}
                     <!-- svelte-ignore a11y_click_events_have_key_events -->
                     <!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
@@ -2192,14 +2414,18 @@
                     >
                       {#if mediaItem.type === "map"}
                         <div
-                          class="w-full h-full flex flex-col items-center justify-center gap-0.5 bg-gradient-to-br from-emerald-950 to-black"
+                          class="w-full h-full flex flex-col items-center justify-center gap-0.5 bg-gradient-to-br transition-colors duration-1000 {saleActive
+                            ? 'from-yellow-900 via-emerald-950 to-black'
+                            : 'from-emerald-950 to-black'}"
                         >
                           <span class="text-base leading-none select-none"
-                            >🗺️</span
+                            >{saleActive ? "💰" : "🗺️"}</span
                           >
                           <span
-                            class="text-[7px] font-mono font-bold text-emerald-400 tracking-widest"
-                            >MAP</span
+                            class="text-[7px] font-mono font-bold tracking-widest transition-colors duration-1000 {saleActive
+                              ? 'text-yellow-300'
+                              : 'text-emerald-400'}"
+                            >{saleActive ? "SALE" : "MAP"}</span
                           >
                         </div>
                       {:else if mediaItem.type === "video"}
@@ -2232,14 +2458,21 @@
 
               <!-- Right Side: Details & Milestone Progression (Col 5) -->
               <div
-                class="sm:col-span-5 flex flex-col justify-between bg-zinc-900/20 border border-zinc-800/60 p-4 sm:p-5 lg:p-6 rounded-2xl"
+                class="sm:col-span-5 flex flex-col justify-between bg-zinc-900/20 border border-zinc-800/60 p-4 sm:p-5 lg:p-6 rounded-2xl detail-panel"
+                class:sale-panel={saleActive}
               >
                 <div>
                   <div
                     class="flex justify-between items-start gap-3 border-b border-zinc-850 pb-4"
                   >
                     <div>
-                      {#if selectedCampaign.status === "active"}
+                      {#if saleActive}
+                        <span
+                          class="px-2 py-0.5 bg-yellow-400/15 border border-yellow-400/50 text-yellow-300 font-bold font-mono text-[9px] tracking-widest uppercase rounded"
+                        >
+                          🔥 SALE ON — ALL GOODS MUST GO
+                        </span>
+                      {:else if selectedCampaign.status === "active"}
                         <span
                           class="px-2 py-0.5 bg-emerald-600/10 border border-emerald-500/30 text-emerald-400 font-bold font-mono text-[9px] tracking-widest uppercase rounded"
                         >
@@ -2254,8 +2487,11 @@
                       {/if}
                       <h1
                         class="text-xl sm:text-2xl font-extrabold tracking-wider mt-2 uppercase"
+                        class:sale-title={saleActive}
                       >
-                        {selectedCampaign.title}
+                        {saleActive
+                          ? "💰 SALE DAY SALE DAY 💰"
+                          : selectedCampaign.title}
                       </h1>
                     </div>
                     <button
@@ -2271,10 +2507,94 @@
                   {#if selectedCampaign.endDate && !isMapFullscreen}
                     {@const deadline = getActiveDeadline(selectedCampaign, now)}
                     {@const timer = getCountdown(deadline?.target, now)}
+                    {@const saleTimer =
+                      saleActive && saleWindow
+                        ? getCountdown(saleWindow.end, now)
+                        : null}
                     <!-- The clock's pulsing/blurred layers composite above the
                          fullscreen map overlay, so it isn't just covered — it
                          has to actually unmount while the map owns the screen. -->
-                    {#if timer}
+                    {#if saleTimer}
+                      <!-- SALE DAY takeover: the same clock, wound back to
+                           midnight and re-lit in bargain-bin gold. Reverts on
+                           its own at midnight into August 1st. -->
+                      <div
+                        class="mt-3 p-2.5 sm:p-3 rounded-xl border flex flex-col gap-2 shadow-lg shrink-0 sale-widget"
+                      >
+                        <!-- Row 0: the barker's marquee -->
+                        <div class="sale-marquee" aria-hidden="true">
+                          <span>{SALE_MARQUEE}</span><span>{SALE_MARQUEE}</span>
+                        </div>
+
+                        <!-- Row 1: what this countdown now is -->
+                        <div class="flex items-center gap-2 min-w-0">
+                          <span class="text-sm sm:text-base sale-coin shrink-0"
+                            >💰</span
+                          >
+                          <div class="flex flex-col min-w-0 flex-1">
+                            <span
+                              class="text-[9px] font-mono uppercase tracking-widest text-black/80 font-extrabold leading-tight"
+                            >
+                              SALE DAY SALE DAY — BIG BARGAINS
+                            </span>
+                            <span
+                              class="text-xs sm:text-sm font-black text-black uppercase tracking-wider leading-tight"
+                            >
+                              {#if saleTimer.isZero}
+                                SALE'S OVER — SHELVES ARE BARE!
+                              {:else}
+                                ALL GOODS MUST GO BY MIDNIGHT!
+                              {/if}
+                            </span>
+                          </div>
+                        </div>
+
+                        <!-- Row 2: the clock, wound back and counting to close -->
+                        <div class="sale-clock-stage">
+                          <div
+                            class="flex items-center justify-center gap-1 font-mono text-xs font-bold text-yellow-300 bg-black/90 px-2.5 py-1 rounded-lg border border-yellow-400/60 w-full shrink-0 shadow-inner"
+                            class:clock-wind={clockWinding}
+                          >
+                            <!-- Total hours, not hours-of-day: a forced
+                                 preview can sit more than 24h out and the
+                                 clock must never lie about time left. -->
+                            <span
+                              >{String(
+                                saleTimer.days * 24 + saleTimer.hours,
+                              ).padStart(2, "0")}h</span
+                            >
+                            <span
+                              class="text-emerald-400 font-extrabold text-[10px] animate-pulse"
+                              >:</span
+                            >
+                            <span
+                              >{String(saleTimer.minutes).padStart(2, "0")}m</span
+                            >
+                            <span
+                              class="text-emerald-400 font-extrabold text-[10px] animate-pulse"
+                              >:</span
+                            >
+                            <span class="text-yellow-200 font-black animate-pulse"
+                              >{String(saleTimer.seconds).padStart(2, "0")}s</span
+                            >
+                            <span
+                              class="text-[9px] text-emerald-300 font-extrabold tracking-widest pl-1.5 border-l border-yellow-500/40"
+                              >TIL CLOSE</span
+                            >
+                          </div>
+                        </div>
+
+                        <!-- Row 3: straight to the action, same as always -->
+                        {#if selectedCampaign.contactReps}
+                          <button
+                            onclick={jumpToEmailActions}
+                            class="jump-to-email w-full py-2 px-3 bg-black hover:bg-zinc-900 text-yellow-300 font-black rounded-lg text-[10px] sm:text-[11px] tracking-widest uppercase transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-lg shadow-yellow-950/40 active:scale-95"
+                          >
+                            💸 JUMP TO EMAIL <span class="jump-arrow">↓</span>
+                          </button>
+                        {/if}
+                      </div>
+                    {:else if timer}
                       <!-- Two-stage clock: red for the July 31st shelf pull,
                            amber once it lapses and the November 12th federal
                            deadline takes over. Always three stacked rows —
@@ -2323,6 +2643,7 @@
                           class="flex items-center justify-center gap-1 font-mono text-xs font-bold text-white bg-black/85 px-2.5 py-1 rounded-lg border {fin
                             ? 'border-amber-500/40'
                             : 'border-red-500/40'} w-full shrink-0 shadow-inner"
+                          class:clock-wind={clockWinding}
                         >
                           <span class="text-white"
                             >{String(timer.days).padStart(2, "0")}d</span
@@ -2474,22 +2795,31 @@
                   {:else}
                     <!-- Legacy/Standard layout for other campaigns with milestones/progress -->
                     <!-- Full bio, no max-height constraint: the panel scrolls, the text never compacts -->
-                    <div
-                      class="mt-3 sm:mt-4 pb-4 flex flex-col gap-4 selectable-bio"
-                      class:critical-bio={isCriticalCampaign}
-                    >
-                      <!-- Falls back to the inline description, still in full -->
-                      {#each formatBioText(campaignBioText || selectedCampaign.description) as paragraph, pIdx}
-                        <p
-                          class="text-zinc-400 text-sm leading-relaxed font-sans"
-                          class:bio-lede={isCriticalCampaign && pIdx === 0}
-                        >
-                          {@html isCriticalCampaign
-                            ? emphasizeCritical(paragraph)
-                            : paragraph}
-                        </p>
-                      {/each}
-                    </div>
+                    {#key bioPhase}
+                      <div
+                        class="mt-3 sm:mt-4 pb-4 flex flex-col gap-4 selectable-bio"
+                        class:critical-bio={isCriticalCampaign}
+                        class:sale-bio={saleActive}
+                        in:fade={{ duration: 600 }}
+                      >
+                        <!-- Falls back to the inline description, still in full -->
+                        {#each formatBioText(campaignBioText || selectedCampaign.description) as paragraph, pIdx}
+                          <p
+                            class="text-zinc-400 text-sm leading-relaxed font-sans"
+                            class:bio-lede={isCriticalCampaign &&
+                              !saleActive &&
+                              pIdx === 0}
+                            class:sale-lede={saleActive && pIdx === 0}
+                          >
+                            {@html isCriticalCampaign
+                              ? saleActive
+                                ? emphasizeSale(paragraph)
+                                : emphasizeCritical(paragraph)
+                              : paragraph}
+                          </p>
+                        {/each}
+                      </div>
+                    {/key}
 
                     <hr class="border-zinc-850 my-2" />
 
@@ -2548,7 +2878,7 @@
                                 : defaultReps}
                             <button
                               onclick={() =>
-                                handleBlastEm(selectedCampaign.contactReps)}
+                                handleBlastEm(activeContactReps)}
                               class="w-full py-4 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-black font-black rounded-xl text-xs sm:text-sm tracking-widest uppercase transition-all duration-200 flex flex-col items-center justify-center gap-0.5 shadow-xl shadow-emerald-950/40 hover:scale-[1.01] active:scale-[0.99] cursor-pointer text-center"
                             >
                               <span class="flex items-center gap-1.5">
@@ -2565,9 +2895,7 @@
                           {:else}
                             <button
                               onclick={() =>
-                                handleEmailSelected(
-                                  selectedCampaign.contactReps,
-                                )}
+                                handleEmailSelected(activeContactReps)}
                               disabled={selectedReps.length === 0}
                               class="w-full py-3 px-4 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-black font-black rounded-xl text-xs sm:text-sm tracking-widest uppercase transition-all duration-200 flex flex-col items-center justify-center gap-0.5 shadow-xl shadow-emerald-950/40 hover:scale-[1.01] active:scale-[0.99] cursor-pointer text-center disabled:opacity-50 disabled:cursor-not-allowed"
                             >
@@ -2699,7 +3027,7 @@
                                       onclick={() =>
                                         openBatchSheet(
                                           campaignRecipients,
-                                          selectedCampaign.contactReps,
+                                          activeContactReps,
                                           "all",
                                         )}
                                       disabled={campaignRecipients.length === 0}
@@ -2873,9 +3201,7 @@
                               >
                                 <button
                                   onclick={() =>
-                                    handleEmailSelected(
-                                      selectedCampaign.contactReps,
-                                    )}
+                                    handleEmailSelected(activeContactReps)}
                                   disabled={selectedReps.length === 0}
                                   class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-black font-black rounded-lg text-xs tracking-wider transition-all duration-200 flex flex-col items-center justify-center gap-0.5 shadow cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                                 >
@@ -3100,6 +3426,24 @@
         </div>
       {/if}
     </div>
+
+    <!-- SALE DAY FIREWORKS — money launched from the bottom of the screen the
+         moment the countdown hits zero. Pure decoration, swallows no clicks. -->
+    {#if saleCelebrating}
+      <div
+        class="fixed inset-0 z-[99998] pointer-events-none overflow-hidden"
+        transition:fade={{ duration: 400 }}
+        aria-hidden="true"
+      >
+        {#each saleBurst as p (p.id)}
+          <span
+            class="sale-firework"
+            style="left: {p.left}%; animation-delay: {p.delay}s; animation-duration: {p.duration}s; font-size: {p.size}px; --drift: {p.drift}px; --spin: {p.spin}deg;"
+            >{p.emoji}</span
+          >
+        {/each}
+      </div>
+    {/if}
 
     <!-- CART DRAWER -->
     {#if isCartOpen}
@@ -3573,7 +3917,7 @@
             class="p-3.5 sm:p-4 border-t border-zinc-900 bg-zinc-900/25 flex flex-col gap-2 shrink-0"
           >
             <button
-              onclick={() => handleMailRandomRep(selectedCampaign?.contactReps)}
+              onclick={() => handleMailRandomRep(activeContactReps)}
               class="w-full py-3 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-black font-black rounded-xl text-xs tracking-widest uppercase transition-all flex items-center justify-center gap-2 shadow-lg cursor-pointer"
             >
               💌 EMAIL {randomRep.shortName || randomRep.name}
@@ -3938,11 +4282,337 @@
     }
   }
 
+  /* ---------------------------------------------------------------- */
+  /* Mobile landscape — the two-column campaign view, made to FIT       */
+  /* ---------------------------------------------------------------- */
+
+  /* A phone on its side hits the sm: breakpoint by width and gets the
+     desktop two-column layout with nowhere near desktop height — the
+     aspect-ratio carousel blows straight past the bottom of the screen.
+     Keep the two columns, but change the sizing rules: the media column
+     fills the height it actually has (no aspect ratio, compact thumbs)
+     and the details column scrolls internally. Everything fits, nothing
+     is cut off, and the workspace itself never scrolls. */
+  @media (orientation: landscape) and (max-height: 520px) and (min-width: 640px) {
+    /* Every vertical pixel of chrome is a pixel the content doesn't get:
+       the header collapses to a razor-thin strip. */
+    .store-header {
+      height: 22px !important;
+      padding-left: 8px;
+      padding-right: 8px;
+    }
+
+    .store-header :global(button) {
+      font-size: 10px;
+      line-height: 1;
+      padding-top: 0;
+      padding-bottom: 0;
+    }
+
+    .store-header :global(svg) {
+      width: 12px;
+      height: 12px;
+    }
+
+    .campaign-open {
+      overflow: hidden;
+      padding: 8px 10px;
+    }
+
+    .campaign-grid {
+      height: 100%;
+      min-height: 0;
+      grid-template-columns: 13fr 11fr;
+      gap: 10px;
+      align-items: stretch;
+      overflow: hidden;
+    }
+
+    .campaign-media-col {
+      position: static !important; /* sticky is for a scrolling page */
+      grid-column: 1 !important; /* col-span-7 would spawn implicit columns */
+      height: 100%;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    /* Height is decided by the column now, not by the image ratio. */
+    .campaign-media-box {
+      aspect-ratio: auto !important;
+      flex: 1 1 auto;
+      min-height: 0;
+      max-height: none !important; /* beats the measured inline cap */
+    }
+
+    .campaign-thumbs {
+      flex-shrink: 0;
+      gap: 6px;
+      padding-bottom: 2px;
+    }
+
+    .campaign-thumbs > :global(div) {
+      width: 3.25rem !important;
+    }
+
+    .campaign-grid > .detail-panel {
+      grid-column: 2 !important;
+      height: 100%;
+      min-height: 0;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      padding: 10px 12px;
+    }
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* SALE DAY — July 31st takeover                                      */
+  /* ---------------------------------------------------------------- */
+
+  /* Everything that changes colour for the sale tweens there and back,
+     so the whole panel visibly morphs instead of jump-cutting. */
+  .store-workspace {
+    transition: background-color 2.5s ease;
+  }
+
+  .sale-workspace {
+    background-color: rgba(22, 46, 14, 0.35);
+  }
+
+  .detail-panel {
+    transition:
+      background-color 2s ease,
+      border-color 2s ease,
+      box-shadow 2s ease;
+  }
+
+  .sale-panel {
+    background-color: rgba(26, 36, 8, 0.55) !important;
+    border-color: rgba(251, 191, 36, 0.55) !important;
+    box-shadow:
+      0 0 0 1px rgba(251, 191, 36, 0.15),
+      0 0 34px rgba(251, 191, 36, 0.14);
+  }
+
+  .sale-title {
+    color: #fde047;
+    text-shadow: 0 0 18px rgba(251, 191, 36, 0.5);
+    animation: saleTitlePulse 1.6s ease-in-out infinite;
+  }
+
+  @keyframes saleTitlePulse {
+    0%,
+    100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.03);
+    }
+  }
+
+  /* The clearance-gold countdown widget. */
+  .sale-widget {
+    background: linear-gradient(100deg, #facc15, #fbbf24 40%, #4ade80 130%);
+    border-color: #fde047;
+    box-shadow:
+      0 0 0 1px rgba(253, 224, 71, 0.5),
+      0 8px 30px rgba(251, 191, 36, 0.35);
+    animation: saleShine 2.4s ease-in-out infinite;
+  }
+
+  @keyframes saleShine {
+    0%,
+    100% {
+      box-shadow:
+        0 0 0 1px rgba(253, 224, 71, 0.5),
+        0 8px 30px rgba(251, 191, 36, 0.35);
+    }
+    50% {
+      box-shadow:
+        0 0 0 2px rgba(253, 224, 71, 0.9),
+        0 8px 42px rgba(74, 222, 128, 0.45);
+    }
+  }
+
+  .sale-coin {
+    display: inline-block;
+    animation: saleCoinFlip 1.8s ease-in-out infinite;
+  }
+
+  @keyframes saleCoinFlip {
+    0%,
+    100% {
+      transform: rotateY(0deg);
+    }
+    50% {
+      transform: rotateY(180deg);
+    }
+  }
+
+  /* The barker's marquee across the top of the widget. */
+  .sale-marquee {
+    display: flex;
+    overflow: hidden;
+    white-space: nowrap;
+    border-bottom: 1px dashed rgba(0, 0, 0, 0.35);
+    padding-bottom: 2px;
+    font-family: ui-monospace, monospace;
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    color: rgba(0, 0, 0, 0.85);
+    user-select: none;
+  }
+
+  .sale-marquee span {
+    flex-shrink: 0;
+    min-width: 100%;
+    animation: saleMarquee 16s linear infinite;
+  }
+
+  @keyframes saleMarquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-100%);
+    }
+  }
+
+  /* The wind-back: the clock face flips backwards over itself while the
+     digits roll onto the new countdown — read as the hands being wound. */
+  .sale-clock-stage {
+    perspective: 480px;
+  }
+
+  .clock-wind {
+    animation: clockWind 2.6s cubic-bezier(0.22, 1, 0.36, 1);
+    transform-style: preserve-3d;
+  }
+
+  @keyframes clockWind {
+    0% {
+      transform: rotateX(0deg);
+      filter: brightness(1);
+    }
+    55% {
+      filter: brightness(2.2);
+    }
+    100% {
+      transform: rotateX(-1080deg);
+      filter: brightness(1);
+    }
+  }
+
+  /* Money fireworks: launch from the bottom, hang, drift down spinning. */
+  .sale-firework {
+    position: absolute;
+    bottom: -48px;
+    line-height: 1;
+    animation-name: saleLaunch;
+    animation-timing-function: cubic-bezier(0.18, 0.7, 0.4, 1);
+    animation-fill-mode: both;
+    will-change: transform, opacity;
+  }
+
+  @keyframes saleLaunch {
+    0% {
+      transform: translate3d(0, 0, 0) rotate(0deg) scale(0.5);
+      opacity: 0;
+    }
+    8% {
+      opacity: 1;
+    }
+    55% {
+      transform: translate3d(calc(var(--drift) * 0.6), -68vh, 0)
+        rotate(var(--spin)) scale(1.15);
+      opacity: 1;
+    }
+    100% {
+      transform: translate3d(var(--drift), -34vh, 0)
+        rotate(calc(var(--spin) * 1.8)) scale(0.85);
+      opacity: 0;
+    }
+  }
+
+  /* Sale-day bio: the pitch in bargain-flyer colours. */
+  .sale-bio p {
+    color: #d9f99d !important;
+  }
+
+  .sale-lede {
+    font-size: 1rem !important;
+    line-height: 1.6 !important;
+    color: #fde047 !important;
+    font-weight: 800;
+    border-left: 3px solid #facc15;
+    padding-left: 0.85rem;
+    background: linear-gradient(
+      90deg,
+      rgba(250, 204, 21, 0.14),
+      transparent 65%
+    );
+    border-radius: 0 8px 8px 0;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+    letter-spacing: 0.06em;
+  }
+
+  .sale-bio :global(b.sale-em-shout) {
+    color: #000;
+    font-weight: 900;
+    font-size: 1.05em;
+    background: linear-gradient(90deg, #fde047, #fbbf24);
+    border-radius: 4px;
+    padding: 0.08em 0.3em;
+    white-space: normal;
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+    animation: alarmGlow 2.4s ease-in-out infinite;
+  }
+
+  .sale-bio :global(b.sale-em-money) {
+    color: #4ade80;
+    background: rgba(34, 197, 94, 0.14);
+    box-shadow: inset 0 -0.42em 0 rgba(34, 197, 94, 0.2);
+    padding: 0 0.18em;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+
+  .sale-bio :global(b.sale-em-deadline) {
+    color: #fecaca;
+    background: rgba(239, 68, 68, 0.3);
+    border-bottom: 1.5px solid rgba(248, 113, 113, 0.85);
+    padding: 0 0.18em;
+    border-radius: 3px;
+    animation: critPulse 2.2s ease-in-out infinite;
+  }
+
+  .sale-bio :global(b.sale-em-key) {
+    color: #fef9c3;
+    background: linear-gradient(
+      180deg,
+      transparent 58%,
+      rgba(253, 224, 71, 0.28) 58%
+    );
+    white-space: normal;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .critical-bio :global(b.em-deadline),
     .critical-bio :global(b.em-alarm),
+    .sale-bio :global(b.sale-em-shout),
+    .sale-bio :global(b.sale-em-deadline),
     .jump-arrow,
-    .email-flash {
+    .email-flash,
+    .sale-title,
+    .sale-widget,
+    .sale-coin,
+    .sale-marquee span,
+    .clock-wind,
+    .sale-firework {
       animation: none;
     }
   }

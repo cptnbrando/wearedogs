@@ -35,6 +35,9 @@
     title = "TEXAS LAWMAKERS",
     isFullscreen = false,
     onToggleFullscreen = null,
+    // July 31st SALE DAY: re-lights the whole map in cash gold/green. Every
+    // colour swap rides a CSS transition so the flip is watchable, not a cut.
+    saleMode = false,
   } = $props();
 
   /**
@@ -841,7 +844,7 @@
 
 <svelte:window onkeydowncapture={handleMapKeys} />
 
-<div class="tx-map">
+<div class="tx-map" class:tx-sale={saleMode}>
   <!-- Header -->
   <div class="tx-head">
     <div class="tx-title">
@@ -940,15 +943,17 @@
           <stop offset="0%" stop-color="#10b981" stop-opacity="0.5" />
           <stop offset="100%" stop-color="#10b981" stop-opacity="0" />
         </radialGradient>
+        <!-- Stop colours live in CSS (not attributes) so sale mode can tween
+             the state's fill and edge instead of hard-swapping gradients. -->
         <linearGradient id="txFill" x1="0.1" y1="0" x2="0.9" y2="1">
-          <stop offset="0%" stop-color="#f472b6" stop-opacity="0.16" />
-          <stop offset="45%" stop-color="#a855f7" stop-opacity="0.1" />
-          <stop offset="100%" stop-color="#22d3ee" stop-opacity="0.08" />
+          <stop offset="0%" class="txfill-a" />
+          <stop offset="45%" class="txfill-b" />
+          <stop offset="100%" class="txfill-c" />
         </linearGradient>
         <linearGradient id="txEdge" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="#f472b6" />
-          <stop offset="55%" stop-color="#c084fc" />
-          <stop offset="100%" stop-color="#22d3ee" />
+          <stop offset="0%" class="txedge-a" />
+          <stop offset="55%" class="txedge-b" />
+          <stop offset="100%" class="txedge-c" />
         </linearGradient>
         <radialGradient id="txVignette" cx="50%" cy="45%" r="75%">
           <stop offset="55%" stop-color="#000" stop-opacity="0" />
@@ -3614,5 +3619,140 @@
 
   @media (prefers-reduced-motion: reduce) {
     .tx-dot { animation: none; }
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* SALE DAY — July 31st cash-gold relight                             */
+  /* ---------------------------------------------------------------- */
+
+  /* Everything below tweens: the map visibly rolls from neon pink/cyan into
+     bargain gold and money green when saleMode flips, and rolls back after. */
+  stop {
+    transition:
+      stop-color 2.4s ease,
+      stop-opacity 2.4s ease;
+  }
+
+  .txfill-a { stop-color: #f472b6; stop-opacity: 0.16; }
+  .txfill-b { stop-color: #a855f7; stop-opacity: 0.1; }
+  .txfill-c { stop-color: #22d3ee; stop-opacity: 0.08; }
+  .txedge-a { stop-color: #f472b6; }
+  .txedge-b { stop-color: #c084fc; }
+  .txedge-c { stop-color: #22d3ee; }
+
+  .tx-sale .txfill-a { stop-color: #fde047; stop-opacity: 0.22; }
+  .tx-sale .txfill-b { stop-color: #84cc16; stop-opacity: 0.14; }
+  .tx-sale .txfill-c { stop-color: #10b981; stop-opacity: 0.12; }
+  .tx-sale .txedge-a { stop-color: #fde047; }
+  .tx-sale .txedge-b { stop-color: #fbbf24; }
+  .tx-sale .txedge-c { stop-color: #34d399; }
+
+  .tx-water,
+  .tx-neighbor,
+  .tx-cell,
+  .tx-cell-major,
+  .tx-cell-called,
+  .tx-water-label,
+  .tx-state {
+    transition:
+      fill 2.4s ease,
+      stroke 2.4s ease,
+      filter 2.4s ease;
+  }
+
+  .tx-head,
+  .tx-foot,
+  .tx-chips,
+  .tx-title,
+  .tx-dot,
+  .tx-card {
+    transition:
+      background-color 2s ease,
+      border-color 2s ease,
+      color 2s ease,
+      box-shadow 2s ease;
+  }
+
+  .tx-map.tx-sale {
+    background:
+      radial-gradient(
+        ellipse at 22% 12%,
+        rgba(253, 224, 71, 0.16) 0%,
+        transparent 55%
+      ),
+      radial-gradient(
+        ellipse at 82% 88%,
+        rgba(52, 211, 153, 0.14) 0%,
+        transparent 55%
+      ),
+      linear-gradient(165deg, #1c1a06 0%, #0a1408 55%, #04100a 100%);
+  }
+
+  .tx-sale .tx-water { fill: #08100a; }
+
+  .tx-sale .tx-neighbor {
+    stroke: rgba(253, 224, 71, 0.18);
+  }
+
+  .tx-sale .tx-state {
+    filter: drop-shadow(0 0 12px rgba(251, 191, 36, 0.45));
+  }
+
+  .tx-sale .tx-cell {
+    stroke: rgba(251, 191, 36, 0.3);
+  }
+
+  .tx-sale .tx-cell-major {
+    stroke: rgba(253, 224, 71, 0.45);
+  }
+
+  .tx-sale .tx-cell-called {
+    fill: rgba(251, 191, 36, 0.06);
+    stroke: rgba(253, 224, 71, 0.85);
+    filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.5));
+  }
+
+  .tx-sale .tx-water-label {
+    fill: rgba(74, 222, 128, 0.45);
+  }
+
+  .tx-sale .tx-head,
+  .tx-sale .tx-foot {
+    border-color: rgba(251, 191, 36, 0.35);
+  }
+
+  .tx-sale .tx-title {
+    color: #fde68a;
+  }
+
+  .tx-sale .tx-dot {
+    background: #fbbf24;
+    box-shadow: 0 0 8px #fbbf24;
+  }
+
+  .tx-sale .tx-btn:hover,
+  .tx-sale .tx-foot-btn:hover {
+    background: rgba(251, 191, 36, 0.2);
+    border-color: rgba(251, 191, 36, 0.55);
+  }
+
+  .tx-sale .tx-btn-on {
+    background: rgba(251, 191, 36, 0.25);
+    border-color: rgba(251, 191, 36, 0.6);
+  }
+
+  .tx-sale .tx-chip.on {
+    background: rgba(251, 191, 36, 0.22);
+    border-color: rgba(251, 191, 36, 0.6);
+    color: #fde68a;
+  }
+
+  .tx-sale .tx-card {
+    border-color: rgba(251, 191, 36, 0.5);
+    box-shadow: 0 0 26px rgba(251, 191, 36, 0.16);
+  }
+
+  .tx-sale .tx-pin-plate {
+    stroke: rgba(251, 191, 36, 0.6);
   }
 </style>

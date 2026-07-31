@@ -361,6 +361,67 @@
     }
   }
 
+  /* Mobile landscape: a phone on its side has ~390px of height total, and
+     the default chrome (64px header, 40px footer, 28px padding, floating
+     panel margins) eats half of it. Go full-bleed and razor-thin so the
+     content pane gets nearly the whole screen. */
+  @media (orientation: landscape) and (max-height: 520px) {
+    .template-panel-container {
+      width: 100vw;
+      height: 100dvh;
+      max-width: none;
+      max-height: none;
+      border-radius: 0;
+      border: none;
+    }
+
+    .panel-header {
+      height: 24px;
+      padding: 0 10px;
+    }
+
+    .brand {
+      gap: 6px;
+    }
+
+    .brand h1 {
+      font-size: 0.65rem;
+    }
+
+    .logo-btn {
+      display: flex;
+      align-items: center;
+      max-height: 18px;
+      overflow: hidden;
+    }
+
+    .logo-btn :global(img),
+    .logo-btn :global(svg) {
+      max-height: 18px;
+      width: auto;
+    }
+
+    .close-btn {
+      width: 20px;
+      height: 20px;
+    }
+
+    .panel-body {
+      height: calc(100% - 24px - 16px);
+    }
+
+    .panel-content-pane {
+      padding: 4px;
+    }
+
+    .panel-footer {
+      height: 16px;
+      min-height: 16px;
+      padding: 0 10px;
+      font-size: 0.5rem;
+    }
+  }
+
   @keyframes panelSlideUpInMobile {
     0% {
       transform: translateY(100%);
