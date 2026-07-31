@@ -12,19 +12,9 @@ The State of Texas has personally guaranteed these prices CANNOT last. At midnig
 
 Over 9,100 licensed Texas retailers are sitting on hundreds of thousands of dollars of fully compliant, lab-tested, legal inventory that turns into a pumpkin at midnight. Their loss is LITERALLY your gain. Walk into any smoke shop in this great state today and watch a grown business owner do markdown math with tears in their eyes. 20% off. 40% off. 60% off. Make an offer. They legally cannot say no forever.
 
-THINK ABOUT IT: where else does a $5.5 BILLION DOLLAR A YEAR industry hold a going-out-of-business sale ALL AT ONCE? Nowhere. Never. This is a once-in-civilization shopping event. Black Friday wishes. Black Friday DREAMS.
+THINK ABOUT IT: where else does a $5.5 BILLION DOLLAR A YEAR industry hold a going-out-of-business sale ALL AT ONCE? Nowhere. Never. This is a once-in-a-lifetime once-in-a-million shopping event. Black Friday wishes. Black Friday DREAMS.
 
-And what a product to be on sale! Weed: nature's finest. Safer than the bottle, gentler than the pill, funnier than both. 13,701 Texans die from alcohol every single year, and the number for lab-tested hemp is so small the state had to ban the product instead of finding it. That's a five-star safety record at a one-star price. TODAY ONLY.
-
-For the veteran with the bad back: SALE. For the aunt who can't sleep: SALE. For the guy who was "gonna try it eventually": eventually is TODAY, partner, because tomorrow eventually is a FELONY in Austin.
-
-Stock up like it's 1999. Stock up like a squirrel before winter, because winter is exactly what's coming — a long, dry, 104-day winter until the November 12th federal deadline finishes the job and takes Delta-9 too.
-
-⚠️ THE FINE PRINT, SHOUTED LOUDLY: everything you buy today is legal today. Lab-tested, taxed, regulated, sold by a licensed Texas business to an adult, the way it should be every day. That's the whole point. ⚠️
-
-And while your cart is full, here's the REAL doorbuster: scroll down and tap "SEND PETITION EMAIL." It costs $0.00, marked down from $0.00. Tell your lawmakers that a state that can throw the greatest sale on earth could simply... let the store stay open. Regulate it. Tax it. Keep the $5.5 billion here instead of shipping it to Oklahoma, New Mexico, Arkansas, and the guy in the parking lot.
-
-Because after tonight there are only two stores left: the black market, and the state line. Neither one runs sales. Neither one checks ID. Neither one pays a dime of Texas tax.
+13,701 Texans die from alcohol every single year, and the number for lab-tested hemp is so small the state had to ban the product instead of selling it. Because it sold too well. It's 2026 and that's the reality of things.
 
 ALL GOODS MUST GO. But the industry shouldn't have to.
 
@@ -54,6 +44,8 @@ Oh, there ARE tests. CVS sells piss kits: you piss on the stick, dunk it in the 
 
 What if you're driving in from another state? Or your flight got delayed? What if you came here to see Show Me The Body or Travis Scott live?
 
+Yes, if you're pulled over speeding from New Mexico, and have a sealed, closed pack of 10mg gummies on you, yes, $10,000 and up to 2 years in state prison.
+
 And a conviction doesn't end at the jailhouse door. It follows you. It sits on the public record that every background check pulls, under every job application and every apartment application, next to every professional license you ever ask Texas for.
 
 A drug conviction suspends your Texas driver's license for 6 months even if you were nowhere near a car.
@@ -62,4 +54,4 @@ A felony takes your right to own a firearm. The fines and court fees that go to 
 
 THAT is the after-midnight price tag, and it is the worst markup in retail history. So today, do both jobs: shop the sale of the century, then scroll down and tap SEND PETITION EMAIL — tell your lawmakers that turning a million paying customers into criminals at midnight is the worst deal Texas ever wrote. ❤️🚨💙
 
-
+For all the Texans who have died to alcohol or drug overdose or suicide or anything please call your representatives today
