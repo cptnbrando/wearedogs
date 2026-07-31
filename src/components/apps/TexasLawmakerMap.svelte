@@ -210,6 +210,55 @@
   let ratedCount = $derived(lawmakers.length - stanceDist[0]);
 
   /**
+   * The headline split: an office is "for" if it supports legal hemp or wants
+   * regulation instead of prohibition (1–2), "against" if it leans toward or
+   * drives the ban (4–5). A 3 is genuinely undecided and a 0 is unrated, so
+   * neither is counted on either side.
+   */
+  function stanceSplit(list) {
+    let pro = 0;
+    let anti = 0;
+    for (const l of list) {
+      const s = stanceOf(l).score;
+      if (s === 1 || s === 2) pro += 1;
+      else if (s === 4 || s === 5) anti += 1;
+    }
+    return { pro, anti };
+  }
+
+  let allSplit = $derived(stanceSplit(lawmakers));
+  let repSplit = $derived(stanceSplit(lawmakers.filter((l) => l.party === "R")));
+  let demSplit = $derived(stanceSplit(lawmakers.filter((l) => l.party === "D")));
+  let senSplit = $derived(stanceSplit(senateMembers));
+  let houseSplit = $derived(stanceSplit(houseMembers));
+
+  /**
+   * Tints a split chip by which way the group actually leans — green when most
+   * of its rated offices are with us, red when most are voting for the ban. A
+   * group with nothing rated either way stays neutral rather than reading as
+   * good news.
+   */
+  function splitTone({ pro, anti }) {
+    const rated = pro + anti;
+    if (rated === 0) return "t-none";
+    const share = pro / rated;
+    if (share >= 0.6) return "t-good";
+    if (share >= 0.45) return "t-fair";
+    if (share >= 0.3) return "t-poor";
+    return "t-bad";
+  }
+
+  /** Whole-number share, guarded so an empty group reads 0 rather than NaN. */
+  function pct(part, whole) {
+    return whole > 0 ? Math.round((part / whole) * 100) : 0;
+  }
+
+  /** What share of a group's rated offices are on our side. */
+  function proPct({ pro, anti }) {
+    return pct(pro, pro + anti);
+  }
+
+  /**
    * Each dot's fill blends party into ban stance. The party half is shaded by
    * chamber — Senate & statewide run deep red/blue, the House runs light
    * red/blue — so who's a senator and who's a House rep reads from colour
@@ -1717,29 +1766,58 @@
             <section>
               <h5>THE TEXAS LEGISLATURE — WHO SPEAKS FOR US</h5>
               <div class="tx-stat-grid">
-                <div class="tx-stat big">
-                  <span class="v">{houseMembers.length}/{HOUSE_SEATS}</span>
-                  <span class="k">House seats filled</span>
+                <div class="tx-stat big split {splitTone(allSplit)}">
+                  <span class="v"
+                    ><span class="pro">{allSplit.pro}</span>/{lawmakers.length}</span
+                  >
+                  <span class="k">Those for, of every office</span>
+                  <span class="p"
+                    >{pct(allSplit.pro, lawmakers.length)}% of the whole floor</span
+                  >
                 </div>
-                <div class="tx-stat big">
-                  <span class="v">{senateMembers.length}/{SENATE_SEATS}</span>
-                  <span class="k">Senate seats filled</span>
+                <div class="tx-stat big split {splitTone(repSplit)}">
+                  <span class="v"
+                    ><span class="pro">{repSplit.pro}</span> vs <span
+                      class="anti">{repSplit.anti}</span
+                    ></span
+                  >
+                  <span class="k">Republicans for vs against</span>
+                  <span class="p">{proPct(repSplit)}% of them are for</span>
                 </div>
-                <div class="tx-stat">
-                  <span class="v">{houseParty.r + senateParty.r}</span>
-                  <span class="k">Republicans</span>
+                <div class="tx-stat big split {splitTone(demSplit)}">
+                  <span class="v"
+                    ><span class="pro">{demSplit.pro}</span> vs <span
+                      class="anti">{demSplit.anti}</span
+                    ></span
+                  >
+                  <span class="k">Democrats for vs against</span>
+                  <span class="p">{proPct(demSplit)}% of them are for</span>
                 </div>
-                <div class="tx-stat">
-                  <span class="v">{houseParty.d + senateParty.d}</span>
-                  <span class="k">Democrats</span>
+                <div class="tx-stat big split {splitTone(senSplit)}">
+                  <span class="v"
+                    ><span class="pro">{senSplit.pro}</span> vs <span
+                      class="anti">{senSplit.anti}</span
+                    ></span
+                  >
+                  <span class="k">Senators for vs against</span>
+                  <span class="p">{proPct(senSplit)}% of them are for</span>
                 </div>
-                <div class="tx-stat">
-                  <span class="v">{ratedCount}</span>
-                  <span class="k">Rated on the ban so far</span>
+                <div class="tx-stat big split {splitTone(houseSplit)}">
+                  <span class="v"
+                    ><span class="pro">{houseSplit.pro}</span> vs <span
+                      class="anti">{houseSplit.anti}</span
+                    ></span
+                  >
+                  <span class="k">House reps for vs against</span>
+                  <span class="p">{proPct(houseSplit)}% of them are for</span>
                 </div>
-                <div class="tx-stat">
-                  <span class="v">{lawmakers.length}</span>
-                  <span class="k">Offices on this map</span>
+                <div class="tx-stat big split">
+                  <span class="v"
+                    ><span class="rparty">{houseParty.r + senateParty.r}</span> /
+                    <span class="dparty">{houseParty.d + senateParty.d}</span
+                    ></span
+                  >
+                  <span class="k">Republicans vs Democrats</span>
                 </div>
               </div>
               <p class="tx-stats-note">
@@ -2354,11 +2432,53 @@
     color: #34d399;
   }
 
+  /* Ban-stance splits: green is with us, red is voting for the ban. The
+     separator itself stays dim so the two numbers carry the meaning. */
+  .tx-stat.split .v { color: rgba(255, 255, 255, 0.32); }
+  .tx-stat .v .pro { color: #34d399; }
+  .tx-stat .v .anti { color: #f87171; }
+  .tx-stat .v .rparty { color: #f87171; }
+  .tx-stat .v .dparty { color: #60a5fa; }
+
+  /* The whole chip is tinted by which way the group leans, so the shape of the
+     legislature reads at a glance before any single number does. */
+  .tx-stat.t-good {
+    border-color: rgba(52, 211, 153, 0.55);
+    background: rgba(52, 211, 153, 0.12);
+  }
+  .tx-stat.t-fair {
+    border-color: rgba(163, 230, 53, 0.5);
+    background: rgba(163, 230, 53, 0.1);
+  }
+  .tx-stat.t-poor {
+    border-color: rgba(251, 146, 60, 0.5);
+    background: rgba(251, 146, 60, 0.11);
+  }
+  .tx-stat.t-bad {
+    border-color: rgba(248, 113, 113, 0.55);
+    background: rgba(248, 113, 113, 0.13);
+  }
+  .tx-stat.t-good .k, .tx-stat.t-good .p { color: rgba(167, 243, 208, 0.75); }
+  .tx-stat.t-fair .k, .tx-stat.t-fair .p { color: rgba(217, 249, 157, 0.72); }
+  .tx-stat.t-poor .k, .tx-stat.t-poor .p { color: rgba(254, 215, 170, 0.75); }
+  .tx-stat.t-bad .k, .tx-stat.t-bad .p { color: rgba(254, 202, 202, 0.78); }
+
   .tx-stat .k {
     font-size: calc(0.46rem * var(--s, 1));
     letter-spacing: 0.06em;
     text-transform: uppercase;
     color: rgba(255, 255, 255, 0.5);
+  }
+
+  /* The same number said as a share — the counts alone hide how lopsided
+     these groups are. */
+  .tx-stat .p {
+    margin-top: 2px;
+    font-family: ui-monospace, monospace;
+    font-size: calc(0.44rem * var(--s, 1));
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    color: rgba(255, 255, 255, 0.34);
   }
 
   /* Metro splits as small chips, directly under the headline numbers. */
