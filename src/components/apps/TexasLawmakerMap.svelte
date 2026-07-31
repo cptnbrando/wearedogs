@@ -715,14 +715,15 @@
       { ox: 0, oy: u(18), anchor: "middle" },
     ];
 
+    const margin = u(5);
     for (const o of options) {
       const tx = dx + o.ox;
       const ty = dy + o.oy;
       const bx =
         o.anchor === "start" ? tx - u(4) : o.anchor === "end" ? tx - w + u(4) : tx - w / 2;
       const box = { x: bx, y: ty - h * 0.78, w, h };
-      if (placed.some((p) => boxesOverlap(p, box))) continue;
-      placed.push(box);
+      if (placed.some((p) => boxesOverlap(p, padBox(box, margin)))) continue;
+      placed.push(padBox(box, margin));
       return { city: c, tx, ty, anchor: o.anchor, fs, box };
     }
     return null;
@@ -744,18 +745,39 @@
     return out;
   });
 
+  /** Inflated copy of a box for collision testing — breathing room, not walls touching. */
+  function padBox(b, m) {
+    return { x: b.x - m, y: b.y - m, w: b.w + m * 2, h: b.h + m * 2 };
+  }
+
+  /**
+   * Hard ceiling on simultaneous lawmaker name plates. Collision culling
+   * alone still let ~30 plates squeeze into the metroplex at city zoom, and
+   * a legible pile-up is still a pile-up. Everything past the cap stays a
+   * dot — hover or zoom for its name.
+   */
+  const MAX_PIN_LABELS = 14;
+
   /**
    * Lawmaker names get the same collision treatment as cities — six DFW
    * offices sit on top of each other, and drawing all six names produced an
    * unreadable stack. Names that can't find clear space are dropped; hover or
-   * zoom in to see them. Big-city names have already claimed their room.
+   * zoom in to see them. Big-city names have already claimed their room, and
+   * statewide & Senate offices out-rank House reps for what space is left.
    */
   let pinLabels = $derived.by(() => {
     if (!renderScale || !showDetail || focusedKey) return [];
-    const placed = majorCityLabels.map((l) => l.box);
+    const margin = u(8);
+    const placed = majorCityLabels.map((l) => padBox(l.box, margin));
     const out = [];
 
-    for (const rep of navigableReps) {
+    const candidates = [
+      ...navigableReps.filter((r) => r.chamber !== "house"),
+      ...navigableReps.filter((r) => r.chamber === "house"),
+    ];
+
+    for (const rep of candidates) {
+      if (out.length >= MAX_PIN_LABELS) break;
       const x = px(rep.lng);
       const y = py(rep.lat);
       if (!inViewport(x, y)) continue;
@@ -771,8 +793,8 @@
 
       for (const o of options) {
         const box = { x: x - hw, y: y + o.oy - u(13 * ts), w: hw * 2, h };
-        if (placed.some((p) => boxesOverlap(p, box))) continue;
-        placed.push(box);
+        if (placed.some((p) => boxesOverlap(p, padBox(box, margin)))) continue;
+        placed.push(padBox(box, margin));
         out.push({ rep, x, y: y + o.oy, box });
         break;
       }
@@ -979,6 +1001,7 @@
       viewBox="{$vx} {$vy} {$vw} {$vh}"
       preserveAspectRatio="xMidYMid meet"
       xmlns="http://www.w3.org/2000/svg"
+      style="--u1: {u(1)}px"
       role="img"
       aria-label="Interactive map of Texas showing state lawmakers"
       class:tx-panning={isPanning}
@@ -1175,6 +1198,7 @@
             height={ll.box.h}
             rx={u(3)}
             class="tx-label-plate"
+            vector-effect="non-scaling-stroke"
           />
           <text
             x={ll.x}
@@ -1337,6 +1361,7 @@
             rx={u(3)}
             class="tx-label-plate"
             class:tx-label-plate-major={l.city.tier === 1}
+            vector-effect="non-scaling-stroke"
           />
           <text
             x={l.tx}
@@ -3027,6 +3052,9 @@
     stroke-linecap: round;
   }
 
+  /* Text halo strokes ride --u1 (screen px converted to user units, set on
+     the <svg> each frame). A fixed user-unit stroke grows with zoom — at 20x
+     it was 60 screen px thick and every label became a spiky black blob. */
   .tx-river-label {
     fill: rgba(56, 189, 248, 0.72);
     font-family: ui-monospace, monospace;
@@ -3034,7 +3062,7 @@
     letter-spacing: 0.14em;
     paint-order: stroke fill;
     stroke: rgba(5, 7, 12, 0.9);
-    stroke-width: 2.4px;
+    stroke-width: calc(var(--u1, 1px) * 2.4);
     pointer-events: none;
     user-select: none;
   }
@@ -3130,7 +3158,7 @@
     letter-spacing: 0.06em;
     paint-order: stroke fill;
     stroke: rgba(5, 7, 12, 0.92);
-    stroke-width: 3px;
+    stroke-width: calc(var(--u1, 1px) * 3);
     pointer-events: none;
     user-select: none;
   }
@@ -3148,7 +3176,7 @@
     letter-spacing: 0.06em;
     paint-order: stroke fill;
     stroke: rgba(5, 7, 12, 0.92);
-    stroke-width: 2.6px;
+    stroke-width: calc(var(--u1, 1px) * 2.6);
     pointer-events: none;
     user-select: none;
   }
@@ -3194,7 +3222,7 @@
     letter-spacing: 0.05em;
     paint-order: stroke fill;
     stroke: rgba(5, 7, 12, 0.96);
-    stroke-width: 3.4px;
+    stroke-width: calc(var(--u1, 1px) * 3.4);
     pointer-events: none;
     user-select: none;
   }
@@ -3211,7 +3239,7 @@
     letter-spacing: 0.06em;
     paint-order: stroke fill;
     stroke: rgba(5, 7, 12, 0.96);
-    stroke-width: 2.8px;
+    stroke-width: calc(var(--u1, 1px) * 2.8);
     pointer-events: none;
     user-select: none;
   }
@@ -3989,20 +4017,12 @@
     color: #fecaca;
   }
 
+  /* Static wash, matching the panel: lights on, not flashing. */
   .tx-cop .tx-card {
     border-color: rgba(129, 140, 248, 0.55);
-    animation: txCopCardGlow 1.6s ease-in-out infinite;
-  }
-
-  @keyframes txCopCardGlow {
-    0%, 45% {
-      box-shadow: -14px 0 30px rgba(239, 68, 68, 0.3),
-        14px 0 30px rgba(59, 130, 246, 0.1);
-    }
-    55%, 100% {
-      box-shadow: 14px 0 30px rgba(59, 130, 246, 0.3),
-        -14px 0 30px rgba(239, 68, 68, 0.1);
-    }
+    box-shadow:
+      -14px 0 30px rgba(239, 68, 68, 0.14),
+      14px 0 30px rgba(59, 130, 246, 0.14);
   }
 
   .tx-cop .tx-pin-plate {
@@ -4029,8 +4049,7 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .tx-cop .tx-dot,
-    .tx-cop .tx-card {
+    .tx-cop .tx-dot {
       animation: none;
     }
   }
