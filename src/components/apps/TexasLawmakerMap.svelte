@@ -33,6 +33,11 @@
     STORE_DOT_RATIO,
     STORE_COUNT_BY_NAME,
   } from "../../lib/hempStores.js";
+  import {
+    WHY_TIMELINE,
+    WHY_GUMMY_STEPS,
+    WHY_PLAYERS,
+  } from "../../lib/hempTimeline.js";
 
   let {
     lawmakers = [],
@@ -531,6 +536,101 @@
     vh.set(v.h, { hard: true });
   }
 
+  /* ------------------------------------------------------------------ */
+  /* Browser-zoom intercept                                              */
+  /* ------------------------------------------------------------------ */
+
+  /**
+   * Zoom the view by `factor`, keeping the map point under (clientX,
+   * clientY) pinned in place — the anchor for cursor wheel-zoom and for the
+   * pinch midpoint. Works off `target` (where the view is going), not the
+   * mid-flight spring value, for the same reason stepZoom does.
+   */
+  function zoomAtPoint(clientX, clientY, factor, hard = false) {
+    if (!stageEl) return;
+    const rect = stageEl.getBoundingClientRect();
+    const scale = Math.min(rect.width / target.w, rect.height / target.h);
+    if (!scale || !Number.isFinite(scale)) return;
+    // xMidYMid meet letterboxes the content inside the stage.
+    const offX = rect.left + (rect.width - target.w * scale) / 2;
+    const offY = rect.top + (rect.height - target.h * scale) / 2;
+    const mx = target.x + (clientX - offX) / scale;
+    const my = target.y + (clientY - offY) / scale;
+
+    const nw = Math.min(DEFAULT_VIEW.w, Math.max(MIN_VIEW_W, target.w * factor));
+    const nh = (nw * 9) / 16;
+    const v = {
+      x: mx - ((mx - target.x) / target.w) * nw,
+      y: my - ((my - target.y) / target.h) * nh,
+      w: nw,
+      h: nh,
+    };
+    // Same guard as panning: the view centre stays inside the default frame,
+    // so zooming out against an edge can't lose Texas off the screen.
+    v.x = Math.max(
+      DEFAULT_VIEW.x - nw / 2,
+      Math.min(DEFAULT_VIEW.x + DEFAULT_VIEW.w - nw / 2, v.x),
+    );
+    v.y = Math.max(
+      DEFAULT_VIEW.y - nh / 2,
+      Math.min(DEFAULT_VIEW.y + DEFAULT_VIEW.h - nh / 2, v.y),
+    );
+    if (hard) setViewHard(v);
+    else setView(v);
+  }
+
+  /**
+   * Ctrl/⌘ + wheel — which is also what a desktop trackpad pinch arrives
+   * as — zooms the map toward the cursor instead of zooming the browser.
+   * Plain wheel is left alone so the page underneath still scrolls.
+   */
+  function onStageWheel(e) {
+    if (!e.ctrlKey && !e.metaKey) return;
+    e.preventDefault();
+    e.stopPropagation();
+    zoomAtPoint(e.clientX, e.clientY, Math.exp(e.deltaY * 0.0022));
+  }
+
+  /** Safari's proprietary pinch events — preventDefault or the page zooms. */
+  let gesturePrevScale = 1;
+
+  function onGestureStart(e) {
+    e.preventDefault();
+    gesturePrevScale = e.scale ?? 1;
+  }
+
+  function onGestureChange(e) {
+    e.preventDefault();
+    const s = e.scale || 1;
+    zoomAtPoint(e.clientX, e.clientY, gesturePrevScale / s, true);
+    gesturePrevScale = s;
+  }
+
+  // wheel/gesture listeners must be non-passive to preventDefault, so they
+  // are attached by hand — the framework's defaults are passive.
+  $effect(() => {
+    const el = stageEl;
+    if (!el) return;
+    const opts = { passive: false };
+    el.addEventListener("wheel", onStageWheel, opts);
+    el.addEventListener("gesturestart", onGestureStart, opts);
+    el.addEventListener("gesturechange", onGestureChange, opts);
+    return () => {
+      el.removeEventListener("wheel", onStageWheel);
+      el.removeEventListener("gesturestart", onGestureStart);
+      el.removeEventListener("gesturechange", onGestureChange);
+    };
+  });
+
+  /**
+   * Two-finger pinch on the map (touch-action: none on the svg keeps the
+   * browser's own pinch-zoom out of it). The second finger ends any pan in
+   * progress; each move zooms hard around the current pinch midpoint by the
+   * frame-over-frame distance ratio.
+   */
+  const pinchPointers = new Map();
+  let pinchPrevDist = 0;
+
   /**
    * Drag to pan, mouse and touch through the same pointer events. A press only
    * becomes a pan past a few pixels, so tapping a pin still selects it rather
@@ -544,6 +644,23 @@
 
   function onPanStart(e) {
     if (e.button !== undefined && e.button !== 0) return;
+    if (e.pointerType === "touch") {
+      pinchPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pinchPointers.size === 2) {
+        // Second finger down: the pan is over, the pinch begins. panMoved
+        // stays true so the release click can't select whatever's under it.
+        panStart = null;
+        isPanning = false;
+        panMoved = true;
+        activeKey = null;
+        hoveredKey = null;
+        activeCity = null;
+        const [a, b] = [...pinchPointers.values()];
+        pinchPrevDist = Math.hypot(a.x - b.x, a.y - b.y);
+        e.currentTarget.setPointerCapture?.(e.pointerId);
+        return;
+      }
+    }
     panMoved = false;
     panStart = {
       id: e.pointerId,
@@ -555,6 +672,21 @@
   }
 
   function onPanMove(e) {
+    if (pinchPointers.size >= 2 && pinchPointers.has(e.pointerId)) {
+      pinchPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      const [a, b] = [...pinchPointers.values()];
+      const dist = Math.hypot(a.x - b.x, a.y - b.y);
+      if (pinchPrevDist > 0 && dist > 0) {
+        zoomAtPoint(
+          (a.x + b.x) / 2,
+          (a.y + b.y) / 2,
+          pinchPrevDist / dist,
+          true,
+        );
+      }
+      pinchPrevDist = dist;
+      return;
+    }
     if (!panStart || e.pointerId !== panStart.id || !renderScale) return;
     const dxPx = e.clientX - panStart.x;
     const dyPx = e.clientY - panStart.y;
@@ -592,6 +724,10 @@
   }
 
   function onPanEnd(e) {
+    if (e?.pointerId !== undefined) {
+      pinchPointers.delete(e.pointerId);
+      if (pinchPointers.size < 2) pinchPrevDist = 0;
+    }
     if (panStart && e?.pointerId === panStart.id) {
       e.currentTarget?.releasePointerCapture?.(e.pointerId);
     }
@@ -1672,6 +1808,11 @@
             class:on={statsTab === "reps"}
             onclick={() => (statsTab = "reps")}>🏛 REPRESENTATION</button
           >
+          <button
+            class="tx-stats-tab"
+            class:on={statsTab === "why"}
+            onclick={() => (statsTab = "why")}>⏳ WHY</button
+          >
         </div>
 
         <div class="tx-stats-body">
@@ -1877,7 +2018,7 @@
             </p>
           </section>
 
-          {:else}
+          {:else if statsTab === "reps"}
             <!-- REPRESENTATION: who speaks for Texas, and what we know so far. -->
             <section>
               <h5>THE TEXAS LEGISLATURE — WHO SPEAKS FOR US</h5>
@@ -2148,6 +2289,79 @@
             </div>
           </section>
 
+          {:else}
+            <!-- WHY: the timeline that turned a legal gummy into a felony. -->
+            <section>
+              <h5>WHY — HOW WE GOT HERE, WITH RECEIPTS</h5>
+              <div class="tx-timeline">
+                {#each WHY_TIMELINE as ev (ev.date + ev.title)}
+                  <div
+                    class="tx-tl tx-tl-{ev.tone}"
+                    class:tx-tl-highlight={ev.highlight}
+                    class:tx-tl-pending={ev.pending}
+                  >
+                    <span class="tx-tl-dot" aria-hidden="true"></span>
+                    <div class="tx-tl-date">{ev.date}</div>
+                    <div class="tx-tl-title">{ev.title}</div>
+                    <p class="tx-tl-body">{ev.body}</p>
+                    <div class="tx-tl-links">
+                      {#each ev.links as l (l.url)}
+                        <a href={l.url} target="_blank" rel="noopener noreferrer"
+                          >{l.label} ↗</a
+                        >
+                      {/each}
+                    </div>
+                  </div>
+                {/each}
+              </div>
+            </section>
+
+            <section>
+              <h5>WHY A GUMMY IS 2 YEARS — THE FELONY MATH</h5>
+              <p class="tx-stats-note tx-gummy-lede">
+                Flower gets a ticket. A gummy gets a cell. Five steps of
+                statute, each one linked:
+              </p>
+              <div class="tx-gummy-steps">
+                {#each WHY_GUMMY_STEPS as step, i (step.title)}
+                  <a
+                    class="tx-gummy-step tx-tl-{step.tone}"
+                    href={step.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <span class="tx-gummy-n">{i + 1}</span>
+                    <span class="tx-gummy-txt">
+                      <b>{step.title}</b>
+                      {step.body}
+                    </span>
+                  </a>
+                {/each}
+              </div>
+            </section>
+
+            <section>
+              <h5>KEY PLAYERS</h5>
+              <div class="tx-players">
+                {#each WHY_PLAYERS as p (p.name)}
+                  <a
+                    class="tx-player tx-player-{p.stance}"
+                    href={p.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <span class="tx-player-name"
+                      >{p.stance === "for"
+                        ? "🌿"
+                        : p.stance === "against"
+                          ? "🚫"
+                          : "⚖️"} {p.name}</span
+                    >
+                    <span class="tx-player-role">{p.role}</span>
+                  </a>
+                {/each}
+              </div>
+            </section>
           {/if}
 
           <section>
@@ -2157,6 +2371,14 @@
                 {#each STATS_SOURCES as s}
                   <li>{s}</li>
                 {/each}
+              {:else if statsTab === "why"}
+                <li>
+                  Every timeline entry above links its primary source — bill
+                  pages on congress.gov and capitol.texas.gov, statutes at
+                  statutes.capitol.texas.gov, court filings, and reporting
+                  from KUT, the Texas Tribune, CNBC, and trade press. If a
+                  claim has no link, treat it as ours.
+                </li>
               {:else}
                 <li>
                   Roster: 89th Texas Legislature member lists, pulled July 30,
@@ -4046,6 +4268,219 @@
 
   .tx-cop .tx-store-note b {
     color: #fca5a5;
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* WHY tab — the timeline with receipts                               */
+  /* ---------------------------------------------------------------- */
+
+  .tx-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: calc(10px * var(--s, 1));
+    border-left: 2px solid rgba(255, 255, 255, 0.14);
+    margin-left: calc(5px * var(--s, 1));
+    padding-left: calc(14px * var(--s, 1));
+  }
+
+  .tx-tl {
+    position: relative;
+    padding: calc(6px * var(--s, 1)) calc(8px * var(--s, 1));
+    border-radius: 7px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .tx-tl-dot {
+    position: absolute;
+    left: calc(-14px * var(--s, 1) - 7px);
+    top: calc(9px * var(--s, 1));
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    border: 2px solid #0a0a12;
+  }
+
+  /* Era colours: red bans, green wins, blue courtrooms, gold money. */
+  .tx-tl-ban .tx-tl-dot { background: #f87171; }
+  .tx-tl-legal .tx-tl-dot { background: #34d399; }
+  .tx-tl-court .tx-tl-dot { background: #60a5fa; }
+  .tx-tl-money .tx-tl-dot { background: #fbbf24; }
+  .tx-tl-now .tx-tl-dot {
+    background: #fff;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.9);
+  }
+
+  .tx-tl-ban { border-color: rgba(248, 113, 113, 0.3); }
+  .tx-tl-legal { border-color: rgba(52, 211, 153, 0.3); }
+  .tx-tl-court { border-color: rgba(96, 165, 250, 0.3); }
+  .tx-tl-money { border-color: rgba(251, 191, 36, 0.3); }
+
+  .tx-tl-now {
+    border-color: rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.07);
+  }
+
+  /* The 2018 Farm Bill — the hinge of the whole story. */
+  .tx-tl-highlight {
+    border-color: rgba(52, 211, 153, 0.7);
+    background: rgba(52, 211, 153, 0.1);
+    box-shadow: 0 0 18px rgba(52, 211, 153, 0.18);
+  }
+
+  .tx-tl-highlight .tx-tl-title { color: #6ee7b7; }
+
+  .tx-tl-pending {
+    border-style: dashed;
+    opacity: 0.92;
+  }
+
+  .tx-tl-date {
+    font-family: ui-monospace, monospace;
+    font-size: calc(0.42rem * var(--s, 1));
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    color: rgba(255, 255, 255, 0.45);
+  }
+
+  .tx-tl-title {
+    font-family: ui-monospace, monospace;
+    font-size: calc(0.56rem * var(--s, 1));
+    font-weight: 900;
+    letter-spacing: 0.05em;
+    color: #fff;
+    margin-top: 1px;
+  }
+
+  .tx-tl-body {
+    margin: 3px 0 0;
+    font-size: calc(0.48rem * var(--s, 1));
+    line-height: 1.55;
+    color: rgba(255, 255, 255, 0.62);
+  }
+
+  .tx-tl-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    margin-top: 4px;
+  }
+
+  .tx-tl-links a,
+  .tx-players a .tx-player-role {
+    text-decoration: none;
+  }
+
+  .tx-tl-links a {
+    font-family: ui-monospace, monospace;
+    font-size: calc(0.44rem * var(--s, 1));
+    font-weight: 700;
+    color: #67e8f9;
+    border-bottom: 1px solid rgba(103, 232, 249, 0.35);
+  }
+
+  .tx-tl-links a:hover {
+    color: #fff;
+    border-bottom-color: #fff;
+  }
+
+  /* The felony math, one linked statute per step. */
+  .tx-gummy-lede { margin-bottom: 6px; }
+
+  .tx-gummy-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .tx-gummy-step {
+    display: flex;
+    align-items: flex-start;
+    gap: calc(7px * var(--s, 1));
+    padding: calc(5px * var(--s, 1)) calc(7px * var(--s, 1));
+    border-radius: 7px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.03);
+    text-decoration: none;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+
+  .tx-gummy-step:hover {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(255, 255, 255, 0.3);
+  }
+
+  .tx-gummy-step.tx-tl-ban { border-color: rgba(248, 113, 113, 0.32); }
+  .tx-gummy-step.tx-tl-legal { border-color: rgba(52, 211, 153, 0.32); }
+
+  .tx-gummy-n {
+    flex-shrink: 0;
+    width: calc(15px * var(--s, 1));
+    height: calc(15px * var(--s, 1));
+    border-radius: 999px;
+    background: rgba(248, 113, 113, 0.8);
+    color: #0c0a09;
+    font-family: ui-monospace, monospace;
+    font-size: calc(0.44rem * var(--s, 1));
+    font-weight: 900;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .tx-gummy-step.tx-tl-legal .tx-gummy-n { background: #34d399; }
+
+  .tx-gummy-txt {
+    font-size: calc(0.47rem * var(--s, 1));
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.62);
+  }
+
+  .tx-gummy-txt b {
+    display: block;
+    color: #fff;
+    font-family: ui-monospace, monospace;
+    font-size: calc(0.5rem * var(--s, 1));
+    letter-spacing: 0.04em;
+  }
+
+  /* Who did what. */
+  .tx-players {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(calc(150px * var(--s, 1)), 1fr));
+    gap: 5px;
+  }
+
+  .tx-player {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: calc(6px * var(--s, 1)) calc(7px * var(--s, 1));
+    border-radius: 7px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.03);
+    text-decoration: none;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+
+  .tx-player:hover { background: rgba(255, 255, 255, 0.07); }
+
+  .tx-player-for { border-color: rgba(52, 211, 153, 0.35); }
+  .tx-player-against { border-color: rgba(248, 113, 113, 0.35); }
+  .tx-player-both { border-color: rgba(251, 191, 36, 0.35); }
+
+  .tx-player-name {
+    font-family: ui-monospace, monospace;
+    font-size: calc(0.5rem * var(--s, 1));
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    color: #fff;
+  }
+
+  .tx-player-role {
+    font-size: calc(0.44rem * var(--s, 1));
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.55);
   }
 
   @media (prefers-reduced-motion: reduce) {
