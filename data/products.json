@@ -3,6 +3,15 @@
     "id": "fight-the-ceo",
     "title": "FIGHT THE CEO",
     "price": "$299,999",
+    "sale": {
+      "price": "$199,999",
+      "amountOff": "$100,000 OFF",
+      "label": "SALE DAY ONLY — ALL GOODS MUST GO, INCLUDING ME",
+      "start": "2026-07-31T00:00:00-05:00",
+      "end": "2026-08-01T00:00:00-05:00",
+      "campaignId": "save-texas-hemp",
+      "campaignLabel": "🌿 WHY $100K OFF? IT'S SALE DAY IN TEXAS — SEE THE CAMPAIGN"
+    },
     "description": "For this price, I will buy us world class accomodations at a tropical resort location, motorcycle helmets and hockey pads, 2 sets of wooden taekwondo weapons (Jahng Bong, Ssang Jeol Bong, Bahng Mahng Ee), tesla rental cars, and whoop your ass in a series of duels. Locations will include unlimited food and booze passes, beaches, nightclubs, jetski rentals, skydiving, concert tickets probably ye, 2 bottles of macallan 15, a custom built guitar, tickets to EDC, and more (or less).",
     "sizes": [],
     "inStock": true,
