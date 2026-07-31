@@ -52,7 +52,7 @@ Their hunch trumps your sober evening, and they can hold you up to 48 hours on i
 
 Oh, there ARE tests. CVS sells piss kits: you piss on the stick, dunk it in the science liquid, and it brightens up if you've smoked in the last 30 DAYS. 30 DAYS!! The high lasts a couple of hours; the evidence lasts a month. The seltzer you drank LEGALLY, way back on July 4th can read as guilty on an August drug screen. The test doesn't prove you're impaired — it proves you existed in July.
 
-What if you're driving in from another state? 
+What if you're driving in from another state? Or your flight got delayed? What if you came here to see Show Me The Body or Travis Scott live?
 
 And a conviction doesn't end at the jailhouse door. It follows you. It sits on the public record that every background check pulls, under every job application and every apartment application, next to every professional license you ever ask Texas for.
 
