@@ -155,7 +155,14 @@
           window.__WAD_INITIAL_SEARCH || window.location.search,
         )
       : null;
-  const saleForced = !!saleParams?.has("saleday");
+  /**
+   * ✋ MANUAL SWITCH: flip to `true` to force SALE DAY styling on right now
+   * (identical to visiting with ?saleday=1). Flip back to `false` for real
+   * clock-driven behaviour. Remember to set it back before committing.
+   */
+  const SALE_PREVIEW = false;
+
+  const saleForced = SALE_PREVIEW || !!saleParams?.has("saleday");
   const novForced = !!saleParams?.has("novday");
   const saleStartOverride = saleParams?.has("salein")
     ? Date.now() + Number(saleParams.get("salein") || 0) * 1000
@@ -518,6 +525,48 @@
   function emphasizeSale(html) {
     return emphasizeWith(html, SALE_RE, SALE_CLASSES, "sale-em-key");
   }
+
+  /**
+   * Act two of the sale pitch: everything from the "BUT BE WARNED" banner
+   * down trades bargain gold for police red & blue — charges and sentences
+   * light up red, the law itself lights up blue.
+   */
+  const WARN_MARKER = "BUT BE WARNED";
+
+  const WARN_RE = new RegExp(
+    [
+      // 1 — the charges (red)
+      "(PUNISHABLE BY LAW|CONTRABAND|STATE JAIL FELONY|Class [AB](?: misdemeanor)?|felony charge|FELONY|felony|misdemeanor|criminals?|conviction|guilty|jail(?:house)?|prison|locked up)",
+      // 2 — the sentences and fines (deep red, pulsing)
+      "(180 days to 2 years|2 to 20 years|up to \\d+\\s?(?:days?|years?|hours?)|\\d+\\s?(?:days?|years?|hours?)|\\$\\d[\\d,]*(?:\\.\\d+)?|6 months)",
+      // 3 — the law itself (blue)
+      "(Texas Penal Code|officer suspicion|Austin police|police|breathalyzer|field test|background checks?|public record|drug screen|driver's license|judge|walk the line|piss kits?)",
+      // 4 — the hinge between legal and illegal
+      "(August 1st|midnight|30 DAYS)",
+    ].join("|"),
+    "g",
+  );
+
+  const WARN_CLASSES = [
+    "warn-em-crime",
+    "warn-em-sentence",
+    "warn-em-cop",
+    "warn-em-key",
+  ];
+
+  function emphasizeWarning(html) {
+    return emphasizeWith(html, WARN_RE, WARN_CLASSES, "warn-em-key");
+  }
+
+  /** The bio, one HTML string per paragraph, for the campaign detail view. */
+  let bioParas = $derived(
+    formatBioText(campaignBioText || selectedCampaign?.description || ""),
+  );
+
+  /** Index of the "BUT BE WARNED" banner; -1 outside sale mode. */
+  let warnIdx = $derived(
+    saleActive ? bioParas.findIndex((p) => p.includes(WARN_MARKER)) : -1,
+  );
 
   let isCriticalCampaign = $derived(selectedCampaign?.id === "save-texas-hemp");
 
@@ -2796,6 +2845,8 @@
                     <!-- Legacy/Standard layout for other campaigns with milestones/progress -->
                     <!-- Full bio, no max-height constraint: the panel scrolls, the text never compacts -->
                     {#key bioPhase}
+                      <!-- Where the pitch turns from gold hype into cop-light
+                           warning: everything from warnIdx down is act two. -->
                       <div
                         class="mt-3 sm:mt-4 pb-4 flex flex-col gap-4 selectable-bio"
                         class:critical-bio={isCriticalCampaign}
@@ -2803,17 +2854,28 @@
                         in:fade={{ duration: 600 }}
                       >
                         <!-- Falls back to the inline description, still in full -->
-                        {#each formatBioText(campaignBioText || selectedCampaign.description) as paragraph, pIdx}
+                        {#each bioParas as paragraph, pIdx}
+                          {@const inWarn = warnIdx >= 0 && pIdx >= warnIdx}
                           <p
                             class="text-zinc-400 text-sm leading-relaxed font-sans"
                             class:bio-lede={isCriticalCampaign &&
                               !saleActive &&
                               pIdx === 0}
                             class:sale-lede={saleActive && pIdx === 0}
+                            class:warn-banner={inWarn && pIdx === warnIdx}
+                            class:warn-para={inWarn && pIdx !== warnIdx}
+                            class:warn-red={inWarn &&
+                              pIdx !== warnIdx &&
+                              (pIdx - warnIdx) % 2 === 1}
+                            class:warn-blue={inWarn &&
+                              pIdx !== warnIdx &&
+                              (pIdx - warnIdx) % 2 === 0}
                           >
                             {@html isCriticalCampaign
                               ? saleActive
-                                ? emphasizeSale(paragraph)
+                                ? inWarn
+                                  ? emphasizeWarning(paragraph)
+                                  : emphasizeSale(paragraph)
                                 : emphasizeCritical(paragraph)
                               : paragraph}
                           </p>
@@ -3247,7 +3309,7 @@
                             class="text-[11px] text-amber-200/80 leading-relaxed font-sans flex flex-col gap-2"
                           >
                             <p>
-                              There are 184 squirrels in a bucket, the facts are
+                              There are 184 elephants and donkeys in a bucket, the facts are
                               that none of them represent any people or any land
                               whatsoever. In 2026, they represent their
                               re-election, and whoever hands them enough money
@@ -4600,11 +4662,149 @@
     white-space: normal;
   }
 
+  /* ---------------------------------------------------------------- */
+  /* BUT BE WARNED — act two, in police red & blue                      */
+  /* ---------------------------------------------------------------- */
+
+  /* The banner: a light bar. The gradient sweeps like a rack of rollers
+     and the glow strobes red-left / blue-right like a traffic stop. */
+  .warn-banner {
+    margin-top: 0.75rem;
+    padding: 0.55rem 0.8rem;
+    text-align: center;
+    font-family: ui-monospace, monospace;
+    font-size: 1.02rem !important;
+    font-weight: 900 !important;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #fff !important;
+    background: linear-gradient(
+      90deg,
+      #dc2626 0%,
+      #7f1d1d 30%,
+      #0b1233 50%,
+      #1e3a8a 70%,
+      #2563eb 100%
+    );
+    background-size: 200% 100%;
+    border-radius: 8px;
+    border-top: 2px solid rgba(255, 255, 255, 0.4);
+    border-bottom: 2px solid rgba(255, 255, 255, 0.4);
+    animation:
+      copSweep 3.2s linear infinite,
+      copGlow 1.4s ease-in-out infinite;
+  }
+
+  @keyframes copSweep {
+    from {
+      background-position: 0% 0;
+    }
+    to {
+      background-position: 200% 0;
+    }
+  }
+
+  @keyframes copGlow {
+    0%,
+    45% {
+      box-shadow:
+        -16px 0 28px rgba(239, 68, 68, 0.55),
+        16px 0 28px rgba(59, 130, 246, 0.12);
+    }
+    55%,
+    100% {
+      box-shadow:
+        16px 0 28px rgba(59, 130, 246, 0.55),
+        -16px 0 28px rgba(239, 68, 68, 0.12);
+    }
+  }
+
+  /* The warning paragraphs: cell-block panels, alternating red and blue
+     like the lights going past the window. */
+  .sale-bio p.warn-para {
+    color: #e2e8f0 !important;
+    padding: 0.55rem 0.75rem;
+    border-radius: 0 8px 8px 0;
+  }
+
+  /* A blank line in the markdown would otherwise render as a tiny empty
+     red or blue pill. */
+  .sale-bio p.warn-para:empty {
+    display: none;
+  }
+
+  .warn-red {
+    border-left: 3px solid #ef4444;
+    background: linear-gradient(
+      90deg,
+      rgba(153, 27, 27, 0.28),
+      rgba(2, 6, 23, 0.45) 70%
+    );
+  }
+
+  .warn-blue {
+    border-left: 3px solid #3b82f6;
+    background: linear-gradient(
+      90deg,
+      rgba(30, 58, 138, 0.32),
+      rgba(2, 6, 23, 0.45) 70%
+    );
+  }
+
+  /* The charges — red. */
+  .sale-bio :global(b.warn-em-crime) {
+    color: #fecaca;
+    background: rgba(220, 38, 38, 0.32);
+    border-bottom: 1.5px solid rgba(248, 113, 113, 0.8);
+    padding: 0 0.18em;
+    border-radius: 3px;
+    font-weight: 900;
+    white-space: normal;
+  }
+
+  /* The sentences and fines — deep red, pulsing like a cell light. */
+  .sale-bio :global(b.warn-em-sentence) {
+    color: #fff;
+    background: rgba(153, 27, 27, 0.55);
+    padding: 0 0.2em;
+    border-radius: 3px;
+    font-weight: 900;
+    white-space: normal;
+    animation: critPulse 2.2s ease-in-out infinite;
+  }
+
+  /* The law itself — blue. */
+  .sale-bio :global(b.warn-em-cop) {
+    color: #bfdbfe;
+    background: rgba(37, 99, 235, 0.28);
+    border-bottom: 1.5px solid rgba(96, 165, 250, 0.7);
+    padding: 0 0.18em;
+    border-radius: 3px;
+    font-weight: 800;
+    white-space: normal;
+  }
+
+  /* The hinge between legal and illegal — half red, half blue. */
+  .sale-bio :global(b.warn-em-key) {
+    color: #fff;
+    background: linear-gradient(
+      90deg,
+      rgba(239, 68, 68, 0.4),
+      rgba(59, 130, 246, 0.4)
+    );
+    padding: 0 0.2em;
+    border-radius: 3px;
+    font-weight: 900;
+    white-space: normal;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .critical-bio :global(b.em-deadline),
     .critical-bio :global(b.em-alarm),
     .sale-bio :global(b.sale-em-shout),
     .sale-bio :global(b.sale-em-deadline),
+    .sale-bio :global(b.warn-em-sentence),
+    .warn-banner,
     .jump-arrow,
     .email-flash,
     .sale-title,
