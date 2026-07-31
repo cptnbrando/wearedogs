@@ -107,14 +107,7 @@
   function getActiveDeadline(campaign, currentMs) {
     if (!campaign) return null;
     const stages = [
-      {
-        target:
-          campaign.id === SALE_CAMPAIGN_ID && saleStartOverride
-            ? new Date(saleStartOverride).toISOString()
-            : campaign.endDate,
-        label: campaign.endDateLabel,
-        final: false,
-      },
+      { target: campaign.endDate, label: campaign.endDateLabel, final: false },
       {
         target: campaign.finalEndDate,
         label: campaign.finalEndDateLabel,
@@ -142,46 +135,26 @@
   const SALE_CAMPAIGN_ID = "save-texas-hemp";
   const SALE_DAY_MS = 24 * 60 * 60 * 1000;
 
-  // Preview hooks so the flip can be rehearsed before the real midnight:
-  //   ?saleday=1   — force sale mode on immediately
-  //   ?salein=20   — the countdown hits zero 20 seconds after load, fireworks
-  //                  and all, exactly as it will on the night
-  //   ?salefor=30  — shrink the sale to 30 seconds, so the August 1st revert
-  //                  can be watched too (combine with salein)
-  //   ?novday=1    — force the post-sale November mode on immediately
-  const saleParams =
-    typeof window !== "undefined"
-      ? new URLSearchParams(
-          window.__WAD_INITIAL_SEARCH || window.location.search,
-        )
-      : null;
   /**
-   * ✋ MANUAL SWITCH: flip to `true` to force SALE DAY styling on right now
-   * (identical to visiting with ?saleday=1). Flip back to `false` for real
-   * clock-driven behaviour. Remember to set it back before committing.
+   * ✋ MANUAL SWITCHES — code-only on purpose. Sale day is July 31st and
+   * nothing a URL can turn on or move. Flip SALE_PREVIEW to hand-force the
+   * gold takeover while developing, NOV_PREVIEW for the post-sale November
+   * mode. Both back to `false` before committing.
    */
   const SALE_PREVIEW = false;
-
-  const saleForced = SALE_PREVIEW || !!saleParams?.has("saleday");
-  const novForced = !!saleParams?.has("novday");
-  const saleStartOverride = saleParams?.has("salein")
-    ? Date.now() + Number(saleParams.get("salein") || 0) * 1000
-    : null;
-  const saleDurationOverride = saleParams?.has("salefor")
-    ? Number(saleParams.get("salefor") || 0) * 1000
-    : null;
+  const NOV_PREVIEW = false;
 
   /** The 24-hour window that starts when the shelf-pull countdown hits zero. */
   function saleWindowOf(campaign) {
     if (campaign?.id !== SALE_CAMPAIGN_ID) return null;
-    const start = saleStartOverride ?? new Date(campaign.endDate ?? NaN).getTime();
+    const start = new Date(campaign.endDate ?? NaN).getTime();
     if (!Number.isFinite(start)) return null;
-    return { start, end: start + (saleDurationOverride ?? SALE_DAY_MS) };
+    return { start, end: start + SALE_DAY_MS };
   }
 
   function isSaleNow(campaign, currentMs) {
     if (campaign?.id !== SALE_CAMPAIGN_ID) return false;
-    if (saleForced) return true;
+    if (SALE_PREVIEW) return true;
     const w = saleWindowOf(campaign);
     return !!w && currentMs >= w.start && currentMs < w.end;
   }
@@ -198,7 +171,7 @@
   let novActive = $derived(
     !saleActive &&
       selectedCampaign?.id === SALE_CAMPAIGN_ID &&
-      (novForced || (!!saleWindow && now >= saleWindow.end)),
+      (NOV_PREVIEW || (!!saleWindow && now >= saleWindow.end)),
   );
 
   /** Which letter the send buttons actually put in front of lawmakers. */
