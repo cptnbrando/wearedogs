@@ -1598,11 +1598,13 @@
             url: img,
           })) || [];
     // Campaigns that ship a lawmaker roster get an interactive map slide. It
-    // goes second — right after the lead image — because the map is the thing
-    // that actually does something, and buried on the end nobody found it.
+    // goes FIRST — the map is the thing that actually does something, so it's
+    // the thing you land on. Share images are untouched by this: the meta
+    // tags and prerendered cards read campaign.media/images directly, never
+    // this assembled carousel order.
     if (!(selectedCampaign?.lawmakers?.length > 0)) return base;
     const map = { type: "map", url: "lawmaker-map" };
-    return base.length === 0 ? [map] : [base[0], map, ...base.slice(1)];
+    return [map, ...base];
   });
 
   let currentMediaItem = $derived(campaignMedia[activeImageIdx] || null);
@@ -2469,10 +2471,37 @@
                     {/if}
                   {/key}
 
-                  <!-- No inline carousel chevrons: they sat on top of the map's
-                       lawmaker popup and swallowed taps meant for it. The
-                       thumbnail strip, the dots and swipe all still change
-                       slides, and the fullscreen view keeps its own arrows. -->
+                  <!-- Inline chevrons — on every slide EXCEPT the map, where
+                       they sat on top of the lawmaker popup and swallowed
+                       taps meant for it. On the map slide the thumbnail strip
+                       still changes slides, as before. -->
+                  {#if campaignMedia.length > 1 && currentMediaItem?.type !== "map"}
+                    <button
+                      class="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-black/65 hover:bg-black/90 border border-zinc-700/80 text-white flex items-center justify-center transition-all cursor-pointer shadow-xl opacity-70 hover:opacity-100 active:scale-95"
+                      onclick={(e) => {
+                        e.stopPropagation();
+                        scrollDirection = -1;
+                        activeImageIdx =
+                          (activeImageIdx - 1 + campaignMedia.length) %
+                          campaignMedia.length;
+                      }}
+                      aria-label="Previous slide"
+                    >
+                      <span class="text-sm font-bold select-none">◀</span>
+                    </button>
+                    <button
+                      class="absolute right-2 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-black/65 hover:bg-black/90 border border-zinc-700/80 text-white flex items-center justify-center transition-all cursor-pointer shadow-xl opacity-70 hover:opacity-100 active:scale-95"
+                      onclick={(e) => {
+                        e.stopPropagation();
+                        scrollDirection = 1;
+                        activeImageIdx =
+                          (activeImageIdx + 1) % campaignMedia.length;
+                      }}
+                      aria-label="Next slide"
+                    >
+                      <span class="text-sm font-bold select-none">▶</span>
+                    </button>
+                  {/if}
 
                   <!-- Position ribbon: dots replaced by a serrated strip along
                        the bottom edge — one skewed segment per slide, filled
