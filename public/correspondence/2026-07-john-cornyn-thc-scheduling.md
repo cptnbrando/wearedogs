@@ -12,7 +12,7 @@ status: "Answered"
 
 # SEN. JOHN CORNYN — ON MARIJUANA SCHEDULING AND HEMP-DERIVED THC
 
-Received July 2026, in response to constituent contact about the Texas THC shelf pull and the November 12th federal hemp deadline. Reproduced in full, unedited.
+Received July 31st 2026 at 11AM, in response to constituent contact about the Texas THC shelf pull and the November 12th federal hemp deadline. Reproduced in full, unedited.
 
 We are grateful for the reply. It contains real arguments with real citations behind them, which is more than most offices send, and it is the reason we must continue discussion. **We support anybody and everybody who keeps it real and continues the discussion**. My response follows underneath it.
 
@@ -33,8 +33,6 @@ We are grateful for the reply. It contains real arguments with real citations be
 
 ## OUR REPLY
 
-Published in full on the campaign page as [A Letter From One Driver](/fundraiser/texas-marijuana-driver.md). The short version, point by point:
-
 **On psychosis.** The 3-to-5x figures come from studies of daily high-potency use, not from a 5mg seltzer, and causation is still contested. Schizophrenia incidence in Ontario was stable across legalization, and Colorado dispensary density showed no significant association with psychosis emergency visits [\[JAMA Network Open\]](https://jamanetwork.com/journals/jamanetworkopen/fullarticle/2829840). If potency is the risk, the policy that follows is a potency cap and a printed dose — the exact thing Texas just took off the shelf.
 
 **On adolescents.** Past-year use among 12-to-17-year-olds is 8.7%, down from 14.2% in 2011, before any state legalized [\[SAMHSA NSDUH\]](https://www.samhsa.gov/data/sites/default/files/reports/rpt56287/2024-nsduh-annual-national/2024-nsduh-annual-national-html-071425-edited/2024-nsduh-annual-national.htm), and high school use fell after legalization in 19 of the 21 states with before-and-after data [\[MPP\]](https://www.mpp.org/issues/legalization/adult-use-legalization-corresponds-with-drop-in-teen-marijuana-use/). A licensed store checks an ID. A dealer does not.
@@ -49,4 +47,4 @@ Published in full on the campaign page as [A Letter From One Driver](/fundraiser
 
 ---
 
-*Reproduced under our standing policy: official replies are published whole, dated, and answered with sources. If any office believes we have represented their position unfairly, write to us and that correction gets published here too, in full, at the top.*
+*If any office believes DOGS has represented their position unfairly, email brando@wearedogs.net and we will update this page.*

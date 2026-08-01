@@ -1383,6 +1383,9 @@
 
       <!-- Water labels -->
       {#each WATER_LABELS as w}
+        <!-- `size` is a visibility tier, not a px value: >= 20 means the
+             label stays on the map at every zoom, below that it waits for
+             detail mode. The rendered size is set here. -->
         {#if w.size >= 20 || showDetail}
           <text
             transition:fade={{ duration: 160 }}
@@ -1393,7 +1396,7 @@
             transform={w.rotate
               ? `rotate(${w.rotate} ${px(w.lng)} ${py(w.lat)})`
               : null}
-            style="font-size: {u((w.size >= 20 ? 18 : 9) * ts)}px">{w.name}</text
+            style="font-size: {u((w.size >= 20 ? 12 : 9) * ts)}px">{w.name}</text
           >
         {/if}
       {/each}

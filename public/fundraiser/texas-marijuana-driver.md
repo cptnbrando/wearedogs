@@ -24,7 +24,7 @@ Federal data shows about 61.6 million Americans used cannabis in the past year â
 
 Do y'all listen to any music? Y'all are going to kick Willie Nelson out of Texas!
 
-SENATOR, ON THE SPECIFICS OF YOUR LETTER:
+
 
 On psychosis, schizophrenia, depression, and anxiety: The 3-to-5x figures come from studies of daily use of high-potency product. This is valid, and truth be told, today's July 31st ban did target some powerful, high-potency products. 
 

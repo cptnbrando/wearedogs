@@ -908,7 +908,7 @@ export const LANDMARKS = [
 /* ------------------------------------------------------------------ */
 
 export const WATER_LABELS = [
-  { name: "GULF OF MEXICO", lng: -92.9, lat: 26.4, size: 22 },
+  { name: "GULF OF AMERICA", lng: -92.9, lat: 26.4, size: 20 },
   { name: "RIO GRANDE", lng: -101.6, lat: 29.55, size: 12, rotate: -28 },
   { name: "RED RIVER", lng: -98.6, lat: 34.35, size: 11 },
   { name: "SABINE RIVER", lng: -93.6, lat: 31.4, size: 10, rotate: 72 },
