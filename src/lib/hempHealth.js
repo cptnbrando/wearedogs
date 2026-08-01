@@ -93,10 +93,10 @@ export const ED_SHARE_SOURCE = {
  * lawmaker. Ratios computed from the figures above, not asserted.
  */
 export const HEALTH_TAKEAWAYS = [
-  "Alcohol kills roughly 13,701 Texans a year. It is sold on a Sunday at any grocery store in the state.",
-  "Every drug overdose in Texas combined — fentanyl, meth, everything — comes to 4,980 deaths a year, about a third of the alcohol toll.",
-  "Cannabis toxicity alone has never killed a documented adult. The product Texas made a state jail felony today is the one with a death count of zero.",
-  "Cannabis is not harmless — 896,418 emergency visits in 2023 says otherwise. That is an argument for dosage caps, testing, and age limits. It is not an argument for prison.",
+  "Alcohol kills roughly 13,701 Texans a year. That is 1,142 a month. That is 39 Texans gone every day. But no one would ever talk about banning alcohol. Just the alternative, that has been around for 20 years and has zero deaths.",
+  "Every drug overdose in Texas combined — fentanyl, meth, everything — comes to 4,980 deaths a year. 415 every month. 14 Texans gone every day.",
+  "A ban on marijuana does not help these stats",
+  "Cannabis is not harmless — 896,418 emergency visits in 2023 says otherwise. That is an argument for dosage caps, testing, age limits, further studies. Prison and fines do not help any of us.",
   "A ban does not remove the demand; it moves it to an untested market with no dose printed on the label and no lab behind it.",
 ];
 

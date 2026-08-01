@@ -38,6 +38,8 @@
   let lastSelectedProductId = $state("");
   let selectedCampaign = $state(null);
   let campaignBioText = $state("");
+  /** Guards against a slow bio fetch landing after the phase has moved on. */
+  let bioRequestId = 0;
   let currentStoreMode = $state("fundraising"); // Default to "fundraising" per user requirement
   let activeImageIdx = $state(0);
   let isImageFullscreen = $state(false);
@@ -156,6 +158,9 @@
   function isSaleNow(campaign, currentMs) {
     if (campaign?.id !== SALE_CAMPAIGN_ID) return false;
     if (SALE_PREVIEW) return true;
+    // NOV_PREVIEW previews the *post*-sale state, so it has to switch the sale
+    // off — otherwise it does nothing at all while sale day is live.
+    if (NOV_PREVIEW) return false;
     const w = saleWindowOf(campaign);
     return !!w && currentMs >= w.start && currentMs < w.end;
   }
@@ -323,17 +328,31 @@
         : camp && novActive && camp.novBioUrl
           ? camp.novBioUrl
           : camp?.bioUrl;
+    // From August 1st the driver's letter runs underneath the November pitch,
+    // as one continuous read — same paragraph machinery, no second component.
+    const urls = [bioUrl];
+    if (camp && novActive && camp.novBioAppendUrl)
+      urls.push(camp.novBioAppendUrl);
     if (camp && bioUrl) {
-      fetch(bioUrl)
-        .then((res) => (res.ok ? res.text() : ""))
-        .then((text) => {
-          campaignBioText = text;
-        })
-        .catch((e) => {
-          console.error("Error loading campaign bio:", e);
-          campaignBioText = "";
-        });
+      const reqId = ++bioRequestId;
+      Promise.all(
+        urls.map((url) =>
+          fetch(url)
+            .then((res) => (res.ok ? res.text() : ""))
+            .catch((e) => {
+              console.error("Error loading campaign bio:", e);
+              return "";
+            }),
+        ),
+      ).then((parts) => {
+        if (reqId !== bioRequestId) return;
+        campaignBioText = parts
+          .map((p) => p.trim())
+          .filter(Boolean)
+          .join("\n\n");
+      });
     } else {
+      bioRequestId++;
       campaignBioText = "";
     }
   });
