@@ -3802,11 +3802,11 @@
                           <p
                             class="text-[11px] text-amber-200/80 leading-relaxed font-sans"
                           >
-                            Stripe payment gateway integration is currently
-                            being configured for this campaign. Direct financial
-                            contributions are not active yet. In the meantime,
-                            please use the button above to email Texas lawmakers
-                            directly!
+                            I haven't made the Stripe payment gateway yet.
+                            But I'm in this for the love of the game.
+                            Unless something changes millions of dollars 
+                            and millions of people will be hurt over this.
+                            This ain't about money this is about Texas.
                           </p>
                         </div>
                       {/if}
