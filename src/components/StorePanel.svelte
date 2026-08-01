@@ -3775,15 +3775,17 @@
                               divided by 184 representatives), but frankly, I pay
                               enough taxes in this country for those hired to
                               lead us to realize this dogshit system ain't working
-                              right. And millions in a silent majority are left to
+                              right. I can barely manage my 2,000 Facebook friends,
+                              how can anyone represent 172,336 people? Without any
+                              proper, verified communication systems for the people?
+                              Millions in a silent majority are left to
                               constantly face new obstacles, new hardships, new
                               pain directly because of their representatives not
                               representing all 172k they are supposed to
                               represent.
                             </p>
                             <p class="font-bold text-amber-300">
-                              Do what you want to do. Bark. Bark as loud as
-                              possible. Always.
+                              Do what you want to do. Bark.
                             </p>
                           </div>
                         </div>
