@@ -3806,7 +3806,6 @@
                             But I'm in this for the love of the game.
                             Unless something changes millions of dollars 
                             and millions of people will be hurt over this.
-                            This ain't about money this is about Texas.
                           </p>
                         </div>
                       {/if}
