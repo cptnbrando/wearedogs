@@ -1,14 +1,6 @@
 <script>
-  import { onMount } from "svelte";
   import { fade } from "svelte/transition";
-  import {
-    Trophy,
-    Search,
-    RefreshCw,
-    AlertCircle,
-    Grid,
-    List,
-  } from "lucide-svelte";
+  import { Trophy, Search, Archive, Grid, List } from "lucide-svelte";
   import SwipeTabNav from "../SwipeTabNav.svelte";
 
   const wcTabs = [
@@ -24,57 +16,39 @@
   import KnockoutBracket from "./worldcup/KnockoutBracket.svelte";
   import TeamStatusGrid from "./worldcup/TeamStatusGrid.svelte";
 
-  // Hoisted constants
-  const IS_DEV =
-    typeof window !== "undefined" &&
-    (window.location.hostname === "localhost" ||
-      window.location.hostname === "127.0.0.1");
-  const API_BASE = IS_DEV ? "/api-worldcup" : "https://worldcup26.ir";
-
   // Svelte 5 state variables
   let activeTab = $state("bracket"); // 'bracket' | 'standings' | 'teams'
   let searchQuery = $state("");
   let selectedRoundMobile = $state("r32");
-  let isLoading = $state(true);
-  let isRefreshing = $state(false);
-  let isOffline = $state(false);
-  let controller = $state(null);
 
-  // Derived properties
-  let standings = $derived(controller ? controller.calculateStandings() : {});
-  let thirdPlaceStandings = $derived(
-    controller ? controller.getThirdPlaceStandings(standings) : [],
-  );
-  let teamStatuses = $derived(controller ? controller.getTeamStatuses() : {});
-  let bracketMatches = $derived(
-    controller
-      ? controller.getBracketMatches()
-      : { r32: [], r16: [], qf: [], sf: [], third: null, final: null },
-  );
+  // The tournament is finished, so the bundled snapshot is the whole record.
+  // Nothing is fetched: there is no loading, syncing or offline state to track.
+  const controller = new WorldCupController();
 
-  let currentMatch = $derived(getCurrentMatch());
-  let currentStage = $derived.by(() => {
-    if (!currentMatch) return "group";
-    return currentMatch.type === "group"
+  // Derived properties -- computed once from the frozen snapshot
+  const standings = controller.calculateStandings();
+  const thirdPlaceStandings = controller.getThirdPlaceStandings(standings);
+  const teamStatuses = controller.getTeamStatuses();
+  const bracketMatches = controller.getBracketMatches();
+
+  const currentMatch = getCurrentMatch();
+  const currentStage = !currentMatch
+    ? "group"
+    : currentMatch.type === "group"
       ? "group"
       : currentMatch.type === "final" || currentMatch.type === "third"
         ? "finals"
         : currentMatch.type;
-  });
 
   /**
-   * Identifies the current active or upcoming match in the tournament.
-   * Prioritizes live matches, then the next unfinished match, falling back to the last game.
-   * @returns {Object|null} The current match object or null.
+   * Identifies the match the archive opens on. Nothing is live any more, so this
+   * is the last match that actually finished, falling back to the final fixture.
+   * @returns {Object|null} The match object or null.
    */
   function getCurrentMatch() {
-    if (!controller) return null;
-    const live = controller.games.find(
-      (g) => g.finished !== "TRUE" && g.time_elapsed !== "notstarted",
-    );
-    if (live) return live;
-    const unfinished = controller.games.find((g) => g.finished !== "TRUE");
-    return unfinished || controller.games[controller.games.length - 1];
+    const finished = controller.games.filter((g) => g.finished === "TRUE");
+    if (finished.length) return finished[finished.length - 1];
+    return controller.games[controller.games.length - 1] || null;
   }
 
   /**
@@ -82,7 +56,7 @@
    * Changes active tabs, applies visual glows/highlights, and scrolls the element into view.
    */
   function jumpToCurrentMatch() {
-    if (!controller || !currentMatch) return;
+    if (!currentMatch) return;
 
     if (currentMatch.type === "group") {
       activeTab = "standings";
@@ -116,64 +90,6 @@
     }
   }
 
-  onMount(async () => {
-    await loadData(true);
-  });
-
-  /**
-   * Loads fixtures and standings data from the API endpoint, falling back to the cached JSON.
-   * On initial load, sets isLoading to trigger the full screen synchronizing overlay.
-   * On background syncs, performs seamless updates in place without layout shifts.
-   * @param {boolean} [isInitial=false] - True if this is the first load.
-   */
-  async function loadData(isInitial = false) {
-    if (isInitial) {
-      isLoading = true;
-    }
-    try {
-      const [resTeams, resGames, resGroups] = await Promise.all([
-        fetch(`${API_BASE}/get/teams`)
-          .then((r) => r.json())
-          .catch(() => null),
-        fetch(`${API_BASE}/get/games`)
-          .then((r) => r.json())
-          .catch(() => null),
-        fetch(`${API_BASE}/get/groups`)
-          .then((r) => r.json())
-          .catch(() => null),
-      ]);
-
-      if (resTeams?.teams && resGames?.games && resGroups?.groups) {
-        controller = new WorldCupController(
-          resGames.games,
-          resTeams.teams,
-          resGroups.groups,
-        );
-        isOffline = false;
-      } else {
-        useFallback();
-      }
-    } catch (err) {
-      console.warn("Failed fetching live api, loading fallback:", err);
-      useFallback();
-    } finally {
-      if (isInitial) {
-        isLoading = false;
-      }
-      isRefreshing = false;
-    }
-  }
-
-  function useFallback() {
-    controller = new WorldCupController();
-    isOffline = true;
-  }
-
-  async function handleRefresh() {
-    isRefreshing = true;
-    await loadData(false);
-  }
-
   // Touch gesture swiping for main tabs navigation
   let touchStartX = 0;
   let touchStartY = 0;
@@ -204,19 +120,7 @@
 <div
   class="wc-container flex flex-col w-full h-full overflow-hidden select-none"
 >
-  {#if isLoading}
-    <div
-      class="flex flex-col items-center justify-center grow gap-3 text-white/50 text-xs"
-    >
-      <RefreshCw
-        size={36}
-        class="animate-spin"
-        style="color: var(--color-neon-gold, #e6b900)"
-      />
-      <p>Synchronizing fixtures and standings...</p>
-    </div>
-  {:else}
-    <div class="wc-layout-wrapper flex flex-col w-full h-full overflow-hidden">
+  <div class="wc-layout-wrapper flex flex-col w-full h-full overflow-hidden">
       <!-- Left Sidebar (Branding + Timeline Progress) -->
       <div class="wc-left-sidebar flex flex-col shrink-0">
         <!-- Sub Header with Controls -->
@@ -228,26 +132,16 @@
               <Trophy size={24} />
             </div>
             <div>
-              <h3 class="m-0 text-sm font-extrabold tracking-wider uppercase text-white">FIFA World Cup 2026</h3>
-              <p class="m-0 text-[10px] text-white/45">Live Standings, Bracket & Teams (48 Teams)</p>
+              <h3 class="m-0 text-sm font-extrabold tracking-wider uppercase text-white">2026 World Cup</h3>
+              <p class="m-0 text-[10px] text-white/45">Standings, Bracket & Teams (48 Teams)</p>
             </div>
           </div> -->
           <div class="flex items-center gap-3">
-            {#if isOffline}
-              <span
-                class="offline-badge text-[9px] font-extrabold tracking-wider bg-red-500/10 border border-red-500/30 text-red-500 px-2 py-1 rounded flex items-center gap-1"
-              >
-                <AlertCircle size={12} /> CACHE LOADED
-              </span>
-            {/if}
-            <button
-              class="refresh-btn bg-white/3 border border-white/8 hover:bg-white/8 hover:border-white/20 text-white/75 hover:text-white rounded-lg px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all duration-200"
-              onclick={handleRefresh}
-              disabled={isRefreshing}
+            <span
+              class="archive-badge text-[9px] font-extrabold tracking-wider bg-white/4 border border-white/10 text-white/50 px-2 py-1 rounded flex items-center gap-1.5"
             >
-              <RefreshCw size={12} class={isRefreshing ? "animate-spin" : ""} />
-              <span>{isRefreshing ? "SYNCING..." : "SYNC"}</span>
-            </button>
+              <Archive size={12} /> ARCHIVED &mdash; FINAL RECORD
+            </span>
           </div>
         </header>
 
@@ -335,8 +229,7 @@
           {/if}
         </div>
       </div>
-    </div>
-  {/if}
+  </div>
 </div>
 
 <style lang="scss">
@@ -348,8 +241,8 @@
     color: white;
   }
 
-  .offline-badge {
-    animation: pulseGlow 2s infinite alternate;
+  .archive-badge {
+    letter-spacing: 0.08em;
   }
 
   /* ── SwipeTabNav Integration Theme ── */

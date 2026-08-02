@@ -22,12 +22,6 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/api-worldcup': {
-        target: 'https://worldcup26.ir',
-        changeOrigin: true,
-        secure: false,
-        rewrite: (path) => path.replace(/^\/api-worldcup/, '')
-      },
       '/vid': {
         target: 'https://data.wearedogs.net',
         changeOrigin: true,
