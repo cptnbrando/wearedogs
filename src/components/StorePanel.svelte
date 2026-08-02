@@ -218,7 +218,12 @@
       link({ href, tokens }) {
         const label = this.parser.parseInline(tokens);
         const isRawUrl = label === href;
-        return `<a href="${href}" target="_blank" rel="noopener noreferrer" class="${BIO_LINK_CLASS}${isRawUrl ? " break-all" : ""}">${label}</a>`;
+        // Scheme allowlist: a bio link can point at the web, an email address
+        // or this site — never at javascript:/data:/vbscript: payloads.
+        const safeHref = /^(https?:|mailto:|tel:|\/|#)/i.test((href || "").trim())
+          ? href
+          : "#";
+        return `<a href="${safeHref}" target="_blank" rel="noopener noreferrer" class="${BIO_LINK_CLASS}${isRawUrl ? " break-all" : ""}">${label}</a>`;
       },
     },
   });
@@ -228,10 +233,17 @@
    * through untouched, so give them the same styling markdown links get.
    */
   function styleRawAnchors(html) {
-    return html.replace(
-      /<a (?![^>]*\bclass=)([^>]*)>/g,
-      `<a $1 target="_blank" rel="noopener noreferrer" class="${BIO_LINK_CLASS}">`,
-    );
+    return html
+      // Raw anchors bypass the marked renderer above, so give them the same
+      // scheme allowlist before they reach {@html}.
+      .replace(
+        /href\s*=\s*(["'])\s*(?:javascript|data|vbscript):[^"']*\1/gi,
+        'href="#"',
+      )
+      .replace(
+        /<a (?![^>]*\bclass=)([^>]*)>/g,
+        `<a $1 target="_blank" rel="noopener noreferrer" class="${BIO_LINK_CLASS}">`,
+      );
   }
 
   /**
@@ -1227,7 +1239,7 @@
     if (cart.length === 0) return;
     // Route to external checkout pipelines
     cart.forEach((item) => {
-      window.open(item.checkoutUrl, "_blank");
+      window.open(item.checkoutUrl, "_blank", "noopener,noreferrer");
     });
     // Clear cart after checkout
     cart = [];
@@ -1780,7 +1792,11 @@
                     <button
                       class="w-full py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl text-sm tracking-widest transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-red-900/30 cursor-pointer"
                       onclick={() =>
-                        window.open("https://cash.app/$cptnbrando", "_blank")}
+                        window.open(
+                          "https://cash.app/$cptnbrando",
+                          "_blank",
+                          "noopener,noreferrer",
+                        )}
                     >
                       <ShoppingCart size={18} /> ADD TO CART
                     </button>

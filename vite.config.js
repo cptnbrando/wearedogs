@@ -31,7 +31,6 @@ export default defineConfig({
       '/vid': {
         target: 'https://data.wearedogs.net',
         changeOrigin: true,
-        secure: false,
       }
     }
   },
