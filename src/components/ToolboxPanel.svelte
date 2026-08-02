@@ -256,12 +256,6 @@
       icon: QrCode,
     },
     {
-      id: "worldcup",
-      title: "FIFA World Cup",
-      desc: "Track matches, group stage standings, and the responsive bracket.",
-      icon: Trophy,
-    },
-    {
       id: "reader",
       title: "Image Reader",
       desc: "Extract editable text from images.",
@@ -338,6 +332,12 @@
       title: "Frames",
       desc: "Upload a video and step through it precisely frame-by-frame.",
       icon: Film,
+    },
+    {
+      id: "worldcup",
+      title: "2026 World Cup",
+      desc: "Archived matches, group stage standings, and the responsive bracket.",
+      icon: Trophy,
     },
     // RESCUE, GOPRO, DATAFLASH, CHANGELOG, AND SETTINGS MUST ALWAYS BE LAST IN THIS LIST
     {

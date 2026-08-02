@@ -1,9 +1,11 @@
-// World Cup 2026 Data Store and Controller
-import fallbackData from "./data/worldcup_fallback.json";
+// 2026 World Cup Data Store and Controller
+// The tournament is over. This snapshot is the single, frozen source of truth --
+// there is no live feed behind it and nothing here is refetched at runtime.
+import frozenData from "./data/worldcup_fallback.json";
 
-export const FALLBACK_TEAMS = fallbackData.teams;
-export const FALLBACK_GROUPS = fallbackData.groups;
-export const FALLBACK_GAMES = fallbackData.games;
+export const FROZEN_TEAMS = frozenData.teams;
+export const FROZEN_GROUPS = frozenData.groups;
+export const FROZEN_GAMES = frozenData.games;
 
 const sanitizeId = val => val ? String(val).replace(/[^\w-]/g, "") : "";
 const sanitizeUrl = val => (typeof val === "string" && /^https:\/\/flagcdn\.com\/w80\/[a-z-]+\.png$/i.test(val.trim())) ? val.trim() : "";
@@ -119,11 +121,11 @@ const validateData = (games, teams, groups) => {
 };
 
 /**
- * Controller class to manage the World Cup tournament state,
+ * Controller class to manage the 2026 World Cup tournament state,
  * standings calculation, and bracket tree generation.
  */
 export class WorldCupController {
-  constructor(games = FALLBACK_GAMES, teams = FALLBACK_TEAMS, groups = FALLBACK_GROUPS) {
+  constructor(games = FROZEN_GAMES, teams = FROZEN_TEAMS, groups = FROZEN_GROUPS) {
     const sanitizedGames = sanitizeGames(games);
     const sanitizedTeams = sanitizeTeams(teams);
     const sanitizedGroups = sanitizeGroups(groups);
