@@ -38,14 +38,6 @@
         "url": "https://data.wearedogs.net/img/fundraiser/thcstoreshelves.webp"
       },
       {
-        "type": "image",
-        "url": "https://data.wearedogs.net/img/fundraiser/thcstores.webp"
-      },
-      {
-        "type": "image",
-        "url": "https://data.wearedogs.net/img/fundraiser/thcban.webp"
-      },
-      {
         "type": "video",
         "url": "https://data.wearedogs.net/vid/fundraiser/jt.mp4",
         "thumbnail": "https://data.wearedogs.net/vid/fundraiser/jt-thumb.png"
@@ -54,6 +46,14 @@
         "type": "video",
         "url": "https://data.wearedogs.net/vid/fundraiser/bill.mp4",
         "thumbnail": "https://data.wearedogs.net/vid/fundraiser/bill-thumb.png"
+      },
+      {
+        "type": "image",
+        "url": "https://data.wearedogs.net/img/fundraiser/thcban.webp"
+      },
+      {
+        "type": "image",
+        "url": "https://data.wearedogs.net/img/fundraiser/thcstores.webp"
       }
     ],
     "milestones": [
