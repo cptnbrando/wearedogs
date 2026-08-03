@@ -16,7 +16,7 @@ The classifications need revision. The legal carry quantities must be at least d
 
 12,000 people in America die from drunk driving every year. In Texas that's 1,200 a year or 90 people every month, or 3 Texans every day. With alcohol, I can drink as much as I want on the 4th of July, and by July 5th I can blow a breathalyzer and leave.
 
-Federal data shows that roughly 61.6 million Americans used cannabis in the past year. This includes about 43.8 million past-month users and 21.4 million people who use it on a daily or near-daily basis. Over half of all U.S. adults have tried marijuana at least once in their lives. Texas is 32 million people in a beautiful country of 345 million, and with beautiful businesses like y'all street coming up-
+Federal data shows that roughly 61.6 million Americans used cannabis in the past year. Over half of all U.S. adults have tried marijuana at least once in their lives. Texas is 32 million people in a beautiful country of 345 million, and with beautiful businesses like y'all street coming up-
 
 Do y'all listen to any music? Y'all are gonna kick willie nelson out of texas!
 
