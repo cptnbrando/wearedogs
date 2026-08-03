@@ -3217,6 +3217,15 @@
                             <span class="corr-open">READ →</span>
                           </span>
                         </button>
+                        {#if letter.page}
+                          <a
+                            class="corr-newtab"
+                            href={letter.page}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            >Click here to open this letter in a new page ↗</a
+                          >
+                        {/if}
                       {/each}
                     </div>
                   {/if}
@@ -4965,6 +4974,21 @@
     font-size: 0.55rem;
     font-weight: 900;
     letter-spacing: 0.14em;
+  }
+  .corr-newtab {
+    display: block;
+    margin-top: 0.3rem;
+    padding: 0 0.6rem;
+    color: #7dd3fc;
+    font-family: ui-monospace, monospace;
+    font-size: 0.55rem;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .corr-newtab:hover {
+    color: #bae6fd;
   }
 
   /* The popup itself */
