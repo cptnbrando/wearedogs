@@ -6,7 +6,6 @@
   let displayValue = $state("0");
   let equationDisplay = $state("");
   let keywordBuffer = $state([]);
-  let isChecking = $state(false);
   let errorFlash = $state(false);
   let calculationFinished = $state(false);
 
@@ -149,8 +148,6 @@
     if (keywordBuffer.length === 0) return;
     const concatenated = keywordBuffer.join("");
 
-    isChecking = true;
-
     try {
       const response = await fetch(
         `https://data.wearedogs.net/vid/popcorn/check.txt`,
@@ -163,23 +160,83 @@
       );
 
       if (response.ok) {
+        const responseText = await response.text();
+        const cleanedText = responseText.trim();
+        let targetApp = "gopro";
+
+        try {
+          const parsed = JSON.parse(cleanedText);
+          if (parsed && parsed.app) {
+            targetApp = parsed.app;
+          } else if (parsed && parsed.target) {
+            targetApp = parsed.target;
+          }
+        } catch (e) {
+          if (/^[a-zA-Z0-9_\-]+$/.test(cleanedText)) {
+            targetApp = cleanedText;
+          }
+        }
+
         localStorage.setItem("gopro_password", concatenated);
-        onUnlock(concatenated);
-      } else {
-        errorFlash = true;
-        displayValue = "Error";
+        localStorage.setItem(`${targetApp}_password`, concatenated);
+        if (targetApp === "gopro") {
+          hasGoProShortcut = true;
+        }
+        if (onUnlock) {
+          onUnlock(targetApp, concatenated);
+        }
       }
     } catch (e) {
       console.warn("Passcode verification check failed or offline:", e);
-      errorFlash = true;
-      displayValue = "Error";
+    }
+  }
+
+  let hasGoProShortcut = $state(false);
+  let isCheckingShortcut = $state(false);
+
+  $effect(() => {
+    if (typeof window !== "undefined") {
+      hasGoProShortcut = !!localStorage.getItem("gopro_password");
+    }
+  });
+
+  async function handleGoProShortcut() {
+    if (typeof window === "undefined") return;
+    const storedPass = localStorage.getItem("gopro_password");
+    if (!storedPass) {
+      hasGoProShortcut = false;
+      return;
+    }
+
+    isCheckingShortcut = true;
+
+    try {
+      const response = await fetch(
+        `https://data.wearedogs.net/vid/popcorn/check.txt`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `password=${storedPass}`,
+          },
+        },
+      );
+
+      if (response.ok) {
+        if (onUnlock) {
+          onUnlock("gopro", storedPass);
+        }
+      } else {
+        localStorage.removeItem("gopro_password");
+        hasGoProShortcut = false;
+      }
+    } catch (e) {
+      console.warn("Shortcut verification failed:", e);
     } finally {
-      isChecking = false;
+      isCheckingShortcut = false;
     }
   }
 
   function handleKeydown(e) {
-    if (isChecking) return;
     let keyChar = e.key;
 
     if (keyChar >= "0" && keyChar <= "9") {
@@ -232,6 +289,24 @@
         >RADICAL INTERFACE</span
       >
     </div>
+
+    <!-- Shortcuts (if any are unlocked) -->
+    {#if hasGoProShortcut}
+      <div class="flex gap-2 items-center justify-start flex-wrap border-b border-white/5 pb-2">
+        <span class="text-[8px] uppercase tracking-wider text-white/30 font-bold font-mono mr-1">Shortcuts:</span>
+        <button
+          onclick={handleGoProShortcut}
+          disabled={isCheckingShortcut}
+          class="text-[9px] font-mono font-bold uppercase tracking-wider bg-cyan-950/40 border border-cyan-500/30 text-cyan-400 px-2 py-1 rounded hover:bg-cyan-900/40 active:scale-95 transition-all cursor-pointer flex items-center gap-1"
+        >
+          {#if isCheckingShortcut}
+            <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping"></span> VERIFYING...
+          {:else}
+            ➔ GOPRO
+          {/if}
+        </button>
+      </div>
+    {/if}
 
     <!-- LCD Display -->
     <div
@@ -424,8 +499,8 @@
         onclick={() => handleKeyPress("=")}
         class="calc-btn equal-btn flex flex-col items-center justify-center p-3 rounded-2xl font-bold font-mono transition-all duration-150"
       >
-        <span class="text-sm">{isChecking ? "..." : "="}</span>
-        <span class="btn-sub">CHECK</span>
+        <span class="text-sm">=</span>
+        <span class="btn-sub">EQUAL</span>
       </button>
       <button
         onclick={() => handleKeyPress("+")}

@@ -1017,6 +1017,20 @@
     playerDuration = e.currentTarget.duration || 1;
   }
 
+  function handleBeforeUnload(e) {
+    if (engineState.isRecording || clips.length > 0) {
+      e.preventDefault();
+      e.returnValue = "Wait, all your data will be lost, are you sure you want to leave?";
+      return e.returnValue;
+    }
+  }
+
+  $effect(() => {
+    if (typeof window !== "undefined") {
+      window.hasUnsavedData = !!(engineState.isRecording || clips.length > 0);
+    }
+  });
+
   onMount(() => {
     initDevices();
     isInputsCollapsed = window.innerWidth < 768 || window.innerHeight < 500;
@@ -1027,6 +1041,7 @@
     img.onload = () => {
       logoImage = img;
     };
+    window.addEventListener("beforeunload", handleBeforeUnload);
   });
 
   onDestroy(() => {
@@ -1037,6 +1052,10 @@
     }
     if (clockInterval) {
       clearInterval(clockInterval);
+    }
+    window.removeEventListener("beforeunload", handleBeforeUnload);
+    if (typeof window !== "undefined") {
+      window.hasUnsavedData = false;
     }
   });
 </script>

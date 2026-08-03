@@ -183,6 +183,7 @@
 
   // Track document-level fullscreen state to catch back button events
   let wasMainFullscreen = $state(false);
+  let isRestoringState = false;
 
   // Deep-link params set on initial page load, cleared after panel mounts
   let initialTrackId = $state(null);
@@ -392,6 +393,10 @@
   // Listen to popstate event for browser/device back key navigation
   $effect(() => {
     const handlePop = (e) => {
+      if (isRestoringState) {
+        isRestoringState = false;
+        return;
+      }
       if (showInfo) {
         showInfo = false;
         return;
@@ -406,6 +411,19 @@
         window.location.pathname.startsWith(panelToUrl(activePage))
       ) {
         return;
+      }
+
+      if (window.hasUnsavedData) {
+        const confirmed = confirm(
+          "Wait, all your data will be lost, are you sure you want to leave?",
+        );
+        if (!confirmed) {
+          isRestoringState = true;
+          history.go(1);
+          return;
+        } else {
+          window.hasUnsavedData = false;
+        }
       }
 
       const targetView = state?.view || null;
