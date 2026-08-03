@@ -270,6 +270,35 @@
   let letterHtml = $state("");
   let letterLoading = $state(false);
   let letterReqId = 0;
+  /** Whether the open letter owns a history entry, mirroring the cart drawer. */
+  let letterHistoryPushed = false;
+
+  // A letter is a place you navigate into, so it gets a history entry: Back
+  // closes the letter and lands on the campaign instead of leaving it.
+  $effect(() => {
+    if (openLetter) {
+      if (!history.state?.letterOpen && !letterHistoryPushed) {
+        const nextDepth = depth + 1;
+        history.pushState(
+          {
+            view: "store",
+            letterOpen: true,
+            campaignId: selectedCampaign?.id || null,
+            depth: nextDepth,
+          },
+          "",
+        );
+        letterHistoryPushed = true;
+        depth = nextDepth;
+      }
+    } else if (letterHistoryPushed) {
+      // Closed from the UI (✕ or Escape) — retire the letter's entry so the
+      // next Back doesn't have a stale one to chew through.
+      letterHistoryPushed = false;
+      depth = Math.max(1, depth - 1);
+      history.back();
+    }
+  });
 
   /** Drops the YAML block a letter carries for the future index page. */
   function stripFrontmatter(md) {
@@ -1933,6 +1962,17 @@
   }
 
   function handlePopState(e) {
+    // Back with a letter open closes the letter, nothing else. Clear the
+    // pushed flag first so the letter effect doesn't fire a second back()
+    // for an entry the browser has already popped.
+    if (!e.state?.letterOpen && openLetter) {
+      letterHistoryPushed = false;
+      closeLetter();
+      if (e.state?.depth !== undefined) {
+        depth = e.state.depth;
+      }
+      return;
+    }
     if (!e.state?.cartOpen && isCartOpen) {
       isCartOpen = false;
       cartHistoryPushed = false;
@@ -2641,7 +2681,7 @@
                             saleMode={saleActive}
                             {copMode}
                             bind:initialStatsTab
-                            campaignId={selectedCampaign.id}
+                            campaignId={selectedCampaign?.id}
                             isFullscreen={isMapFullscreen}
                             onToggleFullscreen={() =>
                               (isMapFullscreen = !isMapFullscreen)}

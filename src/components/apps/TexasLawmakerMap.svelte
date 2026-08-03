@@ -212,19 +212,25 @@
     const _t = statsTab;
     const _open = showStats;
     syncStatsUrl();
+    // Capture the id now: this teardown also runs on unmount, where the
+    // campaignId prop can be a getter over state the parent has already
+    // nulled (deselecting the campaign unmounts the map in the same flush).
+    // Re-reading the prop there throws mid-teardown and wedges the whole
+    // reactive flush — after which Back stops rendering anything at all.
+    const campaignIdAtRun = campaignId;
     // Swiping off the map slide unmounts this component outright; without
     // this the address bar would stay parked on /stats/… for a slide that
     // isn't showing.
     return () => {
       if (
         typeof window !== "undefined" &&
-        campaignId &&
+        campaignIdAtRun &&
         window.location.pathname.startsWith("/stats/")
       ) {
         history.replaceState(
           history.state,
           "",
-          `/store/campaign/${campaignId}`,
+          `/store/campaign/${campaignIdAtRun}`,
         );
       }
     };
