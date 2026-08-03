@@ -4,13 +4,14 @@ Every branch with commits not yet on `master`, what it contains, and what happen
 the features were actually run. Testing was done on a local dev server (Vite, Chrome-based
 browser pane) after merging candidates into `ai/branch-audit-aug02`.
 
-**The favorite five** — merged into this PR, in merge order:
+**Merged into this PR**, in merge order — the favorite five plus one follow-up fix:
 
 1. `ai/security-hardening`
 2. `ai/sale-day-takeover` (the 8 commits that came after PR #38)
 3. `ai/texas-marijuana-fundraiser`
 4. `ai-july2026/pricks-mode-wiretap`
 5. `july19`
+6. `ai/worldcup-2026-results` (completes the frozen World Cup archive)
 
 Everything else stays on its branch, with notes below on what it would take to land.
 
@@ -141,6 +142,39 @@ production endpoint, so it wasn't exercised. Two findings to know about:
   grid-deep).
 
 **Verdict: keep. The two routing quirks are documented, not blockers.**
+
+### 6. `ai/worldcup-2026-results` — added after the initial audit
+
+**Contains:** the completion of the 2026 World Cup archive.
+
+The freeze commit (PR #41) snapshotted the `.ir` feed as it died — around June 25 —
+leaving 46 of 104 games blank: the last group matchday, the entire knockout stage,
+and the final. The archive claimed to be "the whole record" while missing the ending.
+
+Filled every blank from the public record (Wikipedia's match pages for groups
+D/G/H/I/J/K/L, the round of 32, the knockout stage, and the final), parsed straight
+from wikitext rather than summarized:
+
+- 14 group matchday-3 results with goalscorers, in the feed's own
+  `{"Name 27'","Name 75'"}` scorer format.
+- All 32 knockout results with team IDs (so the bracket resolves names/flags),
+  scores, and scorers. Penalty shootouts (GER–PAR 3–4p, NED–MAR 2–3p, AUS–EGY 2–4p,
+  SUI–COL 4–3p) are stored as the draws they were; the controller infers the winner
+  from who occupies the next round's slot, which is exactly how the data now reads.
+- The final: Spain 1–0 Argentina (Torres 106', a.e.t.). Third place: England 6–4
+  France, a ten-goal sendoff.
+- One code fix: `getCurrentMatch` picked the last finished game in feed array order,
+  which put the RECENT badge on quarter-final 99 once everything was finished.
+  It now picks the latest kickoff, so the archive opens on the final.
+
+**Testing:** every filled pairing was cross-checked against the feed's own bracket
+labels (group winner / runner-up / third-place slots) using recomputed standings —
+zero mismatches; a script refused to run if any slot disagreed with the source or if
+a finished game would be overwritten. Verified live: full bracket renders with no
+blank cards, RECENT badge on the final, all group tables show 3 matches played, and
+`npm run build` (including the data validator's structural checks) passes.
+
+**Verdict: keep. The archive now actually archives the tournament.**
 
 ---
 
