@@ -24,6 +24,7 @@
     Search,
     Mic,
     Film,
+    Calculator,
   } from "lucide-svelte";
   import DogsLogo from "./DogsLogo.svelte";
   import AppCard from "./AppCard.svelte";
@@ -59,6 +60,7 @@
     paint: "./apps/PaintApp.svelte",
     stopwatch: "./apps/fathertime/FatherTimeApp.svelte",
     gopro: "./apps/GoPro.svelte",
+    calculator: "./apps/Calculator.svelte",
     dataflash: "./apps/datatrain/DataTrain.svelte",
     qrgenerator: "./apps/QRGenerator.svelte",
     rescue: "./apps/Rescue.svelte",
@@ -85,14 +87,21 @@
       const loader = appModules[path];
       if (loader) {
         console.log("Loading app:", activeApp, "from path:", path);
-        loader().then((m) => {
-          console.log("App loaded successfully:", activeApp);
-          loadedApps[activeApp] = m.default;
-        }).catch((err) => {
-          console.error("Failed to load app:", activeApp, err);
-        });
+        loader()
+          .then((m) => {
+            console.log("App loaded successfully:", activeApp);
+            loadedApps[activeApp] = m.default;
+          })
+          .catch((err) => {
+            console.error("Failed to load app:", activeApp, err);
+          });
       } else {
-        console.error("No loader found for app path:", path, "Available paths:", Object.keys(appModules));
+        console.error(
+          "No loader found for app path:",
+          path,
+          "Available paths:",
+          Object.keys(appModules),
+        );
       }
     }
   });
@@ -112,11 +121,15 @@
     isMobile = window.innerWidth <= 768;
   }
 
+  const hiddenApps = {
+    gopro: { id: "gopro", title: "DOGS TV", icon: Video }
+  };
+
   // Derive the active header state (icon, title, etc) from active or focused app
   const currentHeaderDetails = $derived.by(() => {
     let appInfo = null;
     if (activeApp) {
-      appInfo = apps.find((a) => a.id === activeApp);
+      appInfo = apps.find((a) => a.id === activeApp) || hiddenApps[activeApp];
     } else if (focusedIdx >= 0 && focusedIdx < apps.length) {
       appInfo = apps[focusedIdx];
     }
@@ -203,13 +216,39 @@
     }
   });
 
+  function confirmClose() {
+    if (typeof window === "undefined" || !window.hasUnsavedData) return true;
+    const confirmed = confirm(
+      "Wait, all your data will be lost, are you sure you want to leave?",
+    );
+    if (!confirmed) return false;
+    window.hasUnsavedData = false;
+    return true;
+  }
+
   function handleBack() {
     if (activeApp === "blog" && isReadingPost) {
       isReadingPost = false;
     } else if (history.state?.app) {
-      history.back();
+      if (confirmClose()) {
+        history.back();
+      }
     } else {
-      activeApp = null;
+      if (confirmClose()) {
+        activeApp = null;
+      }
+    }
+  }
+
+  function handleBackdropClick() {
+    if (confirmClose()) {
+      onClose();
+    }
+  }
+
+  function handleCloseClick() {
+    if (confirmClose()) {
+      onClose();
     }
   }
 
@@ -227,6 +266,7 @@
     soundboard: "#ff55bb",
     reader: "#ff3344",
     gopro: "#ff55bb",
+    calculator: "#ff55bb",
     dataflash: "#00d7ff",
     rescue: "#00bfff",
     changelog: "#00ff66",
@@ -341,10 +381,10 @@
     },
     // RESCUE, GOPRO, DATAFLASH, CHANGELOG, AND SETTINGS MUST ALWAYS BE LAST IN THIS LIST
     {
-      id: "gopro",
-      title: "GoPro",
-      desc: "Stream, clip, and sample retro TV shows.",
-      icon: Video,
+      id: "calculator",
+      title: "Calculator",
+      desc: "A secure digital calculator for standard mathematical operations.",
+      icon: Calculator,
     },
     {
       id: "rescue",
@@ -451,7 +491,7 @@
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="toolbox-panel-backdrop" onclick={onClose}>
+<div class="toolbox-panel-backdrop" onclick={handleBackdropClick}>
   <div
     class="toolbox-panel-container"
     class:closing={isClosing}
@@ -511,7 +551,7 @@
 
       <button
         class="close-btn"
-        onclick={activeApp !== null ? handleBack : onClose}
+        onclick={activeApp !== null ? handleBack : handleCloseClick}
         aria-label="Close panel"
       >
         <ArrowLeft size={20} />
@@ -568,6 +608,12 @@
             />
           {:else if activeApp === "windshieldwiper"}
             <App onClose={() => (activeApp = null)} />
+          {:else if activeApp === "calculator"}
+            <App onUnlock={(targetApp, code) => {
+              localStorage.setItem("gopro_password", code);
+              localStorage.setItem(`${targetApp}_password`, code);
+              activeApp = targetApp;
+            }} />
           {:else if activeApp === "gopro"}
             <App {goProShow} {goProEpisode} />
           {:else}

@@ -12,7 +12,12 @@
     ChevronDown,
   } from "lucide-svelte";
   import WeAreDogs from "./WeAreDogs.svelte";
-  import { parsePath, panelToUrl, appToUrl } from "../lib/router.svelte.js";
+  import {
+    parsePath,
+    panelToUrl,
+    appToUrl,
+    CAMPAIGN_STATS_ID,
+  } from "../lib/router.svelte.js";
   import { audioCore } from "../lib/AudioCore.svelte.js";
 
   // Active view state: 'stats' | 'networking' | 'toolbox' | 'music' | 'store' | 'map' | null
@@ -178,6 +183,7 @@
 
   // Track document-level fullscreen state to catch back button events
   let wasMainFullscreen = $state(false);
+  let isRestoringState = false;
 
   // Deep-link params set on initial page load, cleared after panel mounts
   let initialTrackId = $state(null);
@@ -188,6 +194,8 @@
   let deepLinkArcadeGame = $state(null);
   let deepLinkStoreCampaignId = $state(null);
   let deepLinkStoreProductId = $state(null);
+  /** Which map stats tab a /stats/<tab> deep link asked for. */
+  let deepLinkStatsTab = $state(null);
 
   // ---------------------------------------------------------------------------
   // URL Routing — parse deep-link on first mount
@@ -222,6 +230,22 @@
         { view: "store", campaignId: params.campaignId, depth: 2 },
         "",
         `/store/campaign/${params.campaignId}`,
+      );
+      depth = 2;
+      return;
+    }
+
+    // /stats/health → open the campaign and its map stats sheet at that tab.
+    if (params.type === "campaign-stats") {
+      deepLinkStoreCampaignId = CAMPAIGN_STATS_ID;
+      deepLinkStatsTab = params.tab;
+      activePage = "store";
+      isClosing = false;
+      history.pushState({ view: "store", depth: 1 }, "", "/store");
+      history.pushState(
+        { view: "store", campaignId: CAMPAIGN_STATS_ID, depth: 2 },
+        "",
+        `/store/campaign/${CAMPAIGN_STATS_ID}`,
       );
       depth = 2;
       return;
@@ -369,6 +393,10 @@
   // Listen to popstate event for browser/device back key navigation
   $effect(() => {
     const handlePop = (e) => {
+      if (isRestoringState) {
+        isRestoringState = false;
+        return;
+      }
       if (showInfo) {
         showInfo = false;
         return;
@@ -383,6 +411,19 @@
         window.location.pathname.startsWith(panelToUrl(activePage))
       ) {
         return;
+      }
+
+      if (window.hasUnsavedData) {
+        const confirmed = confirm(
+          "Wait, all your data will be lost, are you sure you want to leave?",
+        );
+        if (!confirmed) {
+          isRestoringState = true;
+          history.go(1);
+          return;
+        } else {
+          window.hasUnsavedData = false;
+        }
       }
 
       const targetView = state?.view || null;
@@ -643,6 +684,7 @@
         bind:depth
         bind:initialCampaignId={deepLinkStoreCampaignId}
         bind:initialProductId={deepLinkStoreProductId}
+        bind:initialStatsTab={deepLinkStatsTab}
       />
     {:else if activePage === "map"}
       <Panel {isClosing} onClose={closePage} />

@@ -165,8 +165,14 @@ export function parseMarkdown(rawMd) {
     processed = processed.replace(/\*(.*?)\*/g, '<em class="italic text-white/90">$1</em>');
     processed = processed.replace(/_(.*?)_/g, '<em class="italic text-white/90">$1</em>');
 
-    // Links
-    processed = processed.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-[#ff3344] hover:underline">$1</a>');
+    // Links — only http(s), mailto and site-relative hrefs survive. Anything
+    // else (javascript:, data:, vbscript:) is defanged to "#" so a link in a
+    // post can never carry an executable scheme into the {@html} render.
+    processed = processed.replace(/\[(.*?)\]\((.*?)\)/g, (match, label, href) => {
+      const trimmed = href.trim();
+      const safe = /^(https?:|mailto:|\/|#|\.\/)/i.test(trimmed) ? trimmed.replace(/"/g, "&quot;") : "#";
+      return `<a href="${safe}" target="_blank" rel="noopener noreferrer" class="text-[#ff3344] hover:underline">${label}</a>`;
+    });
 
     if (inList) {
       html += `<li class="text-white/85 leading-relaxed">${processed}</li>`;

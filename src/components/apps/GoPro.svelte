@@ -7,7 +7,7 @@
   import { catalog } from "../../lib/videos.js";
   import { SHOW_SLUGS } from "../../lib/router.svelte.js";
   import DogsLogo from "../DogsLogo.svelte";
-  import GoProCalculator from "./GoProCalculator.svelte";
+  import Calculator from "./Calculator.svelte";
   import {
     Play,
     Pause,
@@ -380,9 +380,11 @@
 
   /**
    * Unlock callback triggered by the calculator screen.
-   * @param {string} pass
+   * @param {string} targetAppOrPass
+   * @param {string} [maybePass]
    */
-  function handleUnlock(pass) {
+  function handleUnlock(targetAppOrPass, maybePass) {
+    const pass = maybePass || targetAppOrPass;
     password = pass;
     isUnlocked = true;
     loadSamples();
@@ -585,7 +587,7 @@
     class="w-full h-full bg-[#0a0a0f] flex items-center justify-center"
     transition:fade
   >
-    <GoProCalculator onUnlock={handleUnlock} />
+    <Calculator onUnlock={handleUnlock} />
   </div>
 {:else}
   <!-- Main Television-Friendly Streaming Interface -->

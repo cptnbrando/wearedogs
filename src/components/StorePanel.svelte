@@ -25,6 +25,7 @@
     onClose,
     initialCampaignId = $bindable(null),
     initialProductId = $bindable(null),
+    initialStatsTab = $bindable(null),
     depth = $bindable(0),
   } = $props();
 
@@ -37,6 +38,8 @@
   let lastSelectedProductId = $state("");
   let selectedCampaign = $state(null);
   let campaignBioText = $state("");
+  /** Guards against a slow bio fetch landing after the phase has moved on. */
+  let bioRequestId = 0;
   let currentStoreMode = $state("fundraising"); // Default to "fundraising" per user requirement
   let activeImageIdx = $state(0);
   let isImageFullscreen = $state(false);
@@ -52,6 +55,12 @@
    */
   function handleKeyDown(e) {
     if (e.key !== "Escape") return;
+    if (openLetter) {
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      closeLetter();
+      return;
+    }
     if (!isImageFullscreen && !isMapFullscreen) return;
     // stopImmediatePropagation as well: when the event is dispatched straight at
     // window both listeners sit on the target, where stopPropagation alone
@@ -80,11 +89,30 @@
     const minutes = Math.floor((diff / (1000 * 60)) % 60);
     const seconds = Math.floor((diff / 1000) % 60);
 
+    // Whole calendar months, counted off the current date rather than in
+    // 30-day blocks — "3 months" has to mean what a person means by it, and
+    // August to November is not 92/30. `days` above stays the total for the
+    // "N DAYS LEFT" headline; restDays is what's left after the months.
+    let months = 0;
+    while (true) {
+      const step = new Date(currentMs);
+      step.setMonth(step.getMonth() + months + 1);
+      if (step.getTime() > targetMs) break;
+      months++;
+    }
+    const afterMonths = new Date(currentMs);
+    afterMonths.setMonth(afterMonths.getMonth() + months);
+    const restDays = Math.floor(
+      Math.max(0, targetMs - afterMonths.getTime()) / (1000 * 60 * 60 * 24),
+    );
+
     const formattedDaysLeft = isZero
       ? "0 DAYS LEFT"
       : `${days} DAY${days === 1 ? "" : "S"} LEFT`;
 
     return {
+      months,
+      restDays,
       days,
       hours,
       minutes,
@@ -155,24 +183,154 @@
   function isSaleNow(campaign, currentMs) {
     if (campaign?.id !== SALE_CAMPAIGN_ID) return false;
     if (SALE_PREVIEW) return true;
+    // NOV_PREVIEW previews the *post*-sale state, so it has to switch the sale
+    // off — otherwise it does nothing at all while sale day is live.
+    if (NOV_PREVIEW) return false;
     const w = saleWindowOf(campaign);
     return !!w && currentMs >= w.start && currentMs < w.end;
   }
 
   let saleWindow = $derived(saleWindowOf(selectedCampaign));
-  let saleActive = $derived(isSaleNow(selectedCampaign, now));
 
   /**
-   * From August 1st onward the campaign speaks in the past tense: the shelf
-   * pull happened, the fight is the November 12th federal deadline. Bio and
-   * petition letter both swap to their November versions, and the amber
-   * "FINAL COUNTDOWN" clock (already handled by getActiveDeadline) takes over.
+   * This campaign has been three different pages in one summer, and the
+   * argument *is* the sequence — the case, the going-out-of-business day,
+   * then the letter written the morning after. The calendar picks which one
+   * is live; the tab strip lets a reader walk back through the other two.
+   * `id` doubles as the phase name used everywhere below.
    */
-  let novActive = $derived(
-    !saleActive &&
-      selectedCampaign?.id === SALE_CAMPAIGN_ID &&
-      (NOV_PREVIEW || (!!saleWindow && now >= saleWindow.end)),
+  const CAMPAIGN_VARIANTS = [
+    {
+      id: "base",
+      icon: "🌿",
+      label: "THE CASE",
+      blurb: "The original pitch: why a ban costs Texas more than it saves.",
+    },
+    {
+      id: "sale",
+      icon: "💰",
+      label: "SALE DAY",
+      blurb: "July 31st. The clearance takeover, priced by the Penal Code.",
+    },
+    {
+      id: "nov",
+      icon: "🚗",
+      label: "Drive",
+      blurb:
+        "August 1st onward: the November deadline.",
+    },
+  ];
+
+  /**
+   * What the date says the campaign is today. From August 1st onward it
+   * speaks in the past tense: the shelf pull happened, the fight is the
+   * November 12th federal deadline. Bio and petition letter both swap to
+   * their November versions, and the amber "FINAL COUNTDOWN" clock (already
+   * handled by getActiveDeadline) takes over.
+   */
+  let livePhase = $derived(
+    isSaleNow(selectedCampaign, now)
+      ? "sale"
+      : selectedCampaign?.id === SALE_CAMPAIGN_ID &&
+          (NOV_PREVIEW || (!!saleWindow && now >= saleWindow.end))
+        ? "nov"
+        : "base",
   );
+
+  /** null = follow the calendar; otherwise the variant the reader picked. */
+  let variantOverride = $state(null);
+
+  /** What is actually on screen — everything downstream reads this. */
+  let activePhase = $derived(variantOverride ?? livePhase);
+  let saleActive = $derived(activePhase === "sale");
+  let novActive = $derived(activePhase === "nov");
+
+  /** A picked variant belongs to the campaign it was picked on. */
+  let lastVariantCampaignId = null;
+  $effect(() => {
+    const id = selectedCampaign?.id ?? null;
+    untrack(() => {
+      if (id === lastVariantCampaignId) return;
+      lastVariantCampaignId = id;
+      variantOverride = null;
+      closeLetter();
+    });
+  });
+
+  /* ------------------------------------------------------------------ */
+  /* CORRESPONDENCE — what the offices wrote back                        */
+  /* ------------------------------------------------------------------ */
+
+  /**
+   * Replies from the people we wrote to, printed whole. Loaded on open
+   * rather than with the campaign: these are long documents and most
+   * readers came for the pitch, not the paperwork.
+   */
+  let openLetter = $state(null);
+  let letterHtml = $state("");
+  let letterLoading = $state(false);
+  let letterReqId = 0;
+  /** Whether the open letter owns a history entry, mirroring the cart drawer. */
+  let letterHistoryPushed = false;
+
+  // A letter is a place you navigate into, so it gets a history entry: Back
+  // closes the letter and lands on the campaign instead of leaving it.
+  $effect(() => {
+    if (openLetter) {
+      if (!history.state?.letterOpen && !letterHistoryPushed) {
+        const nextDepth = depth + 1;
+        history.pushState(
+          {
+            view: "store",
+            letterOpen: true,
+            campaignId: selectedCampaign?.id || null,
+            depth: nextDepth,
+          },
+          "",
+        );
+        letterHistoryPushed = true;
+        depth = nextDepth;
+      }
+    } else if (letterHistoryPushed) {
+      // Closed from the UI (✕ or Escape) — retire the letter's entry so the
+      // next Back doesn't have a stale one to chew through.
+      letterHistoryPushed = false;
+      depth = Math.max(1, depth - 1);
+      history.back();
+    }
+  });
+
+  /** Drops the YAML block a letter carries for the future index page. */
+  function stripFrontmatter(md) {
+    return md.replace(/^﻿?---\r?\n[\s\S]*?\r?\n---\r?\n?/, "");
+  }
+
+  function closeLetter() {
+    openLetter = null;
+    letterHtml = "";
+    letterLoading = false;
+    letterReqId++;
+  }
+
+  async function showLetter(entry) {
+    openLetter = entry;
+    letterHtml = "";
+    letterLoading = true;
+    const reqId = ++letterReqId;
+    try {
+      const res = await fetch(entry.url);
+      const md = res.ok ? await res.text() : "";
+      if (reqId !== letterReqId) return;
+      letterHtml = md
+        ? styleRawAnchors(marked.parse(stripFrontmatter(md)))
+        : "";
+    } catch (e) {
+      console.error("Error loading correspondence:", e);
+      if (reqId === letterReqId) letterHtml = "";
+    } finally {
+      if (reqId === letterReqId) letterLoading = false;
+    }
+  }
 
   /** Which letter the send buttons actually put in front of lawmakers. */
   let activeContactReps = $derived(
@@ -182,7 +340,7 @@
   );
 
   /** Keys the bio block so each phase change re-animates the text in. */
-  let bioPhase = $derived(saleActive ? "sale" : novActive ? "nov" : "base");
+  let bioPhase = $derived(activePhase);
 
   const SALE_MARQUEE =
     "💰 SALE DAY SALE DAY 💵 BIG BARGAINS 💶 ALL GOODS MUST GO 💷 EVERYTHING MUST GO 🏧 ONE DAY ONLY 🤑 ALL SALES FINAL 💸 ";
@@ -322,17 +480,31 @@
         : camp && novActive && camp.novBioUrl
           ? camp.novBioUrl
           : camp?.bioUrl;
+    // From August 1st the driver's letter runs underneath the November pitch,
+    // as one continuous read — same paragraph machinery, no second component.
+    const urls = [bioUrl];
+    // if (camp && novActive && camp.novBioAppendUrl)
+    //   urls.push(camp.novBioAppendUrl);
     if (camp && bioUrl) {
-      fetch(bioUrl)
-        .then((res) => (res.ok ? res.text() : ""))
-        .then((text) => {
-          campaignBioText = text;
-        })
-        .catch((e) => {
-          console.error("Error loading campaign bio:", e);
-          campaignBioText = "";
-        });
+      const reqId = ++bioRequestId;
+      Promise.all(
+        urls.map((url) =>
+          fetch(url)
+            .then((res) => (res.ok ? res.text() : ""))
+            .catch((e) => {
+              console.error("Error loading campaign bio:", e);
+              return "";
+            }),
+        ),
+      ).then((parts) => {
+        if (reqId !== bioRequestId) return;
+        campaignBioText = parts
+          .map((p) => p.trim())
+          .filter(Boolean)
+          .join("\n\n");
+      });
     } else {
+      bioRequestId++;
       campaignBioText = "";
     }
   });
@@ -349,7 +521,12 @@
       link({ href, tokens }) {
         const label = this.parser.parseInline(tokens);
         const isRawUrl = label === href;
-        return `<a href="${href}" target="_blank" rel="noopener noreferrer" class="${BIO_LINK_CLASS}${isRawUrl ? " break-all" : ""}">${label}</a>`;
+        // Scheme allowlist: a bio link can point at the web, an email address
+        // or this site — never at javascript:/data:/vbscript: payloads.
+        const safeHref = /^(https?:|mailto:|tel:|\/|#)/i.test((href || "").trim())
+          ? href
+          : "#";
+        return `<a href="${safeHref}" target="_blank" rel="noopener noreferrer" class="${BIO_LINK_CLASS}${isRawUrl ? " break-all" : ""}">${label}</a>`;
       },
     },
   });
@@ -359,10 +536,17 @@
    * through untouched, so give them the same styling markdown links get.
    */
   function styleRawAnchors(html) {
-    return html.replace(
-      /<a (?![^>]*\bclass=)([^>]*)>/g,
-      `<a $1 target="_blank" rel="noopener noreferrer" class="${BIO_LINK_CLASS}">`,
-    );
+    return html
+      // Raw anchors bypass the marked renderer above, so give them the same
+      // scheme allowlist before they reach {@html}.
+      .replace(
+        /href\s*=\s*(["'])\s*(?:javascript|data|vbscript):[^"']*\1/gi,
+        'href="#"',
+      )
+      .replace(
+        /<a (?![^>]*\bclass=)([^>]*)>/g,
+        `<a $1 target="_blank" rel="noopener noreferrer" class="${BIO_LINK_CLASS}">`,
+      );
   }
 
   /**
@@ -914,6 +1098,7 @@
   let isLocating = $state(false);
   let locationStatusText = $state("");
   let emailCopyTimeout = null;
+  let locationTimer = null;
 
   /**
    * Recipients per mailto hand-off. Mail clients cap the URL they accept —
@@ -943,11 +1128,21 @@
   const DEFAULT_GROUP_LABEL = "Senate, statewide & federal offices";
 
   // Sync selected reps when campaign changes.
+  //
+  // Only the campaign id is tracked, and the body is untracked: this resets the
+  // user's selection and wipes the location status, so it must fire when the
+  // campaign actually changes and never because a derived recomputed underneath
+  // it — otherwise a geolocation result gets reverted a frame after it lands.
+  let syncedCampaignId = null;
   $effect(() => {
-    if (campaignRecipients.length > 0) {
+    const campaignId = selectedCampaign?.id ?? null;
+    if (campaignId === syncedCampaignId) return;
+    syncedCampaignId = campaignId;
+    untrack(() => {
+      if (campaignRecipients.length === 0) return;
       selectedReps = [...defaultReps];
       locationStatusText = "";
-    }
+    });
   });
 
   function getRepInfo(email) {
@@ -1124,6 +1319,13 @@
   const FIX_TIMEOUT_MS = 15000;
   /** Budget covering prompt + fix together, when we can't tell them apart. */
   const BLIND_TIMEOUT_MS = 45000;
+  /**
+   * A granted permission plus a 5-minute-old cached fix answers in a few
+   * milliseconds, so "LOCATING..." would paint for a single frame and the whole
+   * thing would read as a glitch — the selection just changing on its own. Hold
+   * the locating state long enough to be legible before showing the result.
+   */
+  const MIN_LOCATING_MS = 900;
 
   async function handleUseLocation(allEmails) {
     const tail = `Selected the ${fallbackReps.length} priority offices — or tick the boxes below.`;
@@ -1164,12 +1366,18 @@
     // First result wins; a late straggler can't re-fire either branch.
     let settled = false;
     let fixTimer = null;
+    const startedAt = Date.now();
     const once = (fn) => (arg) => {
       if (settled) return;
       settled = true;
       clearTimeout(fixTimer);
-      isLocating = false;
-      fn(arg);
+      // Latch immediately so nothing double-fires, but hold the visible
+      // "LOCATING..." state until it has been on screen long enough to read.
+      const hold = Math.max(0, MIN_LOCATING_MS - (Date.now() - startedAt));
+      locationTimer = setTimeout(() => {
+        isLocating = false;
+        fn(arg);
+      }, hold);
     };
 
     const succeed = once((pos) => applyClosestReps(pos, allEmails));
@@ -1308,6 +1516,28 @@
     locationStatusText = `${group.label} — ${emails.length} offices selected (${group.range.toLowerCase()}). ${group.blurb}`;
   }
 
+  /**
+   * THIS MEANS WAR — the captain and his officers. Lt. Gov. Patrick runs
+   * the Senate calendar where every House reform bill since 2019 has died;
+   * Perry wrote SB 3; Shaheen killed the House's regulate-don't-ban
+   * substitute. One button aims the letter at the ban's actual architects
+   * instead of the whole fleet.
+   */
+  const WAR_TARGET_NAMES = ["Dan Patrick", "Charles Perry", "Matt Shaheen"];
+
+  let warTargets = $derived(
+    lawmakers
+      .filter((l) => WAR_TARGET_NAMES.includes(l.name) && l.email?.trim())
+      .map((l) => l.email),
+  );
+
+  function handleTargetCaptain() {
+    if (warTargets.length === 0) return;
+    selectedReps = [...warTargets];
+    locationStatusText =
+      "🏴‍☠️ Broadside loaded: Lt. Gov. Dan Patrick (captain of the anti-weed ship — his Senate calendar is where House reform dies), Sen. Charles Perry (wrote SB 3), Rep. Matt Shaheen (killed the House's regulate-don't-ban plan). Fire when ready.";
+  }
+
   /* ------------------------------------------------------------------ */
   /* Reaching the whole roster, forty at a time                          */
   /* ------------------------------------------------------------------ */
@@ -1417,6 +1647,8 @@
 
   onDestroy(() => {
     if (countdownInterval) clearInterval(countdownInterval);
+    if (locationTimer) clearTimeout(locationTimer);
+    if (emailCopyTimeout) clearTimeout(emailCopyTimeout);
   });
 
   // Load cart from localStorage and re-verify stock
@@ -1529,7 +1761,7 @@
     if (cart.length === 0) return;
     // Route to external checkout pipelines
     cart.forEach((item) => {
-      window.open(item.checkoutUrl, "_blank");
+      window.open(item.checkoutUrl, "_blank", "noopener,noreferrer");
     });
     // Clear cart after checkout
     cart = [];
@@ -1635,6 +1867,21 @@
 
   let mapSlideIdx = $derived(campaignMedia.findIndex((m) => m.type === "map"));
 
+  /**
+   * A /stats/<tab> deep link has to land on the map slide before the map can
+   * open its sheet — the carousel only mounts the active slide. Runs once the
+   * campaign's media is actually assembled.
+   */
+  $effect(() => {
+    if (!initialStatsTab || mapSlideIdx < 0) return;
+    untrack(() => {
+      if (activeImageIdx !== mapSlideIdx) {
+        scrollDirection = activeImageIdx > mapSlideIdx ? -1 : 1;
+        activeImageIdx = mapSlideIdx;
+      }
+    });
+  });
+
   /** Bring the lawmaker map into view in the carousel. */
   function jumpToMap() {
     if (mapSlideIdx < 0) return;
@@ -1715,6 +1962,17 @@
   }
 
   function handlePopState(e) {
+    // Back with a letter open closes the letter, nothing else. Clear the
+    // pushed flag first so the letter effect doesn't fire a second back()
+    // for an entry the browser has already popped.
+    if (!e.state?.letterOpen && openLetter) {
+      letterHistoryPushed = false;
+      closeLetter();
+      if (e.state?.depth !== undefined) {
+        depth = e.state.depth;
+      }
+      return;
+    }
     if (!e.state?.cartOpen && isCartOpen) {
       isCartOpen = false;
       cartHistoryPushed = false;
@@ -2140,7 +2398,11 @@
                     <button
                       class="w-full py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl text-sm tracking-widest transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-red-900/30 cursor-pointer"
                       onclick={() =>
-                        window.open("https://cash.app/$cptnbrando", "_blank")}
+                        window.open(
+                          "https://cash.app/$cptnbrando",
+                          "_blank",
+                          "noopener,noreferrer",
+                        )}
                     >
                       <ShoppingCart size={18} /> ADD TO CART
                     </button>
@@ -2418,53 +2680,58 @@
                             title={`${lawmakers.length} 🐘🫏`}
                             saleMode={saleActive}
                             {copMode}
+                            bind:initialStatsTab
+                            campaignId={selectedCampaign?.id}
                             isFullscreen={isMapFullscreen}
                             onToggleFullscreen={() =>
                               (isMapFullscreen = !isMapFullscreen)}
                           />
                         </div>
                       {:else if currentMediaItem.type === "video"}
-                        {#if isVideoPlaying}
-                          {#if currentMediaItem.url.includes("youtube.com") || currentMediaItem.url.includes("youtu.be")}
-                            <iframe
-                              in:slideIn={{
-                                duration: 300,
-                                direction: scrollDirection,
-                              }}
-                              out:slideOut={{
-                                duration: 300,
-                                direction: scrollDirection,
-                              }}
-                              src={currentMediaItem.url +
-                                (currentMediaItem.url.includes("?")
-                                  ? "&autoplay=1"
-                                  : "?autoplay=1")}
-                              title="Fundraiser video player"
-                              class="absolute inset-0 w-full h-full"
-                              style="border: none;"
-                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                              referrerpolicy="strict-origin-when-cross-origin"
-                              allowfullscreen
-                            ></iframe>
-                          {:else}
-                            <video
-                              in:slideIn={{
-                                duration: 300,
-                                direction: scrollDirection,
-                              }}
-                              out:slideOut={{
-                                duration: 300,
-                                direction: scrollDirection,
-                              }}
-                              src={currentMediaItem.url}
-                              class="absolute inset-0 w-full h-full object-cover"
-                              controls
-                              autoplay
-                              muted
-                              loop
-                              playsinline
-                            ></video>
-                          {/if}
+                        {#if !currentMediaItem.url.includes("youtube.com") && !currentMediaItem.url.includes("youtu.be")}
+                          <!-- Direct video files play the way the merch page
+                               plays them: inline, muted, looping, native
+                               controls — no poster, no bespoke play button. -->
+                          <video
+                            in:slideIn={{
+                              duration: 300,
+                              direction: scrollDirection,
+                            }}
+                            out:slideOut={{
+                              duration: 300,
+                              direction: scrollDirection,
+                            }}
+                            src={currentMediaItem.url}
+                            poster={currentMediaItem.thumbnail || undefined}
+                            class="absolute inset-0 w-full h-full object-contain z-10"
+                            controls
+                            autoplay
+                            muted
+                            loop
+                            playsinline
+                            preload="metadata"
+                          ></video>
+                        {:else if isVideoPlaying}
+                          <iframe
+                            in:slideIn={{
+                              duration: 300,
+                              direction: scrollDirection,
+                            }}
+                            out:slideOut={{
+                              duration: 300,
+                              direction: scrollDirection,
+                            }}
+                            src={currentMediaItem.url +
+                              (currentMediaItem.url.includes("?")
+                                ? "&autoplay=1"
+                                : "?autoplay=1")}
+                            title="Fundraiser video player"
+                            class="absolute inset-0 w-full h-full"
+                            style="border: none;"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                            referrerpolicy="strict-origin-when-cross-origin"
+                            allowfullscreen
+                          ></iframe>
                         {:else}
                           <!-- svelte-ignore a11y_click_events_have_key_events -->
                           <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -2829,8 +3096,8 @@
                                 {#if timer.isZero}
                                   FEDERAL DEADLINE IS HERE — 0 DAYS LEFT!
                                 {:else}
-                                  FINAL COUNTDOWN: {timer.formattedDaysLeft} FOR
-                                  DELTA-9!
+                                  {timer.formattedDaysLeft} FOR
+                                  ALL THC!
                                 {/if}
                               {:else if timer.isZero}
                                 DECISION DAY IS HERE — 0 DAYS LEFT!
@@ -2848,8 +3115,23 @@
                             : 'border-red-500/40'} w-full shrink-0 shadow-inner"
                           class:clock-wind={clockWinding}
                         >
+                          <!-- Months only once there are any: a two-day
+                               countdown reading 00mo helps nobody. -->
+                          {#if timer.months > 0}
+                            <span class="text-white"
+                              >{String(timer.months).padStart(2, "0")}mo</span
+                            >
+                            <span
+                              class="{fin
+                                ? 'text-amber-500'
+                                : 'text-red-500'} font-extrabold text-[10px] animate-pulse"
+                              >:</span
+                            >
+                          {/if}
                           <span class="text-white"
-                            >{String(timer.days).padStart(2, "0")}d</span
+                            >{String(
+                              timer.months > 0 ? timer.restDays : timer.days,
+                            ).padStart(2, "0")}d</span
                           >
                           <span
                             class="{fin
@@ -2894,6 +3176,49 @@
                         {/if}
                       </div>
                     {/if}
+                  {/if}
+
+                  {#if selectedCampaign.correspondence?.length && !isMapFullscreen}
+                    <!-- Sits above the pitch on purpose: what the offices
+                         actually wrote back outranks anything we can say
+                         about them. -->
+                    <div class="corr-block">
+                      <div class="corr-head">
+                        <span class="corr-title"
+                          >📬 CORRESPONDENCE
+                          <span class="corr-count"
+                            >{selectedCampaign.correspondence.length}</span
+                          ></span
+                        >
+                        <span class="corr-sub"
+                          >We write to them. When they write back it goes here,
+                          in full and unedited — and we support anybody who
+                          keeps it real and keeps the discussion going.</span
+                        >
+                      </div>
+
+                      {#each selectedCampaign.correspondence as letter}
+                        <button
+                          class="corr-item"
+                          class:is-open={openLetter?.id === letter.id}
+                          onclick={() => showLetter(letter)}
+                        >
+                          <span class="corr-item-main">
+                            <span class="corr-from">{letter.from}</span>
+                            <span class="corr-meta"
+                              >{letter.office} · {letter.date}</span
+                            >
+                            <span class="corr-topic">{letter.topic}</span>
+                          </span>
+                          <span class="corr-right">
+                            {#if letter.status}
+                              <span class="corr-status">{letter.status}</span>
+                            {/if}
+                            <span class="corr-open">READ →</span>
+                          </span>
+                        </button>
+                      {/each}
+                    </div>
                   {/if}
 
                   {#if selectedCampaign.id === "justice-for-rusty"}
@@ -2997,6 +3322,36 @@
                     {/if}
                   {:else}
                     <!-- Legacy/Standard layout for other campaigns with milestones/progress -->
+                    {#if selectedCampaign.id === SALE_CAMPAIGN_ID}
+                      <!-- Three versions of one campaign, and the sequence is
+                           half the argument. The calendar still decides what
+                           opens; these just let you read the other two. -->
+                      <div
+                        class="variant-tabs"
+                        role="tablist"
+                        aria-label="Campaign versions"
+                      >
+                        {#each CAMPAIGN_VARIANTS as v}
+                          <button
+                            role="tab"
+                            aria-selected={activePhase === v.id}
+                            title={v.blurb}
+                            class="variant-tab v-{v.id}"
+                            class:is-active={activePhase === v.id}
+                            onclick={() =>
+                              (variantOverride =
+                                v.id === livePhase ? null : v.id)}
+                          >
+                            <span class="vt-icon">{v.icon}</span>
+                            <span class="vt-label">{v.label}</span>
+                            {#if livePhase === v.id}
+                              <span class="vt-live" title="Live right now"
+                              ></span>
+                            {/if}
+                          </button>
+                        {/each}
+                      </div>
+                    {/if}
                     <!-- Full bio, no max-height constraint: the panel scrolls, the text never compacts -->
                     {#key bioPhase}
                       <!-- Where the pitch turns from gold hype into cop-light
@@ -3175,11 +3530,17 @@
                                   onclick={() =>
                                     handleUseLocation(campaignRecipients)}
                                   disabled={isLocating}
-                                  class="py-2 px-3 bg-emerald-950/60 hover:bg-emerald-900/60 border border-emerald-500/40 text-emerald-300 font-mono text-[11px] font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                                  class="py-2 px-3 bg-emerald-950/60 hover:bg-emerald-900/60 border border-emerald-500/40 text-emerald-300 font-mono text-[11px] font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-100 disabled:cursor-wait"
+                                  class:locating-pulse={isLocating}
                                 >
-                                  📍 {isLocating
-                                    ? "LOCATING..."
-                                    : "USE LOCATION (AUTO-SELECT CLOSEST)"}
+                                  {#if isLocating}
+                                    <span
+                                      class="inline-block w-3 h-3 rounded-full border-2 border-emerald-400/30 border-t-emerald-300 animate-spin"
+                                    ></span>
+                                    LOCATING...
+                                  {:else}
+                                    📍 USE LOCATION (AUTO-SELECT CLOSEST)
+                                  {/if}
                                 </button>
 
                                 <div
@@ -3240,6 +3601,25 @@
                                     {/each}
                                   </div>
 
+                                  <!-- The captain and his officers: the ban's
+                                       actual architects, one broadside. -->
+                                  {#if warTargets.length > 0}
+                                    <button
+                                      onclick={handleTargetCaptain}
+                                      title="Select Lt. Gov. Patrick and the ban's architects"
+                                      class="w-full py-2.5 px-3 bg-gradient-to-r from-red-950/70 via-zinc-950 to-blue-950/70 hover:from-red-900/70 hover:to-blue-900/70 border border-red-500/50 hover:border-red-400 text-white rounded-lg font-mono text-[10px] font-black transition-all flex flex-col items-center justify-center gap-0.5 text-center cursor-pointer shadow-lg"
+                                    >
+                                      <span class="leading-tight tracking-widest"
+                                        >🏴‍☠️ TALK TO THE ARCHITECTS</span
+                                      >
+                                      <span
+                                        class="text-[9px] font-bold text-red-200/80 normal-case tracking-normal"
+                                        >Lt. Gov. Patrick, Sen. Perry &amp; Rep.
+                                        Shaheen — the ban's architects ({warTargets.length})</span
+                                      >
+                                    </button>
+                                  {/if}
+
                                   <div class="grid grid-cols-2 gap-2">
                                     <button
                                       onclick={() =>
@@ -3287,12 +3667,19 @@
                                 </div>
                               {/if}
 
+                              <!-- Keyed so a second run re-plays the fade: the
+                                   result often reads similarly to the last one,
+                                   and without the flash it looks like nothing
+                                   happened. -->
                               {#if locationStatusText}
-                                <div
-                                  class="text-[10px] font-mono text-emerald-400 bg-emerald-950/30 p-2 rounded border border-emerald-500/20"
-                                >
-                                  {locationStatusText}
-                                </div>
+                                {#key locationStatusText}
+                                  <div
+                                    in:fade={{ duration: 200 }}
+                                    class="text-[10px] font-mono text-emerald-300 bg-emerald-950/40 p-2 rounded border border-emerald-500/30 status-flash"
+                                  >
+                                    {locationStatusText}
+                                  </div>
+                                {/key}
                               {/if}
 
                               <!-- Checked Counter & List -->
@@ -3486,15 +3873,17 @@
                               divided by 184 representatives), but frankly, I pay
                               enough taxes in this country for those hired to
                               lead us to realize this dogshit system ain't working
-                              right. And millions in a silent majority are left to
+                              right. I can barely manage my 2,000 Facebook friends,
+                              how can anyone represent 172,336 people? Without any
+                              proper, verified communication systems for the people?
+                              Millions in a silent majority are left to
                               constantly face new obstacles, new hardships, new
                               pain directly because of their representatives not
                               representing all 172k they are supposed to
                               represent.
                             </p>
                             <p class="font-bold text-amber-300">
-                              Do what you want to do. Bark. Bark as loud as
-                              possible. Always.
+                              Do what you want to do. Bark.
                             </p>
                           </div>
                         </div>
@@ -3511,11 +3900,10 @@
                           <p
                             class="text-[11px] text-amber-200/80 leading-relaxed font-sans"
                           >
-                            Stripe payment gateway integration is currently
-                            being configured for this campaign. Direct financial
-                            contributions are not active yet. In the meantime,
-                            please use the button above to email Texas lawmakers
-                            directly!
+                            I haven't made the Stripe payment gateway yet.
+                            But I'm in this for the love of the game.
+                            Unless something changes millions of dollars 
+                            and millions of people will be hurt over this.
                           </p>
                         </div>
                       {/if}
@@ -3660,6 +4048,62 @@
             >{p.emoji}</span
           >
         {/each}
+      </div>
+    {/if}
+
+    <!-- CORRESPONDENCE POPUP — a reply gets its own window, not a fold-out
+         inside the pitch. It is their letter, on their letterhead. -->
+    {#if openLetter}
+      <!-- svelte-ignore a11y_click_events_have_key_events -->
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <!-- Intro only. An outro here never completes in this panel, and a
+           faded-out `fixed inset-0` backdrop still eats every click on the
+           page — closing the letter would lock the store. -->
+      <div
+        in:fade={{ duration: 180 }}
+        class="fixed inset-0 bg-black/75 z-[99990] backdrop-blur-sm"
+        onclick={closeLetter}
+      ></div>
+
+      <div
+        in:scale={{ duration: 220, start: 0.96 }}
+        class="corr-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Correspondence"
+      >
+        <div class="corr-modal-head">
+          <div class="corr-modal-id">
+            <span class="corr-modal-kicker">📬 CORRESPONDENCE</span>
+            <span class="corr-modal-from">{openLetter.from}</span>
+            <span class="corr-modal-meta"
+              >{openLetter.office} · {openLetter.date}</span
+            >
+          </div>
+          <div class="corr-modal-actions">
+            {#if openLetter.status}
+              <span class="corr-status">{openLetter.status}</span>
+            {/if}
+            <button
+              class="corr-close"
+              onclick={closeLetter}
+              title="Close (Esc)"
+              aria-label="Close letter"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+
+        <div class="corr-modal-body">
+          {#if letterLoading}
+            <p class="corr-loading">OPENING THE ENVELOPE…</p>
+          {:else if letterHtml}
+            {@html letterHtml}
+          {:else}
+            <p class="corr-loading">COULD NOT LOAD THIS LETTER.</p>
+          {/if}
+        </div>
       </div>
     {/if}
 
@@ -4305,6 +4749,369 @@
   /* ---------------------------------------------------------------- */
   /* Critical campaign bio — emphasis                                  */
   /* ---------------------------------------------------------------- */
+
+  /* ---------------------------------------------------------------- */
+  /* Variant tabs — the three faces of the Texas campaign              */
+  /* ---------------------------------------------------------------- */
+
+  .variant-tabs {
+    display: flex;
+    gap: 0.35rem;
+    margin-top: 0.85rem;
+    padding-bottom: 0.15rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .variant-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .variant-tab {
+    position: relative;
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 0.45rem 0.5rem;
+    border: 1px solid rgb(39 39 42);
+    border-radius: 0.6rem;
+    background: rgba(24, 24, 27, 0.6);
+    color: #71717a;
+    font-family: ui-monospace, monospace;
+    font-size: 0.6rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+      color 0.2s,
+      border-color 0.2s,
+      background 0.2s,
+      transform 0.12s;
+  }
+  .variant-tab:hover {
+    color: #d4d4d8;
+    border-color: rgb(63 63 70);
+    background: rgba(39, 39, 42, 0.7);
+  }
+  .variant-tab:active {
+    transform: scale(0.97);
+  }
+  .vt-icon {
+    font-size: 0.8rem;
+    line-height: 1;
+  }
+  .vt-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* The dot marks whichever version the calendar says is live today. */
+  .vt-live {
+    width: 5px;
+    height: 5px;
+    border-radius: 999px;
+    background: #34d399;
+    box-shadow: 0 0 6px #34d399;
+    animation: vt-live-pulse 2.2s ease-in-out infinite;
+    flex-shrink: 0;
+  }
+  @keyframes vt-live-pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.25;
+    }
+  }
+
+  /* Each tab lights in its own version's colour when selected. */
+  .variant-tab.is-active.v-base {
+    color: #6ee7b7;
+    border-color: rgba(16, 185, 129, 0.55);
+    background: rgba(16, 185, 129, 0.12);
+  }
+  .variant-tab.is-active.v-sale {
+    color: #fde68a;
+    border-color: rgba(250, 204, 21, 0.6);
+    background: rgba(250, 204, 21, 0.14);
+  }
+  .variant-tab.is-active.v-nov {
+    color: #fdba74;
+    border-color: rgba(249, 115, 22, 0.55);
+    background: rgba(249, 115, 22, 0.13);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .vt-live {
+      animation: none;
+    }
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* Correspondence — the replies, printed whole                       */
+  /* ---------------------------------------------------------------- */
+
+  .corr-block {
+    margin-top: 0.9rem;
+    padding: 0.75rem;
+    border: 1px solid rgba(56, 189, 248, 0.28);
+    border-radius: 0.85rem;
+    background: linear-gradient(
+      180deg,
+      rgba(8, 47, 73, 0.35),
+      rgba(24, 24, 27, 0.35)
+    );
+  }
+
+  .corr-head {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding-bottom: 0.6rem;
+    border-bottom: 1px solid rgba(56, 189, 248, 0.18);
+  }
+  .corr-title {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: #7dd3fc;
+    font-family: ui-monospace, monospace;
+    font-size: 0.65rem;
+    font-weight: 900;
+    letter-spacing: 0.16em;
+  }
+  .corr-count {
+    padding: 0.05rem 0.35rem;
+    border-radius: 999px;
+    background: rgba(56, 189, 248, 0.18);
+    color: #bae6fd;
+    font-size: 0.55rem;
+  }
+  .corr-sub {
+    color: #71717a;
+    font-size: 0.62rem;
+    line-height: 1.5;
+  }
+
+  .corr-item {
+    width: 100%;
+    margin-top: 0.6rem;
+    padding: 0.55rem 0.6rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    border: 1px solid rgb(39 39 42);
+    border-radius: 0.6rem;
+    background: rgba(9, 9, 11, 0.55);
+    text-align: left;
+    cursor: pointer;
+    transition:
+      border-color 0.2s,
+      background 0.2s;
+  }
+  .corr-item:hover,
+  .corr-item.is-open {
+    border-color: rgba(56, 189, 248, 0.5);
+    background: rgba(8, 47, 73, 0.4);
+  }
+  .corr-item-main {
+    display: flex;
+    flex-direction: column;
+    gap: 0.12rem;
+    min-width: 0;
+  }
+  .corr-from {
+    color: #e4e4e7;
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+  }
+  .corr-meta,
+  .corr-topic {
+    color: #71717a;
+    font-family: ui-monospace, monospace;
+    font-size: 0.58rem;
+    letter-spacing: 0.06em;
+    overflow-wrap: anywhere;
+  }
+  .corr-topic {
+    color: #52525b;
+  }
+  .corr-right {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    flex-shrink: 0;
+  }
+  .corr-status {
+    padding: 0.1rem 0.35rem;
+    border: 1px solid rgba(52, 211, 153, 0.45);
+    border-radius: 0.3rem;
+    background: rgba(16, 185, 129, 0.12);
+    color: #6ee7b7;
+    font-family: ui-monospace, monospace;
+    font-size: 0.5rem;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+  }
+  .corr-open {
+    color: #7dd3fc;
+    font-family: ui-monospace, monospace;
+    font-size: 0.55rem;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+  }
+
+  /* The popup itself */
+  .corr-modal {
+    position: fixed;
+    z-index: 99991;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(760px, calc(100vw - 1.5rem));
+    max-height: min(88dvh, 900px);
+    display: flex;
+    flex-direction: column;
+    border: 1px solid rgba(56, 189, 248, 0.35);
+    border-radius: 1rem;
+    background: #09090b;
+    box-shadow:
+      0 25px 60px rgba(0, 0, 0, 0.75),
+      0 0 0 1px rgba(56, 189, 248, 0.08);
+    overflow: hidden;
+  }
+
+  .corr-modal-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.9rem 1rem;
+    border-bottom: 1px solid rgba(56, 189, 248, 0.22);
+    background: linear-gradient(
+      180deg,
+      rgba(8, 47, 73, 0.55),
+      rgba(9, 9, 11, 0.2)
+    );
+  }
+  .corr-modal-id {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+  }
+  .corr-modal-kicker {
+    color: #38bdf8;
+    font-family: ui-monospace, monospace;
+    font-size: 0.55rem;
+    font-weight: 900;
+    letter-spacing: 0.18em;
+  }
+  .corr-modal-from {
+    color: #fafafa;
+    font-size: 0.95rem;
+    font-weight: 900;
+    letter-spacing: 0.02em;
+  }
+  .corr-modal-meta {
+    color: #71717a;
+    font-family: ui-monospace, monospace;
+    font-size: 0.58rem;
+    letter-spacing: 0.08em;
+  }
+  .corr-modal-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+  }
+  .corr-close {
+    padding: 0.4rem;
+    border: 1px solid rgb(39 39 42);
+    border-radius: 0.5rem;
+    background: rgb(24 24 27);
+    color: #a1a1aa;
+    cursor: pointer;
+    transition:
+      color 0.2s,
+      border-color 0.2s;
+  }
+  .corr-close:hover {
+    color: #fafafa;
+    border-color: rgb(82 82 91);
+  }
+
+  .corr-modal-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 1rem 1.15rem 1.4rem;
+    color: #a1a1aa;
+    font-size: 0.8rem;
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+  }
+  .corr-loading {
+    color: #52525b;
+    font-family: ui-monospace, monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.14em;
+  }
+
+  /* The letter is rendered markdown, so it needs its own type scale. */
+  .corr-modal-body :global(h1) {
+    color: #e4e4e7;
+    font-size: 0.8rem;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+  .corr-modal-body :global(h2) {
+    color: #7dd3fc;
+    font-family: ui-monospace, monospace;
+    font-size: 0.65rem;
+    font-weight: 900;
+    letter-spacing: 0.16em;
+    margin: 1.1rem 0 0.5rem;
+  }
+  .corr-modal-body :global(p) {
+    margin-bottom: 0.75rem;
+  }
+  .corr-modal-body :global(strong) {
+    color: #d4d4d8;
+  }
+  .corr-modal-body :global(em) {
+    color: #71717a;
+  }
+  .corr-modal-body :global(hr) {
+    border-color: rgb(39 39 42);
+    margin: 1rem 0;
+  }
+  .corr-modal-body :global(ul) {
+    padding-left: 1.1rem;
+    list-style: disc;
+    margin-bottom: 0.75rem;
+  }
+
+  /* Their words, set apart — this is the part we did not write. */
+  .corr-modal-body :global(blockquote) {
+    margin: 0.75rem 0;
+    padding: 0.6rem 0.9rem;
+    border-left: 3px solid rgba(56, 189, 248, 0.55);
+    border-radius: 0 0.5rem 0.5rem 0;
+    background: rgba(8, 47, 73, 0.3);
+    color: #d4d4d8;
+  }
+  .corr-modal-body :global(blockquote p:last-child) {
+    margin-bottom: 0;
+  }
 
   /* The bio text is deliberately static. It used to fade and lift each
      paragraph in on scroll, which fought with reading a long argument; the
@@ -5030,6 +5837,39 @@
       6px 0 18px rgba(59, 130, 246, 0.6);
   }
 
+  /* The location lookup can resolve from cache almost instantly, so the button
+     and its result both announce themselves rather than blinking past. */
+  .locating-pulse {
+    animation: locatingPulse 1.1s ease-in-out infinite;
+  }
+
+  @keyframes locatingPulse {
+    0%,
+    100% {
+      box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5);
+    }
+    50% {
+      box-shadow: 0 0 0 4px rgba(16, 185, 129, 0);
+    }
+  }
+
+  .status-flash {
+    animation: statusFlash 1.6s ease-out;
+  }
+
+  @keyframes statusFlash {
+    0% {
+      box-shadow:
+        0 0 0 2px rgba(16, 185, 129, 0.9),
+        0 0 22px rgba(16, 185, 129, 0.5);
+    }
+    100% {
+      box-shadow:
+        0 0 0 0 rgba(16, 185, 129, 0),
+        0 0 0 rgba(16, 185, 129, 0);
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .critical-bio :global(b.em-deadline),
     .critical-bio :global(b.em-alarm),
@@ -5038,6 +5878,8 @@
     .sale-bio :global(b.warn-em-sentence),
     .warn-banner,
     .jump-arrow,
+    .locating-pulse,
+    .status-flash,
     .email-flash,
     .sale-title,
     .sale-widget,

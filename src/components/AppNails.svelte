@@ -14,12 +14,20 @@
     Eye,
     Mic,
     Film,
+    Calculator,
   } from "lucide-svelte";
 
   let { appId } = $props();
 </script>
 
-{#if appId === "gopro"}
+{#if appId === "calculator"}
+  <div class="flex items-center justify-center h-full">
+    <Calculator
+      size={28}
+      style="color: var(--color-neon-pink, #ff55bb); filter: drop-shadow(0 0 6px rgba(255, 85, 187, 0.4));"
+    />
+  </div>
+{:else if appId === "gopro"}
   <div class="video-preview-mini">
     <span class="lens"></span>
     <span class="tape t1"></span>
