@@ -798,6 +798,34 @@
     }
   }
 
+  /* Landscape phones & short landscape windows: dock the tiles as a
+     vertical column on the right edge of the screen instead of crowding
+     the space under the title. Sizes still come from the height tiers
+     above. The nav is centered inside .words-wrapper (itself centered in
+     the viewport), so 50% - 50vw reaches the true screen edge. */
+  @media (orientation: landscape) and (max-height: 620px) {
+    .hieroglyphic-nav {
+      flex-direction: column;
+      top: 50%;
+      left: auto;
+      right: calc(50% - 50vw + max(5.5rem, env(safe-area-inset-right)));
+      gap: 1rem;
+      transform: translateY(-50%);
+      animation: slideInRightFade 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+  }
+
+  @keyframes slideInRightFade {
+    from {
+      opacity: 0;
+      transform: translate(20px, -50%);
+    }
+    to {
+      opacity: 1;
+      transform: translate(0, -50%);
+    }
+  }
+
   @keyframes runeDance {
     0%,
     100% {
