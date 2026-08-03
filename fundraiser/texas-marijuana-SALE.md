@@ -26,19 +26,19 @@ Tomorrow, come August 1st, everything in that overflowing cart legally transform
 
 THE NEW PRICE LIST, courtesy of the Texas Penal Code.
 
-Possession of up to 2 ounces of flower: a Class B misdemeanor, up to 180 days in jail and a $2,000 fine. 
+Possession of up to 2 ounces of flower: a Class B misdemeanor, up to 180 days in jail and a $2,000 fine. [\[Tex. HSC §481.121\]](https://statutes.capitol.texas.gov/Docs/HS/htm/HS.481.htm#481.121)
 
-Over 2 ounces: Class A, up to 1 year and $4,000. 
+Over 2 ounces: Class A, up to 1 year and $4,000. [\[Tex. HSC §481.121\]](https://statutes.capitol.texas.gov/Docs/HS/htm/HS.481.htm#481.121)
 
-But your vapes, your dabs, your gummies? Those count as THC CONCENTRATE, and possession of ANY amount under a gram is a STATE JAIL FELONY — 180 days to 2 years locked up and up to $10,000, exactly what Austin police have promised for Delta-8.
+But your vapes, your dabs, your gummies? Those count as THC CONCENTRATE in Penalty Group 2 — next to MDMA — and possession of ANY amount under a gram is a STATE JAIL FELONY — 180 days to 2 years locked up and up to $10,000, exactly what Austin police have promised for Delta-8. And the whole gummy weighs against you, sugar and gelatin included, so a handful can read as 4+ grams: 2 TO 20 YEARS. [\[§481.103\]](https://statutes.capitol.texas.gov/Docs/HS/htm/HS.481.htm#481.103) [\[§481.116\]](https://statutes.capitol.texas.gov/Docs/HS/htm/HS.481.htm#481.116) [\[From KUT\]](https://www.kut.org/business/2026-07-28/austin-tx-delta-8-ban-police-felony-thc-dshs)
 
-Selling or even "delivering" to a friend climbs from there: a quarter ounce to 5 pounds is a felony, 2 to 20 years as the weight goes up.
+Selling or even "delivering" to a friend climbs from there: a quarter ounce to 5 pounds is a felony, 2 to 20 years as the weight goes up. [\[Tex. HSC §481.120\]](https://statutes.capitol.texas.gov/Docs/HS/htm/HS.481.htm#481.120)
 
 And here's the best part: there is no breathalyzer for weed. When police pull you over, you can walk the line perfectly, answer coherently, maybe you have an accent, maybe you sound too exhausted after a 10 hour work day, maybe your face looks funny. Maybe you're not even driving maybe it's auto or a taxi.
 
 Officer suspicion is the only field test that exists.
 
-Their hunch trumps your sober evening, and they can hold you up to 48 hours on it while a judge gets around to your name.
+Their hunch trumps your sober evening, and they can hold you up to 48 hours on it while a judge gets around to your name. [\[Tex. CCP art. 17.033\]](https://statutes.capitol.texas.gov/Docs/CR/htm/CR.17.htm#17.033)
 
 Oh, there ARE tests. CVS sells piss kits: you piss on the stick, dunk it in the science liquid, and it brightens up if you've smoked in the last 30 DAYS. 30 DAYS!! The high lasts a couple of hours; the evidence lasts a month. The seltzer you drank LEGALLY, way back on July 4th can read as guilty on an August drug screen. The test doesn't prove you're impaired — it proves you existed in July.
 
