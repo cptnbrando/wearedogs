@@ -483,8 +483,8 @@
     // From August 1st the driver's letter runs underneath the November pitch,
     // as one continuous read — same paragraph machinery, no second component.
     const urls = [bioUrl];
-    if (camp && novActive && camp.novBioAppendUrl)
-      urls.push(camp.novBioAppendUrl);
+    // if (camp && novActive && camp.novBioAppendUrl)
+    //   urls.push(camp.novBioAppendUrl);
     if (camp && bioUrl) {
       const reqId = ++bioRequestId;
       Promise.all(
