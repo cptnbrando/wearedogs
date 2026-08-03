@@ -3096,8 +3096,8 @@
                                 {#if timer.isZero}
                                   FEDERAL DEADLINE IS HERE — 0 DAYS LEFT!
                                 {:else}
-                                  FINAL COUNTDOWN: {timer.formattedDaysLeft} FOR
-                                  DELTA-9!
+                                  {timer.formattedDaysLeft} FOR
+                                  ALL THC!
                                 {/if}
                               {:else if timer.isZero}
                                 DECISION DAY IS HERE — 0 DAYS LEFT!
