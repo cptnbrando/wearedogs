@@ -2688,47 +2688,50 @@
                           />
                         </div>
                       {:else if currentMediaItem.type === "video"}
-                        {#if isVideoPlaying}
-                          {#if currentMediaItem.url.includes("youtube.com") || currentMediaItem.url.includes("youtu.be")}
-                            <iframe
-                              in:slideIn={{
-                                duration: 300,
-                                direction: scrollDirection,
-                              }}
-                              out:slideOut={{
-                                duration: 300,
-                                direction: scrollDirection,
-                              }}
-                              src={currentMediaItem.url +
-                                (currentMediaItem.url.includes("?")
-                                  ? "&autoplay=1"
-                                  : "?autoplay=1")}
-                              title="Fundraiser video player"
-                              class="absolute inset-0 w-full h-full"
-                              style="border: none;"
-                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                              referrerpolicy="strict-origin-when-cross-origin"
-                              allowfullscreen
-                            ></iframe>
-                          {:else}
-                            <video
-                              in:slideIn={{
-                                duration: 300,
-                                direction: scrollDirection,
-                              }}
-                              out:slideOut={{
-                                duration: 300,
-                                direction: scrollDirection,
-                              }}
-                              src={currentMediaItem.url}
-                              class="absolute inset-0 w-full h-full object-cover"
-                              controls
-                              autoplay
-                              muted
-                              loop
-                              playsinline
-                            ></video>
-                          {/if}
+                        {#if !currentMediaItem.url.includes("youtube.com") && !currentMediaItem.url.includes("youtu.be")}
+                          <!-- Direct video files play the way the merch page
+                               plays them: inline, muted, looping, native
+                               controls — no poster, no bespoke play button. -->
+                          <video
+                            in:slideIn={{
+                              duration: 300,
+                              direction: scrollDirection,
+                            }}
+                            out:slideOut={{
+                              duration: 300,
+                              direction: scrollDirection,
+                            }}
+                            src={currentMediaItem.url}
+                            poster={currentMediaItem.thumbnail || undefined}
+                            class="absolute inset-0 w-full h-full object-contain z-10"
+                            controls
+                            autoplay
+                            muted
+                            loop
+                            playsinline
+                            preload="metadata"
+                          ></video>
+                        {:else if isVideoPlaying}
+                          <iframe
+                            in:slideIn={{
+                              duration: 300,
+                              direction: scrollDirection,
+                            }}
+                            out:slideOut={{
+                              duration: 300,
+                              direction: scrollDirection,
+                            }}
+                            src={currentMediaItem.url +
+                              (currentMediaItem.url.includes("?")
+                                ? "&autoplay=1"
+                                : "?autoplay=1")}
+                            title="Fundraiser video player"
+                            class="absolute inset-0 w-full h-full"
+                            style="border: none;"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                            referrerpolicy="strict-origin-when-cross-origin"
+                            allowfullscreen
+                          ></iframe>
                         {:else}
                           <!-- svelte-ignore a11y_click_events_have_key_events -->
                           <!-- svelte-ignore a11y_no_static_element_interactions -->
