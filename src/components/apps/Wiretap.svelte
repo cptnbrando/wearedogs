@@ -843,6 +843,9 @@
       end_local_time: end.toString(),
       dates: getDateRangeStr(clip.timestamp, end),
       duration_seconds: clip.duration,
+      burst_duration_seconds: clip.burstDuration !== undefined ? clip.burstDuration : null,
+      is_prick: clip.isPrick !== undefined ? clip.isPrick : (clip.burstDuration < 1.0),
+      is_not_just_a_prick: clip.isNotJustAPrick !== undefined ? clip.isNotJustAPrick : (clip.burstDuration >= 1.0),
       location: deviceCoords
         ? `${deviceCoords.latitude.toFixed(6)}, ${deviceCoords.longitude.toFixed(6)}`
         : locationText || "MANUAL",
@@ -1756,7 +1759,7 @@
                       <!-- Metadata -->
                       <div class="flex-grow min-w-0 text-left">
                         <div
-                          class="flex items-center gap-1.5 text-white/90 font-bold mb-0.5"
+                          class="flex items-center flex-wrap gap-1.5 text-white/90 font-bold mb-0.5"
                         >
                           <span class="truncate"
                             >{clip.isVideo ? "VIDEO" : "AUDIO"} CLIP</span
@@ -1764,14 +1767,35 @@
                           <span class="text-white/45 text-[10px] font-normal"
                             >{clip.duration.toFixed(1)}s</span
                           >
+
+                          {#if clip.isNotJustAPrick || (clip.burstDuration !== undefined && clip.burstDuration >= 1.0)}
+                            <span
+                              class="yellow-highlighter-crossed"
+                              title="Sound burst lasted >= 1.0s (not a simple prick)"
+                            >
+                              <span class="crossed-text">NOT JUST A PRICK</span>
+                            </span>
+                          {:else if clip.isPrick || (clip.burstDuration !== undefined && clip.burstDuration < 1.0)}
+                            <span
+                              class="prick-snap-tag"
+                              title="Sudden sound burst < 1.0s (prick)"
+                            >
+                              ⚡ PRICK ({clip.burstDuration !== undefined ? clip.burstDuration.toFixed(1) + 's' : '<1.0s'})
+                            </span>
+                          {/if}
                         </div>
-                        <div class="text-[10px] text-white/40 leading-none">
-                          {clip.timestamp.toLocaleDateString()}
-                          {clip.timestamp.toLocaleTimeString([], {
-                            hour: "numeric",
-                            minute: "2-digit",
-                            second: "2-digit",
-                          })}
+                        <div class="text-[10px] text-white/40 leading-none flex items-center gap-1.5 flex-wrap">
+                          <span>
+                            {clip.timestamp.toLocaleDateString()}
+                            {clip.timestamp.toLocaleTimeString([], {
+                              hour: "numeric",
+                              minute: "2-digit",
+                              second: "2-digit",
+                            })}
+                          </span>
+                          {#if clip.burstDuration !== undefined}
+                            <span class="text-white/30">• burst: {clip.burstDuration.toFixed(1)}s</span>
+                          {/if}
                         </div>
                       </div>
 
