@@ -6,6 +6,7 @@
     ChevronLeft,
     ChevronRight,
     Camera,
+    Download,
     Upload,
     RotateCcw
   } from "lucide-svelte";
@@ -411,20 +412,50 @@
     if (!ctxCanvas) return;
 
     ctxCanvas.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+    downloadCanvasPng(canvas, "", `Saved frame ${currentFrame}!`);
+  }
+
+  function downloadCanvasPng(canvas, suffix, successText) {
     try {
       const dataUrl = canvas.toDataURL("image/png");
       const a = document.createElement("a");
       const baseName = videoFile ? videoFile.name.substring(0, videoFile.name.lastIndexOf('.')) || videoFile.name : "video";
       a.href = dataUrl;
-      a.download = `${baseName}_frame_${currentFrame}.png`;
+      a.download = `${baseName}_frame_${currentFrame}${suffix}.png`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      showNotification(`Saved frame ${currentFrame}!`);
+      showNotification(successText);
     } catch (err) {
       console.error(err);
       showNotification("Error exporting frame.");
     }
+  }
+
+  // Full HD screenshot: the current frame scaled to fit a 1920x1080 box
+  // (1080x1920 for portrait clips), keeping aspect ratio — no letterbox bars.
+  function captureFullHdScreenshot() {
+    if (!videoEl) return;
+    const srcW = videoWidth || videoEl.videoWidth;
+    const srcH = videoHeight || videoEl.videoHeight;
+    if (!srcW || !srcH) return;
+
+    const [boxW, boxH] = srcW >= srcH ? [1920, 1080] : [1080, 1920];
+    const scale = Math.min(boxW / srcW, boxH / srcH);
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(srcW * scale);
+    canvas.height = Math.round(srcH * scale);
+    const ctxCanvas = canvas.getContext("2d");
+    if (!ctxCanvas) return;
+
+    ctxCanvas.imageSmoothingEnabled = true;
+    ctxCanvas.imageSmoothingQuality = "high";
+    ctxCanvas.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+    downloadCanvasPng(
+      canvas,
+      "_fullhd",
+      `Saved frame ${currentFrame} in Full HD (${canvas.width}x${canvas.height})!`
+    );
   }
 
   function handleBeforeUnload(e) {
@@ -657,6 +688,9 @@
         <div class="export-actions">
           <button onclick={captureSnapshot} class="snapshot-btn">
             <Camera size={16} class="mr-2" /> CAPTURE HIGH-RES FRAME
+          </button>
+          <button onclick={captureFullHdScreenshot} class="snapshot-btn" title="Download the current frame as a Full HD (1080p) PNG">
+            <Download size={16} class="mr-2" /> FULL HD SCREENSHOT
           </button>
         </div>
       </div>
@@ -1159,6 +1193,9 @@
     .export-actions {
       margin-top: auto;
       flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
 
       .snapshot-btn {
         background: rgba(230, 185, 0, 0.12);
