@@ -46,8 +46,17 @@
    * @returns {Object|null} The match object or null.
    */
   function getCurrentMatch() {
+    // The games array is in feed order, not chronological order, so "last
+    // finished" has to compare kickoff times — otherwise the badge lands on
+    // whatever finished game happens to sit at the end of the array.
+    const kickoff = (g) => {
+      const t = Date.parse(g.local_date);
+      return Number.isNaN(t) ? parseInt(g.id, 10) : t;
+    };
     const finished = controller.games.filter((g) => g.finished === "TRUE");
-    if (finished.length) return finished[finished.length - 1];
+    if (finished.length) {
+      return finished.reduce((a, b) => (kickoff(b) >= kickoff(a) ? b : a));
+    }
     return controller.games[controller.games.length - 1] || null;
   }
 
