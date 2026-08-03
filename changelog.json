@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1785713417,
+    "firstCommitTimestamp": 1785715439,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 175672
+    "averageLinesAltered": 175810
   },
   "entries": [
     {
       "version": "1.0.3",
       "name": "Master",
-      "date": "2026-08-02",
-      "timestamp": 1785713457,
+      "date": "2026-08-03",
+      "timestamp": 1785715405,
       "commits": [
         {
-          "hash": "24725e0",
-          "message": "Merge pull request #41 from cptnbrando/ai/worldcup-2026-freeze",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/24725e0f24a048ccca8b59515d724223ee133b71",
-          "timestamp": 1785713417,
-          "linesChanged": 175672
+          "hash": "54202ad",
+          "message": "Dock landing-page nav tiles to the right edge on short landscape viewports",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/54202ad0c4fa91078ac1b49fac794e455a690611",
+          "timestamp": 1785715439,
+          "linesChanged": 175810
         }
       ]
     },
