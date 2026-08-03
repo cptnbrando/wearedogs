@@ -12,7 +12,12 @@
     ChevronDown,
   } from "lucide-svelte";
   import WeAreDogs from "./WeAreDogs.svelte";
-  import { parsePath, panelToUrl, appToUrl } from "../lib/router.svelte.js";
+  import {
+    parsePath,
+    panelToUrl,
+    appToUrl,
+    CAMPAIGN_STATS_ID,
+  } from "../lib/router.svelte.js";
   import { audioCore } from "../lib/AudioCore.svelte.js";
 
   // Active view state: 'stats' | 'networking' | 'toolbox' | 'music' | 'store' | 'map' | null
@@ -188,6 +193,8 @@
   let deepLinkArcadeGame = $state(null);
   let deepLinkStoreCampaignId = $state(null);
   let deepLinkStoreProductId = $state(null);
+  /** Which map stats tab a /stats/<tab> deep link asked for. */
+  let deepLinkStatsTab = $state(null);
 
   // ---------------------------------------------------------------------------
   // URL Routing — parse deep-link on first mount
@@ -222,6 +229,22 @@
         { view: "store", campaignId: params.campaignId, depth: 2 },
         "",
         `/store/campaign/${params.campaignId}`,
+      );
+      depth = 2;
+      return;
+    }
+
+    // /stats/health → open the campaign and its map stats sheet at that tab.
+    if (params.type === "campaign-stats") {
+      deepLinkStoreCampaignId = CAMPAIGN_STATS_ID;
+      deepLinkStatsTab = params.tab;
+      activePage = "store";
+      isClosing = false;
+      history.pushState({ view: "store", depth: 1 }, "", "/store");
+      history.pushState(
+        { view: "store", campaignId: CAMPAIGN_STATS_ID, depth: 2 },
+        "",
+        `/store/campaign/${CAMPAIGN_STATS_ID}`,
       );
       depth = 2;
       return;
@@ -643,6 +666,7 @@
         bind:depth
         bind:initialCampaignId={deepLinkStoreCampaignId}
         bind:initialProductId={deepLinkStoreProductId}
+        bind:initialStatsTab={deepLinkStatsTab}
       />
     {:else if activePage === "map"}
       <Panel {isClosing} onClose={closePage} />

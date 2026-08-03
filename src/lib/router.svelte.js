@@ -28,6 +28,26 @@ export const SHOW_SLUGS = {
   'the-walking-dead': "The Walking Dead"
 };
 
+/**
+ * Deep links straight into the Texas campaign map's stats sheet:
+ * /stats/health, /stats/representation, /stats/money, /stats/why.
+ *
+ * Note `/stats` on its own is still the world-stats panel — only these four
+ * slugs are claimed, so nothing that worked before changes.
+ */
+export const CAMPAIGN_STATS_TABS = {
+  money: 'money',
+  economy: 'money',
+  representation: 'reps',
+  reps: 'reps',
+  health: 'health',
+  why: 'why',
+  timeline: 'why',
+};
+
+/** The campaign whose map those stats belong to. */
+export const CAMPAIGN_STATS_ID = 'save-texas-hemp';
+
 export const ARCADE_SLUGS = {
   'mario': 'mario64',
   'mario64': 'mario64',
@@ -91,6 +111,12 @@ export function parsePath(path) {
   // /store/product/1
   if (s0 === 'store' && s1 === 'product' && parts.length === 3) {
     return { type: 'store-product', productId: s2 };
+  }
+
+  // /stats/health  /stats/representation  … (campaign map stats sheet).
+  // Checked before the bare-panel rule below, which only matches length 1.
+  if (s0 === 'stats' && parts.length === 2 && CAMPAIGN_STATS_TABS[s1]) {
+    return { type: 'campaign-stats', tab: CAMPAIGN_STATS_TABS[s1] };
   }
 
   // /stats  /map  /store  /networking

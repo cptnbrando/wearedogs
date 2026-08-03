@@ -33,6 +33,21 @@
     STORE_DOT_RATIO,
     STORE_COUNT_BY_NAME,
   } from "../../lib/hempStores.js";
+  import {
+    WHY_TIMELINE,
+    WHY_GUMMY_STEPS,
+    WHY_PLAYERS,
+  } from "../../lib/hempTimeline.js";
+  import {
+    DEATH_STATS,
+    ED_STATS,
+    ED_SHARE,
+    ED_SHARE_NOTE,
+    ED_SHARE_SOURCE,
+    HEALTH_TAKEAWAYS,
+    HEALTH_RESEARCH,
+    HEALTH_METHOD,
+  } from "../../lib/hempHealth.js";
 
   let {
     lawmakers = [],
@@ -48,6 +63,10 @@
     // map trades its palette for police red & blue. Applied on top of
     // saleMode — the tx-cop overrides win while both classes are present.
     copMode = false,
+    // A /stats/<tab> deep link. Consumed once on arrival, then cleared so
+    // closing the sheet doesn't immediately re-open it.
+    initialStatsTab = $bindable(null),
+    campaignId = null,
   } = $props();
 
   /**
@@ -153,6 +172,64 @@
   /** Which page of the stats sheet is open. */
   let statsTab = $state("money");
 
+  /* ------------------------------------------------------------------ */
+  /* /stats/<tab> deep links                                             */
+  /* ------------------------------------------------------------------ */
+
+  /** Tab id → the URL slug it is shareable at. */
+  const STATS_TAB_SLUGS = {
+    money: "money",
+    reps: "representation",
+    health: "health",
+    why: "why",
+  };
+
+  // Open on arrival, then clear the request so the sheet can be closed.
+  $effect(() => {
+    const want = initialStatsTab;
+    if (!want || !STATS_TAB_SLUGS[want]) return;
+    statsTab = want;
+    showStats = true;
+    initialStatsTab = null;
+  });
+
+  /**
+   * Keep the address bar on the open tab so any view is shareable, without
+   * touching the campaign's own history entry — replaceState only, so Back
+   * still leaves the store rather than walking the tab strip.
+   */
+  function syncStatsUrl() {
+    if (typeof window === "undefined" || !campaignId) return;
+    const path = showStats
+      ? `/stats/${STATS_TAB_SLUGS[statsTab] ?? "money"}`
+      : `/store/campaign/${campaignId}`;
+    if (window.location.pathname === path) return;
+    history.replaceState(history.state, "", path);
+  }
+
+  $effect(() => {
+    // Read both so the effect re-runs on either.
+    const _t = statsTab;
+    const _open = showStats;
+    syncStatsUrl();
+    // Swiping off the map slide unmounts this component outright; without
+    // this the address bar would stay parked on /stats/… for a slide that
+    // isn't showing.
+    return () => {
+      if (
+        typeof window !== "undefined" &&
+        campaignId &&
+        window.location.pathname.startsWith("/stats/")
+      ) {
+        history.replaceState(
+          history.state,
+          "",
+          `/store/campaign/${campaignId}`,
+        );
+      }
+    };
+  });
+
   /**
    * ALL / SENATE / HOUSE / STORES pin filter. "Senate" is shorthand for
    * everything that isn't the House — state senators, the Lt. Governor and
@@ -204,6 +281,11 @@
     ...NEIGHBOR_STATS.map((n) => n.taxValue || 0),
   );
   const CITY_MAX = Math.max(...CITY_STATS.map((c) => c.revenueValue || 0));
+
+  // Health bars share one scale each, so the alcohol/everything-else gap is
+  // the thing you see first.
+  const DEATH_MAX = Math.max(...DEATH_STATS.map((d) => d.value || 0));
+  const ED_MAX = Math.max(...ED_STATS.map((e) => e.value || 0));
 
   /* --- REPRESENTATION tab: who actually holds the Texas Legislature. --- */
   const HOUSE_SEATS = 150;
@@ -278,6 +360,11 @@
   /** What share of a group's rated offices are on our side. */
   function proPct({ pro, anti }) {
     return pct(pro, pro + anti);
+  }
+
+  /** …and the mirror of it, for the opposition row. */
+  function antiPct({ pro, anti }) {
+    return pct(anti, pro + anti);
   }
 
   /**
@@ -531,6 +618,101 @@
     vh.set(v.h, { hard: true });
   }
 
+  /* ------------------------------------------------------------------ */
+  /* Browser-zoom intercept                                              */
+  /* ------------------------------------------------------------------ */
+
+  /**
+   * Zoom the view by `factor`, keeping the map point under (clientX,
+   * clientY) pinned in place — the anchor for cursor wheel-zoom and for the
+   * pinch midpoint. Works off `target` (where the view is going), not the
+   * mid-flight spring value, for the same reason stepZoom does.
+   */
+  function zoomAtPoint(clientX, clientY, factor, hard = false) {
+    if (!stageEl) return;
+    const rect = stageEl.getBoundingClientRect();
+    const scale = Math.min(rect.width / target.w, rect.height / target.h);
+    if (!scale || !Number.isFinite(scale)) return;
+    // xMidYMid meet letterboxes the content inside the stage.
+    const offX = rect.left + (rect.width - target.w * scale) / 2;
+    const offY = rect.top + (rect.height - target.h * scale) / 2;
+    const mx = target.x + (clientX - offX) / scale;
+    const my = target.y + (clientY - offY) / scale;
+
+    const nw = Math.min(DEFAULT_VIEW.w, Math.max(MIN_VIEW_W, target.w * factor));
+    const nh = (nw * 9) / 16;
+    const v = {
+      x: mx - ((mx - target.x) / target.w) * nw,
+      y: my - ((my - target.y) / target.h) * nh,
+      w: nw,
+      h: nh,
+    };
+    // Same guard as panning: the view centre stays inside the default frame,
+    // so zooming out against an edge can't lose Texas off the screen.
+    v.x = Math.max(
+      DEFAULT_VIEW.x - nw / 2,
+      Math.min(DEFAULT_VIEW.x + DEFAULT_VIEW.w - nw / 2, v.x),
+    );
+    v.y = Math.max(
+      DEFAULT_VIEW.y - nh / 2,
+      Math.min(DEFAULT_VIEW.y + DEFAULT_VIEW.h - nh / 2, v.y),
+    );
+    if (hard) setViewHard(v);
+    else setView(v);
+  }
+
+  /**
+   * Ctrl/⌘ + wheel — which is also what a desktop trackpad pinch arrives
+   * as — zooms the map toward the cursor instead of zooming the browser.
+   * Plain wheel is left alone so the page underneath still scrolls.
+   */
+  function onStageWheel(e) {
+    if (!e.ctrlKey && !e.metaKey) return;
+    e.preventDefault();
+    e.stopPropagation();
+    zoomAtPoint(e.clientX, e.clientY, Math.exp(e.deltaY * 0.0022));
+  }
+
+  /** Safari's proprietary pinch events — preventDefault or the page zooms. */
+  let gesturePrevScale = 1;
+
+  function onGestureStart(e) {
+    e.preventDefault();
+    gesturePrevScale = e.scale ?? 1;
+  }
+
+  function onGestureChange(e) {
+    e.preventDefault();
+    const s = e.scale || 1;
+    zoomAtPoint(e.clientX, e.clientY, gesturePrevScale / s, true);
+    gesturePrevScale = s;
+  }
+
+  // wheel/gesture listeners must be non-passive to preventDefault, so they
+  // are attached by hand — the framework's defaults are passive.
+  $effect(() => {
+    const el = stageEl;
+    if (!el) return;
+    const opts = { passive: false };
+    el.addEventListener("wheel", onStageWheel, opts);
+    el.addEventListener("gesturestart", onGestureStart, opts);
+    el.addEventListener("gesturechange", onGestureChange, opts);
+    return () => {
+      el.removeEventListener("wheel", onStageWheel);
+      el.removeEventListener("gesturestart", onGestureStart);
+      el.removeEventListener("gesturechange", onGestureChange);
+    };
+  });
+
+  /**
+   * Two-finger pinch on the map (touch-action: none on the svg keeps the
+   * browser's own pinch-zoom out of it). The second finger ends any pan in
+   * progress; each move zooms hard around the current pinch midpoint by the
+   * frame-over-frame distance ratio.
+   */
+  const pinchPointers = new Map();
+  let pinchPrevDist = 0;
+
   /**
    * Drag to pan, mouse and touch through the same pointer events. A press only
    * becomes a pan past a few pixels, so tapping a pin still selects it rather
@@ -544,6 +726,23 @@
 
   function onPanStart(e) {
     if (e.button !== undefined && e.button !== 0) return;
+    if (e.pointerType === "touch") {
+      pinchPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pinchPointers.size === 2) {
+        // Second finger down: the pan is over, the pinch begins. panMoved
+        // stays true so the release click can't select whatever's under it.
+        panStart = null;
+        isPanning = false;
+        panMoved = true;
+        activeKey = null;
+        hoveredKey = null;
+        activeCity = null;
+        const [a, b] = [...pinchPointers.values()];
+        pinchPrevDist = Math.hypot(a.x - b.x, a.y - b.y);
+        e.currentTarget.setPointerCapture?.(e.pointerId);
+        return;
+      }
+    }
     panMoved = false;
     panStart = {
       id: e.pointerId,
@@ -555,6 +754,21 @@
   }
 
   function onPanMove(e) {
+    if (pinchPointers.size >= 2 && pinchPointers.has(e.pointerId)) {
+      pinchPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      const [a, b] = [...pinchPointers.values()];
+      const dist = Math.hypot(a.x - b.x, a.y - b.y);
+      if (pinchPrevDist > 0 && dist > 0) {
+        zoomAtPoint(
+          (a.x + b.x) / 2,
+          (a.y + b.y) / 2,
+          pinchPrevDist / dist,
+          true,
+        );
+      }
+      pinchPrevDist = dist;
+      return;
+    }
     if (!panStart || e.pointerId !== panStart.id || !renderScale) return;
     const dxPx = e.clientX - panStart.x;
     const dyPx = e.clientY - panStart.y;
@@ -592,6 +806,10 @@
   }
 
   function onPanEnd(e) {
+    if (e?.pointerId !== undefined) {
+      pinchPointers.delete(e.pointerId);
+      if (pinchPointers.size < 2) pinchPrevDist = 0;
+    }
     if (panStart && e?.pointerId === panStart.id) {
       e.currentTarget?.releasePointerCapture?.(e.pointerId);
     }
@@ -1165,6 +1383,9 @@
 
       <!-- Water labels -->
       {#each WATER_LABELS as w}
+        <!-- `size` is a visibility tier, not a px value: >= 20 means the
+             label stays on the map at every zoom, below that it waits for
+             detail mode. The rendered size is set here. -->
         {#if w.size >= 20 || showDetail}
           <text
             transition:fade={{ duration: 160 }}
@@ -1175,7 +1396,7 @@
             transform={w.rotate
               ? `rotate(${w.rotate} ${px(w.lng)} ${py(w.lat)})`
               : null}
-            style="font-size: {u((w.size >= 20 ? 18 : 9) * ts)}px">{w.name}</text
+            style="font-size: {u((w.size >= 20 ? 12 : 9) * ts)}px">{w.name}</text
           >
         {/if}
       {/each}
@@ -1672,6 +1893,16 @@
             class:on={statsTab === "reps"}
             onclick={() => (statsTab = "reps")}>🏛 REPRESENTATION</button
           >
+          <button
+            class="tx-stats-tab"
+            class:on={statsTab === "health"}
+            onclick={() => (statsTab = "health")}>🏥 HEALTH</button
+          >
+          <button
+            class="tx-stats-tab"
+            class:on={statsTab === "why"}
+            onclick={() => (statsTab = "why")}>⏳ WHY</button
+          >
         </div>
 
         <div class="tx-stats-body">
@@ -1877,39 +2108,46 @@
             </p>
           </section>
 
-          {:else}
+          {:else if statsTab === "reps"}
             <!-- REPRESENTATION: who speaks for Texas, and what we know so far. -->
             <section>
               <h5>THE TEXAS LEGISLATURE — WHO SPEAKS FOR US</h5>
+              <!-- Two mirrored rows, fixed colours rather than lean-tinted:
+                   the top five count who is WITH us (green), the bottom five
+                   count the opposition (red). Same five cuts, both ways. -->
               <div class="tx-stat-grid">
-                <div class="tx-stat big split {splitTone(allSplit)}">
+                <div class="tx-stat big split t-for">
                   <span class="v"
                     ><span class="pro">{allSplit.pro}</span>/{lawmakers.length}</span
                   >
-                  <span class="k">Those for, of every office</span>
+                  <span class="k">Those for</span>
                   <span class="p"
-                    >{pct(allSplit.pro, lawmakers.length)}% of the whole floor</span
+                    >{pct(allSplit.pro, lawmakers.length)}% of the floor</span
                   >
                 </div>
-                <div class="tx-stat big split {splitTone(repSplit)}">
+                <div class="tx-stat big split t-for">
                   <span class="v"
                     ><span class="pro">{repSplit.pro}</span> vs <span
                       class="anti">{repSplit.anti}</span
                     ></span
                   >
-                  <span class="k">Republicans for vs against</span>
+                  <span class="k"
+                    ><span class="rparty">Republicans</span> for vs against</span
+                  >
                   <span class="p">{proPct(repSplit)}% of them are for</span>
                 </div>
-                <div class="tx-stat big split {splitTone(demSplit)}">
+                <div class="tx-stat big split t-for">
                   <span class="v"
                     ><span class="pro">{demSplit.pro}</span> vs <span
                       class="anti">{demSplit.anti}</span
                     ></span
                   >
-                  <span class="k">Democrats for vs against</span>
+                  <span class="k"
+                    ><span class="dparty">Democrats</span> for vs against</span
+                  >
                   <span class="p">{proPct(demSplit)}% of them are for</span>
                 </div>
-                <div class="tx-stat big split {splitTone(senSplit)}">
+                <div class="tx-stat big split t-for">
                   <span class="v"
                     ><span class="pro">{senSplit.pro}</span> vs <span
                       class="anti">{senSplit.anti}</span
@@ -1918,7 +2156,7 @@
                   <span class="k">Senators for vs against</span>
                   <span class="p">{proPct(senSplit)}% of them are for</span>
                 </div>
-                <div class="tx-stat big split {splitTone(houseSplit)}">
+                <div class="tx-stat big split t-for">
                   <span class="v"
                     ><span class="pro">{houseSplit.pro}</span> vs <span
                       class="anti">{houseSplit.anti}</span
@@ -1927,13 +2165,55 @@
                   <span class="k">House reps for vs against</span>
                   <span class="p">{proPct(houseSplit)}% of them are for</span>
                 </div>
-                <div class="tx-stat big split">
+
+                <div class="tx-stat big split t-against">
                   <span class="v"
-                    ><span class="rparty">{houseParty.r + senateParty.r}</span> /
-                    <span class="dparty">{houseParty.d + senateParty.d}</span
+                    ><span class="anti">{allSplit.anti}</span>/{lawmakers.length}</span
+                  >
+                  <span class="k">Those against</span>
+                  <span class="p"
+                    >{pct(allSplit.anti, lawmakers.length)}% of the floor</span
+                  >
+                </div>
+                <div class="tx-stat big split t-against">
+                  <span class="v"
+                    ><span class="anti">{repSplit.anti}</span> vs <span
+                      class="pro">{repSplit.pro}</span
                     ></span
                   >
-                  <span class="k">Republicans vs Democrats</span>
+                  <span class="k"
+                    ><span class="rparty">Republicans</span> against vs for</span
+                  >
+                  <span class="p">{antiPct(repSplit)}% of them are against</span>
+                </div>
+                <div class="tx-stat big split t-against">
+                  <span class="v"
+                    ><span class="anti">{demSplit.anti}</span> vs <span
+                      class="pro">{demSplit.pro}</span
+                    ></span
+                  >
+                  <span class="k"
+                    ><span class="dparty">Democrats</span> against vs for</span
+                  >
+                  <span class="p">{antiPct(demSplit)}% of them are against</span>
+                </div>
+                <div class="tx-stat big split t-against">
+                  <span class="v"
+                    ><span class="anti">{senSplit.anti}</span> vs <span
+                      class="pro">{senSplit.pro}</span
+                    ></span
+                  >
+                  <span class="k">Senators against vs for</span>
+                  <span class="p">{antiPct(senSplit)}% of them are against</span>
+                </div>
+                <div class="tx-stat big split t-against">
+                  <span class="v"
+                    ><span class="anti">{houseSplit.anti}</span> vs <span
+                      class="pro">{houseSplit.pro}</span
+                    ></span
+                  >
+                  <span class="k">House reps against vs for</span>
+                  <span class="p">{antiPct(houseSplit)}% of them are against</span>
                 </div>
               </div>
               <p class="tx-stats-note">
@@ -2027,6 +2307,92 @@
                   </div>
                 {/if}
               </div>
+            </section>
+
+            <!-- The part the raw scores hide: the House keeps voting FOR
+                 reform. The blockage has an address, and it's the Senate. -->
+            <section>
+              <h5>THE HOUSE ALREADY VOTED FOR REFORM — THE SENATE IS WHERE IT DIES</h5>
+              <ul class="tx-facts">
+                <li>
+                  <b>2021:</b> the Texas House passed HB 441 — decriminalizing
+                  up to an ounce, no jail, no arrest — by <b>88 to 40</b>, 68%
+                  of those voting, dozens of Republicans included. It never got
+                  a Senate vote. The House had passed decriminalization in 2019
+                  too; same ending.
+                  <span class="tx-fact-links"
+                    ><a
+                      href="https://www.texastribune.org/2021/04/29/texas-marijuana-posession-penalties/"
+                      target="_blank"
+                      rel="noopener noreferrer">Texas Tribune ↗</a
+                    >
+                    <a
+                      href="https://capitol.texas.gov/BillLookup/History.aspx?LegSess=87R&Bill=HB441"
+                      target="_blank"
+                      rel="noopener noreferrer">HB 441 ↗</a
+                    ></span
+                  >
+                </li>
+                <li>
+                  <b>The voters:</b> 62% of Texans back full legalization, and
+                  the SB 3 total ban polled 50–34 <i>against</i>. This ban is
+                  not the will of the people — of either party.
+                  <span class="tx-fact-links"
+                    ><a
+                      href="https://www.newsweek.com/texas-under-pressure-legalize-marijuana-drugs-2027226"
+                      target="_blank"
+                      rel="noopener noreferrer">Newsweek ↗</a
+                    >
+                    <a
+                      href="https://www.texastribune.org/2025/06/25/texas-poll-voters-oppose-thc-ban-sb-3/"
+                      target="_blank"
+                      rel="noopener noreferrer">Tribune poll ↗</a
+                    ></span
+                  >
+                </li>
+                <li>
+                  <b>Austin is the cannabis capital of Texas:</b> Prop A
+                  (2022) decriminalized locally with <b>85%</b> of the vote,
+                  and Austin reps keep authoring the reform bills. Today's
+                  felony threats there are state law steamrolling a local
+                  landslide — and it was Austin's own Hometown Hero that held
+                  the courts for four years.
+                  <span class="tx-fact-links"
+                    ><a
+                      href="https://www.kut.org/politics/2022-05-07/austin-no-knock-warrants-decriminalize-small-amounts-of-weed-2022-election"
+                      target="_blank"
+                      rel="noopener noreferrer">KUT ↗</a
+                    >
+                    <a
+                      href="https://ballotpedia.org/Austin,_Texas,_Proposition_A,_Marijuana_Decriminalization_and_Prohibit_No-Knock_Warrants_Initiative_(May_2022)"
+                      target="_blank"
+                      rel="noopener noreferrer">Ballotpedia ↗</a
+                    ></span
+                  >
+                </li>
+                <li>
+                  <b>Even the GOP is split:</b> a West Texas Republican DA
+                  livestreamed a joint at 4:20pm to protest the ban — "Free
+                  the plant, Dan." The ban's authors are a small circle of
+                  Senate conservatives from rural and suburban districts —
+                  Perry (Lubbock), Shaheen (Plano) — captained by Lt. Gov.
+                  Dan Patrick, whose calendar is where House reform goes to
+                  die.
+                  <span class="tx-fact-links"
+                    ><a
+                      href="https://www.fox4news.com/news/sarah-stogner-texas-republican-weed-tiktok-thc"
+                      target="_blank"
+                      rel="noopener noreferrer">FOX 4 ↗</a
+                    ></span
+                  >
+                </li>
+              </ul>
+              <p class="tx-stats-note">
+                Note: the 1–5 scores on this map rate each office's record on
+                THIS hemp-ban fight (the SB 3 votes and related record), not
+                general legalization support — which is why the floor looks
+                redder here than the House's own decriminalization votes.
+              </p>
             </section>
 
             <section>
@@ -2148,6 +2514,197 @@
             </div>
           </section>
 
+          {:else if statsTab === "health"}
+            <!-- HEALTH: what actually kills Texans, next to what the state
+                 just made a felony. Includes the numbers that cut against
+                 us — a page that hides its weak spot isn't worth believing. -->
+            <section>
+              <h5>DEATHS PER YEAR — WHAT ACTUALLY KILLS TEXANS</h5>
+              <div class="tx-chart">
+                {#each DEATH_STATS as d (d.label)}
+                  <div class="tx-bar-row">
+                    <span class="tx-bar-label tx-bar-label-xwide">{d.label}</span>
+                    <span class="tx-bar-track">
+                      {#if d.value > 0}
+                        <span
+                          class="tx-bar tx-bar-h-{d.tone}"
+                          style="width: {barPct(d.value, DEATH_MAX)}%"
+                        ></span>
+                      {:else}
+                        <span class="tx-bar-none">no documented deaths</span>
+                      {/if}
+                    </span>
+                    <span class="tx-bar-value tx-bar-v-{d.tone}"
+                      >{d.display}</span
+                    >
+                  </div>
+                {/each}
+              </div>
+              <div class="tx-health-notes">
+                {#each DEATH_STATS as d (d.label)}
+                  <p class="tx-health-note tx-health-{d.tone}">
+                    <b>{d.label}:</b>
+                    {d.note}
+                    <a href={d.url} target="_blank" rel="noopener noreferrer"
+                      >{d.source} ↗</a
+                    >
+                  </p>
+                {/each}
+              </div>
+            </section>
+
+            <section>
+              <h5>EMERGENCY ROOMS — THE HONEST COMPARISON</h5>
+              <div class="tx-chart">
+                {#each ED_STATS as e (e.label)}
+                  <div class="tx-bar-row">
+                    <span class="tx-bar-label tx-bar-label-xwide">{e.label}</span>
+                    <span class="tx-bar-track">
+                      <span
+                        class="tx-bar tx-bar-h-{e.tone}"
+                        style="width: {barPct(e.value, ED_MAX)}%"
+                      ></span>
+                    </span>
+                    <span class="tx-bar-value tx-bar-v-{e.tone}"
+                      >{e.display}</span
+                    >
+                  </div>
+                {/each}
+              </div>
+              <div class="tx-health-notes">
+                {#each ED_STATS as e (e.label)}
+                  <p class="tx-health-note tx-health-{e.tone}">
+                    <b>{e.label}:</b>
+                    {e.note}
+                    <a href={e.url} target="_blank" rel="noopener noreferrer"
+                      >{e.source} ↗</a
+                    >
+                  </p>
+                {/each}
+              </div>
+
+              <h5 class="tx-h5-gap">SHARE OF ALL DRUG-RELATED ER VISITS</h5>
+              <div class="tx-chart">
+                {#each ED_SHARE as s (s.label)}
+                  <div class="tx-bar-row">
+                    <span class="tx-bar-label tx-bar-label-wide">{s.label}</span>
+                    <span class="tx-bar-track">
+                      <span
+                        class="tx-bar tx-bar-h-{s.tone}"
+                        style="width: {s.pct}%"
+                      ></span>
+                    </span>
+                    <span class="tx-bar-value tx-bar-v-{s.tone}"
+                      >{s.pct}%</span
+                    >
+                  </div>
+                {/each}
+              </div>
+              <p class="tx-stats-note">
+                {ED_SHARE_NOTE}
+                <a
+                  href={ED_SHARE_SOURCE.url}
+                  target="_blank"
+                  rel="noopener noreferrer">{ED_SHARE_SOURCE.label} ↗</a
+                >
+              </p>
+            </section>
+
+            <section>
+              <h5>THE BOTTOM LINE</h5>
+              <ul class="tx-facts">
+                {#each HEALTH_TAKEAWAYS as t (t)}
+                  <li>{t}</li>
+                {/each}
+              </ul>
+              <p class="tx-stats-note tx-stats-warn">⚠ {HEALTH_METHOD}</p>
+            </section>
+
+            <section>
+              <h5>READ THE RESEARCH YOURSELF</h5>
+              <ul class="tx-sources tx-research">
+                {#each HEALTH_RESEARCH as r (r.url)}
+                  <li>
+                    <a href={r.url} target="_blank" rel="noopener noreferrer"
+                      >{r.label} ↗</a
+                    >
+                  </li>
+                {/each}
+              </ul>
+            </section>
+          {:else}
+            <!-- WHY: the timeline that turned a legal gummy into a felony. -->
+            <section>
+              <h5>WHY — HOW WE GOT HERE, WITH RECEIPTS</h5>
+              <div class="tx-timeline">
+                {#each WHY_TIMELINE as ev (ev.date + ev.title)}
+                  <div
+                    class="tx-tl tx-tl-{ev.tone}"
+                    class:tx-tl-highlight={ev.highlight}
+                    class:tx-tl-pending={ev.pending}
+                  >
+                    <span class="tx-tl-dot" aria-hidden="true"></span>
+                    <div class="tx-tl-date">{ev.date}</div>
+                    <div class="tx-tl-title">{ev.title}</div>
+                    <p class="tx-tl-body">{ev.body}</p>
+                    <div class="tx-tl-links">
+                      {#each ev.links as l (l.url)}
+                        <a href={l.url} target="_blank" rel="noopener noreferrer"
+                          >{l.label} ↗</a
+                        >
+                      {/each}
+                    </div>
+                  </div>
+                {/each}
+              </div>
+            </section>
+
+            <section>
+              <h5>WHY A GUMMY IS 2 YEARS — THE FELONY MATH</h5>
+              <p class="tx-stats-note tx-gummy-lede">
+                Flower gets a ticket. A gummy gets a cell. Five steps of
+                statute, each one linked:
+              </p>
+              <div class="tx-gummy-steps">
+                {#each WHY_GUMMY_STEPS as step, i (step.title)}
+                  <a
+                    class="tx-gummy-step tx-tl-{step.tone}"
+                    href={step.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <span class="tx-gummy-n">{i + 1}</span>
+                    <span class="tx-gummy-txt">
+                      <b>{step.title}</b>
+                      {step.body}
+                    </span>
+                  </a>
+                {/each}
+              </div>
+            </section>
+
+            <section>
+              <h5>KEY PLAYERS</h5>
+              <div class="tx-players">
+                {#each WHY_PLAYERS as p (p.name)}
+                  <a
+                    class="tx-player tx-player-{p.stance}"
+                    href={p.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <span class="tx-player-name"
+                      >{p.stance === "for"
+                        ? "🌿"
+                        : p.stance === "against"
+                          ? "🚫"
+                          : "⚖️"} {p.name}</span
+                    >
+                    <span class="tx-player-role">{p.role}</span>
+                  </a>
+                {/each}
+              </div>
+            </section>
           {/if}
 
           <section>
@@ -2157,6 +2714,20 @@
                 {#each STATS_SOURCES as s}
                   <li>{s}</li>
                 {/each}
+              {:else if statsTab === "health"}
+                <li>
+                  Every figure above links the agency that published it — CDC,
+                  CDC/NCHS, SAMHSA, NIDA, DEA, USAFacts and Texas DSHS. Where a
+                  number cuts against our own argument, it is printed anyway.
+                </li>
+              {:else if statsTab === "why"}
+                <li>
+                  Every timeline entry above links its primary source — bill
+                  pages on congress.gov and capitol.texas.gov, statutes at
+                  statutes.capitol.texas.gov, court filings, and reporting
+                  from KUT, the Texas Tribune, CNBC, and trade press. If a
+                  claim has no link, treat it as ours.
+                </li>
               {:else}
                 <li>
                   Roster: 89th Texas Legislature member lists, pulled July 30,
@@ -2578,6 +3149,42 @@
   .tx-stat.t-fair .k, .tx-stat.t-fair .p { color: rgba(217, 249, 157, 0.72); }
   .tx-stat.t-poor .k, .tx-stat.t-poor .p { color: rgba(254, 215, 170, 0.75); }
   .tx-stat.t-bad .k, .tx-stat.t-bad .p { color: rgba(254, 202, 202, 0.78); }
+
+  /* The two mirrored rows don't take a lean tint — the row itself IS the
+     meaning. Green counts who's with us, red counts the opposition. */
+  .tx-stat.t-for {
+    border-color: rgba(52, 211, 153, 0.5);
+    background: linear-gradient(
+      160deg,
+      rgba(52, 211, 153, 0.16),
+      rgba(16, 185, 129, 0.07)
+    );
+  }
+
+  .tx-stat.t-against {
+    border-color: rgba(248, 113, 113, 0.5);
+    background: linear-gradient(
+      160deg,
+      rgba(248, 113, 113, 0.16),
+      rgba(220, 38, 38, 0.07)
+    );
+  }
+
+  .tx-stat.t-for .k { color: rgba(167, 243, 208, 0.9); }
+  .tx-stat.t-for .p { color: rgba(167, 243, 208, 0.6); }
+  .tx-stat.t-against .k { color: rgba(254, 202, 202, 0.9); }
+  .tx-stat.t-against .p { color: rgba(254, 202, 202, 0.6); }
+
+  /* Party names carry their party's colour wherever they appear in a chip. */
+  .tx-stat .k .rparty {
+    color: #f87171;
+    font-weight: 900;
+  }
+
+  .tx-stat .k .dparty {
+    color: #60a5fa;
+    font-weight: 900;
+  }
 
   .tx-stat .k {
     font-size: calc(0.46rem * var(--s, 1));
@@ -4046,6 +4653,314 @@
 
   .tx-cop .tx-store-note b {
     color: #fca5a5;
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* WHY tab — the timeline with receipts                               */
+  /* ---------------------------------------------------------------- */
+
+  .tx-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: calc(10px * var(--s, 1));
+    border-left: 2px solid rgba(255, 255, 255, 0.14);
+    margin-left: calc(5px * var(--s, 1));
+    padding-left: calc(14px * var(--s, 1));
+  }
+
+  .tx-tl {
+    position: relative;
+    padding: calc(6px * var(--s, 1)) calc(8px * var(--s, 1));
+    border-radius: 7px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .tx-tl-dot {
+    position: absolute;
+    left: calc(-14px * var(--s, 1) - 7px);
+    top: calc(9px * var(--s, 1));
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    border: 2px solid #0a0a12;
+  }
+
+  /* Era colours: red bans, green wins, blue courtrooms, gold money. */
+  .tx-tl-ban .tx-tl-dot { background: #f87171; }
+  .tx-tl-legal .tx-tl-dot { background: #34d399; }
+  .tx-tl-court .tx-tl-dot { background: #60a5fa; }
+  .tx-tl-money .tx-tl-dot { background: #fbbf24; }
+  .tx-tl-now .tx-tl-dot {
+    background: #fff;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.9);
+  }
+
+  .tx-tl-ban { border-color: rgba(248, 113, 113, 0.3); }
+  .tx-tl-legal { border-color: rgba(52, 211, 153, 0.3); }
+  .tx-tl-court { border-color: rgba(96, 165, 250, 0.3); }
+  .tx-tl-money { border-color: rgba(251, 191, 36, 0.3); }
+
+  .tx-tl-now {
+    border-color: rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.07);
+  }
+
+  /* The 2018 Farm Bill — the hinge of the whole story. */
+  .tx-tl-highlight {
+    border-color: rgba(52, 211, 153, 0.7);
+    background: rgba(52, 211, 153, 0.1);
+    box-shadow: 0 0 18px rgba(52, 211, 153, 0.18);
+  }
+
+  .tx-tl-highlight .tx-tl-title { color: #6ee7b7; }
+
+  .tx-tl-pending {
+    border-style: dashed;
+    opacity: 0.92;
+  }
+
+  .tx-tl-date {
+    font-family: ui-monospace, monospace;
+    font-size: calc(0.42rem * var(--s, 1));
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    color: rgba(255, 255, 255, 0.45);
+  }
+
+  .tx-tl-title {
+    font-family: ui-monospace, monospace;
+    font-size: calc(0.56rem * var(--s, 1));
+    font-weight: 900;
+    letter-spacing: 0.05em;
+    color: #fff;
+    margin-top: 1px;
+  }
+
+  .tx-tl-body {
+    margin: 3px 0 0;
+    font-size: calc(0.48rem * var(--s, 1));
+    line-height: 1.55;
+    color: rgba(255, 255, 255, 0.62);
+  }
+
+  .tx-tl-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    margin-top: 4px;
+  }
+
+  .tx-tl-links a,
+  .tx-players a .tx-player-role {
+    text-decoration: none;
+  }
+
+  .tx-tl-links a {
+    font-family: ui-monospace, monospace;
+    font-size: calc(0.44rem * var(--s, 1));
+    font-weight: 700;
+    color: #67e8f9;
+    border-bottom: 1px solid rgba(103, 232, 249, 0.35);
+  }
+
+  .tx-tl-links a:hover {
+    color: #fff;
+    border-bottom-color: #fff;
+  }
+
+  /* The felony math, one linked statute per step. */
+  .tx-gummy-lede { margin-bottom: 6px; }
+
+  .tx-gummy-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .tx-gummy-step {
+    display: flex;
+    align-items: flex-start;
+    gap: calc(7px * var(--s, 1));
+    padding: calc(5px * var(--s, 1)) calc(7px * var(--s, 1));
+    border-radius: 7px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.03);
+    text-decoration: none;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+
+  .tx-gummy-step:hover {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(255, 255, 255, 0.3);
+  }
+
+  .tx-gummy-step.tx-tl-ban { border-color: rgba(248, 113, 113, 0.32); }
+  .tx-gummy-step.tx-tl-legal { border-color: rgba(52, 211, 153, 0.32); }
+
+  .tx-gummy-n {
+    flex-shrink: 0;
+    width: calc(15px * var(--s, 1));
+    height: calc(15px * var(--s, 1));
+    border-radius: 999px;
+    background: rgba(248, 113, 113, 0.8);
+    color: #0c0a09;
+    font-family: ui-monospace, monospace;
+    font-size: calc(0.44rem * var(--s, 1));
+    font-weight: 900;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .tx-gummy-step.tx-tl-legal .tx-gummy-n { background: #34d399; }
+
+  .tx-gummy-txt {
+    font-size: calc(0.47rem * var(--s, 1));
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.62);
+  }
+
+  .tx-gummy-txt b {
+    display: block;
+    color: #fff;
+    font-family: ui-monospace, monospace;
+    font-size: calc(0.5rem * var(--s, 1));
+    letter-spacing: 0.04em;
+  }
+
+  /* --- HEALTH tab --- */
+
+  /* One tone set for every health bar and figure: red is what kills, amber
+     is what sends people to the ER, green is the zero. */
+  .tx-bar-h-bad { background: linear-gradient(90deg, #dc2626, #f87171); }
+  .tx-bar-h-warn { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+  .tx-bar-h-good { background: linear-gradient(90deg, #10b981, #34d399); }
+
+  .tx-bar-v-bad { color: #fca5a5; }
+  .tx-bar-v-warn { color: #fde68a; }
+  .tx-bar-v-good { color: #6ee7b7; }
+
+  .tx-health-notes {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-top: 8px;
+  }
+
+  .tx-health-note {
+    margin: 0;
+    padding: calc(5px * var(--s, 1)) calc(8px * var(--s, 1));
+    border-left: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 0 6px 6px 0;
+    background: rgba(255, 255, 255, 0.03);
+    font-size: calc(0.46rem * var(--s, 1));
+    line-height: 1.55;
+    color: rgba(255, 255, 255, 0.58);
+  }
+
+  .tx-health-note b { color: #fff; }
+
+  .tx-health-bad { border-left-color: #f87171; }
+  .tx-health-warn { border-left-color: #fbbf24; }
+  .tx-health-good {
+    border-left-color: #34d399;
+    background: rgba(52, 211, 153, 0.08);
+  }
+
+  .tx-health-note a,
+  .tx-research a {
+    color: #67e8f9;
+    text-decoration: none;
+    border-bottom: 1px solid rgba(103, 232, 249, 0.35);
+    font-weight: 700;
+  }
+
+  .tx-health-note a:hover,
+  .tx-research a:hover {
+    color: #fff;
+    border-bottom-color: #fff;
+  }
+
+  .tx-research li { color: rgba(255, 255, 255, 0.5); }
+
+  /* The House-vs-Senate facts on the REPRESENTATION tab. */
+  .tx-facts {
+    margin: 0;
+    padding-left: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: calc(7px * var(--s, 1));
+  }
+
+  .tx-facts li {
+    font-size: calc(0.48rem * var(--s, 1));
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  .tx-facts li b {
+    color: #fff;
+  }
+
+  .tx-fact-links {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    margin-left: 6px;
+  }
+
+  .tx-fact-links a {
+    font-family: ui-monospace, monospace;
+    font-size: calc(0.44rem * var(--s, 1));
+    font-weight: 700;
+    color: #67e8f9;
+    text-decoration: none;
+    border-bottom: 1px solid rgba(103, 232, 249, 0.35);
+  }
+
+  .tx-fact-links a:hover {
+    color: #fff;
+    border-bottom-color: #fff;
+  }
+
+  /* Who did what. */
+  .tx-players {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(calc(150px * var(--s, 1)), 1fr));
+    gap: 5px;
+  }
+
+  .tx-player {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: calc(6px * var(--s, 1)) calc(7px * var(--s, 1));
+    border-radius: 7px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.03);
+    text-decoration: none;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+
+  .tx-player:hover { background: rgba(255, 255, 255, 0.07); }
+
+  .tx-player-for { border-color: rgba(52, 211, 153, 0.35); }
+  .tx-player-against { border-color: rgba(248, 113, 113, 0.35); }
+  .tx-player-both { border-color: rgba(251, 191, 36, 0.35); }
+
+  .tx-player-name {
+    font-family: ui-monospace, monospace;
+    font-size: calc(0.5rem * var(--s, 1));
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    color: #fff;
+  }
+
+  .tx-player-role {
+    font-size: calc(0.44rem * var(--s, 1));
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.55);
   }
 
   @media (prefers-reduced-motion: reduce) {
