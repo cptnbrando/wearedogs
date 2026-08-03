@@ -31,6 +31,7 @@
     Swords,
   } from "lucide-svelte";
   import { audioCore } from "../lib/AudioCore.svelte.js";
+  import { musicLock } from "../lib/musicLock.svelte.js";
   import { settingsManager } from "../lib/settingsManager.svelte.js";
   import { VisualizerEngine } from "../lib/visualizer/VisualizerEngine.js";
   import DogsLogo from "./DogsLogo.svelte";
@@ -245,7 +246,7 @@
     }
   }
 
-  const library = [
+  const fullLibrary = [
     {
       id: "hollywood",
       title: "HOLLYWOOD",
@@ -253,12 +254,13 @@
       album: "THE GENTLEMEN'S CLUB",
       cover: "https://data.wearedogs.net/img/covers/2026/yg.webp",
       altCover: "https://data.wearedogs.net/img/covers/2026/yg.jpg",
-      src: "https://data.wearedogs.net/music/2026/HOLLYWOOD.mp3",
-      instrumental: "https://data.wearedogs.net/music/2026/HOLLYWOOD-free.mp3",
+      src: "https://data.wearedogs.net/music/lockup/hollywood.mp3",
+      instrumental: "https://data.wearedogs.net/music/lockup/hollywood-free.mp3",
       dateAdded: "2026-06-24T03:00:00-05:00",
       year: 2026,
       genre: "Hip-Hop",
       attrib: "https://the-gentlemens-club.com/",
+      public: false
     },
     {
       id: "chicago",
@@ -267,11 +269,12 @@
       album: "Xscape",
       cover: "https://data.wearedogs.net/img/covers/2026/mj.webp",
       altCover: "https://data.wearedogs.net/img/covers/2026/mj.jpg",
-      src: "https://data.wearedogs.net/music/2026/Chicago.mp3",
-      instrumental: "https://data.wearedogs.net/music/2026/Chicago-free.mp3",
+      src: "https://data.wearedogs.net/music/lockup/chicago.mp3",
+      instrumental: "https://data.wearedogs.net/music/lockup/chicago-free.mp3",
       dateAdded: "2026-06-24T03:00:00-05:00",
       year: 2014,
       genre: "Pop",
+      public: false
     },
     {
       id: "rain",
@@ -287,6 +290,7 @@
       year: 2026,
       genre: "Electronic",
       attrib: "https://shop.zedsdead.net/",
+      public: true
     },
     {
       id: "denchai",
@@ -302,6 +306,7 @@
       genre: "Lounge",
       attrib:
         "https://open.spotify.com/artist/0du3MpnxBOpQEie1IV3u9v?si=2UO722ntTE--Ck_Ji7Go7Q",
+      public: true
     },
     {
       id: "rainbow",
@@ -310,12 +315,13 @@
       album: "Shut Up, Dude",
       cover: "https://data.wearedogs.net/img/covers/2026/rainbow.webp",
       altCover: "https://data.wearedogs.net/img/covers/2026/rainbow.png",
-      src: "https://data.wearedogs.net/music/2026/rainbow.mp3",
-      instrumental: "https://data.wearedogs.net/music/2026/rainbow-free.mp3",
+      src: "https://data.wearedogs.net/music/lockup/rainbow.mp3",
+      instrumental: "https://data.wearedogs.net/music/lockup/rainbow-free.mp3",
       dateAdded: "2026-07-08T16:35:00-05:00",
       year: 2010,
       genre: "Hip-Hop",
       attrib: "https://dasracist.bandcamp.com/album/shut-up-dude",
+      public: false
     },
     {
       id: "hipsong",
@@ -330,6 +336,7 @@
       year: 2021,
       genre: "Video Game",
       attrib: "https://deltarune.com/",
+      public: true
     },
     {
       id: "sleepless",
@@ -339,11 +346,12 @@
       cover: "https://data.wearedogs.net/img/covers/2026/sleepless.webp",
       altCover: "https://data.wearedogs.net/img/covers/2026/sleepless.png",
       src: "",
-      instrumental: "https://data.wearedogs.net/music/2026/sleepless.mp3",
+      instrumental: "https://data.wearedogs.net/music/lockup/sleepless.mp3",
       dateAdded: "2026-07-12T04:22:00-05:00",
       year: 2026,
       genre: "Electronic",
       attrib: "https://deadmau5.com/",
+      public: false
     },
     {
       id: "skitzo",
@@ -352,12 +360,13 @@
       album: "UTOPIA",
       cover: "https://data.wearedogs.net/img/covers/2026/utopia.webp",
       altCover: "https://data.wearedogs.net/img/covers/2026/utopia.png",
-      src: "https://data.wearedogs.net/music/2026/skitzo.mp3",
-      instrumental: "https://data.wearedogs.net/music/2026/skitzo-free.mp3",
+      src: "https://data.wearedogs.net/music/lockup/skitzo.mp3",
+      instrumental: "https://data.wearedogs.net/music/lockup/skitzo-free.mp3",
       dateAdded: "2026-07-16T01:56:00-05:00",
       year: 2023,
       genre: "Hip-Hop",
       attrib: "https://shop.travisscott.com/",
+      public: false
     },
     {
       id: "slow",
@@ -372,6 +381,7 @@
       year: 2026,
       genre: "Electronic",
       attrib: "https://sweetboysonnet.com/",
+      public: true
     },
     {
       id: "arigato",
@@ -381,11 +391,12 @@
       cover: "https://data.wearedogs.net/img/covers/2026/arigato.webp",
       altCover: "https://data.wearedogs.net/img/covers/2026/arigato.png",
       src: "",
-      instrumental: "https://data.wearedogs.net/music/2026/arigato.mp3",
+      instrumental: "https://data.wearedogs.net/music/lockup/arigato.mp3",
       dateAdded: "2026-07-23T00:39:56-05:00",
       year: 2026,
       genre: "Hip-Hop",
       attrib: "https://nxnjaa.beatstars.com/",
+      public: false
     },
     {
       id: "exile",
@@ -400,8 +411,17 @@
       year: 2021,
       genre: "Indie Rock",
       attrib: "https://trevorsensorofficial.com/",
+      public: true
     },
   ];
+
+  // Non-public tracks live in the server's lockup folder and stay hidden until
+  // the calculator passcode unlocks them (persisted in localStorage)
+  let library = $derived(
+    musicLock.unlocked
+      ? fullLibrary
+      : fullLibrary.filter((t) => t.public !== false),
+  );
 
   // Derive sort values
   function getTrackFilename(track) {
@@ -440,7 +460,24 @@
     return list;
   });
 
-  let currentTrack = $derived(library[audioCore.currentTrackIndex]);
+  let currentTrack = $derived(
+    library[audioCore.currentTrackIndex] ?? library[0],
+  );
+
+  // Re-sync the player if the lockup gate opens (or is revoked) while mounted
+  $effect(() => {
+    const lib = library;
+    if (audioCore.library === lib || audioCore.library.length === 0) return;
+    const playingId = audioCore.library[audioCore.currentTrackIndex]?.id;
+    audioCore.init(lib);
+    const newIdx = lib.findIndex((t) => t.id === playingId);
+    if (newIdx !== -1) {
+      audioCore.currentTrackIndex = newIdx;
+    } else {
+      audioCore.pause();
+      audioCore.loadTrack(0, false);
+    }
+  });
 
   let titleContainerWidth = $state(0);
   let titleTextWidth = $state(0);
@@ -474,6 +511,7 @@
   });
 
   onMount(() => {
+    musicLock.revalidate();
     audioCore.init(library);
     if (initialTrackId) {
       const idx = library.findIndex((t) => t.id === initialTrackId);
@@ -1525,7 +1563,7 @@
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
                 <div
                   class="track-row"
-                  class:active={library[audioCore.currentTrackIndex].id ===
+                  class:active={currentTrack.id ===
                     track.id}
                   class:kb-focused={focusedTrackId === track.id}
                   class:fetch-error={audioCore.fetchErrors[track.id]}
@@ -1533,7 +1571,7 @@
                   onclick={() => selectSortedTrack(track)}
                 >
                   <div class="tr-num">
-                    {#if library[audioCore.currentTrackIndex].id === track.id && audioCore.isPlaying}
+                    {#if currentTrack.id === track.id && audioCore.isPlaying}
                       <div class="eq">
                         <div class="eq-b"></div>
                         <div class="eq-b"></div>

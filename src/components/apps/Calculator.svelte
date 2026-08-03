@@ -1,4 +1,6 @@
 <script>
+  import { musicLock } from "../../lib/musicLock.svelte.js";
+
   // Svelte 5 props
   let { onUnlock } = $props();
 
@@ -147,6 +149,13 @@
   async function verifyPasscode() {
     if (keywordBuffer.length === 0) return;
     const concatenated = keywordBuffer.join("");
+
+    // The music lockup gate shares the passcode scheme but has its own check file
+    musicLock.tryUnlock(concatenated).then((ok) => {
+      if (ok) {
+        equationDisplay = "MUSIC UNLOCKED";
+      }
+    });
 
     try {
       const response = await fetch(
