@@ -103,7 +103,14 @@
 
   function linkify(text) {
     if (!text) return "";
-    let formatted = text.replace(
+    // The source is a plain-text file, so escape any markup characters first —
+    // this string is rendered with {@html}, and only the anchors and <br> tags
+    // built below should ever reach the DOM as structure.
+    let formatted = text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+    formatted = formatted.replace(
       /(https?:\/\/[^\s]+)/g,
       '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>',
     );

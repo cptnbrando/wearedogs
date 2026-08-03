@@ -67,7 +67,7 @@
             document.body.removeChild(link);
             window.URL.revokeObjectURL(blobUrl);
         } catch (err) {
-            window.open(url, "_blank");
+            window.open(url, "_blank", "noopener,noreferrer");
         }
     }
 
