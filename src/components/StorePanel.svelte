@@ -1069,6 +1069,7 @@
   let isLocating = $state(false);
   let locationStatusText = $state("");
   let emailCopyTimeout = null;
+  let locationTimer = null;
 
   /**
    * Recipients per mailto hand-off. Mail clients cap the URL they accept —
@@ -1098,11 +1099,21 @@
   const DEFAULT_GROUP_LABEL = "Senate, statewide & federal offices";
 
   // Sync selected reps when campaign changes.
+  //
+  // Only the campaign id is tracked, and the body is untracked: this resets the
+  // user's selection and wipes the location status, so it must fire when the
+  // campaign actually changes and never because a derived recomputed underneath
+  // it — otherwise a geolocation result gets reverted a frame after it lands.
+  let syncedCampaignId = null;
   $effect(() => {
-    if (campaignRecipients.length > 0) {
+    const campaignId = selectedCampaign?.id ?? null;
+    if (campaignId === syncedCampaignId) return;
+    syncedCampaignId = campaignId;
+    untrack(() => {
+      if (campaignRecipients.length === 0) return;
       selectedReps = [...defaultReps];
       locationStatusText = "";
-    }
+    });
   });
 
   function getRepInfo(email) {
@@ -1279,6 +1290,13 @@
   const FIX_TIMEOUT_MS = 15000;
   /** Budget covering prompt + fix together, when we can't tell them apart. */
   const BLIND_TIMEOUT_MS = 45000;
+  /**
+   * A granted permission plus a 5-minute-old cached fix answers in a few
+   * milliseconds, so "LOCATING..." would paint for a single frame and the whole
+   * thing would read as a glitch — the selection just changing on its own. Hold
+   * the locating state long enough to be legible before showing the result.
+   */
+  const MIN_LOCATING_MS = 900;
 
   async function handleUseLocation(allEmails) {
     const tail = `Selected the ${fallbackReps.length} priority offices — or tick the boxes below.`;
@@ -1319,12 +1337,18 @@
     // First result wins; a late straggler can't re-fire either branch.
     let settled = false;
     let fixTimer = null;
+    const startedAt = Date.now();
     const once = (fn) => (arg) => {
       if (settled) return;
       settled = true;
       clearTimeout(fixTimer);
-      isLocating = false;
-      fn(arg);
+      // Latch immediately so nothing double-fires, but hold the visible
+      // "LOCATING..." state until it has been on screen long enough to read.
+      const hold = Math.max(0, MIN_LOCATING_MS - (Date.now() - startedAt));
+      locationTimer = setTimeout(() => {
+        isLocating = false;
+        fn(arg);
+      }, hold);
     };
 
     const succeed = once((pos) => applyClosestReps(pos, allEmails));
@@ -1594,6 +1618,8 @@
 
   onDestroy(() => {
     if (countdownInterval) clearInterval(countdownInterval);
+    if (locationTimer) clearTimeout(locationTimer);
+    if (emailCopyTimeout) clearTimeout(emailCopyTimeout);
   });
 
   // Load cart from localStorage and re-verify stock
@@ -3461,11 +3487,17 @@
                                   onclick={() =>
                                     handleUseLocation(campaignRecipients)}
                                   disabled={isLocating}
-                                  class="py-2 px-3 bg-emerald-950/60 hover:bg-emerald-900/60 border border-emerald-500/40 text-emerald-300 font-mono text-[11px] font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                                  class="py-2 px-3 bg-emerald-950/60 hover:bg-emerald-900/60 border border-emerald-500/40 text-emerald-300 font-mono text-[11px] font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-100 disabled:cursor-wait"
+                                  class:locating-pulse={isLocating}
                                 >
-                                  📍 {isLocating
-                                    ? "LOCATING..."
-                                    : "USE LOCATION (AUTO-SELECT CLOSEST)"}
+                                  {#if isLocating}
+                                    <span
+                                      class="inline-block w-3 h-3 rounded-full border-2 border-emerald-400/30 border-t-emerald-300 animate-spin"
+                                    ></span>
+                                    LOCATING...
+                                  {:else}
+                                    📍 USE LOCATION (AUTO-SELECT CLOSEST)
+                                  {/if}
                                 </button>
 
                                 <div
@@ -3592,12 +3624,19 @@
                                 </div>
                               {/if}
 
+                              <!-- Keyed so a second run re-plays the fade: the
+                                   result often reads similarly to the last one,
+                                   and without the flash it looks like nothing
+                                   happened. -->
                               {#if locationStatusText}
-                                <div
-                                  class="text-[10px] font-mono text-emerald-400 bg-emerald-950/30 p-2 rounded border border-emerald-500/20"
-                                >
-                                  {locationStatusText}
-                                </div>
+                                {#key locationStatusText}
+                                  <div
+                                    in:fade={{ duration: 200 }}
+                                    class="text-[10px] font-mono text-emerald-300 bg-emerald-950/40 p-2 rounded border border-emerald-500/30 status-flash"
+                                  >
+                                    {locationStatusText}
+                                  </div>
+                                {/key}
                               {/if}
 
                               <!-- Checked Counter & List -->
@@ -5755,6 +5794,39 @@
       6px 0 18px rgba(59, 130, 246, 0.6);
   }
 
+  /* The location lookup can resolve from cache almost instantly, so the button
+     and its result both announce themselves rather than blinking past. */
+  .locating-pulse {
+    animation: locatingPulse 1.1s ease-in-out infinite;
+  }
+
+  @keyframes locatingPulse {
+    0%,
+    100% {
+      box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5);
+    }
+    50% {
+      box-shadow: 0 0 0 4px rgba(16, 185, 129, 0);
+    }
+  }
+
+  .status-flash {
+    animation: statusFlash 1.6s ease-out;
+  }
+
+  @keyframes statusFlash {
+    0% {
+      box-shadow:
+        0 0 0 2px rgba(16, 185, 129, 0.9),
+        0 0 22px rgba(16, 185, 129, 0.5);
+    }
+    100% {
+      box-shadow:
+        0 0 0 0 rgba(16, 185, 129, 0),
+        0 0 0 rgba(16, 185, 129, 0);
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .critical-bio :global(b.em-deadline),
     .critical-bio :global(b.em-alarm),
@@ -5763,6 +5835,8 @@
     .sale-bio :global(b.warn-em-sentence),
     .warn-banner,
     .jump-arrow,
+    .locating-pulse,
+    .status-flash,
     .email-flash,
     .sale-title,
     .sale-widget,
