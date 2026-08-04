@@ -342,22 +342,6 @@
   let senSplit = $derived(stanceSplit(senateMembers));
   let houseSplit = $derived(stanceSplit(houseMembers));
 
-  /**
-   * Tints a split chip by which way the group actually leans — green when most
-   * of its rated offices are with us, red when most are voting for the ban. A
-   * group with nothing rated either way stays neutral rather than reading as
-   * good news.
-   */
-  function splitTone({ pro, anti }) {
-    const rated = pro + anti;
-    if (rated === 0) return "t-none";
-    const share = pro / rated;
-    if (share >= 0.6) return "t-good";
-    if (share >= 0.45) return "t-fair";
-    if (share >= 0.3) return "t-poor";
-    return "t-bad";
-  }
-
   /** Whole-number share, guarded so an empty group reads 0 rather than NaN. */
   function pct(part, whole) {
     return whole > 0 ? Math.round((part / whole) * 100) : 0;
@@ -3130,31 +3114,6 @@
   .tx-stat.split .v { color: rgba(255, 255, 255, 0.32); }
   .tx-stat .v .pro { color: #34d399; }
   .tx-stat .v .anti { color: #f87171; }
-  .tx-stat .v .rparty { color: #f87171; }
-  .tx-stat .v .dparty { color: #60a5fa; }
-
-  /* The whole chip is tinted by which way the group leans, so the shape of the
-     legislature reads at a glance before any single number does. */
-  .tx-stat.t-good {
-    border-color: rgba(52, 211, 153, 0.55);
-    background: rgba(52, 211, 153, 0.12);
-  }
-  .tx-stat.t-fair {
-    border-color: rgba(163, 230, 53, 0.5);
-    background: rgba(163, 230, 53, 0.1);
-  }
-  .tx-stat.t-poor {
-    border-color: rgba(251, 146, 60, 0.5);
-    background: rgba(251, 146, 60, 0.11);
-  }
-  .tx-stat.t-bad {
-    border-color: rgba(248, 113, 113, 0.55);
-    background: rgba(248, 113, 113, 0.13);
-  }
-  .tx-stat.t-good .k, .tx-stat.t-good .p { color: rgba(167, 243, 208, 0.75); }
-  .tx-stat.t-fair .k, .tx-stat.t-fair .p { color: rgba(217, 249, 157, 0.72); }
-  .tx-stat.t-poor .k, .tx-stat.t-poor .p { color: rgba(254, 215, 170, 0.75); }
-  .tx-stat.t-bad .k, .tx-stat.t-bad .p { color: rgba(254, 202, 202, 0.78); }
 
   /* The two mirrored rows don't take a lean tint — the row itself IS the
      meaning. Green counts who's with us, red counts the opposition. */

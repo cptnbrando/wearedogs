@@ -29,7 +29,8 @@ export default defineConfig({
     }
   },
   build: {
-    target: 'modules',
+    // build.target is owned by @vitejs/plugin-legacy (via its `targets` option
+    // above) — setting it here just gets overridden with a warning.
 
     // Forces the CSS compiler to down-compile into safe fallbacks
     cssTarget: 'chrome40',
