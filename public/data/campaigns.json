@@ -48,6 +48,16 @@
         "thumbnail": "https://data.wearedogs.net/vid/fundraiser/bill-thumb.png"
       },
       {
+        "type": "video",
+        "url": "https://data.wearedogs.net/vid/fundraiser/thc.mp4",
+        "thumbnail": "https://data.wearedogs.net/vid/fundraiser/thc-thumb.png"
+      },
+      {
+        "type": "video",
+        "url": "https://data.wearedogs.net/vid/fundraiser/ket.mp4",
+        "thumbnail": "https://data.wearedogs.net/vid/fundraiser/ket-thumb.png"
+      },
+      {
         "type": "image",
         "url": "https://data.wearedogs.net/img/fundraiser/thcban.webp"
       },

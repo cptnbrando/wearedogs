@@ -5390,7 +5390,7 @@
      fills the height it actually has (no aspect ratio, compact thumbs)
      and the details column scrolls internally. Everything fits, nothing
      is cut off, and the workspace itself never scrolls. */
-  @media (orientation: landscape) and (max-height: 520px) and (min-width: 640px) {
+  @media (orientation: landscape) and (max-height: 620px) and (min-width: 640px) {
     /* Every vertical pixel of chrome is a pixel the content doesn't get:
        the header collapses to a razor-thin strip. */
     .store-header {
