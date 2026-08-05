@@ -117,6 +117,18 @@
   let selectedSpot = $state(null);
   let selectedSpotImgIdx = $state(0);
 
+  let linkCopied = $state(false);
+  let linkCopiedTimer;
+
+  function copySpotLink() {
+    if (!selectedSpot) return;
+    const link = `${window.location.origin}${getBaseMapUrl()}#spot=${selectedSpot.id}`;
+    navigator.clipboard?.writeText(link).catch(() => {});
+    linkCopied = true;
+    clearTimeout(linkCopiedTimer);
+    linkCopiedTimer = setTimeout(() => (linkCopied = false), 2200);
+  }
+
   const BLURBS = [
     { text: "If it ain't here, I don't know what to tell ya" },
     { text: "Dogs know how to eat" },
@@ -1709,7 +1721,7 @@
         >
           <!-- Back button -->
           <div
-            class="p-3 border-b border-white/5 flex items-center justify-between z-10 shrink-0"
+            class="p-3 border-b border-white/5 flex items-center justify-between z-10 shrink-0 relative"
           >
             <button
               class="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-white font-bold transition-colors"
@@ -1717,10 +1729,26 @@
             >
               ← BACK TO DIRECTORY
             </button>
-            <span
-              class="text-[10px] font-mono text-zinc-500 uppercase tracking-widest"
-              >{selectedSpot.cityName}</span
-            >
+            <div class="flex items-center gap-2">
+              <button
+                class="px-2.5 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[10px] text-white font-bold flex items-center gap-1 transition-all active:scale-95"
+                onclick={copySpotLink}
+              >
+                🔗 SHARE
+              </button>
+              <span
+                class="text-[10px] font-mono text-zinc-500 uppercase tracking-widest"
+                >{selectedSpot.cityName}</span
+              >
+            </div>
+            {#if linkCopied}
+              <div
+                class="link-copied-notice"
+                transition:fade={{ duration: 150 }}
+              >
+                ✓ Link copied
+              </div>
+            {/if}
           </div>
 
           <!-- Content scroll container -->
@@ -1733,6 +1761,41 @@
                 {selectedSpot.description}
               </p>
             </div>
+
+            <!-- Image Carousel -->
+            {#if selectedSpot.images && selectedSpot.images.length > 0}
+              <div
+                class="relative w-full aspect-video bg-black/40 rounded-lg overflow-hidden border border-white/5 group"
+              >
+                <img
+                  src={selectedSpot.images[selectedSpotImgIdx]}
+                  alt={selectedSpot.name}
+                  class="w-full h-full object-cover"
+                />
+
+                {#if selectedSpot.images.length > 1}
+                  <button
+                    class="absolute left-2 top-1/2 -translate-y-1/2 bg-black/75 hover:bg-black text-white text-[10px] w-6 h-6 rounded-full flex items-center justify-center border border-white/10 transition-colors"
+                    onclick={() => {
+                      selectedSpotImgIdx =
+                        (selectedSpotImgIdx - 1 + selectedSpot.images.length) %
+                        selectedSpot.images.length;
+                    }}
+                  >
+                    ◀
+                  </button>
+                  <button
+                    class="absolute right-2 top-1/2 -translate-y-1/2 bg-black/75 hover:bg-black text-white text-[10px] w-6 h-6 rounded-full flex items-center justify-center border border-white/10 transition-colors"
+                    onclick={() => {
+                      selectedSpotImgIdx =
+                        (selectedSpotImgIdx + 1) % selectedSpot.images.length;
+                    }}
+                  >
+                    ▶
+                  </button>
+                {/if}
+              </div>
+            {/if}
 
             <!-- Dining Recommendations: Best dishes, best times to eat -->
             <div
@@ -1770,41 +1833,6 @@
                 {/if}
               </div>
             </div>
-
-            <!-- Image Carousel -->
-            {#if selectedSpot.images && selectedSpot.images.length > 0}
-              <div
-                class="relative w-full aspect-video bg-black/40 rounded-lg overflow-hidden border border-white/5 group"
-              >
-                <img
-                  src={selectedSpot.images[selectedSpotImgIdx]}
-                  alt={selectedSpot.name}
-                  class="w-full h-full object-cover"
-                />
-
-                {#if selectedSpot.images.length > 1}
-                  <button
-                    class="absolute left-2 top-1/2 -translate-y-1/2 bg-black/75 hover:bg-black text-white text-[10px] w-6 h-6 rounded-full flex items-center justify-center border border-white/10 transition-colors"
-                    onclick={() => {
-                      selectedSpotImgIdx =
-                        (selectedSpotImgIdx - 1 + selectedSpot.images.length) %
-                        selectedSpot.images.length;
-                    }}
-                  >
-                    ◀
-                  </button>
-                  <button
-                    class="absolute right-2 top-1/2 -translate-y-1/2 bg-black/75 hover:bg-black text-white text-[10px] w-6 h-6 rounded-full flex items-center justify-center border border-white/10 transition-colors"
-                    onclick={() => {
-                      selectedSpotImgIdx =
-                        (selectedSpotImgIdx + 1) % selectedSpot.images.length;
-                    }}
-                  >
-                    ▶
-                  </button>
-                {/if}
-              </div>
-            {/if}
 
             <!-- Address and clickable directions -->
             <div
@@ -1893,16 +1921,6 @@
               </div>
             {/if}
 
-            <button
-              class="w-full py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs text-white font-bold flex items-center justify-center gap-1.5 transition-all"
-              onclick={() => {
-                const link = `${window.location.origin}${getBaseMapUrl()}#spot=${selectedSpot.id}`;
-                navigator.clipboard.writeText(link);
-                alert("Shareable spot link copied to clipboard!");
-              }}
-            >
-              🔗 COPY SHAREABLE LINK
-            </button>
           </div>
         </div>
       {:else}
@@ -1989,6 +2007,15 @@
                 onclick={() => selectSpotCard(spot)}
                 transition:fade={{ duration: 150 }}
               >
+                {#if spot.images && spot.images.length > 0}
+                  <img
+                    class="spot-thumb"
+                    src={spot.images[0]}
+                    alt={spot.name}
+                    loading="lazy"
+                  />
+                {/if}
+                <div class="spot-card-body">
                 <div class="spot-card-head">
                   <div>
                     <h3 class="inline">{spot.name}</h3>
@@ -2068,6 +2095,7 @@
                 </div>
 
                 <p class="spot-desc">{spot.description}</p>
+                </div>
               </div>
             {:else}
               <div class="no-spots">
@@ -2095,6 +2123,15 @@
                       onclick={() => selectSpotCard(spot)}
                       transition:fade={{ duration: 150 }}
                     >
+                      {#if spot.images && spot.images.length > 0}
+                        <img
+                          class="spot-thumb"
+                          src={spot.images[0]}
+                          alt={spot.name}
+                          loading="lazy"
+                        />
+                      {/if}
+                      <div class="spot-card-body">
                       <div class="spot-card-head">
                         <div>
                           <h3 class="inline">{spot.name}</h3>
@@ -2179,6 +2216,7 @@
                       </div>
 
                       <p class="spot-desc">{spot.description}</p>
+                      </div>
                     </div>
                   {/each}
                 </div>
@@ -2439,9 +2477,28 @@
     border-radius: 10px;
     padding: 12px;
     display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .spot-thumb {
+    width: 64px;
+    height: 64px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    flex-shrink: 0;
+    background: rgba(0, 0, 0, 0.4);
+  }
+
+  .spot-card-body {
+    display: flex;
     flex-direction: column;
     gap: 6px;
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    flex: 1;
+    min-width: 0;
   }
 
   .spot-card:hover {
@@ -2491,6 +2548,25 @@
     font-size: 0.72rem;
     line-height: 1.4;
     color: rgba(255, 255, 255, 0.45);
+  }
+
+  .link-copied-notice {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(10, 10, 12, 0.95);
+    border: 1px solid rgba(74, 222, 128, 0.35);
+    color: #4ade80;
+    font-size: 0.65rem;
+    font-weight: 700;
+    font-family: monospace;
+    letter-spacing: 0.08em;
+    padding: 4px 12px;
+    border-radius: 999px;
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 20;
   }
 
   .no-spots {

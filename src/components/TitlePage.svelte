@@ -202,6 +202,11 @@
   // ---------------------------------------------------------------------------
   onMount(() => {
     const path = window.location.pathname;
+    // Map spot deep links live in the hash (/map#spot=<id>) — capture it before
+    // the replaceState below wipes it, so it can be restored when the map opens.
+    const mapSpotHash = /spot=[^&]+/.test(window.location.hash)
+      ? window.location.hash
+      : "";
     // Normalise the initial history entry so that closePage()'s history.go(-depth)
     // always returns the browser to '/' rather than the original deep-link URL.
     if (path !== "/info") {
@@ -267,6 +272,14 @@
 
     if (params.type === "panel") {
       openPage(params.panel);
+      if (params.panel === "map" && mapSpotHash) {
+        // Re-attach the spot hash so MapPanel's onMount can deep-link into it.
+        history.replaceState(
+          { view: "map", app: null, depth: 1 },
+          "",
+          "/map" + mapSpotHash,
+        );
+      }
       return;
     }
 
