@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1785814922,
+    "firstCommitTimestamp": 1785953477,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 183607
+    "averageLinesAltered": 183696
   },
   "entries": [
     {
       "version": "1.0.2",
       "name": "Master",
-      "date": "2026-08-04",
-      "timestamp": 1785814844,
+      "date": "2026-08-05",
+      "timestamp": 1785953394,
       "commits": [
         {
-          "hash": "8b945f4",
-          "message": "refactor: remove splitTone function and related styles from TexasLawmakerMap.svelte; update vite.config.js comments for clarity",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/8b945f49b5ac1cb6df36751fde0bda7dcf4bc905",
-          "timestamp": 1785814922,
-          "linesChanged": 183607
+          "hash": "2f6d81f",
+          "message": "feat(map): listing thumbnails, top share button with toast, fix broken spot share links",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/2f6d81f2fa4359de05b933ce8dc3a6c39aa0d714",
+          "timestamp": 1785953477,
+          "linesChanged": 183696
         }
       ]
     },
