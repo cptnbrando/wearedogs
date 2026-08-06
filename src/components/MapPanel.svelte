@@ -99,6 +99,22 @@
       stateBird: "Black-capped Chickadee",
       stateFlower: "Mayflower",
     },
+    {
+      name: "Punta Cana DR",
+      x: 243,
+      y: 482,
+      zoomX: 194,
+      zoomY: 451,
+      zoomW: 100,
+      zoomH: 80,
+      lat: 18.5818,
+      lng: -68.4043,
+      population: "145,000",
+      history:
+        "Carved out of a barren coastal strip beginning in 1969, now the Caribbean's busiest resort destination. Incorporated as the Verón–Punta Cana district in 2006.",
+      stateBird: "Palmchat",
+      stateFlower: "Bayahibe Rose",
+    }
   ];
 
   const STAR_COLORS = {

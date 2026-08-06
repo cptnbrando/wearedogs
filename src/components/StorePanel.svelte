@@ -2,8 +2,9 @@
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <script>
   import { onMount, onDestroy, untrack } from "svelte";
-  import { fade, scale, fly } from "svelte/transition";
+  import { fade, scale, fly, slide } from "svelte/transition";
   import { marked } from "marked";
+  import { lettersFor } from "../lib/correspondence.js";
   import BasePanel from "./BasePanel.svelte";
   import ProductImageSlideshow from "./apps/ProductImageSlideshow.svelte";
   import ThreeDShirtCanvas from "./apps/ThreeDShirtCanvas.svelte";
@@ -262,14 +263,17 @@
   /* ------------------------------------------------------------------ */
 
   /**
-   * Replies from the people we wrote to, printed whole. Loaded on open
-   * rather than with the campaign: these are long documents and most
-   * readers came for the pitch, not the paperwork.
+   * Replies from the people we wrote to, printed whole. Each letter is one
+   * markdown file in public/correspondence/, compiled into the bundle at
+   * build time — campaigns.json only lists ids, the letter file carries its
+   * own header.
    */
   let openLetter = $state(null);
+  /** The list will only grow as more offices write back — collapsed by default. */
+  let corrExpanded = $state(false);
   let letterHtml = $state("");
-  let letterLoading = $state(false);
-  let letterReqId = 0;
+  /** This campaign's letters, resolved from ids to the bundled documents. */
+  let campaignLetters = $derived(lettersFor(selectedCampaign?.correspondence));
   /** Whether the open letter owns a history entry, mirroring the cart drawer. */
   let letterHistoryPushed = false;
 
@@ -300,36 +304,16 @@
     }
   });
 
-  /** Drops the YAML block a letter carries for the future index page. */
-  function stripFrontmatter(md) {
-    return md.replace(/^﻿?---\r?\n[\s\S]*?\r?\n---\r?\n?/, "");
-  }
-
   function closeLetter() {
     openLetter = null;
     letterHtml = "";
-    letterLoading = false;
-    letterReqId++;
   }
 
-  async function showLetter(entry) {
-    openLetter = entry;
-    letterHtml = "";
-    letterLoading = true;
-    const reqId = ++letterReqId;
-    try {
-      const res = await fetch(entry.url);
-      const md = res.ok ? await res.text() : "";
-      if (reqId !== letterReqId) return;
-      letterHtml = md
-        ? styleRawAnchors(marked.parse(stripFrontmatter(md)))
-        : "";
-    } catch (e) {
-      console.error("Error loading correspondence:", e);
-      if (reqId === letterReqId) letterHtml = "";
-    } finally {
-      if (reqId === letterReqId) letterLoading = false;
-    }
+  function showLetter(letter) {
+    openLetter = letter;
+    letterHtml = letter.body
+      ? styleRawAnchors(marked.parse(letter.body))
+      : "";
   }
 
   /** Which letter the send buttons actually put in front of lawmakers. */
@@ -3178,55 +3162,65 @@
                     {/if}
                   {/if}
 
-                  {#if selectedCampaign.correspondence?.length && !isMapFullscreen}
+                  {#if campaignLetters.length && !isMapFullscreen}
                     <!-- Sits above the pitch on purpose: what the offices
                          actually wrote back outranks anything we can say
                          about them. -->
                     <div class="corr-block">
-                      <div class="corr-head">
+                      <button
+                        class="corr-head"
+                        aria-expanded={corrExpanded}
+                        onclick={() => (corrExpanded = !corrExpanded)}
+                      >
                         <span class="corr-title"
                           >📬 CORRESPONDENCE
                           <span class="corr-count"
-                            >{selectedCampaign.correspondence.length}</span
+                            >{campaignLetters.length}</span
+                          >
+                          <span
+                            class="corr-chevron"
+                            class:is-expanded={corrExpanded}>▼</span
                           ></span
                         >
                         <span class="corr-sub"
-                          >We write to them. When they write back it goes here,
-                          in full and unedited — and we support anybody who
-                          keeps it real and keeps the discussion going.</span
+                          >We write to them. When they write back it goes here — 
+                          and we support anybody who keeps it real and keeps the
+                          discussion going. Really, if they're not in this list,
+                          perhaps they are ghosts. These letters are from real people. 
+                          All 184 representatives should be here. So far we have
+                          <span class="corr-tally"
+                            >{new Set(
+                              campaignLetters.map((l) => l.from),
+                            ).size}</span
+                          >.</span
                         >
-                      </div>
+                      </button>
 
-                      {#each selectedCampaign.correspondence as letter}
-                        <button
-                          class="corr-item"
-                          class:is-open={openLetter?.id === letter.id}
-                          onclick={() => showLetter(letter)}
+                      {#if corrExpanded}
+                        <div
+                          class="corr-list"
+                          transition:slide={{ duration: 220 }}
                         >
-                          <span class="corr-item-main">
-                            <span class="corr-from">{letter.from}</span>
-                            <span class="corr-meta"
-                              >{letter.office} · {letter.date}</span
+                          {#each campaignLetters as letter}
+                            <button
+                              class="corr-item"
+                              class:is-open={openLetter?.id === letter.id}
+                              onclick={() => showLetter(letter)}
                             >
-                            <span class="corr-topic">{letter.topic}</span>
-                          </span>
-                          <span class="corr-right">
-                            {#if letter.status}
-                              <span class="corr-status">{letter.status}</span>
-                            {/if}
-                            <span class="corr-open">READ →</span>
-                          </span>
-                        </button>
-                        {#if letter.page}
-                          <a
-                            class="corr-newtab"
-                            href={letter.page}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            >Click here to open this letter in a new page ↗</a
-                          >
-                        {/if}
-                      {/each}
+                              <span class="corr-item-main">
+                                <span class="corr-from">{letter.from}</span>
+                                <span class="corr-meta"
+                                  >{letter.office} · {letter.dateLabel}</span
+                                >
+                                <span class="corr-topic">{letter.topic}</span>
+                              </span>
+                              <span class="corr-right">
+                                <span class="corr-open">READ →</span>
+                              </span>
+                            </button>
+                          {/each}
+                        </div>
+                      {/if}
                     </div>
                   {/if}
 
@@ -4086,13 +4080,19 @@
             <span class="corr-modal-kicker">📬 CORRESPONDENCE</span>
             <span class="corr-modal-from">{openLetter.from}</span>
             <span class="corr-modal-meta"
-              >{openLetter.office} · {openLetter.date}</span
+              >{openLetter.office} · {openLetter.dateLabel}</span
             >
+            {#if openLetter.page}
+              <a
+                class="corr-newtab"
+                href={openLetter.page}
+                target="_blank"
+                rel="noopener noreferrer"
+                >Click here to open this letter in a new page ↗</a
+              >
+            {/if}
           </div>
           <div class="corr-modal-actions">
-            {#if openLetter.status}
-              <span class="corr-status">{openLetter.status}</span>
-            {/if}
             <button
               class="corr-close"
               onclick={closeLetter}
@@ -4105,9 +4105,7 @@
         </div>
 
         <div class="corr-modal-body">
-          {#if letterLoading}
-            <p class="corr-loading">OPENING THE ENVELOPE…</p>
-          {:else if letterHtml}
+          {#if letterHtml}
             {@html letterHtml}
           {:else}
             <p class="corr-loading">COULD NOT LOAD THIS LETTER.</p>
@@ -4876,12 +4874,34 @@
     );
   }
 
+  /* The whole header is the expand/collapse toggle — the list of letters
+     only grows, so it stays folded until a reader asks for it. */
   .corr-head {
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
-    padding-bottom: 0.6rem;
-    border-bottom: 1px solid rgba(56, 189, 248, 0.18);
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: none;
+    text-align: left;
+    cursor: pointer;
+  }
+  .corr-head:hover .corr-title {
+    color: #bae6fd;
+  }
+  .corr-list {
+    margin-top: 0.6rem;
+    border-top: 1px solid rgba(56, 189, 248, 0.18);
+  }
+  .corr-chevron {
+    margin-left: auto;
+    color: #38bdf8;
+    font-size: 0.5rem;
+    transition: transform 0.25s;
+  }
+  .corr-chevron.is-expanded {
+    transform: rotate(180deg);
   }
   .corr-title {
     display: flex;
@@ -4904,6 +4924,12 @@
     color: #71717a;
     font-size: 0.62rem;
     line-height: 1.5;
+  }
+  /* The running tally of offices that have actually written back. */
+  .corr-tally {
+    color: #7dd3fc;
+    font-family: ui-monospace, monospace;
+    font-weight: 900;
   }
 
   .corr-item {
@@ -4957,17 +4983,6 @@
     gap: 0.45rem;
     flex-shrink: 0;
   }
-  .corr-status {
-    padding: 0.1rem 0.35rem;
-    border: 1px solid rgba(52, 211, 153, 0.45);
-    border-radius: 0.3rem;
-    background: rgba(16, 185, 129, 0.12);
-    color: #6ee7b7;
-    font-family: ui-monospace, monospace;
-    font-size: 0.5rem;
-    font-weight: 900;
-    letter-spacing: 0.14em;
-  }
   .corr-open {
     color: #7dd3fc;
     font-family: ui-monospace, monospace;
@@ -4978,7 +4993,6 @@
   .corr-newtab {
     display: block;
     margin-top: 0.3rem;
-    padding: 0 0.6rem;
     color: #7dd3fc;
     font-family: ui-monospace, monospace;
     font-size: 0.55rem;
