@@ -162,7 +162,7 @@
             <span class="text-base md:text-lg pointer-events-none">🏙️</span>
             <span
               class="card-value text-xs sm:text-sm md:text-base font-bold text-black"
-              >somewhere between Oklahoma and Texas</span
+              >somewhere between Tulsa OK and Dallas TX</span
             >
           </div>
         </div>
