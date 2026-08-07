@@ -15,4 +15,5 @@ Replies from officials are reproduced exactly as received. We do not trim the pa
 
 ## Letters
 
+- [Rep. Pat Fallon — hemp and the FY2026 appropriations language excluding any quantifiable THC](/correspondence/2026-08-04-pat-fallon.md)
 - [Sen. John Cornyn — federal marijuana scheduling and the hemp provision in P.L. 119-37](/correspondence/2026-07-john-cornyn-thc-scheduling.md)

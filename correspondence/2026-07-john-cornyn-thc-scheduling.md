@@ -1,13 +1,14 @@
 ---
+id: "cornyn-2026-07"
 title: "Sen. John Cornyn on federal marijuana scheduling and the hemp provision"
 date: "2026-07-31T12:00:00-05:00"
-received: "2026-07" # TODO: replace with the exact date this reply arrived
+received: "2026-07-31"
+dateLabel: "JULY 2026"
 description: "A constituent reply from Senator John Cornyn (R-TX) on marijuana scheduling, the 2018 Farm Bill hemp loophole, and his vote for P.L. 119-37. Reproduced in full."
 author: "Captain Brando!"
 from: "Sen. John Cornyn"
-office: "United States Senate — Texas"
+office: "U.S. Senate — Texas"
 topic: "Marijuana scheduling · hemp-derived THC · P.L. 119-37"
-status: "Answered"
 ---
 
 # SEN. JOHN CORNYN — ON MARIJUANA SCHEDULING AND HEMP-DERIVED THC
