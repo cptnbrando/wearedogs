@@ -18,7 +18,7 @@ A home for debauchery, magic, and mischief
 
 ## Network Dependencies
 
-* https://flagcdn.com - Flags for teams.
+* https://flagcdn.com - Flags for teams
 
 
 
