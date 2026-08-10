@@ -1778,7 +1778,7 @@
             class="p-3 border-b border-white/5 flex items-center justify-between z-10 shrink-0 relative"
           >
             <button
-              class="flex items-center gap-2.5 text-xs text-zinc-400 hover:text-white font-bold transition-colors cursor-pointer"
+              class="back-to-directory flex items-center gap-2.5 text-xs text-zinc-400 hover:text-white font-bold transition-colors cursor-pointer"
               onclick={handleBackClick}
             >
               <ArrowLeft size={14} />
@@ -2428,6 +2428,13 @@
     user-select: none;
   }
 
+  /* 1px optical lift so the arrow shaft sits on the caps' visual center —
+     flex centering alone leaves it reading slightly low against all-caps. */
+  .back-to-directory :global(svg) {
+    transform: translateY(-1px);
+    flex-shrink: 0;
+  }
+
   /* Pins */
   .city-pin {
     cursor: pointer;
@@ -2466,9 +2473,13 @@
   }
 
   /* Gentle bob: dot and label drift up and back down in one continuous
-     ease-in-out wave — symmetric keyframes, so there is no reset snap. */
+     ease-in-out wave — symmetric keyframes, so there is no reset snap.
+     will-change + translate3d put each pin on its own compositor layer;
+     without it every frame repaints the whole world-map SVG on the main
+     thread, which is what made the motion stutter. */
   .pin-bob {
-    animation: pinBob 2.6s ease-in-out infinite;
+    animation: pinBob 2.2s ease-in-out infinite;
+    will-change: transform;
   }
 
   .city-pin.dimmed .pin-bob {
@@ -2478,10 +2489,10 @@
   @keyframes pinBob {
     0%,
     100% {
-      transform: translateY(0);
+      transform: translate3d(0, 0, 0);
     }
     50% {
-      transform: translateY(-3px);
+      transform: translate3d(0, -4px, 0);
     }
   }
 
