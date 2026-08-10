@@ -7,6 +7,7 @@
   import { fade, slide, fly } from "svelte/transition";
   import { cubicOut } from "svelte/easing";
   import {
+    ArrowLeft,
     Star,
     MapPin,
     ExternalLink,
@@ -1744,21 +1745,15 @@
               class="flex items-center gap-2.5 text-xs text-zinc-400 hover:text-white font-bold transition-colors cursor-pointer"
               onclick={handleBackClick}
             >
-              <span>←</span>
+              <ArrowLeft size={14} />
               <span>BACK TO DIRECTORY</span>
             </button>
-            <div class="flex items-center gap-2">
-              <button
-                class="px-2.5 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[10px] text-white font-bold flex items-center gap-1 transition-all active:scale-95 cursor-pointer"
-                onclick={copySpotLink}
-              >
-                🔗 SHARE
-              </button>
-              <span
-                class="text-[10px] font-mono text-zinc-500 uppercase tracking-widest"
-                >{selectedSpot.cityName}</span
-              >
-            </div>
+            <button
+              class="px-2.5 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[10px] text-white font-bold flex items-center gap-1 transition-all active:scale-95 cursor-pointer"
+              onclick={copySpotLink}
+            >
+              🔗 SHARE
+            </button>
             {#if linkCopied}
               <div
                 class="link-copied-notice"
