@@ -2545,6 +2545,9 @@
     font-family: monospace;
     text-anchor: middle;
     pointer-events: none;
+    /* No glyph pixel-snapping: hinted text jumps whole pixels while the
+       pin bobs, which reads as jerky motion even at a full frame rate. */
+    text-rendering: geometricPrecision;
   }
 
   .city-pin:hover .pin-text,
