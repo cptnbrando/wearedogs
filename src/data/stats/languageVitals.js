@@ -72,12 +72,12 @@ export const trackedSpeakerTotal = languageVitals.reduce(
   0,
 );
 
-// World demographics — UN World Population Prospects estimates, NOT the sum
+// World demographics — UN World Population Prospects (2024 Revision) estimates, NOT the sum
 // of speaker populations (which double-counts multilinguals).
-const WORLD_POP_REFERENCE = 8_240_000_000; // mid-2026 estimate
+const WORLD_POP_REFERENCE = 8_300_584_377; // mid-2026 estimate (July 1, 2026)
 const WORLD_POP_REFERENCE_MS = Date.UTC(2026, 6, 1);
-const WORLD_CBR = 16.0; // births / 1,000 people / year (≈132M/yr)
-const WORLD_CDR = 7.5; // deaths / 1,000 people / year (≈62M/yr)
+const WORLD_CBR = 15.88; // births / 1,000 people / year
+const WORLD_CDR = 7.778; // deaths / 1,000 people / year
 
 export const worldVitals = (() => {
   const dailyBirths = (WORLD_POP_REFERENCE * WORLD_CBR) / 1000 / DAYS_PER_YEAR;

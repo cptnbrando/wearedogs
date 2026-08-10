@@ -269,7 +269,7 @@
                   >
                     <div class="combined-main">
                       <div class="pulse-eyebrow">
-                        alive right now · humans + dogs
+                        alive right now
                       </div>
                       <div class="pop-hero">
                         {formatInt(population + dogPopulation)}
@@ -277,7 +277,7 @@
                       <div class="pulse-sub">
                         growing +{(
                           worldVitals.netPerSecond + worldDogVitals.netPerSecond
-                        ).toFixed(1)} every second · hover or tap to split
+                        ).toFixed(1)} every second
                       </div>
                     </div>
 
