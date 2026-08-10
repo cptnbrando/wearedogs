@@ -19,25 +19,25 @@
     TEXAS_PATH,
     DEFAULT_VIEW,
     viewAround,
-  } from "../../lib/texasGeo.js";
+  } from "../../data/fundraiser/texas/texasGeo.js";
   import {
     TEXAS_STATS,
     NEIGHBOR_STATS,
     CITY_STATS,
     CITY_STATS_METHOD,
     STATS_SOURCES,
-  } from "../../lib/hempStats.js";
+  } from "../../data/fundraiser/texas/hempStats.js";
   import {
     STORE_DOTS,
     STORE_TOTAL_LABEL,
     STORE_DOT_RATIO,
     STORE_COUNT_BY_NAME,
-  } from "../../lib/hempStores.js";
+  } from "../../data/fundraiser/texas/hempStores.js";
   import {
     WHY_TIMELINE,
     WHY_GUMMY_STEPS,
     WHY_PLAYERS,
-  } from "../../lib/hempTimeline.js";
+  } from "../../data/fundraiser/texas/hempTimeline.js";
   import {
     DEATH_STATS,
     ED_STATS,
@@ -47,7 +47,7 @@
     HEALTH_TAKEAWAYS,
     HEALTH_RESEARCH,
     HEALTH_METHOD,
-  } from "../../lib/hempHealth.js";
+  } from "../../data/fundraiser/texas/hempHealth.js";
 
   let {
     lawmakers = [],

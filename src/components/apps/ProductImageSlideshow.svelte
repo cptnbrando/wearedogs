@@ -6,7 +6,28 @@
   let {
     images = [],
     productTitle = "FIGHT THE CEO",
+    // Reuse knobs (defaults preserve the store product page exactly):
+    // accent: "emerald" | "red" — active dot / page number color family
+    // aspectClass: Tailwind aspect class for the main frame
+    // fit: "contain" | "cover" — how media fills the frame
+    // showThumbnails: thumbnail strip under the frame
+    // ribbon: campaign-style serrated position ribbon along the frame's
+    //         bottom edge (replaces the dots overlay)
+    accent = "emerald",
+    aspectClass = "aspect-[896/1088]",
+    fit = "contain",
+    showThumbnails = true,
+    ribbon = false,
   } = $props();
+
+  let activeDotClass = $derived(
+    accent === "red"
+      ? "bg-red-400 scale-125 shadow-[0_0_10px_#f87171]"
+      : "bg-emerald-400 scale-125 shadow-[0_0_10px_#10b981]"
+  );
+  let fitClass = $derived(
+    fit === "cover" ? "object-cover" : "object-contain p-2"
+  );
 
   const DEFAULT_BRANDO_IMAGES = [
     "https://data.wearedogs.net/img/people/brando/brando1.jpg",
@@ -163,7 +184,7 @@
 >
   <!-- Main Display Showcase Area -->
   <div
-    class="relative w-full flex-1 min-h-0 aspect-[896/1088] bg-black/50 border border-zinc-800 rounded-2xl overflow-hidden shadow-2xl group flex items-center justify-center cursor-grab active:cursor-grabbing touch-pan-y"
+    class="relative w-full flex-1 min-h-0 {aspectClass} bg-black/50 border border-zinc-800 rounded-2xl overflow-hidden shadow-2xl group flex items-center justify-center cursor-grab active:cursor-grabbing touch-pan-y"
     onpointerdown={handlePointerDown}
     onpointerup={handlePointerUp}
     ontouchstart={handleTouchStart}
@@ -176,7 +197,7 @@
           in:slideIn={{ duration: 350, direction: scrollDirection }}
           out:slideOut={{ duration: 350, direction: scrollDirection }}
           src={displayImages[activeIdx]}
-          class="absolute inset-0 w-full h-full object-contain p-2 z-10"
+          class="absolute inset-0 w-full h-full {fitClass} z-10"
           controls
           playsinline
           autoplay
@@ -191,7 +212,7 @@
           out:slideOut={{ duration: 350, direction: scrollDirection }}
           src={displayImages[activeIdx]}
           alt={`${productTitle} - Image ${activeIdx + 1}`}
-          class="absolute inset-0 w-full h-full object-contain p-2 transition-transform duration-300 group-hover:scale-102"
+          class="absolute inset-0 w-full h-full {fitClass} transition-transform duration-300 group-hover:scale-102"
           draggable="false"
         />
       {/if}
@@ -215,27 +236,39 @@
       </button>
     {/if}
 
-    <!-- Indicator Dots Overlay -->
-    <div
-      class="absolute left-1/2 -translate-x-1/2 flex gap-2 z-20 pointer-events-auto bg-black/75 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20 shadow-xl transition-all duration-200 {activeIsVideo
-        ? 'bottom-16'
-        : 'bottom-6'}"
-    >
-      {#each displayImages as _, idx}
-        <button
-          type="button"
-          onclick={() => selectIndex(idx)}
-          class="w-2.5 h-2.5 rounded-full cursor-pointer transition-all duration-200 border-none p-0 flex-shrink-0 {activeIdx === idx
-            ? 'bg-emerald-400 scale-125 shadow-[0_0_10px_#10b981]'
-            : 'bg-white/40 hover:bg-white/70'}"
-          title={`Go to image ${idx + 1}`}
-        ></button>
-      {/each}
-    </div>
+    <!-- Indicator Dots Overlay (position ribbon takes over when enabled) -->
+    {#if !ribbon}
+      <div
+        class="absolute left-1/2 -translate-x-1/2 flex gap-2 z-20 pointer-events-auto bg-black/75 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20 shadow-xl transition-all duration-200 {activeIsVideo
+          ? 'bottom-16'
+          : 'bottom-6'}"
+      >
+        {#each displayImages as _, idx}
+          <button
+            type="button"
+            onclick={() => selectIndex(idx)}
+            class="w-2.5 h-2.5 rounded-full cursor-pointer transition-all duration-200 border-none p-0 flex-shrink-0 {activeIdx === idx
+              ? activeDotClass
+              : 'bg-white/40 hover:bg-white/70'}"
+            title={`Go to image ${idx + 1}`}
+          ></button>
+        {/each}
+      </div>
+    {/if}
+
+    <!-- Position ribbon: same serrated strip as the fundraiser campaigns —
+         one skewed segment per slide, filled up to the current position. -->
+    {#if ribbon && displayImages.length > 1}
+      <div class="carousel-ribbon" aria-hidden="true">
+        {#each displayImages as _, idx}
+          <span class="ribbon-seg" class:filled={idx <= activeIdx}></span>
+        {/each}
+      </div>
+    {/if}
   </div>
 
   <!-- Clickable Thumbnails Row -->
-  {#if displayImages.length > 1}
+  {#if showThumbnails && displayImages.length > 1}
     <div class="flex gap-2.5 overflow-x-auto pb-1 custom-scrollbar">
       {#each displayImages as imgUrl, idx}
         <button
@@ -276,3 +309,34 @@
     </div>
   {/if}
 </div>
+
+<style>
+  /* Carousel position ribbon — identical to the fundraiser campaign strip. */
+  .carousel-ribbon {
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    bottom: 0;
+    height: 4px;
+    display: flex;
+    gap: 4px;
+    z-index: 20;
+    pointer-events: none;
+  }
+
+  /* Each slide is one skewed tooth; skew is the serration. */
+  .ribbon-seg {
+    flex: 1;
+    transform: skewX(-24deg);
+    border-radius: 1px;
+    background: rgba(255, 255, 255, 0.16);
+    transition:
+      background-color 0.35s ease,
+      box-shadow 0.35s ease;
+  }
+
+  .ribbon-seg.filled {
+    background: #ef4444;
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.75);
+  }
+</style>

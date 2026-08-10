@@ -1611,7 +1611,7 @@
     }, 1000);
 
     try {
-      const res = await fetch("/data/products.json");
+      const res = await fetch("/data/store/products.json");
       if (res.ok) {
         products = await res.json();
       }
@@ -1619,7 +1619,7 @@
       console.error("Error loading products:", e);
     }
     try {
-      const res = await fetch("/data/campaigns.json");
+      const res = await fetch("/data/fundraiser/campaigns.json");
       if (res.ok) {
         campaigns = await res.json();
       }

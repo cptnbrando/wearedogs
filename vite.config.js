@@ -4,6 +4,7 @@ import tailwindcss from '@tailwindcss/vite'
 import legacy from '@vitejs/plugin-legacy'
 import shareCards from './scripts/vite-plugin-share-cards.js'
 import markdownData from './scripts/vite-plugin-md-data.js'
+import staticData from './scripts/vite-plugin-static-data.js'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -11,6 +12,9 @@ export default defineConfig({
     // Frontmatter .md files import as { default: frontmatter, body } — the
     // correspondence letters compile straight into the bundle, one file each.
     markdownData(),
+    // Runtime-fetched datasets live in src/data with everything else; this
+    // serves/copies them at /data/fundraiser/* and /data/store/*.
+    staticData(),
     tailwindcss(),
     svelte(),
     legacy({

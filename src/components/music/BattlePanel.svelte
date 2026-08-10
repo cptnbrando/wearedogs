@@ -14,7 +14,7 @@
     Check,
     AlertCircle,
   } from "lucide-svelte";
-  import mockFreestyles from "../../lib/data/mockFreestyles.json";
+  import mockFreestyles from "../../data/music/freestyles.json";
   import { BattleEngine } from "../../lib/BattleEngine.js";
 
   // Svelte 5 props

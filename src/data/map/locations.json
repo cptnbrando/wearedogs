@@ -1,0 +1,233 @@
+[
+  {
+    "id": "chicken-and-the-wolf",
+    "name": "Chicken and the Wolf",
+    "cityName": "Tulsa OK",
+    "category": "restaurant",
+    "subCategory": "american",
+    "rating": 5,
+    "websiteUrl": "https://chickenandthewolf.com/",
+    "mapsUrl": "https://maps.app.goo.gl/ChickenAndTheWolfTulsa",
+    "address": "3136 E 11th St, Tulsa, OK 74104",
+    "description": "Tulsa's legendary Nashville hot chicken joint. Unbelievably crispy and juicy.",
+    "images": [
+      "https://images.squarespace-cdn.com/content/v1/62577d2e7b7ced11269831b2/1650045966962-P3OQ5OCWV0JVTO17E9HC/CXW_HotterThanYourMom.png?format=2500w",
+      "https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=500&q=80"
+    ]
+  },
+  {
+    "id": "oppa-house-bbq",
+    "name": "Oppa House Korean BBQ and Hot Pot",
+    "cityName": "Tulsa OK",
+    "category": "restaurant",
+    "subCategory": "korean",
+    "rating": 5,
+    "websiteUrl": "https://oppahousetulsa.com/",
+    "mapsUrl": "https://maps.app.goo.gl/kbwKMzdc5qWFuR6V8",
+    "address": "7001 S Garnett Rd, Broken Arrow, OK 74012",
+    "description": "Authentic tabletop grilling experience with premium cuts and hot pot options.",
+    "images": [
+      "https://images.unsplash.com/photo-1544025162-d76694265947?w=500&q=80",
+      "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=500&q=80"
+    ]
+  },
+  {
+    "id": "the-colony",
+    "name": "The Colony",
+    "cityName": "Tulsa OK",
+    "category": "bar",
+    "subCategory": "dive bar",
+    "rating": 4.4,
+    "websiteUrl": "https://thecolonytulsa.com/",
+    "mapsUrl": "https://maps.app.goo.gl/ColonyBarTulsa",
+    "address": "2809 S Harvard Ave, Tulsa, OK 74114",
+    "description": "Tulsa's historic Midtown dive bar and live music venue. Cozy pub interior and active outdoor patio.",
+    "images": [
+      "https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=500&q=80"
+    ]
+  },
+  {
+    "id": "seapot-plano",
+    "name": "Seapot Plano",
+    "cityName": "Dallas TX",
+    "category": "restaurant",
+    "subCategory": "asian / hot pot",
+    "rating": 4.6,
+    "websiteUrl": "https://seapotplano.com/",
+    "mapsUrl": "https://maps.google.com/?q=Seapot+Hotpot+%26+Dimsum+Plano+TX",
+    "address": "1900 North Central Expressway, Plano, TX 75074",
+    "description": "Premier all-you-can-eat Hot Pot and Korean BBQ experience in Plano.",
+    "images": [
+      "https://static.spotapps.co/spots/2b/99f369bbb94a6c85716607d25d0b56/full",
+      "https://static.spotapps.co/spots/33/72218eff694310ae1efef40112faff/full"
+    ]
+  },
+  {
+    "id": "wings-over-rochester",
+    "name": "Wings Over Rochester",
+    "cityName": "Rochester NY",
+    "category": "restaurant",
+    "subCategory": "wings",
+    "rating": 5,
+    "websiteUrl": "https://wingsover.com/",
+    "mapsUrl": "https://maps.google.com/?q=Wings+Over+Rochester+NY",
+    "address": "Rochester, NY",
+    "description": "Famous Rochester wing and tender spot known for massive, hand-breaded chicken tenders. The best chicken wings in America.",
+    "images": [
+      "https://images.unsplash.com/photo-1527477396000-e27163b481c2?w=500&q=80"
+    ]
+  },
+  {
+    "id": "henrietta-hots",
+    "name": "Henrietta Hots",
+    "cityName": "Rochester NY",
+    "category": "restaurant",
+    "subCategory": "american",
+    "rating": 4.4,
+    "websiteUrl": "https://henriettahots.com/",
+    "mapsUrl": "https://maps.google.com/?q=Henrietta+Hots+Rochester+NY",
+    "address": "3057 E Henrietta Rd, Henrietta, NY 14467",
+    "description": "Classic Upstate New York hots joint serving legendary Rochester Garbage Plates.",
+    "images": [
+      "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=500&q=80"
+    ]
+  },
+  {
+    "id": "howlin-jays",
+    "name": "Howlin' Jays",
+    "cityName": "Cairns Australia",
+    "category": "restaurant",
+    "subCategory": "wings",
+    "rating": 5,
+    "websiteUrl": "https://www.howlinjays.com/",
+    "mapsUrl": "https://maps.google.com/?q=Howlin+Jays+Cairns+Australia",
+    "address": "1/1 Pier Point Rd, Cairns City QLD 4870, Australia",
+    "description": "Best chicken wings in the world. Giant, full, juicy, tender, beautiful chicken wings.",
+    "images": [
+      "https://images.squarespace-cdn.com/content/v1/58dc3e79bf629a2d3b8caee0/1736907672312-1842HLFNWX6PTAPMFMMC/DSCF7295.JPG?format=500w"
+    ]
+  },
+  {
+    "id": "perrys-steakhouse",
+    "name": "Perry's Steakhouse and Grille",
+    "cityName": "Dallas TX",
+    "category": "restaurant",
+    "subCategory": "steakhouse",
+    "rating": 4.6,
+    "websiteUrl": "https://perryssteakhouse.com/locations/tx/dallas/park-district/",
+    "mapsUrl": "https://maps.google.com/?q=Perry%27s+Steakhouse+%26+Grille+Dallas+TX",
+    "address": "2100 Olive St #100, Dallas, TX 75201",
+    "description": "This is the place to get a steak in Dallas.",
+    "images": [
+      "https://images.unsplash.com/photo-1544025162-d76694265947?w=500&q=80"
+    ]
+  },
+  {
+    "id": "umiya-sushi",
+    "name": "Umiya Sushi Seafood and Grill",
+    "cityName": "Dallas TX",
+    "category": "restaurant",
+    "subCategory": "sushi",
+    "rating": 4.8,
+    "websiteUrl": "https://www.umiyafrisco.com/",
+    "mapsUrl": "https://maps.google.com/?q=Umiya+Sushi+Seafood+and+Grill+3141+Preston+Rd+Frisco+TX",
+    "address": "3141 Preston Rd, Frisco, TX 75034",
+    "description": "Unlimited sushi for $35 dollars a person. And it's good!",
+    "images": [
+      "https://website-cdn.menusifu.com/wp-content/uploads/umiyafrisco.com/2024/07/sushi-37.jpg",
+      "https://website-cdn.menusifu.com/wp-content/uploads/umiyafrisco.com/2024/07/rainbow-roll.jpg"
+    ]
+  },
+  {
+    "id": "nolas-creole-cocktails",
+    "name": "Nola's Creole & Cocktails",
+    "cityName": "Tulsa OK",
+    "category": "restaurant",
+    "subCategory": "creole / cajun",
+    "rating": 4.7,
+    "websiteUrl": "https://www.nolastulsa.com/",
+    "mapsUrl": "https://maps.google.com/?q=Nola%27s+Creole+%26+Cocktails+Tulsa+OK",
+    "address": "1334 E 15th St, Tulsa, OK 74120",
+    "description": "Vibrant New Orleans-style eatery serving classic Creole fare and craft cocktails.",
+    "images": [
+      "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=500&q=80"
+    ]
+  },
+  {
+    "id": "brewd-awakening-coffee",
+    "name": "Brew'd Awakening Coffee House",
+    "cityName": "Lowell MA",
+    "category": "restaurant",
+    "subCategory": "coffee",
+    "rating": 5,
+    "websiteUrl": "https://brewdawakening.com/",
+    "mapsUrl": "https://maps.google.com/?q=Brew%27d+Awakening+Coffee+House+Lowell+MA",
+    "address": "61 Market St, Lowell, MA 01852",
+    "description": "Artisanal coffee house in historic downtown Lowell with custom espresso creations.",
+    "images": [
+      "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=500&q=80"
+    ]
+  },
+  {
+    "id": "yokozuna-downtown-tulsa",
+    "name": "Yokozuna",
+    "cityName": "Tulsa OK",
+    "category": "restaurant",
+    "subCategory": "japanese / ramen / sushi",
+    "rating": 5,
+    "websiteUrl": "http://yokozunasushi.com/locations/yokozuna-downtown-tulsa/",
+    "mapsUrl": "https://maps.google.com/?q=Yokozuna+Downtown+Tulsa+OK",
+    "address": "309 E 2nd St, Tulsa, OK 74120",
+    "description": "Asian street food, sushi, and rich pork belly ramen in Downtown Tulsa's Blue Dome District.",
+    "images": [
+      "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=500&q=80"
+    ]
+  },
+  {
+    "id": "east-village-bohemian-pizzeria",
+    "name": "East Village Bohemian Pizzeria",
+    "cityName": "Tulsa OK",
+    "category": "restaurant",
+    "subCategory": "pizza",
+    "rating": 4.8,
+    "websiteUrl": "https://www.bohemianpizzeria.com/",
+    "mapsUrl": "https://maps.google.com/?q=East+Village+Bohemian+Pizzeria+Tulsa+OK",
+    "address": "823 E 3rd St, Tulsa, OK 74120",
+    "description": "Wood-fired, Neapolitan-style thin crust pizzas and vibrant outdoor patio dining in the East Village.",
+    "images": [
+      "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=500&q=80"
+    ]
+  },
+  {
+    "id": "ny-bagel-cafe",
+    "name": "New York Bagel Cafe",
+    "cityName": "Tulsa OK",
+    "category": "restaurant",
+    "subCategory": "breakfast",
+    "rating": 3.1,
+    "websiteUrl": "https://www.newyorkbageltulsa.com/",
+    "mapsUrl": "https://maps.google.com/?q=New+York+Bagel+Cafe+6805+S+Yale+Ave+Tulsa+OK",
+    "address": "6805 S Yale Ave, Tulsa, OK 74136",
+    "description": "Sundried tomato bagels!!!",
+    "images": [
+      "https://images.unsplash.com/photo-1585445490387-f47934b73b54?w=500&q=80",
+      "https://images.unsplash.com/photo-1592767049184-0fda840ae4e7?w=500&q=80"
+    ]
+  },
+  {
+    "id": "live-aqua-punta-cana",
+    "name": "Live Aqua Punta Cana",
+    "cityName": "Punta Cana DR",
+    "category": "resort",
+    "subCategory": "all inclusive",
+    "rating": 4.8,
+    "websiteUrl": "https://www.fiestamericanatravelty.com/en/live-aqua/hotels/live-aqua-punta-cana",
+    "mapsUrl": "https://maps.google.com/?q=Live+Aqua+Punta+Cana+Uvero+Alto",
+    "address": "Carretera Uvero Alto Km 33, Punta Cana 23000, Dominican Republic",
+    "description": "All-inclusive tropical resort with dozens of bars, restaurants, and events. Swim-up pool rooms and volleyball on the beach.",
+    "images": [
+      "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=500&q=80",
+      "https://images.unsplash.com/photo-1540541338287-41700207dee6?w=500&q=80"
+    ]
+  }
+]

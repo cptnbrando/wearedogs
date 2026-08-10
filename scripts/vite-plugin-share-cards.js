@@ -250,7 +250,7 @@ export default function shareCards(options = {}) {
 
       // Read from the source data, not dist, so this never races the copy.
       const load = (file) => {
-        const full = path.join(publicDir, "data", file);
+        const full = path.join(root, "src", "data", file);
         if (!fs.existsSync(full)) return [];
         const parsed = JSON.parse(fs.readFileSync(full, "utf8"));
         if (Array.isArray(parsed)) return parsed;
@@ -263,7 +263,7 @@ export default function shareCards(options = {}) {
        * the slug, leading underscore means template.
        */
       const loadBlogPosts = () => {
-        const dir = path.join(root, "src", "blog");
+        const dir = path.join(root, "src", "data", "blog");
         if (!fs.existsSync(dir)) return [];
         return fs
           .readdirSync(dir)
@@ -283,11 +283,11 @@ export default function shareCards(options = {}) {
 
       // route: the URL segments under the origin; entity supplies the content.
       const targets = [
-        ...load("campaigns.json").map((entity) => ({
+        ...load("fundraiser/campaigns.json").map((entity) => ({
           route: ["store", "campaign"],
           entity,
         })),
-        ...load("products.json").map((entity) => ({
+        ...load("store/products.json").map((entity) => ({
           route: ["store", "product"],
           entity,
         })),

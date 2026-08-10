@@ -1,11 +1,13 @@
 <script>
   import { onMount } from "svelte";
   import BasePanel from "./BasePanel.svelte";
-  import mapSpots from "../lib/data/mapSpots.json";
+  import ProductImageSlideshow from "./apps/ProductImageSlideshow.svelte";
+  import mapSpots from "../data/map/index.js";
   import { spring } from "svelte/motion";
   import { fade, slide, fly } from "svelte/transition";
   import { cubicOut } from "svelte/easing";
   import {
+    ArrowLeft,
     Star,
     MapPin,
     ExternalLink,
@@ -17,7 +19,10 @@
     Globe,
   } from "lucide-svelte";
 
-  let { isClosing = false, onClose } = $props();
+  // depth participates in TitlePage's history model: 1 = directory, 2 = a
+  // pushed spot entry. closePage()'s history.go(-depth) then always lands
+  // back on the pre-map entry instead of a leftover /map duplicate.
+  let { isClosing = false, onClose, depth = $bindable(1) } = $props();
 
   const CITIES = [
     {
@@ -131,7 +136,6 @@
   let activeSubCategory = $state("Coffee Shops"); // only for restaurants: 'Coffee Shops', 'Bars', 'Italian', 'Mexican'
 
   let selectedSpot = $state(null);
-  let selectedSpotImgIdx = $state(0);
 
   let linkCopied = $state(false);
   let linkCopiedTimer;
@@ -261,14 +265,23 @@
     if (typeof window !== "undefined") {
       const url = `${getBaseMapUrl()}#spot=${spotId}`;
       if (!window.location.hash.includes(`spot=${spotId}`)) {
-        history.pushState(history.state, "", url);
+        if (window.location.hash.includes("spot=")) {
+          // Already on a spot entry — swap it in place, never stack a second.
+          history.replaceState(history.state, "", url);
+        } else {
+          history.pushState(
+            { ...(history.state || {}), view: "map", depth: 2 },
+            "",
+            url,
+          );
+          depth = 2;
+        }
       }
     }
   }
 
   function selectSpotCard(spot) {
     selectedSpot = spot;
-    selectedSpotImgIdx = 0;
     updateHash(spot.id);
 
     // Zoom in to the spot's city if not already zoomed in
@@ -290,7 +303,12 @@
     selectedSpot = null;
     pickRandomBlurb();
     if (typeof window !== "undefined") {
-      history.replaceState(history.state, "", getBaseMapUrl());
+      history.replaceState(
+        { ...(history.state || {}), view: "map", depth: 1 },
+        "",
+        getBaseMapUrl(),
+      );
+      depth = 1;
     }
 
     // Zoom back out if the zoom was temporary
@@ -305,7 +323,13 @@
   }
 
   function handleBackClick() {
-    leaveSpotReview();
+    // If this spot page is a pushed history entry, pop it — the hashchange
+    // handler does the cleanup and the stack shrinks back to the directory.
+    if (typeof window !== "undefined" && history.state?.depth === 2) {
+      history.back();
+    } else {
+      leaveSpotReview();
+    }
   }
 
   function handleHashChange() {
@@ -356,9 +380,18 @@
       if (match) {
         const spotId = match[1];
         const baseUrl = getBaseMapUrl();
-        history.replaceState(history.state, "", baseUrl);
+        history.replaceState(
+          { ...(history.state || {}), view: "map", depth: 1 },
+          "",
+          baseUrl,
+        );
         const spotUrl = `${baseUrl}#spot=${spotId}`;
-        history.pushState(history.state, "", spotUrl);
+        history.pushState(
+          { ...(history.state || {}), view: "map", depth: 2 },
+          "",
+          spotUrl,
+        );
+        depth = 2;
       }
     }
 
@@ -1711,12 +1744,13 @@
             <g
               class="city-pin"
               class:active={selectedCity?.name === city.name}
+              class:dimmed={(selectedCity || selectedSpot) &&
+                selectedCity?.name !== city.name}
               onclick={() => selectCity(city)}
               role="button"
               tabindex="0"
               aria-label={city.name}
             >
-              <circle cx={city.x} cy={city.y} r="10" class="pin-pulse" />
               <circle cx={city.x} cy={city.y} r="4" class="pin-dot" />
               <text x={city.x} y={city.y - 10} class="pin-text"
                 >{city.name}</text
@@ -1740,23 +1774,18 @@
             class="p-3 border-b border-white/5 flex items-center justify-between z-10 shrink-0 relative"
           >
             <button
-              class="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-white font-bold transition-colors"
+              class="back-to-directory flex items-center gap-2.5 text-xs text-zinc-400 hover:text-white font-bold transition-colors cursor-pointer"
               onclick={handleBackClick}
             >
-              ← BACK TO DIRECTORY
+              <ArrowLeft size={14} />
+              <span>BACK TO DIRECTORY</span>
             </button>
-            <div class="flex items-center gap-2">
-              <button
-                class="px-2.5 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[10px] text-white font-bold flex items-center gap-1 transition-all active:scale-95"
-                onclick={copySpotLink}
-              >
-                🔗 SHARE
-              </button>
-              <span
-                class="text-[10px] font-mono text-zinc-500 uppercase tracking-widest"
-                >{selectedSpot.cityName}</span
-              >
-            </div>
+            <button
+              class="px-2.5 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[10px] text-white font-bold flex items-center gap-1 transition-all active:scale-95 cursor-pointer"
+              onclick={copySpotLink}
+            >
+              🔗 SHARE
+            </button>
             {#if linkCopied}
               <div
                 class="link-copied-notice"
@@ -1778,38 +1807,21 @@
               </p>
             </div>
 
-            <!-- Image Carousel -->
+            <!-- Image Carousel (shared slideshow with the campaign-style
+                 position ribbon along the bottom edge) -->
             {#if selectedSpot.images && selectedSpot.images.length > 0}
-              <div
-                class="relative w-full aspect-video bg-black/40 rounded-lg overflow-hidden border border-white/5 group"
-              >
-                <img
-                  src={selectedSpot.images[selectedSpotImgIdx]}
-                  alt={selectedSpot.name}
-                  class="w-full h-full object-cover"
-                />
-
-                {#if selectedSpot.images.length > 1}
-                  <button
-                    class="absolute left-2 top-1/2 -translate-y-1/2 bg-black/75 hover:bg-black text-white text-[10px] w-6 h-6 rounded-full flex items-center justify-center border border-white/10 transition-colors"
-                    onclick={() => {
-                      selectedSpotImgIdx =
-                        (selectedSpotImgIdx - 1 + selectedSpot.images.length) %
-                        selectedSpot.images.length;
-                    }}
-                  >
-                    ◀
-                  </button>
-                  <button
-                    class="absolute right-2 top-1/2 -translate-y-1/2 bg-black/75 hover:bg-black text-white text-[10px] w-6 h-6 rounded-full flex items-center justify-center border border-white/10 transition-colors"
-                    onclick={() => {
-                      selectedSpotImgIdx =
-                        (selectedSpotImgIdx + 1) % selectedSpot.images.length;
-                    }}
-                  >
-                    ▶
-                  </button>
-                {/if}
+              <div class="spot-carousel w-full">
+                {#key selectedSpot.id}
+                  <ProductImageSlideshow
+                    images={selectedSpot.images}
+                    productTitle={selectedSpot.name}
+                    accent="red"
+                    aspectClass="aspect-video"
+                    fit="cover"
+                    showThumbnails={false}
+                    ribbon={true}
+                  />
+                {/key}
               </div>
             {/if}
 
@@ -2299,6 +2311,11 @@
       grid-template-rows: 1fr;
       overflow: hidden;
     }
+    /* Landscape phones: the review column is short and narrow — keep the
+       photo frame from swallowing the whole column. object-cover crops it. */
+    .spot-carousel :global(.aspect-video) {
+      max-height: 52vh;
+    }
   }
 
   /* Map Side */
@@ -2407,11 +2424,21 @@
     user-select: none;
   }
 
+  /* 1px optical lift so the arrow shaft sits on the caps' visual center —
+     flex centering alone leaves it reading slightly low against all-caps. */
+  .back-to-directory :global(svg) {
+    transform: translateY(-1px);
+    flex-shrink: 0;
+  }
+
   /* Pins */
   .city-pin {
     cursor: pointer;
     outline: none;
-    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition:
+      transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+      opacity 0.3s ease,
+      filter 0.3s ease;
     transform-origin: center;
     transform-box: fill-box;
   }
@@ -2424,6 +2451,18 @@
     transform: scale(1.3);
   }
 
+  /* With a city or review selected, the other pins recede: blurred, faded,
+     and no pulsing ring pulling the eye. Hover restores one for discovery. */
+  .city-pin.dimmed {
+    opacity: 0.45;
+    filter: blur(0.8px);
+  }
+
+  .city-pin.dimmed:hover {
+    opacity: 1;
+    filter: none;
+  }
+
   .pin-dot {
     fill: #ff3344;
     filter: drop-shadow(0 0 4px #ff3344);
@@ -2433,26 +2472,6 @@
   .city-pin.active .pin-dot {
     r: 6px;
     filter: drop-shadow(0 0 8px #ff3344);
-  }
-
-  .pin-pulse {
-    fill: none;
-    stroke: #ff3344;
-    stroke-width: 1;
-    opacity: 0.6;
-    animation: pinRing 1.8s infinite ease-out;
-    transform-origin: center;
-  }
-
-  @keyframes pinRing {
-    0% {
-      r: 4;
-      opacity: 0.9;
-    }
-    100% {
-      r: 20;
-      opacity: 0;
-    }
   }
 
   .pin-text {
