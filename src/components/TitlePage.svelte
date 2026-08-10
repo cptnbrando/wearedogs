@@ -700,7 +700,7 @@
         bind:initialStatsTab={deepLinkStatsTab}
       />
     {:else if activePage === "map"}
-      <Panel {isClosing} onClose={closePage} />
+      <Panel {isClosing} onClose={closePage} bind:depth />
     {/if}
   {:else}
     <div class="panel-loading-spinner" aria-label="Loading..."></div>

@@ -19,7 +19,10 @@
     Globe,
   } from "lucide-svelte";
 
-  let { isClosing = false, onClose } = $props();
+  // depth participates in TitlePage's history model: 1 = directory, 2 = a
+  // pushed spot entry. closePage()'s history.go(-depth) then always lands
+  // back on the pre-map entry instead of a leftover /map duplicate.
+  let { isClosing = false, onClose, depth = $bindable(1) } = $props();
 
   const CITIES = [
     {
@@ -262,7 +265,17 @@
     if (typeof window !== "undefined") {
       const url = `${getBaseMapUrl()}#spot=${spotId}`;
       if (!window.location.hash.includes(`spot=${spotId}`)) {
-        history.pushState(history.state, "", url);
+        if (window.location.hash.includes("spot=")) {
+          // Already on a spot entry — swap it in place, never stack a second.
+          history.replaceState(history.state, "", url);
+        } else {
+          history.pushState(
+            { ...(history.state || {}), view: "map", depth: 2 },
+            "",
+            url,
+          );
+          depth = 2;
+        }
       }
     }
   }
@@ -290,7 +303,12 @@
     selectedSpot = null;
     pickRandomBlurb();
     if (typeof window !== "undefined") {
-      history.replaceState(history.state, "", getBaseMapUrl());
+      history.replaceState(
+        { ...(history.state || {}), view: "map", depth: 1 },
+        "",
+        getBaseMapUrl(),
+      );
+      depth = 1;
     }
 
     // Zoom back out if the zoom was temporary
@@ -305,7 +323,13 @@
   }
 
   function handleBackClick() {
-    leaveSpotReview();
+    // If this spot page is a pushed history entry, pop it — the hashchange
+    // handler does the cleanup and the stack shrinks back to the directory.
+    if (typeof window !== "undefined" && history.state?.depth === 2) {
+      history.back();
+    } else {
+      leaveSpotReview();
+    }
   }
 
   function handleHashChange() {
@@ -356,9 +380,18 @@
       if (match) {
         const spotId = match[1];
         const baseUrl = getBaseMapUrl();
-        history.replaceState(history.state, "", baseUrl);
+        history.replaceState(
+          { ...(history.state || {}), view: "map", depth: 1 },
+          "",
+          baseUrl,
+        );
         const spotUrl = `${baseUrl}#spot=${spotId}`;
-        history.pushState(history.state, "", spotUrl);
+        history.pushState(
+          { ...(history.state || {}), view: "map", depth: 2 },
+          "",
+          spotUrl,
+        );
+        depth = 2;
       }
     }
 
@@ -1705,7 +1738,7 @@
           />
 
           <!-- Interactive Pins -->
-          {#each CITIES as city}
+          {#each CITIES as city, i}
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
             <g
@@ -1718,11 +1751,14 @@
               tabindex="0"
               aria-label={city.name}
             >
-              <circle cx={city.x} cy={city.y} r="10" class="pin-pulse" />
-              <circle cx={city.x} cy={city.y} r="4" class="pin-dot" />
-              <text x={city.x} y={city.y - 10} class="pin-text"
-                >{city.name}</text
-              >
+              <!-- Negative delay staggers each pin's bob phase -->
+              <g class="pin-bob" style="animation-delay: -{i * 0.45}s">
+                <circle cx={city.x} cy={city.y} r="10" class="pin-pulse" />
+                <circle cx={city.x} cy={city.y} r="4" class="pin-dot" />
+                <text x={city.x} y={city.y - 10} class="pin-text"
+                  >{city.name}</text
+                >
+              </g>
             </g>
           {/each}
         </svg>
@@ -2415,8 +2451,8 @@
   /* With a city or review selected, the other pins recede: blurred, faded,
      and no pulsing ring pulling the eye. Hover restores one for discovery. */
   .city-pin.dimmed {
-    opacity: 0.22;
-    filter: blur(1.6px);
+    opacity: 0.45;
+    filter: blur(0.8px);
   }
 
   .city-pin.dimmed .pin-pulse {
@@ -2427,6 +2463,26 @@
   .city-pin.dimmed:hover {
     opacity: 1;
     filter: none;
+  }
+
+  /* Gentle bob: dot and label drift up and back down in one continuous
+     ease-in-out wave — symmetric keyframes, so there is no reset snap. */
+  .pin-bob {
+    animation: pinBob 2.6s ease-in-out infinite;
+  }
+
+  .city-pin.dimmed .pin-bob {
+    animation-play-state: paused;
+  }
+
+  @keyframes pinBob {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-3px);
+    }
   }
 
   .pin-dot {
