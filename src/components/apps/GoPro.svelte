@@ -4,7 +4,7 @@
 <script>
   import { onMount, untrack } from "svelte";
   import { fade } from "svelte/transition";
-  import { catalog } from "../../lib/videos.js";
+  import { catalog } from "../../data/gopro/videos.js";
   import { SHOW_SLUGS } from "../../lib/router.svelte.js";
   import DogsLogo from "../DogsLogo.svelte";
   import Calculator from "./Calculator.svelte";

@@ -1,0 +1,167 @@
+{
+  "chicken-and-the-wolf": {
+    "review": {
+      "author": "CaptainBrando!",
+      "text": "THE BEST CHICKEN SANDWICH IN THE WORLD 🌏 Crispy fries and crispy, juicy, thick as a brick chicken. Perfection. Never going to chick fil a again. A medium OG chicken sandwich, regular fries with some extra comeback sauce, and a coop 66. Heavenly experience. The cure for depression. Dine in otherwise the fries will lose their glorious crispy exterior. And they ain't playing with the spice level! Hot is hot!",
+      "rating": 5
+    },
+    "bestDishes": "OG Chicken Sandwich, medium spice, a side of regular fries and comeback sauce. A Coop 66. Eat in store, otherwise the fries get soggy quickly.",
+    "bestTimes": "Weekday lunch hours to avoid the weekend rush.",
+    "directions": "Located right off historical Route 66 / S Lewis Ave. Ample street parking available.",
+    "moreInfo": "Brings the true heat of Nashville straight to the heart of Tulsa. Safe dog patio dining is welcomed."
+  },
+  "oppa-house-bbq": {
+    "review": {
+      "author": "CaptainBrando!",
+      "text": "Magnificent experience. I've been to a lot of hot pots, but I like this one the most. Delicious broth and bbq, with a lot of included extras! The chicken wings were SO luxurious and complimentary in the all-you-can-eat! 🍗 And the spicy pork bulgogi? Absolutely delicious! The churros were surprisingly excellent. And the hand pulled fresh ramen noodles? Just, damn! If this were heaven I'd eat here every day. Wow, blown away! Insane that I only paid around 30 per person for so much food! Great service great flavors great seats great time. This the best game in town.",
+      "rating": 5
+    },
+    "bestDishes": "Spicy Pork Bulgogi, Soy Fried Chicken Wings, Hand Pulled Fresh Ramen Noodles, Miso Soup, Churros",
+    "bestTimes": "Lunch special is brilliant!",
+    "directions": "Sourced via local Google Maps links.",
+    "moreInfo": "Links directly to user's personalized Google Maps review."
+  },
+  "the-colony": {
+    "review": {
+      "author": "CaptainBrando!",
+      "text": "$4 shot and a beer. Artists bleeding on a stage. Always good folk on the patio.",
+      "rating": 4.4
+    },
+    "bestDishes": "$4 shot and a beer combo.",
+    "bestTimes": "Nightly after 9:00 PM for live local music.",
+    "directions": "Midtown Tulsa on S Harvard Ave.",
+    "moreInfo": "Great patio space and intimate live band settings."
+  },
+  "seapot-plano": {
+    "review": {
+      "author": "CaptainBrando!",
+      "text": "Outstanding hot pot experience with automated conveyor delivery and fresh, high quality ingredients!",
+      "rating": 4.6
+    },
+    "bestDishes": "Spicy Pork Bulgogi, Spicy Beef Bulgogi, Unlimited Cream Cheese Wontons, Dinner Snow Crab Legs, Spicy Miso Soup with Beef Toro",
+    "bestTimes": "Lunch or early dinner.",
+    "directions": "Located in Plano near Coit Rd & W Park Blvd.",
+    "moreInfo": "Automated conveyor line serving fresh dim sum and ingredients directly to your table."
+  },
+  "wings-over-rochester": {
+    "review": {
+      "author": "CaptainBrando!",
+      "text": "Cruisin Altitude 6 Tender Pack is the absolute way to go. Don't do bone-in or boneless here, trust me. The tenders are insanely good!",
+      "rating": 5
+    },
+    "bestDishes": "Cruisin Altitude 6 Tender Pack (Don't do bone-in or boneless here, trust me. The tenders are insanely good)",
+    "bestTimes": "Game days and late night craving runs.",
+    "directions": "Rochester, NY area.",
+    "moreInfo": "Signature fresh tenders hand-breaded and tossed in your favorite flavor."
+  },
+  "henrietta-hots": {
+    "review": {
+      "author": "CaptainBrando!",
+      "text": "A staple Rochester institution. The Red Hot Garbage Plate is unmatched comfort food!",
+      "rating": 4.4
+    },
+    "bestDishes": "Red Hot Garbage Plate",
+    "bestTimes": "Late night or classic Upstate lunch.",
+    "directions": "Located on E Henrietta Rd in Henrietta, NY.",
+    "moreInfo": "Authentic Rochester hots joint known for giant portions and incredible meat sauce."
+  },
+  "howlin-jays": {
+    "review": {
+      "author": "CaptainBrando!",
+      "text": "Best chicken wings in the world. Giant, full, juicy, tender, beautiful chicken wings.",
+      "rating": 5
+    },
+    "bestDishes": "3x Whole Wings. Yup. Here, you get the entire drumette, flat, and tip. Luxurious!",
+    "bestTimes": "Lunch, dinner, or waterfront drinks.",
+    "directions": "Located on the waterfront at Pier Point Rd, Cairns City.",
+    "moreInfo": "Nashville style fried chicken joint in tropical North Queensland right by the Marina."
+  },
+  "perrys-steakhouse": {
+    "review": {
+      "author": "CaptainBrando!",
+      "text": "This is the place to get a steak in Dallas. Attentive, professional staff. A steak crust that'll sharpen your teeth. Very pricey, but this place does it right. Elegant. Modern. Chic. When I win the lottery I'll probably be here every night.",
+      "rating": 4.6
+    },
+    "bestDishes": "Prime Pork Chop, Filet Mignon, Table-side Steak Flambé.",
+    "bestTimes": "Special occasions & evening dinner.",
+    "directions": "Located in Park District, Downtown / Uptown Dallas on Olive St.",
+    "moreInfo": "Upscale steakhouse famous for their signature pork chop and prime steaks."
+  },
+  "umiya-sushi": {
+    "review": {
+      "author": "CaptainBrando!",
+      "text": "A great all-you-can-eat sushi place in Frisco, TX. New restaurant with some wonderful flavors and tight, packed sushi rolls. ",
+      "rating": 4.8
+    },
+    "bestDishes": "All-you-can-eat sushi rolls — tightly packed and fresh. Rainbow roll, salmon don, and hibachi plates round it out.",
+    "bestTimes": "Lunch all-you-can-eat is the best value; dinner AYCE runs about $33-35 a person.",
+    "directions": "On Preston Rd in Frisco, north DFW. Plenty of parking in the shopping center lot.",
+    "moreInfo": "New all-you-can-eat sushi, seafood, and grill spot on Preston Rd. Order off the tablet, eat until you can't."
+  },
+  "nolas-creole-cocktails": {
+    "review": {
+      "author": "CaptainBrando!",
+      "text": "Happy Hour $1 Oysters and $15 Beaucoup Fried Platter with Lobster Mac & Cheese is the ultimate Creole vibe!",
+      "rating": 4.7
+    },
+    "bestDishes": "Happy Hour $1 Oysters and $15 Beaucoup Fried Platter, Lobster Mac & Cheese",
+    "bestTimes": "Happy hour (3-6 PM) & dinner cocktails.",
+    "directions": "Located on Cherry Street (15th St) in Midtown Tulsa.",
+    "moreInfo": "Authentic NOLA speakeasy atmosphere in the heart of Tulsa's Cherry Street district."
+  },
+  "brewd-awakening-coffee": {
+    "review": {
+      "author": "CaptainBrando!",
+      "text": "Luxurious espresso. Perhaps the best espresso I've ever had actually. Baristas can make anything you want. I had a banana white chocolate latte. I just asked if they could do it and they did it and it sent me into the stratosphere with comfort, zip, jazz, magic, wind, life, elation. I'm now very upset that the only place in this giant godforsaken world to get a banana white chocolate latte is here. Even if anyone else made it the espresso wouldn't be like they do it here. Damn. Yeah this place rocks.",
+      "rating": 5
+    },
+    "bestDishes": "Banana White Chocolate Latte, Espresso",
+    "bestTimes": "Morning coffee runs and afternoon pickup.",
+    "directions": "Located on Market St in Downtown Lowell, MA.",
+    "moreInfo": "Legendary independent coffee house with unmatched custom barista drinks."
+  },
+  "yokozuna-downtown-tulsa": {
+    "review": {
+      "author": "CaptainBrando!",
+      "text": "The best pork belly ramen you gon find. A luxurious broth, spectacular toppings, it's just the kinda bowl that can bring a man to life, kill him, then bring him back again. Out of this world! Delightful sushi, great sake, just an awesome place in an awesome city",
+      "rating": 5
+    },
+    "bestDishes": "Pork Belly Ramen, Sushi, Sake",
+    "bestTimes": "Dinner and late night drinks.",
+    "directions": "Located in the Blue Dome District at E 2nd St & S Detroit Ave.",
+    "moreInfo": "Energetic Blue Dome District Asian concept with exceptional ramen broth."
+  },
+  "east-village-bohemian-pizzeria": {
+    "review": {
+      "author": "CaptainBrando!",
+      "text": "Ah yeah, this is a good spot. Nice happy hour 3-5 Tuesday-friday, pizza that'll stay in your memories. I get this Mt Vesuvius one, delightful experience. If you want thin crust, come here",
+      "rating": 4.8
+    },
+    "bestDishes": "Mount Vesuvius Pizza",
+    "bestTimes": "Happy hour 3-5 PM Tuesday through Friday.",
+    "directions": "Located in the East Village district at E 3rd St & S Lansing Ave.",
+    "moreInfo": "Rustic wood-fired oven pizzas with lush garden patio ambiance."
+  },
+  "ny-bagel-cafe": {
+    "review": {
+      "author": "CaptainBrando!",
+      "text": "Cards on the table, I do not like a majority of menu items here, and my dog's pissed because they recently downsized their pup cup size. BUT, only at the Yale location, they sell sundried tomato bagels, and these puppies are to die for. They cook them completely differently from the other bagels, as sundried tomato bagels have a much more refined, thicker chew, and a much more robust flavor profile. And, the cream cheese smear is extremely respectable. That said, there's not enough salt or flavor on any of the breakfast sandwiches, and all the other bagel flavors are cooked differently. From the everything to the plain to the cinnamon raisin, have a much flatter, sandwich-bread like chew. It is a disrespectful, grocery store bagel chew unfortunately. And the espresso is very weak, and the coffee is watery. Unless you get the sundried tomato bagel, you will leave this place going 'wow, that place was very mediocre'. But if you get the sundried tomato bagel toasted with some garlic and herb cream cheese, it is a breakfast to die for. To murder 50 men for. To massacre a village for. It is perhaps the best bagel I've ever had on this earth, rivaled only by certain New York City delis. Because I only like one thing on the menu, I feel bad giving it anything above a 3. But the sundried bagel is that good. A divine experience that I crave everytime I wake up, and can only find on Yale street in Tulsa OK. Be warned, the other NY Bagel Cafe location on South Peoria DOES NOT CARRY the sundried tomato bagels! It is exclusive to this one on Yale.",
+      "rating": 3.1
+    },
+    "bestDishes": "Sundried Tomato Bagel, toasted, with Garlic and Herb Cream Cheese. A white chocolate mocha. A pup cup.",
+    "bestTimes": "Early mornings — open Mon-Sat 6 AM to 3 PM, Sun 7 AM to 3 PM. Go before the breakfast rush and get the sundried tomato bagel before they sell out.",
+    "directions": "The YALE location: 6805 S Yale Ave near E 68th St in South Tulsa. Do NOT go to the S Peoria / Brookside location for the sundried tomato bagel — they don't carry it.",
+    "moreInfo": "Two Tulsa locations, but the sundried tomato bagel is exclusive to this one on Yale. Skip the breakfast sandwiches and the espresso; you're here for one bagel and it's worth the trip."
+  },
+  "live-aqua-punta-cana": {
+    "review": {
+      "author": "CaptainBrando!",
+      "text": "An adults-only all-inclusive paradise on Uvero Alto beach. Dozens of bars and restaurants and every single one of them is included. Swim-up pool rooms so you can roll out of bed straight into the water. Beach volleyball every afternoon, events every night, and staff that treat you like family. The kind of place where you lose track of what day it is and you're happy about it.",
+      "rating": 4.8
+    },
+    "bestDishes": "Work your way through the specialty restaurants — every one is included. Grab a cocktail at the swim-up bar and don't skip the beachfront grill.",
+    "bestTimes": "December through April for the driest weather. Afternoon beach volleyball and the nightly events are the move.",
+    "directions": "About 45 minutes north of Punta Cana International Airport (PUJ) on the Uvero Alto coast. Book a resort transfer or taxi from the airport.",
+    "moreInfo": "Adults-only all-inclusive resort by Fiesta Americana on the quiet Uvero Alto stretch of Punta Cana. Swim-up suites are worth the upgrade."
+  }
+}

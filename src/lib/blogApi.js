@@ -13,11 +13,11 @@
 // Eager Directory Glob Imports (No manifest.json required)
 // ---------------------------------------------------------------------------
 
-const modules = import.meta.glob("../../src/blog/*.md", { query: "?raw", import: "default", eager: true });
+const modules = import.meta.glob("../data/blog/*.md", { query: "?raw", import: "default", eager: true });
 
 // Process modules and build sorted blog posts manifest in-memory
 const postsManifest = Object.keys(modules).map((key) => {
-  // Key format: "../../src/blog/hello-world.md"
+  // Key format: "../data/blog/hello-world.md"
   const rawMd = modules[key] || "";
   const slug = key.split("/").pop().replace(".md", "");
 

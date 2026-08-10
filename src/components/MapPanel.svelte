@@ -1,7 +1,7 @@
 <script>
   import { onMount } from "svelte";
   import BasePanel from "./BasePanel.svelte";
-  import mapSpots from "../lib/data/mapSpots.json";
+  import mapSpots from "../data/map/index.js";
   import { spring } from "svelte/motion";
   import { fade, slide, fly } from "svelte/transition";
   import { cubicOut } from "svelte/easing";
