@@ -727,11 +727,15 @@
   }
 
   .pane-footnote {
+    /* Always pinned to the bottom of its pane */
     margin: 12px 0 0;
+    margin-top: auto;
+    padding-top: 10px;
     font-size: 0.64rem;
     line-height: 1.5;
     color: rgba(255, 255, 255, 0.3);
     text-align: center;
+    flex-shrink: 0;
   }
 
   /* ── Stat tiles ── */
@@ -787,11 +791,10 @@
   /* ── PULSE pane ── */
   .pulse-pane {
     flex: 1;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    gap: 8px;
     text-align: center;
   }
 
@@ -825,12 +828,14 @@
   }
 
   /* Combined and split views stack in one grid cell so they crossfade in
-     place; the whole stage is the hover/tap target. */
+     place; the whole stage is the hover/tap target. flex:1 keeps the stage
+     the same height in both states, so the footnote below never jumps. */
   .pulse-stage {
     display: grid;
     place-items: center;
     width: 100%;
-    min-height: 300px;
+    flex: 1;
+    min-height: 0;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
   }
@@ -946,10 +951,29 @@
       font-size: 1.5rem;
     }
 
+    /* Narrow phones: keep the three tiles on one slim row instead of a
+       tall stack, so the combined view stays one screen. */
     @media (max-width: 640px) {
-      grid-template-columns: 1fr;
-      max-width: 300px;
-      margin: 0 auto;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+
+      .tile {
+        padding: 8px 6px;
+        align-items: center;
+        text-align: center;
+      }
+
+      .tile-value {
+        font-size: 0.95rem;
+      }
+
+      .tile-label {
+        font-size: 0.55rem;
+      }
+
+      .tile-sub {
+        font-size: 0.58rem;
+      }
     }
   }
 
@@ -1156,6 +1180,155 @@
       min-height: 48px;
       padding-top: 8px;
       padding-bottom: max(14px, env(safe-area-inset-bottom, 14px));
+    }
+  }
+
+  /* ── Short viewports (mobile landscape, small laptops) ── */
+  @media (max-height: 520px) {
+    .stats-panel-backdrop {
+      display: block;
+      height: 100dvh;
+    }
+
+    .stats-panel-container {
+      width: 100vw;
+      height: 100%;
+      max-height: 100%;
+      border-radius: 0;
+      border: none;
+    }
+
+    .panel-header {
+      height: 44px;
+      padding: 0 14px;
+    }
+
+    .brand h1 {
+      font-size: 0.9rem;
+    }
+
+    .subtitle {
+      display: none;
+    }
+
+    .unit-toggle {
+      padding: 4px 10px;
+      font-size: 0.66rem;
+      min-width: 94px;
+    }
+
+    /* Reclaim vertical space: the decorative footer goes, tab buttons slim */
+    .panel-footer {
+      display: none;
+    }
+
+    .stats-panel-container :global(.swipe-tab-nav .tab-btn) {
+      padding: 0.3rem 0.75rem;
+      font-size: 0.72rem;
+      gap: 0.35rem;
+    }
+
+    .tab-pane {
+      padding: 8px 16px 10px;
+    }
+
+    .pane-title {
+      font-size: 0.85rem;
+    }
+
+    .pane-sub {
+      font-size: 0.62rem;
+    }
+
+    .pane-footnote {
+      font-size: 0.54rem;
+      margin-top: auto;
+      padding-top: 6px;
+    }
+
+    /* Pulse: shrink both states so combined and split fit without scroll */
+    .pop-hero {
+      font-size: clamp(1.5rem, 8vh, 2.4rem);
+    }
+
+    .pop-hero.split-hero {
+      font-size: clamp(1.1rem, 6vh, 1.7rem);
+    }
+
+    .pulse-sub {
+      font-size: 0.62rem;
+      margin-bottom: 6px;
+    }
+
+    .pulse-eyebrow {
+      font-size: 0.6rem;
+    }
+
+    .pulse-tiles {
+      grid-template-columns: repeat(3, minmax(120px, 180px));
+      gap: 8px;
+
+      .tile {
+        padding: 6px 10px;
+      }
+
+      .tile-value {
+        font-size: 1rem;
+      }
+    }
+
+    .mini-rows {
+      gap: 2px;
+      margin-top: 2px;
+    }
+
+    .mini-value {
+      font-size: 0.8rem;
+    }
+
+    .split-plus {
+      font-size: 1.6rem;
+    }
+
+    /* Language: slim tiles, chart takes what's left */
+    .tile {
+      padding: 7px 10px;
+    }
+
+    .tile-value {
+      font-size: 1rem;
+    }
+
+    .language-pane {
+      gap: 8px;
+    }
+
+    .dog-strip {
+      padding: 5px 10px;
+      font-size: 0.62rem;
+    }
+
+    .chart-fit {
+      min-height: 90px;
+    }
+
+    /* Share: smaller donut, legend scrolls beside it */
+    .share-pane :global(.pie-svg) {
+      width: min(170px, 52vh);
+      height: min(170px, 52vh);
+    }
+
+    .share-pane :global(.pie-legend) {
+      max-height: 38vh;
+    }
+
+    .center-pane {
+      gap: 8px;
+    }
+
+    /* Life & Death: cap the chart height; the SVG letterboxes inside */
+    .balance-chart :global(.lines-svg) {
+      max-height: 52vh;
     }
   }
 
