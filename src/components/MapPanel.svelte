@@ -2404,6 +2404,10 @@
     width: 100%;
     height: 100%;
     background: #040408;
+    /* Own compositor layer: map repaints stay off the page layer and
+       aren't dragged down by whatever else the main thread is doing. */
+    will-change: transform;
+    transform: translateZ(0);
   }
 
   .world-svg path {
@@ -2465,6 +2469,7 @@
   .city-pin.dimmed .pin-pulse {
     animation: none;
     opacity: 0;
+    transform: scale(0.4);
   }
 
   .city-pin.dimmed:hover {
@@ -2507,6 +2512,10 @@
     filter: drop-shadow(0 0 8px #ff3344);
   }
 
+  /* The ring animates scale/opacity only — animating `r` is a geometry
+     change that forced the whole SVG to re-layout and repaint every frame,
+     which is what made the pin bob stutter. Base r=10, so 0.4→2 sweeps the
+     same 4→20 radius as before. */
   .pin-pulse {
     fill: none;
     stroke: #ff3344;
@@ -2514,15 +2523,17 @@
     opacity: 0.6;
     animation: pinRing 1.8s infinite ease-out;
     transform-origin: center;
+    transform-box: fill-box;
+    will-change: transform, opacity;
   }
 
   @keyframes pinRing {
     0% {
-      r: 4;
+      transform: scale(0.4);
       opacity: 0.9;
     }
     100% {
-      r: 20;
+      transform: scale(2);
       opacity: 0;
     }
   }
