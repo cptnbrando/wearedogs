@@ -86,7 +86,7 @@
       {formatCompact(total)}
     </text>
     <text x={CX} y={CY + 12} text-anchor="middle" class="center-caption">
-      speakers
+      combined count
     </text>
   </svg>
 

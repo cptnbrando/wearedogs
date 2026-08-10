@@ -48,43 +48,65 @@ export const vitalsByCode = Object.fromEntries(
   languageVitals.map((v) => [v.code, v]),
 );
 
-/** Aggregate across all tracked speaker populations. */
-export const worldVitals = languageVitals.reduce(
-  (acc, v) => {
-    acc.totalSpeakers += v.speakers;
-    acc.dailyBirths += v.dailyBirths;
-    acc.dailyDeaths += v.dailyDeaths;
-    return acc;
-  },
-  {
-    languageCount: languageVitals.length,
-    totalSpeakers: 0,
-    dailyBirths: 0,
-    dailyDeaths: 0,
-  },
+/**
+ * Sum of every speaker population. People speak more than one language, so
+ * this OVERCOUNTS humans — it is a denominator for part-to-whole shares,
+ * never a population headline. Use worldVitals for anything labeled people.
+ */
+export const trackedSpeakerTotal = languageVitals.reduce(
+  (s, v) => s + v.speakers,
+  0,
 );
-worldVitals.dailyNet = worldVitals.dailyBirths - worldVitals.dailyDeaths;
-worldVitals.birthsPerSecond = worldVitals.dailyBirths / SECONDS_PER_DAY;
-worldVitals.deathsPerSecond = worldVitals.dailyDeaths / SECONDS_PER_DAY;
+
+// World demographics — UN World Population Prospects estimates, NOT the sum
+// of speaker populations (which double-counts multilinguals).
+const WORLD_POP_REFERENCE = 8_240_000_000; // mid-2026 estimate
+const WORLD_POP_REFERENCE_MS = Date.UTC(2026, 6, 1);
+const WORLD_CBR = 16.0; // births / 1,000 people / year (≈132M/yr)
+const WORLD_CDR = 7.5; // deaths / 1,000 people / year (≈62M/yr)
+
+export const worldVitals = (() => {
+  const dailyBirths = (WORLD_POP_REFERENCE * WORLD_CBR) / 1000 / DAYS_PER_YEAR;
+  const dailyDeaths = (WORLD_POP_REFERENCE * WORLD_CDR) / 1000 / DAYS_PER_YEAR;
+  return {
+    languageCount: languageVitals.length,
+    population: WORLD_POP_REFERENCE,
+    birthRate: WORLD_CBR,
+    deathRate: WORLD_CDR,
+    dailyBirths,
+    dailyDeaths,
+    dailyNet: dailyBirths - dailyDeaths,
+    birthsPerSecond: dailyBirths / SECONDS_PER_DAY,
+    deathsPerSecond: dailyDeaths / SECONDS_PER_DAY,
+    netPerSecond: (dailyBirths - dailyDeaths) / SECONDS_PER_DAY,
+  };
+})();
+
+/** Live world population: reference estimate plus net natural change since. */
+export function livePopulation(nowMs) {
+  const elapsedSeconds = (nowMs - WORLD_POP_REFERENCE_MS) / 1000;
+  return WORLD_POP_REFERENCE + worldVitals.netPerSecond * elapsedSeconds;
+}
 
 /**
  * Part-to-whole speaker share: top `n` languages plus a folded "Other" tail.
- * Returns [{ code, name, speakers, share }] where share sums to 1.
+ * Shares are fractions of trackedSpeakerTotal (combined counts, overlapping)
+ * and sum to 1.
  */
 export function speakerShare(n = 5) {
   const top = languageVitals.slice(0, n).map((v) => ({
     code: v.code,
     name: v.name,
     speakers: v.speakers,
-    share: v.speakers / worldVitals.totalSpeakers,
+    share: v.speakers / trackedSpeakerTotal,
   }));
   const otherSpeakers =
-    worldVitals.totalSpeakers - top.reduce((s, d) => s + d.speakers, 0);
+    trackedSpeakerTotal - top.reduce((s, d) => s + d.speakers, 0);
   top.push({
     code: "other",
-    name: `Other (${worldVitals.languageCount - n})`,
+    name: `Other (${languageVitals.length - n})`,
     speakers: otherSpeakers,
-    share: otherSpeakers / worldVitals.totalSpeakers,
+    share: otherSpeakers / trackedSpeakerTotal,
   });
   return top;
 }

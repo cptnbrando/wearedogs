@@ -6,6 +6,7 @@
     languageVitals,
     vitalsByCode,
     worldVitals,
+    livePopulation,
     speakerShare,
     formatCompact,
     formatInt,
@@ -65,6 +66,7 @@
 
   let bornToday = $derived(worldVitals.dailyBirths * dayFraction);
   let diedToday = $derived(worldVitals.dailyDeaths * dayFraction);
+  let population = $derived(livePopulation(now));
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -107,17 +109,17 @@
         <header class="card-head">
           <h2>World vital signs</h2>
           <p>
-            Every speaker population tracked across {worldVitals.languageCount}
-            languages, live
+            Humanity's pulse — UN world rates, live · {worldVitals.languageCount}
+            languages tracked
           </p>
         </header>
         <div class="tile-row">
           <div class="tile">
-            <span class="tile-label">Speakers tracked</span>
-            <span class="tile-value hero">
-              {formatCompact(worldVitals.totalSpeakers)}
+            <span class="tile-label">World population</span>
+            <span class="tile-value hero pop-live">{formatInt(population)}</span>
+            <span class="tile-sub">
+              UN estimate · +{worldVitals.netPerSecond.toFixed(1)} per second
             </span>
-            <span class="tile-sub">{worldVitals.languageCount} languages</span>
           </div>
           <div class="tile">
             <span class="tile-label">Born today (est.)</span>
@@ -206,7 +208,10 @@
         <section class="viz-card">
           <header class="card-head">
             <h2>Who speaks what</h2>
-            <p>Share of all tracked speakers, five largest languages</p>
+            <p>
+              Share of combined speaker counts — multilinguals appear once per
+              language they speak
+            </p>
           </header>
           <SharePie data={shareData} colors={PIE_COLORS} />
         </section>
@@ -233,12 +238,15 @@
       </section>
 
       <p class="methodology">
-        Methodology: daily figures derive from each language's crude birth rate
-        (CBR) and crude death rate (CDR) — events per 1,000 speakers per year,
-        WHO/UN convention — applied to its speaker population over a 365.25-day
-        year. Speaker populations overlap (people speak more than one
-        language), so world totals describe the sum of speaker populations, not
-        unique humans. Projections assume constant rates.
+        Methodology: world vital signs use the UN World Population Prospects
+        estimate ({formatCompact(worldVitals.population)} people, CBR
+        {worldVitals.birthRate}‰, CDR {worldVitals.deathRate}‰) — never the sum
+        of speaker populations, which would double-count multilingual people.
+        Per-language daily figures derive from that language's crude birth and
+        death rates (events per 1,000 speakers per year, WHO/UN convention)
+        applied to its speaker population over a 365.25-day year; those
+        populations overlap, so shares are of combined counts. Projections
+        assume constant rates.
       </p>
     </main>
 
@@ -455,6 +463,14 @@
 
   .tile-value.hero {
     font-size: 1.7rem;
+  }
+
+  /* Live population counter: tabular digits so the ticking number doesn't
+     jitter horizontally; sized to fit all 13 characters. */
+  .tile-value.pop-live {
+    font-size: 1.4rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
   }
 
   .tile-sub {
