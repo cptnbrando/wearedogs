@@ -1710,6 +1710,8 @@
             <g
               class="city-pin"
               class:active={selectedCity?.name === city.name}
+              class:dimmed={(selectedCity || selectedSpot) &&
+                selectedCity?.name !== city.name}
               onclick={() => selectCity(city)}
               role="button"
               tabindex="0"
@@ -1739,10 +1741,11 @@
             class="p-3 border-b border-white/5 flex items-center justify-between z-10 shrink-0 relative"
           >
             <button
-              class="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-white font-bold transition-colors"
+              class="flex items-center gap-2.5 text-xs text-zinc-400 hover:text-white font-bold transition-colors"
               onclick={handleBackClick}
             >
-              ← BACK TO DIRECTORY
+              <span>←</span>
+              <span>BACK TO DIRECTORY</span>
             </button>
             <div class="flex items-center gap-2">
               <button
@@ -2398,7 +2401,10 @@
   .city-pin {
     cursor: pointer;
     outline: none;
-    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition:
+      transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+      opacity 0.3s ease,
+      filter 0.3s ease;
     transform-origin: center;
     transform-box: fill-box;
   }
@@ -2409,6 +2415,23 @@
 
   .city-pin.active {
     transform: scale(1.3);
+  }
+
+  /* With a city or review selected, the other pins recede: blurred, faded,
+     and no pulsing ring pulling the eye. Hover restores one for discovery. */
+  .city-pin.dimmed {
+    opacity: 0.22;
+    filter: blur(1.6px);
+  }
+
+  .city-pin.dimmed .pin-pulse {
+    animation: none;
+    opacity: 0;
+  }
+
+  .city-pin.dimmed:hover {
+    opacity: 1;
+    filter: none;
   }
 
   .pin-dot {
