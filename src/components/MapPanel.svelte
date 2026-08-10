@@ -1741,7 +1741,7 @@
             class="p-3 border-b border-white/5 flex items-center justify-between z-10 shrink-0 relative"
           >
             <button
-              class="flex items-center gap-2.5 text-xs text-zinc-400 hover:text-white font-bold transition-colors"
+              class="flex items-center gap-2.5 text-xs text-zinc-400 hover:text-white font-bold transition-colors cursor-pointer"
               onclick={handleBackClick}
             >
               <span>←</span>
