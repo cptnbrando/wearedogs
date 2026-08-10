@@ -1738,7 +1738,7 @@
           />
 
           <!-- Interactive Pins -->
-          {#each CITIES as city, i}
+          {#each CITIES as city}
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
             <g
@@ -1751,14 +1751,10 @@
               tabindex="0"
               aria-label={city.name}
             >
-              <!-- Negative delay staggers each pin's bob phase -->
-              <g class="pin-bob" style="animation-delay: -{i * 0.45}s">
-                <circle cx={city.x} cy={city.y} r="10" class="pin-pulse" />
-                <circle cx={city.x} cy={city.y} r="4" class="pin-dot" />
-                <text x={city.x} y={city.y - 10} class="pin-text"
-                  >{city.name}</text
-                >
-              </g>
+              <circle cx={city.x} cy={city.y} r="4" class="pin-dot" />
+              <text x={city.x} y={city.y - 10} class="pin-text"
+                >{city.name}</text
+              >
             </g>
           {/each}
         </svg>
@@ -2404,10 +2400,6 @@
     width: 100%;
     height: 100%;
     background: #040408;
-    /* Own compositor layer: map repaints stay off the page layer and
-       aren't dragged down by whatever else the main thread is doing. */
-    will-change: transform;
-    transform: translateZ(0);
   }
 
   .world-svg path {
@@ -2466,39 +2458,9 @@
     filter: blur(0.8px);
   }
 
-  .city-pin.dimmed .pin-pulse {
-    animation: none;
-    opacity: 0;
-    transform: scale(0.4);
-  }
-
   .city-pin.dimmed:hover {
     opacity: 1;
     filter: none;
-  }
-
-  /* Gentle bob: dot and label drift up and back down in one continuous
-     ease-in-out wave — symmetric keyframes, so there is no reset snap.
-     will-change + translate3d put each pin on its own compositor layer;
-     without it every frame repaints the whole world-map SVG on the main
-     thread, which is what made the motion stutter. */
-  .pin-bob {
-    animation: pinBob 2.2s ease-in-out infinite;
-    will-change: transform;
-  }
-
-  .city-pin.dimmed .pin-bob {
-    animation-play-state: paused;
-  }
-
-  @keyframes pinBob {
-    0%,
-    100% {
-      transform: translate3d(0, 0, 0);
-    }
-    50% {
-      transform: translate3d(0, -4px, 0);
-    }
   }
 
   .pin-dot {
@@ -2512,32 +2474,6 @@
     filter: drop-shadow(0 0 8px #ff3344);
   }
 
-  /* The ring animates scale/opacity only — animating `r` is a geometry
-     change that forced the whole SVG to re-layout and repaint every frame,
-     which is what made the pin bob stutter. Base r=10, so 0.4→2 sweeps the
-     same 4→20 radius as before. */
-  .pin-pulse {
-    fill: none;
-    stroke: #ff3344;
-    stroke-width: 1;
-    opacity: 0.6;
-    animation: pinRing 1.8s infinite ease-out;
-    transform-origin: center;
-    transform-box: fill-box;
-    will-change: transform, opacity;
-  }
-
-  @keyframes pinRing {
-    0% {
-      transform: scale(0.4);
-      opacity: 0.9;
-    }
-    100% {
-      transform: scale(2);
-      opacity: 0;
-    }
-  }
-
   .pin-text {
     fill: rgba(255, 255, 255, 0.7);
     font-size: 8px;
@@ -2545,9 +2481,6 @@
     font-family: monospace;
     text-anchor: middle;
     pointer-events: none;
-    /* No glyph pixel-snapping: hinted text jumps whole pixels while the
-       pin bobs, which reads as jerky motion even at a full frame rate. */
-    text-rendering: geometricPrecision;
   }
 
   .city-pin:hover .pin-text,
