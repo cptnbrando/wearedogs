@@ -1,0 +1,6 @@
+- Tedd Budd (R-North Carolina), Sens. Tom Cotton (R-Ark.), Pete Ricketts (R-Neb.) and Budd
+    - https://www.axios.com/2026/08/05/trump-ted-budd-senate-republicans-hemp
+    - https://www.budd.senate.gov/contact/
+    - Concerns centered on children's easy access to hemp-derived THC products, which Cotton called "gas-station marijuana candy."
+- Lt. Gov. Dan
+- 
