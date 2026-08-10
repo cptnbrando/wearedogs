@@ -260,23 +260,25 @@
               >
                 {#if !pulseSplit}
                   <div
-                    class="pulse-view"
+                    class="pulse-view pulse-combined"
                     transition:scale={{
                       start: 0.88,
                       duration: 280,
                       easing: cubicOut,
                     }}
                   >
-                    <div class="pulse-eyebrow">
-                      alive right now · humans + dogs
-                    </div>
-                    <div class="pop-hero">
-                      {formatInt(population + dogPopulation)}
-                    </div>
-                    <div class="pulse-sub">
-                      growing +{(
-                        worldVitals.netPerSecond + worldDogVitals.netPerSecond
-                      ).toFixed(1)} every second · hover or tap to split
+                    <div class="combined-main">
+                      <div class="pulse-eyebrow">
+                        alive right now · humans + dogs
+                      </div>
+                      <div class="pop-hero">
+                        {formatInt(population + dogPopulation)}
+                      </div>
+                      <div class="pulse-sub">
+                        growing +{(
+                          worldVitals.netPerSecond + worldDogVitals.netPerSecond
+                        ).toFixed(1)} every second · hover or tap to split
+                      </div>
                     </div>
 
                     <div class="pulse-tiles">
@@ -849,6 +851,13 @@
     text-align: center;
   }
 
+  .combined-main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
   .pulse-split {
     display: grid;
     grid-template-columns: 1fr auto 1fr;
@@ -1264,16 +1273,43 @@
       font-size: 0.6rem;
     }
 
-    .pulse-tiles {
-      grid-template-columns: repeat(3, minmax(120px, 180px));
+    /* Combined view goes side-by-side: births/deaths/net stacked on the
+       left, the big alive-right-now counter on the right */
+    .pulse-view.pulse-combined {
+      flex-direction: row;
+      justify-content: center;
+      align-items: center;
+      gap: clamp(24px, 6vw, 64px);
+      width: 100%;
+    }
+
+    .pulse-combined .combined-main {
+      order: 2;
+    }
+
+    .pulse-combined .pulse-tiles {
+      order: 1;
+      display: flex;
+      flex-direction: column;
+      width: auto;
       gap: 8px;
 
       .tile {
-        padding: 6px 10px;
+        width: 176px;
+        padding: 6px 12px;
+        flex-direction: row;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 8px;
+        text-align: left;
       }
 
       .tile-value {
         font-size: 1rem;
+      }
+
+      .tile-sub {
+        display: none;
       }
     }
 
@@ -1323,12 +1359,64 @@
     }
 
     .center-pane {
-      gap: 8px;
+      gap: 6px;
     }
 
-    /* Life & Death: cap the chart height; the SVG letterboxes inside */
+    /* Life & Death: drop the header, let the chart flex into whatever
+       height remains — the SVG letterboxes inside its box */
+    .balance-pane > div:first-child {
+      display: none;
+    }
+
+    .balance-chart {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+    }
+
     .balance-chart :global(.lines-svg) {
-      max-height: 52vh;
+      flex: 1;
+      min-height: 0;
+      width: 100%;
+    }
+
+    .balance-chart :global(.lines-legend) {
+      margin-bottom: 2px;
+    }
+
+    .balance-chart :global(.lines-readout) {
+      margin-top: 2px;
+      font-size: 0.62rem;
+    }
+
+    /* Census: search + table only; title and footnote go */
+    .census-pane > div:first-child,
+    .census-pane .pane-footnote {
+      display: none;
+    }
+
+    .census-pane {
+      gap: 6px;
+    }
+
+    .census-pane :global(.table-tools) {
+      margin-bottom: 0;
+    }
+
+    .census-pane :global(.table-tools input) {
+      padding: 4px 10px;
+      font-size: 0.72rem;
+    }
+
+    .census-pane :global(table) {
+      font-size: 0.68rem;
+    }
+
+    .census-pane :global(td) {
+      padding: 4px 10px;
     }
   }
 
