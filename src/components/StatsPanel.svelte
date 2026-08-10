@@ -1,27 +1,20 @@
 <script>
-  import { onMount } from "svelte";
-  import { fade } from "svelte/transition";
-  import {
-    translations,
-    langs,
-    parseSpeakers,
-    parseDogs,
-    langDisplayName as getLangDisplayName,
-    langEnglishName as getLangEnglishName,
-    getFlagColors,
-  } from "../lib/langUtils.js";
-  import {
-    ArrowLeft,
-    Search,
-    Globe,
-    Scale,
-    TrendingUp,
-    Palette,
-  } from "lucide-svelte";
-  import SwipeTabNav from "./SwipeTabNav.svelte";
+  import { ArrowLeft } from "lucide-svelte";
   import DogsLogo from "./DogsLogo.svelte";
   import { audioCore } from "../lib/AudioCore.svelte.js";
-  import countryStats from "../lib/countryStats.js";
+  import {
+    languageVitals,
+    vitalsByCode,
+    worldVitals,
+    speakerShare,
+    formatCompact,
+    formatInt,
+    formatCadence,
+  } from "../data/stats/languageVitals.js";
+  import SharePie from "./stats/SharePie.svelte";
+  import LifeDeathBars from "./stats/LifeDeathBars.svelte";
+  import ProjectionChart from "./stats/ProjectionChart.svelte";
+  import VitalsTable from "./stats/VitalsTable.svelte";
 
   let {
     isClosing = false,
@@ -31,460 +24,47 @@
     onSelectLang,
   } = $props();
 
-  let activeTab = $state("explorer");
-
-  // 1. Tell Vite to code-split and load all .svelte tabs inside stats/
-  const tabModules = import.meta.glob("./stats/*.svelte");
-
-  // 2. Map tab ids to their relative paths from this file
-  const tabPathMap = {
-    explorer: "./stats/ExplorerTab.svelte",
-    map: "./stats/MapTab.svelte",
-    comparison: "./stats/ComparisonTab.svelte",
-    animals: "./stats/AnimalsTab.svelte",
-    themes: "./stats/ThemesTab.svelte",
-  };
-
-  // Lazy loaded tab components caching
-  let loadedTabs = $state({});
-
-  $effect(() => {
-    if (activeTab && !loadedTabs[activeTab]) {
-      const path = tabPathMap[activeTab];
-      const loader = tabModules[path];
-      if (loader) {
-        loader().then((m) => {
-          loadedTabs[activeTab] = m.default;
-        });
-      }
-    }
-  });
-
-  const userLocale =
-    typeof navigator !== "undefined" ? navigator.language : "en";
-
-  function langDisplayName(code) {
-    return getLangDisplayName(code, userLocale);
-  }
-
-  // Pre-calculate language item objects once for efficiency
-  const allLangItems = langs.map((code) => {
-    const t = translations[code];
-    const name = getLangEnglishName(code);
-    const dispName = langDisplayName(code);
-
-    return {
-      code,
-      name,
-      displayName: dispName,
-      country: t.country || "—",
-      dialect: t.dialect || "—",
-      speakersText: t.speakers || "—",
-      speakersNum: parseSpeakers(t.speakers),
-      dogsText: t.dogs_count || "—",
-      dogsNum: parseDogs(t.dogs_count),
-      we: t.we,
-      are: t.are,
-      dogs: t.dogs,
-      colors: getFlagColors(code),
-      humanCBR: t.humanCBR || 0,
-      humanCDR: t.humanCDR || 0,
-      dogCBR: t.dogCBR || 0,
-      dogCDR: t.dogCDR || 0,
-    };
-  });
-
-  let enrichedCountryStats = countryStats;
-
-  function handleSelect(code) {
-    if (onSelectLang) {
-      onSelectLang(code);
-    }
-  }
-
-  function handleHover(code) {
-    if (onHoverLang) {
-      onHoverLang(code);
-    }
-  }
-
-  // Active language detailed info card details
-  let activeLangItem = $derived(
-    allLangItems.find((item) => item.code === currentLang) || allLangItems[0],
-  );
-
-  // Tab configuration
-  const statsTabs = [
-    { id: "explorer", label: "Explorer", icon: Search },
-    { id: "map", label: "World Map", icon: Globe },
-    { id: "comparison", label: "Life & Death", icon: Scale },
-    { id: "animals", label: "Animals", icon: TrendingUp },
-    { id: "themes", label: "Palettes", icon: Palette },
+  // Categorical slots validated for this dark surface (dataviz palette);
+  // "Other" folds the tail into a neutral gray.
+  const PIE_COLORS = [
+    "#3987e5",
+    "#d95926",
+    "#199e70",
+    "#c98500",
+    "#d55181",
+    "#55555e",
   ];
 
-  // Map country selection mapping
-  const langToCountries = {
-    en: [
-      "us",
-      "gb",
-      "ca",
-      "au",
-      "nz",
-      "ie",
-      "za",
-      "ke",
-      "ug",
-      "tz",
-      "ng",
-      "gh",
-      "lr",
-      "sl",
-      "jm",
-      "bs",
-      "fk",
-      "pr",
-      "zw",
-      "zm",
-      "mw",
-      "na",
-      "ls",
-      "sz",
-      "bw",
-      "gy",
-      "pg",
-      "fj",
-      "vu",
-      "sb",
-      "fm",
-      "mt",
-      "cy",
-      "ss",
-      "sg",
-      "my",
-      "cm",
-      "ph",
-      "il",
-      "sr",
-    ],
-    es: [
-      "es",
-      "mx",
-      "ar",
-      "co",
-      "pe",
-      "ve",
-      "cl",
-      "ec",
-      "bo",
-      "py",
-      "uy",
-      "gt",
-      "hn",
-      "sv",
-      "ni",
-      "cr",
-      "pa",
-      "do",
-      "cu",
-      "gq",
-      "pr",
-    ],
-    fr: [
-      "fr",
-      "ca",
-      "be",
-      "ch",
-      "sn",
-      "ci",
-      "cg",
-      "cd",
-      "cm",
-      "mg",
-      "ne",
-      "ml",
-      "bf",
-      "tg",
-      "bj",
-      "ga",
-      "dj",
-      "gq",
-      "cf",
-      "km",
-      "bi",
-      "rw",
-      "gf",
-      "ht",
-      "gn",
-      "td",
-      "mr",
-      "cm",
-    ],
-    de: ["de", "at", "ch", "lu", "be"],
-    ja: ["jp"],
-    zh: ["cn", "tw", "sg", "my"],
-    pt: ["pt", "br", "ao", "cv", "tl", "mz", "gw", "st"],
-    it: ["it", "ch"],
-    ru: ["ru"],
-    ko: ["kr", "kp"],
-    hi: ["in"],
-    ar: [
-      "eg",
-      "sa",
-      "ae",
-      "dz",
-      "ma",
-      "sd",
-      "iq",
-      "ye",
-      "sy",
-      "td",
-      "tn",
-      "ly",
-      "jo",
-      "er",
-      "lb",
-      "mr",
-      "kw",
-      "om",
-      "qa",
-      "bh",
-      "so",
-      "ps",
-      "dj",
-      "km",
-      "eh",
-      "il",
-    ],
-    bn: ["bd", "in"],
-    pa: ["in", "pk"],
-    jv: ["id"],
-    ms: ["my", "bn", "sg"],
-    id: ["id"],
-    vi: ["vn"],
-    th: ["th"],
-    te: ["in"],
-    mr: ["in"],
-    ta: ["in", "lk", "sg", "my"],
-    gu: ["in"],
-    kn: ["in"],
-    ml: ["in"],
-    or: ["in"],
-    as: ["in"],
-    ne: ["np", "in"],
-    si: ["lk"],
-    sd: ["pk", "in"],
-    my: ["mm"],
-    km: ["kh"],
-    lo: ["la"],
-    su: ["id"],
-    ceb: ["ph"],
-    tl: ["ph"],
-    hmn: ["la", "vn", "cn", "th"],
-    sv: ["se"],
-    no: ["no"],
-    da: ["dk", "gl"],
-    fi: ["fi"],
-    is: ["is"],
-    pl: ["pl"],
-    nl: ["nl", "sr", "be"],
-    ga: ["ie"],
-    dz: ["bt"],
-    uk: ["ua"],
-    be: ["by"],
-    cs: ["cz"],
-    sk: ["sk"],
-    hu: ["hu"],
-    ro: ["ro", "md"],
-    bg: ["bg"],
-    hr: ["hr"],
-    sr: ["rs", "me"],
-    sl: ["si"],
-    bs: ["ba"],
-    sq: ["al"],
-    mk: ["mk"],
-    el: ["gr", "cy"],
-    tr: ["tr"],
-    fa: ["ir", "af"],
-    he: ["il"],
-    ur: ["pk", "in"],
-    kk: ["kz"],
-    uz: ["uz"],
-    tk: ["tk"],
-    tg: ["tj"],
-    ky: ["kg"],
-    mn: ["mn"],
-    ka: ["ge"],
-    hy: ["am"],
-    az: ["az"],
-    ps: ["af", "pk"],
-  };
+  const shareData = speakerShare(5);
+  const topTen = languageVitals.slice(0, 10);
 
-  const customColors = {
-    en: "#3B82F6",
-    es: "#FABD00",
-    fr: "#2563EB",
-    de: "#EF4444",
-    ja: "#BC002D",
-    zh: "#DE2910",
-    pt: "#009739",
-    it: "#009246",
-    ru: "#8B5CF6",
-    ko: "#EC4899",
-    hi: "#FF9933",
-    ar: "#06B6D4",
-    bn: "#047857",
-    tr: "#DC2626",
-    se: "#0284C7",
-    no: "#E11D48",
-    da: "#C60C30",
-    fi: "#1E3A8A",
-    is: "#1E40AF",
-    pl: "#E11D48",
-    nl: "#F59E0B",
-    ga: "#10B981",
-  };
+  let selected = $derived(vitalsByCode[currentLang] || languageVitals[0]);
 
-  function getLanguageColor(code) {
-    if (customColors[code]) return customColors[code];
-    const colors = getFlagColors(code);
-    if (!colors || colors.length === 0) return "#3B82F6";
-    let color = colors[0];
-    if (color.toLowerCase() === "#ffffff" || color.toLowerCase() === "#fff") {
-      color = colors[1] || color;
-      if (color.toLowerCase() === "#ffffff" || color.toLowerCase() === "#fff") {
-        color = colors[2] || color;
-      }
-    }
-    return color;
+  function selectLang(code) {
+    currentLang = code;
+    onHoverLang?.(code);
+    onSelectLang?.(code);
   }
 
-  let activeCountries = $derived(langToCountries[currentLang] || []);
-  let activeColor = $derived(getLanguageColor(currentLang));
+  // ── Live "today" tickers ──
+  // Estimated events so far today = daily rate × fraction of the local day
+  // elapsed, re-derived every second.
+  let now = $state(Date.now());
 
-  // Construct a reactive map of country -> signature language color
-  let countryColorsMap = $derived.by(() => {
-    const map = {};
-    for (const [lang, countries] of Object.entries(langToCountries)) {
-      const color = getLanguageColor(lang);
-      countries.forEach((c) => {
-        if (!map[c]) {
-          map[c] = color;
-        }
-      });
-    }
-    return map;
+  $effect(() => {
+    const id = setInterval(() => (now = Date.now()), 1000);
+    return () => clearInterval(id);
   });
 
-  // Construct a reactive map of country -> language name for tooltip display
-  let countryLanguagesMap = $derived.by(() => {
-    const map = {};
-    for (const [lang, countries] of Object.entries(langToCountries)) {
-      const name = getLangEnglishName(lang) || lang;
-      countries.forEach((c) => {
-        if (map[c]) {
-          if (!map[c].includes(name)) {
-            map[c] += " / " + name;
-          }
-        } else {
-          map[c] = name;
-        }
-      });
-    }
-    return map;
+  let dayFraction = $derived.by(() => {
+    const d = new Date(now);
+    return (
+      (d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds()) / 86_400
+    );
   });
 
-  function findLangByCountry(countryId) {
-    const code = countryId.toLowerCase();
-    for (const [lang, countries] of Object.entries(langToCountries)) {
-      if (countries.includes(code)) {
-        return lang;
-      }
-    }
-    return null;
-  }
-
-  function handleCountrySelect(countryId) {
-    const lang = findLangByCountry(countryId);
-    if (lang) {
-      currentLang = lang;
-      handleHover(lang);
-    }
-  }
-
-  // Mobile swipe gesture navigation
-  let touchStartX = 0;
-  let touchStartY = 0;
-  let shouldIgnoreSwipe = false;
-
-  function isHorizontallyScrollable(el, root) {
-    let current = el;
-    while (current && current !== root) {
-      if (
-        current.tagName === "SVG" ||
-        current.tagName === "path" ||
-        current.tagName === "g"
-      ) {
-        current = current.parentElement;
-        continue;
-      }
-      const style = window.getComputedStyle(current);
-      const overflowX = style.overflowX;
-      if (
-        (overflowX === "auto" || overflowX === "scroll") &&
-        current.scrollWidth > current.clientWidth
-      ) {
-        return true;
-      }
-      if (
-        current.tagName === "TABLE" ||
-        current.tagName === "INPUT" ||
-        current.tagName === "BUTTON" ||
-        current.classList.contains("table-wrapper") ||
-        current.classList.contains("quick-comparisons") ||
-        current.classList.contains("comparison-matrix")
-      ) {
-        return true;
-      }
-      current = current.parentElement;
-    }
-    return false;
-  }
-
-  function handleTouchStart(e) {
-    if (e.touches && e.touches.length > 0) {
-      shouldIgnoreSwipe = isHorizontallyScrollable(e.target, e.currentTarget);
-      touchStartX = e.touches[0].clientX;
-      touchStartY = e.touches[0].clientY;
-    }
-  }
-
-  function handleTouchEnd(e) {
-    if (shouldIgnoreSwipe) {
-      shouldIgnoreSwipe = false;
-      return;
-    }
-    if (!e.changedTouches || e.changedTouches.length === 0) return;
-    const touchEndX = e.changedTouches[0].clientX;
-    const touchEndY = e.changedTouches[0].clientY;
-
-    const diffX = touchEndX - touchStartX;
-    const diffY = touchEndY - touchStartY;
-
-    if (Math.abs(diffX) > 75 && Math.abs(diffY) < 50) {
-      const currentIndex = statsTabs.findIndex((t) => t.id === activeTab);
-      if (currentIndex !== -1) {
-        if (diffX < 0) {
-          if (currentIndex < statsTabs.length - 1) {
-            activeTab = statsTabs[currentIndex + 1].id;
-          }
-        } else {
-          if (currentIndex > 0) {
-            activeTab = statsTabs[currentIndex - 1].id;
-          }
-        }
-      }
-    }
-  }
+  let bornToday = $derived(worldVitals.dailyBirths * dayFraction);
+  let diedToday = $derived(worldVitals.dailyDeaths * dayFraction);
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -495,6 +75,7 @@
     class="stats-panel-container"
     class:closing={isClosing}
     onclick={(e) => e.stopPropagation()}
+    style="--viz-surface:#101016; --viz-ink:rgba(255,255,255,0.95); --viz-ink-2:rgba(255,255,255,0.65); --viz-muted:rgba(255,255,255,0.42); --viz-grid:rgba(255,255,255,0.06); --viz-axis:rgba(255,255,255,0.16); --viz-births:#3987e5; --viz-deaths:#e66767; --viz-good:#0ca30c;"
   >
     <!-- Header -->
     <header class="panel-header">
@@ -511,7 +92,7 @@
         >
           <DogsLogo size="panel" />
         </button>
-        <h1>stats</h1>
+        <h1>stats <span class="subtitle">· life &amp; death</span></h1>
       </div>
 
       <button class="close-btn" onclick={onClose} aria-label="Close panel">
@@ -519,89 +100,147 @@
       </button>
     </header>
 
-    <!-- Unified top swipeable tab nav component -->
-    <SwipeTabNav tabs={statsTabs} bind:activeTab />
-
-    <!-- Inner Window Body (Full width, scroll container) -->
-    <div class="panel-body flex-1 min-h-0 flex flex-col md:flex-row relative">
-      <!-- Content Area -->
-      <main
-        class="panel-content-pane flex-1 p-6 md:p-8 overflow-y-auto scroll-container bg-black/10"
-        ontouchstart={handleTouchStart}
-        ontouchend={handleTouchEnd}
-      >
-        {#if loadedTabs[activeTab]}
-          {@const Tab = loadedTabs[activeTab]}
-          <div
-            in:fade={{ duration: 120, delay: 120 }}
-            out:fade={{ duration: 120 }}
-          >
-            {#if activeTab === "explorer"}
-              <Tab
-                {allLangItems}
-                bind:currentLang
-                {handleHover}
-                {handleSelect}
-              />
-            {:else if activeTab === "map"}
-              <Tab
-                {activeColor}
-                {activeLangItem}
-                {activeCountries}
-                {enrichedCountryStats}
-                {countryColorsMap}
-                {countryLanguagesMap}
-                {handleCountrySelect}
-              />
-            {:else if activeTab === "comparison"}
-              <Tab {enrichedCountryStats} />
-            {:else if activeTab === "animals"}
-              <Tab {allLangItems} />
-            {:else if activeTab === "themes"}
-              <Tab {allLangItems} {onSelectLang} />
-            {/if}
+    <!-- Body: single scientific dashboard, no tabs -->
+    <main class="panel-body">
+      <!-- 1. World vital signs -->
+      <section class="viz-card">
+        <header class="card-head">
+          <h2>World vital signs</h2>
+          <p>
+            Every speaker population tracked across {worldVitals.languageCount}
+            languages, live
+          </p>
+        </header>
+        <div class="tile-row">
+          <div class="tile">
+            <span class="tile-label">Speakers tracked</span>
+            <span class="tile-value hero">
+              {formatCompact(worldVitals.totalSpeakers)}
+            </span>
+            <span class="tile-sub">{worldVitals.languageCount} languages</span>
           </div>
-        {:else}
-          <div class="tab-loading-spinner" aria-label="Loading..."></div>
-        {/if}
-      </main>
-
-      <!-- Sidebar selection overlay display (Visible on desktop only) -->
-      <div
-        class="sidebar-selection-pane hidden xl:flex flex-col w-[280px] p-6 border-l border-white/5 bg-black/10 shrink-0 select-none"
-      >
-        <div
-          class="current-selection-card mt-auto bg-white/[0.02] border border-white/5 p-4 rounded-xl flex flex-col gap-4"
-        >
-          <div class="card-head flex flex-col">
-            <span
-              class="card-tag text-[8px] font-bold text-white/30 tracking-widest uppercase"
-              >ACTIVE LOCALE</span
-            >
-            <h3 class="text-sm font-bold text-white mt-0.5">
-              {activeLangItem.displayName}
-            </h3>
+          <div class="tile">
+            <span class="tile-label">Born today (est.)</span>
+            <span class="tile-value">{formatInt(bornToday)}</span>
+            <span class="tile-sub">
+              ≈ {worldVitals.birthsPerSecond.toFixed(1)} per second
+            </span>
           </div>
-          <div
-            class="color-track h-1 flex border border-white/10 rounded-full overflow-hidden"
-          >
-            <span class="flex-1" style="background: {activeLangItem.colors[0]}"
-            ></span>
-            <span class="flex-1" style="background: {activeLangItem.colors[1]}"
-            ></span>
-            <span class="flex-1" style="background: {activeLangItem.colors[2]}"
-            ></span>
+          <div class="tile">
+            <span class="tile-label">Died today (est.)</span>
+            <span class="tile-value">{formatInt(diedToday)}</span>
+            <span class="tile-sub">
+              ≈ {worldVitals.deathsPerSecond.toFixed(1)} per second
+            </span>
           </div>
-          <div
-            class="translation-preview text-xs text-white/50 font-medium italic leading-relaxed"
-          >
-            "{activeLangItem.we}
-            {activeLangItem.are}
-            {activeLangItem.dogs}"
+          <div class="tile">
+            <span class="tile-label">Net change / day</span>
+            <span class="tile-value">
+              {worldVitals.dailyNet >= 0 ? "+" : "−"}{formatCompact(
+                Math.abs(worldVitals.dailyNet),
+              )}
+            </span>
+            <span class="tile-sub">births − deaths</span>
           </div>
         </div>
+      </section>
+
+      <!-- 2. Selected language -->
+      <section class="viz-card">
+        <header class="card-head lang-head">
+          <div>
+            <h2>{selected.name}</h2>
+            <p>
+              #{selected.rank} by speakers · {selected.country} · “{selected.phrase}”
+            </p>
+          </div>
+          <select
+            class="lang-select"
+            value={selected.code}
+            onchange={(e) => selectLang(e.currentTarget.value)}
+            aria-label="Select a language"
+          >
+            {#each languageVitals as v (v.code)}
+              <option value={v.code}>{v.name} — {v.speakersText}</option>
+            {/each}
+          </select>
+        </header>
+
+        <div class="tile-row">
+          <div class="tile">
+            <span class="tile-label">Speakers</span>
+            <span class="tile-value">{formatCompact(selected.speakers)}</span>
+            <span class="tile-sub">{selected.speakersText}</span>
+          </div>
+          <div class="tile">
+            <span class="tile-label">Births / day</span>
+            <span class="tile-value">{formatInt(selected.dailyBirths)}</span>
+            <span class="tile-sub">
+              one {formatCadence(selected.secondsPerBirth)}
+            </span>
+          </div>
+          <div class="tile">
+            <span class="tile-label">Deaths / day</span>
+            <span class="tile-value">{formatInt(selected.dailyDeaths)}</span>
+            <span class="tile-sub">
+              one {formatCadence(selected.secondsPerDeath)}
+            </span>
+          </div>
+          <div class="tile">
+            <span class="tile-label">Natural change</span>
+            <span class="tile-value">
+              {selected.growthRate >= 0 ? "+" : ""}{(
+                selected.growthRate * 100
+              ).toFixed(2)}%
+            </span>
+            <span class="tile-sub">per year (CBR − CDR)</span>
+          </div>
+        </div>
+
+        <h3 class="chart-title">Projected speakers, next 50 years</h3>
+        <ProjectionChart vitals={selected} />
+      </section>
+
+      <!-- 3. Charts -->
+      <div class="chart-grid">
+        <section class="viz-card">
+          <header class="card-head">
+            <h2>Who speaks what</h2>
+            <p>Share of all tracked speakers, five largest languages</p>
+          </header>
+          <SharePie data={shareData} colors={PIE_COLORS} />
+        </section>
+
+        <section class="viz-card">
+          <header class="card-head">
+            <h2>Life &amp; death, daily</h2>
+            <p>Births and deaths per day, ten largest languages</p>
+          </header>
+          <LifeDeathBars items={topTen} />
+        </section>
       </div>
-    </div>
+
+      <!-- 4. Full table -->
+      <section class="viz-card">
+        <header class="card-head">
+          <h2>Every language</h2>
+          <p>
+            Crude birth/death rates (per 1,000 speakers per year) and derived
+            daily figures — click a row to select
+          </p>
+        </header>
+        <VitalsTable currentLang={selected.code} onSelect={selectLang} />
+      </section>
+
+      <p class="methodology">
+        Methodology: daily figures derive from each language's crude birth rate
+        (CBR) and crude death rate (CDR) — events per 1,000 speakers per year,
+        WHO/UN convention — applied to its speaker population over a 365.25-day
+        year. Speaker populations overlap (people speak more than one
+        language), so world totals describe the sum of speaker populations, not
+        unique humans. Projections assume constant rates.
+      </p>
+    </main>
 
     <!-- Footer / Status Bar -->
     <footer class="panel-footer">
@@ -686,6 +325,21 @@
     font-family: "Outfit", "Inter", sans-serif;
   }
 
+  .subtitle {
+    font-weight: 500;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.42);
+    text-transform: none;
+    letter-spacing: 0.02em;
+  }
+
+  .logo-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+  }
+
   .close-btn {
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.06);
@@ -704,6 +358,136 @@
     background: rgba(255, 255, 255, 0.15);
     color: white;
     transform: translateX(-4px);
+  }
+
+  /* ── Body ── */
+  .panel-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 20px 24px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    background: rgba(0, 0, 0, 0.1);
+  }
+
+  .viz-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+    padding: 18px 20px 20px;
+  }
+
+  .card-head {
+    margin-bottom: 14px;
+
+    h2 {
+      margin: 0;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--viz-ink);
+      letter-spacing: 0.02em;
+    }
+
+    p {
+      margin: 2px 0 0;
+      font-size: 0.7rem;
+      color: var(--viz-muted);
+    }
+  }
+
+  .lang-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .lang-select {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: var(--viz-ink);
+    font-size: 0.75rem;
+    padding: 7px 10px;
+    max-width: 260px;
+    cursor: pointer;
+
+    option {
+      background: #16161c;
+      color: #fff;
+    }
+  }
+
+  /* ── Stat tiles ── */
+  .tile-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+  }
+
+  .tile {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .tile-label {
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--viz-muted);
+  }
+
+  .tile-value {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--viz-ink);
+    line-height: 1.15;
+  }
+
+  .tile-value.hero {
+    font-size: 1.7rem;
+  }
+
+  .tile-sub {
+    font-size: 0.66rem;
+    color: var(--viz-muted);
+  }
+
+  .chart-title {
+    margin: 18px 0 8px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--viz-ink-2);
+  }
+
+  /* ── Chart grid ── */
+  .chart-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+
+    @media (max-width: 1024px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .methodology {
+    margin: 0;
+    font-size: 0.66rem;
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.32);
+    max-width: 72ch;
   }
 
   /* ── Footer ── */
@@ -747,14 +531,6 @@
     gap: 8px;
   }
 
-  /* ── Mobile Layout Bottom Sheet & Tab Bar ── */
-  @media (max-width: 768px) {
-    .stats-panel-backdrop {
-      display: block;
-      height: 100dvh;
-    }
-  }
-
   @keyframes panelSlideUpIn {
     0% {
       opacity: 0;
@@ -783,6 +559,11 @@
 
   /* ── Responsive Mobile Overrides matching BasePanel ── */
   @media (max-width: 768px) {
+    .stats-panel-backdrop {
+      display: block;
+      height: 100dvh;
+    }
+
     .stats-panel-container {
       width: 100vw;
       height: 100%;
@@ -800,6 +581,10 @@
 
     .panel-header {
       padding: 0 16px;
+    }
+
+    .panel-body {
+      padding: 14px 14px 22px;
     }
 
     .panel-footer {
