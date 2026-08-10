@@ -355,12 +355,12 @@
       desc: "Draw and paint.",
       icon: Paintbrush,
     },
-    {
-      id: "missingcreatures",
-      title: "Missing Creatures",
-      desc: "Investigate missing people and dogs.",
-      icon: Search,
-    },
+    // {
+    //   id: "missingcreatures",
+    //   title: "Missing Creatures",
+    //   desc: "Investigate missing people and dogs.",
+    //   icon: Search,
+    // },
     {
       id: "memes",
       title: "MEMES",

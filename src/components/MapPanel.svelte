@@ -1,6 +1,7 @@
 <script>
   import { onMount } from "svelte";
   import BasePanel from "./BasePanel.svelte";
+  import ProductImageSlideshow from "./apps/ProductImageSlideshow.svelte";
   import mapSpots from "../data/map/index.js";
   import { spring } from "svelte/motion";
   import { fade, slide, fly } from "svelte/transition";
@@ -131,7 +132,6 @@
   let activeSubCategory = $state("Coffee Shops"); // only for restaurants: 'Coffee Shops', 'Bars', 'Italian', 'Mexican'
 
   let selectedSpot = $state(null);
-  let selectedSpotImgIdx = $state(0);
 
   let linkCopied = $state(false);
   let linkCopiedTimer;
@@ -268,7 +268,6 @@
 
   function selectSpotCard(spot) {
     selectedSpot = spot;
-    selectedSpotImgIdx = 0;
     updateHash(spot.id);
 
     // Zoom in to the spot's city if not already zoomed in
@@ -1778,38 +1777,21 @@
               </p>
             </div>
 
-            <!-- Image Carousel -->
+            <!-- Image Carousel (shared slideshow with the campaign-style
+                 position ribbon along the bottom edge) -->
             {#if selectedSpot.images && selectedSpot.images.length > 0}
-              <div
-                class="relative w-full aspect-video bg-black/40 rounded-lg overflow-hidden border border-white/5 group"
-              >
-                <img
-                  src={selectedSpot.images[selectedSpotImgIdx]}
-                  alt={selectedSpot.name}
-                  class="w-full h-full object-cover"
-                />
-
-                {#if selectedSpot.images.length > 1}
-                  <button
-                    class="absolute left-2 top-1/2 -translate-y-1/2 bg-black/75 hover:bg-black text-white text-[10px] w-6 h-6 rounded-full flex items-center justify-center border border-white/10 transition-colors"
-                    onclick={() => {
-                      selectedSpotImgIdx =
-                        (selectedSpotImgIdx - 1 + selectedSpot.images.length) %
-                        selectedSpot.images.length;
-                    }}
-                  >
-                    ◀
-                  </button>
-                  <button
-                    class="absolute right-2 top-1/2 -translate-y-1/2 bg-black/75 hover:bg-black text-white text-[10px] w-6 h-6 rounded-full flex items-center justify-center border border-white/10 transition-colors"
-                    onclick={() => {
-                      selectedSpotImgIdx =
-                        (selectedSpotImgIdx + 1) % selectedSpot.images.length;
-                    }}
-                  >
-                    ▶
-                  </button>
-                {/if}
+              <div class="spot-carousel w-full">
+                {#key selectedSpot.id}
+                  <ProductImageSlideshow
+                    images={selectedSpot.images}
+                    productTitle={selectedSpot.name}
+                    accent="red"
+                    aspectClass="aspect-video"
+                    fit="cover"
+                    showThumbnails={false}
+                    ribbon={true}
+                  />
+                {/key}
               </div>
             {/if}
 
@@ -2298,6 +2280,11 @@
       grid-template-columns: 1.2fr 1fr;
       grid-template-rows: 1fr;
       overflow: hidden;
+    }
+    /* Landscape phones: the review column is short and narrow — keep the
+       photo frame from swallowing the whole column. object-cover crops it. */
+    .spot-carousel :global(.aspect-video) {
+      max-height: 52vh;
     }
   }
 
