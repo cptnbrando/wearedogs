@@ -1,19 +1,38 @@
 <script>
-  import { ArrowLeft } from "lucide-svelte";
+  import { fly, scale } from "svelte/transition";
+  import { cubicOut } from "svelte/easing";
+  import {
+    ArrowLeft,
+    Clock,
+    HeartPulse,
+    Languages,
+    PieChart,
+    Scale,
+    Table2,
+  } from "lucide-svelte";
+  import SwipeTabNav from "./SwipeTabNav.svelte";
   import DogsLogo from "./DogsLogo.svelte";
   import { audioCore } from "../lib/AudioCore.svelte.js";
   import {
     languageVitals,
     vitalsByCode,
     worldVitals,
+    worldDogVitals,
     livePopulation,
+    liveDogPopulation,
     speakerShare,
     formatCompact,
     formatInt,
+    formatRate,
     formatCadence,
   } from "../data/stats/languageVitals.js";
+  import {
+    RATE_UNITS,
+    rateUnitState,
+    cycleRateUnit,
+  } from "../data/stats/rateUnits.svelte.js";
   import SharePie from "./stats/SharePie.svelte";
-  import LifeDeathBars from "./stats/LifeDeathBars.svelte";
+  import LifeDeathLines from "./stats/LifeDeathLines.svelte";
   import ProjectionChart from "./stats/ProjectionChart.svelte";
   import VitalsTable from "./stats/VitalsTable.svelte";
 
@@ -25,19 +44,61 @@
     onSelectLang,
   } = $props();
 
-  // Categorical slots validated for this dark surface (dataviz palette);
-  // "Other" folds the tail into a neutral gray.
-  const PIE_COLORS = [
-    "#3987e5",
-    "#d95926",
-    "#199e70",
-    "#c98500",
-    "#d55181",
-    "#55555e",
-  ];
-
-  const shareData = speakerShare(5);
+  // Enough languages that the folded "Other" tail stays under 25%.
+  const shareData = speakerShare(0.25);
   const topTen = languageVitals.slice(0, 10);
+
+  // Slices are ranked by size, so an ordinal blue ramp (dark = biggest)
+  // carries the order; the ramp ends stay inside the dark-surface contrast
+  // band. "Other" is neutral gray.
+  function mixHex(a, b, t) {
+    const pa = parseInt(a.slice(1), 16);
+    const pb = parseInt(b.slice(1), 16);
+    const ch = (sh) => {
+      const va = (pa >> sh) & 255;
+      return Math.round(va + (((pb >> sh) & 255) - va) * t);
+    };
+    return `#${((ch(16) << 16) | (ch(8) << 8) | ch(0)).toString(16).padStart(6, "0")}`;
+  }
+
+  const langSliceCount = shareData.length - 1;
+  const PIE_COLORS = shareData.map((d, i) =>
+    d.code === "other"
+      ? "#55555e"
+      : mixHex("#184f95", "#9ec5f4", langSliceCount > 1 ? i / (langSliceCount - 1) : 0),
+  );
+
+  // ── Global rate-unit toggle: click forward, right-click / long-press back ──
+  let unit = $derived(RATE_UNITS[rateUnitState.idx]);
+  let lpTimer = null;
+  let lpFired = false;
+
+  function unitClick() {
+    if (lpFired) {
+      lpFired = false;
+      return;
+    }
+    cycleRateUnit(1);
+  }
+
+  function unitContextMenu(e) {
+    e.preventDefault();
+    // Android long-press arrives as contextmenu; don't double-step with the timer
+    if (lpFired) return;
+    cycleRateUnit(-1);
+  }
+
+  function unitTouchStart() {
+    lpFired = false;
+    lpTimer = setTimeout(() => {
+      lpFired = true;
+      cycleRateUnit(-1);
+    }, 450);
+  }
+
+  function unitTouchEnd() {
+    clearTimeout(lpTimer);
+  }
 
   let selected = $derived(vitalsByCode[currentLang] || languageVitals[0]);
 
@@ -47,9 +108,58 @@
     onSelectLang?.(code);
   }
 
-  // ── Live "today" tickers ──
-  // Estimated events so far today = daily rate × fraction of the local day
-  // elapsed, re-derived every second.
+  // ── Tabs ──
+  const statsTabs = [
+    { id: "pulse", label: "Pulse", icon: HeartPulse },
+    { id: "language", label: "Language", icon: Languages },
+    { id: "share", label: "Share", icon: PieChart },
+    { id: "balance", label: "Life & Death", icon: Scale },
+    { id: "census", label: "Census", icon: Table2 },
+  ];
+
+  let activeTab = $state("pulse");
+
+  // Slide direction for the pane transition: +1 moving right, −1 moving left.
+  // $effect.pre updates it before the keyed block re-renders, so the fly
+  // transitions read the fresh direction.
+  let prevTabIdx = 0;
+  let slideDir = 1;
+  $effect.pre(() => {
+    const idx = statsTabs.findIndex((t) => t.id === activeTab);
+    slideDir = idx >= prevTabIdx ? 1 : -1;
+    prevTabIdx = idx;
+  });
+
+  // ── Content swipe (mobile): horizontal drag changes tab ──
+  let touchX = 0;
+  let touchY = 0;
+  let swipeIgnored = false;
+
+  function onStageTouchStart(e) {
+    if (!e.touches?.length) return;
+    // Don't fight elements with their own horizontal scroll / controls
+    swipeIgnored = !!e.target.closest(".table-scroll, input, select, button");
+    touchX = e.touches[0].clientX;
+    touchY = e.touches[0].clientY;
+  }
+
+  function onStageTouchEnd(e) {
+    if (swipeIgnored || !e.changedTouches?.length) {
+      swipeIgnored = false;
+      return;
+    }
+    const dx = e.changedTouches[0].clientX - touchX;
+    const dy = e.changedTouches[0].clientY - touchY;
+    if (Math.abs(dx) > 70 && Math.abs(dy) < 60) {
+      const idx = statsTabs.findIndex((t) => t.id === activeTab);
+      const next = dx < 0 ? idx + 1 : idx - 1;
+      if (next >= 0 && next < statsTabs.length) {
+        activeTab = statsTabs[next].id;
+      }
+    }
+  }
+
+  // ── Live tickers ──
   let now = $state(Date.now());
 
   $effect(() => {
@@ -57,16 +167,23 @@
     return () => clearInterval(id);
   });
 
-  let dayFraction = $derived.by(() => {
-    const d = new Date(now);
-    return (
-      (d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds()) / 86_400
-    );
-  });
-
-  let bornToday = $derived(worldVitals.dailyBirths * dayFraction);
-  let diedToday = $derived(worldVitals.dailyDeaths * dayFraction);
   let population = $derived(livePopulation(now));
+  let dogPopulation = $derived(liveDogPopulation(now));
+
+  // ── Pulse combined ⇄ split: hover splits on desktop, tap toggles on touch ──
+  let pulseSplit = $state(false);
+
+  function pulseEnter(e) {
+    if (e.pointerType === "mouse") pulseSplit = true;
+  }
+
+  function pulseLeave(e) {
+    if (e.pointerType === "mouse") pulseSplit = false;
+  }
+
+  function pulseTap(e) {
+    if (e.pointerType !== "mouse") pulseSplit = !pulseSplit;
+  }
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -97,158 +214,324 @@
         <h1>stats <span class="subtitle">· life &amp; death</span></h1>
       </div>
 
-      <button class="close-btn" onclick={onClose} aria-label="Close panel">
-        <ArrowLeft size={20} />
-      </button>
+      <div class="header-actions">
+        <button
+          class="unit-toggle"
+          onclick={unitClick}
+          oncontextmenu={unitContextMenu}
+          ontouchstart={unitTouchStart}
+          ontouchend={unitTouchEnd}
+          ontouchcancel={unitTouchEnd}
+          aria-label="Change rate time unit (click forward, right-click or hold back)"
+          title="Click: next unit · right-click / hold: previous"
+        >
+          <Clock size={13} />
+          per {unit.noun}
+        </button>
+        <button class="close-btn" onclick={onClose} aria-label="Close panel">
+          <ArrowLeft size={20} />
+        </button>
+      </div>
     </header>
 
-    <!-- Body: single scientific dashboard, no tabs -->
-    <main class="panel-body">
-      <!-- 1. World vital signs -->
-      <section class="viz-card">
-        <header class="card-head">
-          <h2>World vital signs</h2>
-          <p>
-            Humanity's pulse — UN world rates, live · {worldVitals.languageCount}
-            languages tracked
-          </p>
-        </header>
-        <div class="tile-row">
-          <div class="tile">
-            <span class="tile-label">World population</span>
-            <span class="tile-value hero pop-live">{formatInt(population)}</span>
-            <span class="tile-sub">
-              UN estimate · +{worldVitals.netPerSecond.toFixed(1)} per second
-            </span>
-          </div>
-          <div class="tile">
-            <span class="tile-label">Born today (est.)</span>
-            <span class="tile-value">{formatInt(bornToday)}</span>
-            <span class="tile-sub">
-              ≈ {worldVitals.birthsPerSecond.toFixed(1)} per second
-            </span>
-          </div>
-          <div class="tile">
-            <span class="tile-label">Died today (est.)</span>
-            <span class="tile-value">{formatInt(diedToday)}</span>
-            <span class="tile-sub">
-              ≈ {worldVitals.deathsPerSecond.toFixed(1)} per second
-            </span>
-          </div>
-          <div class="tile">
-            <span class="tile-label">Net change / day</span>
-            <span class="tile-value">
-              {worldVitals.dailyNet >= 0 ? "+" : "−"}{formatCompact(
-                Math.abs(worldVitals.dailyNet),
-              )}
-            </span>
-            <span class="tile-sub">births − deaths</span>
-          </div>
+    <SwipeTabNav tabs={statsTabs} bind:activeTab />
+
+    <!-- Body: one screen per tab, swipe or click to move -->
+    <div
+      class="tab-stage"
+      ontouchstart={onStageTouchStart}
+      ontouchend={onStageTouchEnd}
+    >
+      {#key activeTab}
+        <div
+          class="tab-pane"
+          in:fly={{ x: 64 * slideDir, duration: 300, easing: cubicOut }}
+          out:fly={{ x: -64 * slideDir, duration: 220, easing: cubicOut }}
+        >
+          {#if activeTab === "pulse"}
+            <!-- ── PULSE: the world, alive. Combined until hovered/tapped,
+                 then humans left / dogs right ── -->
+            <div class="pulse-pane">
+              <div
+                class="pulse-stage"
+                onpointerenter={pulseEnter}
+                onpointerleave={pulseLeave}
+                onpointerup={pulseTap}
+              >
+                {#if !pulseSplit}
+                  <div
+                    class="pulse-view"
+                    transition:scale={{
+                      start: 0.88,
+                      duration: 280,
+                      easing: cubicOut,
+                    }}
+                  >
+                    <div class="pulse-eyebrow">
+                      alive right now · humans + dogs
+                    </div>
+                    <div class="pop-hero">
+                      {formatInt(population + dogPopulation)}
+                    </div>
+                    <div class="pulse-sub">
+                      growing +{(
+                        worldVitals.netPerSecond + worldDogVitals.netPerSecond
+                      ).toFixed(1)} every second · hover or tap to split
+                    </div>
+
+                    <div class="pulse-tiles">
+                      <div class="tile accent-births">
+                        <span class="tile-label">Births</span>
+                        <span class="tile-value">
+                          {formatRate(
+                            (worldVitals.dailyBirths +
+                              worldDogVitals.dailyBirths) *
+                              unit.perDay,
+                          )}
+                        </span>
+                        <span class="tile-sub">per {unit.noun}</span>
+                      </div>
+                      <div class="tile accent-deaths">
+                        <span class="tile-label">Deaths</span>
+                        <span class="tile-value">
+                          {formatRate(
+                            (worldVitals.dailyDeaths +
+                              worldDogVitals.dailyDeaths) *
+                              unit.perDay,
+                          )}
+                        </span>
+                        <span class="tile-sub">per {unit.noun}</span>
+                      </div>
+                      <div class="tile accent-good">
+                        <span class="tile-label">Net</span>
+                        <span class="tile-value">
+                          +{formatRate(
+                            (worldVitals.dailyNet + worldDogVitals.dailyNet) *
+                              unit.perDay,
+                          )}
+                        </span>
+                        <span class="tile-sub">per {unit.noun}</span>
+                      </div>
+                    </div>
+                  </div>
+                {:else}
+                  <div class="pulse-view pulse-split">
+                    <div
+                      class="split-col"
+                      in:fly={{ x: 90, duration: 320, easing: cubicOut }}
+                      out:fly={{ x: 90, duration: 240, easing: cubicOut }}
+                    >
+                      <div class="pulse-eyebrow">humans</div>
+                      <div class="pop-hero split-hero">
+                        {formatInt(population)}
+                      </div>
+                      <div class="mini-rows">
+                        <div class="mini-row">
+                          <span class="mini-dot births"></span>
+                          <span class="mini-label">Births</span>
+                          <span class="mini-value">
+                            {formatRate(worldVitals.dailyBirths * unit.perDay)}
+                          </span>
+                          <span class="mini-per">/ {unit.noun}</span>
+                        </div>
+                        <div class="mini-row">
+                          <span class="mini-dot deaths"></span>
+                          <span class="mini-label">Deaths</span>
+                          <span class="mini-value">
+                            {formatRate(worldVitals.dailyDeaths * unit.perDay)}
+                          </span>
+                          <span class="mini-per">/ {unit.noun}</span>
+                        </div>
+                        <div class="mini-row">
+                          <span class="mini-dot good"></span>
+                          <span class="mini-label">Net</span>
+                          <span class="mini-value">
+                            +{formatRate(worldVitals.dailyNet * unit.perDay)}
+                          </span>
+                          <span class="mini-per">/ {unit.noun}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div
+                      class="split-plus"
+                      aria-hidden="true"
+                      in:scale={{ start: 0.3, duration: 320, easing: cubicOut }}
+                      out:scale={{ start: 0.3, duration: 200 }}
+                    >
+                      +
+                    </div>
+
+                    <div
+                      class="split-col"
+                      in:fly={{ x: -90, duration: 320, easing: cubicOut }}
+                      out:fly={{ x: -90, duration: 240, easing: cubicOut }}
+                    >
+                      <div class="pulse-eyebrow">🐕 dogs</div>
+                      <div class="pop-hero split-hero">
+                        {formatInt(dogPopulation)}
+                      </div>
+                      <div class="mini-rows">
+                        <div class="mini-row">
+                          <span class="mini-dot births"></span>
+                          <span class="mini-label">Births</span>
+                          <span class="mini-value">
+                            {formatRate(
+                              worldDogVitals.dailyBirths * unit.perDay,
+                            )}
+                          </span>
+                          <span class="mini-per">/ {unit.noun}</span>
+                        </div>
+                        <div class="mini-row">
+                          <span class="mini-dot deaths"></span>
+                          <span class="mini-label">Deaths</span>
+                          <span class="mini-value">
+                            {formatRate(
+                              worldDogVitals.dailyDeaths * unit.perDay,
+                            )}
+                          </span>
+                          <span class="mini-per">/ {unit.noun}</span>
+                        </div>
+                        <div class="mini-row">
+                          <span class="mini-dot good"></span>
+                          <span class="mini-label">Net</span>
+                          <span class="mini-value">
+                            +{formatRate(worldDogVitals.dailyNet * unit.perDay)}
+                          </span>
+                          <span class="mini-per">/ {unit.noun}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                {/if}
+              </div>
+
+              <p class="pane-footnote">
+                Human figures use UN world rates, never the sum of speaker
+                populations · dog figures total each region's dog count with
+                population-weighted rates · {worldVitals.languageCount} languages
+                tracked
+              </p>
+            </div>
+          {:else if activeTab === "language"}
+            <!-- ── LANGUAGE: one population under the lens ── -->
+            <div class="language-pane">
+              <div class="lang-head">
+                <div>
+                  <h2 class="pane-title">{selected.name}</h2>
+                  <p class="pane-sub">
+                    #{selected.rank} by speakers · {selected.country} · “{selected.phrase}”
+                  </p>
+                </div>
+                <select
+                  class="lang-select"
+                  value={selected.code}
+                  onchange={(e) => selectLang(e.currentTarget.value)}
+                  aria-label="Select a language"
+                >
+                  {#each languageVitals as v (v.code)}
+                    <option value={v.code}>{v.name} — {v.speakersText}</option>
+                  {/each}
+                </select>
+              </div>
+
+              <div class="tile-row">
+                <div class="tile">
+                  <span class="tile-label">Speakers</span>
+                  <span class="tile-value">
+                    {formatCompact(selected.speakers)}
+                  </span>
+                  <span class="tile-sub">{selected.speakersText}</span>
+                </div>
+                <div class="tile accent-births">
+                  <span class="tile-label">Births / {unit.short}</span>
+                  <span class="tile-value">
+                    {formatRate(selected.dailyBirths * unit.perDay)}
+                  </span>
+                  <span class="tile-sub">
+                    one {formatCadence(selected.secondsPerBirth)}
+                  </span>
+                </div>
+                <div class="tile accent-deaths">
+                  <span class="tile-label">Deaths / {unit.short}</span>
+                  <span class="tile-value">
+                    {formatRate(selected.dailyDeaths * unit.perDay)}
+                  </span>
+                  <span class="tile-sub">
+                    one {formatCadence(selected.secondsPerDeath)}
+                  </span>
+                </div>
+                <div class="tile accent-good">
+                  <span class="tile-label">Natural change</span>
+                  <span class="tile-value">
+                    {selected.growthRate >= 0 ? "+" : ""}{(
+                      selected.growthRate * 100
+                    ).toFixed(2)}%
+                  </span>
+                  <span class="tile-sub">per year (CBR − CDR)</span>
+                </div>
+              </div>
+
+              <div class="dog-strip">
+                🐕 {selected.dogsText} dogs · {formatRate(
+                  selected.dogDailyBirths * unit.perDay,
+                )} born / {formatRate(selected.dogDailyDeaths * unit.perDay)} die
+                per {unit.noun}
+              </div>
+
+              <div class="chart-fit">
+                <ProjectionChart vitals={selected} />
+              </div>
+            </div>
+          {:else if activeTab === "share"}
+            <!-- ── SHARE: who speaks what ── -->
+            <div class="center-pane share-pane">
+              <div>
+                <h2 class="pane-title">Who speaks what</h2>
+                <p class="pane-sub">
+                  Share of combined speaker counts — multilinguals appear once
+                  per language they speak
+                </p>
+              </div>
+              <SharePie data={shareData} colors={PIE_COLORS} />
+            </div>
+          {:else if activeTab === "balance"}
+            <!-- ── LIFE & DEATH: the daily balance ── -->
+            <div class="center-pane balance-pane">
+              <div>
+                <h2 class="pane-title">Life &amp; death</h2>
+                <p class="pane-sub">
+                  Births vs deaths per {unit.noun}, ten largest languages — the
+                  colored gap shows which rate is winning
+                </p>
+              </div>
+              <div class="balance-chart">
+                <LifeDeathLines items={topTen} />
+              </div>
+            </div>
+          {:else if activeTab === "census"}
+            <!-- ── CENSUS: every language ── -->
+            <div class="census-pane">
+              <div>
+                <h2 class="pane-title">Every language</h2>
+                <p class="pane-sub">
+                  Crude birth/death rates (‰/yr) and derived daily figures —
+                  click a row to select
+                </p>
+              </div>
+              <VitalsTable currentLang={selected.code} onSelect={selectLang} />
+              <p class="pane-footnote">
+                World figures use the UN population estimate ({formatCompact(
+                  worldVitals.population,
+                )}, CBR {worldVitals.birthRate}‰ / CDR {worldVitals.deathRate}‰);
+                per-language figures apply each language's rates to its own
+                speaker population. Projections assume constant rates.
+              </p>
+            </div>
+          {/if}
         </div>
-      </section>
-
-      <!-- 2. Selected language -->
-      <section class="viz-card">
-        <header class="card-head lang-head">
-          <div>
-            <h2>{selected.name}</h2>
-            <p>
-              #{selected.rank} by speakers · {selected.country} · “{selected.phrase}”
-            </p>
-          </div>
-          <select
-            class="lang-select"
-            value={selected.code}
-            onchange={(e) => selectLang(e.currentTarget.value)}
-            aria-label="Select a language"
-          >
-            {#each languageVitals as v (v.code)}
-              <option value={v.code}>{v.name} — {v.speakersText}</option>
-            {/each}
-          </select>
-        </header>
-
-        <div class="tile-row">
-          <div class="tile">
-            <span class="tile-label">Speakers</span>
-            <span class="tile-value">{formatCompact(selected.speakers)}</span>
-            <span class="tile-sub">{selected.speakersText}</span>
-          </div>
-          <div class="tile">
-            <span class="tile-label">Births / day</span>
-            <span class="tile-value">{formatInt(selected.dailyBirths)}</span>
-            <span class="tile-sub">
-              one {formatCadence(selected.secondsPerBirth)}
-            </span>
-          </div>
-          <div class="tile">
-            <span class="tile-label">Deaths / day</span>
-            <span class="tile-value">{formatInt(selected.dailyDeaths)}</span>
-            <span class="tile-sub">
-              one {formatCadence(selected.secondsPerDeath)}
-            </span>
-          </div>
-          <div class="tile">
-            <span class="tile-label">Natural change</span>
-            <span class="tile-value">
-              {selected.growthRate >= 0 ? "+" : ""}{(
-                selected.growthRate * 100
-              ).toFixed(2)}%
-            </span>
-            <span class="tile-sub">per year (CBR − CDR)</span>
-          </div>
-        </div>
-
-        <h3 class="chart-title">Projected speakers, next 50 years</h3>
-        <ProjectionChart vitals={selected} />
-      </section>
-
-      <!-- 3. Charts -->
-      <div class="chart-grid">
-        <section class="viz-card">
-          <header class="card-head">
-            <h2>Who speaks what</h2>
-            <p>
-              Share of combined speaker counts — multilinguals appear once per
-              language they speak
-            </p>
-          </header>
-          <SharePie data={shareData} colors={PIE_COLORS} />
-        </section>
-
-        <section class="viz-card">
-          <header class="card-head">
-            <h2>Life &amp; death, daily</h2>
-            <p>Births and deaths per day, ten largest languages</p>
-          </header>
-          <LifeDeathBars items={topTen} />
-        </section>
-      </div>
-
-      <!-- 4. Full table -->
-      <section class="viz-card">
-        <header class="card-head">
-          <h2>Every language</h2>
-          <p>
-            Crude birth/death rates (per 1,000 speakers per year) and derived
-            daily figures — click a row to select
-          </p>
-        </header>
-        <VitalsTable currentLang={selected.code} onSelect={selectLang} />
-      </section>
-
-      <p class="methodology">
-        Methodology: world vital signs use the UN World Population Prospects
-        estimate ({formatCompact(worldVitals.population)} people, CBR
-        {worldVitals.birthRate}‰, CDR {worldVitals.deathRate}‰) — never the sum
-        of speaker populations, which would double-count multilingual people.
-        Per-language daily figures derive from that language's crude birth and
-        death rates (events per 1,000 speakers per year, WHO/UN convention)
-        applied to its speaker population over a 365.25-day year; those
-        populations overlap, so shares are of combined counts. Projections
-        assume constant rates.
-      </p>
-    </main>
+      {/key}
+    </div>
 
     <!-- Footer / Status Bar -->
     <footer class="panel-footer">
@@ -348,6 +631,38 @@
     cursor: pointer;
   }
 
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .unit-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 999px;
+    color: rgba(255, 255, 255, 0.75);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    min-width: 106px;
+    justify-content: center;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+    }
+  }
+
   .close-btn {
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.06);
@@ -368,41 +683,286 @@
     transform: translateX(-4px);
   }
 
-  /* ── Body ── */
-  .panel-body {
+  /* ── Tab stage: panes stack in one grid cell so the outgoing and incoming
+     pane overlap while the directional fly transition runs ── */
+  .tab-stage {
     flex: 1;
     min-height: 0;
-    overflow-y: auto;
-    padding: 20px 24px 28px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
+    display: grid;
+    overflow: hidden;
     background: rgba(0, 0, 0, 0.1);
   }
 
-  .viz-card {
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 16px;
-    padding: 18px 20px 20px;
+  .tab-pane {
+    grid-area: 1 / 1;
+    min-height: 0;
+    padding: 18px 26px 20px;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto; /* safety valve for very short viewports */
   }
 
-  .card-head {
+  /* ── Shared pane chrome ── */
+  .pane-title {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--viz-ink);
+    letter-spacing: 0.02em;
+    padding-bottom: 4px;
+    display: inline-block;
+    background: linear-gradient(
+        90deg,
+        var(--viz-births),
+        var(--viz-deaths) 60%,
+        transparent
+      )
+      left bottom / 100% 2px no-repeat;
+  }
+
+  .pane-sub {
+    margin: 4px 0 0;
+    font-size: 0.7rem;
+    color: var(--viz-muted);
+  }
+
+  .pane-footnote {
+    margin: 12px 0 0;
+    font-size: 0.64rem;
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.3);
+    text-align: center;
+  }
+
+  /* ── Stat tiles ── */
+  .tile-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+  }
+
+  .tile {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-top: 2px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .tile.accent-births {
+    border-top-color: var(--viz-births);
+  }
+
+  .tile.accent-deaths {
+    border-top-color: var(--viz-deaths);
+  }
+
+  .tile.accent-good {
+    border-top-color: var(--viz-good);
+  }
+
+  .tile-label {
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--viz-muted);
+  }
+
+  .tile-value {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--viz-ink);
+    line-height: 1.15;
+  }
+
+  .tile-sub {
+    font-size: 0.66rem;
+    color: var(--viz-muted);
+  }
+
+  /* ── PULSE pane ── */
+  .pulse-pane {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    text-align: center;
+  }
+
+  .pulse-eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--viz-ink-2);
+  }
+
+  .pop-hero {
+    font-size: clamp(2rem, 5.4vw, 3.8rem);
+    font-weight: 800;
+    color: var(--viz-ink);
+    line-height: 1.05;
+    letter-spacing: 0.01em;
+    /* ticking digits: tabular so the number doesn't wobble */
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    text-shadow: 0 0 32px rgba(120, 170, 255, 0.25);
+  }
+
+  .pulse-sub {
+    font-size: 0.75rem;
+    color: var(--viz-muted);
     margin-bottom: 14px;
+  }
 
-    h2 {
-      margin: 0;
-      font-size: 0.95rem;
-      font-weight: 700;
-      color: var(--viz-ink);
-      letter-spacing: 0.02em;
+  /* Combined and split views stack in one grid cell so they crossfade in
+     place; the whole stage is the hover/tap target. */
+  .pulse-stage {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    min-height: 300px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .pulse-view {
+    grid-area: 1 / 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    text-align: center;
+  }
+
+  .pulse-split {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: clamp(12px, 3vw, 32px);
+    width: 100%;
+    max-width: 860px;
+  }
+
+  .split-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .pop-hero.split-hero {
+    font-size: clamp(1.4rem, 3.2vw, 2.4rem);
+  }
+
+  .split-plus {
+    font-size: clamp(2rem, 4.5vw, 3.2rem);
+    font-weight: 300;
+    color: var(--viz-ink-2);
+    line-height: 1;
+    text-shadow: 0 0 18px rgba(255, 255, 255, 0.15);
+  }
+
+  .mini-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-top: 6px;
+  }
+
+  .mini-row {
+    display: grid;
+    grid-template-columns: 10px 52px auto auto;
+    align-items: baseline;
+    gap: 8px;
+    text-align: left;
+  }
+
+  .mini-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    align-self: center;
+
+    &.births {
+      background: var(--viz-births);
+    }
+    &.deaths {
+      background: var(--viz-deaths);
+    }
+    &.good {
+      background: var(--viz-good);
+    }
+  }
+
+  .mini-label {
+    font-size: 0.66rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--viz-muted);
+  }
+
+  .mini-value {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--viz-ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .mini-per {
+    font-size: 0.64rem;
+    color: var(--viz-muted);
+  }
+
+  @media (max-width: 640px) {
+    .pulse-split {
+      grid-template-columns: 1fr;
+      gap: 10px;
     }
 
-    p {
-      margin: 2px 0 0;
-      font-size: 0.7rem;
-      color: var(--viz-muted);
+    .split-plus {
+      font-size: 1.6rem;
     }
+  }
+
+  .pulse-tiles {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(150px, 220px));
+    gap: 12px;
+    justify-content: center;
+    width: 100%;
+
+    .tile-value {
+      font-size: 1.5rem;
+    }
+
+    @media (max-width: 640px) {
+      grid-template-columns: 1fr;
+      max-width: 300px;
+      margin: 0 auto;
+    }
+  }
+
+  /* ── LANGUAGE pane ── */
+  .language-pane {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    max-width: 980px;
+    width: 100%;
+    margin: 0 auto;
   }
 
   .lang-head {
@@ -429,81 +989,69 @@
     }
   }
 
-  /* ── Stat tiles ── */
-  .tile-row {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 10px;
-  }
-
-  .tile {
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 12px;
-    padding: 12px 14px;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-  }
-
-  .tile-label {
-    font-size: 0.62rem;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--viz-muted);
-  }
-
-  .tile-value {
-    font-size: 1.35rem;
-    font-weight: 700;
-    color: var(--viz-ink);
-    line-height: 1.15;
-  }
-
-  .tile-value.hero {
-    font-size: 1.7rem;
-  }
-
-  /* Live population counter: tabular digits so the ticking number doesn't
-     jitter horizontally; sized to fit all 13 characters. */
-  .tile-value.pop-live {
-    font-size: 1.4rem;
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-  }
-
-  .tile-sub {
-    font-size: 0.66rem;
-    color: var(--viz-muted);
-  }
-
-  .chart-title {
-    margin: 18px 0 8px;
+  .dog-strip {
     font-size: 0.72rem;
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
     color: var(--viz-ink-2);
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    padding: 8px 14px;
+    align-self: flex-start;
   }
 
-  /* ── Chart grid ── */
-  .chart-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
+  /* Chart flexes into whatever height remains; the SVG letterboxes inside */
+  .chart-fit {
+    flex: 1;
+    min-height: 120px;
 
-    @media (max-width: 1024px) {
-      grid-template-columns: 1fr;
+    :global(.proj-svg) {
+      width: 100%;
+      height: 100%;
     }
   }
 
-  .methodology {
-    margin: 0;
-    font-size: 0.66rem;
-    line-height: 1.5;
-    color: rgba(255, 255, 255, 0.32);
-    max-width: 72ch;
+  /* ── Centered chart panes (share, balance) ── */
+  .center-pane {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 22px;
+    text-align: center;
+  }
+
+  .share-pane :global(.pie-layout) {
+    justify-content: center;
+  }
+
+  .share-pane :global(.pie-svg) {
+    width: min(300px, 38vh);
+    height: min(300px, 38vh);
+  }
+
+  .share-pane :global(.pie-legend) {
+    min-width: 250px;
+    flex: 0 1 auto;
+  }
+
+  .balance-chart {
+    width: 100%;
+    max-width: 860px;
+
+    :global(.lines-legend) {
+      justify-content: center;
+    }
+  }
+
+  /* ── CENSUS pane ── */
+  .census-pane {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
   }
 
   /* ── Footer ── */
@@ -599,8 +1147,8 @@
       padding: 0 16px;
     }
 
-    .panel-body {
-      padding: 14px 14px 22px;
+    .tab-pane {
+      padding: 14px 14px 16px;
     }
 
     .panel-footer {

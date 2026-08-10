@@ -69,7 +69,7 @@
         onmouseenter={() => (hovered = s.i)}
         role="presentation"
       />
-      {#if s.share >= 0.07}
+      {#if s.share >= 0.04}
         <text
           x={s.lx}
           y={s.ly}
@@ -162,12 +162,15 @@
   .pie-legend {
     list-style: none;
     margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+    padding: 4px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 2px 12px;
     min-width: 210px;
     flex: 1;
+    max-height: 320px;
+    overflow-y: auto;
+    align-content: start;
   }
 
   .pie-legend li {

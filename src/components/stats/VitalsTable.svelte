@@ -2,8 +2,12 @@
   import {
     languageVitals,
     formatCompact,
-    formatInt,
+    formatRate,
   } from "../../data/stats/languageVitals.js";
+  import {
+    RATE_UNITS,
+    rateUnitState,
+  } from "../../data/stats/rateUnits.svelte.js";
 
   let { currentLang = "", onSelect } = $props();
 
@@ -11,16 +15,20 @@
   let sortKey = $state("speakers");
   let sortDir = $state(-1); // -1 desc, 1 asc
 
-  const columns = [
+  let unit = $derived(RATE_UNITS[rateUnitState.idx]);
+
+  // Rate columns re-label and re-scale with the global unit toggle; sorting
+  // stays on the daily values (same ordering under any unit).
+  let columns = $derived([
     { key: "rank", label: "#", numeric: true },
     { key: "name", label: "Language", numeric: false },
     { key: "speakers", label: "Speakers", numeric: true },
     { key: "birthRate", label: "CBR ‰", numeric: true },
     { key: "deathRate", label: "CDR ‰", numeric: true },
-    { key: "dailyBirths", label: "Births / day", numeric: true },
-    { key: "dailyDeaths", label: "Deaths / day", numeric: true },
-    { key: "dailyNet", label: "Net / day", numeric: true },
-  ];
+    { key: "dailyBirths", label: `Births / ${unit.short}`, numeric: true },
+    { key: "dailyDeaths", label: `Deaths / ${unit.short}`, numeric: true },
+    { key: "dailyNet", label: `Net / ${unit.short}`, numeric: true },
+  ]);
 
   function setSort(key) {
     if (sortKey === key) {
@@ -99,10 +107,10 @@
           <td class="numeric">{formatCompact(v.speakers)}</td>
           <td class="numeric">{v.birthRate.toFixed(1)}</td>
           <td class="numeric">{v.deathRate.toFixed(1)}</td>
-          <td class="numeric">{formatInt(v.dailyBirths)}</td>
-          <td class="numeric">{formatInt(v.dailyDeaths)}</td>
+          <td class="numeric">{formatRate(v.dailyBirths * unit.perDay)}</td>
+          <td class="numeric">{formatRate(v.dailyDeaths * unit.perDay)}</td>
           <td class="numeric net" class:positive={v.dailyNet >= 0} class:negative={v.dailyNet < 0}>
-            {v.dailyNet >= 0 ? "+" : "−"}{formatInt(Math.abs(v.dailyNet))}
+            {v.dailyNet >= 0 ? "+" : "−"}{formatRate(Math.abs(v.dailyNet) * unit.perDay)}
           </td>
         </tr>
       {/each}
@@ -146,7 +154,8 @@
 
   .table-scroll {
     overflow: auto;
-    max-height: 440px;
+    flex: 1;
+    min-height: 0;
     border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 12px;
   }
