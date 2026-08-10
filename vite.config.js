@@ -29,9 +29,16 @@ export default defineConfig({
     conditions: ['browser'],
   },
   server: {
+    // Bind every interface so the LAN URL (http://<machine-ip>:5173) works
+    // alongside localhost. Pinning a literal IP here breaks whenever DHCP
+    // hands the machine a new address — bind-all is the stable option.
+    host: true,
     // Honors a harness-assigned port (PORT env) so a second dev server can
     // run beside the default one; falls back to vite's usual 5173.
     port: Number(process.env.PORT) || 5173,
+    // Never silently bump to 5174 when the port is taken — fail loudly so
+    // the network URL stays the same every launch.
+    strictPort: true,
     proxy: {
       '/vid': {
         target: 'https://data.wearedogs.net',
@@ -53,9 +60,13 @@ export default defineConfig({
     chunkSizeWarningLimit: 800,
     rollupOptions: {
       output: {
+        // No blanket node_modules → 'vendor' chunk: that forced every heavy
+        // lazily-used dependency (three.js, transformers, lamejs, …) into one
+        // preloaded bundle the landing page barely executes — Lighthouse
+        // measured it 82% unused. Letting Rollup split along the import graph
+        // keeps each dependency inside the lazy chunk that actually needs it.
         manualChunks(id) {
           if (id.includes('tesseract.js')) return 'chunk-tesseract';
-          if (id.includes('node_modules')) return 'vendor';
         }
       }
     }
