@@ -47,18 +47,92 @@
   <meta property="twitter:description" content="BARKBARKBARKBARKBARKBBARKBARKBARKBARKBARKBARKBARKBBARKBARK" />
   <meta property="twitter:image" content="https://wearedogs.net/android-chrome-512x512.png" />
 
-  <!-- Deep-link restore: 404.html stashes the original path, we restore it
-       here before the SPA boots so the router reads the correct pathname. -->
+  <!-- Deep-link restore + old-browser gate (strictly ES5 — checked by
+       scripts/check-es5.js). 404.html stashes the original path, we restore
+       it before the SPA boots so the router reads the correct pathname.
+       Then: browsers that can't run the modern bundle (no Proxy, no ES
+       modules, or pre-optional-chaining syntax) are routed to static pages
+       that actually work — /gopro/ for GoPro deep links, /lite/ otherwise.
+       On any modern browser every test passes and this is dead code. -->
   <script>
     (function () {
       var r = sessionStorage.__wad_redirect;
       if (r) { sessionStorage.removeItem('__wad_redirect'); history.replaceState(null, '', r); }
+
+      var probe = document.createElement('script');
+      var supported = typeof Proxy !== 'undefined' && ('noModule' in probe);
+      if (supported) {
+        // Modern syntax lives inside the string, so old parsers never see it.
+        try { new Function('return null ?? [].at?.(0)'); } catch (e) { supported = false; }
+      }
+      if (!supported) {
+        var path = location.pathname;
+        if (/^\/apps\/gopro(\/|$)/.test(path)) {
+          var seg = path.split('/'); // ['', 'apps', 'gopro', show?, ep?]
+          location.replace('/gopro/' + (seg[3]
+            ? '?show=' + seg[3] + (seg[4] ? '&ep=' + seg[4] : '')
+            : ''));
+        } else {
+          location.replace('/lite/');
+        }
+      }
     }());
   </script>
 </head>
 
 <body>
-  <div id="app"></div>
+  <div id="app">
+    <!-- Instant boot screen: pure HTML/CSS, renders before ANY JavaScript
+         on browsers from the beginning of time. Removed by main.js the
+         moment the Svelte app mounts. -->
+    <div id="wad-boot">
+      <style>
+        #wad-boot {
+          position: fixed;
+          top: 0; left: 0; right: 0; bottom: 0;
+          background: #000;
+          color: #fff;
+          font-family: Arial, Helvetica, sans-serif;
+          z-index: 9999;
+        }
+        #wad-boot .wad-boot-words {
+          position: absolute;
+          top: 42%;
+          left: 0;
+          width: 100%;
+          text-align: center;
+          font-size: 34px;
+          font-weight: bold;
+          letter-spacing: 10px;
+        }
+        #wad-boot .wad-boot-info {
+          position: absolute;
+          left: 16px;
+          bottom: 16px;
+          color: #888;
+          font-size: 13px;
+        }
+        #wad-boot .wad-boot-wheel {
+          display: inline-block;
+          width: 14px;
+          height: 14px;
+          margin-right: 8px;
+          vertical-align: middle;
+          border: 2px solid #444;
+          border-top-color: #fff;
+          border-radius: 50%;
+          -webkit-animation: wadspin 0.9s linear infinite;
+          animation: wadspin 0.9s linear infinite;
+        }
+        @-webkit-keyframes wadspin { to { -webkit-transform: rotate(360deg); } }
+        @keyframes wadspin { to { transform: rotate(360deg); } }
+      </style>
+      <div class="wad-boot-words">WE&nbsp;&nbsp;ARE&nbsp;&nbsp;DOGS</div>
+      <div class="wad-boot-info">
+        <span class="wad-boot-wheel"></span>loading wearedogs.net&hellip;
+      </div>
+    </div>
+  </div>
   <script type="module" src="/src/main.js"></script>
 </body>
 
