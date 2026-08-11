@@ -28,6 +28,7 @@
   } from "lucide-svelte";
   import DogsLogo from "./DogsLogo.svelte";
   import AppCard from "./AppCard.svelte";
+  import { unsupportedReason } from "../lib/browserSupport.js";
   import { audioCore } from "../lib/AudioCore.svelte.js";
 
   let {
@@ -586,17 +587,19 @@
             }}
           >
             {#each apps as app, i}
+              {@const reason = unsupportedReason(app.id)}
               <AppCard
                 {app}
                 index={i}
                 isFocused={focusedIdx === i}
                 {isKeyboardNav}
+                disabledReason={reason || ""}
                 tabIndex={focusedIdx === i || (i === 0 && focusedIdx === -1)
                   ? 0
                   : -1}
                 onclick={() => {
-                  activeApp = app.id;
                   focusedIdx = i;
+                  if (!reason) activeApp = app.id;
                 }}
                 onmouseenter={() => {
                   focusedIdx = i;

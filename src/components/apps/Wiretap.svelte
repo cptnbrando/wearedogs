@@ -4,7 +4,13 @@
 <script>
   import { onMount, onDestroy } from "svelte";
   import BaseApp from "./BaseApp.svelte";
+  import { caps } from "../../lib/browserSupport.js";
   import { WiretapEngine } from "../../lib/WiretapEngine.js";
+
+  // Feature dims for older browsers: the app records fine without these,
+  // so only the affected features grey out (never the whole app).
+  const canTranscribe = caps.moduleWorker && caps.wasm;
+  const hasAudioViz = caps.audioContext;
   import { createZip } from "../../lib/zip.js";
   import DogsLogo from "../DogsLogo.svelte";
   import dogsLogoPng from "../../assets/dogs-logo-cropped.png";
@@ -1224,9 +1230,11 @@
                   </button>
                 </div>
 
-                <!-- Audio File Upload -->
+                <!-- Audio File Upload — in-browser Whisper needs WASM +
+                     module workers; dim the feature where they're missing -->
                 <div
                   class="flex flex-col gap-1 border-t border-white/5 pt-3 mt-1"
+                  class:opacity-40={!canTranscribe}
                 >
                   <label for="audio-upload-input" class="input-label"
                     >AUDIO FILE TRANSCRIBE</label
@@ -1239,9 +1247,17 @@
                     class="hidden"
                     bind:this={fileInputEl}
                   />
+                  {#if !canTranscribe}
+                    <p
+                      class="text-[10px] font-mono text-amber-500/80 leading-snug"
+                    >
+                      TRANSCRIPTION NEEDS A NEWER BROWSER (WEBASSEMBLY +
+                      MODULE WORKERS)
+                    </p>
+                  {/if}
                   <button
                     onclick={() => fileInputEl?.click()}
-                    disabled={engineState.isRecording}
+                    disabled={engineState.isRecording || !canTranscribe}
                     class="w-full flex items-center justify-center gap-2 px-3 py-2 bg-[#00ff66]/10 hover:bg-[#00ff66]/20 text-[#00ff66] border border-[#00ff66]/30 hover:border-[#00ff66]/60 rounded text-xs font-mono uppercase tracking-wider transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_10px_rgba(0,255,102,0.1)]"
                   >
                     <Upload class="w-4 h-4 flex-shrink-0" />
@@ -1555,22 +1571,32 @@
                   <div
                     class="w-full flex justify-between items-end pointer-events-none"
                   >
-                    <!-- Bottom Left HUD Waveform -->
+    <!-- Bottom Left HUD Waveform (dims to a static label without Web Audio) -->
                     {#if !playbackMedia || !playbackMedia.isVideo}
-                      <div
-                        class="bg-black/70 border border-[#00ff66]/20 rounded p-1.5 flex items-end gap-[1.5px] h-9 w-28 pointer-events-none"
-                      >
-                        {#each overlayWaveformBars as val, idx}
-                          {@const isFilled =
-                            !playbackMedia || idx / 20 <= playerProgress}
-                          <div
-                            class="flex-grow rounded-sm transition-all duration-75 {isFilled
-                              ? 'bg-[#00ff66]'
-                              : 'bg-white/10'}"
-                            style="height: {Math.max(4, val * 100)}%;"
-                          ></div>
-                        {/each}
-                      </div>
+                      {#if hasAudioViz}
+                        <div
+                          class="bg-black/70 border border-[#00ff66]/20 rounded p-1.5 flex items-end gap-[1.5px] h-9 w-28 pointer-events-none"
+                        >
+                          {#each overlayWaveformBars as val, idx}
+                            {@const isFilled =
+                              !playbackMedia || idx / 20 <= playerProgress}
+                            <div
+                              class="flex-grow rounded-sm transition-all duration-75 {isFilled
+                                ? 'bg-[#00ff66]'
+                                : 'bg-white/10'}"
+                              style="height: {Math.max(4, val * 100)}%;"
+                            ></div>
+                          {/each}
+                        </div>
+                      {:else}
+                        <div
+                          class="bg-black/70 border border-white/10 rounded p-1.5 h-9 w-28 flex items-center justify-center pointer-events-none"
+                        >
+                          <span class="text-[8px] font-mono text-white/30"
+                            >NO AUDIO VIZ</span
+                          >
+                        </div>
+                      {/if}
                     {/if}
 
                     <!-- Bottom Right HUD Logo -->

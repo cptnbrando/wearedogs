@@ -9,6 +9,7 @@
   import ProductImageSlideshow from "./apps/ProductImageSlideshow.svelte";
   import ThreeDShirtCanvas from "./apps/ThreeDShirtCanvas.svelte";
   import TexasLawmakerMap from "./apps/TexasLawmakerMap.svelte";
+  import { caps } from "../lib/browserSupport.js";
   import {
     ShoppingCart,
     ArrowLeft,
@@ -2657,19 +2658,35 @@
                             : "absolute inset-0"}
                           in:fade={{ duration: 200 }}
                         >
-                          <TexasLawmakerMap
-                            {lawmakers}
-                            selectedEmails={selectedReps}
-                            focusRequest={mapFocusRequest}
-                            title={`${lawmakers.length} 🐘🫏`}
-                            saleMode={saleActive}
-                            {copMode}
-                            bind:initialStatsTab
-                            campaignId={selectedCampaign?.id}
-                            isFullscreen={isMapFullscreen}
-                            onToggleFullscreen={() =>
-                              (isMapFullscreen = !isMapFullscreen)}
-                          />
+                          {#if caps.resizeObserver && caps.proxy}
+                            <TexasLawmakerMap
+                              {lawmakers}
+                              selectedEmails={selectedReps}
+                              focusRequest={mapFocusRequest}
+                              title={`${lawmakers.length} 🐘🫏`}
+                              saleMode={saleActive}
+                              {copMode}
+                              bind:initialStatsTab
+                              campaignId={selectedCampaign?.id}
+                              isFullscreen={isMapFullscreen}
+                              onToggleFullscreen={() =>
+                                (isMapFullscreen = !isMapFullscreen)}
+                            />
+                          {:else}
+                            <!-- Old-browser fallback: the store stays fully
+                                 browsable, only the interactive map is out -->
+                            <div
+                              class="w-full h-full flex flex-col items-center justify-center text-center gap-2 p-6"
+                            >
+                              <p class="text-white/80 text-sm font-semibold">
+                                {lawmakers.length} Texas lawmakers on the map
+                              </p>
+                              <p class="text-white/40 text-xs max-w-[40ch]">
+                                The interactive map needs a newer browser —
+                                everything else here still works.
+                              </p>
+                            </div>
+                          {/if}
                         </div>
                       {:else if currentMediaItem.type === "video"}
                         {#if !currentMediaItem.url.includes("youtube.com") && !currentMediaItem.url.includes("youtu.be")}
