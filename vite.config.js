@@ -1,7 +1,6 @@
 import { defineConfig } from 'vite'
 import { svelte } from '@sveltejs/vite-plugin-svelte'
 import tailwindcss from '@tailwindcss/vite'
-import legacy from '@vitejs/plugin-legacy'
 import shareCards from './scripts/vite-plugin-share-cards.js'
 import markdownData from './scripts/vite-plugin-md-data.js'
 import staticData from './scripts/vite-plugin-static-data.js'
@@ -35,10 +34,6 @@ export default defineConfig({
     staticData(),
     tailwindcss(),
     svelte(),
-    legacy({
-      targets: ['defaults', 'chrome >= 40', 'not IE 11'],
-      modernPolyfills: true,
-    }),
     // Emits real HTML at each /store/campaign/<id> and /store/product/<id> so
     // shared links preview with that item's own image, title and description.
     shareCards({ origin: 'https://wearedogs.net' }),
@@ -69,8 +64,12 @@ export default defineConfig({
     }
   },
   build: {
-    // build.target is owned by @vitejs/plugin-legacy (via its `targets` option
-    // above) — setting it here just gets overridden with a warning.
+    // plugin-legacy is gone (it doubled build time to ship SystemJS bundles
+    // that old TVs still couldn't really run — Svelte 5 needs Proxy). Old
+    // browsers are served by the static ES5 pages in public/ via the
+    // index.html gate. This target keeps the modern bundle parseable across
+    // the mid-old band (Chrome 84+ ≈ the flex-gap CSS floor).
+    target: ['chrome84', 'firefox79', 'safari14'],
 
     // Forces the CSS compiler to down-compile into safe fallbacks
     cssTarget: 'chrome40',
