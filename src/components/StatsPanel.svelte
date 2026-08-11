@@ -323,7 +323,7 @@
                       in:fly={{ x: 90, duration: 320, easing: cubicOut }}
                       out:fly={{ x: 90, duration: 240, easing: cubicOut }}
                     >
-                      <div class="pulse-eyebrow">humans</div>
+                      <div class="pulse-eyebrow">humans 😊</div>
                       <div class="pop-hero split-hero">
                         {formatInt(population)}
                       </div>
