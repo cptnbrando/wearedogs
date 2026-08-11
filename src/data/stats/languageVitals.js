@@ -76,7 +76,7 @@ export const trackedSpeakerTotal = languageVitals.reduce(
 // of speaker populations (which double-counts multilinguals).
 const WORLD_POP_REFERENCE = 8_300_584_377; // mid-2026 estimate (July 1, 2026)
 const WORLD_POP_REFERENCE_MS = Date.UTC(2026, 6, 1);
-const WORLD_CBR = 15.88; // births / 1,000 people / year
+const WORLD_CBR = 15.94; // births / 1,000 people / year
 const WORLD_CDR = 7.778; // deaths / 1,000 people / year
 
 export const worldVitals = (() => {
