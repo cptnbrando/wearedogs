@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host",
-    "build": "npm run changelog && vite build",
+    "build": "npm run changelog && npm run gopro-catalog && npm run check-es5 && vite build",
+    "gopro-catalog": "node scripts/build-gopro-catalog.js",
+    "check-es5": "node scripts/check-es5.js",
     "preview": "vite preview",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist",

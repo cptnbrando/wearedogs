@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <title>GoPro TV — DOGS</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="tv.css">
+</head>
+<body>
+  <div id="gate" class="gate hidden">
+    <div class="gate-box">
+      <h1 class="brand">WE ARE DOGS</h1>
+      <p class="gate-label">Enter the code</p>
+      <input id="gate-input" type="password" autocomplete="off">
+      <button id="gate-btn" type="button">OK</button>
+      <p id="gate-msg" class="gate-msg"></p>
+    </div>
+  </div>
+
+  <div id="tv" class="tv hidden">
+    <div class="player-wrap">
+      <video id="player" controls preload="none"></video>
+      <div id="player-msg" class="player-msg">Pick an episode below</div>
+    </div>
+
+    <h1 class="brand small">GoPro TV</h1>
+    <div id="now-playing" class="now-playing"></div>
+
+    <div id="shows" class="shows"></div>
+    <div id="episodes" class="episodes"></div>
+
+    <p class="foot">
+      <a href="/apps/gopro">Full site</a>
+      <span id="err" class="err"></span>
+    </p>
+  </div>
+
+  <script src="catalog.js"></script>
+  <script src="tv.js"></script>
+</body>
+</html>

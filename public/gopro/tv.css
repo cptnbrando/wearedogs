@@ -1,0 +1,116 @@
+/* GoPro TV — plain CSS for very old engines: no flex-gap, no grid,
+   no CSS variables, no dvh. Block layout, big type, thick focus rings. */
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: #000;
+  color: #fff;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.hidden { display: none; }
+
+.brand {
+  text-align: center;
+  font-size: 28px;
+  letter-spacing: 4px;
+  margin: 16px 0 8px 0;
+}
+
+.brand.small { font-size: 18px; color: #aaa; margin: 12px 0 2px 0; }
+
+/* ── Password gate ── */
+.gate { padding-top: 60px; }
+
+.gate-box {
+  max-width: 420px;
+  margin: 0 auto;
+  text-align: center;
+  padding: 20px;
+}
+
+.gate-label { color: #bbb; font-size: 18px; }
+
+#gate-input {
+  display: block;
+  width: 90%;
+  margin: 0 auto 14px auto;
+  font-size: 26px;
+  padding: 10px;
+  background: #111;
+  color: #fff;
+  border: 2px solid #444;
+  text-align: center;
+}
+
+#gate-btn {
+  font-size: 22px;
+  padding: 10px 40px;
+}
+
+.gate-msg { color: #e66767; font-size: 16px; min-height: 20px; }
+
+/* ── TV layout ── */
+.tv { max-width: 960px; margin: 0 auto; padding: 0 12px 24px 12px; }
+
+.player-wrap { background: #000; text-align: center; }
+
+#player {
+  width: 100%;
+  max-height: 420px;
+  background: #111;
+}
+
+.player-msg { color: #888; font-size: 16px; padding: 6px 0; }
+
+.now-playing { text-align: center; color: #ddd; font-size: 18px; min-height: 22px; }
+
+/* Buttons: real <button>s so remotes can focus them natively */
+button {
+  background: #1a1a1a;
+  color: #fff;
+  border: 2px solid #444;
+  cursor: pointer;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+button:focus, #gate-input:focus {
+  outline: 4px solid #3987e5;
+  border-color: #3987e5;
+}
+
+.shows { text-align: center; margin: 14px 0 10px 0; }
+
+.shows button {
+  font-size: 20px;
+  padding: 10px 18px;
+  margin: 4px;
+}
+
+.shows button.active {
+  background: #3987e5;
+  border-color: #3987e5;
+}
+
+.episodes button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font-size: 19px;
+  padding: 12px 14px;
+  margin: 6px 0;
+}
+
+.episodes button.playing {
+  background: #143a66;
+  border-color: #3987e5;
+}
+
+.mkv-tag { color: #c98500; font-size: 14px; }
+
+.foot { text-align: center; color: #888; font-size: 15px; margin-top: 20px; }
+
+.foot a { color: #6ea8ea; }
+
+.err { color: #e66767; display: block; margin-top: 8px; }

@@ -6,9 +6,27 @@ import shareCards from './scripts/vite-plugin-share-cards.js'
 import markdownData from './scripts/vite-plugin-md-data.js'
 import staticData from './scripts/vite-plugin-static-data.js'
 
+// Dev-only: resolve directory indexes for the static lite pages so
+// /gopro/ and /lite/ behave like they do on gh-pages/Cloudflare (the SPA
+// html fallback would otherwise swallow them in dev).
+function liteDirIndex() {
+  return {
+    name: 'wad-lite-dir-index',
+    configureServer(server) {
+      server.middlewares.use((req, _res, next) => {
+        const url = (req.url || '').split('?')[0];
+        if (url === '/gopro' || url === '/gopro/') req.url = '/gopro/index.html';
+        if (url === '/lite' || url === '/lite/') req.url = '/lite/index.html';
+        next();
+      });
+    },
+  };
+}
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
+    liteDirIndex(),
     // Frontmatter .md files import as { default: frontmatter, body } — the
     // correspondence letters compile straight into the bundle, one file each.
     markdownData(),
