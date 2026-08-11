@@ -426,6 +426,29 @@
     stroke-width: 1.4px !important;
   }
 
+  /* Pre-color-mix() browsers (Chrome <111): solid fill at reduced
+     fill-opacity approximates the mixed transparency. This block can never
+     match where color-mix exists, so modern rendering is untouched. */
+  @supports not (color: color-mix(in srgb, red 10%, transparent)) {
+    .world-map-wrapper :global(path.covered),
+    .world-map-wrapper :global(g.covered path) {
+      fill: var(--c-color) !important;
+      fill-opacity: 0.1;
+    }
+
+    .world-map-wrapper :global(path.covered:hover),
+    .world-map-wrapper :global(g.covered path:hover) {
+      fill: var(--c-color) !important;
+      fill-opacity: 0.23;
+    }
+
+    .world-map-wrapper :global(path.highlighted),
+    .world-map-wrapper :global(g.highlighted path) {
+      fill: var(--c-color) !important;
+      fill-opacity: 0.6;
+    }
+  }
+
   /* map labels positioning */
   .world-map-wrapper :global(.map-label) {
     font-family: "Outfit", "Inter", sans-serif;

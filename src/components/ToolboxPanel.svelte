@@ -1036,7 +1036,9 @@
   @media (max-width: 768px) {
     .toolbox-panel-container {
       width: 100vw;
+      height: 100vh; /* pre-dvh fallback */
       height: 100dvh;
+      max-height: 100vh;
       max-height: 100dvh;
       border-radius: 0;
       border-bottom: none;
