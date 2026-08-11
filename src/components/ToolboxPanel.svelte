@@ -78,33 +78,48 @@
     frames: "./apps/Frames.svelte",
   };
 
-  // Lazy loaded app components caching
-  let loadedApps = $state({});
+  // Lazy loaded app components caching. $state.raw + reassignment writes:
+  // raw state never wraps the object in a Proxy, so this boot path can run
+  // (far enough to show an error) even on engines without Proxy support.
+  let loadedApps = $state.raw({});
+
+  // Which app id (if any) failed to load — primitive string on purpose so
+  // the error path itself is Proxy-free.
+  let appLoadError = $state("");
 
   $effect(() => {
     if (activeApp && !loadedApps[activeApp]) {
       const path = appPathMap[activeApp];
       const loader = appModules[path];
       if (loader) {
-        console.log("Loading app:", activeApp, "from path:", path);
         loader()
           .then((m) => {
-            console.log("App loaded successfully:", activeApp);
-            loadedApps[activeApp] = m.default;
+            loadedApps = { ...loadedApps, [activeApp]: m.default };
           })
           .catch((err) => {
             console.error("Failed to load app:", activeApp, err);
+            appLoadError = activeApp;
           });
       } else {
-        console.error(
-          "No loader found for app path:",
-          path,
-          "Available paths:",
-          Object.keys(appModules),
-        );
+        console.error("No loader found for app path:", path);
+        appLoadError = activeApp;
       }
     }
   });
+
+  function retryAppLoad() {
+    const failed = appLoadError;
+    appLoadError = "";
+    // Drop any half-cached entry and re-trigger the effect
+    if (failed && loadedApps[failed]) {
+      const next = { ...loadedApps };
+      delete next[failed];
+      loadedApps = next;
+    }
+    const current = activeApp;
+    activeApp = null;
+    setTimeout(() => (activeApp = current), 0);
+  }
 
   let displayedTitle = $state("TOOLBOX");
   let dummyTitle = $state("TOOLBOX");
@@ -595,30 +610,56 @@
           </div>
         </div>
       {:else if activeApp}
-        {#if loadedApps[activeApp]}
+        {#if appLoadError === activeApp}
+          <!-- Chunk failed to load or evaluate — never leave the spinner up -->
+          <div class="app-load-error">
+            <p class="err-title">This app couldn't start on this browser.</p>
+            <p class="err-sub">
+              It may need features this browser doesn't have, or the
+              connection hiccupped.
+            </p>
+            <button class="err-retry" onclick={retryAppLoad}>Retry</button>
+            {#if activeApp === "gopro"}
+              <a class="err-tv" href="/gopro/">Watch on the TV version →</a>
+            {/if}
+          </div>
+        {:else if loadedApps[activeApp]}
           {@const App = loadedApps[activeApp]}
-          {#if activeApp === "arcade"}
-            <App initialGameId={deepLinkArcadeGame} />
-          {:else if activeApp === "blog"}
-            <App
-              bind:initialSlug={blogPostSlug}
-              bind:isReading={isReadingPost}
-              bind:depth
-              {isFlagColors}
-            />
-          {:else if activeApp === "windshieldwiper"}
-            <App onClose={() => (activeApp = null)} />
-          {:else if activeApp === "calculator"}
-            <App onUnlock={(targetApp, code) => {
-              localStorage.setItem("gopro_password", code);
-              localStorage.setItem(`${targetApp}_password`, code);
-              activeApp = targetApp;
-            }} />
-          {:else if activeApp === "gopro"}
-            <App {goProShow} {goProEpisode} />
-          {:else}
-            <App />
-          {/if}
+          <svelte:boundary>
+            {#if activeApp === "arcade"}
+              <App initialGameId={deepLinkArcadeGame} />
+            {:else if activeApp === "blog"}
+              <App
+                bind:initialSlug={blogPostSlug}
+                bind:isReading={isReadingPost}
+                bind:depth
+                {isFlagColors}
+              />
+            {:else if activeApp === "windshieldwiper"}
+              <App onClose={() => (activeApp = null)} />
+            {:else if activeApp === "calculator"}
+              <App onUnlock={(targetApp, code) => {
+                localStorage.setItem("gopro_password", code);
+                localStorage.setItem(`${targetApp}_password`, code);
+                activeApp = targetApp;
+              }} />
+            {:else if activeApp === "gopro"}
+              <App {goProShow} {goProEpisode} />
+            {:else}
+              <App />
+            {/if}
+            {#snippet failed(error, reset)}
+              <!-- Mount/effect threw inside the app (missing API, etc.) -->
+              <div class="app-load-error">
+                <p class="err-title">This app crashed on this browser.</p>
+                <p class="err-sub">{error?.message || error}</p>
+                <button class="err-retry" onclick={reset}>Retry</button>
+                {#if activeApp === "gopro"}
+                  <a class="err-tv" href="/gopro/">Watch on the TV version →</a>
+                {/if}
+              </div>
+            {/snippet}
+          </svelte:boundary>
         {:else}
           <div class="app-loading-spinner" aria-label="Loading..."></div>
         {/if}
@@ -941,6 +982,54 @@
     to {
       transform: rotate(360deg);
     }
+  }
+
+  /* ── App load error (replaces the eternal spinner) ── */
+  .app-load-error {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    text-align: center;
+    padding: 24px;
+  }
+
+  .err-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.9);
+  }
+
+  .err-sub {
+    margin: 0;
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.45);
+    max-width: 46ch;
+  }
+
+  .err-retry {
+    margin-top: 6px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 8px 26px;
+    cursor: pointer;
+  }
+
+  .err-retry:hover {
+    background: rgba(255, 255, 255, 0.15);
+  }
+
+  .err-tv {
+    font-size: 0.8rem;
+    color: #6ea8ea;
   }
 
   /* ── Mobile Layout Full Screen & App Grid ── */

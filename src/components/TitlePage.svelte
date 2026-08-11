@@ -45,17 +45,33 @@
     info: "./InfoPanel.svelte",
   };
 
-  // Lazy loaded panel components caching
-  let loadedPanels = $state({});
+  // Lazy loaded panel components caching. $state.raw + reassignment: raw
+  // state never wraps the object in a Proxy, so this boot path survives on
+  // engines without Proxy support (old TVs) at least far enough to error.
+  let loadedPanels = $state.raw({});
+
+  // Which panel key failed to load — primitive string so the error path
+  // itself is Proxy-free. Empty string = no error.
+  let panelLoadError = $state("");
+
+  function cachePanel(key, component) {
+    loadedPanels = { ...loadedPanels, [key]: component };
+  }
 
   $effect(() => {
     if (activePage && !loadedPanels[activePage]) {
-      const path = panelPathMap[activePage];
+      const key = activePage;
+      const path = panelPathMap[key];
       const loader = panelModules[path];
       if (loader) {
-        loader().then((m) => {
-          loadedPanels[activePage] = m.default;
-        });
+        loader()
+          .then((m) => cachePanel(key, m.default))
+          .catch((err) => {
+            console.error("Failed to load panel:", key, err);
+            panelLoadError = key;
+          });
+      } else {
+        panelLoadError = key;
       }
     }
   });
@@ -64,9 +80,12 @@
     if (showInfo && !loadedPanels.info) {
       const loader = panelModules["./InfoPanel.svelte"];
       if (loader) {
-        loader().then((m) => {
-          loadedPanels.info = m.default;
-        });
+        loader()
+          .then((m) => cachePanel("info", m.default))
+          .catch((err) => {
+            console.error("Failed to load info panel:", err);
+            panelLoadError = "info";
+          });
       }
     }
   });
@@ -76,10 +95,24 @@
     const path = panelPathMap[page];
     const loader = panelModules[path];
     if (loader) {
-      loader().then((m) => {
-        loadedPanels[page] = m.default;
-      });
+      loader()
+        .then((m) => cachePanel(page, m.default))
+        // Preloads are speculative — a failure here is not user-facing yet.
+        .catch(() => {});
     }
+  }
+
+  function retryPanelLoad() {
+    const failed = panelLoadError;
+    panelLoadError = "";
+    if (failed && loadedPanels[failed]) {
+      const next = { ...loadedPanels };
+      delete next[failed];
+      loadedPanels = next;
+    }
+    const current = activePage;
+    activePage = null;
+    setTimeout(() => (activePage = current), 0);
   }
 
   let prevIsLandingPage = $state(true);
@@ -660,55 +693,80 @@
 {#if activePage === "networking"}
   <NetworkingPanel {isClosing} onClose={closePage} />
 {:else if activePage}
-  {#if loadedPanels[activePage]}
+  {#if panelLoadError === activePage}
+    <div class="panel-load-error">
+      <p>This section needs a newer browser, or the connection hiccupped.</p>
+      <button onclick={retryPanelLoad}>Retry</button>
+    </div>
+  {:else if loadedPanels[activePage]}
     {@const Panel = loadedPanels[activePage]}
-    {#if activePage === "stats"}
-      <Panel
-        {isClosing}
-        currentLang={activeLang}
-        onClose={closePage}
-        onHoverLang={(code) => {
-          activeLang = code;
-        }}
-        onSelectLang={(code) => {
-          activeLang = code;
-          if (weAreDogsRef) weAreDogsRef.forceLanguage(code);
-        }}
-      />
-    {:else if activePage === "toolbox"}
-      <Panel
-        {isClosing}
-        onClose={closePage}
-        bind:activeApp
-        initialApp={deepLinkApp}
-        goProShow={deepLinkGoProShow}
-        goProEpisode={deepLinkGoProEp}
-        bind:blogPostSlug={deepLinkBlogPostSlug}
-        bind:depth
-        isFlagColors={weAreDogsColored}
-        {deepLinkArcadeGame}
-      />
-    {:else if activePage === "music"}
-      <Panel {isClosing} onClose={closePage} {initialTrackId} />
-    {:else if activePage === "store"}
-      <Panel
-        {isClosing}
-        onClose={closePage}
-        bind:depth
-        bind:initialCampaignId={deepLinkStoreCampaignId}
-        bind:initialProductId={deepLinkStoreProductId}
-        bind:initialStatsTab={deepLinkStatsTab}
-      />
-    {:else if activePage === "map"}
-      <Panel {isClosing} onClose={closePage} bind:depth />
-    {/if}
+    <svelte:boundary>
+      {#if activePage === "stats"}
+        <Panel
+          {isClosing}
+          currentLang={activeLang}
+          onClose={closePage}
+          onHoverLang={(code) => {
+            activeLang = code;
+          }}
+          onSelectLang={(code) => {
+            activeLang = code;
+            if (weAreDogsRef) weAreDogsRef.forceLanguage(code);
+          }}
+        />
+      {:else if activePage === "toolbox"}
+        <Panel
+          {isClosing}
+          onClose={closePage}
+          bind:activeApp
+          initialApp={deepLinkApp}
+          goProShow={deepLinkGoProShow}
+          goProEpisode={deepLinkGoProEp}
+          bind:blogPostSlug={deepLinkBlogPostSlug}
+          bind:depth
+          isFlagColors={weAreDogsColored}
+          {deepLinkArcadeGame}
+        />
+      {:else if activePage === "music"}
+        <Panel {isClosing} onClose={closePage} {initialTrackId} />
+      {:else if activePage === "store"}
+        <Panel
+          {isClosing}
+          onClose={closePage}
+          bind:depth
+          bind:initialCampaignId={deepLinkStoreCampaignId}
+          bind:initialProductId={deepLinkStoreProductId}
+          bind:initialStatsTab={deepLinkStatsTab}
+        />
+      {:else if activePage === "map"}
+        <Panel {isClosing} onClose={closePage} bind:depth />
+      {/if}
+      {#snippet failed(error, reset)}
+        <!-- The panel mounted but crashed (missing browser API, etc.) -->
+        <div class="panel-load-error">
+          <p>This section crashed: {error?.message || error}</p>
+          <button onclick={reset}>Retry</button>
+          <button onclick={closePage}>Close</button>
+        </div>
+      {/snippet}
+    </svelte:boundary>
   {:else}
     <div class="panel-loading-spinner" aria-label="Loading..."></div>
   {/if}
 {/if}
 
 {#if showInfo}
-  {#if loadedPanels.info}
+  {#if panelLoadError === "info"}
+    <div class="panel-load-error">
+      <p>This section needs a newer browser, or the connection hiccupped.</p>
+      <button
+        onclick={() => {
+          panelLoadError = "";
+          if (showInfo) history.back();
+        }}>Close</button
+      >
+    </div>
+  {:else if loadedPanels.info}
     {@const Panel = loadedPanels.info}
     <Panel
       onClose={() => {
@@ -911,6 +969,43 @@
     background: rgba(0, 0, 0, 0.4);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
+  }
+
+  /* Panel load/crash error — replaces the eternal spinner */
+  .panel-load-error {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    z-index: 1000;
+    background: rgba(0, 0, 0, 0.75);
+    text-align: center;
+    padding: 24px;
+  }
+
+  .panel-load-error p {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.95rem;
+    max-width: 50ch;
+  }
+
+  .panel-load-error button {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 8px 26px;
+    cursor: pointer;
+  }
+
+  .panel-load-error button:hover {
+    background: rgba(255, 255, 255, 0.15);
   }
 
   .panel-loading-spinner::after {
