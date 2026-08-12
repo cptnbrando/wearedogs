@@ -3,8 +3,10 @@
   import { audioCore } from "../lib/AudioCore.svelte.js";
   import dogSingLottie from "../assets/dog-sing.lottie?url";
   import dogSingMp4 from "../assets/dog-sing.mp4";
-  import dogsLogoWebp from "../assets/dogs-logo-cropped.webp";
-  import dogsLogoPng from "../assets/dogs-logo-cropped.png";
+  // 144px variants: this component never renders above 56 CSS px (w-14), so
+  // the full 540px asset was pure download waste (Lighthouse flagged ~25 KB).
+  import dogsLogoWebp from "../assets/dogs-logo-cropped-144.webp";
+  import dogsLogoPng from "../assets/dogs-logo-cropped-144.png";
 
   let { size = "panel", class: customClass = "" } = $props();
 

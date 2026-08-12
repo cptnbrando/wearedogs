@@ -1,12 +1,13 @@
 /**
- * The correspondence shelf: every letter in public/correspondence/*.md,
+ * The correspondence shelf: every letter in src/data/correspondence/*.md,
  * imported at build time (scripts/vite-plugin-md-data.js).
  *
  * Each letter is ONE markdown file — its own frontmatter header (id, from,
  * office, topic, dateLabel) followed by the received letter and our reply,
- * together. The files stay in public/ so the deployed site keeps serving
- * them as standalone pages; this module just also compiles them into the
- * app so the popup never fetches anything.
+ * together. The files live in src/data (importing from public/ is a Vite
+ * error); vite-plugin-static-data root-mounts the directory so the deployed
+ * site still serves them at /correspondence/* as standalone pages, while
+ * this module compiles them into the app so the popup never fetches.
  *
  * campaigns.json lists letters by id only; everything else lives in the
  * letter file itself.
@@ -14,7 +15,7 @@
 
 const SITE_ORIGIN = "https://www.wearedogs.net";
 
-const modules = import.meta.glob("../../public/correspondence/*.md", {
+const modules = import.meta.glob("../data/correspondence/*.md", {
   eager: true,
 });
 
