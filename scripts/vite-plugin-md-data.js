@@ -31,17 +31,24 @@ function readFrontmatter(block) {
 export default function markdownData() {
   return {
     name: "wad-md-data",
-    transform(code, id) {
-      if (!id.endsWith(".md")) return null;
-      const match = FRONTMATTER_RE.exec(code);
-      const frontmatter = match ? readFrontmatter(match[1]) : {};
-      const body = (match ? code.slice(match[0].length) : code).trim();
-      return {
-        code:
-          `export const body = ${JSON.stringify(body)};\n` +
-          `export default ${JSON.stringify(frontmatter)};\n`,
-        map: null,
-      };
+    transform: {
+      // Rolldown calls unfiltered JS transform hooks once per module — this
+      // plugin was 56% of all plugin time while touching a handful of files.
+      // The filter keeps the Rust→JS hop to ids that actually end in .md
+      // (a query like ?raw breaks the match, which is exactly what we want).
+      filter: { id: /\.md$/ },
+      handler(code, id) {
+        if (!id.endsWith(".md")) return null;
+        const match = FRONTMATTER_RE.exec(code);
+        const frontmatter = match ? readFrontmatter(match[1]) : {};
+        const body = (match ? code.slice(match[0].length) : code).trim();
+        return {
+          code:
+            `export const body = ${JSON.stringify(body)};\n` +
+            `export default ${JSON.stringify(frontmatter)};\n`,
+          map: null,
+        };
+      },
     },
   };
 }

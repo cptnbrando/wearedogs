@@ -11,6 +11,19 @@
   <meta name="theme-color" content="#000000" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
+  <!-- es5-lite gate: browsers that can't run module scripts (Samsung Internet
+       2.2 on Tizen TVs, Chrome < 61, 2015-era WebKit) would render a blank
+       page — send them to the static, ES5-only /lite/ edition instead.
+       Crawlers never execute JS, so share cards are unaffected. -->
+  <script>
+    (function () {
+      if (!('noModule' in document.createElement('script')) &&
+          location.pathname.indexOf('/lite/') !== 0) {
+        location.replace('/lite/');
+      }
+    }());
+  </script>
+
   <!-- Google Fonts (Inter, Outfit, Roboto Mono) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

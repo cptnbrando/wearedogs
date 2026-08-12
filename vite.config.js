@@ -1,10 +1,17 @@
 import { defineConfig } from 'vite'
 import { svelte } from '@sveltejs/vite-plugin-svelte'
 import tailwindcss from '@tailwindcss/vite'
-import legacy from '@vitejs/plugin-legacy'
 import shareCards from './scripts/vite-plugin-share-cards.js'
 import markdownData from './scripts/vite-plugin-md-data.js'
 import staticData from './scripts/vite-plugin-static-data.js'
+
+// The lowest Chromium that can load this build: <script type="module"> plus
+// dynamic import() — Samsung Tizen 5.0 TVs (2019) ship exactly Chromium 63.
+// Syntax newer than this is down-compiled natively by rolldown/oxc at ~zero
+// build cost; missing built-ins are covered by src/lib/potato-polyfills.js.
+// Browsers older than this (Samsung Internet 2.2 TV, Chrome < 61) can't run
+// module scripts at all — index.html routes them to the static /lite/ page.
+const POTATO_JS_TARGET = 'chrome63'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -17,10 +24,6 @@ export default defineConfig({
     staticData(),
     tailwindcss(),
     svelte(),
-    legacy({
-      targets: ['defaults', 'chrome >= 40', 'not IE 11'],
-      modernPolyfills: true,
-    }),
     // Emits real HTML at each /store/campaign/<id> and /store/product/<id> so
     // shared links preview with that item's own image, title and description.
     shareCards({ origin: 'https://wearedogs.net' }),
@@ -44,8 +47,7 @@ export default defineConfig({
     }
   },
   build: {
-    // build.target is owned by @vitejs/plugin-legacy (via its `targets` option
-    // above) — setting it here just gets overridden with a warning.
+    target: POTATO_JS_TARGET,
 
     // Forces the CSS compiler to down-compile into safe fallbacks
     cssTarget: 'chrome40',
@@ -54,6 +56,9 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
+          // Own chunk so the entry imports it before vendor — inlined into
+          // the entry it would evaluate after the hoisted vendor import.
+          if (id.includes('potato-polyfills')) return 'potato-polyfills';
           if (id.includes('tesseract.js')) return 'chunk-tesseract';
           if (id.includes('node_modules')) return 'vendor';
         }
