@@ -12,9 +12,14 @@ import path from "node:path";
  *           written (closeBundle, like share-cards, so the legacy plugin's
  *           second pass can't cause emit conflicts)
  *
- * Only the subdirs in `include` are exposed, and only data file types
- * (.json/.md/.txt); .js modules like fundraiser/texas/* are build-time import
- * material and never ship as raw files.
+ * Subdirs in `rootMounts` are instead exposed at the site root
+ * (/correspondence/* ← src/data/correspondence/): the letters are imported
+ * into the bundle AND must keep their standalone /correspondence/<slug>
+ * URLs, which Jekyll on gh-pages turns into real pages.
+ *
+ * Only the subdirs in `include`/`rootMounts` are exposed, and only data file
+ * types (.json/.md/.txt); .js modules like fundraiser/texas/* are build-time
+ * import material and never ship as raw files.
  */
 
 const MIME = {
@@ -32,10 +37,13 @@ function walk(dir) {
 }
 
 /**
- * @param {{ include?: string[] }} [options] top-level src/data subdirs to expose
+ * @param {{ include?: string[], rootMounts?: string[] }} [options]
+ *   include:    src/data subdirs exposed at /data/<subdir>/
+ *   rootMounts: src/data subdirs exposed at /<subdir>/ (site root)
  */
 export default function staticData(options = {}) {
   const include = options.include || ["fundraiser", "store"];
+  const rootMounts = options.rootMounts || ["correspondence"];
   let root = process.cwd();
   let outDir = "dist";
 
@@ -52,9 +60,16 @@ export default function staticData(options = {}) {
     configureServer(server) {
       server.middlewares.use((req, res, next) => {
         const url = (req.url || "").split("?")[0];
-        if (!url.startsWith("/data/")) return next();
-        const rel = decodeURIComponent(url.slice("/data/".length));
-        if (!include.includes(rel.split("/")[0])) return next();
+        // /data/<subdir>/* → src/data/<subdir>/*, or /<mount>/* for root mounts
+        let rel = null;
+        if (url.startsWith("/data/")) {
+          rel = decodeURIComponent(url.slice("/data/".length));
+          if (!include.includes(rel.split("/")[0])) return next();
+        } else {
+          const mount = rootMounts.find((m) => url.startsWith(`/${m}/`));
+          if (!mount) return next();
+          rel = decodeURIComponent(url.slice(1));
+        }
         const file = path.join(dataDir(), rel);
         // path.join normalizes ../ away; anything escaping src/data is refused.
         if (!file.startsWith(dataDir() + path.sep)) return next();
@@ -67,13 +82,17 @@ export default function staticData(options = {}) {
     },
 
     closeBundle() {
-      for (const top of include) {
+      for (const top of [...include, ...rootMounts]) {
         const base = path.join(dataDir(), top);
         if (!fs.existsSync(base)) continue;
+        const atRoot = rootMounts.includes(top);
         for (const file of walk(base)) {
           if (!MIME[path.extname(file).toLowerCase()]) continue;
           const rel = path.relative(dataDir(), file);
-          const dest = path.join(outDir, "data", rel);
+          // include/ subdirs land in dist/data/<subdir>; root mounts in dist/<subdir>
+          const dest = atRoot
+            ? path.join(outDir, rel)
+            : path.join(outDir, "data", rel);
           fs.mkdirSync(path.dirname(dest), { recursive: true });
           fs.copyFileSync(file, dest);
         }
