@@ -130,7 +130,7 @@ export const NEIGHBOR_STATS = [
  * everywhere else.
  */
 export const CITY_STATS = [
-  { city: "Dallas–Fort Worth", metroPop: "8.1M", share: "26%", revenue: "~$1.4B", revenueValue: 1_420_000_000 },
+  { city: "Dallas–Fort Worth", metroPop: "8.1M", share: "26%", revenue: "~$1.4B", revenueValue: 1_418_000_000 },
   { city: "Houston", metroPop: "7.5M", share: "24%", revenue: "~$1.3B", revenueValue: 1_320_000_000 },
   { city: "San Antonio", metroPop: "2.7M", share: "9%", revenue: "~$475M", revenueValue: 475_000_000 },
   { city: "Austin", metroPop: "2.5M", share: "8%", revenue: "~$440M", revenueValue: 440_000_000 },
