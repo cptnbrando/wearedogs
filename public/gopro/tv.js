@@ -55,6 +55,27 @@
   }
 
   // ── password gate ──
+  // The edge expects the Calculator's word form of the code: each key the
+  // viewer types maps to its keyword (same table the Calculator prints on
+  // its buttons), concatenated in order. Characters outside the table pass
+  // through untouched, so a word-form code pasted directly still works.
+  var KEY_WORDS = {
+    "0": "Taco", "1": "Leopard", "2": "Foxtrot", "3": "Bicycle",
+    "4": "Boobs", "5": "Pizza", "6": "PlayStation", "7": "Nirvana",
+    "8": "Laser", "9": "Whiskey", "+": "Cheetah", "-": "Doom",
+    "*": "Lingerie", "/": "Cyberpunk", ".": "Radical", "√": "Exotic",
+    "^": "Apex", "!": "Wild"
+  };
+
+  function translateCode(raw) {
+    var out = "";
+    for (var i = 0; i < raw.length; i++) {
+      var ch = raw.charAt(i);
+      out += KEY_WORDS.hasOwnProperty(ch) ? KEY_WORDS[ch] : ch;
+    }
+    return out;
+  }
+
   function checkCode(code, onResult) {
     var xhr = new XMLHttpRequest();
     xhr.open("GET", CHECK_URL, true);
@@ -79,7 +100,7 @@
   }
 
   function submitCode() {
-    var code = gateInput.value;
+    var code = translateCode(gateInput.value);
     if (!code) return;
     gateMsg.innerHTML = "Checking…";
     checkCode(code, function (ok) {

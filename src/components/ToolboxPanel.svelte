@@ -642,7 +642,6 @@
               <App onClose={() => (activeApp = null)} />
             {:else if activeApp === "calculator"}
               <App onUnlock={(targetApp, code) => {
-                localStorage.setItem("gopro_password", code);
                 localStorage.setItem(`${targetApp}_password`, code);
                 activeApp = targetApp;
               }} />

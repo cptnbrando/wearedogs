@@ -95,20 +95,21 @@
           font-family: Arial, Helvetica, sans-serif;
           z-index: 9999;
         }
-        #wad-boot .wad-boot-words {
+        #wad-boot .wad-boot-logo {
+          /* margin-based centering: works on engines with no flex/transform */
           position: absolute;
-          top: 42%;
-          left: 0;
-          width: 100%;
-          text-align: center;
-          font-size: 34px;
-          font-weight: bold;
-          letter-spacing: 10px;
+          top: 50%;
+          left: 50%;
+          width: 140px;
+          height: 140px;
+          margin: -78px 0 0 -70px;
         }
         #wad-boot .wad-boot-info {
           position: absolute;
-          left: 16px;
+          left: 0;
           bottom: 16px;
+          width: 100%;
+          text-align: center;
           color: #888;
           font-size: 13px;
         }
@@ -127,9 +128,9 @@
         @-webkit-keyframes wadspin { to { -webkit-transform: rotate(360deg); } }
         @keyframes wadspin { to { transform: rotate(360deg); } }
       </style>
-      <div class="wad-boot-words">WE&nbsp;&nbsp;ARE&nbsp;&nbsp;DOGS</div>
+      <img class="wad-boot-logo" src="/favicon.svg" alt="DOGS" />
       <div class="wad-boot-info">
-        <span class="wad-boot-wheel"></span>loading wearedogs.net&hellip;
+        <span class="wad-boot-wheel"></span>Loading wearedogs.net&hellip;
       </div>
     </div>
   </div>

@@ -150,12 +150,16 @@
     if (keywordBuffer.length === 0) return;
     const concatenated = keywordBuffer.join("");
 
-    // The music lockup gate shares the passcode scheme but has its own check file
-    musicLock.tryUnlock(concatenated).then((ok) => {
-      if (ok) {
-        equationDisplay = "MUSIC UNLOCKED";
-      }
-    });
+    // The music lockup gate shares the passcode scheme but has its own check file.
+    // Once unlocked, stop attempting — ordinary calculations must never re-trigger
+    // the gate (or overwrite the stored passcode).
+    if (!musicLock.unlocked) {
+      musicLock.tryUnlock(concatenated).then((ok) => {
+        if (ok) {
+          equationDisplay = "MUSIC UNLOCKED";
+        }
+      });
+    }
 
     try {
       const response = await fetch(
@@ -186,7 +190,12 @@
           }
         }
 
-        localStorage.setItem("gopro_password", concatenated);
+        // Already unlocked? Then this "=" was ordinary math, not a passcode
+        // entry — stay a calculator. The shortcut button is the way back in.
+        if (localStorage.getItem(`${targetApp}_password`)) {
+          return;
+        }
+
         localStorage.setItem(`${targetApp}_password`, concatenated);
         if (targetApp === "gopro") {
           hasGoProShortcut = true;
