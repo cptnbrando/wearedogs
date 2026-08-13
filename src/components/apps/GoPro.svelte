@@ -6,6 +6,7 @@
   import { fade } from "svelte/transition";
   import { catalog } from "../../data/gopro/videos.js";
   import { SHOW_SLUGS } from "../../lib/router.svelte.js";
+  import { dataUrl } from "../../lib/dataHost.js";
   import DogsLogo from "../DogsLogo.svelte";
   import Calculator from "./Calculator.svelte";
   import {
@@ -59,7 +60,7 @@
   );
   const videoUrl = $derived(
     playingShowData && currentEpisode
-      ? `${playingShowData.baseUrl}${currentEpisode.file}`
+      ? dataUrl(`${playingShowData.baseUrl}${currentEpisode.file}`)
       : "",
   );
 

@@ -4,8 +4,10 @@
  * `Authorization: password=...` scheme as the GoPro catalog. The passcode is
  * punched into the calculator app and persisted in localStorage.
  */
+import { dataUrl } from "./dataHost.js";
+
 const STORAGE_KEY = "music_lockup_password";
-const CHECK_URL = "https://data.wearedogs.net/music/lockup/check.txt";
+const CHECK_URL = dataUrl("https://data.wearedogs.net/music/lockup/check.txt");
 
 class MusicLock {
   unlocked = $state(false);

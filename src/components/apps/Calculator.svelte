@@ -1,5 +1,6 @@
 <script>
   import { musicLock } from "../../lib/musicLock.svelte.js";
+  import { dataUrl } from "../../lib/dataHost.js";
 
   // Svelte 5 props
   let { onUnlock } = $props();
@@ -163,7 +164,7 @@
 
     try {
       const response = await fetch(
-        `https://data.wearedogs.net/vid/popcorn/check.txt`,
+        dataUrl("https://data.wearedogs.net/vid/popcorn/check.txt"),
         {
           method: "GET",
           headers: {
@@ -230,7 +231,7 @@
 
     try {
       const response = await fetch(
-        `https://data.wearedogs.net/vid/popcorn/check.txt`,
+        dataUrl("https://data.wearedogs.net/vid/popcorn/check.txt"),
         {
           method: "GET",
           headers: {

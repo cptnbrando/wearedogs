@@ -60,6 +60,14 @@ export default defineConfig({
         // dev proxy forwards the browser's localhost referer, which gets a
         // 403 block page. Present the real site's referer instead.
         headers: { Referer: 'https://wearedogs.net/' },
+      },
+      // Music (incl. the lockup gate's check file) fetches the same way in
+      // dev via src/lib/dataHost.js, so the bucket CORS policy can stay
+      // production-origins-only.
+      '/music': {
+        target: 'https://data.wearedogs.net',
+        changeOrigin: true,
+        headers: { Referer: 'https://wearedogs.net/' },
       }
     }
   },
