@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1786743617,
+    "firstCommitTimestamp": 1786744368,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 217151
+    "averageLinesAltered": 217159
   },
   "entries": [
     {
       "version": "1.0.3",
       "name": "Master",
       "date": "2026-08-14",
-      "timestamp": 1786743533,
+      "timestamp": 1786744277,
       "commits": [
         {
-          "hash": "3c1d2f3",
-          "message": "better batch conversion and more locations",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/3c1d2f35b40b9736decf467edd316d3b0eb1f6ac",
-          "timestamp": 1786743617,
-          "linesChanged": 217151
+          "hash": "0c8b8bb",
+          "message": "more pics",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/0c8b8bb584a029d0a53cf324277286c88d1a6ea7",
+          "timestamp": 1786744368,
+          "linesChanged": 217159
         }
       ]
     },
