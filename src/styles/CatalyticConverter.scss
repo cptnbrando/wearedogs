@@ -795,6 +795,62 @@
         option {
           background: #0d0d12;
           color: #fff;
+
+          &:disabled {
+            color: rgba(255, 255, 255, 0.25);
+          }
+        }
+      }
+
+      .preset-chip {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+
+        .chip-remove {
+          background: transparent;
+          border: none;
+          color: rgba(255, 255, 255, 0.3);
+          font-size: 13px;
+          line-height: 1;
+          padding: 2px 3px;
+          cursor: pointer;
+          border-radius: 4px;
+          transition: all 0.15s;
+
+          &:hover:not(:disabled) {
+            color: #f87171;
+            background: rgba(248, 113, 113, 0.08);
+          }
+
+          &:disabled {
+            opacity: 0.3;
+            cursor: default;
+          }
+        }
+      }
+
+      .chip-add {
+        background: rgba(255, 136, 0, 0.08);
+        border: 1px dashed rgba(255, 136, 0, 0.35);
+        border-radius: 6px;
+        color: #ff8800;
+        font-family: monospace;
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1;
+        padding: 4px 7px;
+        cursor: pointer;
+        transition: all 0.15s;
+
+        &:hover:not(:disabled) {
+          background: rgba(255, 136, 0, 0.18);
+          border-color: rgba(255, 136, 0, 0.6);
+        }
+
+        &:disabled {
+          opacity: 0.3;
+          cursor: default;
         }
       }
     }
@@ -883,6 +939,24 @@
     align-items: center;
     gap: 8px;
     flex-shrink: 0;
+
+    .file-format-cell {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+
+      .extra-formats {
+        font-family: monospace;
+        font-size: 9px;
+        font-weight: 700;
+        color: #ff8800;
+        background: rgba(255, 136, 0, 0.1);
+        border: 1px solid rgba(255, 136, 0, 0.25);
+        border-radius: 5px;
+        padding: 2px 4px;
+        cursor: help;
+      }
+    }
 
     .format-selector {
       background: rgba(0, 0, 0, 0.2);

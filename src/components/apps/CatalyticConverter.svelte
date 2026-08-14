@@ -47,9 +47,16 @@
   let isConvertingBulk = $state(false);
   let overallProgress = $state(0);
   let currentConvertingIndex = $state(0);
-  let batchImageFormat = $state("png");
-  let batchAudioFormat = $state("mp3");
-  let batchVideoFormat = $state("mp4");
+  let batchImageFormats = $state(["png"]);
+  let batchAudioFormats = $state(["mp3"]);
+  let batchVideoFormats = $state(["mp4"]);
+  let bulkZipDownloads = $state(false);
+  let bulkAllComplete = $derived(
+    !isConvertingBulk &&
+      bulkFiles.length > 0 &&
+      bulkFiles.every((f) => f.status === "done" || f.status === "error") &&
+      bulkFiles.some((f) => f.status === "done"),
+  );
 
   // Image size parameters
   let originalWidth = $state(0);
@@ -347,6 +354,8 @@
   function handleFileSelect(e) {
     if (e.target.files) {
       const files = Array.from(e.target.files);
+      // Clear the input so selecting the same file(s) again re-fires change
+      e.target.value = "";
       if (files.length === 1 && files[0].name.endsWith(".zip")) {
         processZipFile(files[0]);
       } else if (files.length > 0) {
@@ -513,6 +522,15 @@
     isConvertingBulk = false;
     overallProgress = 0;
     currentConvertingIndex = 0;
+    batchImageFormats = ["png"];
+    batchAudioFormats = ["mp3"];
+    batchVideoFormats = ["mp4"];
+    bulkZipDownloads = false;
+    currentNotice = "Refining Format Molecules";
+    // Clear the native input too, otherwise re-selecting the same
+    // file(s) after a completed run never fires a change event
+    const fileInput = document.getElementById("file-input");
+    if (fileInput) fileInput.value = "";
   }
 
   // Run Conversion
@@ -825,21 +843,20 @@
       if (type === "unsupported") continue;
 
       const inputFmt = ext === "jpeg" ? "jpg" : ext;
-      let outputFmt = "";
-      if (type === "image") outputFmt = inputFmt === "png" ? "jpg" : "png";
-      else if (type === "audio") outputFmt = "mp3";
-      else if (type === "video") outputFmt = "mp4";
+      let outputFmts = [];
+      if (type === "image") outputFmts = [...batchImageFormats];
+      else if (type === "audio") outputFmts = [...batchAudioFormats];
+      else if (type === "video") outputFmts = [...batchVideoFormats];
 
       list.push({
         file: f,
         fileType: type,
         inputFormat: inputFmt,
-        outputFormat: outputFmt,
+        outputFormats: outputFmts,
         status: "idle",
         errorMsg: "",
         progress: 0,
-        convertedBlob: null,
-        convertedFileName: "",
+        convertedFiles: [],
         originalWidth: 0,
         originalHeight: 0,
         targetWidth: 0,
@@ -884,91 +901,108 @@
       currentConvertingIndex = i;
       const item = bulkFiles[i];
 
-      if (item.status === "done" || !item.outputFormat) continue;
+      const formats = (item.outputFormats || []).filter(Boolean);
+      if (item.status === "done" || formats.length === 0) continue;
 
       item.status = "converting";
-      item.progress = 10;
+      item.progress = 5;
+      item.convertedFiles = [];
 
       try {
-        currentNotice = `Converting ${i + 1}/${bulkFiles.length}: ${item.file.name}`;
-
-        let resultBlob;
-        if (item.fileType === "image") {
-          const tempUrl = URL.createObjectURL(item.file);
-          resultBlob = await convertImage(
-            tempUrl,
-            item.outputFormat,
-            item.targetWidth || 800,
-            item.targetHeight || 600,
-            item.quality,
-            item.compression,
-          );
-          URL.revokeObjectURL(tempUrl);
-        } else if (item.fileType === "audio" || item.fileType === "video") {
-          const isTargetVideo = ["mp4", "mov", "mkv", "avi"].includes(
-            item.outputFormat,
-          );
-          const isTargetAudio = ["mp3", "wav", "m4a", "aac", "webm"].includes(
-            item.outputFormat,
-          );
-
-          let bulkAudioBuffer = null;
-          if (isTargetVideo || isTargetAudio) {
-            try {
-              const arrayBuffer = await item.file.arrayBuffer();
-              const audioCtx = new (window.AudioContext ||
-                window.webkitAudioContext)();
-              bulkAudioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-              audioCtx.close();
-            } catch (err) {
-              console.warn(
-                "Failed to decode audio track during batch conversion:",
-                err,
-              );
-            }
-          }
-
-          if (item.fileType === "audio" && isTargetVideo) {
-            if (!bulkAudioBuffer) {
-              throw new Error(
-                "Failed to decode audio track for video encoding.",
-              );
-            }
-            resultBlob = await convertAudioToVideo(
-              bulkAudioBuffer,
-              item.outputFormat,
-              (p) => {
-                item.progress = Math.round(10 + p * 0.85);
-              },
+        // Decode the audio track once per file, shared across all target formats
+        let bulkAudioBuffer = null;
+        if (item.fileType === "audio" || item.fileType === "video") {
+          try {
+            const arrayBuffer = await item.file.arrayBuffer();
+            const audioCtx = new (window.AudioContext ||
+              window.webkitAudioContext)();
+            bulkAudioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+            audioCtx.close();
+          } catch (err) {
+            console.warn(
+              "Failed to decode audio track during batch conversion:",
+              err,
             );
-          } else if (item.fileType === "video" && isTargetAudio) {
-            if (!bulkAudioBuffer) {
-              throw new Error("No audio track detected in this video file.");
-            }
-            resultBlob = await convertAudio(
-              item.file,
-              bulkAudioBuffer,
-              item.outputFormat,
-              item.audioSampleRate || "keep",
-              item.compression || 15,
-            );
-          } else if (item.fileType === "audio") {
-            resultBlob = await convertAudio(
-              item.file,
-              bulkAudioBuffer,
-              item.outputFormat,
-              item.audioSampleRate || "keep",
-              item.compression || 15,
-            );
-          } else if (item.fileType === "video") {
-            resultBlob = await convertVideo(item.file, item.outputFormat);
           }
         }
 
-        item.convertedBlob = resultBlob;
         const nameParts = item.file.name.split(".");
         nameParts.pop();
-        item.convertedFileName = `${nameParts.join(".")}.${item.outputFormat}`;
+        const baseName = nameParts.join(".");
+
+        for (let fi = 0; fi < formats.length; fi++) {
+          const fmt = formats[fi];
+          currentNotice = `Converting ${i + 1}/${bulkFiles.length}: ${item.file.name} ➔ ${fmt.toUpperCase()}`;
+
+          let resultBlob = null;
+          if (item.fileType === "image") {
+            const tempUrl = URL.createObjectURL(item.file);
+            try {
+              resultBlob = await convertImage(
+                tempUrl,
+                fmt,
+                item.targetWidth || 800,
+                item.targetHeight || 600,
+                item.quality,
+                item.compression,
+              );
+            } finally {
+              URL.revokeObjectURL(tempUrl);
+            }
+          } else if (item.fileType === "audio" || item.fileType === "video") {
+            const isTargetVideo = ["mp4", "mov", "mkv", "avi"].includes(fmt);
+            const isTargetAudio = ["mp3", "wav", "m4a", "aac", "webm"].includes(
+              fmt,
+            );
+
+            if (item.fileType === "audio" && isTargetVideo) {
+              if (!bulkAudioBuffer) {
+                throw new Error(
+                  "Failed to decode audio track for video encoding.",
+                );
+              }
+              resultBlob = await convertAudioToVideo(
+                bulkAudioBuffer,
+                fmt,
+                (p) => {
+                  item.progress = Math.round(
+                    ((fi + p / 100) / formats.length) * 100,
+                  );
+                },
+              );
+            } else if (item.fileType === "video" && isTargetAudio) {
+              if (!bulkAudioBuffer) {
+                throw new Error("No audio track detected in this video file.");
+              }
+              resultBlob = await convertAudio(
+                item.file,
+                bulkAudioBuffer,
+                fmt,
+                item.audioSampleRate || "keep",
+                item.compression || 15,
+              );
+            } else if (item.fileType === "audio") {
+              resultBlob = await convertAudio(
+                item.file,
+                bulkAudioBuffer,
+                fmt,
+                item.audioSampleRate || "keep",
+                item.compression || 15,
+              );
+            } else if (item.fileType === "video") {
+              resultBlob = await convertVideo(item.file, fmt);
+            }
+          }
+
+          if (resultBlob) {
+            item.convertedFiles.push({
+              blob: resultBlob,
+              name: `${baseName}.${fmt}`,
+            });
+          }
+          item.progress = Math.round(((fi + 1) / formats.length) * 100);
+        }
+
         item.status = "done";
         item.progress = 100;
       } catch (err) {
@@ -984,65 +1018,84 @@
     currentNotice = "Batch Processing Complete";
   }
 
-  // Compress all converted files back into a single ZIP
-  async function downloadAllAsZip() {
-    currentNotice = "Zipping Converted Molecules";
-    const zipData = {};
-
-    for (const bf of bulkFiles) {
-      if (bf.status === "done" && bf.convertedBlob) {
-        zipData[bf.convertedFileName] = bf.convertedBlob;
-      }
-    }
-
-    if (Object.keys(zipData).length === 0) return;
-
-    const promises = Object.entries(zipData).map(async ([name, blob]) => {
-      const arrayBuffer = await blob.arrayBuffer();
-      return { name, data: new Uint8Array(arrayBuffer) };
-    });
-
-    try {
-      const filesToZip = await Promise.all(promises);
-      const blob = await createZip(filesToZip);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "catalytic-converted-files.zip";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      alert("Failed to build ZIP archive: " + err.message);
-    }
+  function triggerDownload(blob, name) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 
-  function applyBatchImageFormat(fmt) {
-    batchImageFormat = fmt;
-    for (const bf of bulkFiles) {
-      if (bf.fileType === "image") {
-        bf.outputFormat = fmt;
-      }
-    }
-  }
+  // Download every converted file — zipped, or staggered individual downloads
+  async function downloadAllConverted() {
+    const doneFiles = bulkFiles
+      .filter((bf) => bf.status === "done")
+      .flatMap((bf) => bf.convertedFiles);
 
-  function applyBatchAudioFormat(fmt) {
-    batchAudioFormat = fmt;
-    for (const bf of bulkFiles) {
-      if (bf.fileType === "audio") {
-        bf.outputFormat = fmt;
+    if (doneFiles.length === 0) return;
+
+    if (bulkZipDownloads) {
+      currentNotice = "Zipping Converted Molecules";
+      try {
+        const filesToZip = await Promise.all(
+          doneFiles.map(async ({ name, blob }) => ({
+            name,
+            data: new Uint8Array(await blob.arrayBuffer()),
+          })),
+        );
+        const blob = await createZip(filesToZip);
+        triggerDownload(blob, "catalytic-converted-files.zip");
+      } catch (err) {
+        alert("Failed to build ZIP archive: " + err.message);
+      }
+    } else {
+      for (const f of doneFiles) {
+        triggerDownload(f.blob, f.name);
+        // Stagger so the browser doesn't swallow rapid consecutive downloads
+        await new Promise((r) => setTimeout(r, 200));
       }
     }
   }
 
-  function applyBatchVideoFormat(fmt) {
-    batchVideoFormat = fmt;
+  function batchFormatsFor(type) {
+    return type === "image"
+      ? batchImageFormats
+      : type === "audio"
+        ? batchAudioFormats
+        : batchVideoFormats;
+  }
+
+  function syncBatchFormats(type) {
+    const fmts = batchFormatsFor(type).filter(Boolean);
     for (const bf of bulkFiles) {
-      if (bf.fileType === "video") {
-        bf.outputFormat = fmt;
+      if (bf.fileType === type && bf.status !== "done") {
+        bf.outputFormats = [...fmts];
       }
     }
+  }
+
+  function setBatchFormat(type, index, fmt) {
+    batchFormatsFor(type)[index] = fmt;
+    syncBatchFormats(type);
+  }
+
+  function addBatchFormat(type) {
+    const arr = batchFormatsFor(type);
+    const next = formatMap[type].find((f) => !arr.includes(f));
+    if (next) {
+      arr.push(next);
+      syncBatchFormats(type);
+    }
+  }
+
+  function removeBatchFormat(type, index) {
+    const arr = batchFormatsFor(type);
+    if (arr.length <= 1) return;
+    arr.splice(index, 1);
+    syncBatchFormats(type);
   }
 
   function removeBulkFile(index) {
@@ -1078,7 +1131,7 @@
         <!-- Back and Reset -->
         <div class="back-bar flex items-center justify-between w-full">
           <button class="back-btn" onclick={resetState} type="button">
-            <ArrowLeft size={14} /> Reset Batch
+            <ArrowLeft size={14} /> Back
           </button>
         </div>
 
@@ -1086,58 +1139,54 @@
         <div class="bulk-batch-header">
           <div class="batch-title">Batch Output Formats</div>
           <div class="batch-presets">
-            {#if bulkFiles.some((f) => f.fileType === "image")}
-              <div class="preset-group">
-                <span>🖼️ Images ➔</span>
-                <select
-                  value={batchImageFormat}
-                  onchange={(e) => applyBatchImageFormat(e.target.value)}
-                  class="preset-select"
-                  disabled={isConvertingBulk}
-                >
-                  <option value="png">PNG</option>
-                  <option value="jpg">JPG</option>
-                  <option value="webp">WEBP</option>
-                  <option value="avif">AVIF</option>
-                  <option value="svg">SVG</option>
-                </select>
-              </div>
-            {/if}
-
-            {#if bulkFiles.some((f) => f.fileType === "audio")}
-              <div class="preset-group">
-                <span>🎵 Audios ➔</span>
-                <select
-                  value={batchAudioFormat}
-                  onchange={(e) => applyBatchAudioFormat(e.target.value)}
-                  class="preset-select"
-                  disabled={isConvertingBulk}
-                >
-                  <option value="mp3">MP3</option>
-                  <option value="wav">WAV</option>
-                  <option value="m4a">M4A</option>
-                  <option value="aac">AAC</option>
-                  <option value="webm">WEBM</option>
-                </select>
-              </div>
-            {/if}
-
-            {#if bulkFiles.some((f) => f.fileType === "video")}
-              <div class="preset-group">
-                <span>🎞️ Videos ➔</span>
-                <select
-                  value={batchVideoFormat}
-                  onchange={(e) => applyBatchVideoFormat(e.target.value)}
-                  class="preset-select"
-                  disabled={isConvertingBulk}
-                >
-                  <option value="mp4">MP4</option>
-                  <option value="mov">MOV</option>
-                  <option value="mkv">MKV</option>
-                  <option value="avi">AVI</option>
-                </select>
-              </div>
-            {/if}
+            {#each [["image", "🖼️ Images", batchImageFormats], ["audio", "🎵 Audios", batchAudioFormats], ["video", "🎞️ Videos", batchVideoFormats]] as [type, label, fmts]}
+              {#if bulkFiles.some((f) => f.fileType === type)}
+                <div class="preset-group">
+                  <span>{label} ➔</span>
+                  {#each fmts as fmt, i}
+                    <span class="preset-chip">
+                      <select
+                        value={fmt}
+                        onchange={(e) =>
+                          setBatchFormat(type, i, e.target.value)}
+                        class="preset-select"
+                        disabled={isConvertingBulk}
+                      >
+                        {#each formatMap[type] as opt}
+                          <option
+                            value={opt}
+                            disabled={opt !== fmt && fmts.includes(opt)}
+                            >{opt.toUpperCase()}</option
+                          >
+                        {/each}
+                      </select>
+                      {#if fmts.length > 1}
+                        <button
+                          class="chip-remove"
+                          onclick={() => removeBatchFormat(type, i)}
+                          disabled={isConvertingBulk}
+                          type="button"
+                          title="Remove this output format"
+                        >
+                          ×
+                        </button>
+                      {/if}
+                    </span>
+                  {/each}
+                  {#if fmts.length < formatMap[type].length}
+                    <button
+                      class="chip-add"
+                      onclick={() => addBatchFormat(type)}
+                      disabled={isConvertingBulk}
+                      type="button"
+                      title="Add another output format"
+                    >
+                      +
+                    </button>
+                  {/if}
+                </div>
+              {/if}
+            {/each}
           </div>
         </div>
 
@@ -1164,15 +1213,30 @@
               </div>
 
               <div class="controls-status">
-                <select
-                  bind:value={item.outputFormat}
-                  class="format-selector"
-                  disabled={isConvertingBulk || item.status === "done"}
-                >
-                  {#each formatMap[item.fileType] || [] as fmt}
-                    <option value={fmt}>{fmt.toUpperCase()}</option>
-                  {/each}
-                </select>
+                <div class="file-format-cell">
+                  <select
+                    value={item.outputFormats[0]}
+                    onchange={(e) => (item.outputFormats[0] = e.target.value)}
+                    class="format-selector"
+                    disabled={isConvertingBulk || item.status === "done"}
+                  >
+                    {#each formatMap[item.fileType] || [] as fmt}
+                      <option value={fmt}>{fmt.toUpperCase()}</option>
+                    {/each}
+                  </select>
+                  {#if item.outputFormats.length > 1}
+                    <span
+                      class="extra-formats"
+                      title={"Also converting to: " +
+                        item.outputFormats
+                          .slice(1)
+                          .map((f) => f.toUpperCase())
+                          .join(", ")}
+                    >
+                      +{item.outputFormats.length - 1}
+                    </span>
+                  {/if}
+                </div>
 
                 <div
                   class="status-badge"
@@ -1196,21 +1260,18 @@
                   {/if}
                 </div>
 
-                {#if item.status === "done" && item.convertedBlob}
+                {#if item.status === "done" && item.convertedFiles.length > 0}
                   <button
                     class="item-action-btn"
-                    onclick={() => {
-                      const url = URL.createObjectURL(item.convertedBlob);
-                      const a = document.createElement("a");
-                      a.href = url;
-                      a.download = item.convertedFileName;
-                      document.body.appendChild(a);
-                      a.click();
-                      document.body.removeChild(a);
-                      URL.revokeObjectURL(url);
+                    onclick={async () => {
+                      for (const cf of item.convertedFiles) {
+                        triggerDownload(cf.blob, cf.name);
+                        await new Promise((r) => setTimeout(r, 200));
+                      }
                     }}
+                    disabled={isConvertingBulk}
                     type="button"
-                    title="Download converted file"
+                    title="Download converted file(s)"
                   >
                     <Download size={12} />
                   </button>
@@ -1256,17 +1317,32 @@
             disabled={isConvertingBulk}
             type="button"
           >
-            Clear Batch
+            Clear
           </button>
 
           {#if bulkFiles.some((f) => f.status === "done")}
-            <button
-              class="action-btn download !m-0"
-              onclick={downloadAllAsZip}
-              type="button"
-            >
-              <Download size={14} /> ZIP & DOWNLOAD ALL
-            </button>
+            <div class="flex items-center gap-3">
+              <label
+                class="flex items-center gap-2 text-xs text-white/50 cursor-pointer select-none hover:text-white/70 transition-colors"
+                class:opacity-40={!bulkAllComplete}
+              >
+                <input
+                  type="checkbox"
+                  bind:checked={bulkZipDownloads}
+                  disabled={!bulkAllComplete}
+                  class="accent-[#ff5e00] rounded border-white/10"
+                />
+                <span>Zip download</span>
+              </label>
+              <button
+                class="action-btn download !m-0"
+                onclick={downloadAllConverted}
+                disabled={!bulkAllComplete}
+                type="button"
+              >
+                <Download size={14} /> DOWNLOAD ALL
+              </button>
+            </div>
           {:else}
             <button
               class="action-btn convert-launch !m-0"
