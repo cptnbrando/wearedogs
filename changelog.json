@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1786741815,
+    "firstCommitTimestamp": 1786743617,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 216979
+    "averageLinesAltered": 217151
   },
   "entries": [
     {
       "version": "1.0.3",
       "name": "Master",
       "date": "2026-08-14",
-      "timestamp": 1786741730,
+      "timestamp": 1786743533,
       "commits": [
         {
-          "hash": "47a31b9",
-          "message": "tulsa img",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/47a31b9b7cab500f8f715aa4266eff6964d6eb5a",
-          "timestamp": 1786741815,
-          "linesChanged": 216979
+          "hash": "3c1d2f3",
+          "message": "better batch conversion and more locations",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/3c1d2f35b40b9736decf467edd316d3b0eb1f6ac",
+          "timestamp": 1786743617,
+          "linesChanged": 217151
         }
       ]
     },
