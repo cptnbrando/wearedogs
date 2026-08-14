@@ -1131,7 +1131,7 @@
         <!-- Back and Reset -->
         <div class="back-bar flex items-center justify-between w-full">
           <button class="back-btn" onclick={resetState} type="button">
-            <ArrowLeft size={14} /> Back
+            <ArrowLeft size={14} />
           </button>
         </div>
 
@@ -1297,7 +1297,7 @@
               <span>Overall Progress</span>
               <span>{overallProgress}%</span>
             </div>
-            <div class="progress-bar-wrap !w-full">
+            <div class="progress-bar-wrap w-full!">
               <div
                 class="progress-bar-fill"
                 style="width: {overallProgress}%"
@@ -1320,42 +1320,42 @@
             Clear
           </button>
 
-          {#if bulkFiles.some((f) => f.status === "done")}
-            <div class="flex items-center gap-3">
-              <label
-                class="flex items-center gap-2 text-xs text-white/50 cursor-pointer select-none hover:text-white/70 transition-colors"
-                class:opacity-40={!bulkAllComplete}
-              >
-                <input
-                  type="checkbox"
-                  bind:checked={bulkZipDownloads}
-                  disabled={!bulkAllComplete}
-                  class="accent-[#ff5e00] rounded border-white/10"
-                />
-                <span>Zip download</span>
-              </label>
+          <div class="flex items-center gap-3">
+            <label
+              class="flex items-center gap-2 text-xs text-white/50 cursor-pointer select-none hover:text-white/70 transition-colors"
+              class:opacity-40={isConvertingBulk}
+            >
+              <input
+                type="checkbox"
+                bind:checked={bulkZipDownloads}
+                disabled={isConvertingBulk}
+                class="accent-[#ff5e00] rounded border-white/10"
+              />
+              <span>Zip</span>
+            </label>
+            {#if bulkFiles.some((f) => f.status === "done")}
               <button
-                class="action-btn download !m-0"
+                class="action-btn download m-0!"
                 onclick={downloadAllConverted}
                 disabled={!bulkAllComplete}
                 type="button"
               >
                 <Download size={14} /> DOWNLOAD ALL
               </button>
-            </div>
-          {:else}
-            <button
-              class="action-btn convert-launch !m-0"
-              onclick={startBulkConversion}
-              disabled={isConvertingBulk || bulkFiles.length === 0}
-              type="button"
-            >
-              <RefreshCw
-                size={14}
-                class={isConvertingBulk ? "animate-spin" : ""}
-              /> BATCH CONVERT
-            </button>
-          {/if}
+            {:else}
+              <button
+                class="action-btn convert-launch m-0!"
+                onclick={startBulkConversion}
+                disabled={isConvertingBulk || bulkFiles.length === 0}
+                type="button"
+              >
+                <RefreshCw
+                  size={14}
+                  class={isConvertingBulk ? "animate-spin" : ""}
+                /> BATCH CONVERT
+              </button>
+            {/if}
+          </div>
         </div>
       </div>
     {:else if conversionStatus === "idle" && !file}
@@ -1384,7 +1384,7 @@
 
       <!-- Supported formats legend -->
       <div
-        class="supported-formats-legend mt-4 p-4 rounded-lg bg-white/[0.02] border border-white/5 flex flex-col gap-2.5"
+        class="supported-formats-legend mt-4 p-4 rounded-lg bg-white/2 border border-white/5 flex flex-col gap-2.5"
       >
         <h4
           class="text-xs font-bold text-white/40 uppercase tracking-wider font-mono"
@@ -1505,16 +1505,16 @@
         <CheckCircle class="text-green-400" size={54} />
         <h3>Conversion Complete!</h3>
         <div
-          class="flex flex-col gap-2 w-full max-w-[280px] max-h-[150px] overflow-y-auto pr-1"
+          class="flex flex-col gap-2 w-full max-w-70 max-h-37.5 overflow-y-auto pr-1"
         >
           {#each convertedFiles as item}
             <div
-              class="converted-info-card !p-3 flex !flex-row items-center justify-between gap-3 text-left"
+              class="converted-info-card p-3! flex flex-row! items-center justify-between gap-3 text-left"
             >
-              <span class="filename !text-[11px] truncate flex-1"
+              <span class="filename text-[11px]! truncate flex-1"
                 >{item.name}</span
               >
-              <span class="filesize !text-[10px] flex-shrink-0"
+              <span class="filesize text-[10px]! shrink-0"
                 >{formatBytes(item.blob?.size || 0)}</span
               >
             </div>
@@ -1530,7 +1530,7 @@
               bind:checked={zipDownloads}
               class="accent-[#ff5e00] rounded border-white/10"
             />
-            <span>Zip downloads</span>
+            <span>Zip</span>
           </label>
         {/if}
 
@@ -1952,7 +1952,7 @@
               {/each}
 
               <div
-                class="shortcut-tip flex flex-col items-center justify-center gap-1 mt-3 text-[10px] text-white/35 font-mono text-center bg-white/[0.01] border border-white/5 rounded-lg p-2.5"
+                class="shortcut-tip flex flex-col items-center justify-center gap-1 mt-3 text-[10px] text-white/35 font-mono text-center bg-white/1 border border-white/5 rounded-lg p-2.5"
               >
                 <div class="flex items-center gap-1.5 text-white/55">
                   <Keyboard size={12} />

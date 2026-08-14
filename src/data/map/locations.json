@@ -81,7 +81,12 @@
     "address": "Rochester, NY",
     "description": "Famous Rochester wing and tender spot known for massive, hand-breaded chicken tenders. The best chicken wings in America.",
     "images": [
-      "https://images.unsplash.com/photo-1527477396000-e27163b481c2?w=500&q=80"
+      "https://data.wearedogs.net/img/reviews/wingsover1.webp",
+      "https://data.wearedogs.net/img/reviews/wingsover2.webp",
+      "https://data.wearedogs.net/img/reviews/wingsover3.webp",
+      "https://data.wearedogs.net/img/reviews/wingsover4.webp",
+      "https://data.wearedogs.net/img/reviews/wingsover5.webp",
+      "https://data.wearedogs.net/img/reviews/wingsover6.webp"
     ]
   },
   {
@@ -96,7 +101,11 @@
     "address": "3057 E Henrietta Rd, Henrietta, NY 14467",
     "description": "Classic Upstate New York hots joint serving legendary Rochester Garbage Plates.",
     "images": [
-      "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=500&q=80"
+      "https://data.wearedogs.net/img/reviews/hhots1.webp",
+      "https://data.wearedogs.net/img/reviews/hhots2.webp",
+      "https://data.wearedogs.net/img/reviews/hhots3.webp",
+      "https://data.wearedogs.net/img/reviews/hhots4.webp",
+      "https://data.wearedogs.net/img/reviews/hhots5.webp"
     ]
   },
   {
@@ -131,10 +140,10 @@
     "address": "2100 Olive St #100, Dallas, TX 75201",
     "description": "This is the place to get a steak in Dallas.",
     "images": [
-      "https://data.wearedogs.net/img/reviews/perrys1.webp",
-      "https://data.wearedogs.net/img/reviews/perrys2.webp",
       "https://data.wearedogs.net/img/reviews/perrys3.webp",
+      "https://data.wearedogs.net/img/reviews/perrys1.webp",
       "https://data.wearedogs.net/img/reviews/perrys4.webp",
+      "https://data.wearedogs.net/img/reviews/perrys2.webp",
       "https://data.wearedogs.net/img/reviews/perrys5.webp",
       "https://data.wearedogs.net/img/reviews/perrys6.webp",
       "https://data.wearedogs.net/img/reviews/perrys7.webp",
@@ -174,9 +183,9 @@
     "address": "1334 E 15th St, Tulsa, OK 74120",
     "description": "Vibrant New Orleans-style eatery serving classic Creole fare and craft cocktails.",
     "images": [
+      "https://data.wearedogs.net/img/reviews/nolas3.webp",
       "https://data.wearedogs.net/img/reviews/nolas1.webp",
       "https://data.wearedogs.net/img/reviews/nolas2.webp",
-      "https://data.wearedogs.net/img/reviews/nolas3.webp",
       "https://data.wearedogs.net/img/reviews/nolas4.webp",
       "https://data.wearedogs.net/img/reviews/nolas5.webp",
       "https://data.wearedogs.net/img/reviews/nolas6.webp",
@@ -216,8 +225,8 @@
     "description": "Asian street food, sushi, and rich pork belly ramen in Downtown Tulsa's Blue Dome District.",
     "images": [
       "https://data.wearedogs.net/img/reviews/yokozuna1.webp",
-      "https://data.wearedogs.net/img/reviews/yokozuna2.webp",
       "https://data.wearedogs.net/img/reviews/yokozuna3.webp",
+      "https://data.wearedogs.net/img/reviews/yokozuna2.webp",
       "https://data.wearedogs.net/img/reviews/yokozuna4.webp",
       "https://data.wearedogs.net/img/reviews/yokozuna5.webp",
       "https://data.wearedogs.net/img/reviews/yokozuna6.webp"
@@ -235,12 +244,11 @@
     "address": "823 E 3rd St, Tulsa, OK 74120",
     "description": "Wood-fired, Neapolitan-style thin crust pizzas and vibrant outdoor patio dining in the East Village.",
     "images": [
-      "https://data.wearedogs.net/img/reviews/eastvillage1.webp",
       "https://data.wearedogs.net/img/reviews/eastvillage2.webp",
+      "https://data.wearedogs.net/img/reviews/eastvillage1.webp",
       "https://data.wearedogs.net/img/reviews/eastvillage3.webp",
       "https://data.wearedogs.net/img/reviews/eastvillage4.webp",
-      "https://data.wearedogs.net/img/reviews/eastvillage5.webp",
-      "https://data.wearedogs.net/img/reviews/eastvillage6.webp"
+      "https://data.wearedogs.net/img/reviews/eastvillage5.webp"
     ]
   },
   {
