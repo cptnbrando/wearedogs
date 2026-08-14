@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1786740306,
+    "firstCommitTimestamp": 1786741815,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 216965
+    "averageLinesAltered": 216979
   },
   "entries": [
     {
       "version": "1.0.3",
       "name": "Master",
       "date": "2026-08-14",
-      "timestamp": 1786740219,
+      "timestamp": 1786741730,
       "commits": [
         {
-          "hash": "3020b0b",
-          "message": "refactor(locations): update image URLs for Chicken and the Wolf, The Colony, and NOLA's",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/3020b0b88ff234560f5052c1da531831ddc578e0",
-          "timestamp": 1786740306,
-          "linesChanged": 216965
+          "hash": "47a31b9",
+          "message": "tulsa img",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/47a31b9b7cab500f8f715aa4266eff6964d6eb5a",
+          "timestamp": 1786741815,
+          "linesChanged": 216979
         }
       ]
     },
