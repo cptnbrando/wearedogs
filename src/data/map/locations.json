@@ -11,8 +11,10 @@
     "address": "3136 E 11th St, Tulsa, OK 74104",
     "description": "Tulsa's legendary Nashville hot chicken joint. Unbelievably crispy and juicy.",
     "images": [
-      "https://images.squarespace-cdn.com/content/v1/62577d2e7b7ced11269831b2/1650045966962-P3OQ5OCWV0JVTO17E9HC/CXW_HotterThanYourMom.png?format=2500w",
-      "https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=500&q=80"
+      "https://data.wearedogs.net/img/reviews/chickenandthewolf1.webp",
+      "https://data.wearedogs.net/img/reviews/chickenandthewolf2.webp",
+      "https://data.wearedogs.net/img/reviews/chickenandthewolf3.webp",
+      "https://data.wearedogs.net/img/reviews/chickenandthewolf4.webp"
     ]
   },
   {
@@ -45,7 +47,10 @@
     "address": "2809 S Harvard Ave, Tulsa, OK 74114",
     "description": "Tulsa's historic Midtown dive bar and live music venue. Cozy pub interior and active outdoor patio.",
     "images": [
-      "https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=500&q=80"
+      "https://data.wearedogs.net/img/reviews/thecolony1.webp",
+      "https://data.wearedogs.net/img/reviews/thecolony2.webp",
+      "https://data.wearedogs.net/img/reviews/thecolony3.webp",
+      "https://data.wearedogs.net/img/reviews/thecolony4.webp"
     ]
   },
   {
@@ -152,7 +157,13 @@
     "address": "1334 E 15th St, Tulsa, OK 74120",
     "description": "Vibrant New Orleans-style eatery serving classic Creole fare and craft cocktails.",
     "images": [
-      "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=500&q=80"
+      "https://data.wearedogs.net/img/reviews/nolas1.webp",
+      "https://data.wearedogs.net/img/reviews/nolas2.webp",
+      "https://data.wearedogs.net/img/reviews/nolas3.webp",
+      "https://data.wearedogs.net/img/reviews/nolas4.webp",
+      "https://data.wearedogs.net/img/reviews/nolas5.webp",
+      "https://data.wearedogs.net/img/reviews/nolas6.webp",
+      "https://data.wearedogs.net/img/reviews/nolas7.webp"
     ]
   },
   {
