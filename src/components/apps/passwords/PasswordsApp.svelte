@@ -16,22 +16,20 @@
     MIN_PASSWORD_LENGTH,
     MAX_PASSWORD_LENGTH,
     DEFAULT_PASSWORD_LENGTH,
-    READABILITY_MODES,
-    STRENGTH_TIERS,
     buildPools,
     generatePassword,
     calculateEntropy,
-    getStrengthTier,
   } from "./passwordEngine.js";
+
+  const ALL_SYMBOLS = CHAR_SETS.symbols.split("");
 
   // Generation options
   let length = $state(DEFAULT_PASSWORD_LENGTH);
-  let mode = $state(READABILITY_MODES.ALL);
   let useLowercase = $state(true);
   let useUppercase = $state(true);
   let useNumbers = $state(true);
   let useSymbols = $state(true);
-  let symbolPool = $state(CHAR_SETS.symbols);
+  let selectedSymbols = $state([...ALL_SYMBOLS]);
 
   // Output state
   let password = $state("");
@@ -43,11 +41,12 @@
   let toastType = $state("success");
   let toastTimer = null;
 
-  const isSayable = $derived(mode === READABILITY_MODES.SAYABLE);
+  const symbolPool = $derived(
+    ALL_SYMBOLS.filter((s) => selectedSymbols.includes(s)).join(""),
+  );
 
   const options = $derived({
     length,
-    mode,
     useLowercase,
     useUppercase,
     useNumbers,
@@ -57,14 +56,6 @@
 
   const poolSize = $derived(buildPools(options).join("").length);
   const entropyBits = $derived(calculateEntropy(options));
-  const tier = $derived(getStrengthTier(entropyBits));
-  const meterPercent = $derived(Math.min(100, (entropyBits / 160) * 100));
-
-  const modeChoices = [
-    { id: READABILITY_MODES.ALL, label: "All", hint: "Every enabled character" },
-    { id: READABILITY_MODES.READABLE, label: "Readable", hint: "No lookalikes (Il1 O0 B8...)" },
-    { id: READABILITY_MODES.SAYABLE, label: "Sayable", hint: "Letters only, easy to read aloud" },
-  ];
 
   // Regenerate whenever any option (or the nonce) changes
   $effect(() => {
@@ -83,6 +74,22 @@
 
   function regenerate() {
     regenNonce += 1;
+  }
+
+  function toggleSymbol(sym) {
+    if (selectedSymbols.includes(sym)) {
+      selectedSymbols = selectedSymbols.filter((s) => s !== sym);
+    } else {
+      selectedSymbols = [...selectedSymbols, sym];
+    }
+  }
+
+  function selectAllSymbols() {
+    selectedSymbols = [...ALL_SYMBOLS];
+  }
+
+  function selectNoSymbols() {
+    selectedSymbols = [];
   }
 
   async function copyToClipboard() {
@@ -108,10 +115,6 @@
       MIN_PASSWORD_LENGTH,
       Math.min(MAX_PASSWORD_LENGTH, Math.round(length)),
     );
-  }
-
-  function resetSymbols() {
-    symbolPool = CHAR_SETS.symbols;
   }
 
   /** Bucket each glyph so the display can tint digits and symbols. */
@@ -159,23 +162,6 @@
         </div>
       </div>
 
-      <!-- Readability Mode Group -->
-      <div class="config-group">
-        <span class="config-label">Readability Mode</span>
-        <div class="mode-row">
-          {#each modeChoices as choice}
-            <button
-              class="mode-btn"
-              class:active={mode === choice.id}
-              onclick={() => (mode = choice.id)}
-            >
-              <span class="mode-name">{choice.label}</span>
-              <span class="mode-hint">{choice.hint}</span>
-            </button>
-          {/each}
-        </div>
-      </div>
-
       <!-- Character Sets Group -->
       <div class="config-group">
         <span class="config-label">Character Sets</span>
@@ -190,48 +176,46 @@
             <span class="charset-name">Uppercase</span>
             <span class="charset-sample">ABC</span>
           </label>
-          <label
-            class="charset-toggle"
-            class:checked={useNumbers && !isSayable}
-            class:disabled={isSayable}
-          >
-            <input type="checkbox" bind:checked={useNumbers} disabled={isSayable} />
+          <label class="charset-toggle" class:checked={useNumbers}>
+            <input type="checkbox" bind:checked={useNumbers} />
             <span class="charset-name">Numbers</span>
             <span class="charset-sample">123</span>
           </label>
-          <label
-            class="charset-toggle"
-            class:checked={useSymbols && !isSayable}
-            class:disabled={isSayable}
-          >
-            <input type="checkbox" bind:checked={useSymbols} disabled={isSayable} />
+          <label class="charset-toggle" class:checked={useSymbols}>
+            <input type="checkbox" bind:checked={useSymbols} />
             <span class="charset-name">Symbols</span>
             <span class="charset-sample">#$%</span>
           </label>
         </div>
-        {#if isSayable}
-          <span class="sayable-note">Sayable mode sticks to letters only.</span>
-        {/if}
       </div>
 
-      <!-- Symbol Pool Group -->
-      {#if useSymbols && !isSayable}
+      <!-- Symbol Picker Group -->
+      {#if useSymbols}
         <div class="config-group animated-fade">
           <div class="label-row">
-            <label for="symbol-pool" class="config-label">Symbol Pool</label>
-            {#if symbolPool !== CHAR_SETS.symbols}
-              <button class="reset-symbols-btn" onclick={resetSymbols}>Reset</button>
-            {/if}
+            <span class="config-label">
+              Allowed Symbols ({selectedSymbols.length}/{ALL_SYMBOLS.length})
+            </span>
+            <div class="symbol-bulk-actions">
+              <button class="bulk-btn" onclick={selectAllSymbols}>All</button>
+              <span class="bulk-divider">/</span>
+              <button class="bulk-btn" onclick={selectNoSymbols}>None</button>
+            </div>
           </div>
-          <input
-            id="symbol-pool"
-            type="text"
-            bind:value={symbolPool}
-            placeholder="Allowed symbols..."
-            class="neon-input mono"
-            spellcheck="false"
-            autocomplete="off"
-          />
+          <div class="symbol-chip-grid">
+            {#each ALL_SYMBOLS as sym}
+              <button
+                class="symbol-chip"
+                class:active={selectedSymbols.includes(sym)}
+                onclick={() => toggleSymbol(sym)}
+                aria-pressed={selectedSymbols.includes(sym)}
+                aria-label="Toggle symbol {sym}"
+              >{sym}</button>
+            {/each}
+          </div>
+          {#if selectedSymbols.length === 0}
+            <span class="picker-note">No symbols selected — passwords will skip symbols.</span>
+          {/if}
         </div>
       {/if}
     </div>
@@ -258,27 +242,6 @@
         {/if}
       </div>
 
-      <!-- Strength meter -->
-      <div class="strength-block">
-        <div class="strength-header">
-          <span class="strength-label" style="color: {tier.color}">{password ? tier.label : "—"}</span>
-          <span class="entropy-readout">{Math.round(entropyBits)} bits of entropy</span>
-        </div>
-        <div class="strength-track">
-          <div
-            class="strength-fill"
-            style="width: {password ? meterPercent : 0}%; background: {tier.color}; box-shadow: 0 0 12px {tier.color};"
-          ></div>
-        </div>
-        <div class="tier-ticks">
-          {#each STRENGTH_TIERS as t}
-            <span class:reached={password && entropyBits >= t.minBits} style="--tier-color: {t.color}">
-              {t.label}
-            </span>
-          {/each}
-        </div>
-      </div>
-
       <!-- Diagnostic stats -->
       <div class="spec-footer-stats">
         <div class="stat-bubble">
@@ -288,6 +251,10 @@
         <div class="stat-bubble">
           <span class="lbl">Pool</span>
           <span class="val">{poolSize} chars</span>
+        </div>
+        <div class="stat-bubble">
+          <span class="lbl">Entropy</span>
+          <span class="val">{password ? Math.round(entropyBits) : 0} bits</span>
         </div>
         <div class="stat-bubble">
           <span class="lbl">Source</span>
@@ -443,95 +410,6 @@
     margin-top: -4px;
   }
 
-  .neon-input {
-    width: 100%;
-    background: #0d0d12;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 8px;
-    color: white;
-    font-size: 0.85rem;
-    padding: 12px 14px;
-    outline: none;
-    transition: all 0.2s;
-    font-family: "Inter", sans-serif;
-  }
-
-  .neon-input.mono {
-    font-family: monospace;
-    letter-spacing: 0.08em;
-  }
-
-  .neon-input:focus {
-    border-color: #00d75f;
-    box-shadow: 0 0 10px rgba(0, 215, 95, 0.15);
-    background: #111118;
-  }
-
-  .reset-symbols-btn {
-    background: transparent;
-    border: none;
-    color: #00d75f;
-    font-size: 0.68rem;
-    font-weight: 700;
-    cursor: pointer;
-    padding: 0;
-  }
-
-  .reset-symbols-btn:hover {
-    text-decoration: underline;
-  }
-
-  /* ── Readability Modes ── */
-  .mode-row {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .mode-btn {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 2px;
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 8px;
-    padding: 10px 14px;
-    cursor: pointer;
-    transition: all 0.2s;
-    text-align: left;
-  }
-
-  .mode-btn:hover {
-    background: rgba(0, 215, 95, 0.04);
-    border-color: rgba(0, 215, 95, 0.3);
-  }
-
-  .mode-btn.active {
-    background: rgba(0, 215, 95, 0.08);
-    border-color: #00d75f;
-    box-shadow: 0 0 12px rgba(0, 215, 95, 0.12);
-  }
-
-  .mode-name {
-    font-size: 0.78rem;
-    font-weight: 700;
-    color: rgba(255, 255, 255, 0.85);
-    font-family: "Outfit", "Inter", sans-serif;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-  }
-
-  .mode-btn.active .mode-name {
-    color: #00d75f;
-  }
-
-  .mode-hint {
-    font-size: 0.65rem;
-    color: rgba(255, 255, 255, 0.35);
-    font-family: "Inter", sans-serif;
-  }
-
   /* ── Charset Toggles ── */
   .charset-grid {
     display: grid;
@@ -557,18 +435,13 @@
     cursor: pointer;
   }
 
-  .charset-toggle:hover:not(.disabled) {
+  .charset-toggle:hover {
     border-color: rgba(0, 215, 95, 0.3);
   }
 
   .charset-toggle.checked {
     background: rgba(0, 215, 95, 0.06);
     border-color: rgba(0, 215, 95, 0.4);
-  }
-
-  .charset-toggle.disabled {
-    opacity: 0.35;
-    cursor: not-allowed;
   }
 
   .charset-name {
@@ -585,7 +458,67 @@
     color: rgba(255, 255, 255, 0.35);
   }
 
-  .sayable-note {
+  /* ── Symbol Picker ── */
+  .symbol-bulk-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .bulk-btn {
+    background: transparent;
+    border: none;
+    color: #00d75f;
+    font-size: 0.68rem;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 0;
+    font-family: "Inter", sans-serif;
+  }
+
+  .bulk-btn:hover {
+    text-decoration: underline;
+  }
+
+  .bulk-divider {
+    color: rgba(255, 255, 255, 0.2);
+    font-size: 0.68rem;
+  }
+
+  .symbol-chip-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(34px, 1fr));
+    gap: 6px;
+  }
+
+  .symbol-chip {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    color: rgba(255, 255, 255, 0.35);
+    font-family: monospace;
+    font-size: 0.9rem;
+    font-weight: 700;
+    padding: 7px 0;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+    line-height: 1;
+  }
+
+  .symbol-chip:hover {
+    border-color: rgba(0, 215, 95, 0.4);
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .symbol-chip.active {
+    background: rgba(0, 215, 95, 0.1);
+    border-color: rgba(0, 215, 95, 0.5);
+    color: #00d75f;
+    box-shadow: 0 0 8px rgba(0, 215, 95, 0.12);
+  }
+
+  .picker-note {
     font-size: 0.65rem;
     color: rgba(255, 255, 255, 0.35);
     font-family: "Inter", sans-serif;
@@ -599,7 +532,7 @@
     border-radius: 12px;
     padding: 16px;
     min-height: 92px;
-    max-height: 38%;
+    max-height: 48%;
     overflow-y: auto;
     box-shadow:
       0 20px 50px rgba(0, 0, 0, 0.5),
@@ -648,64 +581,6 @@
     color: rgba(255, 51, 68, 0.8);
     font-size: 0.75rem;
     font-family: "Inter", sans-serif;
-  }
-
-  /* ── Strength Meter ── */
-  .strength-block {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .strength-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-  }
-
-  .strength-label {
-    font-size: 0.85rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    font-family: "Outfit", "Inter", sans-serif;
-  }
-
-  .entropy-readout {
-    font-size: 0.65rem;
-    color: rgba(255, 255, 255, 0.4);
-    font-family: monospace;
-  }
-
-  .strength-track {
-    width: 100%;
-    height: 8px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 4px;
-    overflow: hidden;
-  }
-
-  .strength-fill {
-    height: 100%;
-    border-radius: 4px;
-    transition:
-      width 0.35s cubic-bezier(0.16, 1, 0.3, 1),
-      background 0.35s;
-  }
-
-  .tier-ticks {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.58rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: rgba(255, 255, 255, 0.25);
-    font-family: "Inter", sans-serif;
-  }
-
-  .tier-ticks span.reached {
-    color: var(--tier-color);
   }
 
   /* ── Stats ── */
