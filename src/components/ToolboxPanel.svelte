@@ -25,6 +25,7 @@
     Mic,
     Film,
     Calculator,
+    KeyRound,
   } from "lucide-svelte";
   import DogsLogo from "./DogsLogo.svelte";
   import AppCard from "./AppCard.svelte";
@@ -76,6 +77,7 @@
     missingcreatures: "./apps/MissingCreatures.svelte",
     wiretap: "./apps/Wiretap.svelte",
     frames: "./apps/Frames.svelte",
+    passwords: "./apps/passwords/PasswordsApp.svelte",
   };
 
   // Lazy loaded app components caching
@@ -273,6 +275,7 @@
     settings: "#ff3344",
     wiretap: "#00ff66",
     frames: "#ff5e00",
+    passwords: "#00d75f",
   };
 
   // CRITICAL: The changelog and settings apps MUST always remain next to each other at the bottom of the toolbox list, with settings last.
@@ -378,6 +381,12 @@
       title: "2026 World Cup",
       desc: "Archived matches, group stage standings, and the responsive bracket.",
       icon: Trophy,
+    },
+    {
+      id: "passwords",
+      title: "Password Generator",
+      desc: "Generate secure random passwords up to 200 characters with entropy analysis.",
+      icon: KeyRound,
     },
     // RESCUE, GOPRO, DATAFLASH, CHANGELOG, AND SETTINGS MUST ALWAYS BE LAST IN THIS LIST
     {
