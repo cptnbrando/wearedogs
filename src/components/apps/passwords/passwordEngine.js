@@ -2,7 +2,7 @@
 // Kept free of Svelte so the generation rules stay testable and reusable.
 
 export const MIN_PASSWORD_LENGTH = 4;
-export const MAX_PASSWORD_LENGTH = 150;
+export const MAX_PASSWORD_LENGTH = 200;
 export const DEFAULT_PASSWORD_LENGTH = 30;
 
 export const CHAR_SETS = {
