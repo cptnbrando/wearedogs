@@ -266,11 +266,27 @@ export const WHY_TIMELINE = [
     ],
   },
   {
-    date: "NOV 12, 2026",
+    date: "AUG 8, 2026",
+    title: "The Senate blinks — one month of borrowed time",
+    tone: "legal",
+    body: "Hours before leaving for August recess, the Senate votes 90-6 to pass a stopgap funding bill that pushes the federal hemp ban from November 12th to December 11th. Not a repeal — a delay, and the House still has to pass it in September. But it's the first time since the rider passed that the date has moved in the right direction.",
+    links: [
+      {
+        label: "Marijuana Moment: Senate votes to delay hemp ban",
+        url: "https://www.marijuanamoment.net/senate-rejects-amendment-to-keep-hemp-thc-product-ban-on-track-for-november-teeing-up-delay-trump-pushed-for/",
+      },
+      {
+        label: "The Hill: Senate tables hemp amendment, allows one-month delay",
+        url: "https://thehill.com/policy/healthcare/6017926-senate-delays-hemp-thc-ban/",
+      },
+    ],
+  },
+  {
+    date: "DEC 11, 2026",
     title: "The last domino — unless someone moves",
     tone: "ban",
     pending: true,
-    body: "The federal 0.4mg total-THC definition takes effect: delta-9 seltzers, CBD with trace THC, nearly all of it becomes federally illegal. One year's runway, three and a half months left on it. Congress could still amend the rider; Austin could still regulate. That's what the button below this map is for.",
+    body: "The federal 0.4mg total-THC definition takes effect: delta-9 seltzers, CBD with trace THC, nearly all of it becomes federally illegal. Originally November 12th; the Senate's August stopgap bought one extra month. Congress could still amend the rider; Austin could still regulate. That's what the button below this map is for.",
     links: [
       {
         label: "Forbes: will Congress save America's hemp businesses?",

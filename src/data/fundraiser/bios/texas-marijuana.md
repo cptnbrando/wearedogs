@@ -1,6 +1,6 @@
 ONGOING EMERGENCY: FIGHTING THE TEXAS CANNABIS & HEMP BAN
 
-On Friday July 31st, every consumable THC product except Delta-9 is being pulled off all Texas shelves, after a 21 day formal notice was published in the Texas Register by the Texas DSHS on July 10th. Come November 12th, the federal reclassification deadline takes the rest: every remaining THC product in Texas, Delta-9 included, is gone. This is a decision that harms Texas more than it helps.
+On Friday July 31st, every consumable THC product except Delta-9 is being pulled off all Texas shelves, after a 21 day formal notice was published in the Texas Register by the Texas DSHS on July 10th. Come December 11th, the federal reclassification deadline takes the rest: every remaining THC product in Texas, Delta-9 included, is gone. This is a decision that harms Texas more than it helps.
 
 Banning these products destroys hundreds of Texas small businesses, eliminates thousands of local jobs, wipes out millions in tax revenue (this is a $5.5 billion dollars / yr Texas industry), and severely curtails personal liberty. It means thousands of people get fired, thousands of businesses shut down permanently, and billions of dollars of revenue go to illegal untested markets that harm more people and produce nothing of value for Texas.
 
@@ -29,14 +29,14 @@ This ban does not aid any of these statistics, it very much worsens the problems
 
 By wiping out a multi-billion dollar legal market overnight, you are not eliminating demand. You are simply forcing consumers back into dangerous alternatives. For some, that means turning to the unregulated illicit street market. For others, it means things worse than weed or alcohol.
 
-I am asking for the decision to be extended to the federal November 12th reclassification deadline.
+I am asking for the decision to be extended to the federal December 11th reclassification deadline.
 
 Continuing with the upcoming Friday ban, the small 21 day notice, it means real businesses lose real wages. A sharp hit against a very young industry for this state, that means real businesses closing down real employees getting fired real people being hurt and displaced.
 
 As I said above, this decision is not the will of the people. The 5 billion dollar market share speaks for itself, and that market doesn't just end. Illegal weed does very very real harm. The cheap illegal vapes, cartridges, and other products being sold send people to the ER frequently. Millions of dollars of new entirely unregulated, untaxed illegal sales, that's just the first month. Second month that illegal market only continues to grow.
 
-A real solution involves FDA regulations, better guidelines (guardrails, not an outright ban), more oversight, more investment. New Mexico is 10 hours away, Arkansas is 5 hours away, Oklahoma is 3 hours away, all of them have massive taxed regulated markets for these products and Texas hands it to them and the multi-billion dollar illegal street dealer scene. For nothing in return. That is what Friday is about, and I am suggesting to push it to November for now.
+A real solution involves FDA regulations, better guidelines (guardrails, not an outright ban), more oversight, more investment. New Mexico is 10 hours away, Arkansas is 5 hours away, Oklahoma is 3 hours away, all of them have massive taxed regulated markets for these products and Texas hands it to them and the multi-billion dollar illegal street dealer scene. For nothing in return. That is what Friday is about, and I am suggesting to push it to December for now.
 
-By extending this decision to November, Texas businesses stand a far better chance of handling the financial shock of their upfront investments. Over 9,100 licensed hemp retailers and producers across Texas operate in a multi-billion dollar legal industry. Eliminating so many major product lines on a sudden 21-day notice erases 10% to 20% or more of an average storefront's revenue overnight— on top of existing regulatory pressures that have already gutted product inventory. Businesses holding hundreds of thousands of dollars in compliant inventory face catastrophic losses, inventory embargos, and sudden closure. Real people will be fired, dozens of small Texas businesses will shut their doors permanently, and Texas workers will bear the brunt of an unworked timeline.
+By extending this decision to December, Texas businesses stand a far better chance of handling the financial shock of their upfront investments. Over 9,100 licensed hemp retailers and producers across Texas operate in a multi-billion dollar legal industry. Eliminating so many major product lines on a sudden 21-day notice erases 10% to 20% or more of an average storefront's revenue overnight— on top of existing regulatory pressures that have already gutted product inventory. Businesses holding hundreds of thousands of dollars in compliant inventory face catastrophic losses, inventory embargos, and sudden closure. Real people will be fired, dozens of small Texas businesses will shut their doors permanently, and Texas workers will bear the brunt of an unworked timeline.
 
-An extension to the federal November deadline saves real people, and real lives. Please, we implore you to reconsider this.
+An extension to the federal December deadline saves real people, and real lives. Please, we implore you to reconsider this.

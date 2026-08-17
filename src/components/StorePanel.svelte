@@ -126,7 +126,7 @@
 
   /**
    * The Texas campaign runs on two deadlines: the July 31st state shelf pull
-   * that takes everything but Delta-9, then the November 12th federal
+   * that takes everything but Delta-9, then the December 11th federal
    * reclassification that takes the rest. Once the first lapses the countdown
    * rolls onto the second on its own, no redeploy needed.
    * @param {any} campaign
@@ -159,7 +159,7 @@
    * one-day "SALE DAY" takeover: gold clock counting to midnight, money
    * confetti, the bio swapped for the clearance pitch, the map re-lit in cash
    * colours. At midnight into August 1st everything reverts on its own and the
-   * November federal countdown takes over — no redeploy either way.
+   * December federal countdown takes over — no redeploy either way.
    */
   const SALE_CAMPAIGN_ID = "save-texas-hemp";
   const SALE_DAY_MS = 24 * 60 * 60 * 1000;
@@ -218,14 +218,14 @@
       icon: "🚗",
       label: "Drive",
       blurb:
-        "August 1st onward: the November deadline.",
+        "August 1st onward: the December deadline.",
     },
   ];
 
   /**
    * What the date says the campaign is today. From August 1st onward it
    * speaks in the past tense: the shelf pull happened, the fight is the
-   * November 12th federal deadline. Bio and petition letter both swap to
+   * December 11th federal deadline. Bio and petition letter both swap to
    * their November versions, and the amber "FINAL COUNTDOWN" clock (already
    * handled by getActiveDeadline) takes over.
    */
@@ -370,7 +370,7 @@
 
   // Fire on the rising edge (including a page opened mid-sale — walking in the
   // door during the fireworks still gets you fireworks); wind the clock again
-  // on the falling edge as the November countdown takes back over.
+  // on the falling edge as the December countdown takes back over.
   let wasSaleActive = false;
   $effect(() => {
     const active = saleActive;
@@ -457,7 +457,7 @@
   $effect(() => {
     const camp = selectedCampaign;
     // During the July 31st sale window the pitch itself goes on clearance;
-    // from August 1st it speaks in the past tense about the November deadline.
+    // from August 1st it speaks in the past tense about the December deadline.
     const bioUrl =
       camp && saleActive && camp.saleBioUrl
         ? camp.saleBioUrl
@@ -584,9 +584,9 @@
    */
   const CRITICAL_RE = new RegExp(
     [
-      // 1 — the headline: what happens on Friday, and what November takes
+      // 1 — the headline: what happens on Friday, and what December takes
       "(On Friday,?\\s*July\\s*31(?:st)?[\\s\\S]{0,90}?pulled off all Texas shelves" +
-        "|Come November\\s*12(?:th)?[\\s\\S]{0,140}?Delta-9 included, is gone)",
+        "|Come (?:December\\s*11|November\\s*12)(?:th)?[\\s\\S]{0,140}?Delta-9 included, is gone)",
       // 2 — what the ban destroys
       "(destroys hundreds of Texas small businesses[\\s\\S]{0,140}?wipes out millions in tax revenue" +
         "|thousands of people get fired[\\s\\S]{0,240}?produce nothing of value f(?:or|rom) Texas)",
@@ -597,7 +597,7 @@
       // 5 — hard statistics
       "(\\b\\d{1,3}(?:,\\d{3})+\\b|\\b\\d+(?:\\.\\d+)?%|~\\d[\\d,]*\\b)",
       // 6 — deadlines
-      `((?:Friday,?\\s+)?(?:${MONTHS})\\s+\\d{1,2}(?:st|nd|rd|th)?\\b|\\bFriday\\b|\\bNovember\\b)`,
+      `((?:Friday,?\\s+)?(?:${MONTHS})\\s+\\d{1,2}(?:st|nd|rd|th)?\\b|\\bFriday\\b|\\bNovember\\b|\\bDecember\\b)`,
       // 7 — load-bearing phrases
       `(${KEY_PHRASES.join("|")})`,
     ].join("|"),
@@ -649,7 +649,7 @@
       // 2 — money
       "(\\$\\s?\\d[\\d,]*(?:\\.\\d+)?(?:\\s*(?:BILLION|MILLION|billion|million))?(?:\\s*DOLLARS?| dollars?)?(?:\\s*A YEAR)?|\\d+%\\s*(?:off|OFF)|\\b\\d{1,3}(?:,\\d{3})+\\b)",
       // 3 — the deadline
-      "(MIDNIGHT(?: TONIGHT)?|TONIGHT|TODAY,?\\s*JULY 31ST|ONE DAY ONLY|TODAY ONLY|LAST DAY|FINAL (?:DAY|HOURS?)|November 12th|104-day)",
+      "(MIDNIGHT(?: TONIGHT)?|TONIGHT|TODAY,?\\s*JULY 31ST|ONE DAY ONLY|TODAY ONLY|LAST DAY|FINAL (?:DAY|HOURS?)|December 11th|November 12th|104-day)",
       // 4 — the merchandise
       "(SALE|CLEARANCE|DOORBUSTER|BARGAINS?|DEALS?|MARKDOWNS?|FREE)",
     ].join("|"),
@@ -3050,7 +3050,7 @@
                       </div>
                     {:else if timer}
                       <!-- Two-stage clock: red for the July 31st shelf pull,
-                           amber once it lapses and the November 12th federal
+                           amber once it lapses and the December 11th federal
                            deadline takes over. Always three stacked rows —
                            deadline, clock, jump button — never side by side. -->
                       {@const fin = deadline.final}
@@ -3221,6 +3221,19 @@
                           {/each}
                         </div>
                       {/if}
+                    </div>
+                  {/if}
+
+                  {#if selectedCampaign.updateNote && !isMapFullscreen}
+                    <!-- Dated notice pinned under the letters: when the
+                         deadline itself moves, the page says so out loud. -->
+                    <div class="update-note">
+                      <span class="update-note-kicker"
+                        >📌 UPDATE · {selectedCampaign.updateNote.dateLabel}</span
+                      >
+                      <p class="update-note-text">
+                        {selectedCampaign.updateNote.text}
+                      </p>
                     </div>
                   {/if}
 
@@ -4930,6 +4943,34 @@
     color: #7dd3fc;
     font-family: ui-monospace, monospace;
     font-weight: 900;
+  }
+
+  /* Dated notice pinned under the letters — green because the deadline
+     moving back is the first good news the timeline has had. */
+  .update-note {
+    margin-top: 0.6rem;
+    padding: 0.75rem;
+    border: 1px solid rgba(52, 211, 153, 0.28);
+    border-radius: 0.85rem;
+    background: linear-gradient(
+      180deg,
+      rgba(6, 78, 59, 0.35),
+      rgba(24, 24, 27, 0.35)
+    );
+  }
+  .update-note-kicker {
+    display: block;
+    color: #6ee7b7;
+    font-family: ui-monospace, monospace;
+    font-size: 0.65rem;
+    font-weight: 900;
+    letter-spacing: 0.16em;
+  }
+  .update-note-text {
+    margin: 0.35rem 0 0;
+    color: #a1a1aa;
+    font-size: 0.72rem;
+    line-height: 1.55;
   }
 
   .corr-item {

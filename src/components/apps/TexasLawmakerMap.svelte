@@ -2209,7 +2209,7 @@
               <p class="tx-stats-note">
                 Every Texas House district, every Senate district, the Lt.
                 Governor and the Governor — plus the three federal offices that
-                control the November 12th deadline.
+                control the December 11th deadline.
               </p>
             </section>
 
