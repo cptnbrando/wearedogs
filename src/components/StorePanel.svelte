@@ -3231,9 +3231,9 @@
                       <span class="update-note-kicker"
                         >📌 UPDATE · {selectedCampaign.updateNote.dateLabel}</span
                       >
-                      <p class="update-note-text">
-                        {selectedCampaign.updateNote.text}
-                      </p>
+                      {#each selectedCampaign.updateNote.text.split("\n\n") as noteParagraph}
+                        <p class="update-note-text">{noteParagraph}</p>
+                      {/each}
                     </div>
                   {/if}
 
