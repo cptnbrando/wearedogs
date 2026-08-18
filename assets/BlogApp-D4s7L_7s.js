@@ -79,6 +79,22 @@ Joanne drops her basket to the floor, tears in her eyes she brushes them off and
 Jeff gets up and reaches to her hands. Holding them, moving close, "I know we cannot be together but I can't take this torture anymore. Before the tides change again, can I kiss you?" Without hesitation, Joanne moves close, closes her eyes, leans in. Her lips taste like blackberry marmalade, cherries, honey. Jeff pulls her waist closer, his hands on her back. Joanne moves her hands on his chest and sides. It's like showering for the first time when your water has been off for days, but also like skiing down a trail you've skiied down a hundred times. It's like listening to your favorite album on vinyl. It's like when the bartender adds an extra shot to the margarita. Like walking into a pear orchard, picking a juicy pear off a branch, taking a bite. The leather on her hips, the cotton on his back. His pheramones and her perfume. Like a match and a fuse. Like a flame and a balloon-
 
 Her phone starts vibrating. Jeff feels it on his thigh. Joanne breaks out the kiss and reaches into her pocket. It's her husband. Calling from inside the house they are making out in front of.
+
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+At the height of his onset schitzophrenia, Ansel was continuing to drown out the noises via tobacco, nic pouches, advil, codeine, xanax, cocaine, adderall, penicillin, cymbalta, trazadone, and liquor. It had been 4 years since the schism, when he found himself outside, high as a racoon, screaming at the sun. The second time of the week he had ran outside in his bathrobe, and screamed at the sun from his apartment complex parking lot. 2 years after that, the snaps began. the clicks, ticks, hits, cracks, pings, pongs, bing bongs.
+
+Ansel was a drummer and a 3D Audio Engineer. He had been the mixing engineer for The Flaming Lips's latest hit "Dancer". The auto-panning, moving the input signal from the left speaker to the right speaker, on the hi-hats and the individual choir backing tracks, combined with the Sennheiser 3D audio plugin to bring-
+
+A snap, from the corner of his living room. A sudden noise lasting less than 0.3 seconds, resembling a gunshot, a snap of the fingers, a blink of an eye, a snare click. Always emitting from specific objects, at specific locations, with pseudorandom velocities, or from behind the drywall also at specific locations. Never a repeating noise, but will snap again some within the minute others once a day. Often times the snaps are loud enough to make him flinch, or make his dog jump.
+
+
+
+
+
+
 `,"../data/blog/_template.md":`---
 title: "Article Title Here"
 date: "2026-06-27T15:00:00-05:00"
