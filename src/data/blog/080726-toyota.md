@@ -36,7 +36,7 @@ Exile is similar to a sensory deprivation tank. In many smaller crimes, exile ma
 
 [ This is similar to ankle bracelets, and breathalyze car starts that we have today. That's just evolving. Ever evolving, the police state. ]
 
---------------------------------------------
+--------------------------------------------------------------------------------
 
 On a summer night in early August, Jeff goes to a taco bell in his flying Mercedes Benny Bronco. Metallic silver, Michelin boosters, carbon fiber trim. Dual metabolic exhaust, perpetual ocean motion transmission, quantum wifi ai powered hotspot, Korean bbq and hot pot grill set, QLED projector headlights, chrome plated floater rims, cassette, CDs, DVDs, HD DVDs, Blu-rays, Ultra HDs, MiniDiscs, and UMD compatability, with an auxiliary spindle for vinyl, LaserDiscs, and 8-tracks mounted directly above the rear gravity stabilizer. Real plush leather seats with crocodile, deer, and leopard skin accents.
 
@@ -58,7 +58,11 @@ He looked back at the meta quest footage, captured in the accident, and astoundi
 
 Someone had to have hacked his meta quest, and modified the footage on his device and in the Meta AWS server instance, to update the footage to him moving the gear shift multiple times. He was absolutely sure this was the only thing that could have happened.
 
-...blah blah blah...
+--------------------------------------------------------------------------------
+
+The following is a completely different, unrelated story about the same character, Jeff.
+
+--------------------------------------------------------------------------------
 
 Jeff couldn't breathe. He inhaled and then a second later he tried exhaling and hit a wall. His hands were clammy and sticky. His heart was beating out of his chest. He looked around up and down, but somehow, time had frozen. Every organ in his body, every dial in his car, every clock in the world lay at rest in this moment, this infinite, fragile moment.
 
