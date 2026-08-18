@@ -11,6 +11,7 @@
     Music,
     Mic,
     Home,
+    ArrowRightLeft,
   } from "lucide-svelte";
 
   // Tab Views
@@ -23,6 +24,7 @@
   import HistoryTab from "./HistoryTab.svelte";
   import MetronomeTab from "./MetronomeTab.svelte";
   import TuningForkTab from "./TuningForkTab.svelte";
+  import ConverterTab from "./ConverterTab.svelte";
   import { Metronome } from "../../../lib/metronome.svelte.js";
   import MetronomeVisual from "./MetronomeVisual.svelte";
 
@@ -42,6 +44,7 @@
     { id: "timer", label: "Timer", icon: TimerIcon },
     { id: "alarms", label: "Alarms", icon: AlarmClock },
     { id: "worldclock", label: "World Clock", icon: Globe },
+    { id: "converter", label: "Converter", icon: ArrowRightLeft },
     { id: "servers", label: "Servers", icon: Server },
     { id: "history", label: "History", icon: HistoryIcon },
     { id: "metronome", label: "Metronome", icon: Music },
@@ -373,6 +376,7 @@
           {#if activeTab === "timer"}<TimerTab />{/if}
           {#if activeTab === "alarms"}<AlarmsTab />{/if}
           {#if activeTab === "worldclock"}<WorldClockTab />{/if}
+          {#if activeTab === "converter"}<ConverterTab />{/if}
           {#if activeTab === "servers"}<TimeServersTab />{/if}
           {#if activeTab === "history"}<HistoryTab />{/if}
           {#if activeTab === "metronome"}<MetronomeTab
@@ -394,7 +398,7 @@
         >
           <!-- Windows Phone Grid: responsive 3 columns and 3 rows -->
           <div
-            class="grid grid-cols-3 grid-rows-3 gap-2 w-full h-full flex-grow p-0.5"
+            class="grid grid-cols-3 grid-rows-4 gap-2 w-full h-full flex-grow p-0.5"
           >
             {#each TABS_CONFIG as tab, idx}
               {@const bgColors = [
@@ -477,6 +481,7 @@
           {#if activeTab === "timer"}<TimerTab />{/if}
           {#if activeTab === "alarms"}<AlarmsTab />{/if}
           {#if activeTab === "worldclock"}<WorldClockTab />{/if}
+          {#if activeTab === "converter"}<ConverterTab />{/if}
           {#if activeTab === "servers"}<TimeServersTab />{/if}
           {#if activeTab === "history"}<HistoryTab />{/if}
           {#if activeTab === "metronome"}<MetronomeTab
