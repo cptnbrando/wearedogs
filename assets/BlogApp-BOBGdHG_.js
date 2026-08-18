@@ -58,7 +58,24 @@ He looked back at the meta quest footage, captured in the accident, and astoundi
 
 Someone had to have hacked his meta quest, and modified the footage on his device and in the Meta AWS server instance, to update the footage to him moving the gear shift multiple times. He was absolutely sure this was the only thing that could have happened.
 
-...blah blah blah...`,"../data/blog/_template.md":`---
+...blah blah blah...
+
+Jeff couldn't breathe. He inhaled and then a second later he tried exhaling and hit a wall. His hands were clammy and sticky. His heart was beating out of his chest. He looked around up and down, but somehow, time had frozen. Every organ in his body, every dial in his car, every clock in the world lay at rest in this moment, this infinite, fragile moment.
+
+This experience had been happening for years, on much milder levels. Jeff had developed a distraught case of social anxiety, such that whenever he sees another human being, and gets within 20 feet of them, his chest begins to weigh down, tense up. His breathing becomes a heavier sigh, and the thought of the other person hearing the sound of his heavier breath makes his chest tense up harder. He always makes eye contact. Always. You never know when you're in the presence of someone who will do something miraculous before they die. On that off chance, that some step on a butterfly some branch breaking off of a tree some honeybee can influence or change an entire city, or an entire globe, Jeff makes eye contact. Makes his presence known, then exhales vicously, blood rushing back to his limbs, air moving deeply. And he is back to normal again.
+
+The feeling is usually temporary, and non-existent with people Jeff knows. But there is one person that Jeff can't shake this feeling away from. A dark-skinned, thirty something, slender, lucious, volumptuous woman named Joanne. Always wearing gothic architecture on her ankles, piercings through her septum, nipples, tongue, and left ear, tomogotchi and pacman 2-in-1 pod on her purse, drives a Harley Davidson. Joanne speaks English and Japanese, works as a pottery maker out of her apartment, and is not good at cooking. Jeff and Joane attend the same NA weekly meeting, and have been for 4 years.
+
+In this moment Jeff thought of a hundred words, a thousand worlds, where the past 4 years went differently. Where he ate more spinach, went to the gym more, where he took any of the hundreds of moments of awkward, wayward, divine humbling beauty to respect the gods and himself more. Where he told Joanne that she is the most beautiful woman he has ever had the pleasure of meeting. Instead of carpooling, texting, reacting with emojis, instead of playing it cool, nonchalant, the funny guy. Instead of not losing the one woman that's ever taken his breath away. In this moment, this frozen moment, another goodbye after a hundred car rides and goodbyes, Jeff saw what he always saw. New ways to drown.
+
+He jumped out the car screaming "WAIT!!!" He fell to his knees in the wet mud, reaching out, "Joanne, from the moment I met you in that parking lot I have seen oceans, novels, grapevines, poppy seeds, and elephants of adventures with you. Every time I am around you something enters my soul that burns out my entire body. I don't think you feel that way too..."
+
+Joanne drops her basket to the floor, tears in her eyes she brushes them off and says "Jeff..."
+
+Jeff gets up and reaches to her hands. Holding them, moving close, "I know we cannot be together but I can't take this torture anymore. Before the tides change again, can I kiss you?" Without hesitation, Joanne moves close, closes her eyes, leans in. Her lips taste like blackberry marmalade, cherries, honey. Jeff pulls her waist closer, his hands on her back. Joanne moves her hands on his chest and sides. It's like showering for the first time when your water has been off for days, but also like skiing down a trail you've skiied down a hundred times. It's like listening to your favorite album on vinyl. It's like when the bartender adds an extra shot to the margarita. Like walking into a pear orchard, picking a juicy pear off a branch, taking a bite. The leather on her hips, the cotton on his back. His pheramones and her perfume. Like a match and a fuse. Like a flame and a balloon-
+
+Her phone starts vibrating. Jeff feels it on his thigh. Joanne breaks out the kiss and reaches into her pocket. It's her husband. Calling from inside the house they are making out in front of.
+`,"../data/blog/_template.md":`---
 title: "Article Title Here"
 date: "2026-06-27T15:00:00-05:00"
 description: "A compelling summary or subtitle goes here. It is displayed on the logs index card lists."
