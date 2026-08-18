@@ -3231,8 +3231,8 @@
                       <span class="update-note-kicker"
                         >📌 UPDATE · {selectedCampaign.updateNote.dateLabel}</span
                       >
-                      {#each selectedCampaign.updateNote.text.split("\n\n") as noteParagraph}
-                        <p class="update-note-text">{noteParagraph}</p>
+                      {#each formatBioText(selectedCampaign.updateNote.text) as noteParagraph}
+                        <p class="update-note-text">{@html noteParagraph}</p>
                       {/each}
                     </div>
                   {/if}
