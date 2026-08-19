@@ -1,7 +1,7 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1787115210,
+    "firstCommitTimestamp": 1787115893,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
     "averageLinesAltered": 219566
@@ -11,13 +11,13 @@
       "version": "1.0.3",
       "name": "Master",
       "date": "2026-08-19",
-      "timestamp": 1787115116,
+      "timestamp": 1787115799,
       "commits": [
         {
-          "hash": "6c39c39",
-          "message": "modified",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/6c39c396e72f7b843c26af99de7b6aedebd62262",
-          "timestamp": 1787115210,
+          "hash": "1a85dc6",
+          "message": "moved passwords up",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/1a85dc64ce3dbf424bb8ad7b1ccbe4624eb17607",
+          "timestamp": 1787115893,
           "linesChanged": 219566
         }
       ]
