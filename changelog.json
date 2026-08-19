@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1787115893,
+    "firstCommitTimestamp": 1787117005,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 219566
+    "averageLinesAltered": 219571
   },
   "entries": [
     {
       "version": "1.0.3",
       "name": "Master",
       "date": "2026-08-19",
-      "timestamp": 1787115799,
+      "timestamp": 1787116906,
       "commits": [
         {
-          "hash": "1a85dc6",
-          "message": "moved passwords up",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/1a85dc64ce3dbf424bb8ad7b1ccbe4624eb17607",
-          "timestamp": 1787115893,
-          "linesChanged": 219566
+          "hash": "543576e",
+          "message": "add new video entry for 'Kids in America' fundraiser",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/543576ed3e286879703870caa2339932a3b977f7",
+          "timestamp": 1787117005,
+          "linesChanged": 219571
         }
       ]
     },
