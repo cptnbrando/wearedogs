@@ -56,6 +56,11 @@
         "thumbnail": "https://data.wearedogs.net/vid/fundraiser/ket-thumb.png"
       },
       {
+        "type": "video",
+        "url": "https://data.wearedogs.net/vid/fundraiser/kids-in-america.mp4",
+        "thumbnail": "https://data.wearedogs.net/vid/fundraiser/kids-in-america-thumb.png"
+      },
+      {
         "type": "image",
         "url": "https://data.wearedogs.net/img/fundraiser/thcban.webp"
       },
