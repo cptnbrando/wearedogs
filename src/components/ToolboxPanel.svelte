@@ -311,6 +311,12 @@
       icon: Mic,
     },
     {
+      id: "passwords",
+      title: "Password Generator",
+      desc: "Generate secure random passwords up to 200 characters with entropy analysis.",
+      icon: KeyRound,
+    },
+    {
       id: "dataflash",
       title: "Data Train",
       desc: "Multi-protocol secure data dispatcher (QR, BT, USB, AirRTC).",
@@ -381,12 +387,6 @@
       title: "2026 World Cup",
       desc: "Archived matches, group stage standings, and the responsive bracket.",
       icon: Trophy,
-    },
-    {
-      id: "passwords",
-      title: "Password Generator",
-      desc: "Generate secure random passwords up to 200 characters with entropy analysis.",
-      icon: KeyRound,
     },
     // RESCUE, GOPRO, DATAFLASH, CHANGELOG, AND SETTINGS MUST ALWAYS BE LAST IN THIS LIST
     {
