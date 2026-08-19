@@ -100,7 +100,9 @@ He threw his Samsung Galaxy S787 Ultra Mega-Neo Climax Premium Deluxe 226 Verizo
 
 "Yes" Ansel then walks back to his apartment. Silent. Embarrassed.
 
-2 years after that, the snaps began. the clicks, ticks, hits, cracks, pings, pongs, bing bongs.
+This event was new, but Ansel was no stranger to dramatic personal events. Without drugs in adolescence Ansel was frequently mocked by classmates, frequently fighting with his parents. He had girlfriends that damaged him, and other friends who liked him well enough. 
+
+Shortly after the schism, the snaps began. the clicks, ticks, hits, cracks, pings, pongs, bing bongs.
 
 Ansel was a drummer and a 3D Audio Engineer. He had been the mixing engineer for The Flaming Lips's latest hit "Dancer". The auto-panning, moving the input signal from the left speaker to the right speaker, on the hi-hats and the individual choir backing tracks, combined with the Sennheiser 3D audio plugin to bring-
 
