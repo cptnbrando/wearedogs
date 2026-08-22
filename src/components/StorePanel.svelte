@@ -4,7 +4,7 @@
   import { onMount, onDestroy, untrack } from "svelte";
   import { fade, scale, fly, slide } from "svelte/transition";
   import { marked } from "marked";
-  import { lettersFor } from "../lib/correspondence.js";
+  import { lettersFor, receivedAgo } from "../lib/correspondence.js";
   import BasePanel from "./BasePanel.svelte";
   import ProductImageSlideshow from "./apps/ProductImageSlideshow.svelte";
   import ThreeDShirtCanvas from "./apps/ThreeDShirtCanvas.svelte";
@@ -3210,7 +3210,8 @@
                               <span class="corr-item-main">
                                 <span class="corr-from">{letter.from}</span>
                                 <span class="corr-meta"
-                                  >{letter.office} · {letter.dateLabel}</span
+                                  >{letter.office} · {letter.dateLabel}
+                                  {receivedAgo(letter.received)}</span
                                 >
                                 <span class="corr-topic">{letter.topic}</span>
                               </span>
@@ -4093,7 +4094,8 @@
             <span class="corr-modal-kicker">📬 CORRESPONDENCE</span>
             <span class="corr-modal-from">{openLetter.from}</span>
             <span class="corr-modal-meta"
-              >{openLetter.office} · {openLetter.dateLabel}</span
+              >{openLetter.office} · {openLetter.dateLabel}
+              {receivedAgo(openLetter.received)}</span
             >
             {#if openLetter.page}
               <a
