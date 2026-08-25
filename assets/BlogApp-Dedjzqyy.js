@@ -140,7 +140,29 @@ What if we asked a dog to kick over a glass of rice, can you think of any questi
 
 The reality is that true randomness cannot exist in the natural world. We can only get as close as we can in this physical world.
 
-[...hey brando next update you should talk about clocks. how time is measured. Quartz clocks vs atomic clocks vs Big Ben weighted clocks, timezones, and trackable hackable time servers integrated in every single HTTP/HTTPS request ever made on the internet. ](https://www.youtube.com/watch?v=tzA0RzvcJwU)
+[...hey brando next update you should talk about clocks. how time is measured. Quartz clocks vs atomic clocks vs Big Ben weighted clocks, timezones, and trackable hackable time servers integrated in every single HTTP/HTTPS request ever made on the internet. ](https://www.youtube.com/watch?v=d020hcWA_Wg&list=RDd020hcWA_Wg)
+
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+[ I am enjoying writing again. Just expressing what I can, my voice my future, paving the way. This story is fiction, but rooted in deep knowledge of ball. I need to work on character arcs and histories and worldbuilding. Synchronicity between the vision and the literature you feel me? These excerpts were written this past week in August 2026 but I have old excerpts buried in some notes app somewhere... ]
+
+# Tuesday, August 25th, 2026
+
+Really this book is about Ansel. Ansel is the main character of this book right her3
+
+Easel easy unless I know a little slow. Anything Ansel said turned to flies in his head. Excellent excessive extra appetizers and entres Axel Anselito amor axleotl Aristotle antelope elephants eloping in the ocean octagons in the sky. The planes are making octagons in the sky again. 8 sided figures, visible from 
+
+His wife had him admitted into a mental institution a year ago. When he got out a month later he wasn't the same man that walked in. He was an animalized man, with an understanding of the cage, the law, and the limits of society. Do not tamper or touch anything you do not own, especially electrical equipment you have no experience with handling, like live voltage wires behind a thermostat. 8 wires blue is cool air green is the fan black is ground red is heat orange is auxiliary heat yellow is something white is something and . Inside the colored sleeve is nothing but copper. A metal that conducts electricity very well.
+
+Ansel dropped out of computer engineering college at the Florida Georgia State Line University back in 2067. He got a D in DC Circuits. And an F in AC Circuits. After struggling at various customer service positions in his twenties, he eventually discovered options trading. Now he works as a stock options portfolio manager at Apex Trading. His main strategy involves leveraging multiple fake identities to get approved for dozens of prop trading accounts, each managing between 30k and 300k in assets. His strategies involved religious -8% stop losses, spreads, selling out-of-the-money short-term call and put contracts to cover losses, copy-trading (monitoring and rapidly copying other successful public trading accounts), and 24/7 ai trading and news bots. On top of the NASDAQ and the New York Stock Exchange (NYSE), Ansel had long standing accounts with Polymarket and the prediction markets. Copy trading proved especially effective here. He had tried crypto, but had never found anything but rug pulls and scams with traditional trading; instead he tested game-based experiences, Augmented Reality Games (ARGs) based in crypto. He had never tried futures trading but heard good things.
+
+His job, though largely automated, required strict discipline. Not necessarily with the routines, but with the sub-routines. Creating tools and ai swarms that can be trusted with your finances 24/7 requires in depth process auditing, specific prompts, tight security, and a wide variety of failsafes.  
+
+
+
+
 `,"../data/blog/_template.md":`---
 title: "Article Title Here"
 date: "2026-06-27T15:00:00-05:00"
