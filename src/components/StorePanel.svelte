@@ -3186,10 +3186,8 @@
                         >
                         <span class="corr-sub"
                           >We write to them. When they write back it goes here — 
-                          and we support anybody who keeps it real and keeps the
-                          discussion going. Really, if they're not in this list,
-                          perhaps they are ghosts. These letters are from real people. 
-                          All 184 representatives should be here. So far we have
+                          we support anybody who keeps the
+                          discussion going.
                           <span class="corr-tally"
                             >{new Set(
                               campaignLetters.map((l) => l.from),
@@ -3914,25 +3912,6 @@
                               Do what you want to do. Bark.
                             </p>
                           </div>
-                        </div>
-                      {:else if selectedCampaign.donationsStatus === "coming_soon"}
-                        <div
-                          class="mb-4 p-3.5 bg-amber-950/30 border border-amber-500/40 rounded-xl text-amber-300 font-mono text-xs flex flex-col gap-1.5 shadow-lg"
-                        >
-                          <div
-                            class="flex items-center gap-2 font-bold text-amber-400"
-                          >
-                            <span class="text-base">💳</span> DONATIONS CURRENTLY
-                            INACTIVE
-                          </div>
-                          <p
-                            class="text-[11px] text-amber-200/80 leading-relaxed font-sans"
-                          >
-                            I haven't made the Stripe payment gateway yet.
-                            But I'm in this for the love of the game.
-                            Unless something changes millions of dollars 
-                            and millions of people will be hurt over this.
-                          </p>
                         </div>
                       {/if}
 
