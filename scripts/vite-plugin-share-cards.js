@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { CAMPAIGN_ALIASES } from "../src/lib/campaignAliases.js";
 
 /**
  * Share cards for every deep-linkable item: campaigns, products and blog posts.
@@ -318,6 +319,18 @@ export default function shareCards(options = {}) {
         fs.writeFileSync(path.join(base, entity.id, "index.html"), html, "utf8");
         fs.writeFileSync(path.join(base, `${entity.id}.html`), html, "utf8");
         written.push(routePath);
+
+        // Campaign short urls (/thc, /doja, …) get the same card at the top
+        // level. The canonical/og:url baked in above still points at the
+        // /store/campaign/<id> page, so crawlers consolidate the aliases onto
+        // one URL instead of seeing ten duplicates.
+        for (const [alias, campaignId] of Object.entries(CAMPAIGN_ALIASES)) {
+          if (campaignId !== entity.id) continue;
+          fs.mkdirSync(path.join(outDir, alias), { recursive: true });
+          fs.writeFileSync(path.join(outDir, alias, "index.html"), html, "utf8");
+          fs.writeFileSync(path.join(outDir, `${alias}.html`), html, "utf8");
+          written.push(alias);
+        }
       }
 
       this.info(

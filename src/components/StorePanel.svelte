@@ -2666,6 +2666,8 @@
                             {copMode}
                             bind:initialStatsTab
                             campaignId={selectedCampaign?.id}
+                            letters={campaignLetters}
+                            onOpenLetter={showLetter}
                             isFullscreen={isMapFullscreen}
                             onToggleFullscreen={() =>
                               (isMapFullscreen = !isMapFullscreen)}
@@ -3184,10 +3186,8 @@
                         >
                         <span class="corr-sub"
                           >We write to them. When they write back it goes here — 
-                          and we support anybody who keeps it real and keeps the
-                          discussion going. Really, if they're not in this list,
-                          perhaps they are ghosts. These letters are from real people. 
-                          All 184 representatives should be here. So far we have
+                          we support anybody who keeps the
+                          discussion going.
                           <span class="corr-tally"
                             >{new Set(
                               campaignLetters.map((l) => l.from),
@@ -3338,10 +3338,13 @@
                     {/if}
                   {:else}
                     <!-- Legacy/Standard layout for other campaigns with milestones/progress -->
-                    {#if selectedCampaign.id === SALE_CAMPAIGN_ID}
-                      <!-- Three versions of one campaign, and the sequence is
-                           half the argument. The calendar still decides what
-                           opens; these just let you read the other two. -->
+                    <!-- Three versions of one campaign, and the sequence is
+                         half the argument. The calendar still decides what
+                         opens; these just let you read the other two. Rendered
+                         twice — above the bio and again under it, so a reader
+                         at the bottom can step to the next phase without
+                         scrolling back up. -->
+                    {#snippet variantTabs()}
                       <div
                         class="variant-tabs"
                         role="tablist"
@@ -3367,6 +3370,9 @@
                           </button>
                         {/each}
                       </div>
+                    {/snippet}
+                    {#if selectedCampaign.id === SALE_CAMPAIGN_ID}
+                      {@render variantTabs()}
                     {/if}
                     <!-- Full bio, no max-height constraint: the panel scrolls, the text never compacts -->
                     {#key bioPhase}
@@ -3409,6 +3415,10 @@
                         {/each}
                       </div>
                     {/key}
+
+                    {#if selectedCampaign.id === SALE_CAMPAIGN_ID}
+                      {@render variantTabs()}
+                    {/if}
 
                     <hr class="border-zinc-850 my-2" />
 
@@ -3903,25 +3913,6 @@
                             </p>
                           </div>
                         </div>
-                      {:else if selectedCampaign.donationsStatus === "coming_soon"}
-                        <div
-                          class="mb-4 p-3.5 bg-amber-950/30 border border-amber-500/40 rounded-xl text-amber-300 font-mono text-xs flex flex-col gap-1.5 shadow-lg"
-                        >
-                          <div
-                            class="flex items-center gap-2 font-bold text-amber-400"
-                          >
-                            <span class="text-base">💳</span> DONATIONS CURRENTLY
-                            INACTIVE
-                          </div>
-                          <p
-                            class="text-[11px] text-amber-200/80 leading-relaxed font-sans"
-                          >
-                            I haven't made the Stripe payment gateway yet.
-                            But I'm in this for the love of the game.
-                            Unless something changes millions of dollars 
-                            and millions of people will be hurt over this.
-                          </p>
-                        </div>
                       {/if}
 
                       <!-- GoFundMe Link button (if exists) -->
@@ -4075,9 +4066,11 @@
       <!-- Intro only. An outro here never completes in this panel, and a
            faded-out `fixed inset-0` backdrop still eats every click on the
            page — closing the letter would lock the store. -->
+      <!-- z-index sits above the fullscreen map wrapper (z-[99999]) so a
+           letter opened from the map's roster is readable there too. -->
       <div
         in:fade={{ duration: 180 }}
-        class="fixed inset-0 bg-black/75 z-[99990] backdrop-blur-sm"
+        class="fixed inset-0 bg-black/75 z-[100000] backdrop-blur-sm"
         onclick={closeLetter}
       ></div>
 
@@ -5049,7 +5042,7 @@
   /* The popup itself */
   .corr-modal {
     position: fixed;
-    z-index: 99991;
+    z-index: 100001;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);

@@ -1,4 +1,7 @@
 import { langs } from './langUtils.js';
+import { CAMPAIGN_ALIASES } from './campaignAliases.js';
+
+export { CAMPAIGN_ALIASES };
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -83,6 +86,12 @@ export function parsePath(path) {
   if (parts.length === 0) return { type: 'home' };
 
   const [s0, s1, s2, s3] = parts;
+
+  // /thc  /doja  /grass  … (campaign short urls). Checked before the lang
+  // rule: 'za' is also Zhuang's ISO 639-1 code, and the campaign alias wins.
+  if (parts.length === 1 && CAMPAIGN_ALIASES[s0]) {
+    return { type: 'store-campaign', campaignId: CAMPAIGN_ALIASES[s0] };
+  }
 
   // /en  /es  /fr  … (BCP 47 codes from worldwidedogs.json)
   if (parts.length === 1 && langs.includes(s0)) {
