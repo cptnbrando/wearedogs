@@ -3340,10 +3340,13 @@
                     {/if}
                   {:else}
                     <!-- Legacy/Standard layout for other campaigns with milestones/progress -->
-                    {#if selectedCampaign.id === SALE_CAMPAIGN_ID}
-                      <!-- Three versions of one campaign, and the sequence is
-                           half the argument. The calendar still decides what
-                           opens; these just let you read the other two. -->
+                    <!-- Three versions of one campaign, and the sequence is
+                         half the argument. The calendar still decides what
+                         opens; these just let you read the other two. Rendered
+                         twice — above the bio and again under it, so a reader
+                         at the bottom can step to the next phase without
+                         scrolling back up. -->
+                    {#snippet variantTabs()}
                       <div
                         class="variant-tabs"
                         role="tablist"
@@ -3369,6 +3372,9 @@
                           </button>
                         {/each}
                       </div>
+                    {/snippet}
+                    {#if selectedCampaign.id === SALE_CAMPAIGN_ID}
+                      {@render variantTabs()}
                     {/if}
                     <!-- Full bio, no max-height constraint: the panel scrolls, the text never compacts -->
                     {#key bioPhase}
@@ -3411,6 +3417,10 @@
                         {/each}
                       </div>
                     {/key}
+
+                    {#if selectedCampaign.id === SALE_CAMPAIGN_ID}
+                      {@render variantTabs()}
+                    {/if}
 
                     <hr class="border-zinc-850 my-2" />
 
