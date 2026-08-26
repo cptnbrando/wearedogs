@@ -67,7 +67,32 @@
     // closing the sheet doesn't immediately re-open it.
     initialStatsTab = $bindable(null),
     campaignId = null,
+    // The campaign's correspondence (resolved letter objects). Offices that
+    // wrote back get a ✉️ on their roster row; onOpenLetter shows the reply.
+    letters = [],
+    onOpenLetter = null,
   } = $props();
+
+  /**
+   * Letters matched to lawmakers by name: a letter's frontmatter `from` is
+   * the lawmaker's name behind an honorific ("Sen. Angela Paxton").
+   */
+  let letterByName = $derived(
+    new Map(
+      letters.map((l) => [
+        String(l.from || "").replace(/^(?:sen|rep|gov|lt\.?\s*gov|dr)\.?\s+/i, ""),
+        l,
+      ]),
+    ),
+  );
+  const letterFor = (rep) => letterByName.get(rep.name) || null;
+
+  function openLetterFor(rep) {
+    const letter = letterFor(rep);
+    if (!letter) return;
+    if (onOpenLetter) onOpenLetter(letter);
+    else if (letter.page) window.open(letter.page, "_blank", "noopener");
+  }
 
   /**
    * Identity key for focus and navigation. NOT the email address: the federal
@@ -2467,6 +2492,18 @@
                           {/if}
                         </span>
                         {rep.name}
+                        {#if letterFor(rep)}
+                          <!-- This office wrote back — jump to their letter. -->
+                          <button
+                            class="tx-rep-letter"
+                            title="They wrote back — read the letter"
+                            aria-label={`Read the correspondence from ${rep.name}`}
+                            onclick={(e) => {
+                              e.stopPropagation();
+                              openLetterFor(rep);
+                            }}>✉️</button
+                          >
+                        {/if}
                       </td>
                       <td>
                         <span class="tx-party tx-party-{partyTone(rep.party)}"
@@ -3417,6 +3454,24 @@
   .tx-rep-row { cursor: pointer; }
   .tx-rep-row:hover td { background: rgba(255, 255, 255, 0.05); }
   .tx-rep-row.on td { background: rgba(16, 185, 129, 0.12); }
+
+  /* Offices that wrote back: the little envelope opens their letter. */
+  .tx-rep-letter {
+    margin-left: 4px;
+    padding: 0 2px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: calc(0.55rem * var(--s, 1));
+    line-height: 1;
+    vertical-align: middle;
+    filter: saturate(0.8);
+    transition: transform 0.15s ease, filter 0.15s ease;
+  }
+  .tx-rep-letter:hover {
+    transform: scale(1.25);
+    filter: saturate(1.2);
+  }
 
   /* Placeholder until real portraits are dropped in. */
   .tx-rep-face {

@@ -2666,6 +2666,8 @@
                             {copMode}
                             bind:initialStatsTab
                             campaignId={selectedCampaign?.id}
+                            letters={campaignLetters}
+                            onOpenLetter={showLetter}
                             isFullscreen={isMapFullscreen}
                             onToggleFullscreen={() =>
                               (isMapFullscreen = !isMapFullscreen)}
@@ -4075,9 +4077,11 @@
       <!-- Intro only. An outro here never completes in this panel, and a
            faded-out `fixed inset-0` backdrop still eats every click on the
            page — closing the letter would lock the store. -->
+      <!-- z-index sits above the fullscreen map wrapper (z-[99999]) so a
+           letter opened from the map's roster is readable there too. -->
       <div
         in:fade={{ duration: 180 }}
-        class="fixed inset-0 bg-black/75 z-[99990] backdrop-blur-sm"
+        class="fixed inset-0 bg-black/75 z-[100000] backdrop-blur-sm"
         onclick={closeLetter}
       ></div>
 
@@ -5049,7 +5053,7 @@
   /* The popup itself */
   .corr-modal {
     position: fixed;
-    z-index: 99991;
+    z-index: 100001;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
