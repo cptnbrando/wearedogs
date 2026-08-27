@@ -184,4 +184,18 @@ export const fullLibrary = [
     genre: "Hip-Hop",
     public: true
   },
+  {
+    id: "dolly",
+    title: "dolly",
+    artist: "DOGS",
+    album: "DOGS RUN THE WORLD",
+    cover: "https://wearedogs.net/dogs.webp",
+    altCover: "",
+    src: "",
+    instrumental: "https://data.wearedogs.net/music/2026/dolly-ins.mp3",
+    dateAdded: "2026-07-27T18:30:43-05:00",
+    year: 2026,
+    genre: "Hip-Hop",
+    public: true
+  },
 ];
