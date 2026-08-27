@@ -170,4 +170,18 @@ export const fullLibrary = [
     attrib: "https://trevorsensorofficial.com/",
     public: true
   },
+  {
+    id: "drugs",
+    title: "drugs",
+    artist: "DOGS",
+    album: "DOGS RUN THE WORLD",
+    cover: "https://wearedogs.net/dogs.webp",
+    altCover: "",
+    src: "https://data.wearedogs.net/music/2026/drugs-vox.mp3",
+    instrumental: "https://data.wearedogs.net/music/2026/drugs-ins.mp3",
+    dateAdded: "2026-07-27T18:13:43-05:00",
+    year: 2026,
+    genre: "Hip-Hop",
+    public: true
+  },
 ];
