@@ -192,7 +192,7 @@ export const fullLibrary = [
     cover: "https://wearedogs.net/dogs.webp",
     altCover: "",
     src: "",
-    instrumental: "https://data.wearedogs.net/music/2026/dolly-ins.mp3",
+    instrumental: "https://data.wearedogs.net/music/2026/dolly-ins1.mp3",
     dateAdded: "2026-07-27T18:30:43-05:00",
     year: 2026,
     genre: "Hip-Hop",
