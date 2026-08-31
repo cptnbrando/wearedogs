@@ -1,5 +1,5 @@
 <script>
-  import { onMount } from "svelte";
+  import { onDestroy } from "svelte";
   import {
     FileText,
     Copy,
@@ -68,6 +68,11 @@
     }
   }
 
+  // Decoded images resolve out of order for big camera photos, so scans await
+  // a per-file load promise instead of trusting a timer.
+  let fileIdCounter = 0;
+  const imageLoadPromises = new Map(); // item.id -> Promise<HTMLImageElement|null>
+
   function processFiles(files) {
     errorMsg = "";
     // Limit to 25 files at once to maintain performance
@@ -87,6 +92,7 @@
     }
 
     const newItems = validFiles.map((file) => ({
+      id: ++fileIdCounter,
       file,
       name: file.name,
       url: "",
@@ -107,33 +113,43 @@
     // Load URLs and HTMLImageElements reactively
     newItems.forEach((item, index) => {
       const targetIdx = startIdx + index;
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        bulkFiles[targetIdx].url = event.target.result;
-        const img = new window.Image();
-        img.src = event.target.result;
-        img.onload = () => {
-          bulkFiles[targetIdx].sourceImage = img;
-          // Trigger initial canvas draw if active
-          if (targetIdx === activeFileIndex) {
-            drawAndFilterImage();
-          }
-        };
-      };
-      reader.readAsDataURL(item.file);
+      imageLoadPromises.set(
+        item.id,
+        new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            bulkFiles[targetIdx].url = event.target.result;
+            const img = new window.Image();
+            img.src = event.target.result;
+            img.onload = () => {
+              bulkFiles[targetIdx].sourceImage = img;
+              // Trigger initial canvas draw if active
+              if (targetIdx === activeFileIndex) {
+                drawAndFilterImage();
+              }
+              resolve(img);
+            };
+            img.onerror = () => resolve(null);
+          };
+          reader.onerror = () => resolve(null);
+          reader.readAsDataURL(item.file);
+        }),
+      );
     });
   }
 
-  // Draw image to canvas and apply selected preprocessing filters
-  function drawAndFilterImage() {
-    if (!canvasElement || !sourceImage) return;
-    const ctx = canvasElement.getContext("2d");
+  // Draw an image onto a canvas and apply the selected preprocessing filters.
+  // Shared by the visible preview canvas and the offscreen canvases the OCR
+  // passes actually read from.
+  function renderToCanvas(canvas, image) {
+    if (!canvas || !image) return;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
     if (!ctx) return;
 
     // Constrain image size for performance while retaining OCR readability
     const maxDimension = 900;
-    let w = sourceImage.naturalWidth || sourceImage.width;
-    let h = sourceImage.naturalHeight || sourceImage.height;
+    let w = image.naturalWidth || image.width;
+    let h = image.naturalHeight || image.height;
 
     if (w > maxDimension || h > maxDimension) {
       if (w > h) {
@@ -145,8 +161,8 @@
       }
     }
 
-    canvasElement.width = w;
-    canvasElement.height = h;
+    canvas.width = w;
+    canvas.height = h;
     ctx.clearRect(0, 0, w, h);
 
     // Apply native CSS context filters
@@ -159,13 +175,13 @@
     }
 
     ctx.filter = filterString.trim() || "none";
-    ctx.drawImage(sourceImage, 0, 0, w, h);
+    ctx.drawImage(image, 0, 0, w, h);
 
     // Apply manual pixel-level binarization if requested
     if (filterBinarize > 0) {
       // Draw image unfiltered first to manually perform custom thresholding
       ctx.filter = "none";
-      ctx.drawImage(sourceImage, 0, 0, w, h);
+      ctx.drawImage(image, 0, 0, w, h);
 
       const imgData = ctx.getImageData(0, 0, w, h);
       const data = imgData.data;
@@ -196,45 +212,89 @@
     }
   }
 
+  function drawAndFilterImage() {
+    renderToCanvas(canvasElement, sourceImage);
+  }
+
+  // One shared Tesseract worker for the whole session. The old code spun up a
+  // fresh worker per recognize() call, re-downloading and re-initializing the
+  // whole engine for every file — a batch of phone photos looked hung.
+  let ocrWorkerPromise = null;
+  let ocrLogTarget = null; // per-scan progress sink for the shared worker
+
+  function getOcrWorker() {
+    if (!ocrWorkerPromise) {
+      ocrWorkerPromise = (async () => {
+        const { createWorker } = await import("tesseract.js");
+        return await createWorker("eng", 1, {
+          logger: (m) => ocrLogTarget?.(m),
+        });
+      })().catch((err) => {
+        ocrWorkerPromise = null; // allow a retry after a failed engine load
+        throw err;
+      });
+    }
+    return ocrWorkerPromise;
+  }
+
+  // Resolve a file's decoded image, waiting for its load if needed, and
+  // render it through the current filters onto its own offscreen canvas.
+  async function canvasForItem(item) {
+    const img = item.sourceImage || (await imageLoadPromises.get(item.id));
+    if (!img) throw new Error(`${item.name} could not be decoded.`);
+    const canvas = document.createElement("canvas");
+    renderToCanvas(canvas, img);
+    return canvas;
+  }
+
+  // Scan one item on the shared worker; progress lands on the item and the
+  // status console via the provided label.
+  async function scanItem(item, label) {
+    item.status = "scanning";
+    item.progress = 0;
+    const worker = await getOcrWorker();
+    ocrLogTarget = (m) => {
+      if (m.status === "recognizing text") {
+        ocrStatus = `${label}: ${Math.round(m.progress * 100)}%`;
+        ocrProgress = m.progress * 100;
+        item.progress = ocrProgress;
+      } else {
+        ocrStatus = `${label}: preparing...`;
+        ocrProgress = Math.max(ocrProgress, 12);
+        item.progress = ocrProgress;
+      }
+    };
+    try {
+      const canvas = await canvasForItem(item);
+      const {
+        data: { text },
+      } = await worker.recognize(canvas);
+      item.text = text || "No text detected.";
+      item.status = "done";
+      item.progress = 100;
+    } finally {
+      ocrLogTarget = null;
+    }
+  }
+
+  onDestroy(() => {
+    if (ocrWorkerPromise) {
+      ocrWorkerPromise.then((w) => w.terminate()).catch(() => {});
+      ocrWorkerPromise = null;
+    }
+  });
+
   // Trigger OCR extraction on active file
   async function runOCR() {
-    if (!canvasElement || isProcessing || activeFileIndex === -1) return;
+    if (isProcessing || !activeItem) return;
     isProcessing = true;
     errorMsg = "";
     ocrProgress = 0;
     ocrStatus = "Initializing engine...";
 
-    if (activeItem) {
-      activeItem.status = "scanning";
-      activeItem.progress = 0;
-    }
-
+    const item = activeItem;
     try {
-      ocrStatus = "Starting scanning worker...";
-
-      const Tesseract = (await import("tesseract.js")).default;
-      const {
-        data: { text },
-      } = await Tesseract.recognize(canvasElement, "eng", {
-        logger: (m) => {
-          if (m.status === "recognizing text") {
-            ocrStatus = `Reading symbols: ${Math.round(m.progress * 100)}%`;
-            ocrProgress = m.progress * 100;
-            if (activeItem) activeItem.progress = ocrProgress;
-          } else {
-            ocrStatus = m.status.charAt(0).toUpperCase() + m.status.slice(1);
-            ocrProgress = Math.max(ocrProgress, 12);
-            if (activeItem) activeItem.progress = ocrProgress;
-          }
-        },
-      });
-
-      if (activeItem) {
-        activeItem.text = text || "No text detected.";
-        activeItem.status = "done";
-        activeItem.progress = 100;
-      }
-
+      await scanItem(item, "Reading symbols");
       ocrStatus = "Extraction completed successfully.";
       ocrProgress = 100;
       activeMobileTab = "output";
@@ -243,61 +303,46 @@
       errorMsg = "Extraction failed: " + err.message;
       ocrStatus = "Scan error";
       ocrProgress = 0;
-      if (activeItem) {
-        activeItem.status = "error";
-        activeItem.error = err.message;
-      }
+      item.status = "error";
+      item.error = err.message;
     } finally {
       isProcessing = false;
     }
   }
 
-  // Batch process all files sequentially
+  // Batch process all files on the one shared worker. Each file reads from
+  // its own offscreen canvas, so nothing depends on the visible canvas having
+  // caught up with the active-file switch.
   async function runBatchOCR() {
     if (isProcessing || bulkFiles.length === 0) return;
     isProcessing = true;
     errorMsg = "";
     ocrProgress = 0;
+    ocrStatus = "Initializing engine...";
 
+    let failures = 0;
     try {
       for (let i = 0; i < bulkFiles.length; i++) {
         const item = bulkFiles[i];
         if (item.status === "done") continue; // Skip already completed files
 
+        // Follow along visually, but correctness no longer depends on it
         activeFileIndex = i;
-        item.status = "scanning";
-        item.progress = 0;
-
-        // Briefly wait for Svelte reactivity to render canvas
-        await new Promise((r) => setTimeout(r, 60));
 
         try {
-          const Tesseract = (await import("tesseract.js")).default;
-          const {
-            data: { text },
-          } = await Tesseract.recognize(canvasElement, "eng", {
-            logger: (m) => {
-              if (m.status === "recognizing text") {
-                ocrStatus = `Batch [${i + 1}/${bulkFiles.length}]: ${Math.round(m.progress * 100)}%`;
-                ocrProgress = m.progress * 100;
-                item.progress = ocrProgress;
-              } else {
-                ocrStatus = `Batch [${i + 1}/${bulkFiles.length}]: preparing...`;
-              }
-            },
-          });
-
-          item.text = text || "No text detected.";
-          item.status = "done";
-          item.progress = 100;
+          await scanItem(item, `Batch [${i + 1}/${bulkFiles.length}]`);
         } catch (err) {
           console.error(err);
+          failures++;
           item.status = "error";
           item.error = err.message;
         }
       }
 
-      ocrStatus = "Batch scan completed.";
+      ocrStatus =
+        failures > 0
+          ? `Batch scan completed — ${failures} file${failures > 1 ? "s" : ""} failed.`
+          : "Batch scan completed.";
       ocrProgress = 100;
       activeMobileTab = "output";
     } catch (err) {
@@ -416,6 +461,7 @@
 
   function removeFile(index) {
     if (isProcessing) return;
+    imageLoadPromises.delete(bulkFiles[index]?.id);
     bulkFiles = bulkFiles.filter((_, i) => i !== index);
     if (activeFileIndex >= bulkFiles.length) {
       activeFileIndex = bulkFiles.length - 1;
@@ -423,6 +469,7 @@
   }
 
   function resetApp() {
+    imageLoadPromises.clear();
     bulkFiles = [];
     activeFileIndex = -1;
     ocrProgress = 0;
