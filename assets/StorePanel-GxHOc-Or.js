@@ -80,7 +80,7 @@ Brandon
 
 Received August 4th 2026, in response to constituent contact about the Texas THC shelf pull and the November 12th federal hemp deadline. Reproduced in full, unedited.
 
-We are grateful for the reply. The office acknowledged the concern directly, laid out exactly what the appropriations language does, and committed to keeping this advocacy in mind — and the door open. **We support anybody and everybody who keeps it real and continues the discussion.** My response follows underneath it.
+We are grateful for the reply. The office acknowledged the concern directly, laid out exactly what the appropriations language does, and committed to keeping this advocacy in mind — and the door open. My response follows underneath it.
 
 ## THE LETTER
 
@@ -137,7 +137,7 @@ Brandon
 
 Received August 11th 2026, in response to constituent contact about the Texas THC shelf pull and the federal hemp deadline. Reproduced in full, unedited.
 
-We are grateful for the reply. An ally on the record: her office lists decriminalizing, legalizing, and taxing cannabis as a named priority for the 2027 session, and logged the concern in their constituent tracking system. **We support anybody and everybody who keeps it real and continues the discussion.**
+We are grateful for the reply. An ally on the record: her office lists decriminalizing, legalizing, and taxing cannabis as a named priority for the 2027 session, and logged the concern in their constituent tracking system.
 
 ## THE LETTER
 
@@ -182,7 +182,7 @@ We are grateful for the reply. An ally on the record: her office lists decrimina
 
 Received August 12th 2026 from her district office, in response to constituent contact about the Texas THC shelf pull and the federal hemp deadline. Reproduced in full, unedited.
 
-We are grateful for the reply. A coauthor of SB 3 whose office engaged with the substance anyway: it explains the office's reasoning, notes the new legal challenges to the DSHS rule, points to the Compassionate Use Program, and logged the position for the January session. **We support anybody and everybody who keeps it real and continues the discussion.**
+We are grateful for the reply. A coauthor of SB 3 whose office engaged with the substance anyway: it explains the office's reasoning, notes the new legal challenges to the DSHS rule, points to the Compassionate Use Program, and logged the position for the January session.
 
 ## THE LETTER
 
@@ -208,7 +208,7 @@ We are grateful for the reply. A coauthor of SB 3 whose office engaged with the 
 
 Received August 18th 2026, in response to constituent contact about the Texas THC shelf pull and the federal hemp deadline. Reproduced in full, unedited.
 
-We are grateful for the reply — a great message to receive. An ally on the record, in plain words: he is deeply committed to cannabis being legalized, regulated, and taxed in a manner similar to alcohol, logged our position in his office's legislative tracking system, and will carry it into the upcoming special session. He also points to the tools for following along yourself — his newsletter and a free Texas Legislature Online account with bill and committee alerts. **We support anybody and everybody who keeps it real and continues the discussion.**
+We are grateful for the reply — a great message to receive. An ally on the record, in plain words: he is deeply committed to cannabis being legalized, regulated, and taxed in a manner similar to alcohol, logged our position in his office's legislative tracking system, and will carry it into the upcoming special session. He also points to the tools for following along yourself — his newsletter and a free Texas Legislature Online account with bill and committee alerts.
 
 I like this letter a lot. I've heard significant information about the dangers of THC to children. Vapes and big tobacco products were inappropriate and dangerous, alcohol products are so prevalent that I wear my Coors Light hat to many places, and a lot of adolescents are on mental health or other prescription medication. Those are the epidemics. Those are the products that cause real damages and death. Marijuana does not. I am simply asking for marijuana to be treated like beer, looks like John Bucy III is too and that makes good sense to me.
 
@@ -235,7 +235,7 @@ I can't speak for John but, are drug test exemptions for marijuana out of the qu
 
 Received August 18th 2026, in response to constituent contact about the Texas THC shelf pull and the federal hemp deadline. Reproduced in full, unedited.
 
-**This is the most helpful message we have received so far, and our favorite.** Senator Paxton co-authored SB 3 — she is on the opposite side of this issue from us — and her office still sent the single clearest account anyone has given us of how Texas got here: the SB 3 veto, the executive order, the May 1st Texas Supreme Court decision reinstating the 2021 DSHS rule, the July 10th Texas Register notice and the July 31st effective date with the statute that sets the clock, the Senate's interim charge and the July 7th hearing on it, and the federal ban with the correct jurisdictional handoff to Senators Cornyn and Cruz. She noted our position for next session and explained her reasoning instead of dodging it. That is exactly what we ask for. **We support anybody and everybody who keeps it real and continues the discussion.**
+**This is the most helpful message we have received so far, and our favorite.** Senator Paxton co-authored SB 3 — she is on the opposite side of this issue from us — and her office still sent the single clearest account anyone has given us of how Texas got here: the SB 3 veto, the executive order, the May 1st Texas Supreme Court decision reinstating the 2021 DSHS rule, the July 10th Texas Register notice and the July 31st effective date with the statute that sets the clock, the Senate's interim charge and the July 7th hearing on it, and the federal ban with the correct jurisdictional handoff to Senators Cornyn and Cruz. She noted our position for next session and explained her reasoning instead of dodging it. That is exactly what we ask for.
 
 One note on the dates: the letter cites the federal ban's original November 12th 2026 effective date. The Senate's August stopgap has since pushed that deadline to December 11th 2026.
 
@@ -290,7 +290,7 @@ I will reply more later, thank you Senator Paxton I appreciate the message.`,Me=
 
 Received August 21st 2026, in response to constituent contact about the federal hemp ban and the December 11th deadline. Reproduced in full, unedited.
 
-This one matters. Texas' junior Senator — in writing — says a blanket federal prohibition of hemp-derived products "disenfranchises the voters in each of the fifty states," that regulation should rest with each individual state, and that a one-size-fits-all federal standard "will create unintended consequences that harm consumers." That is closer to our position than any federal reply we have received, and we thank him for engaging. **We support anybody and everybody who keeps it real and continues the discussion.** He also names the two Senate committees that hold jurisdiction over hemp legislation, notes he sits on neither, and commits to keeping our input in mind if a related vote comes before him. So we took the hint: all 43 senators on those two committees are now on the campaign map and wired into the mail room. The buttons follow the letter.
+This one matters. Ted Cruz says a blanket federal prohibition of hemp-derived products "disenfranchises the voters in each of the fifty states," that regulation should rest with each individual state, and that a one-size-fits-all federal standard "will create unintended consequences that harm consumers." That is closer to our position than most replies we have received, and we thank him for engaging. He also names the two Senate committees that hold jurisdiction over hemp legislation, notes he sits on neither, and commits to keeping our input in mind if a related vote comes before him. So we took the hint: all 43 senators on those two committees are now on the campaign map and wired into the mail room. The buttons follow the letter.
 
 ## THE LETTER
 
