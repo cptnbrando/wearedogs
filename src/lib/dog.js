@@ -340,7 +340,7 @@ export function fromYAML(text) {
     const key = String(scalar(rawKey));
     const val = scalar(rawVal);
     if (mode === "spec") { spec[key] = val; continue; }
-    if (dash || (!cur && mode === "tracks")) { cur = {}; tracks.push(cur); }
+    if (dash || (!cur && (mode === "tracks" || mode === null))) { cur = {}; tracks.push(cur); }
     if (!cur) continue;
     if (key in cur && key !== "name") {
       if (Array.isArray(cur[key])) cur[key].push(val);
@@ -392,15 +392,11 @@ export function toTS(doc) {
   const fields = inferFields(doc.tracks);
   const total = doc.tracks.length;
   const lines = ["// https://wearedogs.net/.dog", ""];
-  lines.push("export interface DogsSpec {");
-  for (const k of Object.keys(doc.spec)) lines.push(`  ${JSON.stringify(k)}: string;`);
-  lines.push("}", "");
   lines.push("export interface Track {");
   for (const [k, f] of fields) {
     lines.push(`  ${JSON.stringify(k)}${f.count < total ? "?" : ""}: ${tsType(f.types)};`);
   }
   lines.push("}", "");
-  lines.push(`export const spec: DogsSpec = ${JSON.stringify(doc.spec)};`, "");
   lines.push(`export const tracks: Track[] = ${JSON.stringify(doc.tracks, null, 2)};`);
   return lines.join("\n");
 }
@@ -416,9 +412,6 @@ export function toDocs(doc) {
 
   // The data itself leads: a markdown table of every block.
   const l = [`# ${block}s (${total})`, ""];
-  l.push("```");
-  l.push(headerLine(doc.spec ?? { format: "dog", version: "1" }));
-  l.push("```", "");
   l.push("| " + keys.map(esc).join(" | ") + " |");
   l.push("|" + keys.map(() => "---").join("|") + "|");
   for (const t of doc.tracks) {
@@ -443,11 +436,9 @@ export function toJS(doc) {
   return [
     "// https://wearedogs.net/.dog",
     "",
-    `export const spec = ${JSON.stringify(doc.spec, null, 2)};`,
-    "",
     `export const tracks = ${JSON.stringify(doc.tracks, null, 2)};`,
     "",
-    "export default { spec, tracks };",
+    "export default tracks;",
     "",
   ].join("\n");
 }
@@ -469,14 +460,14 @@ function yamlScalar(v) {
 }
 
 export function toYAML(doc) {
-  const l = ["# https://wearedogs.net/.dog", "spec:"];
-  for (const [k, v] of Object.entries(doc.spec)) l.push(`  ${yamlKey(k)}: ${yamlScalar(v)}`);
-  l.push("tracks:");
+  const l = ["# https://wearedogs.net/.dog"];
   for (const t of doc.tracks) {
     let first = true;
     for (const [k, v] of Object.entries(t)) {
-      l.push(`${first ? "  - " : "    "}${yamlKey(k)}: ${yamlScalar(v)}`);
-      first = false;
+      for (const one of Array.isArray(v) ? v : [v]) {
+        l.push(`${first ? "- " : "  "}${yamlKey(k)}: ${yamlScalar(one)}`);
+        first = false;
+      }
     }
   }
   return l.join("\n") + "\n";
@@ -508,7 +499,7 @@ export function convertData(text, inputFmt, outputFmt, dogOpts) {
     : parse(text);
   let out;
   if (outputFmt === "dog") out = stringify(doc, dogOpts ?? {});
-  else if (outputFmt === "json") out = JSON.stringify(doc, null, 2);
+  else if (outputFmt === "json") out = JSON.stringify(doc.tracks, null, 2);
   else if (outputFmt === "js") out = toJS(doc);
   else if (outputFmt === "yml") out = toYAML(doc);
   else if (outputFmt === "ts") out = toTS(doc);
