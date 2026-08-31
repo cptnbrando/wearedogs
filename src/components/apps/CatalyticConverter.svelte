@@ -58,6 +58,8 @@
   let previewSize = $state(0); // potential output size of the previewed format
   let currentConversionId = $state(null); // history entry backing the done view
   let showDogInfo = $state(false); // .dog format spec page
+  let previewMaximized = $state(false); // input text pane expanded over the whole site
+  let maximizedOutput = $state(null); // { name, text } — converted text expanded over the whole site
 
   // .dog encoding options — drives the header line of dog output
   const DOG_PRESETS = {
@@ -414,6 +416,33 @@
     };
   });
 
+  // Full-screen text panes, same mechanic as the fundraiser map: Escape has
+  // to be swallowed in the capture phase, before TitlePage's window listener
+  // closes the whole app over it.
+  function handleFullscreenEsc(e) {
+    if (e.key !== "Escape") return;
+    if (!previewMaximized && !maximizedOutput) return;
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+    if (maximizedOutput) maximizedOutput = null;
+    else previewMaximized = false;
+  }
+
+  // Expands a converted text output over the whole site, full (untruncated) text.
+  async function expandOutput(item) {
+    let text = item.text || "";
+    try {
+      if (item.blob) text = await item.blob.text();
+    } catch {}
+    if (text.length > 400000) {
+      text =
+        text.slice(0, 400000) +
+        "\n… (truncated for display — Copy still grabs everything)";
+    }
+    maximizedOutput = { name: item.name, text, blob: item.blob };
+  }
+
   // Copies the FULL text of a blob/File or string (previews are truncated).
   async function copyPreviewText(source, key) {
     try {
@@ -526,6 +555,7 @@
   }
 
   onMount(() => {
+    window.addEventListener("keydown", handleFullscreenEsc, true);
     window.addEventListener("keydown", handleKeydown);
     window.addEventListener("popstate", handleConverterPop);
     // /.dog deep link opens straight to the format spec
@@ -541,6 +571,7 @@
   });
 
   onDestroy(() => {
+    window.removeEventListener("keydown", handleFullscreenEsc, true);
     window.removeEventListener("keydown", handleKeydown);
     window.removeEventListener("popstate", handleConverterPop);
     if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -749,6 +780,8 @@
     });
     dataPreviewText = "";
     editingInput = false;
+    previewMaximized = false;
+    maximizedOutput = null;
     file = null;
     fileType = "";
     inputFormat = "";
@@ -1464,7 +1497,7 @@
         </div>
 
         <p class="text-white/60 font-sans text-sm max-w-2xl">
-          <span class="text-[#4ade80]">dog 1</span> is a self-describing, line-oriented,
+          <span class="text-[#4ade80]">.dog</span> is a self-describing, line-oriented,
           punctuation-free data encoding. Where other formats demand quotes, commas,
           colons, and braces, .dog demands <em>nothing</em>. Chicken scratch is
           syntactically legal. The parser bends to the writer, never the reverse.
@@ -1482,12 +1515,12 @@ dog 2 flow=line fs=2space kv=space block=track case=any punct=none bools=10</pre
                 <th class="py-1 pr-4">rule</th><th class="py-1">meaning</th>
               </tr></thead>
               <tbody class="text-white/60">
-                <tr class="border-t border-white/5"><td class="py-1 pr-4 text-[#4ade80]/80">indent=2</td><td>field lines start with exactly 2 spaces</td></tr>
-                <tr class="border-t border-white/5"><td class="py-1 pr-4 text-[#4ade80]/80">kv=space</td><td>key, one space, value; value runs to end of line</td></tr>
-                <tr class="border-t border-white/5"><td class="py-1 pr-4 text-[#4ade80]/80">block=track</td><td>a block opens at column 0 with <code>track &lt;name&gt;</code></td></tr>
-                <tr class="border-t border-white/5"><td class="py-1 pr-4 text-[#4ade80]/80">end=blank</td><td>a blank line closes the block</td></tr>
-                <tr class="border-t border-white/5"><td class="py-1 pr-4 text-[#4ade80]/80">case=any</td><td>capitalization never matters — keys or values</td></tr>
-                <tr class="border-t border-white/5"><td class="py-1 pr-4 text-[#4ade80]/80">punct=none</td><td>no quotes, commas, colons, or semicolons. ever.</td></tr>
+                <tr class="border-t border-white/5"><td class="py-1 pr-4 text-[#4ade80]/80 whitespace-nowrap align-top">indent=2</td><td class="py-1 align-top">field lines start with exactly 2 spaces</td></tr>
+                <tr class="border-t border-white/5"><td class="py-1 pr-4 text-[#4ade80]/80 whitespace-nowrap align-top">kv=space</td><td class="py-1 align-top">key, one space, value; value runs to end of line</td></tr>
+                <tr class="border-t border-white/5"><td class="py-1 pr-4 text-[#4ade80]/80 whitespace-nowrap align-top">block=track</td><td class="py-1 align-top">a block opens at column 0 with <code>track &lt;name&gt;</code></td></tr>
+                <tr class="border-t border-white/5"><td class="py-1 pr-4 text-[#4ade80]/80 whitespace-nowrap align-top">end=blank</td><td class="py-1 align-top">a blank line closes the block</td></tr>
+                <tr class="border-t border-white/5"><td class="py-1 pr-4 text-[#4ade80]/80 whitespace-nowrap align-top">case=any</td><td class="py-1 align-top">capitalization never matters — keys or values</td></tr>
+                <tr class="border-t border-white/5"><td class="py-1 pr-4 text-[#4ade80]/80 whitespace-nowrap align-top">punct=none</td><td class="py-1 align-top">no quotes, commas, colons, or semicolons. ever.</td></tr>
               </tbody>
             </table>
           </div>
@@ -1511,25 +1544,25 @@ dog 2 flow=line fs=2space kv=space block=track case=any punct=none bools=10</pre
         <div class="p-4 rounded-lg bg-white/2 border border-white/5 flex flex-col gap-2">
           <h3 class="text-[11px] font-bold text-white/40 uppercase tracking-wider">3. Comparative Analysis</h3>
           <div class="overflow-x-auto">
-            <table class="w-full text-left text-[11px]">
+            <table class="w-full min-w-[560px] text-left text-[11px]">
               <thead><tr class="text-white/35 uppercase text-[9px]">
                 <th class="py-1 pr-3"></th>
-                <th class="py-1 pr-3 text-[#4ade80]">.dog</th>
-                <th class="py-1 pr-3">JSON</th>
-                <th class="py-1 pr-3">YAML</th>
-                <th class="py-1 pr-3">XML</th>
+                <th class="py-1 pr-3 text-[#4ade80] whitespace-nowrap">.dog</th>
+                <th class="py-1 pr-3 whitespace-nowrap">JSON</th>
+                <th class="py-1 pr-3 whitespace-nowrap">YAML</th>
+                <th class="py-1 pr-3 whitespace-nowrap">XML</th>
               </tr></thead>
               <tbody class="text-white/60">
-                <tr class="border-t border-white/5"><td class="py-1 pr-3 text-white/40">quotes required</td><td class="text-[#4ade80]">never</td><td>always</td><td>sometimes*</td><td>attributes</td></tr>
-                <tr class="border-t border-white/5"><td class="py-1 pr-3 text-white/40">trailing comma crash</td><td class="text-[#4ade80]">impossible</td><td>yes</td><td>n/a</td><td>n/a</td></tr>
-                <tr class="border-t border-white/5"><td class="py-1 pr-3 text-white/40">*"sometimes" rules to memorize</td><td class="text-[#4ade80]">0</td><td>0</td><td>~63</td><td>~9</td></tr>
-                <tr class="border-t border-white/5"><td class="py-1 pr-3 text-white/40">self-describing</td><td class="text-[#4ade80]">line 1</td><td>no</td><td>no</td><td>DTD (lol)</td></tr>
-                <tr class="border-t border-white/5"><td class="py-1 pr-3 text-white/40">handwriting tolerance</td><td class="text-[#4ade80]">chicken scratch</td><td>strict</td><td>indent-fragile</td><td>hostile</td></tr>
-                <tr class="border-t border-white/5"><td class="py-1 pr-3 text-white/40">size (80-track catalog)</td><td class="text-[#4ade80]">15,649 B</td><td>21,618 B (+38%)</td><td>~18,900 B (+21%)</td><td>~29,000 B (+85%)</td></tr>
-                <tr class="border-t border-white/5"><td class="py-1 pr-3 text-white/40">reference parser</td><td class="text-[#4ade80]">~60 lines</td><td>native</td><td>libyaml: ~19k lines</td><td>expat: ~15k lines</td></tr>
-                <tr class="border-t border-white/5"><td class="py-1 pr-3 text-white/40">nesting</td><td class="text-red-400">flat blocks only</td><td>arbitrary</td><td>arbitrary</td><td>arbitrary</td></tr>
-                <tr class="border-t border-white/5"><td class="py-1 pr-3 text-white/40">keys with spaces</td><td class="text-red-400">no</td><td>yes</td><td>yes</td><td>no</td></tr>
-                <tr class="border-t border-white/5"><td class="py-1 pr-3 text-white/40">values starting with spaces</td><td class="text-red-400">trimmed</td><td>preserved</td><td>quoted</td><td>preserved</td></tr>
+                <tr class="border-t border-white/5"><td class="py-1 pr-3 text-white/40">quotes required</td><td class="py-1 pr-3 align-top text-[#4ade80]">never</td><td class="py-1 pr-3 align-top">always</td><td class="py-1 pr-3 align-top">sometimes*</td><td class="py-1 pr-3 align-top">attributes</td></tr>
+                <tr class="border-t border-white/5"><td class="py-1 pr-3 text-white/40">trailing comma crash</td><td class="py-1 pr-3 align-top text-[#4ade80]">impossible</td><td class="py-1 pr-3 align-top">yes</td><td class="py-1 pr-3 align-top">n/a</td><td class="py-1 pr-3 align-top">n/a</td></tr>
+                <tr class="border-t border-white/5"><td class="py-1 pr-3 text-white/40">*"sometimes" rules to memorize</td><td class="py-1 pr-3 align-top text-[#4ade80]">0</td><td class="py-1 pr-3 align-top">0</td><td class="py-1 pr-3 align-top">~63</td><td class="py-1 pr-3 align-top">~9</td></tr>
+                <tr class="border-t border-white/5"><td class="py-1 pr-3 text-white/40">self-describing</td><td class="py-1 pr-3 align-top text-[#4ade80]">line 1</td><td class="py-1 pr-3 align-top">no</td><td class="py-1 pr-3 align-top">no</td><td class="py-1 pr-3 align-top">DTD (lol)</td></tr>
+                <tr class="border-t border-white/5"><td class="py-1 pr-3 text-white/40">handwriting tolerance</td><td class="py-1 pr-3 align-top text-[#4ade80]">chicken scratch</td><td class="py-1 pr-3 align-top">strict</td><td class="py-1 pr-3 align-top">indent-fragile</td><td class="py-1 pr-3 align-top">hostile</td></tr>
+                <tr class="border-t border-white/5"><td class="py-1 pr-3 text-white/40">size (80-track catalog)</td><td class="py-1 pr-3 align-top text-[#4ade80]">15,649 B</td><td class="py-1 pr-3 align-top">21,618 B (+38%)</td><td class="py-1 pr-3 align-top">~18,900 B (+21%)</td><td class="py-1 pr-3 align-top">~29,000 B (+85%)</td></tr>
+                <tr class="border-t border-white/5"><td class="py-1 pr-3 text-white/40">reference parser</td><td class="py-1 pr-3 align-top text-[#4ade80]">~60 lines</td><td class="py-1 pr-3 align-top">native</td><td class="py-1 pr-3 align-top">libyaml: ~19k lines</td><td class="py-1 pr-3 align-top">expat: ~15k lines</td></tr>
+                <tr class="border-t border-white/5"><td class="py-1 pr-3 text-white/40">nesting</td><td class="py-1 pr-3 align-top text-red-400">flat blocks only</td><td class="py-1 pr-3 align-top">arbitrary</td><td class="py-1 pr-3 align-top">arbitrary</td><td class="py-1 pr-3 align-top">arbitrary</td></tr>
+                <tr class="border-t border-white/5"><td class="py-1 pr-3 text-white/40">keys with spaces</td><td class="py-1 pr-3 align-top text-red-400">no</td><td class="py-1 pr-3 align-top">yes</td><td class="py-1 pr-3 align-top">yes</td><td class="py-1 pr-3 align-top">no</td></tr>
+                <tr class="border-t border-white/5"><td class="py-1 pr-3 text-white/40">values starting with spaces</td><td class="py-1 pr-3 align-top text-red-400">trimmed</td><td class="py-1 pr-3 align-top">preserved</td><td class="py-1 pr-3 align-top">quoted</td><td class="py-1 pr-3 align-top">preserved</td></tr>
               </tbody>
             </table>
           </div>
@@ -1541,10 +1574,10 @@ dog 2 flow=line fs=2space kv=space block=track case=any punct=none bools=10</pre
           <h3 class="text-[11px] font-bold text-white/40 uppercase tracking-wider">4. The Punctuation Tax</h3>
           <p class="font-sans text-white/55">Identical payload, measured (music-catalog, 80 blocks, 10 fields each):</p>
           <div class="flex flex-col gap-1.5">
-            <div class="flex items-center gap-2"><span class="w-10 text-[#4ade80]">.dog</span><div class="h-3 rounded bg-[#4ade80]/70" style="width: 54%"></div><span class="text-white/40">15.6 KB</span></div>
-            <div class="flex items-center gap-2"><span class="w-10 text-white/50">.yml</span><div class="h-3 rounded bg-white/25" style="width: 65%"></div><span class="text-white/40">~18.9 KB</span></div>
-            <div class="flex items-center gap-2"><span class="w-10 text-white/50">.ts</span><div class="h-3 rounded bg-white/25" style="width: 70%"></div><span class="text-white/40">20.5 KB</span></div>
-            <div class="flex items-center gap-2"><span class="w-10 text-white/50">.json</span><div class="h-3 rounded bg-white/25" style="width: 74%"></div><span class="text-white/40">21.6 KB</span></div>
+            <div class="flex items-center gap-2"><span class="w-10 text-[#4ade80]">.dog</span><div class="h-3 rounded bg-[#4ade80]/70" style="width: 54%"></div><span class="text-white/40 whitespace-nowrap shrink-0">15.6 KB</span></div>
+            <div class="flex items-center gap-2"><span class="w-10 text-white/50">.yml</span><div class="h-3 rounded bg-white/25" style="width: 65%"></div><span class="text-white/40 whitespace-nowrap shrink-0">~18.9 KB</span></div>
+            <div class="flex items-center gap-2"><span class="w-10 text-white/50">.ts</span><div class="h-3 rounded bg-white/25" style="width: 70%"></div><span class="text-white/40 whitespace-nowrap shrink-0">20.5 KB</span></div>
+            <div class="flex items-center gap-2"><span class="w-10 text-white/50">.json</span><div class="h-3 rounded bg-white/25" style="width: 74%"></div><span class="text-white/40 whitespace-nowrap shrink-0">21.6 KB</span></div>
           </div>
           <p class="text-[10px] text-white/35 font-sans">Every byte JSON spends on <code>"":,{"{}"}</code> is a byte .dog spends on data. 38% overhead, zero information gained.</p>
         </div>
@@ -2104,6 +2137,15 @@ dog 2 flow=line fs=2space kv=space block=track case=any punct=none bools=10</pre
                   >
                     {copiedKey === item.name ? "Copied!" : "Copy"}
                   </button>
+                  <button
+                    class="px-2 py-0.5 rounded bg-black/40 border border-white/10 text-[9px] text-white/60 hover:text-white font-mono uppercase shrink-0 cursor-pointer transition-colors"
+                    onclick={() => expandOutput(item)}
+                    type="button"
+                    title="View full screen"
+                    aria-label="View {item.name} full screen"
+                  >
+                    ⤢
+                  </button>
                 {/if}
               </div>
               {#if item.kind === "text" && item.text}
@@ -2202,8 +2244,15 @@ dog 2 flow=line fs=2space kv=space block=track case=any punct=none bools=10</pre
               (fileType === "data" ? "flex-1 min-h-0" : "sm:col-span-6")}
           >
             <div
-              class="meta-section"
-              class:flex-col={fileType === "data" && !showDogEncoding}
+              class={"meta-section" +
+                (fileType === "data"
+                  ? showDogEncoding
+                    ? " flex-col sm:flex-row"
+                    : " flex-col"
+                  : "") +
+                (fileType === "data" && previewMaximized
+                  ? " fixed inset-0 z-[99999] bg-black! max-h-[100dvh] rounded-none!"
+                  : "")}
               class:flex-1={fileType === "data"}
               class:min-h-0={fileType === "data"}
               class:items-stretch={fileType === "data" && showDogEncoding}
@@ -2245,7 +2294,7 @@ dog 2 flow=line fs=2space kv=space block=track case=any punct=none bools=10</pre
                 >
                   <!-- top left: file info chip (truncates with … before it can hit Customize) -->
                   <span
-                    class="absolute top-1.5 left-2 z-10 max-w-[calc(100%-110px)] overflow-hidden text-ellipsis whitespace-nowrap text-[9px] font-mono text-white/50 bg-black/60 px-1.5 py-0.5 rounded pointer-events-none"
+                    class="absolute top-1.5 left-2 z-10 max-w-[calc(100%-150px)] overflow-hidden text-ellipsis whitespace-nowrap text-[9px] font-mono text-white/50 bg-black/60 px-1.5 py-0.5 rounded pointer-events-none"
                     >{file.name} · {formatBytes(file.size)}{previewFmt &&
                     previewFmt !== inputFormat
                       ? ` · ${inputFormat.toUpperCase()} ➔ ${previewFmt.toUpperCase()} · ${formatBytes(previewSize)}`
@@ -2259,20 +2308,38 @@ dog 2 flow=line fs=2space kv=space block=track case=any punct=none bools=10</pre
                         )}%)</span
                       >{/if}</span
                   >
-                  <!-- top right: Customize, always -->
-                  {#if selectedFormats.includes("dog")}
+                  <!-- top right: Customize + full screen, always -->
+                  <div class="absolute top-1.5 right-1.5 z-10 flex gap-1.5">
+                    {#if selectedFormats.includes("dog")}
+                      <button
+                        class={"px-1.5 py-0.5 rounded text-[9px] font-mono uppercase border transition-colors cursor-pointer " +
+                          (showDogEncoding
+                            ? "border-[#4ade80]/60 text-[#4ade80] bg-[#4ade80]/10"
+                            : "border-white/10 text-white/50 bg-black/60 hover:text-white")}
+                        onclick={() => (showDogEncoding = !showDogEncoding)}
+                        type="button"
+                        title="Customize the .dog encoding header"
+                      >
+                        Customize
+                      </button>
+                    {/if}
                     <button
-                      class={"absolute top-1.5 right-1.5 z-10 px-1.5 py-0.5 rounded text-[9px] font-mono uppercase border transition-colors cursor-pointer " +
-                        (showDogEncoding
+                      class={"px-1.5 py-0.5 rounded text-[9px] font-mono uppercase border transition-colors cursor-pointer " +
+                        (previewMaximized
                           ? "border-[#4ade80]/60 text-[#4ade80] bg-[#4ade80]/10"
                           : "border-white/10 text-white/50 bg-black/60 hover:text-white")}
-                      onclick={() => (showDogEncoding = !showDogEncoding)}
+                      onclick={() => (previewMaximized = !previewMaximized)}
                       type="button"
-                      title="Customize the .dog encoding header"
+                      title={previewMaximized
+                        ? "Exit full screen (Esc)"
+                        : "Full screen"}
+                      aria-label={previewMaximized
+                        ? "Exit full screen"
+                        : "Full screen"}
                     >
-                      Customize
+                      {previewMaximized ? "⤡" : "⤢"}
                     </button>
-                  {/if}
+                  </div>
                   <!-- bottom right: Copy + Replace -->
                   <div
                     class="absolute bottom-1.5 right-1.5 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-10"
@@ -2324,7 +2391,7 @@ dog 2 flow=line fs=2space kv=space block=track case=any punct=none bools=10</pre
                 <!-- .dog Encoding sidebar — slides in from the right via Customize -->
                 {#if selectedFormats.includes("dog") && showDogEncoding}
                   <div
-                    class="w-56 shrink-0 self-stretch max-h-full min-h-0 overflow-y-auto overscroll-contain p-3 rounded-lg bg-white/2 border border-white/5 flex flex-col gap-2.5 text-left [&>*]:shrink-0"
+                    class="w-full sm:w-56 shrink-0 self-stretch max-h-[55%] sm:max-h-full min-h-0 overflow-y-auto overscroll-contain p-3 rounded-lg bg-white/2 border border-white/5 flex flex-col gap-2.5 text-left [&>*]:shrink-0"
                     transition:fly={{ x: 200, duration: 200 }}
                   >
                     <span
@@ -2812,6 +2879,44 @@ dog 2 flow=line fs=2space kv=space block=track case=any punct=none bools=10</pre
       </div>
     {/if}
   </div>
+
+  <!-- Full-screen converted text pane — same overlay mechanic as the
+       fundraiser map's full screen (Esc or the button closes it) -->
+  {#if maximizedOutput}
+    <div
+      class="fixed inset-0 z-[99999] bg-black max-h-[100dvh] p-2 sm:p-4 flex flex-col gap-2"
+    >
+      <div class="flex items-center justify-between gap-3 shrink-0">
+        <span class="text-[11px] font-mono text-white/60 truncate"
+          >{maximizedOutput.name}</span
+        >
+        <div class="flex gap-1.5 shrink-0">
+          {#if maximizedOutput.blob}
+            <button
+              class="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-[10px] text-white/70 hover:text-white font-mono uppercase cursor-pointer transition-colors"
+              onclick={() =>
+                copyPreviewText(maximizedOutput.blob, "fullscreen")}
+              type="button"
+              title="Copy full converted text"
+            >
+              {copiedKey === "fullscreen" ? "Copied!" : "Copy"}
+            </button>
+          {/if}
+          <button
+            class="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-[10px] text-white/70 hover:text-white font-mono uppercase cursor-pointer transition-colors"
+            onclick={() => (maximizedOutput = null)}
+            type="button"
+            title="Exit full screen (Esc)"
+            aria-label="Exit full screen"
+          >
+            ⤡ Close
+          </button>
+        </div>
+      </div>
+      <pre
+        class="flex-1 min-h-0 w-full overflow-y-auto text-left text-[13px] leading-relaxed font-mono text-[#4ade80]/85 whitespace-pre-wrap bg-black/30 border border-white/5 rounded-lg p-3 m-0 select-text cursor-text">{maximizedOutput.text}</pre>
+    </div>
+  {/if}
 </div>
 
 <style lang="scss">

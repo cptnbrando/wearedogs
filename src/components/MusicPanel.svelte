@@ -479,6 +479,7 @@
     return () => {
       if (fxAnimId) cancelAnimationFrame(fxAnimId);
       window.removeEventListener("resize", handleResize);
+      window.visualViewport?.removeEventListener("resize", handleResize);
       if (fxRenderer) {
         fxRenderer.dispose();
         fxRenderer = null;
@@ -504,23 +505,36 @@
     fxSmoke = [];
   });
 
-  function getKnobCoords() {
-    const knobEl = document.querySelector(".dj-fader-knob");
-    if (!knobEl) return { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+  // The canvas is fixed over the whole viewport; the fx camera spans its CSS
+  // box. Sizing and knob coords both come from the canvas rect — window.inner*
+  // drifts from 100vh on mobile when the browser toolbar collapses.
+  function getFxSize() {
+    if (!faderFxCanvas) return { width: window.innerWidth, height: window.innerHeight };
+    const rect = faderFxCanvas.getBoundingClientRect();
+    return { width: rect.width || window.innerWidth, height: rect.height || window.innerHeight };
+  }
 
+  function getKnobCoords() {
+    const { width, height } = getFxSize();
+    const knobEl = document.querySelector(".dj-fader-knob");
+    if (!knobEl) return { x: width / 2, y: height / 2 };
+
+    const canvasRect = faderFxCanvas
+      ? faderFxCanvas.getBoundingClientRect()
+      : { left: 0, top: 0 };
     const knobRect = knobEl.getBoundingClientRect();
 
-    // Center coordinates on the fader knob
-    const x = knobRect.left + knobRect.width / 2;
-    const y = window.innerHeight - (knobRect.top + knobRect.height / 2);
+    // Center coordinates on the fader knob, relative to the canvas box,
+    // flipped to the camera's bottom-left origin
+    const x = knobRect.left + knobRect.width / 2 - canvasRect.left;
+    const y = height - (knobRect.top + knobRect.height / 2 - canvasRect.top);
     return { x, y };
   }
 
   function initThreeFx() {
     if (!faderFxCanvas) return;
 
-    const width = window.innerWidth;
-    const height = window.innerHeight;
+    const { width, height } = getFxSize();
 
     faderFxCanvas.width = width;
     faderFxCanvas.height = height;
@@ -537,13 +551,15 @@
     fxRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
     window.addEventListener("resize", handleResize);
+    // Mobile toolbars collapsing/expanding resize the visual viewport without
+    // always firing a window resize
+    window.visualViewport?.addEventListener("resize", handleResize);
     animateThreeFx();
   }
 
   function handleResize() {
     if (!faderFxCanvas || !fxRenderer || !fxCamera) return;
-    const width = window.innerWidth;
-    const height = window.innerHeight;
+    const { width, height } = getFxSize();
     faderFxCanvas.width = width;
     faderFxCanvas.height = height;
     fxRenderer.setSize(width, height, false);
@@ -1796,6 +1812,9 @@
     left: 0;
     width: 100vw;
     height: 100vh;
+    /* Match the visible viewport on mobile — 100vh overshoots when the
+       browser toolbar is collapsed, shifting the fx off the fader knob */
+    height: 100dvh;
     pointer-events: none;
     z-index: 99999;
   }
