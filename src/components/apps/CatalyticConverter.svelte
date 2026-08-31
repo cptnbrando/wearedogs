@@ -661,7 +661,7 @@
           err,
         );
       }
-    } else if (["dog", "json", "yml", "yaml", "ts", "js"].includes(ext)) {
+    } else if (["dog", "json", "yml", "yaml", "ts", "js", "md"].includes(ext)) {
       fileType = "data";
       inputFormat = ext === "yaml" ? "yml" : ext;
       selectedFormats = [inputFormat === "dog" ? "json" : "dog"];
@@ -1150,7 +1150,7 @@
         type = "audio";
       } else if (["mp4", "mov", "mkv", "avi"].includes(ext)) {
         type = "video";
-      } else if (["dog", "json", "yml", "yaml", "ts", "js"].includes(ext)) {
+      } else if (["dog", "json", "yml", "yaml", "ts", "js", "md"].includes(ext)) {
         type = "data";
       }
 
@@ -1439,7 +1439,7 @@
     type="file"
     id="file-input"
     class="hidden"
-    accept="image/*,audio/*,video/*,.zip,.dog,.json,.yml,.yaml,.ts,.js"
+    accept="image/*,audio/*,video/*,.zip,.dog,.json,.yml,.yaml,.ts,.js,.md"
     multiple
     onchange={handleFileSelect}
   />
@@ -1859,7 +1859,7 @@ dog 2 flow=line fs=2space kv=space block=track case=any punct=none bools=10</pre
         <h3>Drop file or click to select</h3>
         <p class="upload-sub">
           Supports JPG, PNG, WEBP, AVIF, SVG, MP3, WAV, M4A, AAC, WEBM, MP4,
-          MOV, MKV, AVI, DOG, JSON, YML, TS, JS
+          MOV, MKV, AVI, DOG, JSON, YML, TS, JS, MD
         </p>
       </div>
 
@@ -2070,7 +2070,7 @@ dog 2 flow=line fs=2space kv=space block=track case=any punct=none bools=10</pre
         <CheckCircle class="text-green-400" size={54} />
         <h3>Conversion Complete!</h3>
         <div
-          class="flex flex-col gap-2 w-full max-w-105 max-h-[38vh] overflow-y-auto pr-1"
+          class="flex flex-col gap-2 w-full max-w-105 max-h-[38vh] overflow-y-auto pr-1 self-start"
         >
           {#each convertedFiles as item}
             <div
@@ -2104,7 +2104,7 @@ dog 2 flow=line fs=2space kv=space block=track case=any punct=none bools=10</pre
                   >
                     {copiedKey === item.name ? "Copied!" : "Copy"}
                   </button>
-                  {#if /\.(dog|json|yml|ts|js)$/.test(item.name)}
+                  {#if /\.(dog|json|yml|ts|js|md)$/.test(item.name)}
                     <button
                       class="px-2 py-0.5 rounded bg-[#4ade80]/10 border border-[#4ade80]/30 text-[9px] text-[#4ade80] hover:bg-[#4ade80]/20 font-mono uppercase shrink-0 cursor-pointer transition-colors"
                       onclick={() => reconvertOutput(item)}
@@ -2156,6 +2156,23 @@ dog 2 flow=line fs=2space kv=space block=track case=any punct=none bools=10</pre
           <button class="action-btn download" onclick={downloadFile}>
             <Download size={16} /> DOWNLOAD {#if convertedFiles.length > 1 && !zipDownloads}ALL{/if}
           </button>
+          {#if convertedFiles.some((it) => it.kind === "text" && it.blob && /\.(dog|json|yml|ts|js|md)$/.test(it.name))}
+            <button
+              class="action-btn secondary"
+              onclick={() =>
+                reconvertOutput(
+                  convertedFiles.find(
+                    (it) =>
+                      it.kind === "text" &&
+                      it.blob &&
+                      /\.(dog|json|yml|ts|js|md)$/.test(it.name),
+                  ),
+                )}
+              title="Feed the output back in and convert it to another format"
+            >
+              ♻ RECONVERT
+            </button>
+          {/if}
           <button class="action-btn secondary" onclick={resetState}>
             CONVERT ANOTHER
           </button>
@@ -2744,8 +2761,6 @@ dog 2 flow=line fs=2space kv=space block=track case=any punct=none bools=10</pre
               (fileType === "data" ? "shrink-0" : "sm:col-span-6 h-full")}
           >
             <div class="selection-section flex flex-col gap-4">
-              <h3>Select Output Format</h3>
-
               {#each formatGroups as group}
                 <div>
                   <div

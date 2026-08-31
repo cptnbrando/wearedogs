@@ -260,11 +260,47 @@ export function fromTS(text) {
   }
   return { spec: spec ?? parseHeader("dog 1"), tracks };
 }
+/**
+ * Reads a generated .md data table back into a doc. The first pipe table is
+ * the data (header row = keys); the fenced header line restores the spec.
+ */
+export function fromMD(text) {
+  const lines = text.split(/\r?\n/);
+  let spec = null;
+  const fence = lines.findIndex((l) => l.trim() === "```");
+  if (fence >= 0 && /^dog\s/i.test((lines[fence + 1] ?? "").trim())) {
+    spec = parseHeader(lines[fence + 1].trim());
+  }
+  const i = lines.findIndex(
+    (l, idx) =>
+      l.trim().startsWith("|") &&
+      /^\|[\s:|-]+\|?$/.test((lines[idx + 1] ?? "").trim()) &&
+      (lines[idx + 1] ?? "").includes("-"),
+  );
+  if (i < 0) throw new Error("This markdown doesn't contain a data table to read back.");
+  const cells = (l) =>
+    l.trim().replace(/^\||\|$/g, "").split(/(?<!\\)\|/).map((s) => s.replace(/\\\|/g, "|").trim());
+  const keys = cells(lines[i]);
+  const tracks = [];
+  for (let r = i + 2; r < lines.length; r++) {
+    if (!lines[r].trim().startsWith("|")) break;
+    const vals = cells(lines[r]);
+    const t = {};
+    keys.forEach((k, ci) => {
+      const v = vals[ci] ?? "";
+      if (v !== "") t[k] = coerce(v);
+    });
+    if (!("name" in t)) t.name = "";
+    tracks.push(t);
+  }
+  return { spec: spec ?? parseHeader("dog 1"), tracks };
+}
 /** Detects the data format of pasted/typed text: dog, json, or yml. */
 export function detectDataFormat(text) {
   const first = (text.split(/\r?\n/).find((l) => l.trim()) ?? "").trim();
   if (/^dog\s+\d/i.test(first)) return "dog";
   if (/export const (tracks|spec)/.test(text)) return "ts";
+  if (/^#\s/.test(first) || /\n\|[\s:|-]+\|/.test(text)) return "md";
   try {
     JSON.parse(text);
     return "json";
@@ -468,6 +504,7 @@ export function convertData(text, inputFmt, outputFmt, dogOpts) {
     inputFmt === "json" ? fromJSON(text)
     : inputFmt === "yml" ? fromYAML(text)
     : inputFmt === "ts" || inputFmt === "js" ? fromTS(text)
+    : inputFmt === "md" ? fromMD(text)
     : parse(text);
   let out;
   if (outputFmt === "dog") out = stringify(doc, dogOpts ?? {});
