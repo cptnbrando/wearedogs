@@ -405,7 +405,27 @@
     s5: "#f87171",
   };
 
+  /**
+   * The U.S. Senate committee fleet — HELP & Agriculture members from the
+   * other 49 states, anchored offshore in the Gulf. They get one colour of
+   * their own (violet) instead of the party/stance blend: they aren't Texas
+   * offices and we haven't scored them, but they hold the pen on the
+   * federal hemp rules.
+   */
+  const COMMITTEE_HUE = { from: "#7c3aed", to: "#c4b5fd" };
+
+  /** Captions over the two offshore committee anchorages. */
+  const COMMITTEE_FLEET_LABELS = [
+    { name: "U.S. SENATE — HELP COMMITTEE", lng: -90.1, lat: 28.95 },
+    { name: "U.S. SENATE — AGRICULTURE COMMITTEE", lng: -90.1, lat: 26.72 },
+  ];
+
+  function isCommitteeRep(rep) {
+    return Array.isArray(rep?.committees) && rep.committees.length > 0;
+  }
+
   function ringId(rep) {
+    if (isCommitteeRep(rep)) return "txRing-cmte";
     return `txRing-${chamberTone(rep)}-${partyTone(rep.party)}-${stanceOf(rep).tone}`;
   }
 
@@ -415,11 +435,16 @@
     for (const rep of navigableReps) {
       const id = ringId(rep);
       if (seen.has(id)) continue;
-      seen.set(id, {
+      seen.set(
         id,
-        from: PARTY_HUE[chamberTone(rep)][partyTone(rep.party)],
-        to: STANCE_HUE[stanceOf(rep).tone],
-      });
+        isCommitteeRep(rep)
+          ? { id, from: COMMITTEE_HUE.from, to: COMMITTEE_HUE.to }
+          : {
+              id,
+              from: PARTY_HUE[chamberTone(rep)][partyTone(rep.party)],
+              to: STANCE_HUE[stanceOf(rep).tone],
+            },
+      );
     }
     return [...seen.values()];
   });
@@ -1416,6 +1441,20 @@
         {/if}
       {/each}
 
+      <!-- The committee fleet's nameplates: the HELP and Agriculture members
+           anchor offshore in two blocks (dual-committee members moored in the
+           row between), and each block gets a caption so 43 violet dots in
+           the Gulf read as what they are. -->
+      {#each COMMITTEE_FLEET_LABELS as f}
+        <text
+          x={px(f.lng)}
+          y={py(f.lat)}
+          class="tx-fleet-label"
+          text-anchor="middle"
+          style="font-size: {u(9 * ts)}px">{f.name}</text
+        >
+      {/each}
+
       <!-- Landmarks -->
       <!-- Landmarks are pictorial; they'd cheapen the wide shot, so they only
            appear once you've zoomed in — and only where they don't collide. -->
@@ -1543,7 +1582,7 @@
           {/if}
           <!-- Invisible hit target, bigger than the dot itself. -->
           <circle {cx} {cy} r={u(showDetail ? 13 : 8)} fill="transparent" />
-          <!-- One small dot per office: 184 have to share the map, so each is
+          <!-- One small dot per office: 227 have to share the map, so each is
                a single tiny mark. The fill gradient blends party colour into
                ban stance; Senate & statewide are circles, House diamonds. -->
           {#if rep.chamber === "house"}
@@ -1692,6 +1731,7 @@
         <div class="tx-legend-row"><span class="sw sw-on"></span> On your mail list (green ring)</div>
         <div class="tx-legend-row"><span class="sw sw-off"></span> Senate &amp; statewide — deep red/blue circle</div>
         <div class="tx-legend-row"><span class="sw sw-house"></span> Texas House — light red/blue diamond</div>
+        <div class="tx-legend-row"><span class="sw sw-cmte"></span> U.S. Senate HELP &amp; Agriculture Committees — violet, anchored in the Gulf</div>
         <div class="tx-legend-note">
           Dot colour blends party (red R · blue D) into ban stance (green
           supports legal hemp → red driving the ban · grey no record).
@@ -3760,6 +3800,17 @@
     user-select: none;
   }
 
+  /* Captions over the offshore committee anchorages — same plate style as
+     the water labels, in the committee fleet's violet. */
+  .tx-fleet-label {
+    fill: rgba(167, 139, 250, 0.75);
+    font-family: ui-monospace, monospace;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    pointer-events: none;
+    user-select: none;
+  }
+
   .tx-city {
     fill: #e4e4e7;
     stroke: #09090b;
@@ -3945,6 +3996,9 @@
     background: linear-gradient(135deg, #fca5a5, #93c5fd);
     border-radius: 2px;
     transform: rotate(45deg) scale(0.85);
+  }
+  .sw-cmte {
+    background: linear-gradient(135deg, #7c3aed, #c4b5fd);
   }
   .sw-capital {
     background: #fbbf24;
