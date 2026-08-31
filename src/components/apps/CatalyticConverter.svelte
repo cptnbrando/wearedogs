@@ -2070,11 +2070,11 @@ dog 2 flow=line fs=2space kv=space block=track case=any punct=none bools=10</pre
         <CheckCircle class="text-green-400" size={54} />
         <h3>Conversion Complete!</h3>
         <div
-          class="flex flex-col gap-2 w-full max-w-105 max-h-[38vh] overflow-y-auto pr-1 self-start"
+          class="flex flex-col gap-2 w-full max-w-105 max-h-[38vh] overflow-y-auto pr-1 mx-auto"
         >
           {#each convertedFiles as item}
             <div
-              class="converted-info-card p-3! flex flex-col! gap-2 text-left"
+              class="converted-info-card p-3! flex flex-col! gap-2 text-left w-full max-w-none!"
             >
               <div class="flex flex-row items-center justify-between gap-3">
                 <span class="filename text-[11px]! truncate flex-1"
@@ -2104,16 +2104,6 @@ dog 2 flow=line fs=2space kv=space block=track case=any punct=none bools=10</pre
                   >
                     {copiedKey === item.name ? "Copied!" : "Copy"}
                   </button>
-                  {#if /\.(dog|json|yml|ts|js|md)$/.test(item.name)}
-                    <button
-                      class="px-2 py-0.5 rounded bg-[#4ade80]/10 border border-[#4ade80]/30 text-[9px] text-[#4ade80] hover:bg-[#4ade80]/20 font-mono uppercase shrink-0 cursor-pointer transition-colors"
-                      onclick={() => reconvertOutput(item)}
-                      type="button"
-                      title="Feed this output back in as the new input"
-                    >
-                      Reconvert
-                    </button>
-                  {/if}
                 {/if}
               </div>
               {#if item.kind === "text" && item.text}
