@@ -103,6 +103,11 @@ export function parsePath(path) {
     return { type: 'info' };
   }
 
+  // /.dog  (straight to the .dog format spec inside the converter)
+  if (parts.length === 1 && (s0 === '.dog' || s0 === 'dog')) {
+    return { type: 'app', app: 'converter', dogSpec: true };
+  }
+
   // /music  (panel, no track)
   if (s0 === 'music' && parts.length === 1) {
     return { type: 'panel', panel: 'music' };

@@ -34,6 +34,25 @@ export const letters = Object.entries(modules)
   // index.md is the shelf's own landing page, not a letter.
   .filter((l) => l.slug !== "index" && l.id);
 
+/**
+ * Days elapsed since a letter's `received` date, as a display suffix for the
+ * meta line: "(today)", "(1 day ago)", "(3 days ago)". Counts calendar days
+ * in the viewer's timezone, so a letter received yesterday reads "1 day ago"
+ * even if it arrived 5 minutes before midnight. Empty string when the
+ * frontmatter date is missing or unparseable.
+ */
+export function receivedAgo(received) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(received || "");
+  if (!m) return "";
+  const then = new Date(+m[1], +m[2] - 1, +m[3]);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const days = Math.round((today - then) / 86400000);
+  if (days < 0) return "";
+  if (days === 0) return "(today)";
+  return `(${days} ${days === 1 ? "day" : "days"} ago)`;
+}
+
 /** Resolve one letter by its frontmatter id. */
 export function getLetter(id) {
   return letters.find((l) => l.id === id) || null;
