@@ -618,9 +618,9 @@
           {:else if activeApp === "windshieldwiper"}
             <App onClose={() => (activeApp = null)} />
           {:else if activeApp === "calculator"}
-            <App onUnlock={(targetApp, code) => {
-              localStorage.setItem("gopro_password", code);
-              localStorage.setItem(`${targetApp}_password`, code);
+            <!-- The calculator persists the passcode under the unlocked
+                 app's own key before calling this — no storage writes here -->
+            <App onUnlock={(targetApp) => {
               activeApp = targetApp;
             }} />
           {:else if activeApp === "gopro"}
