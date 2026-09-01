@@ -36,7 +36,7 @@ export class AudioCore {
   currentTrackIndex = $state(0);
   isLoading = $state(false);
   isShuffled = $state(true);
-  repeatMode = $state(1); // 0 = Off, 1 = Repeat All, 2 = Repeat One
+  repeatMode = $state(1); // 0 = Off, 1 = Repeat All, 2 = Repeat One, 3 = X (stop after current)
   activeAudioType = $state("music"); // 'music' | 'video'
   fetchErrors = $state({});
   waveformPeaks = $state({});
@@ -179,11 +179,12 @@ export class AudioCore {
 
   async getAudioSource(url, type, trackId = null) {
     if (!url) return "";
-    if (url.startsWith("https://data.wearedogs.net/")) {
+    // Lockup files are gated server-side behind the calculator passcode, so
+    // they must be fetched with the auth header and played from a blob.
+    if (url.startsWith("https://data.wearedogs.net/") && url.includes("/lockup/")) {
       try {
-        // Lockup files are gated server-side behind the calculator passcode
         const fetchOpts = {};
-        if (url.includes("/lockup/") && musicLock.password) {
+        if (musicLock.password) {
           fetchOpts.headers = { Authorization: `password=${musicLock.password}` };
         }
         const res = await fetch(url, fetchOpts);
@@ -207,7 +208,31 @@ export class AudioCore {
         throw e;
       }
     }
+
+    // Everything else streams straight off its URL. The old code fetched the
+    // whole MP3 into a blob first — with the screen off, the tab loses its
+    // media exemption in the silent gap between songs and the fetch freezes
+    // mid-download, killing auto-advance. The element's own streaming is done
+    // by the browser's media stack, which keeps loading while the page is
+    // throttled.
+    if (type === "track" && trackId) {
+      this.scheduleWaveformDecode(trackId, url);
+    }
     return url;
+  }
+
+  // Waveform bars are decoration: fetch lazily, only while visible, and never
+  // let them block or fail playback. (The response comes from HTTP cache when
+  // the stream already pulled it.)
+  scheduleWaveformDecode(trackId, url) {
+    if (this.waveformPeaks[trackId]) return;
+    if (typeof document !== "undefined" && document.visibilityState !== "visible") return;
+    fetch(url)
+      .then((res) => (res.ok ? res.blob() : null))
+      .then((blob) => {
+        if (blob) this.decodeTrackWaveform(trackId, blob);
+      })
+      .catch(() => {});
   }
 
   async decodeTrackWaveform(trackId, blob) {
@@ -261,6 +286,14 @@ export class AudioCore {
     this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     this.musicGain = this.audioCtx.createGain();
 
+    // Phones suspend/interrupt the context on screen lock; all sound routes
+    // through it, so playback dies silently unless it resumes itself.
+    this.audioCtx.addEventListener("statechange", () => {
+      if (this.isPlaying && this.audioCtx && this.audioCtx.state !== "running") {
+        this.audioCtx.resume().catch(() => {});
+      }
+    });
+
     this.analyser = this.audioCtx.createAnalyser();
     this.analyser.fftSize = 256;
 
@@ -270,8 +303,30 @@ export class AudioCore {
     // Initialize HTML Audio elements
     this.trackAudio = new Audio();
     this.trackAudio.crossOrigin = "anonymous";
+    this.trackAudio.preload = "auto";
     this.instAudio = new Audio();
     this.instAudio.crossOrigin = "anonymous";
+    this.instAudio.preload = "auto";
+
+    // Streaming surfaces load failures on the element, not a fetch()
+    this.trackAudio.addEventListener("error", () => {
+      if (!this.trackAudio.src) return;
+      const track = this.library[this.currentTrackIndex];
+      if (track) this.fetchErrors[track.id] = true;
+      this.isLoading = false;
+    });
+    this.instAudio.addEventListener("error", () => {
+      if (!this.instAudio.src) return;
+      const track = this.library[this.currentTrackIndex];
+      if (track) {
+        this.instFailed[track.id] = true;
+        // A dead instrumental side shouldn't mute the song
+        if (this.isInstrumental && track.src) {
+          this.isInstrumental = false;
+          this.applyCrossfade();
+        }
+      }
+    });
 
     // Bind event listeners for ending and duration changes
     this.trackAudio.addEventListener("ended", () => {
@@ -330,9 +385,7 @@ export class AudioCore {
     this.isLoading = true;
 
     this.initContext();
-    if (this.audioCtx.state === "suspended") {
-      try { await this.audioCtx.resume(); } catch (e) { }
-    }
+    await this.resumeContextSoon();
 
     if (this.activeTrackBlobUrl) {
       URL.revokeObjectURL(this.activeTrackBlobUrl);
@@ -428,6 +481,7 @@ export class AudioCore {
   play(offset = this.currentTime) {
     if (!this.trackAudio) return;
     this.initContext();
+    this.resumeContextSoon();
     this.activeAudioType = "music";
 
     if (!this.isSyncing) {
@@ -476,11 +530,19 @@ export class AudioCore {
     }
   }
 
+  // Kick a suspended/interrupted context without letting the caller hang on
+  // it: resume() can stall indefinitely (iOS interruptions, some Androids),
+  // and the audio elements can start playing regardless — the graph opens up
+  // whenever the resume finally lands.
+  resumeContextSoon(maxWaitMs = 300) {
+    if (!this.audioCtx || this.audioCtx.state === "running") return Promise.resolve();
+    const resume = this.audioCtx.resume().catch(() => { });
+    return Promise.race([resume, new Promise((r) => setTimeout(r, maxWaitMs))]);
+  }
+
   async togglePlay() {
     this.initContext();
-    if (this.audioCtx.state === "suspended") {
-      try { await this.audioCtx.resume(); } catch (e) { }
-    }
+    await this.resumeContextSoon();
 
     const track = this.library[this.currentTrackIndex];
     const hasFetchError = track ? this.fetchErrors[track.id] : false;
@@ -578,7 +640,7 @@ export class AudioCore {
             }
           }
 
-          if (this.currentTime >= this.duration) {
+          if (this.duration > 0 && this.currentTime >= this.duration) {
             clearInterval(this.progressInterval);
             this.onEnded();
           }
@@ -596,7 +658,17 @@ export class AudioCore {
   }
 
   onEnded() {
-    if (this.repeatMode === 2) {
+    // The native ended event and the progress timer's currentTime check can
+    // both land here for the same song — a second call while the next track
+    // is already loading would skip a track.
+    if (this.isLoading) return;
+    if (this.repeatMode === 3) {
+      // X mode: stop after the current track. Play restarts it from the top;
+      // picking a track, prev, and next all behave as usual.
+      this.isPlaying = false;
+      this.pause();
+      this.seek(0);
+    } else if (this.repeatMode === 2) {
       this.seek(0);
       this.play(0);
     } else if (this.repeatMode === 1 || this.currentTrackIndex < this.library.length - 1 || this.isShuffled) {

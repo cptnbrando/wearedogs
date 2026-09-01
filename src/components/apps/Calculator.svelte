@@ -186,8 +186,16 @@
           }
         }
 
-        localStorage.setItem("gopro_password", concatenated);
-        localStorage.setItem(`${targetApp}_password`, concatenated);
+        // Each secret app's passcode lives under its own storage key. Never
+        // write another app's key from here — the music lockup password in
+        // particular is owned by musicLock and must not be clobbered.
+        const storageKey = `${targetApp}_password`;
+        if (
+          /^[a-zA-Z0-9_\-]+$/.test(targetApp) &&
+          storageKey !== "music_lockup_password"
+        ) {
+          localStorage.setItem(storageKey, concatenated);
+        }
         if (targetApp === "gopro") {
           hasGoProShortcut = true;
         }
