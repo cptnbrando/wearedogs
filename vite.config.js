@@ -61,6 +61,11 @@ export default defineConfig({
         target: 'https://data.wearedogs.net',
         changeOrigin: true,
         headers: { Referer: 'https://wearedogs.net/' },
+        // /music is ALSO the SPA's music-panel route: browser navigations
+        // (Accept: text/html) stay on the dev server; only audio/data
+        // fetches proxy to the data host.
+        bypass: (req) =>
+          req.headers.accept?.includes('text/html') ? '/index.html' : undefined,
       }
     }
   },
