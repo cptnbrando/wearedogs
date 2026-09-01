@@ -478,32 +478,7 @@ export class AudioCore {
     }
   }
 
-  // Guards async play() starts: pause() or a newer play() invalidates any
-  // start still waiting on buffering.
-  _playToken = 0;
-
-  // Resolves when every element can play (readyState >= HAVE_FUTURE_DATA),
-  // bounded so a stalled stream can't park playback forever.
-  waitForPlayable(els, timeoutMs = 6000) {
-    const ready = (el) =>
-      el.readyState >= 3
-        ? Promise.resolve()
-        : new Promise((resolve) => {
-          const done = () => {
-            el.removeEventListener("canplay", done);
-            el.removeEventListener("error", done);
-            resolve();
-          };
-          el.addEventListener("canplay", done);
-          el.addEventListener("error", done);
-        });
-    return Promise.race([
-      Promise.all(els.map(ready)),
-      new Promise((r) => setTimeout(r, timeoutMs)),
-    ]);
-  }
-
-  async play(offset = this.currentTime) {
+  play(offset = this.currentTime) {
     if (!this.trackAudio) return;
     this.initContext();
     this.resumeContextSoon();
@@ -517,20 +492,9 @@ export class AudioCore {
     this.applyVolume();
 
     const isSelfMaster = (!this.masterTabId || this.masterTabId === this.tabId);
-    this.isPlaying = true;
-    const token = ++this._playToken;
 
     // Set current time of HTML Audio elements
     if (isSelfMaster) {
-      // Vocal + instrumental are one transport: never start one before the
-      // other, or the crossfader stops being a beat-perfect DJ switch. Wait
-      // until both streams can actually play, then launch them in one tick.
-      const dual = !!(this.trackAudio.src && this.instAudio && this.instAudio.src);
-      if (dual && (this.trackAudio.readyState < 3 || this.instAudio.readyState < 3)) {
-        await this.waitForPlayable([this.trackAudio, this.instAudio]);
-        if (token !== this._playToken) return; // paused/superseded mid-wait
-      }
-
       if (this.trackAudio.src) this.trackAudio.currentTime = offset;
       if (this.instAudio && this.instAudio.src) {
         this.instAudio.currentTime = offset;
@@ -545,6 +509,7 @@ export class AudioCore {
       }
     }
 
+    this.isPlaying = true;
     this.startProgressTimer();
     this.updateMediaSession();
 
@@ -554,7 +519,6 @@ export class AudioCore {
   }
 
   pause() {
-    this._playToken++;
     clearInterval(this.progressInterval);
     if (this.trackAudio) this.trackAudio.pause();
     if (this.instAudio) this.instAudio.pause();
@@ -665,22 +629,14 @@ export class AudioCore {
         if (isSelfMaster) {
           const track = this.library[this.currentTrackIndex];
           const isInstOnly = track && !track.src && track.instrumental;
-          const dual = !isInstOnly && this.trackAudio.src && this.instAudio?.src;
+          const primaryAudio = (isInstOnly && this.instAudio?.src) ? this.instAudio : this.trackAudio;
+          this.currentTime = primaryAudio.currentTime;
 
-          // The AUDIBLE element is the clock; the muted one gets snapped to
-          // it (within 50ms), so drift corrections never stutter what the
-          // listener actually hears — the crossfade switch stays beat-perfect.
-          const clock =
-            (isInstOnly || (dual && this.isInstrumental)) && this.instAudio?.src
-              ? this.instAudio
-              : this.trackAudio;
-          this.currentTime = clock.currentTime;
-
-          if (dual && !this.trackAudio.paused && !this.instAudio.paused) {
-            const follower = clock === this.trackAudio ? this.instAudio : this.trackAudio;
-            const diff = Math.abs(follower.currentTime - clock.currentTime);
+          // Keep instrumental in sync with the main track (within 50ms tolerance)
+          if (!isInstOnly && this.instAudio && this.instAudio.src && !this.instAudio.paused) {
+            const diff = Math.abs(this.instAudio.currentTime - this.trackAudio.currentTime);
             if (diff > 0.05) {
-              follower.currentTime = clock.currentTime;
+              this.instAudio.currentTime = this.trackAudio.currentTime;
             }
           }
 
