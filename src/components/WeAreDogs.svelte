@@ -1334,8 +1334,7 @@
     font-size: 0.8rem;
     font-weight: 500;
     letter-spacing: 0.04em;
-    /* ≥4.5:1 on the black backdrop (WCAG AA; 0.4 alpha measured 3.65:1) */
-    color: rgba(255, 255, 255, 0.55);
+    color: rgba(255, 255, 255, 0.4);
     transition:
       all 0.3s ease,
       color 0.1s ease,
@@ -1567,8 +1566,7 @@
     font-size: clamp(0.6rem, 1.5vw, 0.8rem);
     font-weight: 400;
     font-style: italic;
-    /* ≥4.5:1 on the black backdrop (WCAG AA; 0.35 alpha measured 2.99:1) */
-    color: rgba(255, 255, 255, 0.55);
+    color: rgba(255, 255, 255, 0.35);
     text-align: center;
     letter-spacing: 0.06em;
     font-family:
@@ -1911,7 +1909,7 @@
 
   .scroller-lang-name {
     font-size: 0.65rem;
-    color: rgba(255, 255, 255, 0.55);
+    color: rgba(255, 255, 255, 0.4);
     text-overflow: ellipsis;
     white-space: nowrap;
     overflow: hidden;

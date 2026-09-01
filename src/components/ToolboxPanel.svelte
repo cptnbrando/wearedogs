@@ -25,6 +25,7 @@
     Mic,
     Film,
     Calculator,
+    KeyRound,
   } from "lucide-svelte";
   import DogsLogo from "./DogsLogo.svelte";
   import AppCard from "./AppCard.svelte";
@@ -77,6 +78,7 @@
     missingcreatures: "./apps/MissingCreatures.svelte",
     wiretap: "./apps/Wiretap.svelte",
     frames: "./apps/Frames.svelte",
+    passwords: "./apps/passwords/PasswordsApp.svelte",
   };
 
   // Lazy loaded app components caching. $state.raw + reassignment writes:
@@ -289,6 +291,7 @@
     settings: "#ff3344",
     wiretap: "#00ff66",
     frames: "#ff5e00",
+    passwords: "#00d75f",
   };
 
   // CRITICAL: The changelog and settings apps MUST always remain next to each other at the bottom of the toolbox list, with settings last.
@@ -322,6 +325,12 @@
       title: "Wiretap",
       desc: "Record audio and video streams with live transcriptions and waveforms.",
       icon: Mic,
+    },
+    {
+      id: "passwords",
+      title: "Password Generator",
+      desc: "Generate secure random passwords up to 200 characters with entropy analysis.",
+      icon: KeyRound,
     },
     {
       id: "dataflash",
@@ -641,8 +650,9 @@
             {:else if activeApp === "windshieldwiper"}
               <App onClose={() => (activeApp = null)} />
             {:else if activeApp === "calculator"}
-              <App onUnlock={(targetApp, code) => {
-                localStorage.setItem(`${targetApp}_password`, code);
+              <!-- The calculator persists the passcode under the unlocked
+                   app's own key before calling this — no storage writes here -->
+              <App onUnlock={(targetApp) => {
                 activeApp = targetApp;
               }} />
             {:else if activeApp === "gopro"}

@@ -332,5 +332,22 @@
       "license": "CC Attribution",
       "link": "https://sketchfab.com/3d-models/dog-man-doing-the-toothless-dance-3df6658042e74678bec197153d3a0156"
     }
+  },
+  {
+    "id": "kk",
+    "name": "K.K. Slider (Animal Crossing)",
+    "type": "glb",
+    "path": "kk.glb",
+    "scaleMultiplier": 3,
+    "centerOffset": [
+      0,
+      0.5,
+      0
+    ],
+    "attribution": {
+      "creator": "FoxoutdaBox",
+      "license": "CC Attribution",
+      "link": "https://sketchfab.com/3d-models/kk-playing-guitar-animal-crossing-f0f48f4e59c648bcb3c778781f2fa4d3"
+    }
   }
 ]

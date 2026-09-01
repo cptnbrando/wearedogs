@@ -123,7 +123,7 @@
   // $effect.pre updates it before the keyed block re-renders, so the fly
   // transitions read the fresh direction.
   let prevTabIdx = 0;
-  let slideDir = 1;
+  let slideDir = $state(1);
   $effect.pre(() => {
     const idx = statsTabs.findIndex((t) => t.id === activeTab);
     slideDir = idx >= prevTabIdx ? 1 : -1;

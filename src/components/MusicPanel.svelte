@@ -13,13 +13,8 @@
     Repeat1,
     List,
     Mic2,
-    Radio,
-    Disc3,
     ExternalLink,
-    Plus,
-    ChevronRight,
     ArrowLeft,
-    BoomBox,
     Music,
     Guitar,
     Waves,
@@ -28,7 +23,7 @@
     Share2,
     Check,
     AlertTriangle,
-    Swords,
+    X,
   } from "lucide-svelte";
   import { audioCore } from "../lib/AudioCore.svelte.js";
   import { musicLock } from "../lib/musicLock.svelte.js";
@@ -38,19 +33,10 @@
   import DogsLogo from "./DogsLogo.svelte";
   import { PRESETS, NO_SIGNAL_PRESET } from "../lib/visualizer/presets.js";
 
-  import SwipeTabNav from "./SwipeTabNav.svelte";
   import { fade } from "svelte/transition";
   import arigatoText from "./music/arigato.txt?raw";
 
   const title = "MUSIC";
-
-  const musicTabs = [
-    { id: "songs", label: "Songs", icon: Disc3 },
-    { id: "samples", label: "Samples", icon: Mic2 },
-    { id: "playlists", label: "Playlists", icon: Radio },
-    { id: "radio", label: "Radio", icon: BoomBox },
-    { id: "battle", label: "Battle", icon: Swords },
-  ];
 
   const ERROR_COVER = "/img/error_cover.png";
 
@@ -62,20 +48,8 @@
 
   let { isClosing = false, onClose, initialTrackId = null } = $props();
 
-  // Tab: 'songs' | 'samples' | 'playlists' | 'radio'
-  let activeTab = $state("songs");
   let sortBy = $state("default"); // 'default' | 'artist' | 'album' | 'year' | 'filename' | 'genre' | 'season'
 
-  // Lazy loaded BattlePanel component caching
-  let loadedBattlePanel = $state(null);
-
-  $effect(() => {
-    if (activeTab === "battle" && !loadedBattlePanel) {
-      import("./music/BattlePanel.svelte").then((m) => {
-        loadedBattlePanel = m.default;
-      });
-    }
-  });
   let showMobileTracklist = $state(false);
   let isBouncing = $state(false);
   let vinylLoaded = $state(false);
@@ -439,29 +413,11 @@
       return;
     }
 
-    if (e.shiftKey) {
-      if (e.key === "ArrowRight") {
-        e.preventDefault();
-        const currentIdx = musicTabs.findIndex((t) => t.id === activeTab);
-        const nextIdx = (currentIdx + 1) % musicTabs.length;
-        activeTab = musicTabs[nextIdx].id;
-        return;
-      } else if (e.key === "ArrowLeft") {
-        e.preventDefault();
-        const currentIdx = musicTabs.findIndex((t) => t.id === activeTab);
-        const prevIdx = (currentIdx - 1 + musicTabs.length) % musicTabs.length;
-        activeTab = musicTabs[prevIdx].id;
-        return;
-      }
-    }
-
     if (e.code === "Space" || e.key === " ") {
-      if (activeTab === "songs") {
-        e.preventDefault();
-        audioCore.togglePlay();
-      }
+      e.preventDefault();
+      audioCore.togglePlay();
     } else if (e.key === "ArrowDown") {
-      if (activeTab === "songs" && sortedLibrary.length > 0) {
+      if (sortedLibrary.length > 0) {
         e.preventDefault();
         let currentIdx = sortedLibrary.findIndex(
           (t) => t.id === focusedTrackId,
@@ -477,7 +433,7 @@
         scrollFocusedTrackIntoView();
       }
     } else if (e.key === "ArrowUp") {
-      if (activeTab === "songs" && sortedLibrary.length > 0) {
+      if (sortedLibrary.length > 0) {
         e.preventDefault();
         let currentIdx = sortedLibrary.findIndex(
           (t) => t.id === focusedTrackId,
@@ -494,50 +450,13 @@
         scrollFocusedTrackIntoView();
       }
     } else if (e.key === "Enter") {
-      if (activeTab === "songs" && focusedTrackId) {
+      if (focusedTrackId) {
         e.preventDefault();
         const track = sortedLibrary.find((t) => t.id === focusedTrackId);
         if (track) {
           selectSortedTrack(track);
         }
       }
-    }
-  }
-
-  let touchStartX = 0;
-  let touchStartY = 0;
-
-  function handleBodyTouchStart(e) {
-    if (
-      e.target &&
-      (e.target.tagName === "INPUT" ||
-        e.target.closest("button") ||
-        e.target.closest(".ctrl"))
-    ) {
-      touchStartX = 0;
-      touchStartY = 0;
-      return;
-    }
-    touchStartX = e.touches[0].clientX;
-    touchStartY = e.touches[0].clientY;
-  }
-
-  // Handle swipe gestures
-  function handleBodyTouchEnd(e) {
-    if (touchStartX === 0) return;
-    if (!e.changedTouches || e.changedTouches.length === 0) return;
-
-    const diffX = e.changedTouches[0].clientX - touchStartX;
-    const diffY = e.changedTouches[0].clientY - touchStartY;
-    if (Math.abs(diffX) <= Math.abs(diffY) || Math.abs(diffX) <= 60) return;
-
-    const idx = musicTabs.findIndex((t) => t.id === activeTab);
-    if (idx === -1) return;
-
-    if (diffX < 0 && idx < musicTabs.length - 1) {
-      activeTab = musicTabs[idx + 1].id;
-    } else if (diffX > 0 && idx > 0) {
-      activeTab = musicTabs[idx - 1].id;
     }
   }
 
@@ -561,6 +480,7 @@
     return () => {
       if (fxAnimId) cancelAnimationFrame(fxAnimId);
       window.removeEventListener("resize", handleResize);
+      window.visualViewport?.removeEventListener("resize", handleResize);
       if (fxRenderer) {
         fxRenderer.dispose();
         fxRenderer = null;
@@ -572,10 +492,9 @@
     };
   });
 
-  // Reset fail counts and clear meshes when track changes, tab changes, or leaving the player
+  // Reset fail counts and clear meshes when track changes or leaving the player
   $effect(() => {
     const trackIdx = audioCore.currentTrackIndex;
-    const tab = activeTab;
     const closing = isClosing;
     crossfadeFailCount = 0;
     hasSmokeStarted = false;
@@ -587,23 +506,36 @@
     fxSmoke = [];
   });
 
-  function getKnobCoords() {
-    const knobEl = document.querySelector(".dj-fader-knob");
-    if (!knobEl) return { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+  // The canvas is fixed over the whole viewport; the fx camera spans its CSS
+  // box. Sizing and knob coords both come from the canvas rect — window.inner*
+  // drifts from 100vh on mobile when the browser toolbar collapses.
+  function getFxSize() {
+    if (!faderFxCanvas) return { width: window.innerWidth, height: window.innerHeight };
+    const rect = faderFxCanvas.getBoundingClientRect();
+    return { width: rect.width || window.innerWidth, height: rect.height || window.innerHeight };
+  }
 
+  function getKnobCoords() {
+    const { width, height } = getFxSize();
+    const knobEl = document.querySelector(".dj-fader-knob");
+    if (!knobEl) return { x: width / 2, y: height / 2 };
+
+    const canvasRect = faderFxCanvas
+      ? faderFxCanvas.getBoundingClientRect()
+      : { left: 0, top: 0 };
     const knobRect = knobEl.getBoundingClientRect();
 
-    // Center coordinates on the fader knob
-    const x = knobRect.left + knobRect.width / 2;
-    const y = window.innerHeight - (knobRect.top + knobRect.height / 2);
+    // Center coordinates on the fader knob, relative to the canvas box,
+    // flipped to the camera's bottom-left origin
+    const x = knobRect.left + knobRect.width / 2 - canvasRect.left;
+    const y = height - (knobRect.top + knobRect.height / 2 - canvasRect.top);
     return { x, y };
   }
 
   function initThreeFx() {
     if (!faderFxCanvas) return;
 
-    const width = window.innerWidth;
-    const height = window.innerHeight;
+    const { width, height } = getFxSize();
 
     faderFxCanvas.width = width;
     faderFxCanvas.height = height;
@@ -620,13 +552,15 @@
     fxRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
     window.addEventListener("resize", handleResize);
+    // Mobile toolbars collapsing/expanding resize the visual viewport without
+    // always firing a window resize
+    window.visualViewport?.addEventListener("resize", handleResize);
     animateThreeFx();
   }
 
   function handleResize() {
     if (!faderFxCanvas || !fxRenderer || !fxCamera) return;
-    const width = window.innerWidth;
-    const height = window.innerHeight;
+    const { width, height } = getFxSize();
     faderFxCanvas.width = width;
     faderFxCanvas.height = height;
     fxRenderer.setSize(width, height, false);
@@ -793,19 +727,12 @@
       </button>
     </header>
 
-    <SwipeTabNav tabs={musicTabs} bind:activeTab />
-
-    <div
-      class="mp-body"
-      ontouchstart={handleBodyTouchStart}
-      ontouchend={handleBodyTouchEnd}
-    >
-      {#if activeTab === "songs"}
-        <div
-          class="songs-layout"
-          in:fade={{ duration: 120, delay: 120 }}
-          out:fade={{ duration: 120 }}
-        >
+    <div class="mp-body">
+      <div
+        class="songs-layout"
+        in:fade={{ duration: 120, delay: 120 }}
+        out:fade={{ duration: 120 }}
+      >
           <!-- Left side player details -->
           <div class="player-side" class:tracklist-open={showMobileTracklist}>
             <!-- Top block (Vinyl & track info) - disappears on mobile tracklist active -->
@@ -1214,11 +1141,20 @@
                   class="ctrl ctrl-sm"
                   class:active-ctrl={audioCore.repeatMode > 0}
                   onclick={() => {
-                    audioCore.repeatMode = (audioCore.repeatMode + 1) % 3;
+                    audioCore.repeatMode = (audioCore.repeatMode + 1) % 4;
                   }}
                   aria-label="Repeat"
+                  title={audioCore.repeatMode === 1
+                    ? "Repeat: all"
+                    : audioCore.repeatMode === 2
+                      ? "Repeat: one"
+                      : audioCore.repeatMode === 3
+                        ? "Stop after current track"
+                        : "Repeat: off"}
                 >
                   {#if audioCore.repeatMode === 2}<Repeat1
+                      size={15}
+                    />{:else if audioCore.repeatMode === 3}<X
                       size={15}
                     />{:else}<Repeat size={15} />{/if}
                 </button>
@@ -1488,119 +1424,6 @@
             </div>
           </div>
         </div>
-      {:else if activeTab === "samples"}
-        <div
-          class="tab-scroll scroll-y"
-          in:fade={{ duration: 120, delay: 120 }}
-          out:fade={{ duration: 120 }}
-        >
-          <div class="sec-head">
-            <h2 class="sec-title">Samples</h2>
-            <p class="sec-sub">
-              MP3 · MP4 · WAV · OGG · YouTube · Instagram · TikTok
-            </p>
-          </div>
-          <div class="drop-zone">
-            <Mic2 size={36} />
-            <p class="drop-title">Drop files or paste a link</p>
-            <p class="drop-sub">
-              Supports all major audio, video, and streaming links
-            </p>
-            <div class="link-row">
-              <input
-                type="url"
-                class="link-input"
-                placeholder="https://youtube.com/watch?v=..."
-                aria-label="Paste link"
-              />
-              <button class="add-btn"><Plus size={15} />Add</button>
-            </div>
-          </div>
-          <div class="empty-state">
-            <div class="wip-tape">COMING SOON</div>
-            <p>Your samples will appear here once added.</p>
-          </div>
-        </div>
-      {:else if activeTab === "playlists"}
-        <div
-          class="tab-scroll scroll-y"
-          in:fade={{ duration: 120, delay: 120 }}
-          out:fade={{ duration: 120 }}
-        >
-          <div class="sec-head">
-            <h2 class="sec-title">Playlists</h2>
-            <p class="sec-sub">
-              Connect Spotify to sync playlists across all services
-              automatically
-            </p>
-          </div>
-          <div class="spotify-card">
-            <div class="sp-icon">
-              <svg
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                width="30"
-                height="30"
-              >
-                <path
-                  d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"
-                />
-              </svg>
-            </div>
-            <div class="sp-info">
-              <h3>Connect Spotify</h3>
-              <p>Import your playlists and sync across services</p>
-            </div>
-            <button class="sp-btn">Connect <ChevronRight size={15} /></button>
-          </div>
-          <div class="svc-chips">
-            {#each [{ name: "Apple Music", color: "#fc3c44", icon: "🎵" }, { name: "YouTube Music", color: "#ff0000", icon: "▶" }, { name: "Amazon Music", color: "#00a8e0", icon: "♪" }, { name: "Tidal", color: "#00d4f5", icon: "〰" }] as svc}
-              <div class="svc-chip" style="--sc:{svc.color}">
-                <span>{svc.icon}</span><span>{svc.name}</span><ExternalLink
-                  size={11}
-                />
-              </div>
-            {/each}
-          </div>
-          <div class="empty-state mx-auto max-w-[380px] text-center">
-            <div class="wip-tape">COMING SOON</div>
-            <p>
-              Connect Spotify to see your playlists, automatically transcribed
-              across all services.
-            </p>
-          </div>
-        </div>
-      {:else if activeTab === "radio"}
-        <div
-          class="tab-scroll scroll-y"
-          in:fade={{ duration: 120, delay: 120 }}
-          out:fade={{ duration: 120 }}
-        >
-          <div class="sec-head">
-            <h2 class="sec-title">Radio</h2>
-            <p class="sec-sub">
-              Stream live broadcasts, dog shows, and podcast feeds
-            </p>
-          </div>
-          <div class="empty-state mx-auto max-w-[380px] text-center">
-            <div class="wip-tape">COMING SOON</div>
-            <p>Live radio feeds will appear here once connected.</p>
-          </div>
-        </div>
-      {:else if activeTab === "battle"}
-        <div
-          class="tab-scroll scroll-y"
-          in:fade={{ duration: 120, delay: 120 }}
-          out:fade={{ duration: 120 }}
-        >
-          {#if loadedBattlePanel}
-            {@const Panel = loadedBattlePanel}
-            <Panel {audioCore} />
-          {:else}
-            <div class="app-loading-spinner" aria-label="Loading..."></div>
-          {/if}
-        </div>
-      {/if}
     </div>
 
     <footer class="mp-footer">
@@ -1999,6 +1822,9 @@
     left: 0;
     width: 100vw;
     height: 100vh;
+    /* Match the visible viewport on mobile — 100vh overshoots when the
+       browser toolbar is collapsed, shifting the fx off the fader knob */
+    height: 100dvh;
     pointer-events: none;
     z-index: 99999;
   }

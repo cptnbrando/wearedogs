@@ -328,6 +328,7 @@
 
     if (params.type === "app") {
       deepLinkApp = params.app;
+      if (params.dogSpec) window.__openDogSpec = true;
       openPage("toolbox");
       setTimeout(() => {
         deepLinkApp = null;
@@ -429,7 +430,10 @@
         }
       } else {
         if (depth > 1) {
-          history.back();
+          // Apps (e.g. the converter) may have pushed extra entries of their
+          // own; history.state.depth tracks the real depth, so unwind fully.
+          const actualDepth = Math.max(history.state?.depth ?? depth, depth);
+          history.go(-(actualDepth - 1));
           depth = 1;
         }
       }

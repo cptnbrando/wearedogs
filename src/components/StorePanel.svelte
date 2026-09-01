@@ -4,7 +4,7 @@
   import { onMount, onDestroy, untrack } from "svelte";
   import { fade, scale, fly, slide } from "svelte/transition";
   import { marked } from "marked";
-  import { lettersFor } from "../lib/correspondence.js";
+  import { lettersFor, receivedAgo } from "../lib/correspondence.js";
   import BasePanel from "./BasePanel.svelte";
   import ProductImageSlideshow from "./apps/ProductImageSlideshow.svelte";
   import ThreeDShirtCanvas from "./apps/ThreeDShirtCanvas.svelte";
@@ -127,7 +127,7 @@
 
   /**
    * The Texas campaign runs on two deadlines: the July 31st state shelf pull
-   * that takes everything but Delta-9, then the November 12th federal
+   * that takes everything but Delta-9, then the December 11th federal
    * reclassification that takes the rest. Once the first lapses the countdown
    * rolls onto the second on its own, no redeploy needed.
    * @param {any} campaign
@@ -160,7 +160,7 @@
    * one-day "SALE DAY" takeover: gold clock counting to midnight, money
    * confetti, the bio swapped for the clearance pitch, the map re-lit in cash
    * colours. At midnight into August 1st everything reverts on its own and the
-   * November federal countdown takes over — no redeploy either way.
+   * December federal countdown takes over — no redeploy either way.
    */
   const SALE_CAMPAIGN_ID = "save-texas-hemp";
   const SALE_DAY_MS = 24 * 60 * 60 * 1000;
@@ -219,14 +219,14 @@
       icon: "🚗",
       label: "Drive",
       blurb:
-        "August 1st onward: the November deadline.",
+        "August 1st onward: the December deadline.",
     },
   ];
 
   /**
    * What the date says the campaign is today. From August 1st onward it
    * speaks in the past tense: the shelf pull happened, the fight is the
-   * November 12th federal deadline. Bio and petition letter both swap to
+   * December 11th federal deadline. Bio and petition letter both swap to
    * their November versions, and the amber "FINAL COUNTDOWN" clock (already
    * handled by getActiveDeadline) takes over.
    */
@@ -371,7 +371,7 @@
 
   // Fire on the rising edge (including a page opened mid-sale — walking in the
   // door during the fireworks still gets you fireworks); wind the clock again
-  // on the falling edge as the November countdown takes back over.
+  // on the falling edge as the December countdown takes back over.
   let wasSaleActive = false;
   $effect(() => {
     const active = saleActive;
@@ -458,7 +458,7 @@
   $effect(() => {
     const camp = selectedCampaign;
     // During the July 31st sale window the pitch itself goes on clearance;
-    // from August 1st it speaks in the past tense about the November deadline.
+    // from August 1st it speaks in the past tense about the December deadline.
     const bioUrl =
       camp && saleActive && camp.saleBioUrl
         ? camp.saleBioUrl
@@ -585,9 +585,9 @@
    */
   const CRITICAL_RE = new RegExp(
     [
-      // 1 — the headline: what happens on Friday, and what November takes
+      // 1 — the headline: what happens on Friday, and what December takes
       "(On Friday,?\\s*July\\s*31(?:st)?[\\s\\S]{0,90}?pulled off all Texas shelves" +
-        "|Come November\\s*12(?:th)?[\\s\\S]{0,140}?Delta-9 included, is gone)",
+        "|Come (?:December\\s*11|November\\s*12)(?:th)?[\\s\\S]{0,140}?Delta-9 included, is gone)",
       // 2 — what the ban destroys
       "(destroys hundreds of Texas small businesses[\\s\\S]{0,140}?wipes out millions in tax revenue" +
         "|thousands of people get fired[\\s\\S]{0,240}?produce nothing of value f(?:or|rom) Texas)",
@@ -598,7 +598,7 @@
       // 5 — hard statistics
       "(\\b\\d{1,3}(?:,\\d{3})+\\b|\\b\\d+(?:\\.\\d+)?%|~\\d[\\d,]*\\b)",
       // 6 — deadlines
-      `((?:Friday,?\\s+)?(?:${MONTHS})\\s+\\d{1,2}(?:st|nd|rd|th)?\\b|\\bFriday\\b|\\bNovember\\b)`,
+      `((?:Friday,?\\s+)?(?:${MONTHS})\\s+\\d{1,2}(?:st|nd|rd|th)?\\b|\\bFriday\\b|\\bNovember\\b|\\bDecember\\b)`,
       // 7 — load-bearing phrases
       `(${KEY_PHRASES.join("|")})`,
     ].join("|"),
@@ -650,7 +650,7 @@
       // 2 — money
       "(\\$\\s?\\d[\\d,]*(?:\\.\\d+)?(?:\\s*(?:BILLION|MILLION|billion|million))?(?:\\s*DOLLARS?| dollars?)?(?:\\s*A YEAR)?|\\d+%\\s*(?:off|OFF)|\\b\\d{1,3}(?:,\\d{3})+\\b)",
       // 3 — the deadline
-      "(MIDNIGHT(?: TONIGHT)?|TONIGHT|TODAY,?\\s*JULY 31ST|ONE DAY ONLY|TODAY ONLY|LAST DAY|FINAL (?:DAY|HOURS?)|November 12th|104-day)",
+      "(MIDNIGHT(?: TONIGHT)?|TONIGHT|TODAY,?\\s*JULY 31ST|ONE DAY ONLY|TODAY ONLY|LAST DAY|FINAL (?:DAY|HOURS?)|December 11th|November 12th|104-day)",
       // 4 — the merchandise
       "(SALE|CLEARANCE|DOORBUSTER|BARGAINS?|DEALS?|MARKDOWNS?|FREE)",
     ].join("|"),
@@ -1560,6 +1560,78 @@
     if (!batch) return;
     markBatchDone(i);
     handleCopyRepsEmails(batch);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* The committees holding the pen                                      */
+  /* ------------------------------------------------------------------ */
+
+  /**
+   * Senate HELP & Agriculture members — the two committees Sen. Cruz's
+   * August 2026 letter names as holding jurisdiction over federal hemp
+   * legislation. Federal offices publish no direct mailbox (same as Cruz
+   * and Cornyn on this roster), so the sheet below rides the roster's
+   * existing contact-form route: the petition letter goes on the
+   * clipboard, and every senator's official webform is one click away.
+   */
+  let committeeReps = $derived(
+    lawmakers.filter(
+      (l) => Array.isArray(l.committees) && l.committees.length > 0,
+    ),
+  );
+
+  let showCommitteeSheet = $state(false);
+  /** Contact forms already opened this pass, keyed by senator name. */
+  let committeeFormsDone = $state([]);
+  let showLetterCopied = $state(false);
+  let letterCopyTimeout = null;
+
+  function openCommitteeSheet() {
+    committeeFormsDone = [];
+    showCommitteeSheet = true;
+  }
+
+  function markCommitteeFormDone(rep) {
+    if (!committeeFormsDone.includes(rep.name)) {
+      committeeFormsDone = [...committeeFormsDone, rep.name];
+    }
+  }
+
+  /** The letter itself, ready to paste into each webform. */
+  function handleCopyPetitionLetter() {
+    const reps = activeContactReps;
+    if (!reps?.body) return;
+    navigator.clipboard
+      .writeText(`${reps.subject}\n\n${reps.body}`)
+      .then(() => {
+        showLetterCopied = true;
+        if (letterCopyTimeout) clearTimeout(letterCopyTimeout);
+        letterCopyTimeout = setTimeout(() => (showLetterCopied = false), 2000);
+      })
+      .catch((err) => console.error("Failed to copy letter:", err));
+  }
+
+  const COMMITTEE_TAGS = { help: "HELP", ag: "AGRICULTURE" };
+
+  /**
+   * In-letter actions: correspondence markdown can carry
+   * #sort-the-mail / #write-the-committees anchors, which act on the app
+   * instead of navigating — the letter closes and the mail tools open.
+   */
+  function handleLetterBodyClick(e) {
+    const a = e.target?.closest?.('a[href^="#"]');
+    if (!a) return;
+    const href = a.getAttribute("href");
+    if (href === "#sort-the-mail") {
+      e.preventDefault();
+      closeLetter();
+      if (!showSortMailPanel) toggleSortMailPanel();
+      else jumpToMap();
+    } else if (href === "#write-the-committees") {
+      e.preventDefault();
+      closeLetter();
+      openCommitteeSheet();
+    }
   }
 
   /* ------------------------------------------------------------------ */
@@ -2668,6 +2740,8 @@
                               {copMode}
                               bind:initialStatsTab
                               campaignId={selectedCampaign?.id}
+                              letters={campaignLetters}
+                              onOpenLetter={showLetter}
                               isFullscreen={isMapFullscreen}
                               onToggleFullscreen={() =>
                                 (isMapFullscreen = !isMapFullscreen)}
@@ -3067,7 +3141,7 @@
                       </div>
                     {:else if timer}
                       <!-- Two-stage clock: red for the July 31st shelf pull,
-                           amber once it lapses and the November 12th federal
+                           amber once it lapses and the December 11th federal
                            deadline takes over. Always three stacked rows —
                            deadline, clock, jump button — never side by side. -->
                       {@const fin = deadline.final}
@@ -3203,8 +3277,8 @@
                           >We write to them. When they write back it goes here — 
                           and we support anybody who keeps it real and keeps the
                           discussion going. Really, if they're not in this list,
-                          perhaps they are ghosts. These letters are from real people. 
-                          All 184 representatives should be here. So far we have
+                          perhaps they are ghosts. These letters are from real people.
+                          All 227 representatives should be here. So far we have
                           <span class="corr-tally"
                             >{new Set(
                               campaignLetters.map((l) => l.from),
@@ -3227,7 +3301,8 @@
                               <span class="corr-item-main">
                                 <span class="corr-from">{letter.from}</span>
                                 <span class="corr-meta"
-                                  >{letter.office} · {letter.dateLabel}</span
+                                  >{letter.office} · {letter.dateLabel}
+                                  {receivedAgo(letter.received)}</span
                                 >
                                 <span class="corr-topic">{letter.topic}</span>
                               </span>
@@ -3238,6 +3313,19 @@
                           {/each}
                         </div>
                       {/if}
+                    </div>
+                  {/if}
+
+                  {#if selectedCampaign.updateNote && !isMapFullscreen}
+                    <!-- Dated notice pinned under the letters: when the
+                         deadline itself moves, the page says so out loud. -->
+                    <div class="update-note">
+                      <span class="update-note-kicker"
+                        >📌 UPDATE · {selectedCampaign.updateNote.dateLabel}</span
+                      >
+                      {#each formatBioText(selectedCampaign.updateNote.text) as noteParagraph}
+                        <p class="update-note-text">{@html noteParagraph}</p>
+                      {/each}
                     </div>
                   {/if}
 
@@ -3342,10 +3430,13 @@
                     {/if}
                   {:else}
                     <!-- Legacy/Standard layout for other campaigns with milestones/progress -->
-                    {#if selectedCampaign.id === SALE_CAMPAIGN_ID}
-                      <!-- Three versions of one campaign, and the sequence is
-                           half the argument. The calendar still decides what
-                           opens; these just let you read the other two. -->
+                    <!-- Three versions of one campaign, and the sequence is
+                         half the argument. The calendar still decides what
+                         opens; these just let you read the other two. Rendered
+                         twice — above the bio and again under it, so a reader
+                         at the bottom can step to the next phase without
+                         scrolling back up. -->
+                    {#snippet variantTabs()}
                       <div
                         class="variant-tabs"
                         role="tablist"
@@ -3371,6 +3462,9 @@
                           </button>
                         {/each}
                       </div>
+                    {/snippet}
+                    {#if selectedCampaign.id === SALE_CAMPAIGN_ID}
+                      {@render variantTabs()}
                     {/if}
                     <!-- Full bio, no max-height constraint: the panel scrolls, the text never compacts -->
                     {#key bioPhase}
@@ -3413,6 +3507,10 @@
                         {/each}
                       </div>
                     {/key}
+
+                    {#if selectedCampaign.id === SALE_CAMPAIGN_ID}
+                      {@render variantTabs()}
+                    {/if}
 
                     <hr class="border-zinc-850 my-2" />
 
@@ -3636,6 +3734,30 @@
                                         class="text-[9px] font-bold text-red-200/80 normal-case tracking-normal"
                                         >Lt. Gov. Patrick, Sen. Perry &amp; Rep.
                                         Shaheen — the ban's architects ({warTargets.length})</span
+                                      >
+                                    </button>
+                                  {/if}
+
+                                  <!-- The two U.S. Senate committees Sen.
+                                       Cruz's letter says hold the pen on
+                                       federal hemp law. No public mailboxes
+                                       at the federal level, so this opens
+                                       the contact-form sheet instead of a
+                                       mailto. -->
+                                  {#if committeeReps.length > 0}
+                                    <button
+                                      onclick={openCommitteeSheet}
+                                      title="Senate HELP & Agriculture — the committees with jurisdiction over federal hemp legislation"
+                                      class="w-full py-2.5 px-3 bg-violet-950/50 hover:bg-violet-900/60 border border-violet-500/50 hover:border-violet-400 text-white rounded-lg font-mono text-[10px] font-black transition-all flex flex-col items-center justify-center gap-0.5 text-center cursor-pointer shadow-lg"
+                                    >
+                                      <span class="leading-tight tracking-widest"
+                                        >🖊 WRITE THE COMMITTEES HOLDING THE PEN</span
+                                      >
+                                      <span
+                                        class="text-[9px] font-bold text-violet-200/80 normal-case tracking-normal"
+                                        >Senate HELP &amp; Agriculture — the {committeeReps.length}
+                                        senators with jurisdiction over the federal
+                                        hemp rules (per Sen. Cruz's letter)</span
                                       >
                                     </button>
                                   {/if}
@@ -3907,25 +4029,6 @@
                             </p>
                           </div>
                         </div>
-                      {:else if selectedCampaign.donationsStatus === "coming_soon"}
-                        <div
-                          class="mb-4 p-3.5 bg-amber-950/30 border border-amber-500/40 rounded-xl text-amber-300 font-mono text-xs flex flex-col gap-1.5 shadow-lg"
-                        >
-                          <div
-                            class="flex items-center gap-2 font-bold text-amber-400"
-                          >
-                            <span class="text-base">💳</span> DONATIONS CURRENTLY
-                            INACTIVE
-                          </div>
-                          <p
-                            class="text-[11px] text-amber-200/80 leading-relaxed font-sans"
-                          >
-                            I haven't made the Stripe payment gateway yet.
-                            But I'm in this for the love of the game.
-                            Unless something changes millions of dollars 
-                            and millions of people will be hurt over this.
-                          </p>
-                        </div>
                       {/if}
 
                       <!-- GoFundMe Link button (if exists) -->
@@ -4079,9 +4182,11 @@
       <!-- Intro only. An outro here never completes in this panel, and a
            faded-out `fixed inset-0` backdrop still eats every click on the
            page — closing the letter would lock the store. -->
+      <!-- z-index sits above the fullscreen map wrapper (z-[99999]) so a
+           letter opened from the map's roster is readable there too. -->
       <div
         in:fade={{ duration: 180 }}
-        class="fixed inset-0 bg-black/75 z-[99990] backdrop-blur-sm"
+        class="fixed inset-0 bg-black/75 z-[100000] backdrop-blur-sm"
         onclick={closeLetter}
       ></div>
 
@@ -4097,7 +4202,8 @@
             <span class="corr-modal-kicker">📬 CORRESPONDENCE</span>
             <span class="corr-modal-from">{openLetter.from}</span>
             <span class="corr-modal-meta"
-              >{openLetter.office} · {openLetter.dateLabel}</span
+              >{openLetter.office} · {openLetter.dateLabel}
+              {receivedAgo(openLetter.received)}</span
             >
             {#if openLetter.page}
               <a
@@ -4121,7 +4227,9 @@
           </div>
         </div>
 
-        <div class="corr-modal-body">
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div class="corr-modal-body" onclick={handleLetterBodyClick}>
           {#if letterHtml}
             {@html letterHtml}
           {:else}
@@ -4439,6 +4547,173 @@
               </button>
               <button
                 onclick={() => (showBatchSheet = false)}
+                class="px-4 py-2.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-400 hover:text-white font-bold rounded-lg text-[11px] tracking-wider transition-all cursor-pointer"
+              >
+                DONE
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    {/if}
+
+    <!-- THE COMMITTEES HOLDING THE PEN — Senate HELP & Agriculture, the two
+         committees with jurisdiction over federal hemp legislation. Federal
+         offices take constituent mail through webforms, not mailboxes, so
+         this sheet copies the letter and hands out every contact form. -->
+    {#if showCommitteeSheet}
+      <!-- svelte-ignore a11y_click_events_have_key_events -->
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <div
+        transition:fade={{ duration: 140 }}
+        class="fixed inset-0 z-[99999] bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6"
+        onclick={() => (showCommitteeSheet = false)}
+      >
+        <div
+          transition:scale={{ duration: 180, start: 0.95 }}
+          class="w-full max-w-lg max-h-[88dvh] flex flex-col bg-zinc-950 border border-violet-500/40 rounded-2xl shadow-2xl overflow-hidden"
+          onclick={(e) => e.stopPropagation()}
+          role="dialog"
+          tabindex="-1"
+          aria-modal="true"
+          aria-label="Write the Senate HELP and Agriculture Committees"
+        >
+          <!-- Header -->
+          <div
+            class="p-4 sm:p-5 bg-gradient-to-br from-violet-950/70 to-zinc-950 border-b border-violet-500/25 flex flex-col gap-2"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div class="flex flex-col gap-1 min-w-0">
+                <span
+                  class="text-[10px] font-mono font-black tracking-widest text-violet-400 uppercase"
+                >
+                  🖊 The committees holding the pen
+                </span>
+                <h3
+                  class="text-base sm:text-lg font-black text-white leading-tight"
+                >
+                  Senate HELP &amp; Agriculture — {committeeReps.length} senators
+                </h3>
+              </div>
+              <button
+                onclick={() => (showCommitteeSheet = false)}
+                class="shrink-0 w-8 h-8 rounded-full bg-zinc-900 border border-zinc-700 hover:bg-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center transition-all cursor-pointer"
+                aria-label="Close committee sheet"
+              >
+                <X size={15} />
+              </button>
+            </div>
+            <p class="text-[11px] sm:text-xs text-violet-100/80 leading-relaxed">
+              Sen. Cruz's letter points here: legislation affecting hemp runs
+              through the Senate Committee on Health, Education, Labor &amp;
+              Pensions and the Senate Committee on Agriculture, Nutrition &amp;
+              Forestry. Not one of these {committeeReps.length} senators is a
+              Texan — they're anchored offshore on the map in violet — but they
+              hold the pen on the federal rules.
+            </p>
+            <p
+              class="text-[10px] font-mono text-zinc-400 leading-relaxed border-l-2 border-violet-500/40 pl-2"
+            >
+              Federal offices don't publish a mailbox — the webform is the only
+              real route in. Copy the letter once, then open each form and
+              paste. Out-of-state messages still get read and tallied by topic.
+            </p>
+          </div>
+
+          <!-- Progress -->
+          <div class="px-4 sm:px-5 py-2.5 border-b border-zinc-900 shrink-0">
+            <div
+              class="flex justify-between items-center text-[10px] font-mono font-bold uppercase tracking-wider mb-1.5"
+            >
+              <span class="text-zinc-500">Contact forms opened</span>
+              <span class="text-violet-300"
+                >{committeeFormsDone.length} / {committeeReps.length}</span
+              >
+            </div>
+            <div
+              class="w-full h-2 bg-zinc-900 border border-zinc-800 rounded-full overflow-hidden"
+            >
+              <div
+                class="h-full bg-gradient-to-r from-violet-600 to-violet-400 rounded-full transition-all duration-300"
+                style="width: {committeeReps.length
+                  ? (committeeFormsDone.length / committeeReps.length) * 100
+                  : 0}%"
+              ></div>
+            </div>
+          </div>
+
+          <!-- Senator list -->
+          <div
+            class="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-5 flex flex-col gap-2"
+          >
+            {#each committeeReps as rep (rep.name)}
+              {@const done = committeeFormsDone.includes(rep.name)}
+              <div
+                class="p-2.5 rounded-xl border flex items-center gap-2.5 transition-all {done
+                  ? 'bg-emerald-950/25 border-emerald-500/40'
+                  : 'bg-zinc-900/50 border-zinc-800'}"
+              >
+                <div class="flex-1 min-w-0 flex flex-col gap-0.5">
+                  <span
+                    class="text-[11px] font-black tracking-wide flex items-center gap-1.5 {done
+                      ? 'text-emerald-300'
+                      : 'text-zinc-200'}"
+                  >
+                    {done ? "✓" : "○"}
+                    <span
+                      class="shrink-0 px-1 rounded text-[9px] font-black leading-tight {rep.party ===
+                      'R'
+                        ? 'bg-red-600 text-white'
+                        : rep.party === 'D'
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-zinc-500 text-black'}">{rep.party}</span
+                    >
+                    <span class="min-w-0 break-words">{rep.name}</span>
+                  </span>
+                  <span class="text-[9px] font-mono text-zinc-500 break-words">
+                    {rep.title}
+                    · {(rep.committees ?? [])
+                      .map((c) => COMMITTEE_TAGS[c] ?? c)
+                      .join(" + ")}{rep.record ? ` · ${rep.record}` : ""}
+                  </span>
+                </div>
+                <a
+                  href={rep.contactUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onclick={() => markCommitteeFormDone(rep)}
+                  class="shrink-0 px-2.5 py-2 bg-violet-600 hover:bg-violet-500 text-white font-black rounded-lg text-[10px] tracking-wider transition-all cursor-pointer no-underline"
+                  title="Open {rep.name}'s official contact form"
+                >
+                  ✍ FORM ↗
+                </a>
+              </div>
+            {/each}
+          </div>
+
+          <!-- Footer -->
+          <div
+            class="p-3.5 sm:p-4 border-t border-zinc-900 bg-zinc-900/25 flex flex-col gap-2 shrink-0"
+          >
+            {#if committeeReps.length > 0 && committeeFormsDone.length === committeeReps.length}
+              <div
+                class="text-[11px] font-bold text-emerald-300 bg-emerald-950/30 border border-emerald-500/30 rounded-lg p-2.5 text-center"
+              >
+                🎉 That's both committees, wall to wall. Every senator with the
+                pen has heard from you.
+              </div>
+            {/if}
+            <div class="flex gap-2">
+              <button
+                onclick={handleCopyPetitionLetter}
+                class="flex-1 py-2.5 bg-violet-600 hover:bg-violet-500 text-white font-black rounded-lg text-[11px] tracking-wider transition-all cursor-pointer"
+              >
+                {showLetterCopied
+                  ? "✓ LETTER COPIED — PASTE INTO EACH FORM"
+                  : "📋 COPY THE PETITION LETTER"}
+              </button>
+              <button
+                onclick={() => (showCommitteeSheet = false)}
                 class="px-4 py-2.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-400 hover:text-white font-bold rounded-lg text-[11px] tracking-wider transition-all cursor-pointer"
               >
                 DONE
@@ -4949,6 +5224,34 @@
     font-weight: 900;
   }
 
+  /* Dated notice pinned under the letters — green because the deadline
+     moving back is the first good news the timeline has had. */
+  .update-note {
+    margin-top: 0.6rem;
+    padding: 0.75rem;
+    border: 1px solid rgba(52, 211, 153, 0.28);
+    border-radius: 0.85rem;
+    background: linear-gradient(
+      180deg,
+      rgba(6, 78, 59, 0.35),
+      rgba(24, 24, 27, 0.35)
+    );
+  }
+  .update-note-kicker {
+    display: block;
+    color: #6ee7b7;
+    font-family: ui-monospace, monospace;
+    font-size: 0.65rem;
+    font-weight: 900;
+    letter-spacing: 0.16em;
+  }
+  .update-note-text {
+    margin: 0.35rem 0 0;
+    color: #a1a1aa;
+    font-size: 0.72rem;
+    line-height: 1.55;
+  }
+
   .corr-item {
     width: 100%;
     margin-top: 0.6rem;
@@ -5025,7 +5328,7 @@
   /* The popup itself */
   .corr-modal {
     position: fixed;
-    z-index: 99991;
+    z-index: 100001;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
@@ -5166,6 +5469,31 @@
   }
   .corr-modal-body :global(blockquote p:last-child) {
     margin-bottom: 0;
+  }
+  /* In-letter action anchors (#write-the-committees / #sort-the-mail) are
+     intercepted by handleLetterBodyClick and act on the app, so they dress
+     as buttons rather than citations. */
+  .corr-modal-body :global(a[href^="#"]) {
+    display: block;
+    text-align: center;
+    padding: 0.65rem 1rem;
+    margin: 0.5rem 0;
+    border: 1px solid rgba(139, 92, 246, 0.5);
+    border-radius: 0.75rem;
+    background: rgba(46, 16, 101, 0.45);
+    color: #ddd6fe;
+    font-family: ui-monospace, monospace;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: all 0.15s;
+  }
+  .corr-modal-body :global(a[href^="#"]:hover) {
+    background: rgba(76, 29, 149, 0.55);
+    border-color: rgba(167, 139, 250, 0.8);
+    color: #fff;
   }
 
   /* The bio text is deliberately static. It used to fade and lift each

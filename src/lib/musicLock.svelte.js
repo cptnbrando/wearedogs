@@ -5,9 +5,31 @@
  * punched into the calculator app and persisted in localStorage.
  */
 import { dataUrl } from "./dataHost.js";
+import { fullLibrary } from "../data/music/tracks.js";
 
 const STORAGE_KEY = "music_lockup_password";
 const CHECK_URL = dataUrl("https://data.wearedogs.net/music/lockup/check.txt");
+
+/**
+ * Verification target: a real lockup track from the library, not the check
+ * file. The check file's auth proved looser than the actual music files —
+ * entering the GoPro passcode "verified" against it and clobbered the
+ * working music password, breaking playback of every locked track. A
+ * passcode that can't fetch actual music must never be stored here.
+ */
+function probeUrl() {
+  const locked = (fullLibrary || []).find(
+    (t) =>
+      (t.src && t.src.includes("/lockup/")) ||
+      (t.instrumental && t.instrumental.includes("/lockup/")),
+  );
+  if (!locked) return CHECK_URL;
+  return dataUrl(
+    locked.src && locked.src.includes("/lockup/")
+      ? locked.src
+      : locked.instrumental,
+  );
+}
 
 class MusicLock {
   unlocked = $state(false);
@@ -24,18 +46,23 @@ class MusicLock {
   }
 
   async verify(pass) {
-    const response = await fetch(CHECK_URL, {
+    const response = await fetch(probeUrl(), {
       method: "GET",
       headers: {
         Authorization: `password=${pass}`,
       },
     });
+    // Headers are enough — don't download the track body just to verify
+    try {
+      response.body?.cancel();
+    } catch (e) { }
     return response.ok;
   }
 
-  /** Try a passcode against the lockup check file; persist and unlock on success. */
+  /** Try a passcode against a real lockup track; persist and unlock on success. */
   async tryUnlock(pass) {
     if (!pass) return false;
+    if (this.unlocked && pass === this.password) return true;
     try {
       if (await this.verify(pass)) {
         this.password = pass;

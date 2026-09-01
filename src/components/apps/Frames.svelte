@@ -10,6 +10,7 @@
     Upload,
     RotateCcw
   } from "lucide-svelte";
+  import { bufferToMp3, bufferToWav } from "../../lib/convert.js";
 
   const SCRUB_STEPS_PER_SECOND = 20; // Increased for smoother hold scrubbing
   const SCRUB_STEP_INTERVAL_MS = 1000 / SCRUB_STEPS_PER_SECOND;
@@ -39,6 +40,9 @@
   
   let notificationText = "";
   let notificationTimeout = null;
+
+  let audioFormat = "mp3";
+  let isExtractingAudio = false;
 
   // Reactivity Calculations
   $: framesToMove = Number(stepSizeString) || 1;
@@ -402,7 +406,11 @@
     fps = 30;
   }
 
-  // Snapshot functionality
+  function getBaseName() {
+    return videoFile ? videoFile.name.substring(0, videoFile.name.lastIndexOf('.')) || videoFile.name : "video";
+  }
+
+  // Screenshot: the current frame at the video's native resolution
   function captureSnapshot() {
     if (!videoEl) return;
     const canvas = document.createElement("canvas");
@@ -412,50 +420,56 @@
     if (!ctxCanvas) return;
 
     ctxCanvas.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
-    downloadCanvasPng(canvas, "", `Saved frame ${currentFrame}!`);
-  }
-
-  function downloadCanvasPng(canvas, suffix, successText) {
     try {
       const dataUrl = canvas.toDataURL("image/png");
       const a = document.createElement("a");
-      const baseName = videoFile ? videoFile.name.substring(0, videoFile.name.lastIndexOf('.')) || videoFile.name : "video";
       a.href = dataUrl;
-      a.download = `${baseName}_frame_${currentFrame}${suffix}.png`;
+      a.download = `${getBaseName()}_frame_${currentFrame}.png`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      showNotification(successText);
+      showNotification(`Saved frame ${currentFrame} (${canvas.width}x${canvas.height})!`);
     } catch (err) {
       console.error(err);
       showNotification("Error exporting frame.");
     }
   }
 
-  // Full HD screenshot: the current frame scaled to fit a 1920x1080 box
-  // (1080x1920 for portrait clips), keeping aspect ratio — no letterbox bars.
-  function captureFullHdScreenshot() {
-    if (!videoEl) return;
-    const srcW = videoWidth || videoEl.videoWidth;
-    const srcH = videoHeight || videoEl.videoHeight;
-    if (!srcW || !srcH) return;
+  // Extract the video's audio track and download it in the chosen format
+  async function downloadAudio() {
+    if (!videoFile || isExtractingAudio) return;
+    isExtractingAudio = true;
+    showNotification(`Extracting ${audioFormat.toUpperCase()} audio...`);
+    try {
+      const arrayBuffer = await videoFile.arrayBuffer();
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      const audioCtx = new AudioCtx();
+      let audioBuffer;
+      try {
+        audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+      } finally {
+        audioCtx.close();
+      }
 
-    const [boxW, boxH] = srcW >= srcH ? [1920, 1080] : [1080, 1920];
-    const scale = Math.min(boxW / srcW, boxH / srcH);
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.round(srcW * scale);
-    canvas.height = Math.round(srcH * scale);
-    const ctxCanvas = canvas.getContext("2d");
-    if (!ctxCanvas) return;
+      const blob = audioFormat === "wav"
+        ? bufferToWav(audioBuffer)
+        : await bufferToMp3(audioBuffer, 40); // ~192 kbps
 
-    ctxCanvas.imageSmoothingEnabled = true;
-    ctxCanvas.imageSmoothingQuality = "high";
-    ctxCanvas.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
-    downloadCanvasPng(
-      canvas,
-      "_fullhd",
-      `Saved frame ${currentFrame} in Full HD (${canvas.width}x${canvas.height})!`
-    );
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${getBaseName()}.${audioFormat}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showNotification(`Saved ${audioFormat.toUpperCase()} audio!`);
+    } catch (err) {
+      console.error(err);
+      showNotification("Couldn't extract audio from this video.");
+    } finally {
+      isExtractingAudio = false;
+    }
   }
 
   function handleBeforeUnload(e) {
@@ -686,11 +700,23 @@
 
         <!-- Snapshots / Quick Exports -->
         <div class="export-actions">
-          <button onclick={captureSnapshot} class="snapshot-btn">
-            <Camera size={16} class="mr-2" /> CAPTURE HIGH-RES FRAME
-          </button>
-          <button onclick={captureFullHdScreenshot} class="snapshot-btn" title="Download the current frame as a Full HD (1080p) PNG">
-            <Download size={16} class="mr-2" /> FULL HD SCREENSHOT
+          <div class="audio-export-row">
+            <button
+              onclick={downloadAudio}
+              class="snapshot-btn"
+              disabled={isExtractingAudio}
+              title="Extract the video's audio track and download it as {audioFormat.toUpperCase()}"
+            >
+              <Download size={16} class="mr-2" />
+              {isExtractingAudio ? "EXTRACTING AUDIO..." : `DOWNLOAD ${audioFormat.toUpperCase()} OF THE VIDEO`}
+            </button>
+            <select bind:value={audioFormat} class="audio-format-dropdown" title="Audio format" aria-label="Audio format">
+              <option value="mp3">MP3</option>
+              <option value="wav">WAV</option>
+            </select>
+          </div>
+          <button onclick={captureSnapshot} class="snapshot-btn" title="Download the current frame as a PNG at the video's native resolution">
+            <Camera size={16} class="mr-2" /> SCREENSHOT ({videoWidth}x{videoHeight})
           </button>
         </div>
       </div>
@@ -1197,6 +1223,38 @@
       flex-direction: column;
       gap: 8px;
 
+      .audio-export-row {
+        display: flex;
+        gap: 8px;
+
+        .snapshot-btn {
+          flex: 1 1 auto;
+        }
+      }
+
+      .audio-format-dropdown {
+        flex: 0 0 auto;
+        width: 72px;
+        background: rgba(15, 15, 22, 0.6);
+        border: 1px solid rgba(230, 185, 0, 0.35);
+        color: $color-neon-gold;
+        border-radius: 6px;
+        padding: 0 8px;
+        font-size: 0.75rem;
+        font-weight: 800;
+        outline: none;
+        cursor: pointer;
+        box-sizing: border-box;
+
+        option {
+          background: #0f0f16;
+        }
+
+        &:focus {
+          border-color: $color-neon-gold;
+        }
+      }
+
       .snapshot-btn {
         background: rgba(230, 185, 0, 0.12);
         border: 1px solid rgba(230, 185, 0, 0.35);
@@ -1216,6 +1274,17 @@
           background: rgba(230, 185, 0, 0.22);
           box-shadow: 0 0 15px rgba(230, 185, 0, 0.15);
           border-color: $color-neon-gold;
+        }
+
+        &:disabled {
+          opacity: 0.5;
+          cursor: wait;
+
+          &:hover {
+            background: rgba(230, 185, 0, 0.12);
+            box-shadow: none;
+            border-color: rgba(230, 185, 0, 0.35);
+          }
         }
       }
     }

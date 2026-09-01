@@ -1,4 +1,7 @@
 import { langs } from './langUtils.js';
+import { CAMPAIGN_ALIASES } from './campaignAliases.js';
+
+export { CAMPAIGN_ALIASES };
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -12,6 +15,7 @@ export const VALID_APPS = new Set([
   'gopro', 'soundboard', 'snake', 'paint', 'stopwatch', 'dataflash', 'qrgenerator', 'rescue', 'memes',
   'worldcup', 'blog', 'settings', 'arcade', 'creatures', 'missingcreatures',
   'soundstripper', 'converter', 'reader', 'windshieldwiper', 'changelog', 'wiretap', 'frames',
+  'passwords',
 ]);
 
 /**
@@ -83,6 +87,12 @@ export function parsePath(path) {
 
   const [s0, s1, s2, s3] = parts;
 
+  // /thc  /doja  /grass  … (campaign short urls). Checked before the lang
+  // rule: 'za' is also Zhuang's ISO 639-1 code, and the campaign alias wins.
+  if (parts.length === 1 && CAMPAIGN_ALIASES[s0]) {
+    return { type: 'store-campaign', campaignId: CAMPAIGN_ALIASES[s0] };
+  }
+
   // /en  /es  /fr  … (BCP 47 codes from worldwidedogs.json)
   if (parts.length === 1 && langs.includes(s0)) {
     return { type: 'lang', lang: s0 };
@@ -91,6 +101,11 @@ export function parsePath(path) {
   // /info
   if (parts.length === 1 && s0 === 'info') {
     return { type: 'info' };
+  }
+
+  // /.dog  (straight to the .dog format spec inside the converter)
+  if (parts.length === 1 && (s0 === '.dog' || s0 === 'dog')) {
+    return { type: 'app', app: 'converter', dogSpec: true };
   }
 
   // /music  (panel, no track)

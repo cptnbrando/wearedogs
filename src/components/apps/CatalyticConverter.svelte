@@ -1,5 +1,6 @@
 <script>
   import { onDestroy, onMount } from "svelte";
+  import { fly } from "svelte/transition";
   import {
     Upload,
     Download,
@@ -14,6 +15,7 @@
     Link2,
     Link2Off,
     FileVideo,
+    FileJson,
     Undo,
     Trash2,
     Loader2,
@@ -24,6 +26,17 @@
     convertVideo,
     convertAudioToVideo,
   } from "../../lib/convert.js";
+  import {
+    convertData,
+    headerFromOpts,
+    detectDataFormat,
+  } from "../../lib/dog.js";
+  import {
+    conversions,
+    saveConversion,
+    getConversion,
+    clearConversions,
+  } from "../../lib/conversionHistory.svelte.js";
   import { createZip, unzip } from "../../lib/zip.js";
 
   // State variables
@@ -36,7 +49,45 @@
   let conversionStatus = $state("idle"); // 'idle' | 'converting' | 'done' | 'error'
   let progress = $state(0);
   let previewUrl = $state("");
-  let convertedFiles = $state([]); // array of { blob, name }
+  let convertedFiles = $state([]); // array of { blob, name, kind?, text?, url? }
+  let dataPreviewText = $state(""); // input preview for data files
+  let rawDataText = $state(""); // full input text for data files
+  let previewFullText = $state(""); // untruncated text behind the preview pane
+  let previewFmt = $state(""); // which format the preview pane is showing
+  let editingInput = $state(false); // preview pane is an editable textarea
+  let previewSize = $state(0); // potential output size of the previewed format
+  let currentConversionId = $state(null); // history entry backing the done view
+  let showDogInfo = $state(false); // .dog format spec page
+  let previewMaximized = $state(false); // input text pane expanded over the whole site
+  let maximizedOutput = $state(null); // { name, text } — converted text expanded over the whole site
+
+  // .dog encoding options — drives the header line of dog output
+  const DOG_PRESETS = {
+    classic: { indent: 2, block: "track", case: "any", flow: "block", bools: "truefalse" },
+    tight: { indent: 1, block: "track", case: "any", flow: "block", bools: "10" },
+    mini: { indent: 2, block: "track", case: "any", flow: "line", bools: "10" },
+    wire: { indent: 2, block: "track", case: "any", flow: "wire", bools: "10" },
+  };
+  let dogPreset = $state("classic");
+  let showDogEncoding = $state(false); // customize panel open/closed
+  let dogOpts = $state({ ...DOG_PRESETS.classic });
+  let dogHeaderPreview = $derived(headerFromOpts(dogOpts));
+
+  const v1Keys = ["indent", "block", "case", "flow", "bools"];
+  const v1Shape = (o) => JSON.stringify(v1Keys.map((k) => o[k]));
+
+  function applyDogPreset(name) {
+    dogPreset = name;
+    if (DOG_PRESETS[name]) dogOpts = { ...dogOpts, ...DOG_PRESETS[name] };
+  }
+
+  function setDogOpt(key, value) {
+    dogOpts = { ...dogOpts, [key]: value };
+    const match = Object.entries(DOG_PRESETS).find(
+      ([, p]) => v1Shape(p) === v1Shape(dogOpts),
+    );
+    dogPreset = match ? match[0] : "custom";
+  }
   let zipDownloads = $state(false);
   let errorMessage = $state("");
   let currentNotice = $state("Refining Format Molecules");
@@ -47,9 +98,17 @@
   let isConvertingBulk = $state(false);
   let overallProgress = $state(0);
   let currentConvertingIndex = $state(0);
-  let batchImageFormat = $state("png");
-  let batchAudioFormat = $state("mp3");
-  let batchVideoFormat = $state("mp4");
+  let batchImageFormats = $state(["png"]);
+  let batchAudioFormats = $state(["mp3"]);
+  let batchVideoFormats = $state(["mp4"]);
+  let batchDataFormats = $state(["json"]);
+  let bulkZipDownloads = $state(false);
+  let bulkAllComplete = $derived(
+    !isConvertingBulk &&
+      bulkFiles.length > 0 &&
+      bulkFiles.every((f) => f.status === "done" || f.status === "error") &&
+      bulkFiles.some((f) => f.status === "done"),
+  );
 
   // Image size parameters
   let originalWidth = $state(0);
@@ -76,6 +135,7 @@
     image: ["png", "jpg", "webp", "avif", "svg"],
     audio: ["mp3", "wav", "m4a", "aac", "webm", "mp4", "mov", "mkv", "avi"],
     video: ["mp4", "mov", "mkv", "avi", "mp3", "wav", "m4a", "aac", "webm"],
+    data: ["dog", "json", "js", "yml", "ts", "md"],
   };
 
   let availableFormats = $derived(fileType ? formatMap[fileType] || [] : []);
@@ -115,7 +175,15 @@
                 formats: ["mp3", "wav", "m4a", "aac", "webm"],
               },
             ]
-          : [],
+          : fileType === "data"
+            ? [
+                {
+                  name: "Data Formats",
+                  color: "#4ade80",
+                  formats: ["dog", "json", "js", "yml", "ts", "md"],
+                },
+              ]
+            : [],
   );
 
   const hasQualitySupport = $derived(
@@ -280,6 +348,7 @@
   // Keyboard shortcut listener
   function handleKeydown(e) {
     if (conversionStatus !== "idle" || !file) return;
+    if (editingInput || ["TEXTAREA", "INPUT"].includes(document.activeElement?.tagName)) return;
 
     // Numbers 1-9 to select formats
     const num = parseInt(e.key);
@@ -303,12 +372,208 @@
     }
   }
 
+  let copiedKey = $state(""); // which copy button just fired, for feedback
+
+  // Live preview: converting a data file re-renders the preview pane in the
+  // last-clicked output format, instantly on every click.
+  $effect(() => {
+    if (fileType !== "data" || !rawDataText) return;
+    const fmt = selectionAnchor;
+    const inFmt = inputFormat;
+    const src = rawDataText;
+    const opts = { ...dogOpts };
+    let cancelled = false;
+    (async () => {
+      try {
+        let text, size;
+        if (!fmt || (fmt === inFmt && fmt !== "dog")) {
+          text = src;
+          size = new Blob([src]).size;
+        } else {
+          const blob = convertData(src, inFmt, fmt, opts);
+          text = await blob.text();
+          size = blob.size;
+        }
+        if (cancelled) return;
+        previewFullText = text;
+        // Show the full file; only guard against truly huge payloads.
+        dataPreviewText =
+          text.length > 400000
+            ? text.slice(0, 400000) + "\n… (truncated for display — Copy still grabs everything)"
+            : text;
+        previewFmt = fmt || inFmt;
+        previewSize = size;
+      } catch (err) {
+        if (!cancelled) {
+          dataPreviewText = "conversion error: " + err.message;
+          previewFullText = "";
+          previewSize = 0;
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  });
+
+  // Full-screen text panes, same mechanic as the fundraiser map: Escape has
+  // to be swallowed in the capture phase, before TitlePage's window listener
+  // closes the whole app over it.
+  function handleFullscreenEsc(e) {
+    if (e.key !== "Escape") return;
+    if (!previewMaximized && !maximizedOutput) return;
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+    if (maximizedOutput) maximizedOutput = null;
+    else previewMaximized = false;
+  }
+
+  // Expands a converted text output over the whole site, full (untruncated) text.
+  async function expandOutput(item) {
+    let text = item.text || "";
+    try {
+      if (item.blob) text = await item.blob.text();
+    } catch {}
+    if (text.length > 400000) {
+      text =
+        text.slice(0, 400000) +
+        "\n… (truncated for display — Copy still grabs everything)";
+    }
+    maximizedOutput = { name: item.name, text, blob: item.blob };
+  }
+
+  // Copies the FULL text of a blob/File or string (previews are truncated).
+  async function copyPreviewText(source, key) {
+    try {
+      const text = typeof source === "string" ? source : await source.text();
+      await navigator.clipboard.writeText(text);
+      copiedKey = key;
+      setTimeout(() => {
+        if (copiedKey === key) copiedKey = "";
+      }, 1500);
+    } catch (err) {
+      console.error("Copy failed:", err);
+    }
+  }
+
+  // "Enter text" flow: an empty editable data document, no file needed.
+  function startTextEntry() {
+    resetState(false);
+    fileType = "data";
+    inputFormat = "dog";
+    rawDataText = "";
+    file = { name: "typed.dog", size: 0 };
+    selectedFormats = ["json"];
+    selectionAnchor = "json";
+    editingInput = true;
+  }
+
+  // Typing/pasting into the preview edits the SOURCE: re-detect its format
+  // (dog / json / yml) and refresh the synthetic file identity.
+  function handleInputEdit(e) {
+    rawDataText = e.target.value;
+    const fmt = detectDataFormat(rawDataText);
+    if (fmt !== inputFormat) {
+      inputFormat = fmt;
+      if (selectedFormats.length === 1 && selectedFormats[0] === fmt) {
+        selectedFormats = [fmt === "dog" ? "json" : "dog"];
+        selectionAnchor = selectedFormats[0];
+      }
+    }
+    const base = (file?.name ?? "typed.dog").replace(/\.[^.]+$/, "");
+    file = { name: base + "." + fmt, size: new Blob([rawDataText]).size };
+  }
+
+  // Feeds a converted output back in as the new input, ready for another format.
+  async function reconvertOutput(item) {
+    if (!item.blob) return;
+    const text = await item.blob.text();
+    const name = item.name;
+    const size = item.blob.size;
+    resetState();
+    fileType = "data";
+    rawDataText = text;
+    inputFormat = detectDataFormat(text);
+    file = { name, size };
+    selectedFormats = [inputFormat === "dog" ? "json" : "dog"];
+    selectionAnchor = selectedFormats[0];
+  }
+
+  // Restores a recorded conversion into the completed-conversion view.
+  function restoreConversion(id) {
+    const entry = getConversion(id);
+    if (!entry) return false;
+    convertedFiles.forEach((f) => {
+      if (f.url) URL.revokeObjectURL(f.url);
+    });
+    file = { name: entry.inputName, size: entry.inputSize };
+    convertedFiles = entry.items.map((it) => {
+      const o = { name: it.name, kind: it.kind, blob: it.blob };
+      if (it.blob && it.kind !== "text") {
+        o.url = URL.createObjectURL(it.blob);
+      }
+      return o;
+    });
+    entry.items.forEach((it, i) => {
+      if (it.blob && it.kind === "text") {
+        it.blob
+          .text()
+          .then((t) => {
+            if (convertedFiles[i]) convertedFiles[i].text = t.slice(0, 2000);
+          })
+          .catch(() => {});
+      }
+    });
+    currentConversionId = entry.id;
+    errorMessage = "";
+    progress = 100;
+    conversionStatus = "done";
+    return true;
+  }
+
+  // Opens a history-menu entry as its own browser-history entry, then shows it.
+  function openHistoryEntry(id) {
+    const d = (history.state?.depth ?? 2) + 1;
+    history.pushState(
+      { view: "toolbox", app: "converter", depth: d, conversionId: id },
+      "",
+      `/apps/converter?c=${id}`,
+    );
+    restoreConversion(id);
+  }
+
+  function handleConverterPop(e) {
+    const id =
+      e.state?.conversionId ??
+      new URLSearchParams(window.location.search).get("c");
+    if (id) {
+      restoreConversion(id);
+    } else if (conversionStatus === "done") {
+      resetState(false);
+    }
+  }
+
   onMount(() => {
+    window.addEventListener("keydown", handleFullscreenEsc, true);
     window.addEventListener("keydown", handleKeydown);
+    window.addEventListener("popstate", handleConverterPop);
+    // /.dog deep link opens straight to the format spec
+    if (window.__openDogSpec) {
+      showDogInfo = true;
+      delete window.__openDogSpec;
+    }
+    // Deep link / back-into-app: restore the conversion named by the URL
+    const c =
+      history.state?.conversionId ??
+      new URLSearchParams(window.location.search).get("c");
+    if (c) restoreConversion(c);
   });
 
   onDestroy(() => {
+    window.removeEventListener("keydown", handleFullscreenEsc, true);
     window.removeEventListener("keydown", handleKeydown);
+    window.removeEventListener("popstate", handleConverterPop);
     if (previewUrl) URL.revokeObjectURL(previewUrl);
   });
 
@@ -347,6 +612,8 @@
   function handleFileSelect(e) {
     if (e.target.files) {
       const files = Array.from(e.target.files);
+      // Clear the input so selecting the same file(s) again re-fires change
+      e.target.value = "";
       if (files.length === 1 && files[0].name.endsWith(".zip")) {
         processZipFile(files[0]);
       } else if (files.length > 0) {
@@ -425,10 +692,20 @@
           err,
         );
       }
+    } else if (["dog", "json", "yml", "yaml", "ts", "js", "md"].includes(ext)) {
+      fileType = "data";
+      inputFormat = ext === "yaml" ? "yml" : ext;
+      selectedFormats = [inputFormat === "dog" ? "json" : "dog"];
+      selectionAnchor = selectedFormats[0];
+      try {
+        rawDataText = await file.text();
+      } catch (err) {
+        console.error("Failed to read data file for preview:", err);
+      }
     } else {
       fileType = "unsupported";
       errorMessage =
-        "Unsupported file type. Please upload an image, audio, or video file.";
+        "Unsupported file type. Please upload an image, audio, video, or data (.dog/.json) file.";
       conversionStatus = "error";
     }
   }
@@ -481,8 +758,30 @@
     }
   }
 
-  function resetState() {
+  function resetState(pushHistoryEntry = true) {
+    // Leaving a completed conversion: push a fresh entry so browser Back
+    // returns to the completed view (restored via its ?c= id).
+    if (
+      pushHistoryEntry &&
+      currentConversionId &&
+      conversionStatus === "done"
+    ) {
+      const d = (history.state?.depth ?? 2) + 1;
+      history.pushState(
+        { view: "toolbox", app: "converter", depth: d },
+        "",
+        "/apps/converter",
+      );
+    }
+    currentConversionId = null;
     if (previewUrl) URL.revokeObjectURL(previewUrl);
+    convertedFiles.forEach((f) => {
+      if (f.url) URL.revokeObjectURL(f.url);
+    });
+    dataPreviewText = "";
+    editingInput = false;
+    previewMaximized = false;
+    maximizedOutput = null;
     file = null;
     fileType = "";
     inputFormat = "";
@@ -513,6 +812,16 @@
     isConvertingBulk = false;
     overallProgress = 0;
     currentConvertingIndex = 0;
+    batchImageFormats = ["png"];
+    batchAudioFormats = ["mp3"];
+    batchVideoFormats = ["mp4"];
+    batchDataFormats = ["json"];
+    bulkZipDownloads = false;
+    currentNotice = "Refining Format Molecules";
+    // Clear the native input too, otherwise re-selecting the same
+    // file(s) after a completed run never fires a change event
+    const fileInput = document.getElementById("file-input");
+    if (fileInput) fileInput.value = "";
   }
 
   // Run Conversion
@@ -604,6 +913,14 @@
             file.name.lastIndexOf("."),
           );
           resultFileName = `${originalBase}_converted.${currentFormat}`;
+        } else if (fileType === "data") {
+          const text = rawDataText || (await file.text());
+          resultBlob = convertData(text, inputFormat, currentFormat, dogOpts);
+          const originalBase = file.name.substring(
+            0,
+            file.name.lastIndexOf("."),
+          );
+          resultFileName = `${originalBase}.${currentFormat}`;
         } else if (fileType === "video") {
           const isTargetAudio = ["mp3", "wav", "m4a", "aac", "webm"].includes(
             currentFormat,
@@ -653,6 +970,51 @@
         }
       }
 
+      // Build previews for every converted output
+      for (const item of convertedFiles) {
+        const t = item.blob?.type || "";
+        if (t.startsWith("image/")) {
+          item.kind = "image";
+          item.url = URL.createObjectURL(item.blob);
+        } else if (t.startsWith("video/")) {
+          item.kind = "video";
+          item.url = URL.createObjectURL(item.blob);
+        } else if (t.startsWith("audio/")) {
+          item.kind = "audio";
+          item.url = URL.createObjectURL(item.blob);
+        } else {
+          item.kind = "text";
+          try {
+            item.text = (await item.blob.text()).slice(0, 2000);
+          } catch (err) {
+            console.error("Failed to read converted text for preview:", err);
+          }
+        }
+      }
+
+      // Record in session history and give the completed view its own
+      // browser-history entry so Back can always return to it.
+      try {
+        currentConversionId = await saveConversion({
+          inputName: file.name,
+          inputSize: file.size,
+          items: convertedFiles,
+        });
+        const d = (history.state?.depth ?? 2) + 1;
+        history.pushState(
+          {
+            view: "toolbox",
+            app: "converter",
+            depth: d,
+            conversionId: currentConversionId,
+          },
+          "",
+          `/apps/converter?c=${currentConversionId}`,
+        );
+      } catch (err) {
+        console.warn("Failed to record conversion history:", err);
+      }
+
       progress = 100;
       setTimeout(() => {
         conversionStatus = "done";
@@ -671,7 +1033,7 @@
     if (zipDownloads) {
       const zipData = {};
       convertedFiles.forEach((item) => {
-        zipData[item.name] = item.blob;
+        if (item.blob) zipData[item.name] = item.blob;
       });
 
       const promises = Object.entries(zipData).map(async ([name, blob]) => {
@@ -698,6 +1060,7 @@
       }
     } else {
       convertedFiles.forEach((item) => {
+        if (!item.blob) return;
         const url = URL.createObjectURL(item.blob);
         const a = document.createElement("a");
         a.href = url;
@@ -820,26 +1183,28 @@
         type = "audio";
       } else if (["mp4", "mov", "mkv", "avi"].includes(ext)) {
         type = "video";
+      } else if (["dog", "json", "yml", "yaml", "ts", "js", "md"].includes(ext)) {
+        type = "data";
       }
 
       if (type === "unsupported") continue;
 
       const inputFmt = ext === "jpeg" ? "jpg" : ext;
-      let outputFmt = "";
-      if (type === "image") outputFmt = inputFmt === "png" ? "jpg" : "png";
-      else if (type === "audio") outputFmt = "mp3";
-      else if (type === "video") outputFmt = "mp4";
+      let outputFmts = [];
+      if (type === "image") outputFmts = [...batchImageFormats];
+      else if (type === "audio") outputFmts = [...batchAudioFormats];
+      else if (type === "video") outputFmts = [...batchVideoFormats];
+      else if (type === "data") outputFmts = [...batchDataFormats];
 
       list.push({
         file: f,
         fileType: type,
         inputFormat: inputFmt,
-        outputFormat: outputFmt,
+        outputFormats: outputFmts,
         status: "idle",
         errorMsg: "",
         progress: 0,
-        convertedBlob: null,
-        convertedFileName: "",
+        convertedFiles: [],
         originalWidth: 0,
         originalHeight: 0,
         targetWidth: 0,
@@ -884,91 +1249,111 @@
       currentConvertingIndex = i;
       const item = bulkFiles[i];
 
-      if (item.status === "done" || !item.outputFormat) continue;
+      const formats = (item.outputFormats || []).filter(Boolean);
+      if (item.status === "done" || formats.length === 0) continue;
 
       item.status = "converting";
-      item.progress = 10;
+      item.progress = 5;
+      item.convertedFiles = [];
 
       try {
-        currentNotice = `Converting ${i + 1}/${bulkFiles.length}: ${item.file.name}`;
-
-        let resultBlob;
-        if (item.fileType === "image") {
-          const tempUrl = URL.createObjectURL(item.file);
-          resultBlob = await convertImage(
-            tempUrl,
-            item.outputFormat,
-            item.targetWidth || 800,
-            item.targetHeight || 600,
-            item.quality,
-            item.compression,
-          );
-          URL.revokeObjectURL(tempUrl);
-        } else if (item.fileType === "audio" || item.fileType === "video") {
-          const isTargetVideo = ["mp4", "mov", "mkv", "avi"].includes(
-            item.outputFormat,
-          );
-          const isTargetAudio = ["mp3", "wav", "m4a", "aac", "webm"].includes(
-            item.outputFormat,
-          );
-
-          let bulkAudioBuffer = null;
-          if (isTargetVideo || isTargetAudio) {
-            try {
-              const arrayBuffer = await item.file.arrayBuffer();
-              const audioCtx = new (window.AudioContext ||
-                window.webkitAudioContext)();
-              bulkAudioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-              audioCtx.close();
-            } catch (err) {
-              console.warn(
-                "Failed to decode audio track during batch conversion:",
-                err,
-              );
-            }
-          }
-
-          if (item.fileType === "audio" && isTargetVideo) {
-            if (!bulkAudioBuffer) {
-              throw new Error(
-                "Failed to decode audio track for video encoding.",
-              );
-            }
-            resultBlob = await convertAudioToVideo(
-              bulkAudioBuffer,
-              item.outputFormat,
-              (p) => {
-                item.progress = Math.round(10 + p * 0.85);
-              },
+        // Decode the audio track once per file, shared across all target formats
+        let bulkAudioBuffer = null;
+        if (item.fileType === "audio" || item.fileType === "video") {
+          try {
+            const arrayBuffer = await item.file.arrayBuffer();
+            const audioCtx = new (window.AudioContext ||
+              window.webkitAudioContext)();
+            bulkAudioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+            audioCtx.close();
+          } catch (err) {
+            console.warn(
+              "Failed to decode audio track during batch conversion:",
+              err,
             );
-          } else if (item.fileType === "video" && isTargetAudio) {
-            if (!bulkAudioBuffer) {
-              throw new Error("No audio track detected in this video file.");
-            }
-            resultBlob = await convertAudio(
-              item.file,
-              bulkAudioBuffer,
-              item.outputFormat,
-              item.audioSampleRate || "keep",
-              item.compression || 15,
-            );
-          } else if (item.fileType === "audio") {
-            resultBlob = await convertAudio(
-              item.file,
-              bulkAudioBuffer,
-              item.outputFormat,
-              item.audioSampleRate || "keep",
-              item.compression || 15,
-            );
-          } else if (item.fileType === "video") {
-            resultBlob = await convertVideo(item.file, item.outputFormat);
           }
         }
 
-        item.convertedBlob = resultBlob;
         const nameParts = item.file.name.split(".");
         nameParts.pop();
-        item.convertedFileName = `${nameParts.join(".")}.${item.outputFormat}`;
+        const baseName = nameParts.join(".");
+
+        for (let fi = 0; fi < formats.length; fi++) {
+          const fmt = formats[fi];
+          currentNotice = `Converting ${i + 1}/${bulkFiles.length}: ${item.file.name} ➔ ${fmt.toUpperCase()}`;
+
+          let resultBlob = null;
+          if (item.fileType === "image") {
+            const tempUrl = URL.createObjectURL(item.file);
+            try {
+              resultBlob = await convertImage(
+                tempUrl,
+                fmt,
+                item.targetWidth || 800,
+                item.targetHeight || 600,
+                item.quality,
+                item.compression,
+              );
+            } finally {
+              URL.revokeObjectURL(tempUrl);
+            }
+          } else if (item.fileType === "audio" || item.fileType === "video") {
+            const isTargetVideo = ["mp4", "mov", "mkv", "avi"].includes(fmt);
+            const isTargetAudio = ["mp3", "wav", "m4a", "aac", "webm"].includes(
+              fmt,
+            );
+
+            if (item.fileType === "audio" && isTargetVideo) {
+              if (!bulkAudioBuffer) {
+                throw new Error(
+                  "Failed to decode audio track for video encoding.",
+                );
+              }
+              resultBlob = await convertAudioToVideo(
+                bulkAudioBuffer,
+                fmt,
+                (p) => {
+                  item.progress = Math.round(
+                    ((fi + p / 100) / formats.length) * 100,
+                  );
+                },
+              );
+            } else if (item.fileType === "video" && isTargetAudio) {
+              if (!bulkAudioBuffer) {
+                throw new Error("No audio track detected in this video file.");
+              }
+              resultBlob = await convertAudio(
+                item.file,
+                bulkAudioBuffer,
+                fmt,
+                item.audioSampleRate || "keep",
+                item.compression || 15,
+              );
+            } else if (item.fileType === "audio") {
+              resultBlob = await convertAudio(
+                item.file,
+                bulkAudioBuffer,
+                fmt,
+                item.audioSampleRate || "keep",
+                item.compression || 15,
+              );
+            } else if (item.fileType === "video") {
+              resultBlob = await convertVideo(item.file, fmt);
+            }
+          } else if (item.fileType === "data") {
+            const text = await item.file.text();
+            resultBlob = convertData(text, item.inputFormat, fmt, dogOpts);
+          }
+
+          if (resultBlob) {
+            item.convertedFiles.push({
+              blob: resultBlob,
+              name: `${baseName}.${fmt}`,
+            });
+          }
+          item.progress = Math.round(((fi + 1) / formats.length) * 100);
+        }
+
         item.status = "done";
         item.progress = 100;
       } catch (err) {
@@ -984,65 +1369,86 @@
     currentNotice = "Batch Processing Complete";
   }
 
-  // Compress all converted files back into a single ZIP
-  async function downloadAllAsZip() {
-    currentNotice = "Zipping Converted Molecules";
-    const zipData = {};
-
-    for (const bf of bulkFiles) {
-      if (bf.status === "done" && bf.convertedBlob) {
-        zipData[bf.convertedFileName] = bf.convertedBlob;
-      }
-    }
-
-    if (Object.keys(zipData).length === 0) return;
-
-    const promises = Object.entries(zipData).map(async ([name, blob]) => {
-      const arrayBuffer = await blob.arrayBuffer();
-      return { name, data: new Uint8Array(arrayBuffer) };
-    });
-
-    try {
-      const filesToZip = await Promise.all(promises);
-      const blob = await createZip(filesToZip);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "catalytic-converted-files.zip";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      alert("Failed to build ZIP archive: " + err.message);
-    }
+  function triggerDownload(blob, name) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 
-  function applyBatchImageFormat(fmt) {
-    batchImageFormat = fmt;
-    for (const bf of bulkFiles) {
-      if (bf.fileType === "image") {
-        bf.outputFormat = fmt;
-      }
-    }
-  }
+  // Download every converted file — zipped, or staggered individual downloads
+  async function downloadAllConverted() {
+    const doneFiles = bulkFiles
+      .filter((bf) => bf.status === "done")
+      .flatMap((bf) => bf.convertedFiles);
 
-  function applyBatchAudioFormat(fmt) {
-    batchAudioFormat = fmt;
-    for (const bf of bulkFiles) {
-      if (bf.fileType === "audio") {
-        bf.outputFormat = fmt;
+    if (doneFiles.length === 0) return;
+
+    if (bulkZipDownloads) {
+      currentNotice = "Zipping Converted Molecules";
+      try {
+        const filesToZip = await Promise.all(
+          doneFiles.map(async ({ name, blob }) => ({
+            name,
+            data: new Uint8Array(await blob.arrayBuffer()),
+          })),
+        );
+        const blob = await createZip(filesToZip);
+        triggerDownload(blob, "catalytic-converted-files.zip");
+      } catch (err) {
+        alert("Failed to build ZIP archive: " + err.message);
+      }
+    } else {
+      for (const f of doneFiles) {
+        triggerDownload(f.blob, f.name);
+        // Stagger so the browser doesn't swallow rapid consecutive downloads
+        await new Promise((r) => setTimeout(r, 200));
       }
     }
   }
 
-  function applyBatchVideoFormat(fmt) {
-    batchVideoFormat = fmt;
+  function batchFormatsFor(type) {
+    return type === "image"
+      ? batchImageFormats
+      : type === "audio"
+        ? batchAudioFormats
+        : type === "data"
+          ? batchDataFormats
+          : batchVideoFormats;
+  }
+
+  function syncBatchFormats(type) {
+    const fmts = batchFormatsFor(type).filter(Boolean);
     for (const bf of bulkFiles) {
-      if (bf.fileType === "video") {
-        bf.outputFormat = fmt;
+      if (bf.fileType === type && bf.status !== "done") {
+        bf.outputFormats = [...fmts];
       }
     }
+  }
+
+  function setBatchFormat(type, index, fmt) {
+    batchFormatsFor(type)[index] = fmt;
+    syncBatchFormats(type);
+  }
+
+  function addBatchFormat(type) {
+    const arr = batchFormatsFor(type);
+    const next = formatMap[type].find((f) => !arr.includes(f));
+    if (next) {
+      arr.push(next);
+      syncBatchFormats(type);
+    }
+  }
+
+  function removeBatchFormat(type, index) {
+    const arr = batchFormatsFor(type);
+    if (arr.length <= 1) return;
+    arr.splice(index, 1);
+    syncBatchFormats(type);
   }
 
   function removeBulkFile(index) {
@@ -1066,19 +1472,159 @@
     type="file"
     id="file-input"
     class="hidden"
-    accept="image/*,audio/*,video/*,.zip"
+    accept="image/*,audio/*,video/*,.zip,.dog,.json,.yml,.yaml,.ts,.js,.md"
     multiple
     onchange={handleFileSelect}
   />
 
   <div class="app-content-scroll">
-    {#if isBulkMode}
+    {#if showDogInfo}
+      <!-- .DOG FORMAT SPECIFICATION PAGE -->
+      <div class="flex flex-col gap-5 font-mono text-white/70 text-xs leading-relaxed">
+        <div class="back-bar">
+          <button class="back-btn" onclick={() => (showDogInfo = false)} type="button">
+            <ArrowLeft size={14} /> Back
+          </button>
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <h2 class="text-2xl font-bold text-[#4ade80] tracking-tight font-sans">
+            THE .DOG FORMAT <span class="text-white/30 text-sm align-top">v1</span>
+          </h2>
+          <p class="text-[10px] text-white/35 uppercase tracking-widest">
+            Proprietary text encoding · DOGS Data Interchange Division · MIME text/x-dog
+          </p>
+        </div>
+
+        <p class="text-white/60 font-sans text-sm max-w-2xl">
+          <span class="text-[#4ade80]">.dog</span> is a self-describing, line-oriented,
+          punctuation-free data encoding. Where other formats demand quotes, commas,
+          colons, and braces, .dog demands <em>nothing</em>. Chicken scratch is
+          syntactically legal. The parser bends to the writer, never the reverse.
+        </p>
+
+        <!-- Self-describing header -->
+        <div class="p-4 rounded-lg bg-white/2 border border-white/5 flex flex-col gap-2">
+          <h3 class="text-[11px] font-bold text-white/40 uppercase tracking-wider">Self-Describing Header &amp; Versions</h3>
+          <p class="font-sans text-white/55"><span class="text-[#4ade80]">dog 1</span> is the first, non-customizable version of the spec: it uses default rules and has a header with exactly two words [dog versionNumber]. By incrementing the version number to <span class="text-[#4ade80]">dog 2</span>, you get to add customizing keywords to the header, allowing for tremendous flexibility. The document describes itself, and works how you need it to.</p>
+          <pre class="bg-black/40 rounded p-2.5 text-[#4ade80]/85 overflow-x-auto select-text cursor-text m-0">dog 1
+dog 2 flow=line fs=2space kv=space block=track case=any punct=none bools=10</pre>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-[11px]">
+              <thead><tr class="text-white/35 uppercase text-[9px]">
+                <th class="py-1 pr-4">rule</th><th class="py-1">meaning</th>
+              </tr></thead>
+              <tbody class="text-white/60">
+                <tr class="border-t border-white/5"><td class="py-1 pr-4 text-[#4ade80]/80 whitespace-nowrap align-top">indent=2</td><td class="py-1 align-top">field lines start with exactly 2 spaces</td></tr>
+                <tr class="border-t border-white/5"><td class="py-1 pr-4 text-[#4ade80]/80 whitespace-nowrap align-top">kv=space</td><td class="py-1 align-top">key, one space, value; value runs to end of line</td></tr>
+                <tr class="border-t border-white/5"><td class="py-1 pr-4 text-[#4ade80]/80 whitespace-nowrap align-top">block=track</td><td class="py-1 align-top">a block opens at column 0 with <code>track &lt;name&gt;</code></td></tr>
+                <tr class="border-t border-white/5"><td class="py-1 pr-4 text-[#4ade80]/80 whitespace-nowrap align-top">end=blank</td><td class="py-1 align-top">a blank line closes the block</td></tr>
+                <tr class="border-t border-white/5"><td class="py-1 pr-4 text-[#4ade80]/80 whitespace-nowrap align-top">case=any</td><td class="py-1 align-top">capitalization never matters — keys or values</td></tr>
+                <tr class="border-t border-white/5"><td class="py-1 pr-4 text-[#4ade80]/80 whitespace-nowrap align-top">punct=none</td><td class="py-1 align-top">no quotes, commas, colons, or semicolons. ever.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Type coercion + continuation -->
+        <div class="p-4 rounded-lg bg-white/2 border border-white/5 flex flex-col gap-2">
+          <h3 class="text-[11px] font-bold text-white/40 uppercase tracking-wider">DOGS, the file format, why?</h3>
+          <p class="font-sans text-white/55">Could you imagine an internet where the data being passed around globally does not contain trillions of repeated curly braces, or hyphens, or semicolons, or anything unnecessary? .dog is here to fix that. This spec is still in development, but the goal is a full set of parsers and converters that can aid integration in many languages and applications, along with as much customization such that json yml and other formats can be valid .dog syntax too.</p>
+          <p class="font-sans text-white/55">For now, the following is valid DOGS syntax.</p>
+          <pre class="bg-black/40 rounded p-2.5 text-[#4ade80]/85 overflow-x-auto select-text cursor-text m-0">track GRIEF2
+  sampleHeavy true
+  sampleInfo : 13 Years of Grief by Black Label Society,
+              no change in pitch at all,
+            "chopped a little" {"{}"}::``  ← all legal, all preserved</pre>
+            <p class="font-sans text-white/55">Try converting various JSON objects into DOGS objects, play around with the customizer, and use it in different ways.</p>
+        </div>
+
+        <!-- Comparison -->
+        <div class="p-4 rounded-lg bg-white/2 border border-white/5 flex flex-col gap-2">
+          <h3 class="text-[11px] font-bold text-white/40 uppercase tracking-wider">Comparative Analysis</h3>
+          <div class="overflow-x-auto">
+            <table class="w-full min-w-[560px] text-left text-[11px]">
+              <thead><tr class="text-white/35 uppercase text-[9px]">
+                <th class="py-1 pr-3"></th>
+                <th class="py-1 pr-3 text-[#4ade80] whitespace-nowrap">.dog</th>
+                <th class="py-1 pr-3 whitespace-nowrap">JSON</th>
+                <th class="py-1 pr-3 whitespace-nowrap">YAML</th>
+                <th class="py-1 pr-3 whitespace-nowrap">XML</th>
+              </tr></thead>
+              <tbody class="text-white/60">
+                <tr class="border-t border-white/5"><td class="py-1 pr-3 text-white/40">quotes required</td><td class="py-1 pr-3 align-top text-[#4ade80]">never</td><td class="py-1 pr-3 align-top">always</td><td class="py-1 pr-3 align-top">sometimes*</td><td class="py-1 pr-3 align-top">attributes</td></tr>
+                <tr class="border-t border-white/5"><td class="py-1 pr-3 text-white/40">trailing comma crash</td><td class="py-1 pr-3 align-top text-[#4ade80]">impossible</td><td class="py-1 pr-3 align-top">yes</td><td class="py-1 pr-3 align-top">n/a</td><td class="py-1 pr-3 align-top">n/a</td></tr>
+                <tr class="border-t border-white/5"><td class="py-1 pr-3 text-white/40">*"sometimes" rules to memorize</td><td class="py-1 pr-3 align-top text-[#4ade80]">0</td><td class="py-1 pr-3 align-top">0</td><td class="py-1 pr-3 align-top">~63</td><td class="py-1 pr-3 align-top">~9</td></tr>
+                <tr class="border-t border-white/5"><td class="py-1 pr-3 text-white/40">self-describing</td><td class="py-1 pr-3 align-top text-[#4ade80]">line 1</td><td class="py-1 pr-3 align-top">no</td><td class="py-1 pr-3 align-top">no</td><td class="py-1 pr-3 align-top">DTD (lol)</td></tr>
+                <tr class="border-t border-white/5"><td class="py-1 pr-3 text-white/40">handwriting tolerance</td><td class="py-1 pr-3 align-top text-[#4ade80]">chicken scratch</td><td class="py-1 pr-3 align-top">strict</td><td class="py-1 pr-3 align-top">indent-fragile</td><td class="py-1 pr-3 align-top">hostile</td></tr>
+                <tr class="border-t border-white/5"><td class="py-1 pr-3 text-white/40">size (80-track catalog)</td><td class="py-1 pr-3 align-top text-[#4ade80]">15,649 B</td><td class="py-1 pr-3 align-top">21,618 B (+38%)</td><td class="py-1 pr-3 align-top">~18,900 B (+21%)</td><td class="py-1 pr-3 align-top">~29,000 B (+85%)</td></tr>
+                <tr class="border-t border-white/5"><td class="py-1 pr-3 text-white/40">reference parser</td><td class="py-1 pr-3 align-top text-[#4ade80]">~60 lines</td><td class="py-1 pr-3 align-top">native</td><td class="py-1 pr-3 align-top">libyaml: ~19k lines</td><td class="py-1 pr-3 align-top">expat: ~15k lines</td></tr>
+                <tr class="border-t border-white/5"><td class="py-1 pr-3 text-white/40">nesting</td><td class="py-1 pr-3 align-top text-red-400">flat blocks only</td><td class="py-1 pr-3 align-top">arbitrary</td><td class="py-1 pr-3 align-top">arbitrary</td><td class="py-1 pr-3 align-top">arbitrary</td></tr>
+                <tr class="border-t border-white/5"><td class="py-1 pr-3 text-white/40">keys with spaces</td><td class="py-1 pr-3 align-top text-red-400">no</td><td class="py-1 pr-3 align-top">yes</td><td class="py-1 pr-3 align-top">yes</td><td class="py-1 pr-3 align-top">no</td></tr>
+                <tr class="border-t border-white/5"><td class="py-1 pr-3 text-white/40">values starting with spaces</td><td class="py-1 pr-3 align-top text-red-400">trimmed</td><td class="py-1 pr-3 align-top">preserved</td><td class="py-1 pr-3 align-top">quoted</td><td class="py-1 pr-3 align-top">preserved</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="text-[10px] text-white/35 font-sans">Honest cons in red. A flat, typeless, line-based format cannot nest and does not pretend to. If you need nesting, convert to JSON — the converter is right behind you.</p>
+        </div>
+
+        <!-- The punctuation tax -->
+        <div class="p-4 rounded-lg bg-white/2 border border-white/5 flex flex-col gap-2">
+          <h3 class="text-[11px] font-bold text-white/40 uppercase tracking-wider">The Punctuation Tax</h3>
+          <p class="font-sans text-white/55">Identical payload, measured (music-catalog, 80 blocks, 10 fields each):</p>
+          <div class="flex flex-col gap-1.5">
+            <div class="flex items-center gap-2"><span class="w-10 text-[#4ade80]">.dog</span><div class="h-3 rounded bg-[#4ade80]/70" style="width: 54%"></div><span class="text-white/40 whitespace-nowrap shrink-0">15.6 KB</span></div>
+            <div class="flex items-center gap-2"><span class="w-10 text-white/50">.yml</span><div class="h-3 rounded bg-white/25" style="width: 65%"></div><span class="text-white/40 whitespace-nowrap shrink-0">~18.9 KB</span></div>
+            <div class="flex items-center gap-2"><span class="w-10 text-white/50">.ts</span><div class="h-3 rounded bg-white/25" style="width: 70%"></div><span class="text-white/40 whitespace-nowrap shrink-0">20.5 KB</span></div>
+            <div class="flex items-center gap-2"><span class="w-10 text-white/50">.json</span><div class="h-3 rounded bg-white/25" style="width: 74%"></div><span class="text-white/40 whitespace-nowrap shrink-0">21.6 KB</span></div>
+          </div>
+          <p class="text-[10px] text-white/35 font-sans">Every byte JSON spends on <code>"":,{"{}"}</code> is a byte .dog spends on data. 38% overhead, zero information gained.</p>
+        </div>
+
+        <!-- Showcase -->
+        <div class="p-4 rounded-lg bg-white/2 border border-white/5 flex flex-col gap-3">
+          <h3 class="text-[11px] font-bold text-white/40 uppercase tracking-wider">Where It Shines</h3>
+
+          <div class="flex flex-col gap-1">
+            <span class="text-[#4ade80] font-bold">🤖 LLM context &amp; config</span>
+            <p class="font-sans text-white/55 m-0">Uncompressed bytes are tokens, and tokens are money. .dog carries none of JSON's <code>"":,{"{}"}</code> token tax — the same data costs ~30% fewer tokens in a prompt. The thinnest way to hand structured data to a model.</p>
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <span class="text-[#4ade80] font-bold">📱 Typed on a phone</span>
+            <p class="font-sans text-white/55 m-0">Every character in a .dog file is on the primary mobile keyboard. JSON demands a symbol-layer trip for every brace, quote, colon, and comma. Field notes, inventories, set lists — thumbs only.</p>
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <span class="text-[#4ade80] font-bold">📊 CSV without the comma problem</span>
+            <p class="font-sans text-white/55 m-0">CSV dies the moment a value contains a comma, then invents quoting, then invents escaped quotes. .dog has zero reserved characters. <code class="text-[#4ade80]/80">venue Tulsa, OK</code> just works.</p>
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <span class="text-[#4ade80] font-bold">🔀 Clean git diffs</span>
+            <p class="font-sans text-white/55 m-0">One field per line, no trailing commas. Changing one value is a one-line diff; adding a field never touches its neighbors. JSON's comma churn and bracket reflow disappear.</p>
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <span class="text-[#4ade80] font-bold">📡 Append-only logs &amp; streams</span>
+            <p class="font-sans text-white/55 m-0">A JSON array can't be appended to without rewriting the file. A .dog file can: <code class="text-[#4ade80]/80">echo a new block &gt;&gt; events.dog</code>. Tail it, grep it, stream it one block per line.</p>
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <span class="text-[#4ade80] font-bold">🎵 Human catalogs (the origin story)</span>
+            <p class="font-sans text-white/55 m-0">Built to catalog 80 mixtape tracks by hand. Chicken scratch, half-remembered sample notes, and mid-thought line breaks all parse — because the parser bends to the writer.</p>
+          </div>
+
+          <p class="text-[10px] text-white/35 font-sans m-0">Honest caveat: over a gzipped wire, JSON's punctuation compresses away — the raw-byte win matters where data lives uncompressed: prompts, editors, terminals, diffs, and thumbs.</p>
+        </div>
+      </div>
+    {:else if isBulkMode}
       <!-- BULK DASHBOARD -->
       <div class="bulk-mode-container">
         <!-- Back and Reset -->
         <div class="back-bar flex items-center justify-between w-full">
           <button class="back-btn" onclick={resetState} type="button">
-            <ArrowLeft size={14} /> Reset Batch
+            <ArrowLeft size={14} />
           </button>
         </div>
 
@@ -1086,58 +1632,54 @@
         <div class="bulk-batch-header">
           <div class="batch-title">Batch Output Formats</div>
           <div class="batch-presets">
-            {#if bulkFiles.some((f) => f.fileType === "image")}
-              <div class="preset-group">
-                <span>🖼️ Images ➔</span>
-                <select
-                  value={batchImageFormat}
-                  onchange={(e) => applyBatchImageFormat(e.target.value)}
-                  class="preset-select"
-                  disabled={isConvertingBulk}
-                >
-                  <option value="png">PNG</option>
-                  <option value="jpg">JPG</option>
-                  <option value="webp">WEBP</option>
-                  <option value="avif">AVIF</option>
-                  <option value="svg">SVG</option>
-                </select>
-              </div>
-            {/if}
-
-            {#if bulkFiles.some((f) => f.fileType === "audio")}
-              <div class="preset-group">
-                <span>🎵 Audios ➔</span>
-                <select
-                  value={batchAudioFormat}
-                  onchange={(e) => applyBatchAudioFormat(e.target.value)}
-                  class="preset-select"
-                  disabled={isConvertingBulk}
-                >
-                  <option value="mp3">MP3</option>
-                  <option value="wav">WAV</option>
-                  <option value="m4a">M4A</option>
-                  <option value="aac">AAC</option>
-                  <option value="webm">WEBM</option>
-                </select>
-              </div>
-            {/if}
-
-            {#if bulkFiles.some((f) => f.fileType === "video")}
-              <div class="preset-group">
-                <span>🎞️ Videos ➔</span>
-                <select
-                  value={batchVideoFormat}
-                  onchange={(e) => applyBatchVideoFormat(e.target.value)}
-                  class="preset-select"
-                  disabled={isConvertingBulk}
-                >
-                  <option value="mp4">MP4</option>
-                  <option value="mov">MOV</option>
-                  <option value="mkv">MKV</option>
-                  <option value="avi">AVI</option>
-                </select>
-              </div>
-            {/if}
+            {#each [["image", "🖼️ Images", batchImageFormats], ["audio", "🎵 Audios", batchAudioFormats], ["video", "🎞️ Videos", batchVideoFormats], ["data", "🐶 Data", batchDataFormats]] as [type, label, fmts]}
+              {#if bulkFiles.some((f) => f.fileType === type)}
+                <div class="preset-group">
+                  <span>{label} ➔</span>
+                  {#each fmts as fmt, i}
+                    <span class="preset-chip">
+                      <select
+                        value={fmt}
+                        onchange={(e) =>
+                          setBatchFormat(type, i, e.target.value)}
+                        class="preset-select"
+                        disabled={isConvertingBulk}
+                      >
+                        {#each formatMap[type] as opt}
+                          <option
+                            value={opt}
+                            disabled={opt !== fmt && fmts.includes(opt)}
+                            >{opt.toUpperCase()}</option
+                          >
+                        {/each}
+                      </select>
+                      {#if fmts.length > 1}
+                        <button
+                          class="chip-remove"
+                          onclick={() => removeBatchFormat(type, i)}
+                          disabled={isConvertingBulk}
+                          type="button"
+                          title="Remove this output format"
+                        >
+                          ×
+                        </button>
+                      {/if}
+                    </span>
+                  {/each}
+                  {#if fmts.length < formatMap[type].length}
+                    <button
+                      class="chip-add"
+                      onclick={() => addBatchFormat(type)}
+                      disabled={isConvertingBulk}
+                      type="button"
+                      title="Add another output format"
+                    >
+                      +
+                    </button>
+                  {/if}
+                </div>
+              {/if}
+            {/each}
           </div>
         </div>
 
@@ -1153,6 +1695,8 @@
                     <FileAudio size={18} class="text-[#00ffff]" />
                   {:else if item.fileType === "video"}
                     <FileVideo size={18} class="text-[#a855f7]" />
+                  {:else if item.fileType === "data"}
+                    <FileJson size={18} class="text-[#4ade80]" />
                   {/if}
                 </div>
                 <div class="meta">
@@ -1164,15 +1708,30 @@
               </div>
 
               <div class="controls-status">
-                <select
-                  bind:value={item.outputFormat}
-                  class="format-selector"
-                  disabled={isConvertingBulk || item.status === "done"}
-                >
-                  {#each formatMap[item.fileType] || [] as fmt}
-                    <option value={fmt}>{fmt.toUpperCase()}</option>
-                  {/each}
-                </select>
+                <div class="file-format-cell">
+                  <select
+                    value={item.outputFormats[0]}
+                    onchange={(e) => (item.outputFormats[0] = e.target.value)}
+                    class="format-selector"
+                    disabled={isConvertingBulk || item.status === "done"}
+                  >
+                    {#each formatMap[item.fileType] || [] as fmt}
+                      <option value={fmt}>{fmt.toUpperCase()}</option>
+                    {/each}
+                  </select>
+                  {#if item.outputFormats.length > 1}
+                    <span
+                      class="extra-formats"
+                      title={"Also converting to: " +
+                        item.outputFormats
+                          .slice(1)
+                          .map((f) => f.toUpperCase())
+                          .join(", ")}
+                    >
+                      +{item.outputFormats.length - 1}
+                    </span>
+                  {/if}
+                </div>
 
                 <div
                   class="status-badge"
@@ -1196,21 +1755,18 @@
                   {/if}
                 </div>
 
-                {#if item.status === "done" && item.convertedBlob}
+                {#if item.status === "done" && item.convertedFiles.length > 0}
                   <button
                     class="item-action-btn"
-                    onclick={() => {
-                      const url = URL.createObjectURL(item.convertedBlob);
-                      const a = document.createElement("a");
-                      a.href = url;
-                      a.download = item.convertedFileName;
-                      document.body.appendChild(a);
-                      a.click();
-                      document.body.removeChild(a);
-                      URL.revokeObjectURL(url);
+                    onclick={async () => {
+                      for (const cf of item.convertedFiles) {
+                        triggerDownload(cf.blob, cf.name);
+                        await new Promise((r) => setTimeout(r, 200));
+                      }
                     }}
+                    disabled={isConvertingBulk}
                     type="button"
-                    title="Download converted file"
+                    title="Download converted file(s)"
                   >
                     <Download size={12} />
                   </button>
@@ -1236,7 +1792,7 @@
               <span>Overall Progress</span>
               <span>{overallProgress}%</span>
             </div>
-            <div class="progress-bar-wrap !w-full">
+            <div class="progress-bar-wrap w-full!">
               <div
                 class="progress-bar-fill"
                 style="width: {overallProgress}%"
@@ -1256,30 +1812,45 @@
             disabled={isConvertingBulk}
             type="button"
           >
-            Clear Batch
+            Clear
           </button>
 
-          {#if bulkFiles.some((f) => f.status === "done")}
-            <button
-              class="action-btn download !m-0"
-              onclick={downloadAllAsZip}
-              type="button"
+          <div class="flex items-center gap-3">
+            <label
+              class="flex items-center gap-2 text-xs text-white/50 cursor-pointer select-none hover:text-white/70 transition-colors"
+              class:opacity-40={isConvertingBulk}
             >
-              <Download size={14} /> ZIP & DOWNLOAD ALL
-            </button>
-          {:else}
-            <button
-              class="action-btn convert-launch !m-0"
-              onclick={startBulkConversion}
-              disabled={isConvertingBulk || bulkFiles.length === 0}
-              type="button"
-            >
-              <RefreshCw
-                size={14}
-                class={isConvertingBulk ? "animate-spin" : ""}
-              /> BATCH CONVERT
-            </button>
-          {/if}
+              <input
+                type="checkbox"
+                bind:checked={bulkZipDownloads}
+                disabled={isConvertingBulk}
+                class="accent-[#ff5e00] rounded border-white/10"
+              />
+              <span>Zip</span>
+            </label>
+            {#if bulkFiles.some((f) => f.status === "done")}
+              <button
+                class="action-btn download m-0!"
+                onclick={downloadAllConverted}
+                disabled={!bulkAllComplete}
+                type="button"
+              >
+                <Download size={14} /> DOWNLOAD ALL
+              </button>
+            {:else}
+              <button
+                class="action-btn convert-launch m-0!"
+                onclick={startBulkConversion}
+                disabled={isConvertingBulk || bulkFiles.length === 0}
+                type="button"
+              >
+                <RefreshCw
+                  size={14}
+                  class={isConvertingBulk ? "animate-spin" : ""}
+                /> BATCH CONVERT
+              </button>
+            {/if}
+          </div>
         </div>
       </div>
     {:else if conversionStatus === "idle" && !file}
@@ -1287,7 +1858,7 @@
       <!-- svelte-ignore a11y_click_events_have_key_events -->
       <!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
       <div
-        class="upload-dropzone"
+        class="upload-dropzone relative"
         class:dragging={isDragging}
         ondragover={handleDragOver}
         ondragleave={handleDragLeave}
@@ -1296,19 +1867,30 @@
         role="button"
         tabindex="0"
       >
+        <button
+          class="absolute top-2 right-2 px-2 py-1 rounded bg-black/40 border border-white/10 text-[10px] text-white/50 hover:text-[#4ade80] hover:border-[#4ade80]/40 font-mono uppercase cursor-pointer transition-colors"
+          onclick={(e) => {
+            e.stopPropagation();
+            startTextEntry();
+          }}
+          type="button"
+          title="Paste or type data instead of uploading a file"
+        >
+          ⌨️ paste / type text
+        </button>
         <div class="icon-wrap">
           <Upload size={38} />
         </div>
         <h3>Drop file or click to select</h3>
         <p class="upload-sub">
           Supports JPG, PNG, WEBP, AVIF, SVG, MP3, WAV, M4A, AAC, WEBM, MP4,
-          MOV, MKV, AVI
+          MOV, MKV, AVI, DOG, JSON, YML, TS, JS, MD
         </p>
       </div>
 
       <!-- Supported formats legend -->
       <div
-        class="supported-formats-legend mt-4 p-4 rounded-lg bg-white/[0.02] border border-white/5 flex flex-col gap-2.5"
+        class="supported-formats-legend mt-4 p-4 rounded-lg bg-white/2 border border-white/5 flex flex-col gap-2.5"
       >
         <h4
           class="text-xs font-bold text-white/40 uppercase tracking-wider font-mono"
@@ -1316,7 +1898,7 @@
           SUPPORTED CONVERSIONS
         </h4>
         <div
-          class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs font-sans text-white/70"
+          class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-sans text-white/70"
         >
           <div class="flex flex-col gap-1.5">
             <span class="font-bold text-[#ff5e00]">🖼️ IMG</span>
@@ -1376,9 +1958,51 @@
               >
             </div>
           </div>
-          <div
-            class="flex flex-col gap-1.5 col-span-1 sm:col-span-2 md:col-span-1"
-          >
+          <div class="flex flex-col gap-1.5">
+            <span class="flex items-center gap-2">
+              <span class="font-bold text-[#4ade80]">🐶 DATA</span>
+              <button
+                class="px-1.5 py-0.5 rounded bg-[#4ade80]/10 border border-[#4ade80]/30 text-[9px] text-[#4ade80] hover:bg-[#4ade80]/20 font-mono uppercase cursor-pointer transition-colors"
+                onclick={() => (showDogInfo = true)}
+                type="button"
+                title="Read the .dog format specification"
+              >
+                .DOG SPEC
+              </button>
+            </span>
+            <div class="flex flex-wrap items-center gap-2">
+              <span
+                class="px-1.5 py-0.5 rounded bg-white/5 font-mono text-[10px]"
+                >DOG</span
+              >
+              <span class="text-white/30 font-mono">➔</span>
+              <span
+                class="px-1.5 py-0.5 rounded bg-white/5 font-mono text-[10px]"
+                >JSON</span
+              >
+              <span class="text-white/30 font-mono">➔</span>
+              <span
+                class="px-1.5 py-0.5 rounded bg-white/5 font-mono text-[10px]"
+                >JS</span
+              >
+              <span class="text-white/30 font-mono">➔</span>
+              <span
+                class="px-1.5 py-0.5 rounded bg-white/5 font-mono text-[10px]"
+                >YML</span
+              >
+              <span class="text-white/30 font-mono">➔</span>
+              <span
+                class="px-1.5 py-0.5 rounded bg-white/5 font-mono text-[10px]"
+                >TS</span
+              >
+              <span class="text-white/30 font-mono">➔</span>
+              <span
+                class="px-1.5 py-0.5 rounded bg-white/5 font-mono text-[10px]"
+                >MD</span
+              >
+            </div>
+          </div>
+          <div class="flex flex-col gap-1.5">
             <span class="font-bold text-[#a855f7]">🎞️ VID</span>
             <div class="flex flex-wrap items-center gap-2">
               <span
@@ -1404,6 +2028,48 @@
           </div>
         </div>
       </div>
+      <!-- Conversion history (this browser session) -->
+      {#if conversions.entries.length > 0}
+        <div
+          class="mt-4 p-4 rounded-lg bg-white/2 border border-white/5 flex flex-col gap-2.5"
+        >
+          <div class="flex items-center justify-between">
+            <h4
+              class="text-xs font-bold text-white/40 uppercase tracking-wider font-mono"
+            >
+              CONVERSION HISTORY
+            </h4>
+            <button
+              class="text-[10px] font-mono text-white/30 hover:text-red-400 transition-colors uppercase"
+              onclick={clearConversions}
+              type="button"
+            >
+              Clear
+            </button>
+          </div>
+          <div class="flex flex-col gap-1.5 max-h-50 overflow-y-auto pr-1">
+            {#each [...conversions.entries].reverse() as h (h.id)}
+              <button
+                class="flex items-center justify-between gap-3 text-left text-xs font-mono bg-white/2 hover:bg-white/6 border border-white/5 rounded-lg px-3 py-2 transition-colors cursor-pointer"
+                onclick={() => openHistoryEntry(h.id)}
+                type="button"
+                title="Reopen this conversion"
+              >
+                <span class="text-white/70 truncate flex-1">{h.inputName}</span>
+                <span class="text-white/35 shrink-0"
+                  >➔ {h.items.map((i) => i.name.split(".").pop().toUpperCase()).join(", ")}</span
+                >
+                <span class="text-white/25 shrink-0"
+                  >{new Date(h.ts).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}</span
+                >
+              </button>
+            {/each}
+          </div>
+        </div>
+      {/if}
     {:else if conversionStatus === "converting"}
       <!-- CONVERTING STATE -->
       <div class="converting-panel">
@@ -1429,18 +2095,70 @@
         <CheckCircle class="text-green-400" size={54} />
         <h3>Conversion Complete!</h3>
         <div
-          class="flex flex-col gap-2 w-full max-w-[280px] max-h-[150px] overflow-y-auto pr-1"
+          class="flex flex-col gap-2 w-full max-w-105 max-h-[38vh] overflow-y-auto pr-1 mx-auto"
         >
           {#each convertedFiles as item}
             <div
-              class="converted-info-card !p-3 flex !flex-row items-center justify-between gap-3 text-left"
+              class="converted-info-card p-3! flex flex-col! gap-2 text-left w-full max-w-none!"
             >
-              <span class="filename !text-[11px] truncate flex-1"
-                >{item.name}</span
-              >
-              <span class="filesize !text-[10px] flex-shrink-0"
-                >{formatBytes(item.blob?.size || 0)}</span
-              >
+              <div class="flex flex-row items-center justify-between gap-3">
+                <span class="filename text-[11px]! truncate flex-1"
+                  >{item.name}</span
+                >
+                <span class="filesize text-[10px]! shrink-0"
+                  >{formatBytes(item.blob?.size || 0)}</span
+                >
+                {#if file && file.size > 0 && item.blob}
+                  <span
+                    class="text-[10px] font-mono shrink-0"
+                    class:text-green-400={item.blob.size <= file.size}
+                    class:text-red-400={item.blob.size > file.size}
+                    title="Size vs original ({formatBytes(file.size)})"
+                  >
+                    {item.blob.size <= file.size ? "" : "+"}{Math.round(
+                      ((item.blob.size - file.size) / file.size) * 100,
+                    )}%
+                  </span>
+                {/if}
+                {#if item.kind === "text" && item.blob}
+                  <button
+                    class="px-2 py-0.5 rounded bg-black/40 border border-white/10 text-[9px] text-white/60 hover:text-white font-mono uppercase shrink-0 cursor-pointer transition-colors"
+                    onclick={() => copyPreviewText(item.blob, item.name)}
+                    type="button"
+                    title="Copy full converted text"
+                  >
+                    {copiedKey === item.name ? "Copied!" : "Copy"}
+                  </button>
+                  <button
+                    class="px-2 py-0.5 rounded bg-black/40 border border-white/10 text-[9px] text-white/60 hover:text-white font-mono uppercase shrink-0 cursor-pointer transition-colors"
+                    onclick={() => expandOutput(item)}
+                    type="button"
+                    title="View full screen"
+                    aria-label="View {item.name} full screen"
+                  >
+                    ⤢
+                  </button>
+                {/if}
+              </div>
+              {#if item.kind === "text" && item.text}
+                <pre
+                  class="w-full max-h-32 overflow-y-auto text-[9px] leading-snug font-mono text-white/60 whitespace-pre-wrap bg-black/30 rounded p-2 m-0 select-text cursor-text">{item.text}</pre>
+              {:else if item.kind === "image" && item.url}
+                <img
+                  src={item.url}
+                  alt="{item.name} preview"
+                  class="w-full max-h-40 object-contain rounded bg-black/30"
+                />
+              {:else if item.kind === "audio" && item.url}
+                <audio controls src={item.url} class="w-full h-8"></audio>
+              {:else if item.kind === "video" && item.url}
+                <!-- svelte-ignore a11y_media_has_caption -->
+                <video
+                  controls
+                  src={item.url}
+                  class="w-full max-h-40 rounded bg-black/30"
+                ></video>
+              {/if}
             </div>
           {/each}
         </div>
@@ -1454,7 +2172,7 @@
               bind:checked={zipDownloads}
               class="accent-[#ff5e00] rounded border-white/10"
             />
-            <span>Zip downloads</span>
+            <span>Zip</span>
           </label>
         {/if}
 
@@ -1462,6 +2180,23 @@
           <button class="action-btn download" onclick={downloadFile}>
             <Download size={16} /> DOWNLOAD {#if convertedFiles.length > 1 && !zipDownloads}ALL{/if}
           </button>
+          {#if convertedFiles.some((it) => it.kind === "text" && it.blob && /\.(dog|json|yml|ts|js|md)$/.test(it.name))}
+            <button
+              class="action-btn secondary"
+              onclick={() =>
+                reconvertOutput(
+                  convertedFiles.find(
+                    (it) =>
+                      it.kind === "text" &&
+                      it.blob &&
+                      /\.(dog|json|yml|ts|js|md)$/.test(it.name),
+                  ),
+                )}
+              title="Feed the output back in and convert it to another format"
+            >
+              ♻ RECONVERT
+            </button>
+          {/if}
           <button class="action-btn secondary" onclick={resetState}>
             CONVERT ANOTHER
           </button>
@@ -1479,7 +2214,11 @@
       </div>
     {:else}
       <!-- FILE LOADED, CHOOSE OUTPUT -->
-      <div class="file-loaded-panel">
+      <div
+        class="file-loaded-panel"
+        class:max-h-full={fileType === "data"}
+        class:overflow-hidden={fileType === "data"}
+      >
         <div class="back-bar">
           <button class="back-btn" onclick={resetState}>
             <ArrowLeft size={14} /> Back
@@ -1487,11 +2226,29 @@
         </div>
 
         <div
-          class="grid grid-cols-1 sm:grid-cols-12 gap-5 md:gap-6 items-start w-full"
+          class={fileType === "data"
+            ? "flex flex-col gap-4 w-full flex-1 min-h-0"
+            : "grid grid-cols-1 sm:grid-cols-12 gap-5 md:gap-6 items-start w-full"}
         >
-          <!-- Left Column -->
-          <div class="sm:col-span-6 flex flex-col gap-4">
-            <div class="meta-section">
+          <!-- Left Column (full-width on top for data files) -->
+          <div
+            class={"flex flex-col gap-4 " +
+              (fileType === "data" ? "flex-1 min-h-0" : "sm:col-span-6")}
+          >
+            <div
+              class={"meta-section" +
+                (fileType === "data"
+                  ? showDogEncoding
+                    ? " flex-col sm:flex-row"
+                    : " flex-col"
+                  : "") +
+                (fileType === "data" && previewMaximized
+                  ? " fixed inset-0 z-[99999] bg-black! max-h-[100dvh] rounded-none!"
+                  : "")}
+              class:flex-1={fileType === "data"}
+              class:min-h-0={fileType === "data"}
+              class:items-stretch={fileType === "data" && showDogEncoding}
+            >
               {#if fileType === "image"}
                 <!-- svelte-ignore a11y_click_events_have_key_events -->
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -1523,6 +2280,214 @@
                     Replace
                   </div>
                 </div>
+              {:else if fileType === "data"}
+                <div
+                  class="preview-box audio-preview w-full! h-auto! flex-1 min-w-0 min-h-20 relative group"
+                >
+                  <!-- top left: file info chip (truncates with … before it can hit Customize) -->
+                  <span
+                    class="absolute top-1.5 left-2 z-10 max-w-[calc(100%-150px)] overflow-hidden text-ellipsis whitespace-nowrap text-[9px] font-mono text-white/50 bg-black/60 px-1.5 py-0.5 rounded pointer-events-none"
+                    >{file.name} · {formatBytes(file.size)}{previewFmt &&
+                    previewFmt !== inputFormat
+                      ? ` · ${inputFormat.toUpperCase()} ➔ ${previewFmt.toUpperCase()} · ${formatBytes(previewSize)}`
+                      : ` · ${inputFormat.toUpperCase()}`}{#if previewFmt && previewFmt !== inputFormat && file?.size}
+                      {" "}<span
+                        class={previewSize <= file.size
+                          ? "text-green-400"
+                          : "text-red-400"}
+                        >({previewSize <= file.size ? "" : "+"}{Math.round(
+                          ((previewSize - file.size) / file.size) * 100,
+                        )}%)</span
+                      >{/if}</span
+                  >
+                  <!-- top right: Customize + full screen, always -->
+                  <div class="absolute top-1.5 right-1.5 z-10 flex gap-1.5">
+                    {#if selectedFormats.includes("dog")}
+                      <button
+                        class={"px-1.5 py-0.5 rounded text-[9px] font-mono uppercase border transition-colors cursor-pointer " +
+                          (showDogEncoding
+                            ? "border-[#4ade80]/60 text-[#4ade80] bg-[#4ade80]/10"
+                            : "border-white/10 text-white/50 bg-black/60 hover:text-white")}
+                        onclick={() => (showDogEncoding = !showDogEncoding)}
+                        type="button"
+                        title="Customize the .dog encoding header"
+                      >
+                        Customize
+                      </button>
+                    {/if}
+                    <button
+                      class={"px-1.5 py-0.5 rounded text-[9px] font-mono uppercase border transition-colors cursor-pointer " +
+                        (previewMaximized
+                          ? "border-[#4ade80]/60 text-[#4ade80] bg-[#4ade80]/10"
+                          : "border-white/10 text-white/50 bg-black/60 hover:text-white")}
+                      onclick={() => (previewMaximized = !previewMaximized)}
+                      type="button"
+                      title={previewMaximized
+                        ? "Exit full screen (Esc)"
+                        : "Full screen"}
+                      aria-label={previewMaximized
+                        ? "Exit full screen"
+                        : "Full screen"}
+                    >
+                      {previewMaximized ? "⤡" : "⤢"}
+                    </button>
+                  </div>
+                  <!-- bottom right: Copy + Replace -->
+                  <div
+                    class="absolute bottom-1.5 right-1.5 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                  >
+                    <button
+                      class={"px-2 py-0.5 rounded border text-[10px] font-mono uppercase cursor-pointer transition-colors " +
+                        (editingInput
+                          ? "border-[#4ade80]/60 text-[#4ade80] bg-[#4ade80]/10"
+                          : "bg-black/60 border-white/10 text-white/70 hover:text-white")}
+                      onclick={() => (editingInput = !editingInput)}
+                      type="button"
+                      title="Type or paste directly into the preview"
+                    >
+                      {editingInput ? "Done" : "Edit"}
+                    </button>
+                    <button
+                      class="px-2 py-0.5 rounded bg-black/60 border border-white/10 text-[10px] text-white/70 hover:text-white font-mono uppercase cursor-pointer"
+                      onclick={() => copyPreviewText(previewFullText, "input")}
+                      type="button"
+                      title="Copy previewed text"
+                    >
+                      {copiedKey === "input" ? "Copied!" : "Copy"}
+                    </button>
+                    <button
+                      class="px-2 py-0.5 rounded bg-black/60 border border-white/10 text-[10px] text-white/70 hover:text-white font-mono uppercase cursor-pointer"
+                      onclick={() =>
+                        document.getElementById("file-input").click()}
+                      type="button"
+                      title="Select another file"
+                    >
+                      Replace
+                    </button>
+                  </div>
+                  {#if editingInput}
+                    <!-- svelte-ignore a11y_autofocus -->
+                    <textarea
+                      class="w-full flex-1 min-h-0 overflow-y-auto text-left text-[13px] leading-relaxed font-mono text-[#4ade80]/85 bg-transparent whitespace-pre-wrap px-3 pb-3 pt-7 m-0 outline-none resize-none border-0"
+                      placeholder="paste or type your data here — dog, json, or yml. format auto-detects as you go."
+                      value={rawDataText}
+                      oninput={handleInputEdit}
+                      autofocus
+                    ></textarea>
+                  {:else}
+                    <pre
+                      class="w-full flex-1 min-h-0 overflow-y-auto text-left text-[13px] leading-relaxed font-mono text-[#4ade80]/85 whitespace-pre-wrap px-3 pb-3 pt-7 m-0 select-text cursor-text">{dataPreviewText}</pre>
+                  {/if}
+                </div>
+
+                <!-- .dog Encoding sidebar — slides in from the right via Customize -->
+                {#if selectedFormats.includes("dog") && showDogEncoding}
+                  <div
+                    class="w-full sm:w-56 shrink-0 self-stretch max-h-[55%] sm:max-h-full min-h-0 overflow-y-auto overscroll-contain p-3 rounded-lg bg-white/2 border border-white/5 flex flex-col gap-2.5 text-left [&>*]:shrink-0"
+                    transition:fly={{ x: 200, duration: 200 }}
+                  >
+                    <span
+                      class="text-[10px] font-bold text-[#4ade80] uppercase tracking-wider font-mono"
+                      >DOG ENCODING</span
+                    >
+                    <p class="text-[9px] font-sans text-white/40 m-0 leading-snug">
+                      untouched defaults = <span class="text-[#4ade80]">dog 1</span>. change anything and the header becomes <span class="text-[#4ade80]">dog 2</span>, carrying your rules.
+                    </p>
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                      {#each [...Object.keys(DOG_PRESETS), "custom"] as p}
+                        <button
+                          class={"px-2 py-0.5 rounded text-[9px] font-mono uppercase border transition-colors cursor-pointer " +
+                            (dogPreset === p
+                              ? "border-[#4ade80] text-[#4ade80] bg-[#4ade80]/10"
+                              : "border-white/10 text-white/40 hover:text-white/70")}
+                          onclick={() => p !== "custom" && applyDogPreset(p)}
+                          type="button"
+                          disabled={p === "custom"}
+                        >
+                          {p}
+                        </button>
+                      {/each}
+                    </div>
+                    <label
+                      class="flex flex-col gap-0.5 text-white/40 text-[10px] font-mono"
+                    >
+                      flow
+                      <select
+                        class="dog-select"
+                        value={dogOpts.flow}
+                        onchange={(e) => setDogOpt("flow", e.target.value)}
+                      >
+                        <option value="block">block (multi-line)</option>
+                        <option value="line">line (block per line)</option>
+                        <option value="wire">wire (one line total)</option>
+                      </select>
+                    </label>
+                    <label
+                      class="flex flex-col gap-0.5 text-white/40 text-[10px] font-mono"
+                      class:opacity-30={dogOpts.flow !== "block"}
+                    >
+                      indent
+                      <select
+                        class="dog-select"
+                        value={String(dogOpts.indent)}
+                        onchange={(e) =>
+                          setDogOpt("indent", Number(e.target.value))}
+                        disabled={dogOpts.flow !== "block"}
+                      >
+                        {#each [1, 2, 3, 4, 6, 8] as n}
+                          <option value={String(n)}
+                            >{n} space{n > 1 ? "s" : ""}</option
+                          >
+                        {/each}
+                      </select>
+                    </label>
+                    <label
+                      class="flex flex-col gap-0.5 text-white/40 text-[10px] font-mono"
+                    >
+                      bools
+                      <select
+                        class="dog-select"
+                        value={dogOpts.bools}
+                        onchange={(e) => setDogOpt("bools", e.target.value)}
+                      >
+                        <option value="truefalse">true / false</option>
+                        <option value="tf">t / f</option>
+                        <option value="10">1 / 0</option>
+                        <option value="yn">y / n</option>
+                      </select>
+                    </label>
+                    <label
+                      class="flex flex-col gap-0.5 text-white/40 text-[10px] font-mono"
+                    >
+                      case
+                      <select
+                        class="dog-select"
+                        value={dogOpts.case}
+                        onchange={(e) => setDogOpt("case", e.target.value)}
+                      >
+                        <option value="any">any</option>
+                        <option value="exact">exact</option>
+                      </select>
+                    </label>
+                    <label
+                      class="flex flex-col gap-0.5 text-white/40 text-[10px] font-mono"
+                    >
+                      block keyword
+                      <input
+                        class="dog-select"
+                        value={dogOpts.block}
+                        oninput={(e) =>
+                          setDogOpt(
+                            "block",
+                            e.target.value.replace(/[^A-Za-z0-9]/g, "") ||
+                              "track",
+                          )}
+                      />
+                    </label>
+                                        <pre
+                      class="bg-black/40 rounded px-2 py-1 text-[9px] text-[#4ade80]/80 whitespace-pre-wrap break-all select-text cursor-text m-0 mt-auto">{dogHeaderPreview}</pre>
+                  </div>
+                {/if}
               {:else if fileType === "video"}
                 <!-- svelte-ignore a11y_click_events_have_key_events -->
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -1541,22 +2506,25 @@
                 </div>
               {/if}
 
-              <div class="details">
-                <span class="file-name-label">{file.name}</span>
-                <span class="file-size-label">{formatBytes(file.size)}</span>
-                <div class="badge-row">
-                  <span class="format-badge input"
-                    >{inputFormat.toUpperCase()}</span
-                  >
-                  <span class="arrow-trans">➔</span>
-                  <span class="format-badge output">
-                    {selectedFormats.length > 0
-                      ? selectedFormats.map((f) => f.toUpperCase()).join(", ")
-                      : "?"}
-                  </span>
+              {#if fileType !== "data"}
+                <div class="details">
+                  <span class="file-name-label">{file.name}</span>
+                  <span class="file-size-label">{formatBytes(file.size)}</span>
+                  <div class="badge-row">
+                    <span class="format-badge input"
+                      >{inputFormat.toUpperCase()}</span
+                    >
+                    <span class="arrow-trans">➔</span>
+                    <span class="format-badge output">
+                      {selectedFormats.length > 0
+                        ? selectedFormats.map((f) => f.toUpperCase()).join(", ")
+                        : "?"}
+                    </span>
+                  </div>
                 </div>
-              </div>
+              {/if}
             </div>
+
 
             <!-- Settings Panel (Quality, Compression, Dimensions) -->
             {#if fileType === "image" || fileType === "audio"}
@@ -1836,11 +2804,12 @@
             {/if}
           </div>
 
-          <!-- Right Column -->
-          <div class="sm:col-span-6 flex flex-col justify-between gap-5 h-full">
+          <!-- Right Column (drops below the preview for data files) -->
+          <div
+            class={"flex flex-col justify-between gap-5 " +
+              (fileType === "data" ? "shrink-0" : "sm:col-span-6 h-full")}
+          >
             <div class="selection-section flex flex-col gap-4">
-              <h3>Select Output Format</h3>
-
               {#each formatGroups as group}
                 <div>
                   <div
@@ -1876,7 +2845,7 @@
               {/each}
 
               <div
-                class="shortcut-tip flex flex-col items-center justify-center gap-1 mt-3 text-[10px] text-white/35 font-mono text-center bg-white/[0.01] border border-white/5 rounded-lg p-2.5"
+                class="shortcut-tip flex flex-col items-center justify-center gap-1 mt-3 text-[10px] text-white/35 font-mono text-center bg-white/1 border border-white/5 rounded-lg p-2.5"
               >
                 <div class="flex items-center gap-1.5 text-white/55">
                   <Keyboard size={12} />
@@ -1902,8 +2871,68 @@
       </div>
     {/if}
   </div>
+
+  <!-- Full-screen converted text pane — same overlay mechanic as the
+       fundraiser map's full screen (Esc or the button closes it) -->
+  {#if maximizedOutput}
+    <div
+      class="fixed inset-0 z-[99999] bg-black max-h-[100dvh] p-2 sm:p-4 flex flex-col gap-2"
+    >
+      <div class="flex items-center justify-between gap-3 shrink-0">
+        <span class="text-[11px] font-mono text-white/60 truncate"
+          >{maximizedOutput.name}</span
+        >
+        <div class="flex gap-1.5 shrink-0">
+          {#if maximizedOutput.blob}
+            <button
+              class="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-[10px] text-white/70 hover:text-white font-mono uppercase cursor-pointer transition-colors"
+              onclick={() =>
+                copyPreviewText(maximizedOutput.blob, "fullscreen")}
+              type="button"
+              title="Copy full converted text"
+            >
+              {copiedKey === "fullscreen" ? "Copied!" : "Copy"}
+            </button>
+          {/if}
+          <button
+            class="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-[10px] text-white/70 hover:text-white font-mono uppercase cursor-pointer transition-colors"
+            onclick={() => (maximizedOutput = null)}
+            type="button"
+            title="Exit full screen (Esc)"
+            aria-label="Exit full screen"
+          >
+            ⤡ Close
+          </button>
+        </div>
+      </div>
+      <pre
+        class="flex-1 min-h-0 w-full overflow-y-auto text-left text-[13px] leading-relaxed font-mono text-[#4ade80]/85 whitespace-pre-wrap bg-black/30 border border-white/5 rounded-lg p-3 m-0 select-text cursor-text">{maximizedOutput.text}</pre>
+    </div>
+  {/if}
 </div>
 
 <style lang="scss">
   @use "../../styles/CatalyticConverter.scss";
+
+  .dog-select {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    padding: 4px 8px;
+    color: rgba(255, 255, 255, 0.75);
+    font-family: inherit;
+    font-size: 10px;
+    outline: none;
+    cursor: pointer;
+
+    &:focus {
+      border-color: #4ade80;
+    }
+
+    option {
+      background: #0a0a0a;
+      color: rgba(255, 255, 255, 0.8);
+    }
+  }
 </style>

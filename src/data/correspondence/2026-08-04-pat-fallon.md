@@ -15,7 +15,7 @@ topic: "Hemp definition · FY2026 Agriculture appropriations · quantifiable THC
 
 Received August 4th 2026, in response to constituent contact about the Texas THC shelf pull and the November 12th federal hemp deadline. Reproduced in full, unedited.
 
-We are grateful for the reply. The office acknowledged the concern directly, laid out exactly what the appropriations language does, and committed to keeping this advocacy in mind — and the door open. **We support anybody and everybody who keeps it real and continues the discussion.** My response follows underneath it.
+We are grateful for the reply. The office acknowledged the concern directly, laid out exactly what the appropriations language does, and committed to keeping this advocacy in mind — and the door open. My response follows underneath it.
 
 ## THE LETTER
 
