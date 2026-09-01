@@ -210,6 +210,6 @@ export const fullLibrary = [
     dateAdded: "2026-08-31T17:42:43-05:00",
     year: 2026,
     genre: "Pop",
-    public: false
+    public: true
   },
 ];
