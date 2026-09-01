@@ -1505,8 +1505,8 @@
 
         <!-- Self-describing header -->
         <div class="p-4 rounded-lg bg-white/2 border border-white/5 flex flex-col gap-2">
-          <h3 class="text-[11px] font-bold text-white/40 uppercase tracking-wider">1. Self-Describing Header &amp; Versions</h3>
-          <p class="font-sans text-white/55"><span class="text-[#4ade80]">dog 1</span> is the non-customizable version: default rules, header is exactly two words. Customize <em>anything</em> — spacing, flow, booleans, the block keyword — and the file becomes <span class="text-[#4ade80]">dog 2</span>, its header carrying your rules. The document always describes itself; parsers never guess.</p>
+          <h3 class="text-[11px] font-bold text-white/40 uppercase tracking-wider">Self-Describing Header &amp; Versions</h3>
+          <p class="font-sans text-white/55"><span class="text-[#4ade80]">dog 1</span> is the first, non-customizable version of the spec: it uses default rules and has a header with exactly two words [dog versionNumber]. By incrementing the version number to <span class="text-[#4ade80]">dog 2</span>, you get to add customizing keywords to the header, allowing for tremendous flexibility. The document describes itself, and works how you need it to.</p>
           <pre class="bg-black/40 rounded p-2.5 text-[#4ade80]/85 overflow-x-auto select-text cursor-text m-0">dog 1
 dog 2 flow=line fs=2space kv=space block=track case=any punct=none bools=10</pre>
           <div class="overflow-x-auto">
@@ -1528,21 +1528,20 @@ dog 2 flow=line fs=2space kv=space block=track case=any punct=none bools=10</pre
 
         <!-- Type coercion + continuation -->
         <div class="p-4 rounded-lg bg-white/2 border border-white/5 flex flex-col gap-2">
-          <h3 class="text-[11px] font-bold text-white/40 uppercase tracking-wider">2. Values, Lists, Flags &amp; Continuation</h3>
-          <p class="font-sans text-white/55">Values are typeless text until proven otherwise: <code class="text-[#4ade80]/80">true/false/t/f</code> in any casing coerce to booleans, bare numerics to numbers, everything else is a string — punctuation, emoji, and chaos included, verbatim. Keys are <code class="text-[#4ade80]/80">camelCase</code> by convention, never by enforcement.</p>
-          <p class="font-sans text-white/55"><span class="text-[#4ade80]">Repeated key = list.</span> Write <code class="text-[#4ade80]/80">tag metal</code> then <code class="text-[#4ade80]/80">tag flip</code> and you have an array. <span class="text-[#4ade80]">Bare key = true.</span> A field with no value is a flag: <code class="text-[#4ade80]/80">sampleHeavy</code> alone means yes.</p>
-          <p class="font-sans text-white/55"><span class="text-[#4ade80]">The one escape:</span> runs of 2+ spaces are separators, so a literal run inside a value is written with a backslash before it — <code class="text-[#4ade80]/80">note wait\  for it</code> keeps the double space. A backslash anywhere else is just a backslash.</p>
-          <p class="font-sans text-white/55">A line indented at least <em>two spaces deeper</em> than the declared indent continues the previous field's value. Sprawl across as many lines as the thought needs; the parser folds them into one.</p>
+          <h3 class="text-[11px] font-bold text-white/40 uppercase tracking-wider">DOGS, the file format, why?</h3>
+          <p class="font-sans text-white/55">Could you imagine an internet where the data being passed around globally does not contain trillions of repeated curly braces, or hyphens, or semicolons, or anything unnecessary? .dog is here to fix that. This spec is still in development, but the goal is a full set of parsers and converters that can aid integration in many languages and applications, along with as much customization such that json yml and other formats can be valid .dog syntax too.</p>
+          <p class="font-sans text-white/55">For now, the following is valid DOGS syntax.</p>
           <pre class="bg-black/40 rounded p-2.5 text-[#4ade80]/85 overflow-x-auto select-text cursor-text m-0">track GRIEF2
   sampleHeavy true
   sampleInfo : 13 Years of Grief by Black Label Society,
               no change in pitch at all,
             "chopped a little" {"{}"}::``  ← all legal, all preserved</pre>
+            <p class="font-sans text-white/55">Try converting various JSON objects into DOGS objects, play around with the customizer, and use it in different ways.</p>
         </div>
 
         <!-- Comparison -->
         <div class="p-4 rounded-lg bg-white/2 border border-white/5 flex flex-col gap-2">
-          <h3 class="text-[11px] font-bold text-white/40 uppercase tracking-wider">3. Comparative Analysis</h3>
+          <h3 class="text-[11px] font-bold text-white/40 uppercase tracking-wider">Comparative Analysis</h3>
           <div class="overflow-x-auto">
             <table class="w-full min-w-[560px] text-left text-[11px]">
               <thead><tr class="text-white/35 uppercase text-[9px]">
@@ -1571,7 +1570,7 @@ dog 2 flow=line fs=2space kv=space block=track case=any punct=none bools=10</pre
 
         <!-- The punctuation tax -->
         <div class="p-4 rounded-lg bg-white/2 border border-white/5 flex flex-col gap-2">
-          <h3 class="text-[11px] font-bold text-white/40 uppercase tracking-wider">4. The Punctuation Tax</h3>
+          <h3 class="text-[11px] font-bold text-white/40 uppercase tracking-wider">The Punctuation Tax</h3>
           <p class="font-sans text-white/55">Identical payload, measured (music-catalog, 80 blocks, 10 fields each):</p>
           <div class="flex flex-col gap-1.5">
             <div class="flex items-center gap-2"><span class="w-10 text-[#4ade80]">.dog</span><div class="h-3 rounded bg-[#4ade80]/70" style="width: 54%"></div><span class="text-white/40 whitespace-nowrap shrink-0">15.6 KB</span></div>
@@ -1584,7 +1583,7 @@ dog 2 flow=line fs=2space kv=space block=track case=any punct=none bools=10</pre
 
         <!-- Showcase -->
         <div class="p-4 rounded-lg bg-white/2 border border-white/5 flex flex-col gap-3">
-          <h3 class="text-[11px] font-bold text-white/40 uppercase tracking-wider">5. Where It Shines</h3>
+          <h3 class="text-[11px] font-bold text-white/40 uppercase tracking-wider">Where It Shines</h3>
 
           <div class="flex flex-col gap-1">
             <span class="text-[#4ade80] font-bold">🤖 LLM context &amp; config</span>
@@ -1617,13 +1616,6 @@ dog 2 flow=line fs=2space kv=space block=track case=any punct=none bools=10</pre
           </div>
 
           <p class="text-[10px] text-white/35 font-sans m-0">Honest caveat: over a gzipped wire, JSON's punctuation compresses away — the raw-byte win matters where data lives uncompressed: prompts, editors, terminals, diffs, and thumbs.</p>
-        </div>
-
-        <!-- Legal -->
-        <div class="p-4 rounded-lg bg-white/2 border border-white/5 flex flex-col gap-2">
-          <h3 class="text-[11px] font-bold text-white/40 uppercase tracking-wider">6. Intellectual Property Status</h3>
-          <p class="font-sans text-white/55">The <code class="text-[#4ade80]/80">.dog</code> extension is unclaimed by any living software (the 1995 Dogz pet game does not count). File extensions cannot be patented — the format is "proprietary" in spirit and public in law. Reference implementation, machine-readable spec (<code>dog.spec.json</code>), and this document constitute the entire standard.</p>
-          <p class="text-[10px] text-white/30 uppercase tracking-widest">DOGS · formed 2026 · somewhere between Tulsa OK and Dallas TX</p>
         </div>
       </div>
     {:else if isBulkMode}
