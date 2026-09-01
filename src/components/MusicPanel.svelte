@@ -23,6 +23,7 @@
     Share2,
     Check,
     AlertTriangle,
+    X,
   } from "lucide-svelte";
   import { audioCore } from "../lib/AudioCore.svelte.js";
   import { musicLock } from "../lib/musicLock.svelte.js";
@@ -1140,11 +1141,20 @@
                   class="ctrl ctrl-sm"
                   class:active-ctrl={audioCore.repeatMode > 0}
                   onclick={() => {
-                    audioCore.repeatMode = (audioCore.repeatMode + 1) % 3;
+                    audioCore.repeatMode = (audioCore.repeatMode + 1) % 4;
                   }}
                   aria-label="Repeat"
+                  title={audioCore.repeatMode === 1
+                    ? "Repeat: all"
+                    : audioCore.repeatMode === 2
+                      ? "Repeat: one"
+                      : audioCore.repeatMode === 3
+                        ? "Stop after current track"
+                        : "Repeat: off"}
                 >
                   {#if audioCore.repeatMode === 2}<Repeat1
+                      size={15}
+                    />{:else if audioCore.repeatMode === 3}<X
                       size={15}
                     />{:else}<Repeat size={15} />{/if}
                 </button>
