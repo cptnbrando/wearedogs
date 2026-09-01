@@ -179,7 +179,7 @@ export const fullLibrary = [
     altCover: "",
     src: "https://data.wearedogs.net/music/2026/drugs-vox.mp3",
     instrumental: "https://data.wearedogs.net/music/2026/drugs-ins.mp3",
-    dateAdded: "2026-07-27T18:13:43-05:00",
+    dateAdded: "2026-08-25T18:13:43-05:00",
     year: 2026,
     genre: "Hip-Hop",
     public: true
@@ -191,11 +191,25 @@ export const fullLibrary = [
     album: "DOGS RUN THE WORLD",
     cover: "https://wearedogs.net/dogs.webp",
     altCover: "",
-    src: "",
-    instrumental: "https://data.wearedogs.net/music/2026/dolly-ins1.mp3",
-    dateAdded: "2026-07-27T18:30:43-05:00",
+    src: "https://data.wearedogs.net/music/2026/dolly-vox.mp3",
+    instrumental: "https://data.wearedogs.net/music/2026/dolly-ins2.mp3",
+    dateAdded: "2026-08-31T18:30:43-05:00",
     year: 2026,
     genre: "Hip-Hop",
+    public: true
+  },
+  {
+    id: "howmuchweed",
+    title: "How Much Is Weed?",
+    artist: "Dominic Fike",
+    album: "Sunburn",
+    cover: "https://data.wearedogs.net/img/covers/2026/sunburn.webp",
+    altCover: "https://data.wearedogs.net/img/covers/2026/sunburn.png",
+    src: "https://data.wearedogs.net/music/2026/howmuchweed.mp3",
+    instrumental: "https://data.wearedogs.net/music/2026/howmuchweed-free.mp3",
+    dateAdded: "2026-08-31T17:42:43-05:00",
+    year: 2026,
+    genre: "Pop",
     public: true
   },
 ];
