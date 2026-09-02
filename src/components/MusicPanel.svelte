@@ -23,7 +23,7 @@
     Share2,
     Check,
     AlertTriangle,
-    X,
+    Diamond,
   } from "lucide-svelte";
   import { audioCore } from "../lib/AudioCore.svelte.js";
   import { musicLock } from "../lib/musicLock.svelte.js";
@@ -1154,7 +1154,7 @@
                 >
                   {#if audioCore.repeatMode === 2}<Repeat1
                       size={15}
-                    />{:else if audioCore.repeatMode === 3}<X
+                    />{:else if audioCore.repeatMode === 3}<Diamond
                       size={15}
                     />{:else}<Repeat size={15} />{/if}
                 </button>

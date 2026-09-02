@@ -36,7 +36,7 @@ export class AudioCore {
   currentTrackIndex = $state(0);
   isLoading = $state(false);
   isShuffled = $state(true);
-  repeatMode = $state(1); // 0 = Off, 1 = Repeat All, 2 = Repeat One, 3 = X (stop after current)
+  repeatMode = $state(1); // 0 = Off, 1 = Repeat All, 2 = Repeat One, 3 = Diamond (stop after current)
   activeAudioType = $state("music"); // 'music' | 'video'
   fetchErrors = $state({});
   waveformPeaks = $state({});
@@ -663,7 +663,7 @@ export class AudioCore {
     // is already loading would skip a track.
     if (this.isLoading) return;
     if (this.repeatMode === 3) {
-      // X mode: stop after the current track. Play restarts it from the top;
+      // Diamond mode: stop after the current track. Play restarts it from the top;
       // picking a track, prev, and next all behave as usual.
       this.isPlaying = false;
       this.pause();
