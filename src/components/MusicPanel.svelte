@@ -21,6 +21,7 @@
     Maximize2,
     Minimize2,
     Share2,
+    Download,
     Check,
     AlertTriangle,
     Diamond,
@@ -312,6 +313,41 @@
       .catch((err) => {
         console.error("Failed to copy share link:", err);
       });
+  }
+
+  let downloadingTrackId = $state(null);
+
+  // Downloads default to the instrumental; tracks without one fall back to
+  // the main mix. Fetched as a blob because the files are cross-origin (and
+  // lockup files need the auth header), so a plain <a download> won't save.
+  async function handleDownloadTrack(e, track) {
+    e.stopPropagation();
+    const url = track.instrumental || track.src;
+    if (!url || downloadingTrackId) return;
+    downloadingTrackId = track.id;
+    try {
+      const fetchOpts = {};
+      if (
+        url.startsWith("https://data.wearedogs.net/") &&
+        url.includes("/lockup/") &&
+        musicLock.password
+      ) {
+        fetchOpts.headers = { Authorization: `password=${musicLock.password}` };
+      }
+      const res = await fetch(url, fetchOpts);
+      if (!res.ok) throw new Error(`Fetch failed with status ${res.status}`);
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = url.split("/").pop() || `${track.id}.mp3`;
+      a.click();
+      URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      console.error("Failed to download track:", err);
+    } finally {
+      downloadingTrackId = null;
+    }
   }
 
   onDestroy(() => {
@@ -987,7 +1023,7 @@
 
               <!-- Track info (Always visible!) -->
               <div class="track-info mt-2">
-                <div class="flex items-center justify-center mb-1.5">
+                <div class="flex items-center justify-center gap-1.5 mb-1.5">
                   <button
                     class="player-share-btn"
                     onclick={(e) => handleShareTrack(e, currentTrack)}
@@ -1000,6 +1036,19 @@
                       <Share2 size={12} />
                     {/if}
                   </button>
+                  {#if currentTrack.instrumental || currentTrack.src}
+                    <button
+                      class="player-download-btn"
+                      class:downloading={downloadingTrackId === currentTrack.id}
+                      onclick={(e) => handleDownloadTrack(e, currentTrack)}
+                      title={currentTrack.instrumental
+                        ? "Download instrumental"
+                        : "Download track"}
+                      aria-label="Download track"
+                    >
+                      <Download size={12} />
+                    </button>
+                  {/if}
                 </div>
                 <div
                   class="scroll-container"
@@ -1418,6 +1467,19 @@
                         <Share2 size={12} />
                       {/if}
                     </button>
+                    {#if track.instrumental || track.src}
+                      <button
+                        class="tr-download-btn"
+                        class:downloading={downloadingTrackId === track.id}
+                        onclick={(e) => handleDownloadTrack(e, track)}
+                        title={track.instrumental
+                          ? "Download instrumental"
+                          : "Download track"}
+                        aria-label="Download track"
+                      >
+                        <Download size={12} />
+                      </button>
+                    {/if}
                   </div>
                 </div>
               {/each}

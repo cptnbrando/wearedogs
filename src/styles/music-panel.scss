@@ -351,7 +351,8 @@
   font-family: "Outfit", monospace;
 }
 
-.tr-share-btn {
+.tr-share-btn,
+.tr-download-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -372,7 +373,8 @@
   }
 }
 
-.player-share-btn {
+.player-share-btn,
+.player-download-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -390,6 +392,18 @@
     background: var(--badge-bg-hover, rgba(170, 90, 255, 0.22));
     color: rgba(200, 155, 255, 1);
     border-color: var(--badge-border-hover, rgba(170, 90, 255, 0.45));
+  }
+}
+
+.tr-download-btn.downloading,
+.player-download-btn.downloading {
+  animation: download-pulse 1s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes download-pulse {
+  50% {
+    opacity: 0.35;
   }
 }
 
