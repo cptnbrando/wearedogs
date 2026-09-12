@@ -7,11 +7,12 @@ body {
     margin: 0;
     padding: 0;
     width: 100vw;
-    /* Use dvh (dynamic viewport height) so the background fills correctly on
-       mobile even when the browser address bar is visible */
+    /* vh first as the pre-dvh fallback (Chrome <108 drops the dvh line),
+       then dvh so the background fills correctly on mobile even when the
+       browser address bar is visible */
+    height: 100vh;
     height: 100dvh;
     min-height: 100vh;
-    /* fallback for browsers without dvh support */
     overflow-x: hidden;
     overflow-y: hidden;
     overscroll-behavior: none;
@@ -24,6 +25,21 @@ body {
     -webkit-tap-highlight-color: transparent;
     -webkit-touch-callout: none;
     -webkit-user-drag: none;
+}
+
+/* Tailwind's h-dvh (the App.svelte page shell) has no built-in fallback:
+   on browsers without dvh units the shell collapses to zero height. A
+   `not`-dvh @supports block can never match on modern browsers, so this is
+   inert everywhere the feature exists. */
+@supports not (height: 1dvh) {
+    .h-dvh,
+    .h-\[100dvh\] {
+        height: 100vh;
+    }
+
+    .max-h-\[100dvh\] {
+        max-height: 100vh;
+    }
 }
 
 /* ── Custom Global Scrollbars (Batman Beyond Theme: Black, White, Red) ── */

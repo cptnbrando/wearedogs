@@ -6,6 +6,7 @@
   import { fade } from "svelte/transition";
   import { catalog } from "../../data/gopro/videos.js";
   import { SHOW_SLUGS } from "../../lib/router.svelte.js";
+  import { dataUrl } from "../../lib/dataHost.js";
   import DogsLogo from "../DogsLogo.svelte";
   import Calculator from "./Calculator.svelte";
   import {
@@ -59,7 +60,7 @@
   );
   const videoUrl = $derived(
     playingShowData && currentEpisode
-      ? `${playingShowData.baseUrl}${currentEpisode.file}`
+      ? dataUrl(`${playingShowData.baseUrl}${currentEpisode.file}`)
       : "",
   );
 
@@ -613,10 +614,19 @@
           </h1>
         </div>
       </div>
-      <div
-        class="text-[9px] sm:text-[11px] font-mono text-cyan-400 font-semibold bg-cyan-950/30 border border-cyan-800/30 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full uppercase tracking-wide absolute right-0"
-      >
-        Verified
+      <div class="flex items-center gap-2 absolute right-0">
+        <!-- Static ES5 player for old TVs — full page navigation intended -->
+        <a
+          href="/gopro/"
+          class="text-[9px] sm:text-[11px] font-mono text-white/40 hover:text-white/80 font-semibold border border-white/10 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full uppercase tracking-wide transition-colors"
+        >
+          TV version
+        </a>
+        <div
+          class="text-[9px] sm:text-[11px] font-mono text-cyan-400 font-semibold bg-cyan-950/30 border border-cyan-800/30 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full uppercase tracking-wide"
+        >
+          Verified
+        </div>
       </div>
     </header>
 

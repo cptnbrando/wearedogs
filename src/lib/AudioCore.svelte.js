@@ -4,6 +4,7 @@
  * hardware key, and Bluetooth controls integration.
  */
 import { musicLock } from "./musicLock.svelte.js";
+import { dataUrl } from "./dataHost.js";
 
 export class AudioCore {
   audioCtx = null;
@@ -187,7 +188,7 @@ export class AudioCore {
         if (musicLock.password) {
           fetchOpts.headers = { Authorization: `password=${musicLock.password}` };
         }
-        const res = await fetch(url, fetchOpts);
+        const res = await fetch(dataUrl(url), fetchOpts);
         if (res.ok) {
           const blob = await res.blob();
           const blobUrl = URL.createObjectURL(blob);

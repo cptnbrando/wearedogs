@@ -10,6 +10,10 @@
     onclick,
     onmouseenter,
     onfocus,
+    // Capability gating: non-empty reason = this browser can't run the app.
+    // Card stays focusable (keyboard-nav indexing untouched) but is greyed
+    // and clicking shows the reason instead of loading.
+    disabledReason = "",
   } = $props();
 
   const Icon = $derived(app.icon);
@@ -27,8 +31,10 @@
   bind:this={buttonEl}
   class="app-card"
   class:focused={isFocused && isKeyboardNav}
+  class:unsupported={!!disabledReason}
   data-app-idx={index}
   tabindex={tabIndex}
+  aria-disabled={disabledReason ? "true" : undefined}
   {onclick}
   {onmouseenter}
   {onfocus}
@@ -40,6 +46,9 @@
   <div class="app-meta">
     <span class="app-title"><Icon size={14} /> {app.title}</span>
     <span class="app-desc">{app.desc}</span>
+    {#if disabledReason}
+      <span class="app-unsupported">{disabledReason}</span>
+    {/if}
   </div>
 </button>
 
@@ -103,6 +112,23 @@
     font-size: 0.72rem;
     color: rgba(255, 255, 255, 0.45);
     line-height: 1.3;
+  }
+
+  /* Capability-gated: greyed but still focusable/readable */
+  button.app-card.unsupported {
+    opacity: 0.45;
+    filter: grayscale(0.8);
+  }
+
+  button.app-card.unsupported:hover,
+  button.app-card.unsupported:focus-visible {
+    transform: none;
+    box-shadow: none;
+  }
+
+  .app-unsupported {
+    font-size: 0.66rem;
+    color: #c98500;
   }
 
   @media (max-width: 768px) {
