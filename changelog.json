@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1788378312,
+    "firstCommitTimestamp": 1789229305,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 222384
+    "averageLinesAltered": 223840
   },
   "entries": [
     {
       "version": "1.0.3",
       "name": "Master",
-      "date": "2026-09-02",
-      "timestamp": 1788378341,
+      "date": "2026-09-12",
+      "timestamp": 1789229337,
       "commits": [
         {
-          "hash": "08b6793",
-          "message": "Merge pull request #51 from cptnbrando/claude/dog-spec-mobile-layout-8k2ib7",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/08b6793d5b8cd30e8741d4dbe58c58a8be4669f4",
-          "timestamp": 1788378312,
-          "linesChanged": 222384
+          "hash": "48c948d",
+          "message": "Merge pull request #52 from cptnbrando/ai-september2026/landing-phrases",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/48c948d1261090c35cc9ba8fc0cf2d5400ada9a4",
+          "timestamp": 1789229305,
+          "linesChanged": 223840
         }
       ]
     },
