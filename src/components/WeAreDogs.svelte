@@ -316,11 +316,13 @@
   // Animation generation counter — incrementing triggers {#key} remount
   let wordsGen = $state(0);
 
-  // Watch language / phrase updates and trigger animation remount
+  // Watch language / phrase updates: reshuffle the chant symbols (and thus
+  // their pronunciation) on every change, then trigger the animation remount
   $effect(() => {
     currentLang;
     activePhrase;
     untrack(() => {
+      sessionSymbols = shuffleSymbols();
       wordsGen++;
     });
   });
