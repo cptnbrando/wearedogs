@@ -9,6 +9,14 @@
     getFlagColors,
   } from "../lib/langUtils.js";
   import "../lib/i18n.js";
+  import { settingsManager } from "../lib/settingsManager.svelte.js";
+  import {
+    RANDOM_PHRASE_ID,
+    getPhraseById,
+    pickRandomPhrase,
+    shuffleSymbols,
+    resolvePhraseWords,
+  } from "../lib/landingPhrases.js";
   import {
     Pause,
     Play,
@@ -264,40 +272,39 @@
     return str.startsWith("0.") ? str.substring(1) : str;
   }
 
-  // Current word states derived from translations + refreshKey dependency
-  let currentWe = $derived(
-    refreshKey >= 0 ? translations[currentLang]?.we || "" : "",
-  );
-  let currentAre = $derived(
-    refreshKey >= 0 ? translations[currentLang]?.are || "" : "",
-  );
-  let currentDogs = $derived(
-    refreshKey >= 0 ? translations[currentLang]?.dogs || "" : "",
-  );
-
-  // Pronunciation state
-  let pronWe = $derived(
-    refreshKey >= 0 ? translations[currentLang]?.we_p || "" : "",
-  );
-  let pronAre = $derived(
-    refreshKey >= 0 ? translations[currentLang]?.are_p || "" : "",
-  );
-  let pronDogs = $derived(
-    refreshKey >= 0 ? translations[currentLang]?.dogs_p || "" : "",
+  // Landing phrase: chosen once per page load (random unless pinned in Settings).
+  // The chant symbols are shuffled once per load as well.
+  const sessionPhrase = pickRandomPhrase();
+  const sessionSymbols = shuffleSymbols();
+  let activePhrase = $derived(
+    settingsManager.landingPhrase === RANDOM_PHRASE_ID
+      ? sessionPhrase
+      : getPhraseById(settingsManager.landingPhrase),
   );
 
-  // Animation generation counters — incrementing triggers {#key} remount
-  let weGen = $state(0);
-  let areGen = $state(0);
-  let dogsGen = $state(0);
+  // Current word lines (text + pronunciation) derived from translations + refreshKey dependency
+  let phraseWords = $derived(
+    refreshKey >= 0
+      ? resolvePhraseWords(
+          activePhrase,
+          translations[currentLang],
+          sessionSymbols,
+        )
+      : [],
+  );
+  let pronunciation = $derived(
+    phraseWords.map((word) => word.pron).join(" "),
+  );
 
-  // Watch currentLang reactive updates and trigger animation remount
+  // Animation generation counter — incrementing triggers {#key} remount
+  let wordsGen = $state(0);
+
+  // Watch language / phrase updates and trigger animation remount
   $effect(() => {
     currentLang;
+    activePhrase;
     untrack(() => {
-      weGen++;
-      areGen++;
-      dogsGen++;
+      wordsGen++;
     });
   });
 
@@ -923,9 +930,7 @@
 
   export function refreshLanguage() {
     refreshKey++;
-    weGen++;
-    areGen++;
-    dogsGen++;
+    wordsGen++;
   }
 </script>
 
@@ -1121,76 +1126,39 @@
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div
     class="words-wrapper"
+    data-lines={phraseWords.length}
     onmouseenter={onEnter}
     onmouseleave={onLeave}
     onclick={handleMainClick}
     role="presentation"
   >
-    <!-- WORD 1: "We" -->
-    {#key weGen}
-      <h1 class="word" aria-label={currentWe}>
-        {#each toLetters(currentWe.toUpperCase()) as letter, i}
-          <span
-            class="letter"
-            style="{letterStyle(
-              i,
-              toLetters(currentWe.toUpperCase()).length,
-            )} --trans-delay: {i * 30}ms; color: {isFlagColors
-              ? flagColors[0]
-              : 'white'}; text-shadow: {isFlagColors
-              ? `0 0 15px ${flagColors[0]}44`
-              : 'none'}"
-          >
-            {letter}
-          </span>
-        {/each}
-      </h1>
-    {/key}
-
-    <!-- WORD 2: "Are" -->
-    {#key areGen}
-      <h1 class="word" aria-label={currentAre}>
-        {#each toLetters(currentAre.toUpperCase()) as letter, i}
-          <span
-            class="letter"
-            style="{letterStyle(
-              i,
-              toLetters(currentAre.toUpperCase()).length,
-            )} --trans-delay: {i * 30}ms; color: {isFlagColors
-              ? flagColors[1]
-              : 'white'}; text-shadow: {isFlagColors
-              ? `0 0 15px ${flagColors[1]}44`
-              : 'none'}"
-          >
-            {letter}
-          </span>
-        {/each}
-      </h1>
-    {/key}
-
-    <!-- WORD 3: "Dogs" -->
-    {#key dogsGen}
-      <h1 class="word" aria-label={currentDogs}>
-        {#each toLetters(currentDogs.toUpperCase()) as letter, i}
-          <span
-            class="letter"
-            style="{letterStyle(
-              i,
-              toLetters(currentDogs.toUpperCase()).length,
-            )} --trans-delay: {i * 30}ms; color: {isFlagColors
-              ? flagColors[2]
-              : 'white'}; text-shadow: {isFlagColors
-              ? `0 0 15px ${flagColors[2]}44`
-              : 'none'}"
-          >
-            {letter}
-          </span>
-        {/each}
-      </h1>
+    <!-- One line per word of the active phrase (e.g. "We" / "Are" / "Dogs") -->
+    {#key wordsGen}
+      {#each phraseWords as word, wordIndex}
+        {@const letters = toLetters(word.text.toUpperCase())}
+        {@const wordColor = isFlagColors
+          ? flagColors[wordIndex % flagColors.length]
+          : "white"}
+        <h1 class="word" aria-label={word.text}>
+          {#each letters as letter, i}
+            <span
+              class="letter"
+              style="{letterStyle(
+                i,
+                letters.length,
+              )} --trans-delay: {i * 30}ms; color: {wordColor}; text-shadow: {isFlagColors
+                ? `0 0 15px ${wordColor}44`
+                : 'none'}"
+            >
+              {letter}
+            </span>
+          {/each}
+        </h1>
+      {/each}
     {/key}
 
     <!-- Pronunciation -->
-    <p class="pronunciation">({pronWe} {pronAre} {pronDogs})</p>
+    <p class="pronunciation">({pronunciation})</p>
 
     {#if children}
       {@render children()}
@@ -1622,12 +1590,27 @@
     cursor: pointer;
   }
 
+  /* Four-line phrases (DOGS RUN THIS %#$@) scale down so the stack still fits one viewport */
+  .words-wrapper[data-lines="4"] {
+    row-gap: 1.3em;
+  }
+
+  .words-wrapper[data-lines="4"] .word {
+    font-size: clamp(3.6rem, 13vmin, 11rem);
+  }
+
   @media (max-width: 767px) {
     .word {
       font-size: clamp(2.5rem, 12vmin, 5rem);
     }
     .words-wrapper {
       row-gap: 1.2em;
+    }
+    .words-wrapper[data-lines="4"] {
+      row-gap: 0.9em;
+    }
+    .words-wrapper[data-lines="4"] .word {
+      font-size: clamp(2rem, 10vmin, 4rem);
     }
   }
 
@@ -1651,6 +1634,12 @@
     .word {
       font-size: clamp(1.8rem, 11vh, 5rem);
     }
+    .words-wrapper[data-lines="4"] {
+      row-gap: 0.6em;
+    }
+    .words-wrapper[data-lines="4"] .word {
+      font-size: clamp(1.4rem, 8vh, 4rem);
+    }
     .pronunciation {
       margin-top: 1rem !important;
     }
@@ -1659,6 +1648,12 @@
   @media (max-height: 350px) {
     .word {
       font-size: clamp(1.5rem, 10vh, 4rem);
+    }
+    .words-wrapper[data-lines="4"] {
+      row-gap: 0.4em;
+    }
+    .words-wrapper[data-lines="4"] .word {
+      font-size: clamp(1.2rem, 7vh, 3rem);
     }
     .pronunciation {
       margin-top: 0.5rem !important;

@@ -3,6 +3,10 @@
   import { settingsManager } from "../../lib/settingsManager.svelte.js";
   import themesData from "../../lib/data/themes.json";
   import {
+    LANDING_PHRASES,
+    RANDOM_PHRASE_ID,
+  } from "../../lib/landingPhrases.js";
+  import {
     Settings,
     Check,
     Shuffle,
@@ -10,6 +14,7 @@
     BoomBox,
     Save,
     Music,
+    Dog,
   } from "lucide-svelte";
 
   let themes = themeManager.getThemesList();
@@ -63,6 +68,27 @@
 
   function selectDeck(id) {
     settingsManager.setMusicDeckModel(id);
+  }
+
+  const phraseOptions = [
+    {
+      id: RANDOM_PHRASE_ID,
+      name: "Random",
+      desc: "A different phrase every time the page loads",
+      icon: Shuffle,
+    },
+    ...LANDING_PHRASES.map((phrase) => ({
+      id: phrase.id,
+      name: phrase.label,
+      desc: phrase.desc,
+      icon: Dog,
+    })),
+  ];
+
+  let activePhraseId = $derived(settingsManager.landingPhrase);
+
+  function selectPhrase(id) {
+    settingsManager.setLandingPhrase(id);
   }
 </script>
 
@@ -141,6 +167,41 @@
               <div class="flex flex-col">
                 <span class="theme-name">{deck.name}</span>
                 <span class="deck-desc">{deck.desc}</span>
+              </div>
+              {#if isSelected}
+                <span class="active-badge self-start">
+                  <Check size={12} /> Active
+                </span>
+              {/if}
+            </div>
+          </div>
+        {/each}
+      </div>
+    </section>
+
+    <section class="settings-section mt-8">
+      <h3 class="section-title">Select Landing Phrase</h3>
+
+      <div class="decks-grid">
+        {#each phraseOptions as option}
+          {@const OptionIcon = option.icon}
+          {@const isSelected = activePhraseId === option.id}
+
+          <!-- svelte-ignore a11y_click_events_have_key_events -->
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <div
+            class="theme-card deck-card"
+            class:selected={isSelected}
+            onclick={() => selectPhrase(option.id)}
+          >
+            <div class="deck-icon-box">
+              <OptionIcon size={24} class="text-white/80" />
+            </div>
+
+            <div class="theme-info deck-info">
+              <div class="flex flex-col">
+                <span class="theme-name">{option.name}</span>
+                <span class="deck-desc">{option.desc}</span>
               </div>
               {#if isSelected}
                 <span class="active-badge self-start">
