@@ -24,6 +24,10 @@ env:
 
 jobs:
   build-and-deploy:
+    # GitHub Pages is the archive host only. The live site (YEAHDOGS/dogs.red)
+    # deploys through Cloudflare Workers Builds (wrangler.jsonc), so this job
+    # must not run there and create a stray gh-pages branch.
+    if: github.repository == 'cptnbrando/wearedogs'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
