@@ -4,6 +4,9 @@
  * Header line drives parsing: dog 1 indent=2 kv=space block=track end=blank case=any punct=none
  */
 
+// Spec page of whichever deploy this is (dogs.red, or the wearedogs.net archive).
+const DOG_SPEC_URL = (import.meta.env?.VITE_SITE_ORIGIN || "https://dogs.red") + "/.dog";
+
 export function parseHeader(line) {
   const parts = line.trim().split(/\s+/);
   const spec = { format: parts[0], version: parts[1] };
@@ -391,7 +394,7 @@ const tsType = (types) => [...types].sort().map((t) => (t === "list" ? "any[]" :
 export function toTS(doc) {
   const fields = inferFields(doc.tracks);
   const total = doc.tracks.length;
-  const lines = ["// https://wearedogs.net/.dog", ""];
+  const lines = ["// " + DOG_SPEC_URL, ""];
   lines.push("export interface Track {");
   for (const [k, f] of fields) {
     lines.push(`  ${JSON.stringify(k)}${f.count < total ? "?" : ""}: ${tsType(f.types)};`);
@@ -428,13 +431,13 @@ export function toDocs(doc) {
         : f.example;
     l.push(`| ${esc(k)} | ${esc(tsType(f.types))} | ${f.count}/${total} | ${esc(ex)} |`);
   }
-  l.push("", "made with https://wearedogs.net/.dog", "");
+  l.push("", "made with " + DOG_SPEC_URL, "");
   return l.join("\n");
 }
 
 export function toJS(doc) {
   return [
-    "// https://wearedogs.net/.dog",
+    "// " + DOG_SPEC_URL,
     "",
     `export const tracks = ${JSON.stringify(doc.tracks, null, 2)};`,
     "",
@@ -460,7 +463,7 @@ function yamlScalar(v) {
 }
 
 export function toYAML(doc) {
-  const l = ["# https://wearedogs.net/.dog"];
+  const l = ["# " + DOG_SPEC_URL];
   for (const t of doc.tracks) {
     let first = true;
     for (const [k, v] of Object.entries(t)) {

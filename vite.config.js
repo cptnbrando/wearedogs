@@ -5,6 +5,15 @@ import legacy from '@vitejs/plugin-legacy'
 import shareCards from './scripts/vite-plugin-share-cards.js'
 import markdownData from './scripts/vite-plugin-md-data.js'
 import staticData from './scripts/vite-plugin-static-data.js'
+import siteFiles, { resolveSiteTarget, LIVE_ORIGIN } from './scripts/vite-plugin-site-files.js'
+
+// Deploy target (live dogs.red vs the frozen wearedogs.net archive). Exposed
+// to index.html as %VITE_SITE_*% and to the app as import.meta.env.VITE_SITE_*.
+const SITE = resolveSiteTarget()
+process.env.VITE_SITE_MODE = SITE.mode
+process.env.VITE_SITE_ORIGIN = SITE.origin
+// LIVE_ORIGIN env is a dev-only override for testing the archive gate locally.
+process.env.VITE_LIVE_ORIGIN = process.env.LIVE_ORIGIN || LIVE_ORIGIN
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -23,7 +32,9 @@ export default defineConfig({
     }),
     // Emits real HTML at each /store/campaign/<id> and /store/product/<id> so
     // shared links preview with that item's own image, title and description.
-    shareCards({ origin: 'https://wearedogs.net' }),
+    shareCards({ origin: SITE.origin }),
+    // CNAME + health.json for this deploy target.
+    siteFiles(SITE),
   ],
   resolve: {
     conditions: ['browser'],

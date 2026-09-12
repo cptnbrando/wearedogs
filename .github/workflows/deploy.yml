@@ -4,21 +4,37 @@ on:
   push:
     branches:
       - master
+  workflow_dispatch:
 
 permissions:
   contents: write
+
+concurrency:
+  group: pages-deploy
+  cancel-in-progress: false
+
+env:
+  # Deploy target. Override with repository variables (Settings → Secrets and
+  # variables → Actions → Variables):
+  #   SITE_MODE    live (default) | archive
+  #   SITE_ORIGIN  https://dogs.red (default) | https://www.wearedogs.net
+  # See scripts/vite-plugin-site-files.js for what each mode emits.
+  SITE_MODE: ${{ vars.SITE_MODE || 'live' }}
+  SITE_ORIGIN: ${{ vars.SITE_ORIGIN || 'https://dogs.red' }}
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: 25
+          node-version: 24
           cache: npm
 
       - name: Install dependencies
@@ -27,11 +43,25 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Generate Changelog JSON
-        run: node ./scripts/compile-changelog.js
+      # A broken build never reaches gh-pages: the previous deploy keeps serving.
+      - name: Smoke test the build
+        run: |
+          test -s dist/index.html
+          test -s dist/CNAME
+          test -s dist/health.json
+          grep -q "\"mode\": \"${SITE_MODE}\"" dist/health.json
+          grep -q '<div id="app">' dist/index.html
+          echo "CNAME: $(cat dist/CNAME)"
+          cat dist/health.json
 
-      - name: Deploy to GitHub Pages
-        uses: JamesIves/github-pages-deploy-action@v4
-        with:
-          folder: dist
-          branch: gh-pages
+      # Publishes dist/ to the gh-pages branch with the gh-pages package that is
+      # already a devDependency: no third-party deploy action, no Node 20
+      # runtime deprecation warning. -t keeps dotfiles (.well-known).
+      - name: Deploy to gh-pages branch
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          npx gh-pages -d dist -t -m "deploy: ${GITHUB_SHA::7} (${SITE_MODE})" \
+            -r "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

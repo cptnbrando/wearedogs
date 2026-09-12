@@ -15,6 +15,8 @@
     Save,
     Music,
     Dog,
+    Rocket,
+    Anchor,
   } from "lucide-svelte";
 
   let themes = themeManager.getThemesList();
@@ -89,6 +91,34 @@
 
   function selectPhrase(id) {
     settingsManager.setLandingPhrase(id);
+  }
+
+  // Archive build only (SITE_MODE=archive on the frozen wearedogs.net deploy):
+  // lets a visitor stay on the archive instead of being forwarded to dogs.red.
+  const IS_ARCHIVE_BUILD = import.meta.env.VITE_SITE_MODE === "archive";
+  const LIVE_ORIGIN = import.meta.env.VITE_LIVE_ORIGIN || "https://dogs.red";
+  const LIVE_HOST = LIVE_ORIGIN.replace(/^https?:\/\//, "");
+  const archiveOptions = [
+    {
+      id: "forward",
+      name: `Forward to ${LIVE_HOST}`,
+      desc: `Hop to the live site when it answers; stay here if it doesn't`,
+      icon: Rocket,
+    },
+    {
+      id: "stay",
+      name: "Stay on the archive",
+      desc: "Never forward this browser to the live site",
+      icon: Anchor,
+    },
+  ];
+
+  let activeArchiveId = $derived(
+    settingsManager.stayOnArchive ? "stay" : "forward",
+  );
+
+  function selectArchive(id) {
+    settingsManager.setStayOnArchive(id === "stay");
   }
 </script>
 
@@ -213,6 +243,47 @@
         {/each}
       </div>
     </section>
+
+    {#if IS_ARCHIVE_BUILD}
+      <section class="settings-section mt-8">
+        <h3 class="section-title">Archive</h3>
+        <p class="archive-note">
+          This is the frozen wearedogs.net build. The live site is
+          <a href={LIVE_ORIGIN} class="archive-link">{LIVE_HOST}</a>.
+        </p>
+
+        <div class="decks-grid">
+          {#each archiveOptions as option}
+            {@const OptionIcon = option.icon}
+            {@const isSelected = activeArchiveId === option.id}
+
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div
+              class="theme-card deck-card"
+              class:selected={isSelected}
+              onclick={() => selectArchive(option.id)}
+            >
+              <div class="deck-icon-box">
+                <OptionIcon size={24} class="text-white/80" />
+              </div>
+
+              <div class="theme-info deck-info">
+                <div class="flex flex-col">
+                  <span class="theme-name">{option.name}</span>
+                  <span class="deck-desc">{option.desc}</span>
+                </div>
+                {#if isSelected}
+                  <span class="active-badge self-start">
+                    <Check size={12} /> Active
+                  </span>
+                {/if}
+              </div>
+            </div>
+          {/each}
+        </div>
+      </section>
+    {/if}
   </main>
 </div>
 
@@ -445,5 +516,17 @@
     color: var(--color-text-muted, rgba(255, 255, 255, 0.45));
     line-height: 1.3;
     margin-top: 2px;
+  }
+
+  .archive-note {
+    margin: -4px 0 0 0;
+    font-size: 0.72rem;
+    color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+  }
+
+  .archive-link {
+    color: var(--color-neon-green, #00d75f);
+    font-weight: 600;
+    text-decoration: none;
   }
 </style>
