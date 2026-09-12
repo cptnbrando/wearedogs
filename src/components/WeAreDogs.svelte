@@ -272,10 +272,27 @@
     return str.startsWith("0.") ? str.substring(1) : str;
   }
 
-  // Landing phrase: chosen once per page load (random unless pinned in Settings).
-  // The chant symbols are shuffled once per load as well.
-  const sessionPhrase = pickRandomPhrase();
-  const sessionSymbols = shuffleSymbols();
+  // Landing phrase: chosen at page load (random unless pinned in Settings) and
+  // swapped again after IDLE_SWAP_MS of resting on the landing with no interaction.
+  // The chant symbols are reshuffled with every pick.
+  const IDLE_SWAP_MS = 15000;
+  let sessionPhrase = $state(pickRandomPhrase());
+  let sessionSymbols = $state(shuffleSymbols());
+  let lastInteraction = $state(0);
+  let idleSwapCount = $state(0);
+
+  /** Any user input restarts the idle countdown */
+  function markInteraction() {
+    lastInteraction = Date.now();
+  }
+
+  /** Swap to a different random phrase with freshly shuffled symbols */
+  function swapIdlePhrase() {
+    sessionPhrase = pickRandomPhrase(sessionPhrase);
+    sessionSymbols = shuffleSymbols();
+    idleSwapCount++;
+  }
+
   let activePhrase = $derived(
     settingsManager.landingPhrase === RANDOM_PHRASE_ID
       ? sessionPhrase
@@ -310,6 +327,28 @@
 
   let hoverTimer = $state(null);
   let isHovering = $state(false);
+
+  // "Sitting there": landing visible, no panel open, not paused, not hovering,
+  // not scrubbing languages, and back on the visitor's own language.
+  let isIdleResting = $derived(
+    isLandingPage &&
+      !isFaded &&
+      !isPaused &&
+      !isHovering &&
+      !isSwipeHoldActive &&
+      currentLang === initialLang,
+  );
+
+  // Idle rotation: arm a countdown whenever the page is resting; any interaction
+  // or state change re-runs this effect, which clears the pending timer.
+  $effect(() => {
+    lastInteraction;
+    idleSwapCount;
+    if (!isIdleResting) return;
+    if (settingsManager.landingPhrase !== RANDOM_PHRASE_ID) return;
+    const timer = setTimeout(swapIdlePhrase, IDLE_SWAP_MS);
+    return () => clearTimeout(timer);
+  });
 
   // Navigation history tracking
   let history = $state([initialLang]);
@@ -391,6 +430,7 @@
   });
 
   function onEnter() {
+    markInteraction();
     isHovering = true;
     if (!isPaused) {
       startCycling();
@@ -437,6 +477,7 @@
   let lastClickTime = 0;
   function handleMainClick(e) {
     e.stopPropagation();
+    markInteraction();
     if (isFaded) return;
 
     // Ignore clicks on controls or badges
@@ -457,6 +498,7 @@
   }
 
   function handleBackgroundClick(e) {
+    markInteraction();
     if (isFaded) return;
 
     // Ignore clicks on controls or badges
@@ -500,6 +542,7 @@
   let wheelTimeout = null;
 
   function handleWheel(e) {
+    markInteraction();
     if (window.location.pathname !== "/") return;
     if (Date.now() - lastLandedTime < 800) return;
     if (isFaded) return;
@@ -726,6 +769,7 @@
   });
 
   function handleTouchStart(e) {
+    markInteraction();
     isTouchDevice = true;
     if (e.touches && e.touches.length > 0) {
       touchStartX = e.touches[0].clientX;
@@ -899,6 +943,7 @@
   }
 
   function handleKeydown(e) {
+    markInteraction();
     if (window.location.pathname !== "/") return;
     if (isFaded) return; // bypass all navigation keys when details Panel is open
     if (e.key === "ArrowLeft") {

@@ -58,9 +58,13 @@ export function getPhraseById(id) {
   return LANDING_PHRASES.find((phrase) => phrase.id === id) || LANDING_PHRASES[0];
 }
 
-/** Pick one phrase at random (used once per page load when the setting is "random") */
-export function pickRandomPhrase() {
-  return LANDING_PHRASES[Math.floor(Math.random() * LANDING_PHRASES.length)];
+/**
+ * Pick one phrase at random (page load, and idle rotation when the setting is "random").
+ * @param {object} [exclude] phrase to leave out so a swap always shows something new
+ */
+export function pickRandomPhrase(exclude) {
+  const pool = LANDING_PHRASES.filter((phrase) => phrase !== exclude);
+  return pool[Math.floor(Math.random() * pool.length)];
 }
 
 /** Return the four chant symbols in a fresh random order (Fisher-Yates) */
