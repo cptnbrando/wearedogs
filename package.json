@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host",
-    "build": "npm run changelog && npm run gopro-catalog && npm run check-es5 && vite build",
+    "build": "npm run changelog && npm run gopro-catalog && npm run lite-data && npm run check-es5 && vite build",
     "gopro-catalog": "node scripts/build-gopro-catalog.js",
+    "lite-data": "node scripts/build-lite-data.js",
     "check-es5": "node scripts/check-es5.js",
     "preview": "vite preview",
     "predeploy": "npm run build",

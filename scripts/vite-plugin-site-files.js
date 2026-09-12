@@ -14,15 +14,23 @@
  */
 
 export const LIVE_ORIGIN = "https://dogs.red";
+export const STAGING_ORIGIN = "https://staging.dogs.red";
 export const ARCHIVE_ORIGIN = "https://www.wearedogs.net";
 export const SITE_MODES = ["live", "archive"];
+const PRODUCTION_BRANCH = "master";
 
-/** Resolve the deploy target from the environment, defaulting to the live site. */
+/**
+ * Resolve the deploy target from the environment, defaulting to the live site.
+ * On Workers Builds, a non-master branch (WORKERS_CI_BRANCH) is a staging
+ * deploy: same live mode, staging origin, and robots.txt blocks indexing.
+ */
 export function resolveSiteTarget(env = process.env) {
   const mode = SITE_MODES.includes(env.SITE_MODE) ? env.SITE_MODE : "live";
-  const fallbackOrigin = mode === "archive" ? ARCHIVE_ORIGIN : LIVE_ORIGIN;
+  const ciBranch = env.WORKERS_CI_BRANCH || "";
+  const staging = mode === "live" && ciBranch !== "" && ciBranch !== PRODUCTION_BRANCH;
+  const fallbackOrigin = mode === "archive" ? ARCHIVE_ORIGIN : staging ? STAGING_ORIGIN : LIVE_ORIGIN;
   const origin = (env.SITE_ORIGIN || fallbackOrigin).replace(/\/+$/, "");
-  return { mode, origin, host: origin.replace(/^https?:\/\//, "") };
+  return { mode, origin, host: origin.replace(/^https?:\/\//, ""), staging };
 }
 
 /** Body of health.json — the archive gate only follows a `mode: "live"` answer. */
@@ -30,6 +38,7 @@ export function buildHealth(target, env = process.env) {
   return {
     mode: target.mode,
     origin: target.origin,
+    staging: Boolean(target.staging),
     builtAt: new Date().toISOString(),
     commit: env.GITHUB_SHA || "local",
   };
@@ -55,6 +64,9 @@ export default function siteFiles(target) {
         fileName: "health.json",
         source: JSON.stringify(buildHealth(target), null, 2) + "\n",
       });
+      if (target.staging) {
+        this.emitFile({ type: "asset", fileName: "robots.txt", source: "User-agent: *\nDisallow: /\n" });
+      }
     },
   };
 }

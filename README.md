@@ -22,16 +22,25 @@ A home for debauchery, magic, and mischief
 
 ## Deploy Targets
 
-One codebase, two GitHub Pages deployments, picked by repository variables read in `.github/workflows/deploy.yml`:
+One codebase, three deployments:
 
-| Repo | `SITE_MODE` | `SITE_ORIGIN` | Role |
-|---|---|---|---|
-| `YEAHDOGS/dogs.red` | `live` (default) | `https://dogs.red` (default) | The site. |
-| `cptnbrando/wearedogs` | `archive` | `https://www.wearedogs.net` | Frozen backup. Never touched again. |
+| Where | Host | `SITE_MODE` | Origin | Role |
+|---|---|---|---|---|
+| `YEAHDOGS/dogs.red`, `master` | Cloudflare Workers (`wrangler.jsonc`) | `live` | `https://dogs.red` | The site. |
+| `YEAHDOGS/dogs.red`, any other branch | Cloudflare Workers, `--env staging` | `live` | `https://staging.dogs.red` | Staging. `robots.txt` blocks indexing. |
+| `cptnbrando/wearedogs` | GitHub Pages (`.github/workflows/deploy.yml`) | `archive` | `https://www.wearedogs.net` | Frozen backup. Never touched again. |
 
-The build emits `CNAME` (so Pages keeps its custom domain) and `health.json` (`{ mode, origin, builtAt, commit }`). The archive build's `index.html` probes `https://dogs.red/health.json` on load and forwards the visitor to the same path on dogs.red only if it answers `"mode": "live"`. If dogs.red is down, broken, or slow, the archive serves as usual. Visitors can also stay on the archive on purpose: the Settings app toggle persists it, and `?stay` on any archive URL keeps them there for the browser session.
+Cloudflare Workers Builds settings for `YEAHDOGS/dogs.red`: build command `npm ci --legacy-peer-deps && npm run build`, deploy command `npx wrangler deploy`, non-production branch deploy command `npx wrangler deploy --env staging`, variables `NODE_VERSION=24` and `SKIP_DEPENDENCY_INSTALL=true`. The staging origin is picked automatically from the `WORKERS_CI_BRANCH` the build runs on.
+
+The GitHub Pages workflow reads `SITE_MODE` / `SITE_ORIGIN` repository variables (defaults: `live`, `https://dogs.red`); the archive repo sets them to `archive` / `https://www.wearedogs.net`.
+
+Every build emits `CNAME` (so GitHub Pages keeps its custom domain) and `health.json` (`{ mode, origin, staging, builtAt, commit }`). The archive build's `index.html` probes `https://dogs.red/health.json` on load and forwards the visitor to the same path on dogs.red only if it answers `"mode": "live"`. If dogs.red is down, broken, or slow, the archive serves as usual. Visitors can also stay on the archive on purpose: the Settings app toggle persists it, and `?stay` on any archive URL keeps them there for the browser session.
 
 Local dev always runs as `live`, so the gate never fires on localhost.
+
+## Old Browsers (`/lite/`)
+
+There is no `@vitejs/plugin-legacy` any more (it doubled the build time for SystemJS bundles that old TVs still could not run, since Svelte 5 needs `Proxy`). The modern bundle targets Chrome 84 / Firefox 79 / Safari 14. Older engines are detected by the inline gate in `index.html` and sent to static ES5 pages that actually work: `/lite/` (the landing page: same words, all 205 languages, same interactions) and `/gopro/` (GoPro TV). `scripts/check-es5.js` fails the build if modern syntax sneaks into any of them. `public/lite/dogs.js` is generated from the translations at build time and is gitignored.
 
 
 

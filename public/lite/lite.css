@@ -1,0 +1,277 @@
+/* Lite landing: plain CSS for old engines. No custom properties, no clamp(),
+   no flex gap, no backdrop-filter. Flexbox is fine (Chrome 29+) and is
+   prefixed for the WebKit TVs that predate it. */
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+  color: #fff;
+  font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+}
+
+/* ── Ambient tint behind the flag-colored words ── */
+.ambient {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: #000;
+  opacity: 0;
+  -webkit-transition: opacity 0.8s ease;
+  transition: opacity 0.8s ease;
+}
+.colored .ambient { opacity: 1; }
+
+/* ── Language badge / paused stats panel (top-left) ── */
+.lang {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 50;
+  cursor: pointer;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  -webkit-transition: all 0.38s ease;
+  transition: all 0.38s ease;
+}
+.lang-name {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.4);
+}
+.paused .lang {
+  width: 270px;
+  padding: 12px;
+  background: rgba(10, 10, 15, 0.82);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
+}
+.paused .lang-name {
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+  margin-bottom: 8px;
+}
+.lang-meta { display: none; }
+.paused .lang-meta {
+  display: block;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 8px;
+}
+.stat {
+  font-family: "Roboto Mono", Menlo, Consolas, monospace;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.85);
+  margin: 0 0 4px 0;
+}
+.stat-lbl { color: rgba(255, 255, 255, 0.45); }
+.stat-val { font-weight: 700; }
+.stat-bar {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 2px;
+  margin: 0 0 3px 0;
+  overflow: hidden;
+}
+.stat-fill { height: 100%; background: #fff; }
+.stat-pct {
+  font-family: "Roboto Mono", Menlo, Consolas, monospace;
+  font-size: 10px;
+  color: #ffd700;
+  margin: 0 0 8px 0;
+}
+.stat-pct span {
+  color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 8px;
+}
+.meta-label {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.3);
+  margin-top: 4px;
+}
+.meta-value {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.65);
+  line-height: 1.3;
+}
+
+@media (max-width: 480px) {
+  .paused .lang { width: 62vw; padding: 8px 10px; }
+  .paused .lang-name { font-size: 12px; }
+}
+
+/* ── Top-right flash indicator + corner tap target ── */
+.corner {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 80px;
+  height: 80px;
+  z-index: 95;
+  cursor: pointer;
+}
+.flash {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 100;
+  width: 52px;
+  height: 52px;
+  line-height: 52px;
+  border-radius: 50%;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  display: none;
+}
+.flash.show {
+  display: block;
+  -webkit-animation: bookmarkFlash 0.8s ease forwards;
+  animation: bookmarkFlash 0.8s ease forwards;
+}
+@-webkit-keyframes bookmarkFlash {
+  0% { -webkit-transform: translateY(-100%); opacity: 0; }
+  15% { -webkit-transform: translateY(0); opacity: 1; }
+  80% { -webkit-transform: translateY(0); opacity: 1; }
+  100% { -webkit-transform: translateY(-100%); opacity: 0; }
+}
+@keyframes bookmarkFlash {
+  0% { transform: translateY(-100%); opacity: 0; }
+  15% { transform: translateY(0); opacity: 1; }
+  80% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(-100%); opacity: 0; }
+}
+
+/* ── The words ── */
+.wad {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-direction: column;
+  flex-direction: column;
+  -webkit-align-items: center;
+  align-items: center;
+  -webkit-justify-content: center;
+  justify-content: center;
+  -webkit-perspective: 900px;
+  perspective: 900px;
+  z-index: 10;
+}
+.words-wrapper { text-align: center; }
+.word {
+  display: block;
+  margin: 0 0 0.3em 0;
+  font-family: "Roboto Mono", ui-monospace, Menlo, Consolas, "Courier New", monospace;
+  font-size: 18vmin;
+  font-weight: 900;
+  line-height: 1.05;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #fff;
+  cursor: pointer;
+}
+.word:last-child { margin-bottom: 0; }
+.lines-4 .word { font-size: 13vmin; margin-bottom: 0.2em; }
+
+@media (min-width: 1400px) and (min-height: 900px) {
+  .word { font-size: 176px; }
+  .lines-4 .word { font-size: 128px; }
+}
+@media (max-width: 767px) {
+  .word { font-size: 12vmin; margin-bottom: 0.2em; }
+  .lines-4 .word { font-size: 10vmin; }
+}
+@media (max-height: 500px) {
+  .word { font-size: 11vh; margin-bottom: 0.15em; }
+  .lines-4 .word { font-size: 8vh; }
+}
+@media (max-height: 350px) {
+  .word { font-size: 10vh; }
+  .lines-4 .word { font-size: 7vh; }
+}
+
+/* Per-letter flip for Latin/Greek/Cyrillic; whole-word flip for scripts
+   whose letters must not be split apart. */
+.letter {
+  display: inline-block;
+  width: 0.6em;
+  text-align: center;
+  -webkit-transform-style: preserve-3d;
+  transform-style: preserve-3d;
+  -webkit-animation: matrixFlip 0.32s ease both;
+  animation: matrixFlip 0.32s ease both;
+  -webkit-transition: color 0.5s ease;
+  transition: color 0.5s ease;
+}
+.whole {
+  display: inline-block;
+  letter-spacing: 0.04em;
+  -webkit-animation: matrixFlip 0.32s ease both;
+  animation: matrixFlip 0.32s ease both;
+  -webkit-transition: color 0.5s ease;
+  transition: color 0.5s ease;
+}
+@-webkit-keyframes matrixFlip {
+  0% { -webkit-transform: rotateX(90deg) scale(0.3); opacity: 0; }
+  65% { -webkit-transform: rotateX(-6deg) scale(1.04); opacity: 1; }
+  100% { -webkit-transform: rotateX(0deg) scale(1); opacity: 1; }
+}
+@keyframes matrixFlip {
+  0% { transform: rotateX(90deg) scale(0.3); opacity: 0; }
+  65% { transform: rotateX(-6deg) scale(1.04); opacity: 1; }
+  100% { transform: rotateX(0deg) scale(1); opacity: 1; }
+}
+
+/* ── Pronunciation ── */
+.pron {
+  margin: 3rem 0 0 0;
+  font-size: 13px;
+  font-style: italic;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.35);
+}
+@media (max-height: 500px) { .pron { margin-top: 1rem; font-size: 11px; } }
+@media (max-height: 350px) { .pron { margin-top: 0.5rem; } }
+
+/* ── Paused nav ── */
+.nav { display: none; margin-top: 2rem; }
+.paused .nav { display: block; }
+.nav-btn {
+  display: inline-block;
+  padding: 10px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.nav-btn:hover, .nav-btn:focus {
+  border-color: rgba(255, 255, 255, 0.6);
+  outline: none;
+}
+.nav-note {
+  margin-top: 10px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.3);
+}
+@media (max-height: 500px) { .nav { margin-top: 0.8rem; } .nav-note { display: none; } }

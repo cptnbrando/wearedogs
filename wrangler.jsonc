@@ -1,0 +1,40 @@
+// Cloudflare Workers (static assets) config for dogs.red.
+//
+// Workers Builds on the YEAHDOGS/dogs.red repo:
+//   build command                  npm ci --legacy-peer-deps && npm run build
+//   deploy command (master)        npx wrangler deploy            → dogs.red, www.dogs.red
+//   non-production deploy command  npx wrangler deploy --env staging → staging.dogs.red
+// with NODE_VERSION=24 and SKIP_DEPENDENCY_INSTALL=true set on the project.
+// Custom domains are declared below, so wrangler creates the DNS records.
+//
+// The archived cptnbrando/wearedogs deploy keeps using GitHub Pages
+// (.github/workflows/deploy.yml) and ignores this file.
+{
+  "$schema": "https://unpkg.com/wrangler/config-schema.json",
+  "name": "dogs-red",
+  "compatibility_date": "2026-09-01",
+  "routes": [
+    { "pattern": "dogs.red", "custom_domain": true },
+    { "pattern": "www.dogs.red", "custom_domain": true }
+  ],
+  "assets": {
+    "directory": "./dist",
+    // Unknown paths get /404.html, which stashes the deep link and boots the
+    // SPA at / — the same behaviour the site has always had on GitHub Pages.
+    "not_found_handling": "404-page",
+    // /store/campaign/thc and /store/campaign/thc/ both serve that folder's
+    // share-card index.html.
+    "html_handling": "auto-trailing-slash"
+  },
+  "env": {
+    "staging": {
+      "name": "dogs-red-staging",
+      "routes": [{ "pattern": "staging.dogs.red", "custom_domain": true }],
+      "assets": {
+        "directory": "./dist",
+        "not_found_handling": "404-page",
+        "html_handling": "auto-trailing-slash"
+      }
+    }
+  }
+}

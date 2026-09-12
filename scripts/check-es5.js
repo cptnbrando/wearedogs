@@ -20,6 +20,7 @@ const ES5_FILES = [
   "public/gopro/tv.js",
   "public/gopro/catalog.js",
   "public/lite/lite.js",
+  "public/lite/dogs.js",
 ];
 
 /** HTML files whose inline <script> bodies must be ES5. */
