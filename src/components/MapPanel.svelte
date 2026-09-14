@@ -410,19 +410,30 @@
     });
   });
 
-  // Group filtered spots by cityName (when no city is selected)
+  let sortMode = $state("alpha"); // 'alpha' | 'equator' | 'population' | 'listings' | 'cuisine'
+  let groupByCuisine = $derived(sortMode === "cuisine");
+
+  // Group filtered spots (when no city is selected). Every mode but
+  // "cuisine" groups by cityName; "cuisine" groups by the spot's cuisine tag
+  // (sushi, kbbq, ...) with the best-rated spot first inside each group.
   let groupedSpots = $derived.by(() => {
     const groups = {};
     for (const spot of filteredSpots) {
-      if (!groups[spot.cityName]) {
-        groups[spot.cityName] = [];
+      const key = groupByCuisine
+        ? spot.cuisine || spot.subCategory || "other"
+        : spot.cityName;
+      if (!groups[key]) {
+        groups[key] = [];
       }
-      groups[spot.cityName].push(spot);
+      groups[key].push(spot);
+    }
+    if (groupByCuisine) {
+      for (const key of Object.keys(groups)) {
+        groups[key].sort((a, b) => b.rating - a.rating);
+      }
     }
     return groups;
   });
-
-  let sortMode = $state("alpha"); // 'alpha' | 'equator' | 'population' | 'listings'
 
   function parsePopulation(popStr) {
     const clean = popStr.toLowerCase().replace(/,/g, '');
@@ -434,7 +445,7 @@
 
   let sortedCityNames = $derived.by(() => {
     const cities = Object.keys(groupedSpots);
-    if (sortMode === "alpha") {
+    if (sortMode === "alpha" || sortMode === "cuisine") {
       return cities.sort((a, b) => a.localeCompare(b));
     } else if (sortMode === "equator") {
       return cities.sort((a, b) => {
@@ -462,7 +473,7 @@
     return cities;
   });
 
-  const SORT_MODES = ["alpha", "equator", "population", "listings"];
+  const SORT_MODES = ["alpha", "equator", "population", "listings", "cuisine"];
   function cycleSortMode() {
     const idx = SORT_MODES.indexOf(sortMode);
     sortMode = SORT_MODES[(idx + 1) % SORT_MODES.length];
@@ -473,6 +484,7 @@
     if (mode === "equator") return "Equator Distance";
     if (mode === "population") return "Population";
     if (mode === "listings") return "Most Listings";
+    if (mode === "cuisine") return "Cuisine";
     return mode;
   }
 </script>
@@ -1978,7 +1990,9 @@
 
         {#if !selectedCity && !selectedSpot}
           <div class="flex justify-between items-center px-1 mb-2">
-            <span class="text-[10px] uppercase tracking-widest font-mono text-zinc-500">All Locations</span>
+            <span class="text-[10px] uppercase tracking-widest font-mono text-zinc-500">
+              {groupByCuisine ? "By Cuisine" : "All Locations"}
+            </span>
             <button
               class="text-[10px] font-mono bg-white/5 border border-white/10 hover:bg-white/10 text-zinc-300 px-2 py-0.5 rounded-full flex items-center gap-1 cursor-pointer transition-all active:scale-95"
               onclick={cycleSortMode}
@@ -2137,8 +2151,15 @@
                 <div
                   class="city-group-title flex items-center gap-1.5 text-xs font-black tracking-widest text-zinc-500 uppercase py-2 border-b border-white/5 mb-2"
                 >
-                  <MapPin size={10} />
+                  {#if groupByCuisine}
+                    <UtensilsCrossed size={10} />
+                  {:else}
+                    <MapPin size={10} />
+                  {/if}
                   {cityName}
+                  <span class="ml-auto font-mono font-normal text-[10px] normal-case tracking-normal text-zinc-600">
+                    {groupedSpots[cityName].length}
+                  </span>
                 </div>
                 <div class="flex flex-col gap-2">
                   {#each groupedSpots[cityName] as spot}
