@@ -487,6 +487,42 @@
     if (mode === "cuisine") return "Cuisine";
     return mode;
   }
+
+  // Sort for the spots of one selected city. Separate from sortMode because
+  // that one orders city groups; this one orders (or groups) spots.
+  let citySortMode = $state("alpha"); // 'alpha' | 'rating' | 'cuisine'
+  const CITY_SORT_MODES = ["alpha", "rating", "cuisine"];
+  function cycleCitySortMode() {
+    const idx = CITY_SORT_MODES.indexOf(citySortMode);
+    citySortMode = CITY_SORT_MODES[(idx + 1) % CITY_SORT_MODES.length];
+  }
+  function getCitySortModeLabel(mode) {
+    if (mode === "alpha") return "A-Z";
+    if (mode === "rating") return "Top Rated";
+    if (mode === "cuisine") return "Cuisine";
+    return mode;
+  }
+
+  // The selected city's spots as [{ label, spots }]. One unlabeled group for
+  // alpha/rating; one labeled group per cuisine (best-rated first) for cuisine.
+  let cityGroups = $derived.by(() => {
+    if (!selectedCity || filteredSpots.length === 0) return [];
+    const spots = [...filteredSpots];
+    if (citySortMode === "alpha") {
+      spots.sort((a, b) => a.name.localeCompare(b.name));
+    } else {
+      spots.sort((a, b) => b.rating - a.rating);
+    }
+    if (citySortMode !== "cuisine") return [{ label: null, spots }];
+    const groups = {};
+    for (const spot of spots) {
+      const key = spot.cuisine || spot.subCategory || "other";
+      (groups[key] ||= []).push(spot);
+    }
+    return Object.keys(groups)
+      .sort((a, b) => a.localeCompare(b))
+      .map((label) => ({ label, spots: groups[label] }));
+  });
 </script>
 
 <BasePanel title="DOGS MAP" {isClosing} {onClose}>
@@ -2000,6 +2036,18 @@
               Sort: {getSortModeLabel(sortMode)}
             </button>
           </div>
+        {:else if selectedCity && !selectedSpot}
+          <div class="flex justify-between items-center px-1 mb-2">
+            <span class="text-[10px] uppercase tracking-widest font-mono text-zinc-500">
+              {selectedCity.name} · {filteredSpots.length}
+            </span>
+            <button
+              class="text-[10px] font-mono bg-white/5 border border-white/10 hover:bg-white/10 text-zinc-300 px-2 py-0.5 rounded-full flex items-center gap-1 cursor-pointer transition-all active:scale-95"
+              onclick={cycleCitySortMode}
+            >
+              Sort: {getCitySortModeLabel(citySortMode)}
+            </button>
+          </div>
         {/if}
 
         <!-- Directory List -->
@@ -2038,8 +2086,20 @@
           {/if}
 
           {#if selectedCity}
-            <!-- If city selected, just list the spots -->
-            {#each filteredSpots as spot}
+            <!-- If city selected, list the spots; cuisine sort adds headers -->
+            {#each cityGroups as group (group.label)}
+            {#if group.label}
+              <div
+                class="city-group-title flex items-center gap-1.5 text-xs font-black tracking-widest text-zinc-500 uppercase py-2 border-b border-white/5 mb-1"
+              >
+                <UtensilsCrossed size={10} />
+                {group.label}
+                <span class="ml-auto font-mono font-normal text-[10px] normal-case tracking-normal text-zinc-600">
+                  {group.spots.length}
+                </span>
+              </div>
+            {/if}
+            {#each group.spots as spot (spot.id)}
               {@const tier = getRatingTier(spot.rating)}
               {@const starColor = STAR_COLORS[tier]}
               <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -2139,6 +2199,7 @@
                 <p class="spot-desc">{spot.description}</p>
                 </div>
               </div>
+            {/each}
             {:else}
               <div class="no-spots">
                 <p>No listings found in this category.</p>
