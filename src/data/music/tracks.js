@@ -213,4 +213,19 @@ export const fullLibrary = [
     attrib:"https://dominicfike.com/",
     public: true
   },
+  {
+    id: "goat",
+    title: "G.O.A.T.",
+    artist: "Polyphia",
+    album: "New Levels New Devils",
+    cover: "https://data.wearedogs.net/img/covers/2026/goat.webp",
+    altCover: "https://data.wearedogs.net/img/covers/2026/goat.png",
+    src: "https://data.wearedogs.net/music/2026/goat.mp3",
+    instrumental: "https://data.wearedogs.net/music/2026/goat-ins.mp3",
+    dateAdded: "2026-09-15T01:26:33-05:00",
+    year: 2018,
+    genre: "Rock",
+    attrib: "https://polyphia.com/",
+    public: true
+  },
 ];
