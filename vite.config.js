@@ -5,6 +5,7 @@ import shareCards from './scripts/vite-plugin-share-cards.js'
 import markdownData from './scripts/vite-plugin-md-data.js'
 import staticData from './scripts/vite-plugin-static-data.js'
 import siteFiles, { resolveSiteTarget, LIVE_ORIGIN } from './scripts/vite-plugin-site-files.js'
+import { buildLiteData, buildLitePanels } from './scripts/build-lite-data.js'
 
 // Deploy target (live dogs.red vs the frozen wearedogs.net archive). Exposed
 // to index.html as %VITE_SITE_*% and to the app as import.meta.env.VITE_SITE_*.
@@ -20,7 +21,10 @@ process.env.VITE_LIVE_ORIGIN = process.env.LIVE_ORIGIN || LIVE_ORIGIN
 function liteDirIndex() {
   return {
     name: 'wad-lite-dir-index',
+    // The lite pages read generated data files; build them for dev too.
     configureServer(server) {
+      buildLiteData()
+      buildLitePanels()
       server.middlewares.use((req, _res, next) => {
         const url = (req.url || '').split('?')[0];
         if (url === '/gopro' || url === '/gopro/') req.url = '/gopro/index.html';

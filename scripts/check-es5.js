@@ -21,6 +21,9 @@ const ES5_FILES = [
   "public/gopro/catalog.js",
   "public/lite/lite.js",
   "public/lite/dogs.js",
+  "public/lite/lite-data.js",
+  "public/lite/panels.js",
+  "public/lite/apps.js",
 ];
 
 /** HTML files whose inline <script> bodies must be ES5. */
