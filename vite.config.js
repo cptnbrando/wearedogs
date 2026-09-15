@@ -1,14 +1,44 @@
 import { defineConfig } from 'vite'
 import { svelte } from '@sveltejs/vite-plugin-svelte'
 import tailwindcss from '@tailwindcss/vite'
-import legacy from '@vitejs/plugin-legacy'
 import shareCards from './scripts/vite-plugin-share-cards.js'
 import markdownData from './scripts/vite-plugin-md-data.js'
 import staticData from './scripts/vite-plugin-static-data.js'
+import siteFiles, { resolveSiteTarget, LIVE_ORIGIN } from './scripts/vite-plugin-site-files.js'
+import { buildLiteData, buildLitePanels } from './scripts/build-lite-data.js'
+
+// Deploy target (live dogs.red vs the frozen wearedogs.net archive). Exposed
+// to index.html as %VITE_SITE_*% and to the app as import.meta.env.VITE_SITE_*.
+const SITE = resolveSiteTarget()
+process.env.VITE_SITE_MODE = SITE.mode
+process.env.VITE_SITE_ORIGIN = SITE.origin
+// LIVE_ORIGIN env is a dev-only override for testing the archive gate locally.
+process.env.VITE_LIVE_ORIGIN = process.env.LIVE_ORIGIN || LIVE_ORIGIN
+
+// Dev-only: resolve directory indexes for the static lite pages so
+// /gopro/ and /lite/ behave like they do on gh-pages/Cloudflare (the SPA
+// html fallback would otherwise swallow them in dev).
+function liteDirIndex() {
+  return {
+    name: 'wad-lite-dir-index',
+    // The lite pages read generated data files; build them for dev too.
+    configureServer(server) {
+      buildLiteData()
+      buildLitePanels()
+      server.middlewares.use((req, _res, next) => {
+        const url = (req.url || '').split('?')[0];
+        if (url === '/gopro' || url === '/gopro/') req.url = '/gopro/index.html';
+        if (url === '/lite' || url === '/lite/') req.url = '/lite/index.html';
+        next();
+      });
+    },
+  };
+}
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
+    liteDirIndex(),
     // Frontmatter .md files import as { default: frontmatter, body } — the
     // correspondence letters compile straight into the bundle, one file each.
     markdownData(),
@@ -17,13 +47,11 @@ export default defineConfig({
     staticData(),
     tailwindcss(),
     svelte(),
-    legacy({
-      targets: ['defaults', 'chrome >= 40', 'not IE 11'],
-      modernPolyfills: true,
-    }),
     // Emits real HTML at each /store/campaign/<id> and /store/product/<id> so
     // shared links preview with that item's own image, title and description.
-    shareCards({ origin: 'https://wearedogs.net' }),
+    shareCards({ origin: SITE.origin }),
+    // CNAME + health.json for this deploy target.
+    siteFiles(SITE),
   ],
   resolve: {
     conditions: ['browser'],
@@ -40,12 +68,29 @@ export default defineConfig({
         // dev proxy forwards the browser's localhost referer, which gets a
         // 403 block page. Present the real site's referer instead.
         headers: { Referer: 'https://wearedogs.net/' },
+      },
+      // Music (incl. the lockup gate's check file) fetches the same way in
+      // dev via src/lib/dataHost.js, so the bucket CORS policy can stay
+      // production-origins-only.
+      '/music': {
+        target: 'https://data.wearedogs.net',
+        changeOrigin: true,
+        headers: { Referer: 'https://wearedogs.net/' },
+        // /music is ALSO the SPA's music-panel route: browser navigations
+        // (Accept: text/html) stay on the dev server; only audio/data
+        // fetches proxy to the data host.
+        bypass: (req) =>
+          req.headers.accept?.includes('text/html') ? '/index.html' : undefined,
       }
     }
   },
   build: {
-    // build.target is owned by @vitejs/plugin-legacy (via its `targets` option
-    // above) — setting it here just gets overridden with a warning.
+    // plugin-legacy is gone (it doubled build time to ship SystemJS bundles
+    // that old TVs still couldn't really run — Svelte 5 needs Proxy). Old
+    // browsers are served by the static ES5 pages in public/ via the
+    // index.html gate. This target keeps the modern bundle parseable across
+    // the mid-old band (Chrome 84+ ≈ the flex-gap CSS floor).
+    target: ['chrome84', 'firefox79', 'safari14'],
 
     // Forces the CSS compiler to down-compile into safe fallbacks
     cssTarget: 'chrome40',

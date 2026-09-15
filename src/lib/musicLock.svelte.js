@@ -4,10 +4,11 @@
  * `Authorization: password=...` scheme as the GoPro catalog. The passcode is
  * punched into the calculator app and persisted in localStorage.
  */
+import { dataUrl } from "./dataHost.js";
 import { fullLibrary } from "../data/music/tracks.js";
 
 const STORAGE_KEY = "music_lockup_password";
-const CHECK_URL = "https://data.wearedogs.net/music/lockup/check.txt";
+const CHECK_URL = dataUrl("https://data.wearedogs.net/music/lockup/check.txt");
 
 /**
  * Verification target: a real lockup track from the library, not the check
@@ -23,9 +24,11 @@ function probeUrl() {
       (t.instrumental && t.instrumental.includes("/lockup/")),
   );
   if (!locked) return CHECK_URL;
-  return locked.src && locked.src.includes("/lockup/")
-    ? locked.src
-    : locked.instrumental;
+  return dataUrl(
+    locked.src && locked.src.includes("/lockup/")
+      ? locked.src
+      : locked.instrumental,
+  );
 }
 
 class MusicLock {

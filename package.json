@@ -5,7 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host",
-    "build": "npm run changelog && vite build",
+    "build": "npm run changelog && npm run gopro-catalog && npm run lite-data && npm run check-es5 && vite build",
+    "gopro-catalog": "node scripts/build-gopro-catalog.js",
+    "lite-data": "node scripts/build-lite-data.js",
+    "check-es5": "node scripts/check-es5.js",
     "preview": "vite preview",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist",
@@ -14,7 +17,6 @@
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^7.1.2",
     "@tailwindcss/vite": "^4.3.0",
-    "@vitejs/plugin-legacy": "^8.0.2",
     "gh-pages": "^6.3.0",
     "sass-embedded": "^1.100.0",
     "svelte": "^5.55.5",

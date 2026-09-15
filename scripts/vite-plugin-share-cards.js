@@ -23,7 +23,7 @@ import { CAMPAIGN_ALIASES } from "../src/lib/campaignAliases.js";
  * the trailing slash a host adds for directory indexes.
  */
 
-const DEFAULT_ORIGIN = "https://wearedogs.net";
+const DEFAULT_ORIGIN = "https://dogs.red";
 
 /** Attribute-safe escaping for values dropped into content="…". */
 function esc(value) {
