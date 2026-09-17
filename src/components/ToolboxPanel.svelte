@@ -289,7 +289,7 @@
     {
       id: "converter",
       title: "Catalytic Converter",
-      desc: "A way to convert img, vid, audio files.",
+      desc: "A way to convert img, vid, audio, data and N64 ROM files.",
       icon: RefreshCw,
     },
     {

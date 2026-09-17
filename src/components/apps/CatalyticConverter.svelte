@@ -19,6 +19,7 @@
     Undo,
     Trash2,
     Loader2,
+    Gamepad2,
   } from "lucide-svelte";
   import {
     convertImage,
@@ -38,6 +39,13 @@
     clearConversions,
   } from "../../lib/conversionHistory.svelte.js";
   import { createZip, unzip } from "../../lib/zip.js";
+  import {
+    convertN64,
+    detectN64Format,
+    N64_FORMATS,
+    N64_EXTENSIONS,
+    N64_MIME,
+  } from "../../lib/n64.js";
 
   // State variables
   let isDragging = $state(false);
@@ -102,6 +110,7 @@
   let batchAudioFormats = $state(["mp3"]);
   let batchVideoFormats = $state(["mp4"]);
   let batchDataFormats = $state(["json"]);
+  let batchRomFormats = $state(["z64"]);
   let bulkZipDownloads = $state(false);
   let bulkAllComplete = $derived(
     !isConvertingBulk &&
@@ -130,12 +139,22 @@
   let audioContext = null;
   let audioBuffer = null;
 
+  // N64 ROM bytes, read once on drop so every output format reuses them
+  let romBytes = null;
+
   // Available output formats based on detected type
   const formatMap = {
     image: ["png", "jpg", "webp", "avif", "svg"],
     audio: ["mp3", "wav", "m4a", "aac", "webm", "mp4", "mov", "mkv", "avi"],
     video: ["mp4", "mov", "mkv", "avi", "mp3", "wav", "m4a", "aac", "webm"],
     data: ["dog", "json", "js", "yml", "ts", "md"],
+    rom: N64_FORMATS,
+  };
+
+  const ROM_FORMAT_GROUP = {
+    name: "N64 ROM Formats",
+    color: "#facc15",
+    formats: N64_FORMATS,
   };
 
   let availableFormats = $derived(fileType ? formatMap[fileType] || [] : []);
@@ -183,7 +202,9 @@
                   formats: ["dog", "json", "js", "yml", "ts", "md"],
                 },
               ]
-            : [],
+            : fileType === "rom"
+              ? [ROM_FORMAT_GROUP]
+              : [],
   );
 
   const hasQualitySupport = $derived(
@@ -510,7 +531,7 @@
     file = { name: entry.inputName, size: entry.inputSize };
     convertedFiles = entry.items.map((it) => {
       const o = { name: it.name, kind: it.kind, blob: it.blob };
-      if (it.blob && it.kind !== "text") {
+      if (it.blob && it.kind !== "text" && it.kind !== "rom") {
         o.url = URL.createObjectURL(it.blob);
       }
       return o;
@@ -702,10 +723,23 @@
       } catch (err) {
         console.error("Failed to read data file for preview:", err);
       }
+    } else if (N64_EXTENSIONS.includes(ext)) {
+      // The header decides the real byte order — a ".n64" file is often v64 inside
+      romBytes = new Uint8Array(await file.arrayBuffer());
+      inputFormat = detectN64Format(romBytes);
+      if (!inputFormat) {
+        fileType = "unsupported";
+        errorMessage = "Not an N64 ROM: the file header is not z64, v64 or n64.";
+        conversionStatus = "error";
+        return;
+      }
+      fileType = "rom";
+      selectedFormats = [inputFormat === "z64" ? "v64" : "z64"];
+      selectionAnchor = selectedFormats[0];
     } else {
       fileType = "unsupported";
       errorMessage =
-        "Unsupported file type. Please upload an image, audio, video, or data (.dog/.json) file.";
+        "Unsupported file type. Please upload an image, audio, video, data (.dog/.json), or N64 ROM (.z64/.v64/.n64) file.";
       conversionStatus = "error";
     }
   }
@@ -794,6 +828,7 @@
     zipDownloads = false;
     errorMessage = "";
     audioBuffer = null;
+    romBytes = null;
     originalWidth = 0;
     originalHeight = 0;
     targetWidth = 0;
@@ -816,6 +851,7 @@
     batchAudioFormats = ["mp3"];
     batchVideoFormats = ["mp4"];
     batchDataFormats = ["json"];
+    batchRomFormats = ["z64"];
     bulkZipDownloads = false;
     currentNotice = "Refining Format Molecules";
     // Clear the native input too, otherwise re-selecting the same
@@ -921,6 +957,16 @@
             file.name.lastIndexOf("."),
           );
           resultFileName = `${originalBase}.${currentFormat}`;
+        } else if (fileType === "rom") {
+          if (!romBytes) romBytes = new Uint8Array(await file.arrayBuffer());
+          resultBlob = new Blob([convertN64(romBytes, currentFormat)], {
+            type: N64_MIME,
+          });
+          const originalBase = file.name.substring(
+            0,
+            file.name.lastIndexOf("."),
+          );
+          resultFileName = `${originalBase}.${currentFormat}`;
         } else if (fileType === "video") {
           const isTargetAudio = ["mp3", "wav", "m4a", "aac", "webm"].includes(
             currentFormat,
@@ -982,6 +1028,8 @@
         } else if (t.startsWith("audio/")) {
           item.kind = "audio";
           item.url = URL.createObjectURL(item.blob);
+        } else if (t === N64_MIME) {
+          item.kind = "rom";
         } else {
           item.kind = "text";
           try {
@@ -1145,6 +1193,8 @@
               mime = `audio/${ext}`;
             } else if (["mp4", "mov", "mkv", "avi"].includes(ext)) {
               mime = `video/${ext}`;
+            } else if (N64_EXTENSIONS.includes(ext)) {
+              mime = N64_MIME;
             }
 
             const fileObj = new File([data], filename, { type: mime });
@@ -1185,6 +1235,8 @@
         type = "video";
       } else if (["dog", "json", "yml", "yaml", "ts", "js", "md"].includes(ext)) {
         type = "data";
+      } else if (N64_EXTENSIONS.includes(ext)) {
+        type = "rom";
       }
 
       if (type === "unsupported") continue;
@@ -1195,6 +1247,7 @@
       else if (type === "audio") outputFmts = [...batchAudioFormats];
       else if (type === "video") outputFmts = [...batchVideoFormats];
       else if (type === "data") outputFmts = [...batchDataFormats];
+      else if (type === "rom") outputFmts = [...batchRomFormats];
 
       list.push({
         file: f,
@@ -1274,6 +1327,13 @@
           }
         }
 
+        // Read a ROM once per file; the header, not the extension, says what it is
+        let bulkRomBytes = null;
+        if (item.fileType === "rom") {
+          bulkRomBytes = new Uint8Array(await item.file.arrayBuffer());
+          item.inputFormat = detectN64Format(bulkRomBytes) || item.inputFormat;
+        }
+
         const nameParts = item.file.name.split(".");
         nameParts.pop();
         const baseName = nameParts.join(".");
@@ -1343,6 +1403,10 @@
           } else if (item.fileType === "data") {
             const text = await item.file.text();
             resultBlob = convertData(text, item.inputFormat, fmt, dogOpts);
+          } else if (item.fileType === "rom") {
+            resultBlob = new Blob([convertN64(bulkRomBytes, fmt)], {
+              type: N64_MIME,
+            });
           }
 
           if (resultBlob) {
@@ -1418,7 +1482,9 @@
         ? batchAudioFormats
         : type === "data"
           ? batchDataFormats
-          : batchVideoFormats;
+          : type === "rom"
+            ? batchRomFormats
+            : batchVideoFormats;
   }
 
   function syncBatchFormats(type) {
@@ -1472,7 +1538,7 @@
     type="file"
     id="file-input"
     class="hidden"
-    accept="image/*,audio/*,video/*,.zip,.dog,.json,.yml,.yaml,.ts,.js,.md"
+    accept="image/*,audio/*,video/*,.zip,.dog,.json,.yml,.yaml,.ts,.js,.md,.z64,.v64,.n64"
     multiple
     onchange={handleFileSelect}
   />
@@ -1632,7 +1698,7 @@ dog 2 flow=line fs=2space kv=space block=track case=any punct=none bools=10</pre
         <div class="bulk-batch-header">
           <div class="batch-title">Batch Output Formats</div>
           <div class="batch-presets">
-            {#each [["image", "🖼️ Images", batchImageFormats], ["audio", "🎵 Audios", batchAudioFormats], ["video", "🎞️ Videos", batchVideoFormats], ["data", "🐶 Data", batchDataFormats]] as [type, label, fmts]}
+            {#each [["image", "🖼️ Images", batchImageFormats], ["audio", "🎵 Audios", batchAudioFormats], ["video", "🎞️ Videos", batchVideoFormats], ["data", "🐶 Data", batchDataFormats], ["rom", "🕹️ N64 ROMs", batchRomFormats]] as [type, label, fmts]}
               {#if bulkFiles.some((f) => f.fileType === type)}
                 <div class="preset-group">
                   <span>{label} ➔</span>
@@ -1697,6 +1763,8 @@ dog 2 flow=line fs=2space kv=space block=track case=any punct=none bools=10</pre
                     <FileVideo size={18} class="text-[#a855f7]" />
                   {:else if item.fileType === "data"}
                     <FileJson size={18} class="text-[#4ade80]" />
+                  {:else if item.fileType === "rom"}
+                    <Gamepad2 size={18} class="text-[#facc15]" />
                   {/if}
                 </div>
                 <div class="meta">
@@ -1884,7 +1952,7 @@ dog 2 flow=line fs=2space kv=space block=track case=any punct=none bools=10</pre
         <h3>Drop file or click to select</h3>
         <p class="upload-sub">
           Supports JPG, PNG, WEBP, AVIF, SVG, MP3, WAV, M4A, AAC, WEBM, MP4,
-          MOV, MKV, AVI, DOG, JSON, YML, TS, JS, MD
+          MOV, MKV, AVI, DOG, JSON, YML, TS, JS, MD, Z64, V64, N64
         </p>
       </div>
 
@@ -2026,6 +2094,20 @@ dog 2 flow=line fs=2space kv=space block=track case=any punct=none bools=10</pre
               >
             </div>
           </div>
+          <div class="flex flex-col gap-1.5">
+            <span class="font-bold text-[#facc15]">🕹️ N64 ROM</span>
+            <div class="flex flex-wrap items-center gap-2">
+              {#each N64_FORMATS as fmt, i}
+                {#if i > 0}
+                  <span class="text-white/30 font-mono">⇄</span>
+                {/if}
+                <span
+                  class="px-1.5 py-0.5 rounded bg-white/5 font-mono text-[10px]"
+                  >{fmt.toUpperCase()}</span
+                >
+              {/each}
+            </div>
+          </div>
         </div>
       </div>
       <!-- Conversion history (this browser session) -->
@@ -2158,6 +2240,15 @@ dog 2 flow=line fs=2space kv=space block=track case=any punct=none bools=10</pre
                   src={item.url}
                   class="w-full max-h-40 rounded bg-black/30"
                 ></video>
+              {:else if item.kind === "rom"}
+                <div
+                  class="w-full flex items-center gap-2 text-[10px] font-mono text-[#facc15]/80 bg-black/30 rounded p-2"
+                >
+                  <Gamepad2 size={14} />
+                  <span
+                    >N64 ROM · {item.name.split(".").pop().toUpperCase()} byte order</span
+                  >
+                </div>
               {/if}
             </div>
           {/each}
@@ -2498,6 +2589,24 @@ dog 2 flow=line fs=2space kv=space block=track case=any punct=none bools=10</pre
                 >
                   <FileVideo size={48} class="text-[#a855f7]" />
                   <span class="audio-badge">Video Frame Decoded</span>
+                  <div
+                    class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-[10px] text-white font-bold font-sans uppercase"
+                  >
+                    Replace
+                  </div>
+                </div>
+              {:else if fileType === "rom"}
+                <!-- svelte-ignore a11y_click_events_have_key_events -->
+                <!-- svelte-ignore a11y_no_static_element_interactions -->
+                <div
+                  class="preview-box audio-preview cursor-pointer hover:opacity-80 transition-opacity relative group"
+                  onclick={() => document.getElementById("file-input").click()}
+                  title="Click to select another file"
+                >
+                  <Gamepad2 size={48} class="text-[#facc15]" />
+                  <span class="audio-badge"
+                    >N64 ROM · {inputFormat.toUpperCase()} header</span
+                  >
                   <div
                     class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-[10px] text-white font-bold font-sans uppercase"
                   >

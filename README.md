@@ -6,7 +6,7 @@ A home for debauchery, magic, and mischief
 
 * DOG BLOG - BARKBARKBARKBARKBARK
 * QR Generator - Generate resizable QR codes with custom center logo overlays.
-* Catalytic Converter - Convert img vid and audio files in the browser.
+* Catalytic Converter - Convert img vid audio data and N64 ROM (z64/v64/n64) files in the browser.
 * DataFlash - Visual file transfer protocol over flashing QR codes.
 * Father Time - Stopwatch, timer, alarms, world clock, metronome \& tuning fork.
 * Windshield Wiper - Clean watermarks and logos from images and videos using canvas magic.
