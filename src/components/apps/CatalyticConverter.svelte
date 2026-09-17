@@ -1121,6 +1121,20 @@
     }
   }
 
+  // The input is only downloadable while its bytes are still here: a real File
+  // for an upload, or the typed/pasted text. History restores carry name+size only.
+  let hasOriginalBytes = $derived(file instanceof Blob || !!rawDataText);
+
+  function downloadOriginal() {
+    if (file instanceof Blob) {
+      triggerDownload(file, file.name);
+      return;
+    }
+    if (!rawDataText) return;
+    const name = file?.name || `typed.${inputFormat || "dog"}`;
+    triggerDownload(new Blob([rawDataText], { type: "text/plain" }), name);
+  }
+
   function formatBytes(bytes) {
     if (bytes === 0) return "0 Bytes";
     const k = 1024;
@@ -2271,6 +2285,15 @@ dog 2 flow=line fs=2space kv=space block=track case=any punct=none bools=10</pre
           <button class="action-btn download" onclick={downloadFile}>
             <Download size={16} /> DOWNLOAD {#if convertedFiles.length > 1 && !zipDownloads}ALL{/if}
           </button>
+          {#if hasOriginalBytes}
+            <button
+              class="action-btn secondary"
+              onclick={downloadOriginal}
+              title="Download the untouched input file ({file?.name})"
+            >
+              <Undo size={14} /> ORIGINAL
+            </button>
+          {/if}
           {#if convertedFiles.some((it) => it.kind === "text" && it.blob && /\.(dog|json|yml|ts|js|md)$/.test(it.name))}
             <button
               class="action-btn secondary"
