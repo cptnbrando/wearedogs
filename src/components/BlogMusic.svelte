@@ -18,6 +18,8 @@
   let blocked = $state(false); // autoplay refused until the reader interacts
   let dragging = $state(false);
   let trackEl = $state(null);
+  let rootEl = $state(null);
+  let started = false; // the track has played at least once (autoplay gate passed)
 
   // Random start: pick a point once the duration is known. Fresh
   // pseudo-randomness every load, so a 3-hour file lands somewhere new.
@@ -33,6 +35,7 @@
     try {
       await audio.play();
       blocked = false;
+      started = true;
     } catch {
       // Browsers refuse audio before any user gesture: wait for the first one.
       blocked = true;
@@ -42,6 +45,25 @@
   function onFirstGesture() {
     if (!blocked) return;
     tryPlay();
+  }
+
+  // The music belongs to this post only. It stops the moment the post is no
+  // longer what is on screen: the URL leaves /apps/blog/<post>, or the widget
+  // is hidden because a parent panel swapped away without unmounting it. It
+  // picks up again when the post is back. (Unmounting also stops it, below.)
+  function isPostShowing() {
+    if (typeof location === "undefined") return false;
+    if (!/\/apps\/blog\/[^/]+/.test(location.pathname)) return false;
+    return !!(rootEl && rootEl.isConnected && rootEl.getClientRects().length > 0);
+  }
+
+  function syncToPresence() {
+    if (!audio) return;
+    if (isPostShowing()) {
+      if (audio.paused && started) tryPlay();
+    } else if (!audio.paused) {
+      audio.pause();
+    }
   }
 
   onMount(() => {
@@ -66,11 +88,22 @@
     const gestures = ["pointerdown", "keydown", "touchstart", "wheel"];
     gestures.forEach((g) => window.addEventListener(g, onFirstGesture, { passive: true }));
 
+    // Route changes come through history (the site router) and popstate;
+    // a cheap poll also catches a parent hiding the widget without a route change.
+    window.addEventListener("popstate", syncToPresence);
+    window.addEventListener("pagehide", () => audio?.pause());
+    const presenceTimer = setInterval(syncToPresence, 400);
+
+    if (import.meta.env.DEV) window.__blogMusic = audio; // dev-only handle for checks
+
     return () => {
       gestures.forEach((g) => window.removeEventListener(g, onFirstGesture));
+      window.removeEventListener("popstate", syncToPresence);
+      clearInterval(presenceTimer);
       audio.pause();
       audio.removeAttribute("src");
       audio.load();
+      if (import.meta.env.DEV && window.__blogMusic === audio) window.__blogMusic = null;
       audio = null;
     };
   });
@@ -128,6 +161,7 @@
 
 <!-- Bezel-less: no box, border or backdrop, just the control on the page. -->
 <div
+  bind:this={rootEl}
   class="blog-music fixed left-2 top-1/2 -translate-y-1/2 z-30 flex flex-col items-center gap-2 select-none"
   title={blocked ? "Click anywhere to start the music" : "Music volume"}
 >
