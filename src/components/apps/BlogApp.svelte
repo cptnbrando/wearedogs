@@ -13,6 +13,7 @@
     AlertCircle,
   } from "lucide-svelte";
   import { getPosts, getPostContent } from "../../lib/blogApi.js";
+  import BlogMusic from "../BlogMusic.svelte";
 
   // Constants
   const SHARE_COOLDOWN_MS = 2000;
@@ -495,8 +496,21 @@
             >
           </div>
         {:else if activeContent}
+          <!-- Posts with a `music:` frontmatter URL get a pinned volume slider
+               and the track playing from a random point. Keyed by URL so a
+               different post tears the player down. Kept outside the article:
+               its glitch transform would turn position:fixed into position:absolute. -->
+          {#if activeContent.metadata?.music}
+            {#key activeContent.metadata.music}
+              <BlogMusic
+                src={activeContent.metadata.music}
+                label={activeContent.metadata.musicLabel || "/img/blog/toyota-cityscape.svg"}
+              />
+            {/key}
+          {/if}
           <article
             class="w-full max-w-3xl mx-auto px-4 py-6 md:px-8 md:py-10 flex flex-col gap-6 relative select-text overflow-x-hidden"
+            class:pl-12={!!activeContent.metadata?.music}
             class:glitching-pane={isGlitching}
             class:colored-glitch={isFlagColors}
           >

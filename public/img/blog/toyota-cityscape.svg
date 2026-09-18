@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1a0b3a"/>
+      <stop offset="0.45" stop-color="#5b2a86"/>
+      <stop offset="0.72" stop-color="#e2543a"/>
+      <stop offset="0.9" stop-color="#ffb347"/>
+    </linearGradient>
+    <linearGradient id="water" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3b1f5e"/>
+      <stop offset="1" stop-color="#0b0618"/>
+    </linearGradient>
+    <radialGradient id="sun" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#fff3c4"/>
+      <stop offset="0.6" stop-color="#ffb347"/>
+      <stop offset="1" stop-color="#ff7a3d" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="win" width="10" height="14" patternUnits="userSpaceOnUse">
+      <rect width="10" height="14" fill="#0d0a1c"/>
+      <rect x="2" y="2" width="4" height="6" fill="#ffd27a" opacity="0.85"/>
+    </pattern>
+    <pattern id="win2" width="12" height="12" patternUnits="userSpaceOnUse">
+      <rect width="12" height="12" fill="#120c22"/>
+      <rect x="2" y="3" width="3" height="4" fill="#9ad1ff" opacity="0.7"/>
+      <rect x="7" y="3" width="3" height="4" fill="#ffd27a" opacity="0.5"/>
+    </pattern>
+    <pattern id="win3" width="8" height="16" patternUnits="userSpaceOnUse">
+      <rect width="8" height="16" fill="#0a0716"/>
+      <rect x="2" y="4" width="4" height="5" fill="#ff9e7a" opacity="0.6"/>
+    </pattern>
+    <clipPath id="disc"><circle cx="256" cy="256" r="256"/></clipPath>
+  </defs>
+  <g clip-path="url(#disc)">
+    <rect width="512" height="512" fill="url(#sky)"/>
+    <g fill="#fff">
+      <circle cx="60" cy="70" r="1.6"/><circle cx="120" cy="40" r="1.2"/><circle cx="200" cy="90" r="1.4"/>
+      <circle cx="300" cy="50" r="1.1"/><circle cx="380" cy="110" r="1.5"/><circle cx="450" cy="60" r="1.2"/>
+      <circle cx="160" cy="140" r="1"/><circle cx="420" cy="160" r="1"/><circle cx="90" cy="180" r="0.9"/>
+    </g>
+    <circle cx="330" cy="330" r="110" fill="url(#sun)"/>
+    <circle cx="330" cy="330" r="46" fill="#fff0c2"/>
+    <!-- distant skyline -->
+    <g fill="#2a1747" opacity="0.9">
+      <rect x="0" y="300" width="40" height="120"/><rect x="48" y="270" width="26" height="150"/>
+      <rect x="80" y="310" width="34" height="110"/><rect x="120" y="250" width="22" height="170"/>
+      <rect x="150" y="290" width="40" height="130"/><rect x="200" y="320" width="20" height="100"/>
+      <rect x="228" y="260" width="30" height="160"/><rect x="266" y="300" width="24" height="120"/>
+      <rect x="298" y="280" width="36" height="140"/><rect x="342" y="310" width="28" height="110"/>
+      <rect x="378" y="240" width="20" height="180"/><rect x="406" y="290" width="40" height="130"/>
+      <rect x="454" y="320" width="30" height="100"/><rect x="490" y="270" width="22" height="150"/>
+      <polygon points="378,240 388,205 398,240"/>
+    </g>
+    <!-- main skyline -->
+    <rect x="-4" y="330" width="52" height="110" fill="url(#win)"/>
+    <rect x="56" y="290" width="44" height="150" fill="url(#win2)"/>
+    <rect x="66" y="270" width="24" height="20" fill="#120c22"/>
+    <rect x="108" y="350" width="60" height="90" fill="url(#win3)"/>
+    <rect x="176" y="236" width="38" height="204" fill="url(#win)"/>
+    <polygon points="176,236 195,196 214,236" fill="#0d0a1c"/>
+    <rect x="194" y="150" width="2" height="46" fill="#0d0a1c"/>
+    <rect x="222" y="318" width="50" height="122" fill="url(#win2)"/>
+    <rect x="280" y="262" width="34" height="178" fill="url(#win3)"/>
+    <rect x="322" y="344" width="58" height="96" fill="url(#win)"/>
+    <rect x="388" y="286" width="30" height="154" fill="url(#win2)"/>
+    <rect x="384" y="272" width="38" height="14" fill="#120c22"/>
+    <rect x="426" y="326" width="46" height="114" fill="url(#win3)"/>
+    <rect x="480" y="296" width="40" height="144" fill="url(#win)"/>
+    <!-- antenna lights -->
+    <g fill="#ff3344">
+      <circle cx="195" cy="150" r="2.2"/><circle cx="403" cy="270" r="1.8"/>
+    </g>
+    <!-- water + reflections -->
+    <rect x="0" y="440" width="512" height="72" fill="url(#water)"/>
+    <g opacity="0.35">
+      <rect x="176" y="442" width="38" height="40" fill="#ffd27a"/>
+      <rect x="280" y="442" width="34" height="30" fill="#ff9e7a"/>
+      <rect x="56" y="442" width="44" height="26" fill="#9ad1ff"/>
+      <rect x="388" y="442" width="30" height="34" fill="#9ad1ff"/>
+      <rect x="300" y="442" width="60" height="50" fill="#ffb347" opacity="0.5"/>
+    </g>
+    <g stroke="#ffffff" stroke-opacity="0.12" stroke-width="1">
+      <line x1="0" y1="452" x2="512" y2="452"/><line x1="0" y1="466" x2="512" y2="466"/>
+      <line x1="0" y1="482" x2="512" y2="482"/><line x1="0" y1="498" x2="512" y2="498"/>
+    </g>
+  </g>
+</svg>
