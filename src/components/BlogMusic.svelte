@@ -10,24 +10,11 @@
   let { src, label = "/img/blog/toyota-cityscape.svg" } = $props();
   let playing = $state(false);
 
-  const VOLUME_KEY = "wearedogs.blogMusicVolume";
   let audio = $state(null);
-  let volume = $state(0.6);
+  // Always starts silent: the track is running underneath, the reader turns
+  // it up when they want it.
+  let volume = $state(0);
   let blocked = $state(false); // autoplay refused until the reader interacts
-
-  function readSavedVolume() {
-    try {
-      const v = parseFloat(localStorage.getItem(VOLUME_KEY));
-      if (!Number.isNaN(v) && v >= 0 && v <= 1) return v;
-    } catch {}
-    return 0.6;
-  }
-
-  function saveVolume(v) {
-    try {
-      localStorage.setItem(VOLUME_KEY, String(v));
-    } catch {}
-  }
 
   // Random start: pick a point once the duration is known. Fresh
   // pseudo-randomness every load, so a 3-hour file lands somewhere new.
@@ -55,7 +42,6 @@
   }
 
   onMount(() => {
-    volume = readSavedVolume();
     // The site's own player would otherwise play over the post's track.
     try {
       if (audioCore?.isPlaying) audioCore.pause();
@@ -92,15 +78,14 @@
 
   function onInput(e) {
     volume = parseFloat(e.currentTarget.value);
-    saveVolume(volume);
   }
 </script>
 
 <div
-  class="blog-music fixed left-2 top-1/2 -translate-y-1/2 z-30 flex flex-col items-center gap-2 rounded-2xl border border-white/10 bg-black/60 px-1.5 py-3 backdrop-blur-md select-none"
+  class="blog-music fixed left-2 top-1/2 -translate-y-1/2 z-30 flex flex-col items-center gap-2 rounded-2xl border border-[#dc143c]/30 bg-[#12040a]/80 px-1.5 py-3 backdrop-blur-md select-none"
   title={blocked ? "Click anywhere to start the music" : "Music volume"}
 >
-  <div class="text-[#b455ff]" class:opacity-40={volume === 0}>
+  <div class="text-[#dc143c]" class:opacity-40={volume === 0}>
     {#if volume === 0}
       <VolumeX size={16} />
     {:else if volume < 0.5}
@@ -121,7 +106,7 @@
     aria-orientation="vertical"
     class="volume-slider"
   />
-  <span class="text-[9px] font-mono text-white/40 tabular-nums">{Math.round(volume * 100)}</span>
+  <span class="text-[9px] font-mono text-[#dc143c]/60 tabular-nums">{Math.round(volume * 100)}</span>
   {#if blocked}
     <span class="pulse-dot" aria-hidden="true"></span>
   {/if}
@@ -150,7 +135,7 @@
     -webkit-appearance: none;
     width: 6px;
     height: 140px;
-    background: linear-gradient(to top, #b455ff var(--fill, 60%), rgba(255, 255, 255, 0.12) var(--fill, 60%));
+    background: linear-gradient(to top, #dc143c var(--fill, 0%), rgba(220, 20, 60, 0.18) var(--fill, 0%));
     border-radius: 9999px;
     outline: none;
     cursor: pointer;
@@ -161,23 +146,23 @@
     width: 16px;
     height: 16px;
     border-radius: 9999px;
-    background: #fff;
-    border: 2px solid #b455ff;
-    box-shadow: 0 0 10px rgba(180, 85, 255, 0.6);
+    background: #1a0509;
+    border: 2px solid #dc143c;
+    box-shadow: 0 0 10px rgba(220, 20, 60, 0.7);
   }
   .volume-slider::-moz-range-thumb {
     width: 16px;
     height: 16px;
     border-radius: 9999px;
-    background: #fff;
-    border: 2px solid #b455ff;
-    box-shadow: 0 0 10px rgba(180, 85, 255, 0.6);
+    background: #1a0509;
+    border: 2px solid #dc143c;
+    box-shadow: 0 0 10px rgba(220, 20, 60, 0.7);
   }
   .pulse-dot {
     width: 6px;
     height: 6px;
     border-radius: 9999px;
-    background: #ff3344;
+    background: #ff2a4d;
     animation: pulse 1.2s ease-in-out infinite;
   }
   @keyframes pulse {
@@ -193,22 +178,22 @@
   }
   /* ── Vinyl ── */
   .vinyl {
-    width: 88px;
-    height: 88px;
+    width: 56px;
+    height: 56px;
   }
   .disc {
     position: relative;
     width: 100%;
     height: 100%;
     border-radius: 9999px;
-    /* Grooves: fine concentric rings over near-black, with a lighter run-out band. */
+    /* Grooves: fine concentric rings over near-black with a dark-red cast. */
     background:
-      repeating-radial-gradient(circle at 50% 50%, #0b0b0d 0px, #0b0b0d 1.5px, #1c1c20 2px, #1c1c20 2.5px),
-      #0b0b0d;
+      repeating-radial-gradient(circle at 50% 50%, #0a0305 0px, #0a0305 1.5px, #2a0810 2px, #2a0810 2.5px),
+      #0a0305;
     box-shadow:
-      0 0 0 1px rgba(255, 255, 255, 0.08),
-      0 8px 24px rgba(0, 0, 0, 0.6),
-      inset 0 0 12px rgba(0, 0, 0, 0.8);
+      0 0 0 1px rgba(220, 20, 60, 0.35),
+      0 6px 18px rgba(0, 0, 0, 0.6),
+      inset 0 0 10px rgba(0, 0, 0, 0.8);
     animation: spin 1.8s linear infinite;
     animation-play-state: paused;
     transition: filter 0.6s ease;
@@ -228,7 +213,7 @@
     border-radius: 9999px;
     background-size: cover;
     background-position: center;
-    box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.15);
+    box-shadow: 0 0 0 1.5px rgba(220, 20, 60, 0.5);
   }
   .hole {
     position: absolute;
@@ -245,7 +230,7 @@
     position: absolute;
     inset: 0;
     border-radius: 9999px;
-    background: conic-gradient(from 0deg, transparent 0deg, rgba(255, 255, 255, 0.14) 40deg, transparent 80deg, transparent 180deg, rgba(255, 255, 255, 0.1) 220deg, transparent 260deg);
+    background: conic-gradient(from 0deg, transparent 0deg, rgba(255, 60, 90, 0.18) 40deg, transparent 80deg, transparent 180deg, rgba(255, 60, 90, 0.12) 220deg, transparent 260deg);
     pointer-events: none;
     mix-blend-mode: screen;
   }
@@ -259,14 +244,14 @@
       height: 220px;
     }
     .vinyl {
-      width: 140px;
-      height: 140px;
+      width: 96px;
+      height: 96px;
     }
   }
   @media (max-width: 640px) {
     .vinyl {
-      width: 64px;
-      height: 64px;
+      width: 44px;
+      height: 44px;
     }
   }
 </style>
