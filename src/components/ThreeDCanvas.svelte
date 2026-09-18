@@ -280,7 +280,7 @@
   <!-- Why there is no dog: the model host refused, the file is missing, or it is unreadable. -->
   {#if loadError}
     <div
-      class="load-error absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 max-w-[280px] rounded-xl border border-red-500/30 bg-black/70 px-4 py-3 text-center backdrop-blur-sm pointer-events-none"
+      class="load-error absolute left-1/2 top-[38%] -translate-x-1/2 -translate-y-1/2 z-10 max-w-[280px] rounded-xl border border-red-500/30 bg-black/70 px-4 py-3 text-center backdrop-blur-sm pointer-events-none"
       role="status"
     >
       <p class="text-[11px] font-bold uppercase tracking-wide text-red-400">
