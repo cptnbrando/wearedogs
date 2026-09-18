@@ -81,8 +81,9 @@
   }
 </script>
 
+<!-- Bezel-less: no box, border or backdrop, just the control on the page. -->
 <div
-  class="blog-music fixed left-2 top-1/2 -translate-y-1/2 z-30 flex flex-col items-center gap-2 rounded-2xl border border-[#dc143c]/30 bg-[#12040a]/80 px-1.5 py-3 backdrop-blur-md select-none"
+  class="blog-music fixed left-2 top-1/2 -translate-y-1/2 z-30 flex flex-col items-center gap-2 select-none"
   title={blocked ? "Click anywhere to start the music" : "Music volume"}
 >
   <div class="text-[#dc143c]" class:opacity-40={volume === 0}>
@@ -127,6 +128,18 @@
 </div>
 
 <style>
+  /* One column width for the slider (its thumb) and the record: the record
+     is never wider than the slider. */
+  .blog-music,
+  .vinyl {
+    --col: 24px;
+  }
+  .blog-music {
+    width: var(--col);
+    /* No bezel, but the control still floats: a drop shadow follows its exact
+       shape (icon, track, knob, readout) rather than a box. */
+    filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.85)) drop-shadow(0 0 8px rgba(220, 20, 60, 0.35));
+  }
   .volume-slider {
     /* Vertical range input: rotate a normal one so it works in every browser. */
     writing-mode: vertical-lr;
@@ -143,16 +156,16 @@
   .volume-slider::-webkit-slider-thumb {
     appearance: none;
     -webkit-appearance: none;
-    width: 16px;
-    height: 16px;
+    width: var(--col);
+    height: var(--col);
     border-radius: 9999px;
     background: #1a0509;
     border: 2px solid #dc143c;
     box-shadow: 0 0 10px rgba(220, 20, 60, 0.7);
   }
   .volume-slider::-moz-range-thumb {
-    width: 16px;
-    height: 16px;
+    width: var(--col);
+    height: var(--col);
     border-radius: 9999px;
     background: #1a0509;
     border: 2px solid #dc143c;
@@ -178,8 +191,8 @@
   }
   /* ── Vinyl ── */
   .vinyl {
-    width: 56px;
-    height: 56px;
+    width: var(--col);
+    height: var(--col);
   }
   .disc {
     position: relative;
@@ -188,12 +201,12 @@
     border-radius: 9999px;
     /* Grooves: fine concentric rings over near-black with a dark-red cast. */
     background:
-      repeating-radial-gradient(circle at 50% 50%, #0a0305 0px, #0a0305 1.5px, #2a0810 2px, #2a0810 2.5px),
+      repeating-radial-gradient(circle at 50% 50%, #0a0305 0px, #0a0305 1px, #2a0810 1.5px, #2a0810 2px),
       #0a0305;
     box-shadow:
       0 0 0 1px rgba(220, 20, 60, 0.35),
-      0 6px 18px rgba(0, 0, 0, 0.6),
-      inset 0 0 10px rgba(0, 0, 0, 0.8);
+      0 3px 10px rgba(0, 0, 0, 0.6),
+      inset 0 0 6px rgba(0, 0, 0, 0.8);
     animation: spin 1.8s linear infinite;
     animation-play-state: paused;
     transition: filter 0.6s ease;
@@ -243,15 +256,9 @@
     .volume-slider {
       height: 220px;
     }
+    .blog-music,
     .vinyl {
-      width: 96px;
-      height: 96px;
-    }
-  }
-  @media (max-width: 640px) {
-    .vinyl {
-      width: 44px;
-      height: 44px;
+      --col: 36px;
     }
   }
 </style>
