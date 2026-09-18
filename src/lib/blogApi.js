@@ -6,6 +6,7 @@
  * @property {string} description
  * @property {string} author
  * @property {string} coverImage
+ * @property {string} [music] - URL of a track that plays (from a random point) while the post is open
  * @property {string} [body]
  */
 
@@ -50,6 +51,7 @@ const postsManifest = Object.keys(modules).map((key) => {
     description: metadata.description || "",
     author: metadata.author || "Anonymous",
     coverImage: metadata.coverImage || "/favicon.svg",
+    music: metadata.music || null,
     rawContent: rawMd
   };
 })

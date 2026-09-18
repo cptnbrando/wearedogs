@@ -13,6 +13,9 @@
     scale = 1.0,
     scaleMultiplier = 1.0,
     centerOffset = [0, 0, 0],
+    // Called with a failure description when the model cannot be loaded,
+    // and with null once a model loads fine again.
+    onloaderror = null,
   } = $props();
 
   let isMobile = $state(false);
@@ -158,6 +161,7 @@
       processModel(modelScene);
       loadedModel = modelScene;
       isGlbLoading = false;
+      onloaderror?.(null);
 
       if (gltf.animations && gltf.animations.length > 0) {
         mixer = new THREE.AnimationMixer(modelScene);
@@ -182,6 +186,7 @@
         processModel(modelScene);
         loadedModel = modelScene;
         isGlbLoading = false;
+        onloaderror?.(null); // a good load clears any message from the last one
 
         if (gltf.animations && gltf.animations.length > 0) {
           mixer = new THREE.AnimationMixer(modelScene);
@@ -192,11 +197,58 @@
       },
       undefined,
       (err) => {
-        console.error("Failed to load GLB model:", err);
         isGlbLoading = false;
+        loadedModel = null;
+        // One readable line instead of a stack trace. (The browser's own
+        // "blocked by CORS policy" / net::ERR_FAILED lines are emitted by
+        // Chrome itself and cannot be silenced from page code.)
+        const failure = describeLoadFailure(path, err);
+        console.info(`[3D] ${failure.summary} ${failure.detail}`);
+        onloaderror?.(failure);
       },
     );
   };
+
+  /**
+   * Turn a three.js loader error into something a person can act on.
+   * three's FileLoader rejects with the fetch TypeError when the request
+   * never got a response (CORS refusal, hotlink block, offline) and with an
+   * HttpError carrying `response` for HTTP failures.
+   */
+  function describeLoadFailure(path, err) {
+    const file = String(path).split("/").pop();
+    const status = err?.response?.status;
+    if (status === 404) {
+      return {
+        kind: "missing",
+        file,
+        summary: `${file} is not on the model host (404).`,
+        detail: "Check the path in public/3d/models.json.",
+      };
+    }
+    if (status) {
+      return {
+        kind: "refused",
+        file,
+        summary: `The model host answered ${status} for ${file}.`,
+        detail: "It only serves requests coming from wearedogs.net.",
+      };
+    }
+    if (err instanceof TypeError || /fetch/i.test(String(err?.message))) {
+      return {
+        kind: "blocked",
+        file,
+        summary: `${file} could not be fetched.`,
+        detail: "The model host refused the request (it only serves wearedogs.net, so localhost and www. are blocked) or you are offline.",
+      };
+    }
+    return {
+      kind: "corrupt",
+      file,
+      summary: `${file} downloaded but could not be read as a GLB.`,
+      detail: String(err?.message || err).slice(0, 120),
+    };
+  }
 
   $effect(() => {
     if (modelPath && modelType === "glb") {

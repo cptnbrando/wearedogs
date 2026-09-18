@@ -349,5 +349,16 @@
       "license": "CC Attribution",
       "link": "https://sketchfab.com/3d-models/kk-playing-guitar-animal-crossing-f0f48f4e59c648bcb3c778781f2fa4d3"
     }
+    },
+  {
+    "id": "goddard",
+    "name": "Goddard (Jimmy Neutron)",
+    "type": "glb",
+    "path": "goddard.glb",
+    "attribution": {
+      "creator": "Pavel (@pavelj)",
+      "license": "CC Attribution",
+      "link": "https://sketchfab.com/3d-models/goddard-f3ff93044bb54e098513929e1b425630"
+    }
   }
 ]

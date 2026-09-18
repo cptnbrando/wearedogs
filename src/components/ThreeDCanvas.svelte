@@ -13,6 +13,9 @@
   );
   let isDragging = $state(false);
   let hasInitialized = false;
+  // Set by DogDisplay when the current model could not be loaded; cleared on
+  // the next successful load. Shown in place of the (empty) model.
+  let loadError = $state(null);
 
   let containerEl;
 
@@ -57,8 +60,11 @@
                   ? (bytes / 1048576).toFixed(1) + "mb"
                   : Math.round(bytes / 1024) + "kb";
             }
-          } catch (err) {
-            console.warn(`Could not fetch size for ${model.name}:`, err);
+          } catch {
+            // Same host as the model itself: if it refuses this HEAD, the GLB
+            // load right after it fails too and reports the reason on screen.
+            // Nothing to add here beyond marking the size unknown.
+            model.fileSize = "size n/a";
           }
         })();
       }
@@ -267,8 +273,32 @@
       modelType={selectedModel?.type}
       scaleMultiplier={selectedModel?.scaleMultiplier ?? 1.0}
       centerOffset={selectedModel?.centerOffset ?? [0, 0, 0]}
+      onloaderror={(failure) => (loadError = failure)}
     />
   </Canvas>
+
+  <!-- Why there is no dog: the model host refused, the file is missing, or it is unreadable. -->
+  {#if loadError}
+    <div
+      class="load-error absolute left-1/2 top-2 -translate-x-1/2 z-10 w-max max-w-[min(300px,92%)] rounded-lg border border-red-500/30 bg-black/75 px-3 py-1.5 text-center backdrop-blur-sm pointer-events-none"
+      role="status"
+    >
+      <!-- One short paragraph: on a phone the canvas is only ~150px tall, so a
+           multi-line box would sit on top of the credit at the bottom. -->
+      <p class="text-[10px] leading-snug text-white/80">
+        <span class="font-bold uppercase tracking-wide text-red-400">
+          {#if loadError.kind === "missing"}Missing
+          {:else if loadError.kind === "corrupt"}Unreadable
+          {:else}Blocked{/if}
+        </span>
+        <span class="font-semibold text-white">{selectedModel?.name ?? loadError.file}</span>
+        {#if loadError.kind === "missing"}is not on the model host.
+        {:else if loadError.kind === "corrupt"}downloaded but could not be read.
+        {:else}could not be fetched: try again later.{/if}
+        {#if models.length > 1}<span class="hidden text-white/40 sm:inline"> Try another dog with the arrows.</span>{/if}
+      </p>
+    </div>
+  {/if}
 
   <!-- Left Arrow Overlay Button -->
   {#if models.length > 1}
