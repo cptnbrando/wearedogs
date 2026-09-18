@@ -280,23 +280,23 @@
   <!-- Why there is no dog: the model host refused, the file is missing, or it is unreadable. -->
   {#if loadError}
     <div
-      class="load-error absolute left-1/2 top-[38%] -translate-x-1/2 -translate-y-1/2 z-10 max-w-[280px] rounded-xl border border-red-500/30 bg-black/70 px-4 py-3 text-center backdrop-blur-sm pointer-events-none"
+      class="load-error absolute left-1/2 top-2 -translate-x-1/2 z-10 w-max max-w-[min(300px,92%)] rounded-lg border border-red-500/30 bg-black/75 px-3 py-1.5 text-center backdrop-blur-sm pointer-events-none"
       role="status"
     >
-      <p class="text-[11px] font-bold uppercase tracking-wide text-red-400">
-        {#if loadError.kind === "missing"}Model missing
-        {:else if loadError.kind === "corrupt"}Model unreadable
-        {:else}Model blocked{/if}
-      </p>
-      <p class="mt-1 text-[11px] leading-snug text-white/80">
-        {selectedModel?.name ?? loadError.file}
+      <!-- One short paragraph: on a phone the canvas is only ~150px tall, so a
+           multi-line box would sit on top of the credit at the bottom. -->
+      <p class="text-[10px] leading-snug text-white/80">
+        <span class="font-bold uppercase tracking-wide text-red-400">
+          {#if loadError.kind === "missing"}Missing
+          {:else if loadError.kind === "corrupt"}Unreadable
+          {:else}Blocked{/if}
+        </span>
+        <span class="font-semibold text-white">{selectedModel?.name ?? loadError.file}</span>
         {#if loadError.kind === "missing"}is not on the model host.
         {:else if loadError.kind === "corrupt"}downloaded but could not be read.
         {:else}could not be fetched: try again later.{/if}
+        {#if models.length > 1}<span class="hidden text-white/40 sm:inline"> Try another dog with the arrows.</span>{/if}
       </p>
-      {#if models.length > 1}
-        <p class="mt-1 text-[10px] text-white/40">Try another dog with the arrows.</p>
-      {/if}
     </div>
   {/if}
 
