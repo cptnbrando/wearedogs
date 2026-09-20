@@ -10,14 +10,18 @@
     answerDateMath,
     answerZoneConvert,
     CITY_OPTIONS,
-    localZone,
+    ABBREV_OPTIONS,
+    placeFromOptionValue,
   } from "../../../lib/timeMath.js";
 
   const EXAMPLES = [
+    "2pm est to cst",
+    "9:30am pst to ist, gmt and aedt",
     "2,418,187,620 seconds to years",
     "420.7372 years to months",
     "4 weeks 2 days 13 hours after jan 6 2026 2:14pm in tulsa ok",
     "2pm in beijing is what in tulsa time?",
+    "noon jst to utc-3",
   ];
 
   const MODES = [
@@ -56,11 +60,7 @@
     return `${n.getFullYear()}-${p(n.getMonth() + 1)}-${p(n.getDate())}T${p(n.getHours())}:${p(n.getMinutes())}`;
   }
 
-  function placeFromOption(tzValue) {
-    if (tzValue === "local") return { label: "Local Time", tz: localZone() };
-    const opt = CITY_OPTIONS.find((c) => c.tz === tzValue);
-    return { label: opt ? opt.label : tzValue, tz: tzValue };
-  }
+  const placeFromOption = placeFromOptionValue;
 
   function runSmart() {
     result = runQuery(query);
@@ -129,7 +129,7 @@
         <Sparkles size={15} class="text-sky-400/70 shrink-0" />
         <input
           type="text"
-          placeholder='Ask anything... e.g. "2pm in beijing is what in tulsa time?"'
+          placeholder='Ask anything... e.g. "2pm est to cst" or "2pm in beijing is what in tulsa time?"'
           bind:value={query}
           onkeydown={(e) => e.key === "Enter" && runSmart()}
           class="bg-transparent border-none text-xs text-white outline-none flex-1"
@@ -199,7 +199,12 @@
       <div class="flex flex-col gap-1">
         <span class="text-[9px] uppercase font-bold text-white/40 tracking-wider">Timezone</span>
         <select bind:value={dmPlace} class={selectCls} aria-label="Timezone of the base date">
-          {#each CITY_OPTIONS as c}<option value={c.tz}>{c.label}</option>{/each}
+          <optgroup label="Cities">
+            {#each CITY_OPTIONS as c}<option value={c.tz}>{c.label}</option>{/each}
+          </optgroup>
+          <optgroup label="Timezone acronyms">
+            {#each ABBREV_OPTIONS as a}<option value={a.value}>{a.label}</option>{/each}
+          </optgroup>
         </select>
       </div>
       <button class={runBtnCls} onclick={runDateMath}>Compute</button>
@@ -220,14 +225,24 @@
       <div class="flex flex-col gap-1">
         <span class="text-[9px] uppercase font-bold text-white/40 tracking-wider">In</span>
         <select bind:value={znFrom} class={selectCls} aria-label="Source timezone">
-          {#each CITY_OPTIONS as c}<option value={c.tz}>{c.label}</option>{/each}
+          <optgroup label="Cities">
+            {#each CITY_OPTIONS as c}<option value={c.tz}>{c.label}</option>{/each}
+          </optgroup>
+          <optgroup label="Timezone acronyms">
+            {#each ABBREV_OPTIONS as a}<option value={a.value}>{a.label}</option>{/each}
+          </optgroup>
         </select>
       </div>
       <ArrowRightLeft size={14} class="text-white/30 mb-2.5" />
       <div class="flex flex-col gap-1">
         <span class="text-[9px] uppercase font-bold text-white/40 tracking-wider">Becomes</span>
         <select bind:value={znTo} class={selectCls} aria-label="Target timezone">
-          {#each CITY_OPTIONS as c}<option value={c.tz}>{c.label}</option>{/each}
+          <optgroup label="Cities">
+            {#each CITY_OPTIONS as c}<option value={c.tz}>{c.label}</option>{/each}
+          </optgroup>
+          <optgroup label="Timezone acronyms">
+            {#each ABBREV_OPTIONS as a}<option value={a.value}>{a.label}</option>{/each}
+          </optgroup>
         </select>
       </div>
       <button class={runBtnCls} onclick={runZones}>Convert</button>
@@ -306,8 +321,36 @@
                 ? 'bg-white/5 text-white/40'
                 : 'bg-amber-400/10 text-amber-300 border border-amber-400/20'}">{result.dayNote}</span
             >
+            <span class="ml-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-white/5 text-white/40">{result.tgt.diff}</span>
           </p>
         </div>
+
+        <!-- Extra targets: "2pm est to cst and pst" -->
+        {#if result.others?.length}
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {#each result.others as o}
+              <div class="border border-sky-400/15 bg-sky-400/5 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
+                <div class="min-w-0">
+                  <p class="text-xs font-bold text-white truncate">{o.label}</p>
+                  <p class="text-[9px] font-mono text-white/40 truncate">{o.abbrev} ({o.offset}) · {o.diff}</p>
+                </div>
+                <div class="text-right shrink-0">
+                  <span class="font-mono text-base font-black text-sky-400">{o.time}</span>
+                  {#if o.dayNote !== "same day"}
+                    <p class="text-[9px] font-bold uppercase tracking-wider text-amber-300">{o.dayNote}</p>
+                  {/if}
+                </div>
+              </div>
+            {/each}
+          </div>
+        {/if}
+
+        <!-- "EST" typed while the region is on EDT, etc. -->
+        {#each result.notes ?? [] as note}
+          <p class="text-[10px] leading-relaxed text-amber-200/70 border border-amber-400/15 bg-amber-400/5 rounded-xl px-3.5 py-2">
+            {note}
+          </p>
+        {/each}
         <div class="border border-white/5 bg-black/15 rounded-2xl p-4 flex flex-col gap-1.5 text-[11px] font-mono">
           <div class="flex justify-between gap-4"><span class="text-white/35 uppercase text-[9px] font-bold tracking-wider pt-0.5">Source</span><span class="text-white/75 text-right">{result.src.date} · {result.src.time} ({result.src.abbrev})</span></div>
           <div class="flex justify-between gap-4"><span class="text-white/35 uppercase text-[9px] font-bold tracking-wider pt-0.5">Your local</span><span class="text-white/75 text-right">{result.local}</span></div>

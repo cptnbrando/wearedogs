@@ -1,6 +1,7 @@
 // timeMath.js — pure logic for the Father Time "Converter" tab.
 // Duration unit conversion, calendar-aware date arithmetic, and IANA
 // timezone conversion built on Intl (no external date libraries).
+import { ZONE_ABBREVS } from "./timezoneAbbrevs.js";
 
 // ------------------------------------------------------------------
 // Units (ms per unit). Months/years use Gregorian averages:
@@ -161,11 +162,57 @@ export function wallToUtc(w, tz) {
   return new Date(utc);
 }
 
+// True when the zone is on its daylight/summer offset at that instant.
+// Offset-based, so it holds in the southern hemisphere and for Ireland.
+export function isDstAt(date, tz) {
+  const y = date.getUTCFullYear();
+  const jan = getZoneOffsetMs(Date.UTC(y, 0, 1), tz);
+  const jul = getZoneOffsetMs(Date.UTC(y, 6, 1), tz);
+  if (jan === jul) return false;
+  return getZoneOffsetMs(date.getTime(), tz) > Math.min(jan, jul);
+}
+
+// Zones that share an acronym pair with the row zone in timezoneAbbrevs.js
+const SHARED_ABBREV = {
+  CET: ["Europe/Berlin", "Europe/Rome", "Europe/Madrid", "Europe/Amsterdam", "Europe/Brussels", "Europe/Vienna", "Europe/Zurich", "Europe/Oslo", "Europe/Stockholm", "Europe/Copenhagen", "Europe/Warsaw", "Europe/Prague", "Europe/Budapest"],
+  EET: ["Europe/Helsinki", "Europe/Kyiv", "Europe/Bucharest", "Africa/Cairo"],
+  EST: ["America/Toronto", "America/Detroit"],
+  CST: ["America/Winnipeg"],
+  MST: ["America/Edmonton"],
+  PST: ["America/Vancouver"],
+};
+const STD_TO_DST = { CET: "CEST", EET: "EEST", EST: "EDT", CST: "CDT", MST: "MDT", PST: "PDT" };
+
+let abbrevByZone = null;
+function tableAbbrev(tz, dst) {
+  if (!abbrevByZone) {
+    abbrevByZone = new Map();
+    const put = (zone, kind, abbr) => {
+      const k = `${zone}|${kind}`;
+      if (!abbrevByZone.has(k)) abbrevByZone.set(k, abbr);
+    };
+    for (const r of ZONE_ABBREV_ROWS) if (r.abbr.length > 2) put(r.tz, r.kind, r.abbr);
+    for (const [std, zones] of Object.entries(SHARED_ABBREV)) {
+      for (const z of zones) {
+        put(z, "std", std);
+        put(z, "dst", STD_TO_DST[std]);
+      }
+    }
+    put("Europe/London", "std", "GMT");
+    put("Europe/Dublin", "std", "GMT");
+  }
+  return abbrevByZone.get(`${tz}|${dst ? "dst" : "std"}`) || abbrevByZone.get(`${tz}|any`) || null;
+}
+
 export function zoneAbbrev(date, tz) {
   const p = new Intl.DateTimeFormat("en-US", { timeZone: tz, timeZoneName: "short" })
     .formatToParts(date)
     .find((x) => x.type === "timeZoneName");
-  return p ? p.value : tz;
+  const intl = p ? p.value : tz;
+  // en-US only names North American zones; elsewhere Intl says "GMT+2".
+  // Prefer the real acronym (CEST, IST, AEDT...) when the table has one.
+  if (/^(?:GMT|UTC)[+\-−]/.test(intl)) return tableAbbrev(tz, isDstAt(date, tz)) || intl;
+  return intl;
 }
 
 export function formatZoned(date, tz) {
@@ -345,23 +392,61 @@ const PLACES = [
   ["Adelaide", "Australia/Adelaide", "adelaide"],
   ["Auckland", "Pacific/Auckland", "auckland", "wellington", "new zealand"],
   ["Fiji", "Pacific/Fiji", "fiji", "suva"],
-  // Zones & abbreviations
-  ["UTC", "UTC", "utc", "gmt", "zulu", "z"],
-  ["US Eastern", "America/New_York", "est", "edt", "eastern", "eastern time", "us eastern", "et"],
-  ["US Central", "America/Chicago", "cst", "cdt", "central", "central time", "us central", "ct"],
-  ["US Mountain", "America/Denver", "mst", "mdt", "mountain", "mountain time", "us mountain", "mt"],
-  ["US Pacific", "America/Los_Angeles", "pst", "pdt", "pacific", "pacific time", "us pacific", "pt"],
-  ["Alaska Time", "America/Anchorage", "akst", "akdt", "alaska time"],
-  ["Hawaii Time", "Pacific/Honolulu", "hst", "hawaii time"],
-  ["Central European", "Europe/Paris", "cet", "cest", "central european"],
-  ["India Time", "Asia/Kolkata", "ist", "india time"],
-  ["Japan Time", "Asia/Tokyo", "jst", "japan time"],
-  ["Australian Eastern", "Australia/Sydney", "aest", "aedt", "australian eastern"],
+  // Spoken zone names (the acronyms themselves live in timezoneAbbrevs.js)
+  ["UTC", "UTC", "zulu", "universal", "universal time", "greenwich"],
+  ["US Eastern", "America/New_York", "eastern", "us eastern", "east coast"],
+  ["US Central", "America/Chicago", "central", "us central"],
+  ["US Mountain", "America/Denver", "mountain", "us mountain"],
+  ["US Pacific", "America/Los_Angeles", "pacific", "us pacific", "west coast"],
+  ["Alaska Time", "America/Anchorage", "alaska time", "alaskan"],
+  ["Hawaii Time", "Pacific/Honolulu", "hawaii time", "hawaiian"],
+  ["Atlantic Time", "America/Halifax", "atlantic"],
+  ["Newfoundland Time", "America/St_Johns", "newfoundland"],
+  ["Central European", "Europe/Paris", "central european", "european"],
+  ["India Time", "Asia/Kolkata", "india time", "indian"],
+  ["Japan Time", "Asia/Tokyo", "japan time", "japanese"],
+  ["Australian Eastern", "Australia/Sydney", "australian eastern"],
 ];
 
+// Acronym rows this runtime's Intl actually knows (older browsers lack a few
+// renamed zones, e.g. America/Nuuk).
+export const ZONE_ABBREV_ROWS = ZONE_ABBREVS.filter((row) => isValidZone(row[2])).map(
+  ([abbr, fullName, tz, kind]) => ({ label: abbr, abbr, fullName, tz, kind }),
+);
+
 const PLACE_ALIAS = new Map();
+// Acronyms first so "est" carries its std/dst meaning; the first row for a
+// shared acronym wins the short form, every full name still resolves.
+const normAlias = (s) =>
+  s.toLowerCase().replace(/[.,!?'&]/g, "").replace(/-/g, " ").replace(/\s+/g, " ").trim();
+for (const row of ZONE_ABBREV_ROWS) {
+  const full = normAlias(row.fullName);
+  for (const a of [row.abbr.toLowerCase(), full, full.replace(/\s+time$/, "")]) {
+    if (a && !PLACE_ALIAS.has(a)) PLACE_ALIAS.set(a, row);
+  }
+}
 for (const [label, tz, ...aliases] of PLACES) {
   for (const a of aliases) if (!PLACE_ALIAS.has(a)) PLACE_ALIAS.set(a, { label, tz });
+}
+
+// "utc+5:30", "gmt-3", "+0530", "utc" -> a fixed-offset zone
+function resolveOffset(norm) {
+  const m = norm.match(/^(?:utc|gmt)?\s*([+\-−])\s*(\d{1,2})(?::?(\d{2}))?$/);
+  if (!m) return null;
+  const sign = m[1] === "+" ? "+" : "-";
+  const hh = +m[2];
+  const mm = m[3] ? +m[3] : 0;
+  if (hh > 14 || mm > 59) return null;
+  const label = `UTC${sign}${hh}${mm ? ":" + String(mm).padStart(2, "0") : ""}`;
+  if (hh === 0 && mm === 0) return { label: "UTC", tz: "UTC" };
+  // Etc/GMT zones are whole-hour only and have their sign flipped (POSIX)
+  if (mm === 0) {
+    const tz = `Etc/GMT${sign === "+" ? "-" : "+"}${hh}`;
+    if (isValidZone(tz)) return { label, tz };
+  }
+  // Offset identifiers ("+05:30") need a 2024+ browser
+  const tz = `${sign}${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+  return isValidZone(tz) ? { label, tz } : null;
 }
 
 // US state names + abbreviations, dropped when trailing a city name ("tulsa ok")
@@ -387,6 +472,11 @@ export function resolvePlace(raw) {
   if (raw.includes("/") && isValidZone(raw.trim())) {
     return { label: raw.trim(), tz: raw.trim() };
   }
+
+  // Fixed offsets ("utc+5:30", "gmt-3") — before hyphens turn into spaces
+  const offset = resolveOffset(norm);
+  if (offset) return offset;
+  norm = norm.replace(/[-&]/g, " ").replace(/\s+/g, " ").trim();
 
   // Full match, then progressively drop trailing tokens (state / country noise)
   let tokens = norm.split(" ");
@@ -421,6 +511,59 @@ export const CITY_OPTIONS = [
     return { label: name, tz: hit ? hit.tz : "UTC" };
   }),
 ];
+
+// Acronym options for the structured forms. Several acronyms share a zone
+// with a city (EST / New York), so options are keyed by row, not by zone.
+export const ABBREV_OPTIONS = ZONE_ABBREV_ROWS.map((row, i) => ({
+  value: `abbr:${i}`,
+  label: `${row.abbr} — ${row.fullName}`,
+}));
+
+/** Turns a structured-form option value into a place. */
+export function placeFromOptionValue(value) {
+  if (value === "local") return { label: "Local Time", tz: localZone() };
+  if (value.startsWith("abbr:")) return ZONE_ABBREV_ROWS[+value.slice(5)] || null;
+  const opt = CITY_OPTIONS.find((c) => c.tz === value);
+  return { label: opt ? opt.label : value, tz: value };
+}
+
+/**
+ * Search cities, regions and timezone acronyms for the World Clock.
+ * Returns [{ name, country, tz }] — exact alias hits first, then prefixes,
+ * then anything containing the text.
+ */
+export function searchPlaces(query, limit = 12) {
+  const q = normAlias(query || "");
+  if (!q) return [];
+  const scored = [];
+  const seen = new Set();
+  const consider = (name, country, tz, aliases) => {
+    let best = 0;
+    for (const a of aliases) {
+      if (a === q) best = Math.max(best, 3);
+      else if (a.startsWith(q)) best = Math.max(best, 2);
+      // later words only ("york" finds New York) — never mid-word ("est" in "west")
+      else if (q.length > 2 && a.includes(" " + q)) best = Math.max(best, 1);
+    }
+    const key = `${name}|${tz}`;
+    if (best > 0 && !seen.has(key)) {
+      seen.add(key);
+      scored.push({ name, country, tz, score: best });
+    }
+  };
+  for (const row of ZONE_ABBREV_ROWS) {
+    consider(row.abbr, row.fullName, row.tz, [row.abbr.toLowerCase(), normAlias(row.fullName)]);
+  }
+  for (const [label, tz, ...aliases] of PLACES) {
+    consider(label, tz.replace(/_/g, " "), tz, [normAlias(label), ...aliases]);
+  }
+  const offset = resolvePlace(query);
+  if (offset && /^UTC[+-]/.test(offset.label)) consider(offset.label, "Fixed offset", offset.tz, [q]);
+  return scored
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map(({ score, ...place }) => place);
+}
 
 // ------------------------------------------------------------------
 // Date/time string parsing ("jan 6 2026 2:14pm", "tomorrow 9am", "now")
@@ -598,28 +741,74 @@ export function answerDurationConvert(parsed, targetUnit) {
   };
 }
 
+// "EST" typed in July: the region is really on EDT. Say so rather than
+// silently picking one reading.
+function halfNotes(places, instant) {
+  const onDaylight = new Map(); // typed a standard acronym, region is on daylight
+  const onStandard = new Map(); // the reverse
+  for (const p of places) {
+    if (!p.abbr || !p.kind || p.kind === "any") continue;
+    const dst = isDstAt(instant, p.tz);
+    if ((p.kind === "dst") === dst) continue;
+    (dst ? onDaylight : onStandard).set(p.abbr, zoneAbbrev(instant, p.tz));
+  }
+  const list = (arr) => (arr.length < 2 ? arr.join("") : `${arr.slice(0, -1).join(", ")} and ${arr[arr.length - 1]}`);
+  const sentence = (map, typedHalf, actualHalf) => {
+    if (map.size === 0) return null;
+    const many = map.size > 1;
+    return `${list([...map.keys()])} ${many ? "name" : "names"} ${typedHalf} time, but ${many ? "those regions are" : "that region is"} on ${actualHalf} time on this date — used ${list([...new Set(map.values())])}, the time actually observed there.`;
+  };
+  return [sentence(onDaylight, "standard", "daylight"), sentence(onStandard, "daylight", "standard")].filter(Boolean);
+}
+
+// tgtPlace may be one place or a list ("2pm est to cst and pst")
 export function answerZoneConvert(timeStr, srcPlace, tgtPlace, now = new Date()) {
   const src = typeof srcPlace === "string" ? resolvePlace(srcPlace) : srcPlace;
-  const tgt = typeof tgtPlace === "string" ? resolvePlace(tgtPlace) : tgtPlace;
-  if (!src) return { type: "error", message: `Unknown place: "${srcPlace}". Try a major city, US state city, or an IANA zone like America/Chicago.` };
-  if (!tgt) return { type: "error", message: `Unknown place: "${tgtPlace}". Try a major city or an IANA zone like Asia/Shanghai.` };
+  if (!src) return { type: "error", message: `Unknown place: "${srcPlace}". Try a city, a timezone acronym like EST or AEDT, an offset like UTC+5:30, or an IANA zone like America/Chicago.` };
+
+  const targets = [];
+  for (const t of Array.isArray(tgtPlace) ? tgtPlace : [tgtPlace]) {
+    const hit = typeof t === "string" ? resolvePlace(t) : t;
+    if (!hit) return { type: "error", message: `Unknown place: "${t}". Try a city, a timezone acronym like CST or JST, an offset like UTC-3, or an IANA zone like Asia/Shanghai.` };
+    targets.push(hit);
+  }
 
   const wall = parseDateTimeString(timeStr, src.tz, now);
   if (!wall) return { type: "error", message: `Couldn't read the time "${timeStr}". Try formats like "2pm", "2:14pm", or "jan 6 2026 2:14pm".` };
 
   const instant = wallToUtc(wall, src.tz);
-  const srcWallDate = { y: wall.y, mo: wall.mo, d: wall.d };
-  const tgtWall = utcToWall(instant, tgt.tz);
-  const dayDelta =
-    Date.UTC(tgtWall.y, tgtWall.mo - 1, tgtWall.d) - Date.UTC(srcWallDate.y, srcWallDate.mo - 1, srcWallDate.d);
-  const dayNote = dayDelta > 0 ? "next day" : dayDelta < 0 ? "previous day" : "same day";
+  const srcDay = Date.UTC(wall.y, wall.mo - 1, wall.d);
+  const describe = (place) => ({
+    ...place,
+    time: formatZonedTime(instant, place.tz),
+    date: formatZonedDate(instant, place.tz),
+    abbrev: zoneAbbrev(instant, place.tz),
+    offset: offsetLabel(instant, place.tz),
+  });
+  const describeTarget = (place) => {
+    const w = utcToWall(instant, place.tz);
+    const dayDelta = Date.UTC(w.y, w.mo - 1, w.d) - srcDay;
+    const diffMin = Math.round((getZoneOffsetMs(instant.getTime(), place.tz) - getZoneOffsetMs(instant.getTime(), src.tz)) / 60000);
+    const abs = Math.abs(diffMin);
+    const span = `${Math.floor(abs / 60)}h${abs % 60 ? " " + (abs % 60) + "m" : ""}`;
+    return {
+      ...describe(place),
+      dayNote: dayDelta > 0 ? "next day" : dayDelta < 0 ? "previous day" : "same day",
+      diff: diffMin === 0 ? "same time" : `${span} ${diffMin > 0 ? "ahead" : "behind"}`,
+    };
+  };
+
+  const described = targets.map(describeTarget);
+  const notes = halfNotes([src, ...targets], instant);
 
   return {
     type: "zone",
     instant,
-    src: { ...src, time: formatZonedTime(instant, src.tz), date: formatZonedDate(instant, src.tz), abbrev: zoneAbbrev(instant, src.tz), offset: offsetLabel(instant, src.tz) },
-    tgt: { ...tgt, time: formatZonedTime(instant, tgt.tz), date: formatZonedDate(instant, tgt.tz), abbrev: zoneAbbrev(instant, tgt.tz), offset: offsetLabel(instant, tgt.tz) },
-    dayNote,
+    src: describe(src),
+    tgt: described[0],
+    others: described.slice(1),
+    dayNote: described[0].dayNote,
+    notes,
     local: formatZoned(instant, localZone()),
     utc: instant.toISOString().replace(".000", ""),
   };
@@ -657,31 +846,101 @@ export function answerDateMath(durationParsed, direction, dateStr, placeStr, now
 // ------------------------------------------------------------------
 // Smart query parser — routes free text to one of the three answers.
 // ------------------------------------------------------------------
-export function runQuery(raw, now = new Date()) {
-  if (!raw || !raw.trim()) return null;
-  let q = raw
+function normalizeQuery(raw) {
+  return raw
     .trim()
     .toLowerCase()
     .replace(/[?？!]+$/g, "")
     .replace(/(\d),(?=\d)/g, "$1")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+// "cst and pst" / "cst, pst or tokyo" -> ["cst", "pst", "tokyo"]
+function splitTargets(str) {
+  return str
+    .split(/\s*(?:,|&|\band\b|\bor\b|\bvs\b)\s*/)
+    .map((s) => s.replace(/^in\s+/, "").trim())
+    .filter(Boolean);
+}
+
+// "2pm est" / "jan 6 9:30am new york" -> { time, place }. The place is the
+// longest trailing run of words that resolves, and what's left must read as
+// a time in that zone.
+function splitTimeAndPlace(str, now) {
+  const tokens = str.trim().split(" ");
+  for (let i = 1; i < tokens.length; i++) {
+    const place = resolvePlace(tokens.slice(i).join(" "));
+    if (!place) continue;
+    const time = tokens.slice(0, i).join(" ");
+    if (parseDateTimeString(time, place.tz, now)) return { time, place };
+  }
+  return null;
+}
+
+const ZONE_CONNECTOR =
+  /\s+(?:is what time in|is what in|what time is that in|what time is it in|what is that in|equals|into|to|->|→|=>|=|as|in|is)\s+/g;
+
+/**
+ * Timezone questions only. Returns a "zone" answer, an "error" for a
+ * "time in <unknown place>" question, or null when the text isn't one.
+ * Shared by the Converter's Smart Query and the World Clock search bar.
+ */
+export function runZoneQuery(raw, now = new Date()) {
+  if (!raw || !raw.trim()) return null;
+  const local = { label: "Local Time", tz: localZone() };
+  let q = normalizeQuery(raw);
 
   // --- "what time is it in beijing" / "time in tulsa" ---
   let m = q.match(/^(?:what time is it in|what's the time in|whats the time in|current time in|time in|now in)\s+(.+)$/);
-  if (m) {
-    return answerZoneConvert("now", m[1], { label: "Local Time", tz: localZone() }, now);
-  }
+  if (m) return answerZoneConvert("now", m[1], local, now);
+
+  q = q.replace(/^(?:what time is|what time would|what is|what's|whats|when is|convert)\s+/, "");
 
   // --- "2pm in beijing is what in tulsa time" / "... to tulsa" ---
   m = q.match(
     /^(.+?)\s+in\s+(.+?)\s+(?:is what time|is what|what time is that|what time is it|what is that|equals|=|to|is|as|in)\s+(?:in\s+)?(.+?)$/,
   );
   if (m) {
-    const res = answerZoneConvert(m[1], m[2], m[3], now);
+    const res = answerZoneConvert(m[1], m[2], splitTargets(m[3]), now);
     if (res.type !== "error") return res;
-    // fall through: could be a duration convert like "5000 seconds in minutes"
   }
+
+  // --- "2pm est to cst" / "9:30am pst in ist and gmt" / "noon tokyo -> utc-3" ---
+  ZONE_CONNECTOR.lastIndex = 0;
+  let c;
+  while ((c = ZONE_CONNECTOR.exec(q)) !== null) {
+    const left = splitTimeAndPlace(q.slice(0, c.index), now);
+    if (left) {
+      const targets = splitTargets(q.slice(c.index + c[0].length));
+      if (targets.length > 0 && targets.every((t) => resolvePlace(t))) {
+        const res = answerZoneConvert(left.time, left.place, targets, now);
+        if (res.type !== "error") return res;
+      }
+    }
+    // connectors can overlap ("... is what in ..."), so step one char at a time
+    ZONE_CONNECTOR.lastIndex = c.index + 1;
+  }
+
+  // --- "2pm est" on its own -> your local time ---
+  const lone = splitTimeAndPlace(q, now);
+  if (lone) {
+    const res = answerZoneConvert(lone.time, lone.place, local, now);
+    if (res.type !== "error") return res;
+  }
+
+  return null;
+}
+
+export function runQuery(raw, now = new Date()) {
+  if (!raw || !raw.trim()) return null;
+  const q = normalizeQuery(raw);
+
+  // Timezone questions first; an unknown place in "time in ___" is reported,
+  // anything else falls through (e.g. "5000 seconds in minutes").
+  const zone = runZoneQuery(raw, now);
+  if (zone) return zone;
+  let m;
 
   // --- "3 hours ago" / "2 weeks from now [in oslo]" ---
   m = q.match(/^(.+?)\s+ago(?:\s+in\s+(.+))?$/);
