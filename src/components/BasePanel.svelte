@@ -368,6 +368,7 @@
   @media (orientation: landscape) and (max-height: 520px) {
     .template-panel-container {
       width: 100vw;
+      height: 100vh; /* pre-dvh fallback */
       height: 100dvh;
       max-width: none;
       max-height: none;

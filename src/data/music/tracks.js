@@ -3,6 +3,9 @@
  * lockup folder and stay hidden until the calculator passcode unlocks them
  * (MusicPanel filters on `public` via musicLock).
  */
+// Site-hosted cover art follows the deploy origin (dogs.red or the archive).
+const SITE_COVER = (import.meta.env?.VITE_SITE_ORIGIN || "https://dogs.red") + "/dogs.webp";
+
 export const fullLibrary = [
   {
     id: "hollywood",
@@ -175,7 +178,7 @@ export const fullLibrary = [
     title: "drugs",
     artist: "DOGS",
     album: "DOGS RUN THE WORLD",
-    cover: "https://wearedogs.net/dogs.webp",
+    cover: SITE_COVER,
     altCover: "",
     src: "https://data.wearedogs.net/music/2026/drugs-vox.mp3",
     instrumental: "https://data.wearedogs.net/music/2026/drugs-ins.mp3",
@@ -189,7 +192,7 @@ export const fullLibrary = [
     title: "dolly",
     artist: "DOGS",
     album: "DOGS RUN THE WORLD",
-    cover: "https://wearedogs.net/dogs.webp",
+    cover: SITE_COVER,
     altCover: "",
     src: "https://data.wearedogs.net/music/2026/dolly-vox.mp3",
     instrumental: "https://data.wearedogs.net/music/2026/dolly-ins2.mp3",

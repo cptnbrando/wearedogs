@@ -13,7 +13,7 @@
  * letter file itself.
  */
 
-const SITE_ORIGIN = "https://www.wearedogs.net";
+const SITE_ORIGIN = import.meta.env.VITE_SITE_ORIGIN || "https://dogs.red";
 
 const modules = import.meta.glob("../data/correspondence/*.md", {
   eager: true,

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <title>DOGS</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <!-- v1 fonts API: serves woff/ttf to engines that never learned woff2 -->
+  <link href="https://fonts.googleapis.com/css?family=Roboto+Mono:700,900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="lite.css">
+</head>
+<body>
+  <!-- Lite edition of the landing page for browsers that cannot run the
+       modern bundle (index.html routes them here). Same words, same
+       205 languages, same moves: hover or touch to cycle, click to pause,
+       arrows to step, letters to jump, up/down for flag colors. Everything
+       is ES5 + plain CSS and is checked by scripts/check-es5.js. -->
+  <div id="ambient" class="ambient"></div>
+
+  <div id="lang" class="lang">
+    <div id="lang-name" class="lang-name"></div>
+    <div id="lang-meta" class="lang-meta"></div>
+  </div>
+
+  <div id="flash" class="flash"></div>
+  <div id="corner" class="corner" title="Flag colors"></div>
+
+  <div id="wad" class="wad">
+    <div id="words-wrapper" class="words-wrapper">
+      <div id="words" class="words"></div>
+      <p id="pron" class="pron"></p>
+      <div id="nav" class="nav">
+        <a class="nav-btn" href="/gopro/">&#128250; GoPro TV</a>
+        <div class="nav-note">Lite edition. The full site needs a newer browser (Chrome 84+).</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="dogs.js"></script>
+  <script src="lite.js"></script>
+</body>
+</html>

@@ -1,5 +1,6 @@
 <script>
   import { musicLock } from "../../lib/musicLock.svelte.js";
+  import { dataUrl } from "../../lib/dataHost.js";
 
   // Svelte 5 props
   let { onUnlock } = $props();
@@ -150,16 +151,20 @@
     if (keywordBuffer.length === 0) return;
     const concatenated = keywordBuffer.join("");
 
-    // The music lockup gate shares the passcode scheme but has its own check file
-    musicLock.tryUnlock(concatenated).then((ok) => {
-      if (ok) {
-        equationDisplay = "MUSIC UNLOCKED";
-      }
-    });
+    // The music lockup gate shares the passcode scheme but has its own check file.
+    // Once unlocked, stop attempting — ordinary calculations must never re-trigger
+    // the gate (or overwrite the stored passcode).
+    if (!musicLock.unlocked) {
+      musicLock.tryUnlock(concatenated).then((ok) => {
+        if (ok) {
+          equationDisplay = "MUSIC UNLOCKED";
+        }
+      });
+    }
 
     try {
       const response = await fetch(
-        `https://data.wearedogs.net/vid/popcorn/check.txt`,
+        dataUrl("https://data.wearedogs.net/vid/popcorn/check.txt"),
         {
           method: "GET",
           headers: {
@@ -184,6 +189,12 @@
           if (/^[a-zA-Z0-9_\-]+$/.test(cleanedText)) {
             targetApp = cleanedText;
           }
+        }
+
+        // Already unlocked? Then this "=" was ordinary math, not a passcode
+        // entry — stay a calculator. The shortcut button is the way back in.
+        if (localStorage.getItem(`${targetApp}_password`)) {
+          return;
         }
 
         // Each secret app's passcode lives under its own storage key. Never
@@ -229,7 +240,7 @@
 
     try {
       const response = await fetch(
-        `https://data.wearedogs.net/vid/popcorn/check.txt`,
+        dataUrl("https://data.wearedogs.net/vid/popcorn/check.txt"),
         {
           method: "GET",
           headers: {

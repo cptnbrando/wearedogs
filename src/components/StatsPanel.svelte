@@ -1158,6 +1158,7 @@
   @media (max-width: 768px) {
     .stats-panel-backdrop {
       display: block;
+      height: 100vh; /* pre-dvh fallback */
       height: 100dvh;
     }
 
@@ -1196,6 +1197,7 @@
   @media (max-height: 520px) {
     .stats-panel-backdrop {
       display: block;
+      height: 100vh; /* pre-dvh fallback */
       height: 100dvh;
     }
 

@@ -16,7 +16,7 @@
   } from "lucide-svelte";
 
   // App States
-  let urlText = $state("https://wearedogs.net");
+  let urlText = $state(import.meta.env.VITE_LIVE_ORIGIN || "https://dogs.red");
   let qrSize = $state(512); // Default size 512px
   let logoSrc = $state(null); // DataURL of center logo
   let logoName = $state("");
