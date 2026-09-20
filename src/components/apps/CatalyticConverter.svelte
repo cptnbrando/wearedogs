@@ -20,7 +20,17 @@
     Trash2,
     Loader2,
     Gamepad2,
+    Bug,
+    ClipboardCopy,
   } from "lucide-svelte";
+  import {
+    describeError,
+    friendlyErrorMessage,
+    isReadFailure,
+    buildConversionReport,
+    openIssue,
+    reportText,
+  } from "../../lib/errorReport.js";
   import {
     convertImage,
     convertAudio,
@@ -98,6 +108,7 @@
   }
   let zipDownloads = $state(false);
   let errorMessage = $state("");
+  let failure = $state(null); // report context for the error panel's GH button
   let currentNotice = $state("Refining Format Molecules");
 
   // Bulk state variables
@@ -598,6 +609,98 @@
     if (previewUrl) URL.revokeObjectURL(previewUrl);
   });
 
+  // ── Error reporting ──
+  // Why the audio track never decoded (if it didn't): "too big to read" and
+  // "no audio track" need different messages and both belong in a report.
+  let audioDecodeError = null;
+
+  // Extension, MIME and size only — never the file name (reports are public).
+  function inputFacts(f, type, fmt) {
+    const name = f?.name || "";
+    return {
+      ext: name.includes(".") ? name.split(".").pop().toLowerCase() : "",
+      mime: f?.type || "",
+      size: f?.size ?? 0,
+      fileType: type,
+      inputFormat: fmt,
+    };
+  }
+
+  function reportSettings(type, s) {
+    if (type === "image") {
+      return {
+        "Original size": `${s.originalWidth}×${s.originalHeight}`,
+        "Target size": `${s.targetWidth}×${s.targetHeight}`,
+        Quality: s.quality,
+        Compression: s.compression,
+      };
+    }
+    if (type === "audio" || type === "video") {
+      return { "Sample rate": s.audioSampleRate, Compression: s.compression };
+    }
+    if (type === "data") return { ".dog header": `\`${dogHeaderPreview}\`` };
+    return {};
+  }
+
+  function decodeNotes(type, decoded, decodeErr) {
+    if (type !== "audio" && type !== "video") return {};
+    const e = decodeErr ? describeError(decodeErr) : null;
+    return {
+      "Audio track decoded": decoded ? "yes" : "no",
+      "Decode error": e ? `\`${e.name}: ${e.message}\`` : "",
+    };
+  }
+
+  // Thrown when a conversion needs decoded audio and there is none.
+  function missingAudioError(decodeErr, f, type) {
+    const tooBig = decodeErr && isReadFailure(decodeErr);
+    const err = new Error(
+      tooBig
+        ? friendlyErrorMessage(decodeErr, f?.size)
+        : type === "video"
+          ? "No audio track detected in this video file."
+          : "Failed to decode this file's audio data.",
+      decodeErr ? { cause: decodeErr } : undefined,
+    );
+    err.name = tooBig ? "AudioReadError" : "AudioDecodeError";
+    return err;
+  }
+
+  // Shows the error panel and keeps everything the GH report needs.
+  function failWith(err, stage, extra = {}) {
+    console.error(err);
+    const f = extra.file ?? file;
+    const shown = extra.message || friendlyErrorMessage(err, f?.size);
+    failure = {
+      stage,
+      error: describeError(err),
+      shown,
+      input: inputFacts(f, fileType || extra.fileType, inputFormat),
+      target: extra.target,
+      targets: [...selectedFormats],
+      settings: reportSettings(fileType, {
+        originalWidth,
+        originalHeight,
+        targetWidth,
+        targetHeight,
+        quality,
+        compression,
+        audioSampleRate,
+      }),
+      notes: decodeNotes(fileType, !!audioBuffer, audioDecodeError),
+    };
+    errorMessage = shown;
+    conversionStatus = "error";
+  }
+
+  function reportOnGitHub(f) {
+    if (f) openIssue(buildConversionReport(f));
+  }
+
+  function copyReport(f, key) {
+    if (f) copyPreviewText(reportText(buildConversionReport(f)), key);
+  }
+
   // Handle Drag/Drop events
   function handleDragOver(e) {
     e.preventDefault();
@@ -690,6 +793,7 @@
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
         audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
       } catch (err) {
+        audioDecodeError = err;
         console.error("Failed to decode audio data:", err);
       }
     } else if (
@@ -708,6 +812,7 @@
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
         audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
       } catch (err) {
+        audioDecodeError = err;
         console.warn(
           "Failed to decode audio track from video (might have no audio):",
           err,
@@ -729,8 +834,11 @@
       inputFormat = detectN64Format(romBytes);
       if (!inputFormat) {
         fileType = "unsupported";
-        errorMessage = "Not an N64 ROM: the file header is not z64, v64 or n64.";
-        conversionStatus = "error";
+        const err = new Error(
+          "Not an N64 ROM: the file header is not z64, v64 or n64.",
+        );
+        err.name = "UnrecognizedRomHeader";
+        failWith(err, "load");
         return;
       }
       fileType = "rom";
@@ -738,9 +846,11 @@
       selectionAnchor = selectedFormats[0];
     } else {
       fileType = "unsupported";
-      errorMessage =
-        "Unsupported file type. Please upload an image, audio, video, data (.dog/.json), or N64 ROM (.z64/.v64/.n64) file.";
-      conversionStatus = "error";
+      const err = new Error(
+        "Unsupported file type. Please upload an image, audio, video, data (.dog/.json), or N64 ROM (.z64/.v64/.n64) file.",
+      );
+      err.name = "UnsupportedFileType";
+      failWith(err, "load");
     }
   }
 
@@ -827,6 +937,8 @@
     convertedFiles = [];
     zipDownloads = false;
     errorMessage = "";
+    failure = null;
+    audioDecodeError = null;
     audioBuffer = null;
     romBytes = null;
     originalWidth = 0;
@@ -867,10 +979,14 @@
     progress = 0;
     convertedFiles = [];
     currentNotice = notices[Math.floor(Math.random() * notices.length)];
+    failure = null;
+    let runningFormat = ""; // which output was in flight, for the error report
+    let ticker = null;
 
     try {
       for (let i = 0; i < selectedFormats.length; i++) {
         const currentFormat = selectedFormats[i];
+        runningFormat = currentFormat;
         currentNotice = `Refining Molecule: ${currentFormat.toUpperCase()}`;
 
         const startProgress = Math.round((i / selectedFormats.length) * 100);
@@ -887,6 +1003,7 @@
             startProgress + (currentSubProgress / 100) * progressSpan,
           );
         }, 100);
+        ticker = interval;
 
         let resultBlob = null;
         let resultFileName = "";
@@ -916,16 +1033,13 @@
                 window.webkitAudioContext)();
               audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
             } catch (err) {
+              audioDecodeError = err;
               console.error("Failed to decode audio data on-the-fly:", err);
             }
           }
           if (isTargetVideo) {
             clearInterval(interval);
-            if (!audioBuffer) {
-              throw new Error(
-                "Failed to decode audio data for video encoding.",
-              );
-            }
+            if (!audioBuffer) throw missingAudioError(audioDecodeError, file, fileType);
             resultBlob = await convertAudioToVideo(
               audioBuffer,
               currentFormat,
@@ -979,15 +1093,14 @@
                   window.webkitAudioContext)();
                 audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
               } catch (err) {
+                audioDecodeError = err;
                 console.error(
                   "Failed to decode video audio track on-the-fly:",
                   err,
                 );
               }
             }
-            if (!audioBuffer) {
-              throw new Error("No audio track detected in this video file.");
-            }
+            if (!audioBuffer) throw missingAudioError(audioDecodeError, file, fileType);
             resultBlob = await convertAudio(
               file,
               audioBuffer,
@@ -1068,10 +1181,8 @@
         conversionStatus = "done";
       }, 300);
     } catch (err) {
-      console.error(err);
-      errorMessage =
-        err.message || "An error occurred during format conversion.";
-      conversionStatus = "error";
+      clearInterval(ticker);
+      failWith(err, "convert", { target: runningFormat });
     }
   }
 
@@ -1216,8 +1327,9 @@
           }
 
           if (extractedFiles.length === 0) {
-            errorMessage = "No supported files found inside the ZIP.";
-            conversionStatus = "error";
+            const err = new Error("No supported files found inside the ZIP.");
+            err.name = "EmptyZip";
+            failWith(err, "zip", { file: zipFile, fileType: "zip" });
             return;
           }
 
@@ -1225,12 +1337,20 @@
           processMultipleFiles(extractedFiles);
         })
         .catch((err) => {
-          errorMessage = "Could not extract ZIP file: " + err.message;
-          conversionStatus = "error";
+          failWith(err, "zip", {
+            file: zipFile,
+            fileType: "zip",
+            message: "Could not extract ZIP file: " + err.message,
+          });
         });
     } catch (err) {
-      errorMessage = "Error reading ZIP file: " + err.message;
-      conversionStatus = "error";
+      failWith(err, "zip", {
+        file: zipFile,
+        fileType: "zip",
+        message: isReadFailure(err)
+          ? friendlyErrorMessage(err, zipFile.size)
+          : "Error reading ZIP file: " + err.message,
+      });
     }
   }
 
@@ -1270,6 +1390,7 @@
         outputFormats: outputFmts,
         status: "idle",
         errorMsg: "",
+        failure: null,
         progress: 0,
         convertedFiles: [],
         originalWidth: 0,
@@ -1322,10 +1443,13 @@
       item.status = "converting";
       item.progress = 5;
       item.convertedFiles = [];
+      item.failure = null;
+      let bulkFormat = ""; // output in flight, for the error report
+      let bulkDecodeError = null;
+      let bulkAudioBuffer = null;
 
       try {
         // Decode the audio track once per file, shared across all target formats
-        let bulkAudioBuffer = null;
         if (item.fileType === "audio" || item.fileType === "video") {
           try {
             const arrayBuffer = await item.file.arrayBuffer();
@@ -1334,6 +1458,7 @@
             bulkAudioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
             audioCtx.close();
           } catch (err) {
+            bulkDecodeError = err;
             console.warn(
               "Failed to decode audio track during batch conversion:",
               err,
@@ -1354,6 +1479,7 @@
 
         for (let fi = 0; fi < formats.length; fi++) {
           const fmt = formats[fi];
+          bulkFormat = fmt;
           currentNotice = `Converting ${i + 1}/${bulkFiles.length}: ${item.file.name} ➔ ${fmt.toUpperCase()}`;
 
           let resultBlob = null;
@@ -1379,9 +1505,7 @@
 
             if (item.fileType === "audio" && isTargetVideo) {
               if (!bulkAudioBuffer) {
-                throw new Error(
-                  "Failed to decode audio track for video encoding.",
-                );
+                throw missingAudioError(bulkDecodeError, item.file, item.fileType);
               }
               resultBlob = await convertAudioToVideo(
                 bulkAudioBuffer,
@@ -1394,7 +1518,7 @@
               );
             } else if (item.fileType === "video" && isTargetAudio) {
               if (!bulkAudioBuffer) {
-                throw new Error("No audio track detected in this video file.");
+                throw missingAudioError(bulkDecodeError, item.file, item.fileType);
               }
               resultBlob = await convertAudio(
                 item.file,
@@ -1435,9 +1559,23 @@
         item.status = "done";
         item.progress = 100;
       } catch (err) {
+        console.error(err);
         item.status = "error";
-        item.errorMsg = err.message || "Conversion failed";
+        item.errorMsg = friendlyErrorMessage(err, item.file.size);
         item.progress = 0;
+        item.failure = {
+          stage: "batch",
+          error: describeError(err),
+          shown: item.errorMsg,
+          input: inputFacts(item.file, item.fileType, item.inputFormat),
+          target: bulkFormat,
+          targets: [...formats],
+          settings: reportSettings(item.fileType, item),
+          notes: {
+            "Batch position": `${i + 1} of ${bulkFiles.length}`,
+            ...decodeNotes(item.fileType, !!bulkAudioBuffer, bulkDecodeError),
+          },
+        };
       }
 
       overallProgress = Math.round(((i + 1) / bulkFiles.length) * 100);
@@ -1853,6 +1991,16 @@ dog 2 flow=line fs=2space kv=space block=track case=any punct=none bools=10</pre
                     <Download size={12} />
                   </button>
                 {:else}
+                  {#if item.status === "error" && item.failure}
+                    <button
+                      class="item-action-btn"
+                      onclick={() => reportOnGitHub(item.failure)}
+                      type="button"
+                      title={`${item.errorMsg} — report on GitHub (opens a prefilled issue; the file and its name are not included)`}
+                    >
+                      <Bug size={12} />
+                    </button>
+                  {/if}
                   <button
                     class="item-action-btn delete-btn"
                     onclick={() => removeBulkFile(index)}
@@ -2322,9 +2470,35 @@ dog 2 flow=line fs=2space kv=space block=track case=any punct=none bools=10</pre
         <AlertCircle class="text-red-400" size={54} />
         <h3>Refinement Failed</h3>
         <p class="error-msg">{errorMessage}</p>
-        <button class="action-btn secondary" onclick={resetState}>
-          TRY AGAIN
-        </button>
+        <div class="error-actions">
+          <button class="action-btn secondary" onclick={resetState}>
+            TRY AGAIN
+          </button>
+          {#if failure}
+            <button
+              class="action-btn secondary"
+              onclick={() => reportOnGitHub(failure)}
+              title="Opens a prefilled GitHub issue for you to review and submit. Includes the error, formats, file type and size, and browser — never the file or its name."
+            >
+              <Bug size={14} /> REPORT ON GH
+            </button>
+            <button
+              class="action-btn secondary"
+              onclick={() => copyReport(failure, "error-report")}
+              title="Copy the same error report to the clipboard"
+            >
+              <ClipboardCopy size={14} />
+              {copiedKey === "error-report" ? "COPIED" : "COPY REPORT"}
+            </button>
+          {/if}
+        </div>
+        {#if failure}
+          <p class="error-detail">
+            {failure.error.name}{failure.target
+              ? ` · ${failure.input.inputFormat || failure.input.ext} → ${failure.target}`
+              : ""} · {failure.stage}
+          </p>
+        {/if}
       </div>
     {:else}
       <!-- FILE LOADED, CHOOSE OUTPUT -->

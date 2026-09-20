@@ -286,7 +286,9 @@ export async function convertAudio(file, audioBuffer, outputFormat, audioSampleR
   else if (outputFormat === "aac") mimeType = "audio/aac";
   else if (outputFormat === "webm") mimeType = "audio/webm";
 
-  return new Blob([await file.arrayBuffer()], { type: mimeType });
+  // slice() relabels the same bytes without pulling them into memory —
+  // file.arrayBuffer() throws NotReadableError on multi-GB inputs.
+  return file.slice(0, file.size, mimeType);
 }
 
 /**
@@ -303,7 +305,9 @@ export async function convertVideo(file, outputFormat) {
   else if (outputFormat === "mkv") mimeType = "video/x-matroska";
   else if (outputFormat === "avi") mimeType = "video/x-msvideo";
 
-  return new Blob([await file.arrayBuffer()], { type: mimeType });
+  // slice() relabels the same bytes without pulling them into memory —
+  // file.arrayBuffer() throws NotReadableError on multi-GB inputs.
+  return file.slice(0, file.size, mimeType);
 }
 
 /**

@@ -616,8 +616,25 @@
     font-size: 0.8rem;
     color: rgba(255, 255, 255, 0.45);
     margin: 0;
-    max-width: 280px;
+    max-width: 320px;
     line-height: 1.4;
+  }
+
+  .error-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .error-detail {
+    margin: 0;
+    font-family: ui-monospace, monospace;
+    font-size: 0.65rem;
+    color: rgba(255, 255, 255, 0.25);
+    word-break: break-word;
+    max-width: 320px;
   }
 }
 
