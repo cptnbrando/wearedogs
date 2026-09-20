@@ -28,6 +28,13 @@ export default defineConfig({
   resolve: {
     conditions: ['browser'],
   },
+  optimizeDeps: {
+    // Only the MP3 worker imports this, so the dev server's startup scan never
+    // sees it. Discovered late, it gets re-bundled and the page force-reloads —
+    // in the middle of someone's conversion. It is already plain ESM: serve it
+    // as it is.
+    exclude: ['wasm-media-encoders'],
+  },
   server: {
     // Honors a harness-assigned port (PORT env) so a second dev server can
     // run beside the default one; falls back to vite's usual 5173.

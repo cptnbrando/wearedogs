@@ -2,33 +2,19 @@
  * convert.js
  * Library for client-side image and audio format conversion.
  */
-import { Mp3Encoder } from "@breezystack/lamejs";
-
-// Fix for lamejs packaging bugs causing "MPEGMode is not defined"
-if (typeof globalThis !== "undefined" && !globalThis.MPEGMode) {
-  globalThis.MPEGMode = {
-    STEREO: 0,
-    JOINT_STEREO: 1,
-    DUAL_CHANNEL: 2,
-    SINGLE_CHANNEL: 3,
-  };
-}
-if (typeof window !== "undefined" && !window.MPEGMode) {
-  window.MPEGMode = globalThis.MPEGMode;
-}
-
+import { encodeMp3, nearestMp3Rate } from "./mp3Pool.js";
 
 /**
  * Resamples an AudioBuffer to a target sample rate.
- * @param {AudioBuffer} buffer 
- * @param {number} targetSampleRate 
+ * @param {AudioBuffer} buffer
+ * @param {number} targetSampleRate
  * @returns {Promise<AudioBuffer>}
  */
 export async function resampleAudioBuffer(buffer, targetSampleRate) {
   if (buffer.sampleRate === targetSampleRate) return buffer;
   const offlineCtx = new OfflineAudioContext(
     buffer.numberOfChannels,
-    buffer.duration * targetSampleRate,
+    Math.max(1, Math.ceil(buffer.duration * targetSampleRate)),
     targetSampleRate
   );
   const bufferSource = offlineCtx.createBufferSource();
@@ -96,92 +82,38 @@ export function bufferToWav(buffer) {
   }
 }
 
+/** Anything above stereo folds down: fronts, plus centre and surrounds at -3 dB. */
+export function downmixToStereo(planes) {
+  if (planes.length <= 2) return planes;
+  const n = planes[0].length;
+  const L = new Float32Array(n);
+  const R = new Float32Array(n);
+  const c = planes[2];
+  const sl = planes.length >= 6 ? planes[4] : planes[3];
+  const sr = planes.length >= 6 ? planes[5] : planes[3];
+  for (let i = 0; i < n; i++) {
+    L[i] = (planes[0][i] + 0.707 * c[i] + 0.707 * (sl ? sl[i] : 0)) * 0.5;
+    R[i] = (planes[1][i] + 0.707 * c[i] + 0.707 * (sr ? sr[i] : 0)) * 0.5;
+  }
+  return [L, R];
+}
+
 /**
- * Encodes an AudioBuffer to MP3 using lamejs.
- * @param {AudioBuffer} buffer 
- * @param {number} compression - 0 to 100
- * @returns {Blob}
+ * Encodes an AudioBuffer to MP3 — in parallel on the worker pool (mp3Pool.js),
+ * or on the single-thread encoder where workers aren't available.
+ * @param {AudioBuffer} buffer  at an MP3-legal sample rate (see nearestMp3Rate)
+ * @param {number} kbps  constant bitrate, e.g. 320
+ * @param {(fraction:number)=>void} [onProgress]
+ * @returns {Promise<Blob>}
  */
-export async function bufferToMp3(buffer, compression) {
-  const comp = Number(compression) || 0;
-  // Map compression (0-100) to bitrate (320 down to 64 kbps)
-  let kbps = 192;
-  if (comp < 15) kbps = 320;
-  else if (comp < 30) kbps = 256;
-  else if (comp < 50) kbps = 192;
-  else if (comp < 70) kbps = 160;
-  else if (comp < 85) kbps = 128;
-  else if (comp < 95) kbps = 96;
-  else kbps = 64;
-
-  const channels = buffer.numberOfChannels;
-  const sampleRate = buffer.sampleRate;
-  
-  // lamejs Mp3Encoder constructor
-  if (!Mp3Encoder) {
-    throw new Error("lamejs Mp3Encoder is not loaded correctly. Please check module imports.");
-  }
-  const mp3encoder = new Mp3Encoder(channels, sampleRate, kbps);
-  const mp3Data = [];
-  const sampleLength = buffer.length;
-
-  if (channels === 1) {
-    const channelData = buffer.getChannelData(0);
-    const samples = new Int16Array(sampleLength);
-    for (let i = 0; i < sampleLength; i++) {
-      const s = Math.max(-1, Math.min(1, channelData[i]));
-      samples[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
-    }
-    const chunkSize = 1152;
-    for (let i = 0; i < sampleLength; i += chunkSize) {
-      if (i > 0 && (i / chunkSize) % 500 === 0) {
-        await new Promise((resolve) => setTimeout(resolve, 0));
-      }
-      let chunk = samples.subarray(i, i + chunkSize);
-      if (chunk.length < chunkSize) {
-        const padded = new Int16Array(chunkSize);
-        padded.set(chunk);
-        chunk = padded;
-      }
-      const mp3buf = mp3encoder.encodeBuffer(chunk);
-      if (mp3buf.length > 0) mp3Data.push(mp3buf);
-    }
-  } else {
-    const leftData = buffer.getChannelData(0);
-    const rightData = buffer.getChannelData(1);
-    const leftSamples = new Int16Array(sampleLength);
-    const rightSamples = new Int16Array(sampleLength);
-    for (let i = 0; i < sampleLength; i++) {
-      const sL = Math.max(-1, Math.min(1, leftData[i]));
-      leftSamples[i] = sL < 0 ? sL * 0x8000 : sL * 0x7fff;
-      
-      const sR = Math.max(-1, Math.min(1, rightData[i]));
-      rightSamples[i] = sR < 0 ? sR * 0x8000 : sR * 0x7fff;
-    }
-    const chunkSize = 1152;
-    for (let i = 0; i < sampleLength; i += chunkSize) {
-      if (i > 0 && (i / chunkSize) % 500 === 0) {
-        await new Promise((resolve) => setTimeout(resolve, 0));
-      }
-      let chunkL = leftSamples.subarray(i, i + chunkSize);
-      let chunkR = rightSamples.subarray(i, i + chunkSize);
-      if (chunkL.length < chunkSize) {
-        const paddedL = new Int16Array(chunkSize);
-        const paddedR = new Int16Array(chunkSize);
-        paddedL.set(chunkL);
-        paddedR.set(chunkR);
-        chunkL = paddedL;
-        chunkR = paddedR;
-      }
-      const mp3buf = mp3encoder.encodeBuffer(chunkL, chunkR);
-      if (mp3buf.length > 0) mp3Data.push(mp3buf);
-    }
-  }
-
-  const mp3buf = mp3encoder.flush();
-  if (mp3buf.length > 0) mp3Data.push(mp3buf);
-
-  return new Blob(mp3Data, { type: "audio/mp3" });
+export async function bufferToMp3(buffer, kbps, onProgress) {
+  // MP3 exists at a handful of rates, 48 kHz at most (an audio device running
+  // at 96 kHz decodes to 96 kHz buffers)
+  const rate = nearestMp3Rate(buffer.sampleRate);
+  if (rate !== buffer.sampleRate) buffer = await resampleAudioBuffer(buffer, rate);
+  const planes = [];
+  for (let ch = 0; ch < buffer.numberOfChannels; ch++) planes.push(buffer.getChannelData(ch));
+  return encodeMp3(downmixToStereo(planes), buffer.sampleRate, kbps, onProgress);
 }
 
 /**
@@ -260,12 +192,16 @@ export function convertImage(previewUrl, outputFormat, targetWidth, targetHeight
  * @param {AudioBuffer} audioBuffer 
  * @param {string} outputFormat - 'mp3' | 'wav' | 'm4a'
  * @param {string|number} audioSampleRate - 'keep' | sample rate number
+ * @param {number} kbps - MP3 bitrate (only MP3 has one to choose)
+ * @param {(fraction:number)=>void} [onProgress] - real encode progress, 0..1
  * @returns {Promise<Blob>}
  */
-export async function convertAudio(file, audioBuffer, outputFormat, audioSampleRate, compression) {
+export async function convertAudio(file, audioBuffer, outputFormat, audioSampleRate, kbps = 320, onProgress) {
   let bufferToEncode = audioBuffer;
-  if (audioBuffer && audioSampleRate !== "keep") {
-    const targetRate = parseInt(audioSampleRate);
+  if (audioBuffer && (outputFormat === "mp3" || outputFormat === "wav")) {
+    let targetRate = audioSampleRate === "keep" ? audioBuffer.sampleRate : parseInt(audioSampleRate);
+    // MP3 exists at a handful of rates, 48 kHz at most: a 96 kHz source drops to 48
+    if (outputFormat === "mp3") targetRate = nearestMp3Rate(targetRate);
     bufferToEncode = await resampleAudioBuffer(audioBuffer, targetRate);
   }
 
@@ -274,11 +210,8 @@ export async function convertAudio(file, audioBuffer, outputFormat, audioSampleR
   }
 
   if (outputFormat === "mp3" && bufferToEncode) {
-    return await bufferToMp3(bufferToEncode, compression);
+    return await bufferToMp3(bufferToEncode, Number(kbps) || 320, onProgress);
   }
-
-  // Fallback for lossy formats in client-side sandbox
-  await new Promise((resolve) => setTimeout(resolve, 1500));
 
   let mimeType = "audio/mpeg";
   if (outputFormat === "m4a") mimeType = "audio/mp4";
@@ -298,8 +231,6 @@ export async function convertAudio(file, audioBuffer, outputFormat, audioSampleR
  * @returns {Promise<Blob>}
  */
 export async function convertVideo(file, outputFormat) {
-  await new Promise((resolve) => setTimeout(resolve, 2000));
-  
   let mimeType = "video/mp4";
   if (outputFormat === "mov") mimeType = "video/quicktime";
   else if (outputFormat === "mkv") mimeType = "video/x-matroska";

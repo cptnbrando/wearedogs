@@ -1,6 +1,6 @@
 <script>
   import { onDestroy, onMount } from "svelte";
-  import { fly } from "svelte/transition";
+  import { fly, slide } from "svelte/transition";
   import {
     Upload,
     Download,
@@ -31,6 +31,15 @@
     openIssue,
     reportText,
   } from "../../lib/errorReport.js";
+  import {
+    fileSource,
+    isMp4Family,
+    probeMp4Audio,
+    convertMp4Audio,
+  } from "../../lib/mp4Audio.js";
+  import { probeAudioInfo } from "../../lib/audioInfo.js";
+  import { nearestMp3Rate } from "../../lib/mp3Pool.js";
+  import { findLivePhotoVideo } from "../../lib/livePhoto.js";
   import {
     convertImage,
     convertAudio,
@@ -143,8 +152,79 @@
   let compression = $state(15); // 0 to 100
 
   // Audio parameters
-  let audioBitrate = $state("192"); // kbps
-  let audioSampleRate = $state("keep"); // 'keep' | sample rate number
+  let audioBitrate = $state("320"); // MP3 kbps — defaults to the best MP3 has
+  let audioSampleRate = $state("keep"); // 'keep' (= the input's rate) | sample rate number
+  // What the loaded file's audio really is, read from its headers:
+  // { codec, sampleRate, channels, kbps, lossless }
+  let inputAudio = $state(null);
+
+  // Which outputs each control actually affects. Only MP3 is re-encoded at a
+  // chosen bitrate (AAC is a straight stream copy; M4A / WEBM keep the source
+  // bytes), and only MP3 and WAV are rendered at a chosen sample rate.
+  const AUDIO_OUTPUTS = ["mp3", "wav", "m4a", "aac", "webm"];
+  const BITRATE_OUTPUTS = ["mp3"];
+  const SAMPLE_RATE_OUTPUTS = ["mp3", "wav"];
+  const MP3_BITRATES = [320, 256, 224, 192, 160, 128, 112, 96, 64];
+  const SAMPLE_RATES = [48000, 44100, 32000, 24000, 22050, 16000, 12000, 11025, 8000];
+  const kHz = (rate) => `${+(rate / 1000).toFixed(3)} kHz`;
+
+  // The audio outputs in play: the selected formats, or — in a batch — every
+  // audio format chosen for the audio and video files in it.
+  let audioTargets = $derived.by(() => {
+    const pool = isBulkMode
+      ? [
+          ...(bulkFiles.some((f) => f.fileType === "audio") ? batchAudioFormats : []),
+          ...(bulkFiles.some((f) => f.fileType === "video") ? batchVideoFormats : []),
+        ]
+      : fileType === "audio" || fileType === "video"
+        ? selectedFormats
+        : [];
+    return [...new Set(pool.filter((f) => AUDIO_OUTPUTS.includes(f)))];
+  });
+  // The panel slides out only while an audio output is selected. Each control
+  // is live if AT LEAST ONE selected output uses it, and switched off (shown
+  // deselected) when none do.
+  let showAudioControls = $derived(audioTargets.length > 0);
+  let bitrateTargets = $derived(audioTargets.filter((f) => BITRATE_OUTPUTS.includes(f)));
+  let sampleRateTargets = $derived(audioTargets.filter((f) => SAMPLE_RATE_OUTPUTS.includes(f)));
+  const upperList = (formats) => formats.map((f) => f.toUpperCase()).join(", ");
+
+  // Bitrate choices; the one nearest the input's own bitrate is tagged "input"
+  let bitrateOptions = $derived.by(() => {
+    const inKbps = isBulkMode ? 0 : inputAudio?.kbps || 0;
+    let nearest = 0;
+    for (const b of MP3_BITRATES) if (inKbps && (!nearest || Math.abs(b - inKbps) < Math.abs(nearest - inKbps))) nearest = b;
+    return MP3_BITRATES.map((b) => ({
+      value: String(b),
+      label:
+        `${b} kbps` +
+        (b === nearest ? ` · input${b === inKbps ? "" : ` (${inKbps} kbps${inputAudio?.lossless ? ", lossless" : ""})`}` : ""),
+    }));
+  });
+
+  // Sample-rate choices. The input's own rate IS the "keep" option, so the
+  // default selection lands on it and is tagged "input".
+  let sampleRateOptions = $derived.by(() => {
+    const inRate = isBulkMode ? 0 : inputAudio?.sampleRate || 0;
+    const rates = inRate && !SAMPLE_RATES.includes(inRate) ? [inRate, ...SAMPLE_RATES].sort((a, b) => b - a) : SAMPLE_RATES;
+    const options = rates.map((r) =>
+      r === inRate ? { value: "keep", label: `${kHz(r)} · input` } : { value: String(r), label: kHz(r) },
+    );
+    if (!inRate) options.unshift({ value: "keep", label: isBulkMode ? "Each file's own rate · input" : "Original rate · input" });
+    return options;
+  });
+
+  // MP3 only exists at certain rates, and its low-rate flavour tops out at 160 kbps
+  let audioHint = $derived.by(() => {
+    if (!bitrateTargets.includes("mp3")) return "";
+    const rate = audioSampleRate === "keep" ? (isBulkMode ? 0 : inputAudio?.sampleRate || 0) : +audioSampleRate;
+    if (!rate) return "";
+    const mp3Rate = nearestMp3Rate(rate);
+    const notes = [];
+    if (mp3Rate !== rate) notes.push(`MP3 can't be ${kHz(rate)} — the MP3 will be ${kHz(mp3Rate)}.`);
+    if (mp3Rate <= 24000 && +audioBitrate > 160) notes.push(`At ${kHz(mp3Rate)} an MP3 tops out at 160 kbps.`);
+    return notes.join(" ");
+  });
 
   // Audio preview helper
   let audioContext = null;
@@ -168,16 +248,42 @@
     formats: N64_FORMATS,
   };
 
-  let availableFormats = $derived(fileType ? formatMap[fileType] || [] : []);
+  // Live / motion photos (Pixel, Samsung, most Android cameras) carry a whole
+  // MP4 after the picture. When one is found, MP4 joins the image's outputs —
+  // and only then. { blob, size, seconds }
+  let liveVideo = $state(null);
+  // false for a picture this browser can't draw (a HEIC, outside Safari): it
+  // can't be re-encoded, but a live clip inside it can still be pulled out
+  let stillDecodable = $state(true);
+  const LIVE_FORMATS = ["mp4"];
+  const LIVE_FORMAT_GROUP = { name: "Live Photo Video", color: "#a855f7", formats: LIVE_FORMATS };
+  // Image outputs offered in a batch: MP4 appears once any picture in it is a live photo
+  const formatOptionsFor = (type) =>
+    type === "image" && bulkFiles.some((f) => f.fileType === "image" && f.liveVideo)
+      ? [...formatMap.image, ...LIVE_FORMATS]
+      : formatMap[type];
+
+  let availableFormats = $derived(
+    fileType === "image"
+      ? [...(stillDecodable ? formatMap.image : []), ...(liveVideo ? LIVE_FORMATS : [])]
+      : fileType
+        ? formatMap[fileType] || []
+        : [],
+  );
 
   let formatGroups = $derived(
     fileType === "image"
       ? [
-          {
-            name: "Image Formats",
-            color: "#ff5e00",
-            formats: ["png", "jpg", "webp", "avif", "svg"],
-          },
+          ...(stillDecodable
+            ? [
+                {
+                  name: "Image Formats",
+                  color: "#ff5e00",
+                  formats: ["png", "jpg", "webp", "avif", "svg"],
+                },
+              ]
+            : []),
+          ...(liveVideo ? [LIVE_FORMAT_GROUP] : []),
         ]
       : fileType === "audio"
         ? [
@@ -539,7 +645,12 @@
     convertedFiles.forEach((f) => {
       if (f.url) URL.revokeObjectURL(f.url);
     });
-    file = { name: entry.inputName, size: entry.inputSize };
+    if (!liveInputConversions.has(entry.id)) {
+      // Someone else's input: only its name and size survive in history
+      file = { name: entry.inputName, size: entry.inputSize };
+      rawDataText = "";
+      liveInputConversions.clear();
+    }
     convertedFiles = entry.items.map((it) => {
       const o = { name: it.name, kind: it.kind, blob: it.blob };
       if (it.blob && it.kind !== "text" && it.kind !== "rom") {
@@ -582,7 +693,10 @@
     if (id) {
       restoreConversion(id);
     } else if (conversionStatus === "done") {
-      resetState(false);
+      // Back out of a completed view: to the format menu if its input is
+      // still loaded, otherwise to the empty drop zone.
+      if (hasOriginalBytes && liveInputConversions.size > 0) backToFormats(false);
+      else resetState(false);
     }
   }
 
@@ -633,10 +747,11 @@
         "Target size": `${s.targetWidth}×${s.targetHeight}`,
         Quality: s.quality,
         Compression: s.compression,
+        "Live photo video": s.liveVideo ? `${s.liveVideo.size} bytes, ${s.liveVideo.seconds.toFixed(1)} s` : "",
       };
     }
     if (type === "audio" || type === "video") {
-      return { "Sample rate": s.audioSampleRate, Compression: s.compression };
+      return { "Sample rate": s.audioSampleRate, "MP3 bitrate": `${s.audioBitrate} kbps` };
     }
     if (type === "data") return { ".dog header": `\`${dogHeaderPreview}\`` };
     return {};
@@ -666,6 +781,84 @@
     return err;
   }
 
+  // Above this, a file is never decoded whole into memory: an hour of video
+  // is gigabytes of PCM, and past ~2 GB the browser refuses the read outright.
+  const EAGER_DECODE_MAX = 256 * 1024 * 1024;
+
+  /**
+   * Whole-file decode (small files). decodeAudioData() resamples to whatever
+   * context it runs on, so an ordinary AudioContext turns every file into the
+   * sound card's rate — a 44.1 kHz song came back as 48 kHz, and "keep the
+   * original rate" didn't. An offline context AT the file's rate leaves the
+   * audio as it is.
+   */
+  async function decodeWholeFile(f, info) {
+    const bytes = await f.arrayBuffer();
+    const Offline = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+    let ctx = null;
+    if (info?.sampleRate && Offline) {
+      try {
+        ctx = new Offline(2, 1, info.sampleRate);
+      } catch {
+        ctx = null; // a rate this browser's audio engine won't run at
+      }
+    }
+    if (ctx) return ctx.decodeAudioData(bytes);
+    const live = new (window.AudioContext || window.webkitAudioContext)();
+    try {
+      return await live.decodeAudioData(bytes);
+    } finally {
+      live.close();
+    }
+  }
+
+  // Containers that don't state a bitrate (Opus, raw AAC, Matroska): for an
+  // audio-only file, size over duration is the true average.
+  function noteDecodedAudio(f, decoded) {
+    if (fileType !== "audio" || !decoded?.duration || inputAudio?.kbps) return;
+    const kbps = Math.round((f.size * 8) / decoded.duration / 1000);
+    if (kbps > 0) inputAudio = { ...(inputAudio ?? { codec: "audio" }), kbps };
+  }
+
+  /**
+   * Large-file audio path (MP4 / MOV / M4A): parses the index and reads only
+   * the audio samples off disk, so file size doesn't matter. Returns a Blob,
+   * or null when this file/target belongs to the in-memory path instead.
+   * settings: { kbps, audioSampleRate }
+   */
+  async function tryStreamAudio(f, fmt, buffer, settings, onPct) {
+    if (!(f instanceof Blob) && typeof f?.slice !== "function") return null;
+    const extract = fmt === "aac" || (!buffer && (fmt === "mp3" || fmt === "wav"));
+    const relabel = !buffer && (fmt === "m4a" || fmt === "webm");
+    if (!extract && !relabel) return null;
+
+    const source = fileSource(f);
+    if (!(await isMp4Family(source))) return null;
+    try {
+      const track = await probeMp4Audio(source);
+      if (!track) throw missingAudioError(null, f, "video");
+      // m4a / webm keep their existing behaviour (same bytes, audio label);
+      // the index just proved there is an audio track without decoding it.
+      if (relabel) return await convertAudio(f, null, fmt, settings.audioSampleRate, settings.kbps);
+      return await convertMp4Audio(source, {
+        format: fmt,
+        track,
+        kbps: settings.kbps,
+        sampleRate: settings.audioSampleRate,
+        onProgress: onPct,
+      });
+    } catch (err) {
+      // An odd codec or layout in a file small enough to decode in memory:
+      // let that path have a go. For a big file this error IS the answer.
+      const fallbackOk = ["UnsupportedAudioCodec", "NoWebCodecs", "FragmentedMp4", "AacNotAdtsCompatible"].includes(err.name);
+      if (fallbackOk && f.size <= EAGER_DECODE_MAX) {
+        console.warn("Large-file audio path declined, using in-memory decode:", err);
+        return null;
+      }
+      throw err;
+    }
+  }
+
   // Shows the error panel and keeps everything the GH report needs.
   function failWith(err, stage, extra = {}) {
     console.error(err);
@@ -686,8 +879,15 @@
         quality,
         compression,
         audioSampleRate,
+        audioBitrate,
+        liveVideo,
       }),
-      notes: decodeNotes(fileType, !!audioBuffer, audioDecodeError),
+      notes: {
+        ...decodeNotes(fileType, !!audioBuffer, audioDecodeError),
+        "Input audio": inputAudio
+          ? `${inputAudio.codec}, ${inputAudio.sampleRate ?? "?"} Hz, ${inputAudio.channels ?? "?"} ch, ${inputAudio.kbps ?? "?"} kbps`
+          : "",
+      },
     };
     errorMessage = shown;
     conversionStatus = "error";
@@ -759,7 +959,7 @@
 
     if (
       file.type.startsWith("image/") ||
-      ["jpg", "jpeg", "png", "webp", "gif", "avif", "svg"].includes(ext)
+      ["jpg", "jpeg", "png", "webp", "gif", "avif", "svg", "heic", "heif"].includes(ext)
     ) {
       fileType = "image";
       inputFormat = ext === "jpeg" ? "jpg" : ext;
@@ -768,15 +968,41 @@
       selectedFormats = [inputFormat === "png" ? "jpg" : "png"];
       selectionAnchor = selectedFormats[0];
 
-      // Read dimensions
-      const img = new Image();
-      img.src = previewUrl;
-      img.onload = () => {
-        originalWidth = img.naturalWidth;
-        originalHeight = img.naturalHeight;
+      // Read dimensions — and, alongside, look for a live-photo clip inside
+      const mine = file;
+      const [dims, video] = await Promise.all([
+        new Promise((resolve) => {
+          const img = new Image();
+          img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
+          img.onerror = () => resolve(null);
+          img.src = previewUrl;
+        }),
+        findLivePhotoVideo(mine),
+      ]);
+      if (file !== mine) return; // another file was dropped meanwhile
+      liveVideo = video;
+      if (dims) {
+        originalWidth = dims.w;
+        originalHeight = dims.h;
         targetWidth = originalWidth;
         targetHeight = originalHeight;
-      };
+      } else if (video) {
+        // A HEIC motion photo outside Safari: the picture can't be drawn, so it
+        // can't be re-encoded — but the clip inside comes out all the same.
+        stillDecodable = false;
+        selectedFormats = [LIVE_FORMATS[0]];
+        selectionAnchor = selectedFormats[0];
+      } else {
+        fileType = "unsupported";
+        const heic = ["heic", "heif"].includes(ext) || /hei[cf]/.test(file.type);
+        const err = new Error(
+          heic
+            ? "This browser can't open HEIC photos (Safari can), and this one has no live photo video inside to pull out. Export it as JPG first."
+            : "This image couldn't be opened. The file may be damaged, or in a format this browser can't draw.",
+        );
+        err.name = heic ? "HeicNotSupported" : "ImageNotReadable";
+        failWith(err, "load");
+      }
     } else if (
       file.type.startsWith("audio/") ||
       ["mp3", "wav", "m4a", "ogg", "aac", "webm"].includes(ext)
@@ -787,12 +1013,22 @@
       selectedFormats = [inputFormat === "mp3" ? "wav" : "mp3"];
       selectionAnchor = selectedFormats[0];
 
+      // Headers first (instant): the real sample rate and bitrate, for the
+      // "input" tags in the settings and so decoding can keep the file's rate.
+      const mine = file;
+      const probed = await probeAudioInfo(mine);
+      if (file !== mine) return; // another file was dropped meanwhile
+      inputAudio = probed;
+
       // Load audio data in background for actual WAV encoding if needed
-      try {
-        const arrayBuffer = await file.arrayBuffer();
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+      // (big files skip this and are decoded at conversion time instead)
+      if (mine.size <= EAGER_DECODE_MAX) try {
+        const decoded = await decodeWholeFile(mine, probed);
+        if (file !== mine) return;
+        audioBuffer = decoded;
+        noteDecodedAudio(mine, decoded);
       } catch (err) {
+        if (file !== mine) return;
         audioDecodeError = err;
         console.error("Failed to decode audio data:", err);
       }
@@ -806,12 +1042,21 @@
       selectedFormats = [inputFormat === "mp4" ? "mov" : "mp4"];
       selectionAnchor = selectedFormats[0];
 
-      // Decode audio track from video in background if present
-      try {
-        const arrayBuffer = await file.arrayBuffer();
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+      // Headers first (instant): the audio track's real sample rate and bitrate
+      const mine = file;
+      const probed = await probeAudioInfo(mine);
+      if (file !== mine) return; // another file was dropped meanwhile
+      inputAudio = probed;
+
+      // Decode audio track from video in background if present. Big files
+      // skip this — conversion streams their audio off disk instead.
+      if (mine.size <= EAGER_DECODE_MAX) try {
+        const decoded = await decodeWholeFile(mine, probed);
+        if (file !== mine) return;
+        audioBuffer = decoded;
+        noteDecodedAudio(mine, decoded);
       } catch (err) {
+        if (file !== mine) return;
         audioDecodeError = err;
         console.warn(
           "Failed to decode audio track from video (might have no audio):",
@@ -918,6 +1163,7 @@
       );
     }
     currentConversionId = null;
+    liveInputConversions.clear();
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     convertedFiles.forEach((f) => {
       if (f.url) URL.revokeObjectURL(f.url);
@@ -949,8 +1195,11 @@
     keepTens = true;
     quality = 92;
     compression = 15;
-    audioBitrate = "192";
+    audioBitrate = "320";
     audioSampleRate = "keep";
+    inputAudio = null;
+    liveVideo = null;
+    stillDecodable = true;
     if (audioContext) {
       audioContext.close();
       audioContext = null;
@@ -1004,19 +1253,32 @@
           );
         }, 100);
         ticker = interval;
+        // Real progress, where a conversion can report it, replaces the ticker
+        const onPct = (pct) => {
+          clearInterval(interval);
+          progress = Math.round(startProgress + (Math.min(100, pct) / 100) * progressSpan);
+        };
+        const audioSettings = { kbps: Number(audioBitrate) || 320, audioSampleRate };
 
         let resultBlob = null;
         let resultFileName = "";
 
         if (fileType === "image") {
-          resultBlob = await convertImage(
-            previewUrl,
-            currentFormat,
-            targetWidth,
-            targetHeight,
-            quality,
-            compression,
-          );
+          if (LIVE_FORMATS.includes(currentFormat)) {
+            // The live photo's clip is already a finished MP4 inside the file:
+            // a byte range, not a conversion
+            if (!liveVideo) throw new Error("There is no live photo video inside this image.");
+            resultBlob = liveVideo.blob;
+          } else {
+            resultBlob = await convertImage(
+              previewUrl,
+              currentFormat,
+              targetWidth,
+              targetHeight,
+              quality,
+              compression,
+            );
+          }
           const originalBase = file.name.substring(
             0,
             file.name.lastIndexOf("."),
@@ -1026,18 +1288,22 @@
           const isTargetVideo = ["mp4", "mov", "mkv", "avi"].includes(
             currentFormat,
           );
-          if (!audioBuffer) {
+          // Large-file path first (big .m4a): reads the audio straight off disk
+          if (!isTargetVideo) {
+            resultBlob = await tryStreamAudio(file, currentFormat, audioBuffer, audioSettings, onPct);
+          }
+          if (!resultBlob && !audioBuffer) {
             try {
-              const arrayBuffer = await file.arrayBuffer();
-              audioContext = new (window.AudioContext ||
-                window.webkitAudioContext)();
-              audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+              audioBuffer = await decodeWholeFile(file, inputAudio);
+              noteDecodedAudio(file, audioBuffer);
             } catch (err) {
               audioDecodeError = err;
               console.error("Failed to decode audio data on-the-fly:", err);
             }
           }
-          if (isTargetVideo) {
+          if (resultBlob) {
+            // already converted by the large-file path
+          } else if (isTargetVideo) {
             clearInterval(interval);
             if (!audioBuffer) throw missingAudioError(audioDecodeError, file, fileType);
             resultBlob = await convertAudioToVideo(
@@ -1054,8 +1320,9 @@
               file,
               audioBuffer,
               currentFormat,
-              audioSampleRate,
-              compression,
+              audioSettings.audioSampleRate,
+              audioSettings.kbps,
+              (fraction) => onPct(fraction * 100),
             );
           }
           const originalBase = file.name.substring(
@@ -1086,28 +1353,30 @@
             currentFormat,
           );
           if (isTargetAudio) {
-            if (!audioBuffer) {
-              try {
-                const arrayBuffer = await file.arrayBuffer();
-                audioContext = new (window.AudioContext ||
-                  window.webkitAudioContext)();
-                audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-              } catch (err) {
-                audioDecodeError = err;
-                console.error(
-                  "Failed to decode video audio track on-the-fly:",
-                  err,
-                );
+            // Large-file path first: reads only the audio samples off disk
+            resultBlob = await tryStreamAudio(file, currentFormat, audioBuffer, audioSettings, onPct);
+            if (!resultBlob) {
+              if (!audioBuffer) {
+                try {
+                  audioBuffer = await decodeWholeFile(file, inputAudio);
+                } catch (err) {
+                  audioDecodeError = err;
+                  console.error(
+                    "Failed to decode video audio track on-the-fly:",
+                    err,
+                  );
+                }
               }
+              if (!audioBuffer) throw missingAudioError(audioDecodeError, file, fileType);
+              resultBlob = await convertAudio(
+                file,
+                audioBuffer,
+                currentFormat,
+                audioSettings.audioSampleRate,
+                audioSettings.kbps,
+                (fraction) => onPct(fraction * 100),
+              );
             }
-            if (!audioBuffer) throw missingAudioError(audioDecodeError, file, fileType);
-            resultBlob = await convertAudio(
-              file,
-              audioBuffer,
-              currentFormat,
-              audioSampleRate,
-              compression,
-            );
           } else {
             resultBlob = await convertVideo(file, currentFormat);
           }
@@ -1161,6 +1430,7 @@
           inputSize: file.size,
           items: convertedFiles,
         });
+        liveInputConversions.add(currentConversionId);
         const d = (history.state?.depth ?? 2) + 1;
         history.pushState(
           {
@@ -1235,6 +1505,37 @@
   // The input is only downloadable while its bytes are still here: a real File
   // for an upload, or the typed/pasted text. History restores carry name+size only.
   let hasOriginalBytes = $derived(file instanceof Blob || !!rawDataText);
+
+  // Conversions made from the input that is loaded right now. Restoring one
+  // of these (browser Back from the format menu) must not swap the live File
+  // for the name+size stub that history entries carry.
+  let liveInputConversions = new Set();
+
+  // ORIGINAL on the completed view: back to the format menu with the same
+  // input still loaded, ready for another set of outputs.
+  function backToFormats(pushHistoryEntry = true) {
+    if (!hasOriginalBytes) return;
+    if (pushHistoryEntry && currentConversionId && conversionStatus === "done") {
+      // Own history entry, so browser Back returns to the completed view
+      const d = (history.state?.depth ?? 2) + 1;
+      history.pushState(
+        { view: "toolbox", app: "converter", depth: d },
+        "",
+        "/apps/converter",
+      );
+    }
+    currentConversionId = null;
+    convertedFiles.forEach((f) => {
+      if (f.url) URL.revokeObjectURL(f.url);
+    });
+    convertedFiles = [];
+    maximizedOutput = null;
+    zipDownloads = false;
+    errorMessage = "";
+    failure = null;
+    progress = 0;
+    conversionStatus = "idle";
+  }
 
   function downloadOriginal() {
     if (file instanceof Blob) {
@@ -1361,7 +1662,7 @@
       const name = f.name.toLowerCase();
       const ext = name.split(".").pop();
       let type = "unsupported";
-      if (["png", "jpg", "jpeg", "webp", "gif", "avif", "svg"].includes(ext)) {
+      if (["png", "jpg", "jpeg", "webp", "gif", "avif", "svg", "heic", "heif"].includes(ext)) {
         type = "image";
       } else if (["mp3", "wav", "m4a", "ogg", "aac", "webm"].includes(ext)) {
         type = "audio";
@@ -1401,8 +1702,6 @@
         keepTens: false,
         quality: 80,
         compression: 15,
-        audioBitrate: "192",
-        audioSampleRate: "keep",
       });
     }
 
@@ -1422,6 +1721,10 @@
             item.targetHeight = img.naturalHeight;
             URL.revokeObjectURL(url);
           };
+          // A live photo in the batch adds MP4 to the image outputs on offer
+          findLivePhotoVideo(item.file).then((video) => {
+            if (video) item.liveVideo = video;
+          });
         }
       }
     }
@@ -1449,14 +1752,16 @@
       let bulkAudioBuffer = null;
 
       try {
-        // Decode the audio track once per file, shared across all target formats
-        if (item.fileType === "audio" || item.fileType === "video") {
+        // Decode the audio track once per file, shared across all target
+        // formats. Big files wait: the large-file path usually makes the
+        // whole-file decode unnecessary.
+        let bulkDecodeTried = false;
+        const ensureBulkBuffer = async () => {
+          if (bulkAudioBuffer || bulkDecodeTried) return;
+          bulkDecodeTried = true;
           try {
-            const arrayBuffer = await item.file.arrayBuffer();
-            const audioCtx = new (window.AudioContext ||
-              window.webkitAudioContext)();
-            bulkAudioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-            audioCtx.close();
+            // at the file's own sample rate, read from its headers
+            bulkAudioBuffer = await decodeWholeFile(item.file, await probeAudioInfo(item.file));
           } catch (err) {
             bulkDecodeError = err;
             console.warn(
@@ -1464,7 +1769,26 @@
               err,
             );
           }
-        }
+        };
+        const bulkStream = (fmt, fi) =>
+          tryStreamAudio(
+            item.file,
+            fmt,
+            bulkAudioBuffer,
+            bulkAudioSettings,
+            (p) => bulkPct(fi, p),
+          );
+        // One bitrate and sample rate for the whole batch ("keep" = each
+        // file's own rate), from the batch's audio controls
+        const bulkAudioSettings = { kbps: Number(audioBitrate) || 320, audioSampleRate };
+        const bulkPct = (fi, pct) => {
+          item.progress = Math.round(((fi + Math.min(100, pct) / 100) / formats.length) * 100);
+        };
+        // Small files decode whole, in memory — but only once an audio output
+        // actually needs the samples (a video relabel never does)
+        const decodeIfSmall = async () => {
+          if (item.file.size <= EAGER_DECODE_MAX) await ensureBulkBuffer();
+        };
 
         // Read a ROM once per file; the header, not the extension, says what it is
         let bulkRomBytes = null;
@@ -1483,7 +1807,14 @@
           currentNotice = `Converting ${i + 1}/${bulkFiles.length}: ${item.file.name} ➔ ${fmt.toUpperCase()}`;
 
           let resultBlob = null;
-          if (item.fileType === "image") {
+          if (item.fileType === "image" && LIVE_FORMATS.includes(fmt)) {
+            // The clip inside a live photo. Ordinary photos in the same batch
+            // simply have none: skipped, unless it was their only output.
+            resultBlob = item.liveVideo?.blob ?? null;
+            if (!resultBlob && formats.length === 1) {
+              throw new Error("There is no live photo video inside this image.");
+            }
+          } else if (item.fileType === "image") {
             const tempUrl = URL.createObjectURL(item.file);
             try {
               resultBlob = await convertImage(
@@ -1504,6 +1835,7 @@
             );
 
             if (item.fileType === "audio" && isTargetVideo) {
+              await ensureBulkBuffer();
               if (!bulkAudioBuffer) {
                 throw missingAudioError(bulkDecodeError, item.file, item.fileType);
               }
@@ -1517,24 +1849,36 @@
                 },
               );
             } else if (item.fileType === "video" && isTargetAudio) {
-              if (!bulkAudioBuffer) {
-                throw missingAudioError(bulkDecodeError, item.file, item.fileType);
+              await decodeIfSmall();
+              resultBlob = await bulkStream(fmt, fi);
+              if (!resultBlob) {
+                await ensureBulkBuffer();
+                if (!bulkAudioBuffer) {
+                  throw missingAudioError(bulkDecodeError, item.file, item.fileType);
+                }
+                resultBlob = await convertAudio(
+                  item.file,
+                  bulkAudioBuffer,
+                  fmt,
+                  bulkAudioSettings.audioSampleRate,
+                  bulkAudioSettings.kbps,
+                  (fraction) => bulkPct(fi, fraction * 100),
+                );
               }
-              resultBlob = await convertAudio(
-                item.file,
-                bulkAudioBuffer,
-                fmt,
-                item.audioSampleRate || "keep",
-                item.compression || 15,
-              );
             } else if (item.fileType === "audio") {
-              resultBlob = await convertAudio(
-                item.file,
-                bulkAudioBuffer,
-                fmt,
-                item.audioSampleRate || "keep",
-                item.compression || 15,
-              );
+              await decodeIfSmall();
+              resultBlob = await bulkStream(fmt, fi);
+              if (!resultBlob) {
+                await ensureBulkBuffer();
+                resultBlob = await convertAudio(
+                  item.file,
+                  bulkAudioBuffer,
+                  fmt,
+                  bulkAudioSettings.audioSampleRate,
+                  bulkAudioSettings.kbps,
+                  (fraction) => bulkPct(fi, fraction * 100),
+                );
+              }
             } else if (item.fileType === "video") {
               resultBlob = await convertVideo(item.file, fmt);
             }
@@ -1570,7 +1914,7 @@
           input: inputFacts(item.file, item.fileType, item.inputFormat),
           target: bulkFormat,
           targets: [...formats],
-          settings: reportSettings(item.fileType, item),
+          settings: reportSettings(item.fileType, { ...item, audioSampleRate, audioBitrate }),
           notes: {
             "Batch position": `${i + 1} of ${bulkFiles.length}`,
             ...decodeNotes(item.fileType, !!bulkAudioBuffer, bulkDecodeError),
@@ -1655,7 +1999,7 @@
 
   function addBatchFormat(type) {
     const arr = batchFormatsFor(type);
-    const next = formatMap[type].find((f) => !arr.includes(f));
+    const next = formatOptionsFor(type).find((f) => !arr.includes(f));
     if (next) {
       arr.push(next);
       syncBatchFormats(type);
@@ -1673,6 +2017,65 @@
     bulkFiles = bulkFiles.filter((_, i) => i !== index);
   }
 </script>
+
+<!--
+  MP3 bitrate + sample rate, shared by the single-file panel and the batch
+  header. A control is live when at least one selected output uses it; when
+  none do it is switched off and shown deselected ("— not used by WAV").
+  The option matching the input file is tagged "input".
+-->
+{#snippet audioControls()}
+  <div class="audio-controls-grid">
+    <div class="audio-control" class:off={bitrateTargets.length === 0}>
+      <div class="audio-control-label">
+        <span>MP3 Bitrate</span>
+        <span class="audio-control-scope">
+          {bitrateTargets.length ? `for ${upperList(bitrateTargets)}` : "not used"}
+        </span>
+      </div>
+      <select
+        class="audio-select"
+        value={bitrateTargets.length ? audioBitrate : ""}
+        onchange={(e) => (audioBitrate = e.target.value)}
+        disabled={bitrateTargets.length === 0 || isConvertingBulk}
+        aria-label="MP3 bitrate"
+      >
+        {#if bitrateTargets.length === 0}
+          <option value="">— not used by {upperList(audioTargets)}</option>
+        {/if}
+        {#each bitrateOptions as opt (opt.value)}
+          <option value={opt.value}>{opt.label}</option>
+        {/each}
+      </select>
+    </div>
+
+    <div class="audio-control" class:off={sampleRateTargets.length === 0}>
+      <div class="audio-control-label">
+        <span>Sample Rate</span>
+        <span class="audio-control-scope">
+          {sampleRateTargets.length ? `for ${upperList(sampleRateTargets)}` : "not used"}
+        </span>
+      </div>
+      <select
+        class="audio-select"
+        value={sampleRateTargets.length ? audioSampleRate : ""}
+        onchange={(e) => (audioSampleRate = e.target.value)}
+        disabled={sampleRateTargets.length === 0 || isConvertingBulk}
+        aria-label="Output sample rate"
+      >
+        {#if sampleRateTargets.length === 0}
+          <option value="">— not used by {upperList(audioTargets)}</option>
+        {/if}
+        {#each sampleRateOptions as opt (opt.value)}
+          <option value={opt.value}>{opt.label}</option>
+        {/each}
+      </select>
+    </div>
+  </div>
+  {#if audioHint}
+    <p class="audio-hint" transition:slide={{ duration: 180 }}>{audioHint}</p>
+  {/if}
+{/snippet}
 
 <div class="converter-app animated-pane">
   <!-- <div class="app-header">
@@ -1863,11 +2266,14 @@ dog 2 flow=line fs=2space kv=space block=track case=any punct=none bools=10</pre
                         class="preset-select"
                         disabled={isConvertingBulk}
                       >
-                        {#each formatMap[type] as opt}
+                        {#each formatOptionsFor(type) as opt}
                           <option
                             value={opt}
                             disabled={opt !== fmt && fmts.includes(opt)}
-                            >{opt.toUpperCase()}</option
+                            >{opt.toUpperCase() +
+                              (type === "image" && LIVE_FORMATS.includes(opt)
+                                ? " · LIVE PHOTO"
+                                : "")}</option
                           >
                         {/each}
                       </select>
@@ -1884,7 +2290,7 @@ dog 2 flow=line fs=2space kv=space block=track case=any punct=none bools=10</pre
                       {/if}
                     </span>
                   {/each}
-                  {#if fmts.length < formatMap[type].length}
+                  {#if fmts.length < formatOptionsFor(type).length}
                     <button
                       class="chip-add"
                       onclick={() => addBatchFormat(type)}
@@ -1899,6 +2305,16 @@ dog 2 flow=line fs=2space kv=space block=track case=any punct=none bools=10</pre
               {/if}
             {/each}
           </div>
+          <!-- Same audio controls as a single file; they apply to every audio
+               output in the batch ("input" = each file keeps its own rate) -->
+          {#if showAudioControls}
+            <div
+              class="audio-controls batch-audio-controls"
+              transition:slide={{ duration: 260 }}
+            >
+              {@render audioControls()}
+            </div>
+          {/if}
         </div>
 
         <!-- Scrollable Files List -->
@@ -2436,8 +2852,8 @@ dog 2 flow=line fs=2space kv=space block=track case=any punct=none bools=10</pre
           {#if hasOriginalBytes}
             <button
               class="action-btn secondary"
-              onclick={downloadOriginal}
-              title="Download the untouched input file ({file?.name})"
+              onclick={() => backToFormats()}
+              title="Back to the format menu with {file?.name} still loaded"
             >
               <Undo size={14} /> ORIGINAL
             </button>
@@ -2507,10 +2923,20 @@ dog 2 flow=line fs=2space kv=space block=track case=any punct=none bools=10</pre
         class:max-h-full={fileType === "data"}
         class:overflow-hidden={fileType === "data"}
       >
-        <div class="back-bar">
+        <div class="back-bar flex items-center justify-between w-full">
           <button class="back-btn" onclick={resetState}>
             <ArrowLeft size={14} /> Back
           </button>
+          {#if hasOriginalBytes}
+            <button
+              class="back-btn"
+              onclick={downloadOriginal}
+              type="button"
+              title="Download the untouched source file ({file?.name})"
+            >
+              <Download size={14} /> Download Source
+            </button>
+          {/if}
         </div>
 
         <div
@@ -2545,7 +2971,12 @@ dog 2 flow=line fs=2space kv=space block=track case=any punct=none bools=10</pre
                   onclick={() => document.getElementById("file-input").click()}
                   title="Click to select another file"
                 >
-                  <img src={previewUrl} alt="Upload preview" />
+                  {#if stillDecodable}
+                    <img src={previewUrl} alt="Upload preview" />
+                  {:else}
+                    <!-- a HEIC this browser can't draw; its live clip still comes out -->
+                    <FileImage size={48} class="text-[#ff5e00]" />
+                  {/if}
                   <div
                     class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-[10px] text-white font-bold font-sans uppercase"
                   >
@@ -2827,14 +3258,30 @@ dog 2 flow=line fs=2space kv=space block=track case=any punct=none bools=10</pre
                         : "?"}
                     </span>
                   </div>
+                  {#if fileType === "image" && liveVideo}
+                    <span
+                      class="live-photo-chip"
+                      transition:slide={{ duration: 200 }}
+                      title="This picture has a video clip stored inside it. Choose MP4 to pull it out — it is copied as-is, nothing is re-encoded."
+                    >
+                      <span class="live-dot"></span>
+                      LIVE PHOTO · {liveVideo.seconds
+                        ? `${liveVideo.seconds.toFixed(1)} s clip`
+                        : "clip"} · {formatBytes(liveVideo.size)}
+                    </span>
+                  {/if}
                 </div>
               {/if}
             </div>
 
 
-            <!-- Settings Panel (Quality, Compression, Dimensions) -->
-            {#if fileType === "image" || fileType === "audio"}
-              <div class="settings-control-panel">
+            <!-- Settings Panel (Quality, Compression, Dimensions) — only while a
+                 picture format is selected; a live photo's MP4 is copied as-is -->
+            {#if fileType === "image" && selectedFormats.some( (f) => formatMap.image.includes(f), )}
+              <div
+                class="settings-control-panel"
+                transition:slide={{ duration: 260 }}
+              >
                 <h3>Configuration Parameters</h3>
 
                 {#if fileType === "image"}
@@ -3032,80 +3479,15 @@ dog 2 flow=line fs=2space kv=space block=track case=any punct=none bools=10</pre
                     </div>
                   </div>
                 {/if}
-
-                {#if fileType === "audio"}
-                  <div class="settings-group">
-                    <div
-                      class="sliders-row grid grid-cols-2 gap-3.5 max-sm:grid-cols-1"
-                    >
-                      {#if selectedFormats.includes("mp3")}
-                        <div class="slider-field">
-                          <div
-                            class="slider-label flex justify-between items-center text-[11px] mb-1 font-mono"
-                          >
-                            <span class="text-white/40">MP3 Compression</span>
-                            <div class="flex items-center gap-0.5">
-                              <input
-                                type="number"
-                                min="0"
-                                max="100"
-                                bind:value={compression}
-                                class="value-input compression-input"
-                              />
-                              <span class="text-white/30">%</span>
-                            </div>
-                          </div>
-                          <input
-                            type="range"
-                            min="0"
-                            max="100"
-                            bind:value={compression}
-                            class="param-slider"
-                          />
-                        </div>
-                      {:else if selectedFormats.some( (f) => ["m4a", "aac", "webm"].includes(f), )}
-                        <div class="slider-field">
-                          <div
-                            class="slider-label flex justify-between text-[11px] mb-1 font-mono"
-                          >
-                            <span class="text-white/40">Target Bitrate</span>
-                          </div>
-                          <select
-                            bind:value={audioBitrate}
-                            class="param-select"
-                          >
-                            <option value="96">96 kbps (Low)</option>
-                            <option value="128">128 kbps (Standard)</option>
-                            <option value="192">192 kbps (Medium)</option>
-                            <option value="256">256 kbps (High)</option>
-                            <option value="320">320 kbps (Extreme)</option>
-                          </select>
-                        </div>
-                      {/if}
-
-                      <div class="slider-field">
-                        <div
-                          class="slider-label flex justify-between text-[11px] mb-1 font-mono"
-                        >
-                          <span class="text-white/40"
-                            >Sample Rate Resampler</span
-                          >
-                        </div>
-                        <select
-                          bind:value={audioSampleRate}
-                          class="param-select"
-                        >
-                          <option value="keep">Keep Original Rate</option>
-                          <option value="44100">44.1 kHz (CD Quality)</option>
-                          <option value="32000">32.0 kHz (FM Radio)</option>
-                          <option value="22050">22.05 kHz (AM Radio)</option>
-                          <option value="11025">11.025 kHz (Low Quality)</option
-                          >
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-                {/if}
+              </div>
+            {:else if showAudioControls}
+              <!-- Audio output controls: slide out only while an audio format is selected -->
+              <div
+                class="settings-control-panel audio-controls"
+                transition:slide={{ duration: 260 }}
+              >
+                <h3>Audio Output</h3>
+                {@render audioControls()}
               </div>
             {/if}
           </div>

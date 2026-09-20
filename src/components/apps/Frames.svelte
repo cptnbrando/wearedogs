@@ -453,7 +453,7 @@
 
       const blob = audioFormat === "wav"
         ? bufferToWav(audioBuffer)
-        : await bufferToMp3(audioBuffer, 40); // ~192 kbps
+        : await bufferToMp3(audioBuffer, 192); // kbps
 
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
