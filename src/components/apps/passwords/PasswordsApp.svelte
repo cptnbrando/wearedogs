@@ -10,18 +10,28 @@
     ShieldCheck,
     Eye,
     EyeOff,
+    Vault,
   } from "lucide-svelte";
   import {
     CHAR_SETS,
+    SYMBOL_VAULT,
+    VAULT_CHARS,
     MIN_PASSWORD_LENGTH,
     MAX_PASSWORD_LENGTH,
     DEFAULT_PASSWORD_LENGTH,
-    buildPools,
+    countPool,
     generatePassword,
     calculateEntropy,
   } from "./passwordEngine.js";
+  import { copyText } from "../../../lib/clipboard.js";
 
   const ALL_SYMBOLS = CHAR_SETS.symbols.split("");
+  const VAULT_SET = new Set(VAULT_CHARS);
+
+  // Touch has no right-click, so the vault's copy gesture is a hold there
+  const isTouch =
+    typeof window !== "undefined" &&
+    window.matchMedia("(pointer: coarse)").matches;
 
   // Generation options
   let length = $state(DEFAULT_PASSWORD_LENGTH);
@@ -30,6 +40,11 @@
   let useNumbers = $state(true);
   let useSymbols = $state(true);
   let selectedSymbols = $state([...ALL_SYMBOLS]);
+  // The vault is opt-in twice over: off by default, and nothing in it is
+  // allowed until it's clicked. Deliberately not persisted — which exotic
+  // characters someone's passwords use is nobody's business, localStorage included.
+  let useVault = $state(false);
+  let selectedVault = $state([]);
 
   // Output state
   let password = $state("");
@@ -45,6 +60,11 @@
     ALL_SYMBOLS.filter((s) => selectedSymbols.includes(s)).join(""),
   );
 
+  // Kept in vault order, so the pool never depends on the order of the clicks
+  const vaultPool = $derived(
+    VAULT_CHARS.filter((ch) => selectedVault.includes(ch)).join(""),
+  );
+
   const options = $derived({
     length,
     useLowercase,
@@ -52,10 +72,14 @@
     useNumbers,
     useSymbols,
     symbolPool,
+    useVault,
+    vaultPool,
   });
 
-  const poolSize = $derived(buildPools(options).join("").length);
+  const poolSize = $derived(countPool(options));
   const entropyBits = $derived(calculateEntropy(options));
+  // Code points, not UTF-16 units: a vault emoji is one character
+  const passwordChars = $derived(Array.from(password));
 
   // Regenerate whenever any option (or the nonce) changes
   $effect(() => {
@@ -92,18 +116,99 @@
     selectedSymbols = [];
   }
 
+  function toggleVaultChar(ch) {
+    if (selectedVault.includes(ch)) {
+      selectedVault = selectedVault.filter((c) => c !== ch);
+    } else {
+      selectedVault = [...selectedVault, ch];
+    }
+  }
+
+  function selectAllVault() {
+    selectedVault = [...VAULT_CHARS];
+  }
+
+  function selectNoVault() {
+    selectedVault = [];
+  }
+
   async function copyToClipboard() {
     if (!password) {
       showToast("Nothing to copy — enable a character set.", "error");
       return;
     }
-    try {
-      await navigator.clipboard.writeText(password);
+    if (await copyText(password)) {
       showToast("Password copied to clipboard!", "success");
-    } catch (err) {
-      console.error(err);
+    } else {
       showToast("Copy failed. Select and copy manually.", "error");
     }
+  }
+
+  async function copyVaultChar(ch) {
+    if (await copyText(ch)) {
+      showToast(`Copied ${ch} to clipboard`, "success");
+    } else {
+      showToast(`Couldn't copy ${ch}.`, "error");
+    }
+  }
+
+  // Right-click copies a vault character (Android sends this for a long press)
+  function handleVaultContextMenu(e, ch) {
+    e.preventDefault();
+    cancelHold();
+    copyVaultChar(ch);
+  }
+
+  // Hold-to-copy for touch. Holding only ARMS the chip; the copy happens when
+  // the finger lifts, because a clipboard write is only allowed from inside a
+  // gesture and a hold still in progress isn't one yet.
+  const HOLD_TO_COPY_MS = 450;
+  const HOLD_SLOP_PX = 10;
+  let holdTimer = null;
+  let holdOrigin = null;
+  let armedChar = $state(null);
+
+  function startHold(e, ch) {
+    cancelHold();
+    const touch = e.touches[0];
+    holdOrigin = { x: touch.clientX, y: touch.clientY };
+    holdTimer = setTimeout(() => {
+      holdTimer = null;
+      armedChar = ch;
+    }, HOLD_TO_COPY_MS);
+  }
+
+  // A finger that wanders is scrolling, not holding
+  function moveHold(e) {
+    if (!holdOrigin) return;
+    const touch = e.touches[0];
+    const moved = Math.hypot(
+      touch.clientX - holdOrigin.x,
+      touch.clientY - holdOrigin.y,
+    );
+    if (moved > HOLD_SLOP_PX) cancelHold();
+  }
+
+  function cancelHold() {
+    clearTimeout(holdTimer);
+    holdTimer = null;
+    holdOrigin = null;
+    armedChar = null;
+  }
+
+  function endHold(e) {
+    const ch = armedChar;
+    cancelHold();
+    if (ch === null) return;
+    // Swallow the tap that would otherwise toggle the chip
+    if (e.cancelable) e.preventDefault();
+    copyVaultChar(ch);
+  }
+
+  function codePointLabel(ch) {
+    return (
+      "U+" + ch.codePointAt(0).toString(16).toUpperCase().padStart(4, "0")
+    );
   }
 
   function clampLength() {
@@ -117,8 +222,9 @@
     );
   }
 
-  /** Bucket each glyph so the display can tint digits and symbols. */
+  /** Bucket each glyph so the display can tint digits, symbols and vault picks. */
   function charKind(char) {
+    if (VAULT_SET.has(char)) return "vault";
     if (CHAR_SETS.numbers.indexOf(char) !== -1) return "digit";
     if (CHAR_SETS.lowercase.indexOf(char.toLowerCase()) !== -1) return "letter";
     return "symbol";
@@ -186,6 +292,11 @@
             <span class="charset-name">Symbols</span>
             <span class="charset-sample">#$%</span>
           </label>
+          <label class="charset-toggle vault-toggle" class:checked={useVault}>
+            <input type="checkbox" bind:checked={useVault} />
+            <span class="charset-name">Symbol Vault</span>
+            <span class="charset-sample">°§∞</span>
+          </label>
         </div>
       </div>
 
@@ -218,6 +329,52 @@
           {/if}
         </div>
       {/if}
+
+      <!-- Symbol Vault Group -->
+      {#if useVault}
+        <div class="config-group animated-fade">
+          <div class="label-row">
+            <span class="config-label vault-label">
+              <Vault size={13} />
+              Symbol Vault ({selectedVault.length}/{VAULT_CHARS.length})
+            </span>
+            <div class="symbol-bulk-actions">
+              <button class="bulk-btn vault-bulk" onclick={selectAllVault}>All</button>
+              <span class="bulk-divider">/</span>
+              <button class="bulk-btn vault-bulk" onclick={selectNoVault}>None</button>
+            </div>
+          </div>
+          <span class="picker-note">
+            {isTouch
+              ? "Tap to allow in passwords · hold to copy."
+              : "Click to allow in passwords · right-click to copy."}
+            Not every site accepts these — test a password before you rely on it.
+          </span>
+          {#each SYMBOL_VAULT as group}
+            <div class="vault-shelf">
+              <span class="vault-shelf-label">{group.label}</span>
+              <div class="symbol-chip-grid">
+                {#each group.chars as ch}
+                  <button
+                    class="symbol-chip vault-chip"
+                    class:active={selectedVault.includes(ch)}
+                    class:armed={armedChar === ch}
+                    onclick={() => toggleVaultChar(ch)}
+                    oncontextmenu={(e) => handleVaultContextMenu(e, ch)}
+                    ontouchstart={(e) => startHold(e, ch)}
+                    ontouchmove={moveHold}
+                    ontouchend={endHold}
+                    ontouchcancel={cancelHold}
+                    aria-pressed={selectedVault.includes(ch)}
+                    aria-label="Allow {ch} in passwords"
+                    title={codePointLabel(ch)}
+                  >{ch}</button>
+                {/each}
+              </div>
+            </div>
+          {/each}
+        </div>
+      {/if}
     </div>
 
     <!-- RIGHT PANEL: Output -->
@@ -229,9 +386,9 @@
         {#if password}
           <div class="password-text" class:masked={!isRevealed}>
             {#if isRevealed}
-              {#each password as char}<span class="pw-char {charKind(char)}">{char}</span>{/each}
+              {#each passwordChars as char}<span class="pw-char {charKind(char)}">{char}</span>{/each}
             {:else}
-              {"•".repeat(Math.min(password.length, 60))}
+              {"•".repeat(Math.min(passwordChars.length, 60))}
             {/if}
           </div>
         {:else}
@@ -246,7 +403,7 @@
       <div class="spec-footer-stats">
         <div class="stat-bubble">
           <span class="lbl">Length</span>
-          <span class="val">{password.length || 0}</span>
+          <span class="val">{passwordChars.length}</span>
         </div>
         <div class="stat-bubble">
           <span class="lbl">Pool</span>
@@ -525,6 +682,69 @@
     font-style: italic;
   }
 
+  /* ── Symbol Vault (gold, to tell its picks apart from ordinary symbols) ── */
+  .charset-toggle.vault-toggle {
+    grid-column: 1 / -1;
+  }
+
+  .charset-toggle.vault-toggle input {
+    accent-color: #e6b900;
+  }
+
+  .charset-toggle.vault-toggle:hover {
+    border-color: rgba(230, 185, 0, 0.3);
+  }
+
+  .charset-toggle.vault-toggle.checked {
+    background: rgba(230, 185, 0, 0.06);
+    border-color: rgba(230, 185, 0, 0.4);
+  }
+
+  .vault-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: rgba(230, 185, 0, 0.75);
+  }
+
+  .bulk-btn.vault-bulk {
+    color: #e6b900;
+  }
+
+  .vault-shelf {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .vault-shelf-label {
+    font-size: 0.58rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.28);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-family: "Inter", sans-serif;
+  }
+
+  .symbol-chip.vault-chip:hover {
+    border-color: rgba(230, 185, 0, 0.4);
+  }
+
+  .symbol-chip.vault-chip.active {
+    background: rgba(230, 185, 0, 0.1);
+    border-color: rgba(230, 185, 0, 0.5);
+    color: #e6b900;
+    box-shadow: 0 0 8px rgba(230, 185, 0, 0.12);
+  }
+
+  /* Held long enough on touch: letting go copies it */
+  .symbol-chip.vault-chip.armed {
+    transform: scale(1.18);
+    border-color: #e6b900;
+    color: #ffffff;
+    box-shadow: 0 0 14px rgba(230, 185, 0, 0.45);
+  }
+
   /* ── Password Frame ── */
   .password-frame {
     background: rgba(0, 0, 0, 0.4);
@@ -572,6 +792,10 @@
 
   .pw-char.symbol {
     color: #ff55bb;
+  }
+
+  .pw-char.vault {
+    color: #e6b900;
   }
 
   .empty-hint {
