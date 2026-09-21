@@ -1,0 +1,1 @@
+var e=400;function t(t){let n=0;return r=>{let i=Date.now();if(i-n<e){n=0,t(r);return}n=i}}export{t};

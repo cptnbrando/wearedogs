@@ -1,0 +1,1 @@
+System.register([],function(t,e){var n;return t("t",function(t){var e=0;return function(r){var u=Date.now();if(u-e<n)return e=0,void t(r);e=u}}),{setters:[],execute:function(){n=400}}});
