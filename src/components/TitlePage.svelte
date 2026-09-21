@@ -95,6 +95,14 @@
     locale.set(activeLang);
   });
 
+  // The apps drawer is always in color. Opening it — the launcher button, the
+  // "/" key, a deep link or browser history — turns the homepage colors on, and
+  // they stay on until the user toggles them off again themselves. Every color
+  // toggle is disabled while a panel is open, so this never fights the user.
+  $effect(() => {
+    if (activePage === "toolbox") weAreDogsColored = true;
+  });
+
   $effect(() => {
     if (activePage !== null || showInfo) {
       document.body.style.overflow = "hidden";
