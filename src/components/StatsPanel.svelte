@@ -13,6 +13,7 @@
   import SwipeTabNav from "./SwipeTabNav.svelte";
   import DogsLogo from "./DogsLogo.svelte";
   import { audioCore } from "../lib/AudioCore.svelte.js";
+  import { onDoubleTap } from "../lib/doubleTap.js";
   import {
     languageVitals,
     vitalsByCode,
@@ -43,6 +44,9 @@
     onHoverLang,
     onSelectLang,
   } = $props();
+
+  // Tapping outside the panel only closes it on a double tap
+  const handleBackdropTap = onDoubleTap(() => onClose());
 
   // Enough languages that the folded "Other" tail stays under 25%.
   const shareData = speakerShare(0.25);
@@ -188,7 +192,7 @@
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="stats-panel-backdrop" onclick={onClose}>
+<div class="stats-panel-backdrop" onclick={handleBackdropTap}>
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <div
     class="stats-panel-container"

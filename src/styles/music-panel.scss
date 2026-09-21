@@ -1149,6 +1149,11 @@
     font-size: 0.72rem;
   }
 
+  /* Title / artist / album text opens the tracklist on tap */
+  .track-info .scroll-container {
+    cursor: pointer;
+  }
+
   .ctrl-play {
     width: 46px;
     height: 46px;

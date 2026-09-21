@@ -5,6 +5,7 @@ import legacy from '@vitejs/plugin-legacy'
 import shareCards from './scripts/vite-plugin-share-cards.js'
 import markdownData from './scripts/vite-plugin-md-data.js'
 import staticData from './scripts/vite-plugin-static-data.js'
+import blogTimeline from './scripts/vite-plugin-blog-timeline.js'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -15,6 +16,9 @@ export default defineConfig({
     // Runtime-fetched datasets live in src/data with everything else; this
     // serves/copies them at /data/fundraiser/* and /data/store/*.
     staticData(),
+    // Dates every line of every blog post from git history — the reader's
+    // scrollbar is a timeline of when each stretch was written.
+    blogTimeline(),
     tailwindcss(),
     svelte(),
     legacy({

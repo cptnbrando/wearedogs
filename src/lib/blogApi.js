@@ -10,6 +10,14 @@
  * @property {string} [body]
  */
 
+// When each line of each post was written, from git history
+// (scripts/vite-plugin-blog-timeline.js): { slug: { lineKey: "YYYY-MM-DD" } }
+import writingTimeline from "virtual:blog-timeline";
+import { createLineKeyer, isDatable } from "./blogTimeline.js";
+// Chapter names per post, anchored to opening words — kept out of the .md files
+// so naming a chapter never touches the writing: { slug: [{ title, at }] }
+import postChapters from "../data/blog/chapters.json";
+
 // ---------------------------------------------------------------------------
 // Eager Directory Glob Imports (No manifest.json required)
 // ---------------------------------------------------------------------------
@@ -68,9 +76,14 @@ const apiCache = {};
 /**
  * Parses markdown body and frontmatter header into structured HTML.
  * @param {string} rawMd - Raw markdown text
+ * @param {Record<string, string>} [writtenOn] - line key → "YYYY-MM-DD", stamped
+ *   onto each heading, paragraph and list item as `data-w` for the reading rail
+ * @param {{ title: string, at: string }[]} [chapters] - the block whose text
+ *   starts with `at` is tagged `data-chapter`. An attribute only: a chapter
+ *   never adds an element or a word to the post.
  * @returns {{ metadata: Record<string, string>, bodyHtml: string }}
  */
-export function parseMarkdown(rawMd) {
+export function parseMarkdown(rawMd, writtenOn = {}, chapters = []) {
   let metadata = {};
   let mdContent = rawMd;
 
@@ -97,9 +110,27 @@ export function parseMarkdown(rawMd) {
   let html = "";
   let inList = false;
   let inCode = false;
+  const keyer = createLineKeyer();
+  const unplaced = [...chapters];
 
   for (let line of lines) {
     let trimmed = line.trim();
+
+    // The keyer has to see every non-empty line (code fences included) to stay
+    // in step with the build plugin; only prose actually carries a date.
+    const key = trimmed ? keyer.next(trimmed) : null;
+    const day = key && isDatable(trimmed) ? writtenOn[key] : null;
+    let written = day ? ` data-w="${day}"` : "";
+
+    // A chapter begins at the first block opening with its anchor words
+    // (matched past any "- " or "# " markup). Each chapter is placed once.
+    const prose = trimmed.replace(/^(?:[-*]|#{1,6})\s+/, "");
+    const chapterAt = inCode ? -1 : unplaced.findIndex((c) => c.at && prose.startsWith(c.at));
+    if (chapterAt !== -1) {
+      const [chapter] = unplaced.splice(chapterAt, 1);
+      const title = chapter.title.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+      written += ` data-chapter="${title}"`;
+    }
 
     // Code blocks
     if (trimmed.startsWith("```")) {
@@ -154,7 +185,7 @@ export function parseMarkdown(rawMd) {
           4: "text-base font-medium text-white/80 mb-2 mt-3"
         };
         const classStr = sizes[headerLevel] || "text-base font-bold text-white";
-        html += `<h${headerLevel} class="${classStr}">${titleText}</h${headerLevel}>`;
+        html += `<h${headerLevel} class="${classStr}"${written}>${titleText}</h${headerLevel}>`;
         continue;
       }
     }
@@ -177,14 +208,21 @@ export function parseMarkdown(rawMd) {
     });
 
     if (inList) {
-      html += `<li class="text-white/85 leading-relaxed">${processed}</li>`;
+      html += `<li class="text-white/85 leading-relaxed"${written}>${processed}</li>`;
     } else {
-      html += `<p class="text-white/85 leading-relaxed mb-4 text-justify">${processed}</p>`;
+      html += `<p class="text-white/85 leading-relaxed mb-4 text-justify"${written}>${processed}</p>`;
     }
   }
 
   if (inList) html += "</ul>";
   if (inCode) html += "</pre>";
+
+  // The opening words a chapter was anchored to got rewritten: say so while writing
+  if (import.meta.env.DEV && unplaced.length) {
+    console.warn(
+      `[blog] chapters.json: no paragraph starts with the anchor for ${unplaced.map((c) => `"${c.title}"`).join(", ")}`,
+    );
+  }
 
   return { metadata, bodyHtml: html };
 }
@@ -211,7 +249,7 @@ export async function getPostContent(slug) {
 
   const post = postsManifest.find((p) => p.slug === slug);
   if (post) {
-    const parsed = parseMarkdown(post.rawContent);
+    const parsed = parseMarkdown(post.rawContent, writingTimeline[slug], postChapters[slug]);
     apiCache[slug] = parsed;
     return parsed;
   }

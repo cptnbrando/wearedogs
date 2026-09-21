@@ -30,6 +30,7 @@
   import DogsLogo from "./DogsLogo.svelte";
   import AppCard from "./AppCard.svelte";
   import { audioCore } from "../lib/AudioCore.svelte.js";
+  import { onDoubleTap } from "../lib/doubleTap.js";
 
   let {
     isClosing = false,
@@ -242,11 +243,12 @@
     }
   }
 
-  function handleBackdropClick() {
+  // Tapping outside the panel only closes it on a double tap
+  const handleBackdropClick = onDoubleTap(() => {
     if (confirmClose()) {
       onClose();
     }
-  }
+  });
 
   function handleCloseClick() {
     if (confirmClose()) {
@@ -504,7 +506,6 @@
   <div
     class="toolbox-panel-container"
     class:closing={isClosing}
-    class:colored={isFlagColors}
     onclick={(e) => e.stopPropagation()}
   >
     <!-- Header -->
@@ -682,10 +683,6 @@
     -webkit-backdrop-filter: blur(15px) saturate(160%);
     animation: panelSlideUpIn 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     transform-origin: center bottom;
-  }
-
-  .toolbox-panel-container:not(.colored) .launcher-view {
-    filter: grayscale(100%);
   }
 
   .toolbox-panel-container.closing {

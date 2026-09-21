@@ -1,0 +1,15 @@
+{
+  "//": "Chapters for the reading rail, kept OUT of the posts so the writing itself is never touched. Each chapter begins at the paragraph whose text starts with `at` (its opening words are enough). Hand-maintained: add, rename or reorder freely. A chapter whose `at` no longer matches anything just drops off the rail (the dev console says which).",
+  "080726-toyota": [
+    { "title": "The Dealership", "at": "Happy Friday. I'm sitting in a Toyota Dealership" },
+    { "title": "Exile", "at": "I had an idea about jails in this future." },
+    { "title": "The Quesarito", "at": "On a summer night in early August, Jeff goes to a taco bell" },
+    { "title": "Purple for Park", "at": "As Jeff is sitting in the drive thru line" },
+    { "title": "Joanne", "at": "The following is a completely different, unrelated story" },
+    { "title": "The Schism", "at": "At the height of his onset schitzophrenia, Ansel" },
+    { "title": "The Snaps", "at": "Shortly after the schism, the snaps began." },
+    { "title": "The Lava Lamp Wall", "at": "Frank's father was the Cloudflare engineer" },
+    { "title": "Ansel", "at": "Really this book is about Ansel." },
+    { "title": "Bedrock", "at": "One idea Frank had to solve this tracking nightmare" }
+  ]
+}

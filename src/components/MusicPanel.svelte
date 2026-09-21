@@ -1,5 +1,5 @@
 <script>
-  import { onMount, onDestroy } from "svelte";
+  import { onMount, onDestroy, untrack } from "svelte";
   import * as THREE from "three";
   import {
     Play,
@@ -27,6 +27,7 @@
   } from "lucide-svelte";
   import { audioCore } from "../lib/AudioCore.svelte.js";
   import { musicLock } from "../lib/musicLock.svelte.js";
+  import { onDoubleTap } from "../lib/doubleTap.js";
   import { fullLibrary } from "../data/music/tracks.js";
   import { settingsManager } from "../lib/settingsManager.svelte.js";
   import { VisualizerEngine } from "../lib/visualizer/VisualizerEngine.js";
@@ -47,6 +48,9 @@
   }
 
   let { isClosing = false, onClose, initialTrackId = null } = $props();
+
+  // Tapping outside the panel only closes it on a double tap
+  const handleBackdropTap = onDoubleTap(() => onClose());
 
   let sortBy = $state("default"); // 'default' | 'artist' | 'album' | 'year' | 'filename' | 'genre' | 'season'
 
@@ -131,14 +135,16 @@
     return peaks;
   });
 
-  // If on mobile and kaleidoscope is turned on while tracks page is active, close tracks page
+  // If on mobile and kaleidoscope is turned on while tracks page is active, close tracks page.
+  // The tracklist read is untracked so this only reacts to the visualizer changing: opening
+  // the tracks page while the kaleidoscope is already on (track text tap) must not bounce it shut.
   $effect(() => {
     const isMobile = window.innerWidth <= 640;
     if (
       isMobile &&
       showVisualizer &&
       activePresetIdx === 0 &&
-      showMobileTracklist
+      untrack(() => showMobileTracklist)
     ) {
       showMobileTracklist = false;
     }
@@ -370,6 +376,15 @@
     } else {
       showVisualizer = !showVisualizer;
     }
+  }
+
+  // On mobile the title / artist / album text opens the tracklist too, same as
+  // the record. The share button lives in the same block, so only taps on the
+  // text rows count.
+  function handleTrackInfoClick(e) {
+    if (window.innerWidth > 640) return;
+    if (!e.target.closest(".scroll-container")) return;
+    showMobileTracklist = true;
   }
 
   function toggleCrossfade() {
@@ -705,7 +720,7 @@
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="mp-backdrop" onclick={onClose}>
+<div class="mp-backdrop" onclick={handleBackdropTap}>
   <div
     class="mp-container"
     class:closing={isClosing}
@@ -995,7 +1010,9 @@
               </div>
 
               <!-- Track info (Always visible!) -->
-              <div class="track-info mt-2">
+              <!-- svelte-ignore a11y_click_events_have_key_events -->
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
+              <div class="track-info mt-2" onclick={handleTrackInfoClick}>
                 <div class="flex items-center justify-center mb-1.5">
                   <button
                     class="player-share-btn"

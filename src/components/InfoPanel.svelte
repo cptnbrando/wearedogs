@@ -1,6 +1,7 @@
 <script>
   import { X, Info, Shield, Zap, Layers } from "lucide-svelte";
   import { onMount } from "svelte";
+  import { onDoubleTap } from "../lib/doubleTap.js";
 
   let { onClose } = $props();
 
@@ -13,6 +14,9 @@
     }, 300);
   }
 
+  // Tapping outside the panel only closes it on a double tap
+  const handleBackdropTap = onDoubleTap(handleClose);
+
   function handleKeydown(e) {
     if (e.key === "Escape" || e.key === "Backspace") {
       handleClose();
@@ -24,7 +28,7 @@
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="info-panel-backdrop" onclick={handleClose}>
+<div class="info-panel-backdrop" onclick={handleBackdropTap}>
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <div
     class="info-panel-container"

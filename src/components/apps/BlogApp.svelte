@@ -14,6 +14,7 @@
   } from "lucide-svelte";
   import { getPosts, getPostContent } from "../../lib/blogApi.js";
   import BlogMusic from "../BlogMusic.svelte";
+  import ReadingRail from "../ReadingRail.svelte";
 
   // Constants
   const SHARE_COOLDOWN_MS = 2000;
@@ -34,6 +35,10 @@
   let isLoadingPost = $state(false);
   let loadError = $state(null);
   let showCopiedAlert = $state(false);
+
+  // The reader's scroll pane and rendered body, for the reading rail
+  let readerPane = $state(null);
+  let markdownBody = $state(null);
 
   // Copy timeout reference
   let copyTimeout = null;
@@ -483,8 +488,10 @@
       </div>
     {:else}
       <!-- ── Post Reader Page (Full Width) ── -->
+      <!-- Its native scrollbar is hidden: the reading rail below replaces it -->
       <div
-        class="reading-detail-pane w-full h-full overflow-y-auto overflow-x-hidden bg-black/10"
+        bind:this={readerPane}
+        class="reading-detail-pane relative w-full h-full overflow-y-auto overflow-x-hidden bg-black/10"
       >
         {#if isLoadingPost}
           <div
@@ -511,6 +518,7 @@
           <article
             class="w-full max-w-3xl mx-auto px-4 py-6 md:px-8 md:py-10 flex flex-col gap-6 relative select-text overflow-x-hidden"
             class:pl-12={!!activeContent.metadata?.music}
+            class:pr-12={!!activeContent.metadata?.music}
             class:glitching-pane={isGlitching}
             class:colored-glitch={isFlagColors}
           >
@@ -568,6 +576,7 @@
 
             <!-- Parsed Markdown Body -->
             <div
+              bind:this={markdownBody}
               class="markdown-body text-sm md:text-base leading-relaxed text-white/80 pb-16"
             >
               {@html activeContent.bodyHtml}
@@ -575,11 +584,32 @@
           </article>
         {/if}
       </div>
+
+      <!-- The scrollbar, and the post's timeline: chapters from its headings,
+           writing days from git history. A sibling of the pane, so it stays put.
+           With music, it mirrors the volume slider pinned on the other side, and
+           the article above pads both sides alike (pl-12 / pr-12). -->
+      {#if readerPane && markdownBody}
+        <ReadingRail
+          scroller={readerPane}
+          content={markdownBody}
+          mirrored={!!activeContent?.metadata?.music}
+        />
+      {/if}
     {/if}
   </div>
 </div>
 
 <style>
+  /* The reading rail is this pane's scrollbar */
+  .reading-detail-pane {
+    scrollbar-width: none;
+  }
+
+  .reading-detail-pane::-webkit-scrollbar {
+    display: none;
+  }
+
   /* TV / 2XL Scales */
   @media (min-width: 1920px) {
     .posts-list-pane {
