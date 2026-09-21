@@ -55,7 +55,13 @@
   let vinylLoaded = $state(false);
   let showVolumeSlider = $state(false);
   let volumePopoverEl = $state(null);
-  let isAnimating = $derived(audioCore.isPlaying && !isClosing);
+  // A track that can't be fetched never spins the deck — it glitches instead
+  let trackErrored = $derived(
+    !!audioCore.fetchErrors[audioCore.library[audioCore.currentTrackIndex]?.id],
+  );
+  let isAnimating = $derived(
+    audioCore.isPlaying && !isClosing && !trackErrored,
+  );
 
   let showVisualizer = $state(false);
   let activePresetIdx = $state(0);
@@ -743,7 +749,10 @@
               class:pointer-events-none={showMobileTracklist}
             >
               <!-- Vinyl disc OR Cassette OR Visualizer -->
-              <div class="vinyl-wrapper relative overflow-hidden">
+              <div
+                class="vinyl-wrapper relative overflow-hidden"
+                class:deck-glitch={trackErrored}
+              >
                 {#if showVisualizer && !isFullscreenVisualizer}
                   <!-- Compact Visualizer Container -->
                   <!-- svelte-ignore a11y_click_events_have_key_events -->

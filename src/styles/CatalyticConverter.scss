@@ -616,8 +616,25 @@
     font-size: 0.8rem;
     color: rgba(255, 255, 255, 0.45);
     margin: 0;
-    max-width: 280px;
+    max-width: 320px;
     line-height: 1.4;
+  }
+
+  .error-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .error-detail {
+    margin: 0;
+    font-family: ui-monospace, monospace;
+    font-size: 0.65rem;
+    color: rgba(255, 255, 255, 0.25);
+    word-break: break-word;
+    max-width: 320px;
   }
 }
 
@@ -745,6 +762,132 @@
   flex-direction: column;
   gap: 12px;
   width: 100%;
+}
+
+/* ── LIVE PHOTO CHIP (a video clip was found inside the picture) ── */
+.live-photo-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  margin-top: 8px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(168, 85, 247, 0.35);
+  background: rgba(168, 85, 247, 0.1);
+  color: #c9a0ff;
+  font-family: monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+
+  .live-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #a855f7;
+    box-shadow: 0 0 6px #a855f7;
+    animation: live-dot-pulse 1.6s ease-in-out infinite;
+  }
+}
+
+@keyframes live-dot-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live-photo-chip .live-dot {
+    animation: none;
+  }
+}
+
+/* ── AUDIO OUTPUT CONTROLS (single file panel + batch header) ── */
+.audio-controls {
+  .audio-controls-grid {
+    display: grid;
+    /* as many columns as fit: side by side when there's room, stacked when
+       the panel is narrow — it follows the panel, not the viewport */
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 185px), 1fr));
+    gap: 14px;
+  }
+
+  .audio-control {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+    transition: opacity 0.2s;
+
+    /* no selected output uses this control */
+    &.off {
+      opacity: 0.38;
+
+      .audio-control-scope {
+        color: rgba(255, 255, 255, 0.4);
+      }
+    }
+  }
+
+  .audio-control-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+    font-family: monospace;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.4);
+  }
+
+  .audio-control-scope {
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: rgba(0, 255, 255, 0.6);
+  }
+
+  .audio-select {
+    width: 100%;
+    min-width: 0;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.75);
+    outline: none;
+    cursor: pointer;
+    font-family: "Outfit", sans-serif;
+    text-overflow: ellipsis;
+
+    &:focus {
+      border-color: #00ffff;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+    }
+
+    option {
+      background: #0d0d12;
+      color: #fff;
+    }
+  }
+
+  .audio-hint {
+    margin: 10px 0 0;
+    font-size: 10px;
+    line-height: 1.45;
+    color: rgba(250, 204, 21, 0.75);
+  }
+
+  &.batch-audio-controls {
+    border-top: 1px dashed rgba(255, 255, 255, 0.06);
+    padding-top: 10px;
+  }
 }
 
 .bulk-batch-header {

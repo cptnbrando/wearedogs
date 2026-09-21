@@ -195,6 +195,135 @@
   }
 }
 
+/* ── Errored track: the deck never plays, it glitches ──
+   A hard burst when the error lands, then a twitch every few seconds for as
+   long as the dead track stays loaded. Works for vinyl, cassette and the
+   visualizer, since it lives on the shared wrapper. */
+.vinyl-wrapper.deck-glitch {
+  > * {
+    animation: deck-glitch-jolt 3.4s steps(1, end) infinite;
+  }
+
+  /* needle stuck in the groove: rocks in place instead of turning */
+  .vinyl-record {
+    animation: deck-stuck 0.42s steps(2, end) infinite;
+  }
+
+  /* torn scanlines sliding over the deck */
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    pointer-events: none;
+    background:
+      linear-gradient(transparent 0 46%, rgba(255, 40, 80, 0.28) 46% 49%, transparent 49%),
+      repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.28) 0 1px, transparent 1px 3px);
+    mix-blend-mode: screen;
+    animation: deck-glitch-tear 3.4s steps(1, end) infinite;
+  }
+}
+
+@keyframes deck-stuck {
+  0% {
+    transform: rotate(-3deg);
+  }
+  50% {
+    transform: rotate(4deg);
+  }
+}
+
+@keyframes deck-glitch-jolt {
+  0% {
+    transform: translate(-5px, 1px) skewX(-6deg);
+    filter: drop-shadow(5px 0 0 rgba(255, 0, 70, 0.75)) drop-shadow(-5px 0 0 rgba(0, 240, 255, 0.75));
+  }
+  3% {
+    transform: translate(6px, -2px) skewX(9deg);
+    filter: drop-shadow(-7px 0 0 rgba(255, 0, 70, 0.75)) drop-shadow(7px 0 0 rgba(0, 240, 255, 0.75)) saturate(2.2);
+  }
+  6% {
+    transform: translate(-3px, 3px) scaleY(0.94);
+    filter: drop-shadow(3px 0 0 rgba(255, 0, 70, 0.7)) drop-shadow(-3px 0 0 rgba(0, 240, 255, 0.7)) hue-rotate(80deg);
+  }
+  9% {
+    transform: translate(4px, 0) skewX(-12deg);
+    filter: drop-shadow(-4px 0 0 rgba(255, 0, 70, 0.75)) drop-shadow(4px 0 0 rgba(0, 240, 255, 0.75)) contrast(1.6);
+  }
+  12% {
+    transform: translate(-2px, -1px);
+    filter: drop-shadow(2px 0 0 rgba(255, 0, 70, 0.6)) drop-shadow(-2px 0 0 rgba(0, 240, 255, 0.6));
+  }
+  15% {
+    transform: none;
+    filter: grayscale(0.55) brightness(0.8);
+  }
+  /* quiet, then one short aftershock */
+  62% {
+    transform: translate(3px, 0) skewX(5deg);
+    filter: drop-shadow(-4px 0 0 rgba(255, 0, 70, 0.7)) drop-shadow(4px 0 0 rgba(0, 240, 255, 0.7));
+  }
+  65% {
+    transform: translate(-2px, 1px);
+    filter: drop-shadow(2px 0 0 rgba(255, 0, 70, 0.6)) drop-shadow(-2px 0 0 rgba(0, 240, 255, 0.6)) grayscale(0.4);
+  }
+  68%,
+  100% {
+    transform: none;
+    filter: grayscale(0.55) brightness(0.8);
+  }
+}
+
+@keyframes deck-glitch-tear {
+  0% {
+    opacity: 1;
+    transform: translateY(-38%);
+  }
+  3% {
+    transform: translateY(24%);
+  }
+  6% {
+    transform: translateY(-12%);
+  }
+  9% {
+    transform: translateY(36%);
+  }
+  12% {
+    transform: translateY(4%);
+  }
+  15% {
+    opacity: 0.25;
+    transform: translateY(0);
+  }
+  62% {
+    opacity: 1;
+    transform: translateY(-20%);
+  }
+  65% {
+    transform: translateY(30%);
+  }
+  68%,
+  100% {
+    opacity: 0.25;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vinyl-wrapper.deck-glitch {
+    > *,
+    .vinyl-record,
+    &::after {
+      animation: none;
+    }
+
+    > * {
+      filter: grayscale(0.55) brightness(0.8) drop-shadow(2px 0 0 rgba(255, 0, 70, 0.6))
+        drop-shadow(-2px 0 0 rgba(0, 240, 255, 0.6));
+    }
+  }
+}
+
 .groove {
   position: absolute;
   border-radius: 50%;

@@ -4,7 +4,7 @@
   "version": "1.0.2",
   "type": "module",
   "scripts": {
-    "dev": "vite --host",
+    "dev": "vite --host 192.168.1.127",
     "build": "npm run changelog && vite build",
     "preview": "vite preview",
     "predeploy": "npm run build",
@@ -35,7 +35,8 @@
     "qrcode": "^1.5.4",
     "svelte-i18n": "^4.0.1",
     "tesseract.js": "^7.0.0",
-    "three": "^0.184.0"
+    "three": "^0.184.0",
+    "wasm-media-encoders": "^0.7.0"
   },
   "blahblahblah": {
     "if you see this shit": "npm warn allow-scripts 4 packages have install scripts not yet covered by allowScripts:",

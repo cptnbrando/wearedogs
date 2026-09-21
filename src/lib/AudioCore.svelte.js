@@ -311,15 +311,15 @@ export class AudioCore {
     // Streaming surfaces load failures on the element, not a fetch()
     this.trackAudio.addEventListener("error", () => {
       if (!this.trackAudio.src) return;
-      const track = this.library[this.currentTrackIndex];
-      if (track) this.fetchErrors[track.id] = true;
-      this.isLoading = false;
+      this.failCurrentTrack();
     });
     this.instAudio.addEventListener("error", () => {
       if (!this.instAudio.src) return;
       const track = this.library[this.currentTrackIndex];
       if (track) {
         this.instFailed[track.id] = true;
+        // An instrumental-only track has no other side to fall back on
+        if (!track.src) return this.failCurrentTrack();
         // A dead instrumental side shouldn't mute the song
         if (this.isInstrumental && track.src) {
           this.isInstrumental = false;
@@ -366,6 +366,23 @@ export class AudioCore {
     this.instSourceNode.connect(this.instGainNode);
 
     this.applyVolume();
+  }
+
+  // The current track can't be fetched or decoded: flag it and make sure
+  // nothing is left "playing" — no spinning deck, no running progress timer.
+  failCurrentTrack() {
+    const track = this.library[this.currentTrackIndex];
+    if (track) this.fetchErrors[track.id] = true;
+    this.isLoading = false;
+    const wasPlaying = this.isPlaying;
+    clearInterval(this.progressInterval);
+    if (this.trackAudio) this.trackAudio.pause();
+    if (this.instAudio) this.instAudio.pause();
+    this.isPlaying = false;
+    if (wasPlaying) {
+      this.updateMediaSession();
+      if (!this.isSyncing) this.broadcastState("state_change");
+    }
   }
 
   async loadTrack(index, autoplay = false) {
@@ -451,19 +468,27 @@ export class AudioCore {
       // For inst-only tracks, resolve duration from instAudio; otherwise trackAudio
       const durationSource = resolvedTrackSrc ? this.trackAudio : this.instAudio;
       await new Promise((resolve) => {
+        const done = () => {
+          durationSource.removeEventListener("loadedmetadata", handler);
+          durationSource.removeEventListener("error", done);
+          resolve();
+        };
         const handler = () => {
           this.duration = durationSource.duration;
-          durationSource.removeEventListener("loadedmetadata", handler);
-          resolve();
+          done();
         };
         if (durationSource.readyState >= 1) {
           this.duration = durationSource.duration;
           resolve();
         } else {
           durationSource.addEventListener("loadedmetadata", handler);
-          setTimeout(resolve, 1500);
+          // a dead URL errors instead of loading — don't sit out the timeout
+          durationSource.addEventListener("error", done);
+          setTimeout(done, 1500);
         }
       });
+      // Streamed sources fail on the element, after the fetch step "succeeded"
+      if (this.fetchErrors[track.id]) loadFailed = true;
     }
 
     this.isLoading = false;
@@ -480,6 +505,10 @@ export class AudioCore {
 
   play(offset = this.currentTime) {
     if (!this.trackAudio) return;
+    // A track that failed to fetch has nothing to play. togglePlay() retries
+    // it through loadTrack(), which clears the flag first.
+    const current = this.library[this.currentTrackIndex];
+    if (current && this.fetchErrors[current.id]) return;
     this.initContext();
     this.resumeContextSoon();
     this.activeAudioType = "music";
@@ -502,7 +531,12 @@ export class AudioCore {
 
       // Play — only play elements that have a loaded source
       if (this.trackAudio.src) {
-        this.trackAudio.play().catch(e => console.error("Error playing trackAudio:", e));
+        this.trackAudio.play().catch((e) => {
+          console.error("Error playing trackAudio:", e);
+          // No decodable source (slow 404, bad file) — not an ordinary
+          // AbortError from a pause() landing mid-play
+          if (e?.name === "NotSupportedError") this.failCurrentTrack();
+        });
       }
       if (this.instAudio && this.instAudio.src) {
         this.instAudio.play().catch(e => console.error("Error playing instAudio:", e));

@@ -1,6 +1,12 @@
 <script>
   import { onMount, onDestroy } from "svelte";
-  import { Search, Plus, Trash2, Globe, Clock } from "lucide-svelte";
+  import { Search, Plus, Trash2, Globe, Clock, ArrowRight } from "lucide-svelte";
+  import {
+    searchPlaces,
+    runZoneQuery,
+    zoneAbbrev,
+    offsetLabel,
+  } from "../../../lib/timeMath.js";
 
   // Predefined major cities and timezones
   const CITY_DATABASE = [
@@ -35,15 +41,50 @@
   let currentTime = $state(new Date());
   let timeUpdater = null;
 
-  // Search filter
-  let filteredCities = $derived.by(() => {
-    if (!searchQuery.trim()) return [];
-    return CITY_DATABASE.filter(
-      (c) =>
-        c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        c.country.toLowerCase().includes(searchQuery.toLowerCase()),
-    ).filter((c) => !trackedCities.some((tc) => tc.tz === c.tz));
+  // A clock is a name + zone: "EST" and "New York" share a zone but are
+  // different clocks, so the pair is the identity.
+  const clockKey = (c) => `${c.name}|${c.tz}`;
+  const isTracked = (c) => trackedCities.some((tc) => clockKey(tc) === clockKey(c));
+
+  // The search bar doubles as a question box: "2pm est to cst"
+  let quickAnswer = $derived.by(() => {
+    const res = runZoneQuery(searchQuery);
+    return res?.type === "zone" ? res : null;
   });
+
+  // Search filter — the curated cities (they carry a country) first, then
+  // every city, region and timezone acronym Father Time knows.
+  let filteredCities = $derived.by(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q || quickAnswer) return [];
+    const curated = CITY_DATABASE.filter(
+      (c) =>
+        c.name.toLowerCase().includes(q) || c.country.toLowerCase().includes(q),
+    );
+    const seen = new Set();
+    return [...curated, ...searchPlaces(q, 14)]
+      .filter((c) => {
+        if (seen.has(clockKey(c)) || isTracked(c)) return false;
+        seen.add(clockKey(c));
+        return true;
+      })
+      .slice(0, 14);
+  });
+
+  // Clocks a quick answer could add: its source and every target
+  let answerClocks = $derived(
+    quickAnswer
+      ? [quickAnswer.src, quickAnswer.tgt, ...quickAnswer.others]
+          .filter((p) => p.label !== "Local Time")
+          .map((p) => ({ name: p.label, country: p.fullName || p.tz.replace(/_/g, " "), tz: p.tz }))
+          .filter((c, i, all) => all.findIndex((x) => clockKey(x) === clockKey(c)) === i && !isTracked(c))
+      : [],
+  );
+
+  function handleSearchKey(e) {
+    if (e.key === "Enter" && filteredCities.length > 0) addCity(filteredCities[0]);
+    if (e.key === "Escape") searchQuery = "";
+  }
 
   function loadTrackedCities() {
     try {
@@ -75,15 +116,21 @@
     }
   }
 
-  function addCity(city) {
-    trackedCities.push(city);
+  function addCity(city, keepQuery = false) {
+    if (isTracked(city)) return;
+    trackedCities.push({ name: city.name, country: city.country, tz: city.tz });
     saveTrackedCities();
-    searchQuery = "";
+    if (!keepQuery) searchQuery = "";
   }
 
-  function removeCity(tz) {
-    trackedCities = trackedCities.filter((c) => c.tz !== tz);
+  function removeCity(city) {
+    trackedCities = trackedCities.filter((c) => clockKey(c) !== clockKey(city));
     saveTrackedCities();
+  }
+
+  // "CDT · UTC-5" under each clock
+  function zoneTag(date, tz) {
+    return `${zoneAbbrev(date, tz)} · ${offsetLabel(date, tz)}`;
   }
 
   // Format absolute current time in targeted timezone
@@ -167,13 +214,62 @@
       <Search size={16} class="text-white/40" />
       <input
         type="text"
-        placeholder="Search cities to add (e.g. Oslo, Tokyo, Sydney)..."
+        placeholder="Add a city or zone (Oslo, EST, UTC+5:30) — or ask “2pm est to cst”"
         bind:value={searchQuery}
+        onkeydown={handleSearchKey}
         class="bg-transparent border-none text-xs text-white outline-none flex-1"
-        aria-label="Search timezone cities"
+        aria-label="Search cities and timezones, or ask a timezone question"
       />
       <Globe size={15} class="text-white/20" />
     </div>
+
+    <!-- Quick answer: the search bar understands "2pm est to cst" -->
+    {#if quickAnswer}
+      <div
+        class="absolute left-0 right-0 top-full mt-1.5 border border-sky-400/25 bg-[#0c0c12] rounded-xl z-30 shadow-2xl p-3.5 flex flex-col gap-2.5 max-h-72 overflow-y-auto"
+        role="status"
+      >
+        <div class="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center">
+          <span class="text-[11px] text-white/55 font-mono">
+            {quickAnswer.src.time}
+            <span class="text-white/80 font-bold">{quickAnswer.src.label}</span>
+          </span>
+          <ArrowRight size={13} class="text-sky-400/60" />
+          <span class="font-mono text-xl font-black text-sky-400">{quickAnswer.tgt.time}</span>
+          <span class="text-[11px] text-white/80 font-bold">{quickAnswer.tgt.label}</span>
+        </div>
+        <p class="text-[9px] font-mono text-white/40 text-center">
+          {quickAnswer.tgt.date} · {quickAnswer.tgt.abbrev} ({quickAnswer.tgt.offset}) ·
+          {quickAnswer.tgt.diff}{quickAnswer.tgt.dayNote !== "same day" ? ` · ${quickAnswer.tgt.dayNote}` : ""}
+        </p>
+        {#if quickAnswer.others.length}
+          <div class="flex flex-wrap gap-1.5 justify-center">
+            {#each quickAnswer.others as o}
+              <span class="bg-white/3 border border-white/8 px-2.5 py-1 rounded-lg text-[11px]">
+                <span class="font-bold text-white/80">{o.label}</span>
+                <span class="font-mono font-bold text-sky-400 ml-1.5">{o.time}</span>
+                {#if o.dayNote !== "same day"}<span class="text-[9px] text-amber-300 ml-1">{o.dayNote}</span>{/if}
+              </span>
+            {/each}
+          </div>
+        {/if}
+        {#each quickAnswer.notes as note}
+          <p class="text-[9px] leading-relaxed text-amber-200/70 text-center">{note}</p>
+        {/each}
+        {#if answerClocks.length}
+          <div class="flex flex-wrap gap-1.5 justify-center pt-1 border-t border-white/5">
+            {#each answerClocks as clock}
+              <button
+                class="flex items-center gap-1 text-[9px] font-mono font-bold uppercase tracking-wider text-sky-400 border border-sky-400/25 hover:bg-sky-400/10 px-2 py-1 rounded-full transition-colors cursor-pointer"
+                onclick={() => addCity(clock, true)}
+              >
+                <Plus size={10} /> {clock.name} clock
+              </button>
+            {/each}
+          </div>
+        {/if}
+      </div>
+    {/if}
 
     <!-- Search Results dropdown -->
     {#if filteredCities.length > 0}
@@ -209,7 +305,7 @@
       </div>
     {:else}
       <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-        {#each trackedCities as city (city.tz)}
+        {#each trackedCities as city (clockKey(city))}
           <div
             class="city-card flex flex-col justify-between p-3.5 border border-white/5 bg-white/2 rounded-xl hover:border-white/10 transition-colors"
           >
@@ -220,7 +316,7 @@
               </div>
               <button
                 class="text-white/35 hover:text-red-400 p-1 transition-colors"
-                onclick={() => removeCity(city.tz)}
+                onclick={() => removeCity(city)}
                 aria-label={`Remove ${city.name}`}
               >
                 <Trash2 size={13} />
@@ -233,6 +329,7 @@
               </span>
               <span class="text-[9px] text-white/45 mt-0.5">
                 {formatDateInZone(currentTime, city.tz)}
+                <span class="font-mono text-white/30 ml-1">{zoneTag(currentTime, city.tz)}</span>
               </span>
             </div>
           </div>
