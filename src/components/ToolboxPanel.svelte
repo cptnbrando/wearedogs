@@ -30,6 +30,7 @@
   import DogsLogo from "./DogsLogo.svelte";
   import AppCard from "./AppCard.svelte";
   import { audioCore } from "../lib/AudioCore.svelte.js";
+  import { onDoubleTap } from "../lib/doubleTap.js";
 
   let {
     isClosing = false,
@@ -242,11 +243,12 @@
     }
   }
 
-  function handleBackdropClick() {
+  // Tapping outside the panel only closes it on a double tap
+  const handleBackdropClick = onDoubleTap(() => {
     if (confirmClose()) {
       onClose();
     }
-  }
+  });
 
   function handleCloseClick() {
     if (confirmClose()) {

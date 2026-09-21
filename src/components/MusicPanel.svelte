@@ -27,6 +27,7 @@
   } from "lucide-svelte";
   import { audioCore } from "../lib/AudioCore.svelte.js";
   import { musicLock } from "../lib/musicLock.svelte.js";
+  import { onDoubleTap } from "../lib/doubleTap.js";
   import { fullLibrary } from "../data/music/tracks.js";
   import { settingsManager } from "../lib/settingsManager.svelte.js";
   import { VisualizerEngine } from "../lib/visualizer/VisualizerEngine.js";
@@ -47,6 +48,9 @@
   }
 
   let { isClosing = false, onClose, initialTrackId = null } = $props();
+
+  // Tapping outside the panel only closes it on a double tap
+  const handleBackdropTap = onDoubleTap(() => onClose());
 
   let sortBy = $state("default"); // 'default' | 'artist' | 'album' | 'year' | 'filename' | 'genre' | 'season'
 
@@ -705,7 +709,7 @@
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="mp-backdrop" onclick={onClose}>
+<div class="mp-backdrop" onclick={handleBackdropTap}>
   <div
     class="mp-container"
     class:closing={isClosing}

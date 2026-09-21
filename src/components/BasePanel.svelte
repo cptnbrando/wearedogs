@@ -2,6 +2,7 @@
   import { ArrowLeft } from "lucide-svelte";
   import DogsLogo from "./DogsLogo.svelte";
   import { audioCore } from "../lib/AudioCore.svelte.js";
+  import { onDoubleTap } from "../lib/doubleTap.js";
 
   let {
     isClosing = false,
@@ -9,11 +10,14 @@
     onClose,
     children,
   } = $props();
+
+  // Tapping outside the panel only closes it on a double tap
+  const handleBackdropTap = onDoubleTap(() => onClose());
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="template-panel-backdrop" onclick={onClose}>
+<div class="template-panel-backdrop" onclick={handleBackdropTap}>
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <div
     class="template-panel-container"
