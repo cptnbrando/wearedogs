@@ -40,10 +40,9 @@
   let useNumbers = $state(true);
   let useSymbols = $state(true);
   let selectedSymbols = $state([...ALL_SYMBOLS]);
-  // The vault is opt-in twice over: off by default, and nothing in it is
-  // allowed until it's clicked. Deliberately not persisted — which exotic
-  // characters someone's passwords use is nobody's business, localStorage included.
-  let useVault = $state(false);
+  // The vault is always on show, but nothing in it is allowed until it's
+  // clicked. Deliberately not persisted — which exotic characters someone's
+  // passwords use is nobody's business, localStorage included.
   let selectedVault = $state([]);
 
   // Output state
@@ -72,7 +71,6 @@
     useNumbers,
     useSymbols,
     symbolPool,
-    useVault,
     vaultPool,
   });
 
@@ -292,11 +290,6 @@
             <span class="charset-name">Symbols</span>
             <span class="charset-sample">#$%</span>
           </label>
-          <label class="charset-toggle vault-toggle" class:checked={useVault}>
-            <input type="checkbox" bind:checked={useVault} />
-            <span class="charset-name">Symbol Vault</span>
-            <span class="charset-sample">°§∞</span>
-          </label>
         </div>
       </div>
 
@@ -330,51 +323,50 @@
         </div>
       {/if}
 
-      <!-- Symbol Vault Group -->
-      {#if useVault}
-        <div class="config-group animated-fade">
-          <div class="label-row">
-            <span class="config-label vault-label">
-              <Vault size={13} />
-              Symbol Vault ({selectedVault.length}/{VAULT_CHARS.length})
-            </span>
-            <div class="symbol-bulk-actions">
-              <button class="bulk-btn vault-bulk" onclick={selectAllVault}>All</button>
-              <span class="bulk-divider">/</span>
-              <button class="bulk-btn vault-bulk" onclick={selectNoVault}>None</button>
+      <!-- Symbol Vault Group: always on show, no toggle — a character only
+           joins the passwords once it is clicked -->
+      <div class="config-group">
+        <div class="label-row">
+          <span class="config-label vault-label">
+            <Vault size={13} />
+            Symbol Vault ({selectedVault.length}/{VAULT_CHARS.length})
+          </span>
+          <div class="symbol-bulk-actions">
+            <button class="bulk-btn vault-bulk" onclick={selectAllVault}>All</button>
+            <span class="bulk-divider">/</span>
+            <button class="bulk-btn vault-bulk" onclick={selectNoVault}>None</button>
+          </div>
+        </div>
+        <span class="picker-note">
+          {isTouch
+            ? "Tap to allow in passwords · hold to copy."
+            : "Click to allow in passwords · right-click to copy."}
+          Not every site accepts these — test a password before you rely on it.
+        </span>
+        {#each SYMBOL_VAULT as group}
+          <div class="vault-shelf">
+            <span class="vault-shelf-label">{group.label}</span>
+            <div class="symbol-chip-grid">
+              {#each group.chars as ch}
+                <button
+                  class="symbol-chip vault-chip"
+                  class:active={selectedVault.includes(ch)}
+                  class:armed={armedChar === ch}
+                  onclick={() => toggleVaultChar(ch)}
+                  oncontextmenu={(e) => handleVaultContextMenu(e, ch)}
+                  ontouchstart={(e) => startHold(e, ch)}
+                  ontouchmove={moveHold}
+                  ontouchend={endHold}
+                  ontouchcancel={cancelHold}
+                  aria-pressed={selectedVault.includes(ch)}
+                  aria-label="Allow {ch} in passwords"
+                  title={codePointLabel(ch)}
+                >{ch}</button>
+              {/each}
             </div>
           </div>
-          <span class="picker-note">
-            {isTouch
-              ? "Tap to allow in passwords · hold to copy."
-              : "Click to allow in passwords · right-click to copy."}
-            Not every site accepts these — test a password before you rely on it.
-          </span>
-          {#each SYMBOL_VAULT as group}
-            <div class="vault-shelf">
-              <span class="vault-shelf-label">{group.label}</span>
-              <div class="symbol-chip-grid">
-                {#each group.chars as ch}
-                  <button
-                    class="symbol-chip vault-chip"
-                    class:active={selectedVault.includes(ch)}
-                    class:armed={armedChar === ch}
-                    onclick={() => toggleVaultChar(ch)}
-                    oncontextmenu={(e) => handleVaultContextMenu(e, ch)}
-                    ontouchstart={(e) => startHold(e, ch)}
-                    ontouchmove={moveHold}
-                    ontouchend={endHold}
-                    ontouchcancel={cancelHold}
-                    aria-pressed={selectedVault.includes(ch)}
-                    aria-label="Allow {ch} in passwords"
-                    title={codePointLabel(ch)}
-                  >{ch}</button>
-                {/each}
-              </div>
-            </div>
-          {/each}
-        </div>
-      {/if}
+        {/each}
+      </div>
     </div>
 
     <!-- RIGHT PANEL: Output -->
@@ -683,23 +675,6 @@
   }
 
   /* ── Symbol Vault (gold, to tell its picks apart from ordinary symbols) ── */
-  .charset-toggle.vault-toggle {
-    grid-column: 1 / -1;
-  }
-
-  .charset-toggle.vault-toggle input {
-    accent-color: #e6b900;
-  }
-
-  .charset-toggle.vault-toggle:hover {
-    border-color: rgba(230, 185, 0, 0.3);
-  }
-
-  .charset-toggle.vault-toggle.checked {
-    background: rgba(230, 185, 0, 0.06);
-    border-color: rgba(230, 185, 0, 0.4);
-  }
-
   .vault-label {
     display: flex;
     align-items: center;

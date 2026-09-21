@@ -74,7 +74,8 @@ export function buildPools(options) {
   if (options.useUppercase) pools.push(CHAR_SETS.uppercase);
   if (options.useNumbers) pools.push(CHAR_SETS.numbers);
   if (options.useSymbols && options.symbolPool) pools.push(options.symbolPool);
-  if (options.useVault && options.vaultPool) pools.push(options.vaultPool);
+  // No on/off switch for the vault: it counts as soon as a character is picked
+  if (options.vaultPool) pools.push(options.vaultPool);
 
   return pools;
 }
