@@ -4,6 +4,12 @@
  * hardware key, and Bluetooth controls integration.
  */
 import { musicLock } from "./musicLock.svelte.js";
+import { StreamGuard } from "./StreamGuard.js";
+
+// With the screen off there's nobody to press play on a dead track, so the
+// player skips past it — but only this many in a row. Past that the network is
+// gone, not the track, and it stops instead of burning through the library.
+const MAX_HIDDEN_SKIPS = 3;
 
 export class AudioCore {
   audioCtx = null;
@@ -44,6 +50,11 @@ export class AudioCore {
   instFailed = $state({});
 
   progressInterval = null;
+  trackGuard = null;
+  instGuard = null;
+  // loadTrack() pauses while it swaps sources; this remembers it means to play
+  autoplayPending = false;
+  hiddenSkips = 0;
   library = [];
   activeTrackBlobUrl = null;
   activeInstBlobUrl = null;
@@ -308,18 +319,17 @@ export class AudioCore {
     this.instAudio.crossOrigin = "anonymous";
     this.instAudio.preload = "auto";
 
-    // Streaming surfaces load failures on the element, not a fetch()
-    this.trackAudio.addEventListener("error", () => {
-      if (!this.trackAudio.src) return;
-      this.failCurrentTrack();
-    });
-    this.instAudio.addEventListener("error", () => {
-      if (!this.instAudio.src) return;
+    // Streaming surfaces load failures on the element, not a fetch(). The
+    // guards retry dropped connections and stalls first (screen-off networking
+    // drops them all the time); only a stream they can't revive lands here.
+    const wantsPlayback = () => this.isPlaying || this.autoplayPending;
+    this.trackGuard = new StreamGuard(this.trackAudio, wantsPlayback, () => this.handleDeadTrack());
+    this.instGuard = new StreamGuard(this.instAudio, wantsPlayback, () => {
       const track = this.library[this.currentTrackIndex];
       if (track) {
         this.instFailed[track.id] = true;
         // An instrumental-only track has no other side to fall back on
-        if (!track.src) return this.failCurrentTrack();
+        if (!track.src) return this.handleDeadTrack();
         // A dead instrumental side shouldn't mute the song
         if (this.isInstrumental && track.src) {
           this.isInstrumental = false;
@@ -327,6 +337,9 @@ export class AudioCore {
         }
       }
     });
+    // Sound is coming out again, so the skip streak is over
+    this.trackAudio.addEventListener("playing", () => { this.hiddenSkips = 0; });
+    this.instAudio.addEventListener("playing", () => { this.hiddenSkips = 0; });
 
     // Bind event listeners for ending and duration changes
     this.trackAudio.addEventListener("ended", () => {
@@ -385,9 +398,35 @@ export class AudioCore {
     }
   }
 
+  /**
+   * The current track's stream is gone for good. On screen, stop and let the
+   * deck glitch so the listener sees it. With the screen off nobody can press
+   * play, so flag it and move on to the next song instead of going silent.
+   */
+  handleDeadTrack() {
+    const track = this.library[this.currentTrackIndex];
+    // Mid-load failures are picked up by loadTrack() itself once its
+    // metadata wait resolves
+    if (this.isLoading) {
+      if (track) this.fetchErrors[track.id] = true;
+      return;
+    }
+    if (!this.shouldSkipDeadTrack(this.isPlaying)) return this.failCurrentTrack();
+    if (track) this.fetchErrors[track.id] = true;
+    this.hiddenSkips++;
+    this.nextTrack(true);
+  }
+
+  /** @param {boolean} meantToPlay whether playback was running (or starting) */
+  shouldSkipDeadTrack(meantToPlay) {
+    if (!meantToPlay || this.hiddenSkips >= MAX_HIDDEN_SKIPS) return false;
+    return typeof document !== "undefined" && document.visibilityState === "hidden";
+  }
+
   async loadTrack(index, autoplay = false) {
     if (index < 0 || index >= this.library.length) return;
 
+    this.autoplayPending = autoplay;
     // Stop current playback immediately
     this.pause();
 
@@ -402,6 +441,8 @@ export class AudioCore {
     this.isLoading = true;
 
     this.initContext();
+    this.trackGuard.reset();
+    this.instGuard.reset();
     await this.resumeContextSoon();
 
     if (this.activeTrackBlobUrl) {
@@ -496,6 +537,14 @@ export class AudioCore {
     if (!loadFailed && autoplay) {
       this.play(0);
     }
+    this.autoplayPending = false;
+    // Auto-advancing with the screen off into a track that won't load: keep
+    // the music going with the next one (unless a newer load already took over)
+    if (loadFailed && this.currentTrackIndex === index && this.shouldSkipDeadTrack(autoplay)) {
+      this.hiddenSkips++;
+      this.nextTrack(true);
+      return;
+    }
     this.updateMediaSession();
 
     if (!this.isSyncing) {
@@ -534,8 +583,9 @@ export class AudioCore {
         this.trackAudio.play().catch((e) => {
           console.error("Error playing trackAudio:", e);
           // No decodable source (slow 404, bad file) — not an ordinary
-          // AbortError from a pause() landing mid-play
-          if (e?.name === "NotSupportedError") this.failCurrentTrack();
+          // AbortError from a pause() landing mid-play. When the element
+          // itself errored, its StreamGuard already dealt with it.
+          if (e?.name === "NotSupportedError" && !this.trackAudio.error) this.handleDeadTrack();
         });
       }
       if (this.instAudio && this.instAudio.src) {
@@ -617,7 +667,8 @@ export class AudioCore {
     this.loadTrack(idx, this.isPlaying);
   }
 
-  nextTrack() {
+  /** @param {boolean} [autoplay] play the next track (defaults to whether this one is playing) */
+  nextTrack(autoplay = this.isPlaying) {
     if (this.masterTabId && this.masterTabId !== this.tabId) {
       this.broadcast({ type: "cmd_next" });
       return;
@@ -639,7 +690,7 @@ export class AudioCore {
         ? this.currentTrackIndex + 1
         : 0;
     }
-    this.loadTrack(idx, this.isPlaying);
+    this.loadTrack(idx, autoplay);
   }
 
   seek(val) {
