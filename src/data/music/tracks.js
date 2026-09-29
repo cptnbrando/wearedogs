@@ -228,4 +228,18 @@ export const fullLibrary = [
     attrib: "https://polyphia.com/",
     public: true
   },
+  {
+    id: "batarang",
+    title: "batarang",
+    artist: "DOGS",
+    album: "DOGS RUN THE WORLD",
+    cover: "https://wearedogs.net/dogs.webp",
+    altCover: "",
+    src: "https://data.wearedogs.net/music/2026/batarang.mp3",
+    instrumental: "https://data.wearedogs.net/music/2026/batarang-ins.mp3",
+    dateAdded: "2026-09-29T00:30:00-05:00",
+    year: 2026,
+    genre: "Hip-Hop",
+    public: true
+  },
 ];
