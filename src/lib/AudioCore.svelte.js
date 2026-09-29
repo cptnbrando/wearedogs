@@ -7,9 +7,12 @@ import { musicLock } from "./musicLock.svelte.js";
 import { StreamGuard } from "./StreamGuard.js";
 
 // With the screen off there's nobody to press play on a dead track, so the
-// player skips past it — but only this many in a row. Past that the network is
-// gone, not the track, and it stops instead of burning through the library.
-const MAX_HIDDEN_SKIPS = 3;
+// player skips past it and never gives up. The first few skips are instant;
+// past that the network is probably gone (tunnel, dead zone), so it waits a
+// little longer before each try instead of racing through the library.
+const FREE_HIDDEN_SKIPS = 3;
+const SKIP_WAIT_MS = 5000;
+const MAX_SKIP_WAIT_MS = 30000;
 
 export class AudioCore {
   audioCtx = null;
@@ -55,6 +58,7 @@ export class AudioCore {
   // loadTrack() pauses while it swaps sources; this remembers it means to play
   autoplayPending = false;
   hiddenSkips = 0;
+  skipTimer = null;
   library = [];
   activeTrackBlobUrl = null;
   activeInstBlobUrl = null;
@@ -401,7 +405,7 @@ export class AudioCore {
   /**
    * The current track's stream is gone for good. On screen, stop and let the
    * deck glitch so the listener sees it. With the screen off nobody can press
-   * play, so flag it and move on to the next song instead of going silent.
+   * play, so flag it and keep moving on to the next song, forever.
    */
   handleDeadTrack() {
     const track = this.library[this.currentTrackIndex];
@@ -413,19 +417,30 @@ export class AudioCore {
     }
     if (!this.shouldSkipDeadTrack(this.isPlaying)) return this.failCurrentTrack();
     if (track) this.fetchErrors[track.id] = true;
-    this.hiddenSkips++;
-    this.nextTrack(true);
+    this.skipDeadTrack();
   }
 
   /** @param {boolean} meantToPlay whether playback was running (or starting) */
   shouldSkipDeadTrack(meantToPlay) {
-    if (!meantToPlay || this.hiddenSkips >= MAX_HIDDEN_SKIPS) return false;
+    if (!meantToPlay) return false;
     return typeof document !== "undefined" && document.visibilityState === "hidden";
+  }
+
+  // Next song, now for the first few dead ones in a row, then with a growing
+  // wait (5s, 10s, 20s, 30s, 30s...) while the network is out. Any track load
+  // in the meantime (a tap, a lock-screen button) cancels the pending skip.
+  skipDeadTrack() {
+    this.hiddenSkips++;
+    if (this.hiddenSkips <= FREE_HIDDEN_SKIPS) return this.nextTrack(true);
+    const wait = Math.min(MAX_SKIP_WAIT_MS, SKIP_WAIT_MS * Math.pow(2, this.hiddenSkips - FREE_HIDDEN_SKIPS - 1));
+    clearTimeout(this.skipTimer);
+    this.skipTimer = setTimeout(() => this.nextTrack(true), wait);
   }
 
   async loadTrack(index, autoplay = false) {
     if (index < 0 || index >= this.library.length) return;
 
+    clearTimeout(this.skipTimer);
     this.autoplayPending = autoplay;
     // Stop current playback immediately
     this.pause();
@@ -541,8 +556,7 @@ export class AudioCore {
     // Auto-advancing with the screen off into a track that won't load: keep
     // the music going with the next one (unless a newer load already took over)
     if (loadFailed && this.currentTrackIndex === index && this.shouldSkipDeadTrack(autoplay)) {
-      this.hiddenSkips++;
-      this.nextTrack(true);
+      this.skipDeadTrack();
       return;
     }
     this.updateMediaSession();
