@@ -51,6 +51,8 @@ export class AudioCore {
   waveformPeaks = $state({});
   /** Per-track instrumental load failures — set when inst fetch fails but vocal succeeds */
   instFailed = $state({});
+  /** Per-track vocal load failures — the song carries on as instrumental-only */
+  vocalFailed = $state({});
 
   progressInterval = null;
   trackGuard = null;
@@ -322,16 +324,17 @@ export class AudioCore {
     // Streaming surfaces load failures on the element, not a fetch(). The
     // guards retry dropped connections and stalls first (screen-off networking
     // drops them all the time); only a stream they can't revive lands here.
+    // A dead vocal side falls back to the instrumental before the track dies.
     const wantsPlayback = () => this.isPlaying || this.autoplayPending;
-    this.trackGuard = new StreamGuard(this.trackAudio, wantsPlayback, () => this.handleDeadTrack());
+    this.trackGuard = new StreamGuard(this.trackAudio, wantsPlayback, () => this.failVocalSide());
     this.instGuard = new StreamGuard(this.instAudio, wantsPlayback, () => {
       const track = this.library[this.currentTrackIndex];
       if (track) {
         this.instFailed[track.id] = true;
         // An instrumental-only track has no other side to fall back on
-        if (!track.src) return this.handleDeadTrack();
+        if (this.isInstOnly(track)) return this.handleDeadTrack();
         // A dead instrumental side shouldn't mute the song
-        if (this.isInstrumental && track.src) {
+        if (this.isInstrumental) {
           this.isInstrumental = false;
           this.applyCrossfade();
         }
@@ -354,12 +357,12 @@ export class AudioCore {
     this.instAudio.addEventListener("ended", () => {
       // Handle ended from instAudio for inst-only tracks
       const track = this.library[this.currentTrackIndex];
-      if (track && !track.src && track.instrumental) this.onEnded();
+      if (track && this.isInstOnly(track) && track.instrumental) this.onEnded();
     });
     this.instAudio.addEventListener("durationchange", () => {
       // Update duration from instAudio only for inst-only tracks
       const track = this.library[this.currentTrackIndex];
-      if (track && !track.src && !isNaN(this.instAudio.duration)) {
+      if (track && this.isInstOnly(track) && !isNaN(this.instAudio.duration)) {
         this.duration = this.instAudio.duration;
       }
     });
@@ -379,6 +382,35 @@ export class AudioCore {
     this.instSourceNode.connect(this.instGainNode);
 
     this.applyVolume();
+  }
+
+  /**
+   * True when a track plays from its instrumental alone: it never had a vocal
+   * file, or the vocal file failed to load (e.g. deleted from R2).
+   * @param {{ id: string, src?: string }} track
+   * @returns {boolean}
+   */
+  isInstOnly(track) {
+    return !track.src || !!this.vocalFailed[track.id];
+  }
+
+  // The vocal side can't be fetched or decoded. If the instrumental is still
+  // good, demote the song to instrumental-only instead of killing it.
+  failVocalSide() {
+    const track = this.library[this.currentTrackIndex];
+    if (!track || this.vocalFailed[track.id]) return;
+    if (!track.instrumental || this.instFailed[track.id] || !this.instAudio?.src) {
+      return this.handleDeadTrack();
+    }
+    console.warn(`Vocal file failed for "${track.id}", playing instrumental only`);
+    this.vocalFailed[track.id] = true;
+    this.trackGuard.reset();
+    this.trackAudio.removeAttribute("src");
+    this.trackAudio.load();
+    this.isInstrumental = true;
+    this.applyCrossfade();
+    if (!isNaN(this.instAudio.duration)) this.duration = this.instAudio.duration;
+    if (!this.isSyncing) this.broadcastState("state_change");
   }
 
   // The current track can't be fetched or decoded: flag it and make sure
@@ -447,6 +479,7 @@ export class AudioCore {
     // Clear all error state on retry
     delete this.fetchErrors[track.id];
     delete this.instFailed[track.id];
+    delete this.vocalFailed[track.id];
 
     this.currentTime = 0;
     this.isLoading = true;
@@ -465,16 +498,20 @@ export class AudioCore {
       this.activeInstBlobUrl = null;
     }
 
-    // --- Fetch vocal track (required) ---
+    // --- Fetch vocal track (the instrumental can stand in for it) ---
     let loadFailed = false;
     let resolvedTrackSrc = "";
     try {
       resolvedTrackSrc = await this.getAudioSource(track.src, "track", track.id);
     } catch (err) {
       console.error("Error loading vocal track:", err);
-      this.isPlaying = false;
-      this.fetchErrors[track.id] = true;
-      loadFailed = true;
+      if (track.instrumental) {
+        this.vocalFailed[track.id] = true;
+      } else {
+        this.isPlaying = false;
+        this.fetchErrors[track.id] = true;
+        loadFailed = true;
+      }
     }
 
     // --- Fetch instrumental (optional — failure only disables that side) ---
@@ -489,10 +526,17 @@ export class AudioCore {
       }
     }
 
+    // Neither side resolved: nothing left to play
+    if (!loadFailed && !resolvedTrackSrc && !resolvedInstSrc) {
+      this.isPlaying = false;
+      this.fetchErrors[track.id] = true;
+      loadFailed = true;
+    }
+
     // Set isInstrumental: if only inst loaded (no vocal src), force inst mode.
     // If both available, respect user preference. Otherwise vocal mode.
     const instAvailable = !!(track.instrumental && resolvedInstSrc && !this.instFailed[track.id]);
-    if (!track.src && instAvailable) {
+    if (this.isInstOnly(track) && instAvailable) {
       // Inst-only track (e.g. sleepless) — always instrumental
       this.isInstrumental = true;
     } else if (instAvailable) {
@@ -595,7 +639,7 @@ export class AudioCore {
           // No decodable source (slow 404, bad file) — not an ordinary
           // AbortError from a pause() landing mid-play. When the element
           // itself errored, its StreamGuard already dealt with it.
-          if (e?.name === "NotSupportedError" && !this.trackAudio.error) this.handleDeadTrack();
+          if (e?.name === "NotSupportedError" && !this.trackAudio.error) this.failVocalSide();
         });
       }
       if (this.instAudio && this.instAudio.src) {
@@ -723,7 +767,7 @@ export class AudioCore {
 
         if (isSelfMaster) {
           const track = this.library[this.currentTrackIndex];
-          const isInstOnly = track && !track.src && track.instrumental;
+          const isInstOnly = track && this.isInstOnly(track) && track.instrumental;
           const primaryAudio = (isInstOnly && this.instAudio?.src) ? this.instAudio : this.trackAudio;
           this.currentTime = primaryAudio.currentTime;
 
@@ -796,7 +840,7 @@ export class AudioCore {
     // Block toggle to instrumental if: no instrumental URL, or the inst fetch failed
     if (isInst && (!track?.instrumental || this.instFailed[track?.id])) return false;
     // Block toggle to vocal if: no vocal src (inst-only track)
-    if (!isInst && track && !track.src) return false;
+    if (!isInst && track && this.isInstOnly(track)) return false;
     this.isInstrumental = isInst;
     this.userPrefersInstrumental = isInst;
     this.applyCrossfade();
