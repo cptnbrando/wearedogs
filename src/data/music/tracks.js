@@ -236,7 +236,7 @@ export const fullLibrary = [
     cover: "https://wearedogs.net/dogs.webp",
     altCover: "",
     src: "",
-    instrumental: "https://data.wearedogs.net/music/2026/batarang-ins.mp3",
+    instrumental: "https://data.wearedogs.net/music/2026/batarang2.mp3",
     dateAdded: "2026-09-29T00:30:00-05:00",
     year: 2026,
     genre: "Hip-Hop",
