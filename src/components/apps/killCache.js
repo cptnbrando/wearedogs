@@ -58,10 +58,10 @@ export async function killCache() {
   try { sessionStorage.clear(); } catch (e) { console.warn("sessionStorage wipe failed:", e); }
   try { wipeCookies(); } catch (e) { console.warn("Cookie wipe failed:", e); }
 
-  await Promise.all(
-    [wipeIndexedDb, wipeCacheStorage, unregisterServiceWorkers].map((wipe) =>
-      wipe().catch((e) => console.warn("Site data wipe step failed:", e)),
-    ),
-  );
+  const attempt = (wipe) => wipe().catch((e) => console.warn("Site data wipe step failed:", e));
+  // The service worker goes first, so it stops taking on new songs to save
+  // into the caches about to be wiped
+  await attempt(unregisterServiceWorkers);
+  await Promise.all([wipeIndexedDb, wipeCacheStorage].map(attempt));
   window.location.reload();
 }

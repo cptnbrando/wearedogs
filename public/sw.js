@@ -14,7 +14,8 @@ const SONG_CACHE = "wearedogs-songs";
 const IMAGE_CACHE = "wearedogs-images";
 const DATA_HOST = "data.wearedogs.net";
 const SONG_DIR = "/music/";
-const LOCKED_DIR = "/music/lockup/";
+// Any lockup folder, wherever it sits under /music/
+const LOCKED_SEGMENT = "/lockup/";
 const FROM_THE_TOP = "bytes=0-";
 const IMAGE_EXT = /\.(png|jpe?g|webp|gif|avif|svg)$/i;
 const RANGE_PATTERN = /bytes=(\d*)-(\d*)/;
@@ -28,13 +29,18 @@ self.addEventListener("fetch", (event) => {
   if (req.method !== "GET") return;
   const url = new URL(req.url);
   if (url.hostname !== DATA_HOST) return;
-  if (isSong(url)) return event.respondWith(song(event, req));
-  if (IMAGE_EXT.test(url.pathname)) event.respondWith(image(event, req));
+  // Passcode-gated requests are the browser's business alone: never cached,
+  // never re-sent without their header
+  if (req.headers.has("authorization")) return;
+  // If the worker itself breaks (storage blocked, quota, a bug), the request
+  // still goes out as if it weren't here: playback must never depend on it
+  if (isSong(url)) return event.respondWith(song(event, req).catch(() => fetch(req)));
+  if (IMAGE_EXT.test(url.pathname)) event.respondWith(image(event, req).catch(() => fetch(req)));
 });
 
 /** @param {URL} url */
 function isSong(url) {
-  if (!url.pathname.startsWith(SONG_DIR) || url.pathname.startsWith(LOCKED_DIR)) return false;
+  if (!url.pathname.startsWith(SONG_DIR) || url.pathname.indexOf(LOCKED_SEGMENT) !== -1) return false;
   return url.pathname.endsWith(".mp3");
 }
 
