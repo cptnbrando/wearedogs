@@ -24,6 +24,14 @@
   // back on the pre-map entry instead of a leftover /map duplicate.
   let { isClosing = false, onClose, depth = $bindable(1) } = $props();
 
+  // The blurb banner renders twice (mobile + desktop) and CSS hides one of
+  // them; slide() measures a display:none node as NaN and spams keyframe
+  // warnings every rotation, so the hidden twin skips the transition.
+  function blurbSlide(node, opts) {
+    if (getComputedStyle(node).display === "none") return { duration: 0 };
+    return slide(node, opts);
+  }
+
   const CITIES = [
     {
       name: "Tulsa OK",
@@ -530,7 +538,7 @@
     {#if currentBlurb}
       <div
         class="blurb-banner mobile-blurb bg-gradient-to-r from-red-950/40 via-black/40 to-red-950/40 border border-red-500/20 rounded-xl p-2.5 text-center transition-all shrink-0"
-        transition:slide={{ duration: 200 }}
+        transition:blurbSlide={{ duration: 200 }}
       >
         <p
           class="text-xs font-mono font-bold italic tracking-wide text-zinc-300"
@@ -2003,7 +2011,7 @@
         {#if currentBlurb}
           <div
             class="blurb-banner desktop-blurb bg-gradient-to-r from-red-950/40 via-black/40 to-red-950/40 border border-red-500/20 rounded-xl p-2.5 mb-3 text-center transition-all shrink-0"
-            transition:slide={{ duration: 200 }}
+            transition:blurbSlide={{ duration: 200 }}
           >
             <p
               class="text-xs font-mono font-bold italic tracking-wide text-zinc-300"
