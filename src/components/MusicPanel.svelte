@@ -41,6 +41,8 @@
   const title = "MUSIC";
 
   const ERROR_COVER = "/img/error_cover.png";
+  // How long a downloaded track's blob URL lives before it's freed
+  const DOWNLOAD_REVOKE_DELAY_MS = 60000;
 
   function handleCoverError(e) {
     if (!e.target.src.endsWith(ERROR_COVER)) {
@@ -338,23 +340,18 @@
     if (!url || downloadingTrackId) return;
     downloadingTrackId = track.id;
     try {
-      const fetchOpts = {};
-      if (
-        url.startsWith("https://data.wearedogs.net/") &&
-        url.includes("/lockup/") &&
-        musicLock.password
-      ) {
-        fetchOpts.headers = { Authorization: `password=${musicLock.password}` };
-      }
-      const res = await fetch(url, fetchOpts);
+      const res = await fetch(url, musicLock.fetchOptionsFor(url));
       if (!res.ok) throw new Error(`Fetch failed with status ${res.status}`);
-      const blob = await res.blob();
-      const blobUrl = URL.createObjectURL(blob);
+      const blobUrl = URL.createObjectURL(await res.blob());
       const a = document.createElement("a");
       a.href = blobUrl;
-      a.download = url.split("/").pop() || `${track.id}.mp3`;
+      a.download = decodeURIComponent(url.split("/").pop() || "") || `${track.id}.mp3`;
+      // Old Firefox ignores clicks on detached anchors; revoking right away
+      // cancels the save in Safari/Firefox, so give the download a head start.
+      document.body.appendChild(a);
       a.click();
-      URL.revokeObjectURL(blobUrl);
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(blobUrl), DOWNLOAD_REVOKE_DELAY_MS);
     } catch (err) {
       console.error("Failed to download track:", err);
     } finally {

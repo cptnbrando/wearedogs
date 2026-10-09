@@ -3,7 +3,7 @@
  * Uses HTMLMediaElement streaming connected to Web Audio Context for native OS Media Session,
  * hardware key, and Bluetooth controls integration.
  */
-import { musicLock } from "./musicLock.svelte.js";
+import { musicLock, isLockupUrl } from "./musicLock.svelte.js";
 
 export class AudioCore {
   audioCtx = null;
@@ -181,13 +181,9 @@ export class AudioCore {
     if (!url) return "";
     // Lockup files are gated server-side behind the calculator passcode, so
     // they must be fetched with the auth header and played from a blob.
-    if (url.startsWith("https://data.wearedogs.net/") && url.includes("/lockup/")) {
+    if (isLockupUrl(url)) {
       try {
-        const fetchOpts = {};
-        if (musicLock.password) {
-          fetchOpts.headers = { Authorization: `password=${musicLock.password}` };
-        }
-        const res = await fetch(url, fetchOpts);
+        const res = await fetch(url, musicLock.fetchOptionsFor(url));
         if (res.ok) {
           const blob = await res.blob();
           const blobUrl = URL.createObjectURL(blob);
