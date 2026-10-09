@@ -23,7 +23,25 @@
     Bug,
     ClipboardCopy,
     TriangleAlert,
+    FileText,
   } from "lucide-svelte";
+  import DocumentPreview from "./DocumentPreview.svelte";
+  import CropPicker from "./CropPicker.svelte";
+  import {
+    DOCUMENT_OUTPUTS,
+    DOCUMENT_ACCEPT,
+    isDocumentExt,
+    normalizeDocExt,
+    defaultDocumentOutput,
+    opensAsDocument,
+    readDocument,
+    writeDocument,
+    isBinaryDocumentBlob,
+    isPdfBlob,
+    reconvertCandidate,
+    reopensAsFile,
+  } from "./converterDocuments.js";
+  import { NO_CROP, cropRect, thumbnailFit } from "../../lib/imageCrop.js";
   import {
     describeError,
     friendlyErrorMessage,
@@ -136,6 +154,8 @@
   let batchVideoFormats = $state(["mp4"]);
   let batchDataFormats = $state(["json"]);
   let batchRomFormats = $state(["z64"]);
+  let batchDocumentFormats = $state([DOCUMENT_OUTPUTS[0]]);
+  let batchCrop = $state(NO_CROP); // centre crop for every image in a batch
   let bulkZipDownloads = $state(false);
   let bulkAllComplete = $derived(
     !isConvertingBulk &&
@@ -151,6 +171,25 @@
   let targetHeight = $state(0);
   let keepAspectRatio = $state(true);
   let keepTens = $state(true);
+  // Centre crop (imageCrop.js). The resolution controls work on the cropped
+  // size: originalWidth/Height become the crop's, the picture's own size stays here.
+  let cropMode = $state(NO_CROP);
+  let naturalWidth = $state(0);
+  let naturalHeight = $state(0);
+  let thumbStyle = $derived(thumbnailFit(naturalWidth, naturalHeight, cropMode));
+
+  function setCrop(id) {
+    cropMode = id;
+    const rect = cropRect(naturalWidth, naturalHeight, id);
+    originalWidth = rect ? rect.width : naturalWidth;
+    originalHeight = rect ? rect.height : naturalHeight;
+    targetWidth = originalWidth;
+    targetHeight = originalHeight;
+  }
+
+  // Documents: the parsed element model (plain, never proxied) and its counts
+  let docElements = null;
+  let docStats = $state(null);
 
   // Quality & compression parameters
   let quality = $state(80); // 0 to 100
@@ -245,6 +284,13 @@
     video: ["mp4", "mov", "mkv", "avi", "mp3", "wav", "m4a", "aac", "webm"],
     data: ["dog", "json", "js", "yml", "ts", "md"],
     rom: N64_FORMATS,
+    document: DOCUMENT_OUTPUTS,
+  };
+
+  const DOCUMENT_FORMAT_GROUP = {
+    name: "Document Formats",
+    color: "var(--converter-doc-color)",
+    formats: DOCUMENT_OUTPUTS,
   };
 
   const ROM_FORMAT_GROUP = {
@@ -326,7 +372,9 @@
               ]
             : fileType === "rom"
               ? [ROM_FORMAT_GROUP]
-              : [],
+              : fileType === "document"
+                ? [DOCUMENT_FORMAT_GROUP]
+                : [],
   );
 
   const hasQualitySupport = $derived(
@@ -630,7 +678,12 @@
 
   // Feeds a converted output back in as the new input, ready for another format.
   async function reconvertOutput(item) {
-    if (!item.blob) return;
+    if (!item?.blob) return;
+    // Documents (and markdown, which may be prose or a .dog table) re-enter as files
+    if (reopensAsFile(item.name)) {
+      await processFile(new File([item.blob], item.name, { type: item.blob.type }));
+      return;
+    }
     const text = await item.blob.text();
     const name = item.name;
     const size = item.blob.size;
@@ -752,6 +805,7 @@
         "Target size": `${s.targetWidth}×${s.targetHeight}`,
         Quality: s.quality,
         Compression: s.compression,
+        Crop: s.cropMode && s.cropMode !== NO_CROP ? s.cropMode : "",
         "Live photo video": s.liveVideo ? `${s.liveVideo.size} bytes, ${s.liveVideo.seconds.toFixed(1)} s` : "",
       };
     }
@@ -886,6 +940,7 @@
         audioSampleRate,
         audioBitrate,
         liveVideo,
+        cropMode,
       }),
       notes: {
         ...decodeNotes(fileType, !!audioBuffer, audioDecodeError),
@@ -987,6 +1042,8 @@
       if (file !== mine) return; // another file was dropped meanwhile
       liveVideo = video;
       if (dims) {
+        naturalWidth = dims.w;
+        naturalHeight = dims.h;
         originalWidth = dims.w;
         originalHeight = dims.h;
         targetWidth = originalWidth;
@@ -1068,6 +1125,21 @@
           err,
         );
       }
+    } else if (await opensAsDocument(file, ext)) {
+      const mine = file;
+      fileType = "document";
+      inputFormat = normalizeDocExt(ext);
+      selectedFormats = [defaultDocumentOutput(inputFormat)];
+      selectionAnchor = selectedFormats[0];
+      try {
+        const doc = await readDocument(mine, ext);
+        if (file !== mine) return; // another file was dropped meanwhile
+        docElements = doc.elements;
+        docStats = doc.stats;
+      } catch (err) {
+        if (file !== mine) return;
+        failWith(err, "load");
+      }
     } else if (["dog", "json", "yml", "yaml", "ts", "js", "md"].includes(ext)) {
       fileType = "data";
       inputFormat = ext === "yaml" ? "yml" : ext;
@@ -1097,7 +1169,7 @@
     } else {
       fileType = "unsupported";
       const err = new Error(
-        "Unsupported file type. Please upload an image, audio, video, data (.dog/.json), or N64 ROM (.z64/.v64/.n64) file.",
+        "Unsupported file type. Please upload an image, audio, video, document (.docx/.pdf/.txt...), data (.dog/.json), or N64 ROM (.z64/.v64/.n64) file.",
       );
       err.name = "UnsupportedFileType";
       failWith(err, "load");
@@ -1198,6 +1270,11 @@
     targetHeight = 0;
     keepAspectRatio = true;
     keepTens = true;
+    cropMode = NO_CROP;
+    naturalWidth = 0;
+    naturalHeight = 0;
+    docElements = null;
+    docStats = null;
     quality = 92;
     compression = 15;
     audioBitrate = "320";
@@ -1218,6 +1295,8 @@
     batchVideoFormats = ["mp4"];
     batchDataFormats = ["json"];
     batchRomFormats = ["z64"];
+    batchDocumentFormats = [DOCUMENT_OUTPUTS[0]];
+    batchCrop = NO_CROP;
     bulkZipDownloads = false;
     currentNotice = "Refining Format Molecules";
     // Clear the native input too, otherwise re-selecting the same
@@ -1282,6 +1361,7 @@
               targetHeight,
               quality,
               compression,
+              cropMode,
             );
           }
           const originalBase = file.name.substring(
@@ -1343,6 +1423,10 @@
             file.name.lastIndexOf("."),
           );
           resultFileName = `${originalBase}.${currentFormat}`;
+        } else if (fileType === "document") {
+          if (!docElements) throw new Error("This document hasn't finished loading yet.");
+          resultBlob = await writeDocument(docElements, currentFormat);
+          resultFileName = `${file.name.substring(0, file.name.lastIndexOf("."))}.${currentFormat}`;
         } else if (fileType === "rom") {
           if (!romBytes) romBytes = new Uint8Array(await file.arrayBuffer());
           resultBlob = new Blob([convertN64(romBytes, currentFormat)], {
@@ -1417,6 +1501,9 @@
           item.url = URL.createObjectURL(item.blob);
         } else if (t === N64_MIME) {
           item.kind = "rom";
+        } else if (isBinaryDocumentBlob(item.blob)) {
+          item.kind = "document";
+          item.url = URL.createObjectURL(item.blob);
         } else {
           item.kind = "text";
           try {
@@ -1677,17 +1764,21 @@
         type = "data";
       } else if (N64_EXTENSIONS.includes(ext)) {
         type = "rom";
+      } else if (isDocumentExt(ext)) {
+        // .md stays data above: a batch can't stop to read every file first
+        type = "document";
       }
 
       if (type === "unsupported") continue;
 
-      const inputFmt = ext === "jpeg" ? "jpg" : ext;
+      const inputFmt = ext === "jpeg" ? "jpg" : type === "document" ? normalizeDocExt(ext) : ext;
       let outputFmts = [];
       if (type === "image") outputFmts = [...batchImageFormats];
       else if (type === "audio") outputFmts = [...batchAudioFormats];
       else if (type === "video") outputFmts = [...batchVideoFormats];
       else if (type === "data") outputFmts = [...batchDataFormats];
       else if (type === "rom") outputFmts = [...batchRomFormats];
+      else if (type === "document") outputFmts = [...batchDocumentFormats];
 
       list.push({
         file: f,
@@ -1802,6 +1893,8 @@
           item.inputFormat = detectN64Format(bulkRomBytes) || item.inputFormat;
         }
 
+        let bulkDocElements = null;
+
         const nameParts = item.file.name.split(".");
         nameParts.pop();
         const baseName = nameParts.join(".");
@@ -1822,13 +1915,16 @@
           } else if (item.fileType === "image") {
             const tempUrl = URL.createObjectURL(item.file);
             try {
+              // A batch crop sizes each picture to its own crop (0 × 0 = crop size)
+              const cropping = batchCrop !== NO_CROP;
               resultBlob = await convertImage(
                 tempUrl,
                 fmt,
-                item.targetWidth || 800,
-                item.targetHeight || 600,
+                cropping ? 0 : item.targetWidth || 800,
+                cropping ? 0 : item.targetHeight || 600,
                 item.quality,
                 item.compression,
+                batchCrop,
               );
             } finally {
               URL.revokeObjectURL(tempUrl);
@@ -1890,6 +1986,10 @@
           } else if (item.fileType === "data") {
             const text = await item.file.text();
             resultBlob = convertData(text, item.inputFormat, fmt, dogOpts);
+          } else if (item.fileType === "document") {
+            // Parsed once per file, written once per output format
+            if (!bulkDocElements) bulkDocElements = (await readDocument(item.file, item.inputFormat)).elements;
+            resultBlob = await writeDocument(bulkDocElements, fmt);
           } else if (item.fileType === "rom") {
             resultBlob = new Blob([convertN64(bulkRomBytes, fmt)], {
               type: N64_MIME,
@@ -1985,7 +2085,9 @@
           ? batchDataFormats
           : type === "rom"
             ? batchRomFormats
-            : batchVideoFormats;
+            : type === "document"
+              ? batchDocumentFormats
+              : batchVideoFormats;
   }
 
   function syncBatchFormats(type) {
@@ -2098,7 +2200,7 @@
     type="file"
     id="file-input"
     class="hidden"
-    accept="image/*,audio/*,video/*,.zip,.dog,.json,.yml,.yaml,.ts,.js,.md,.z64,.v64,.n64"
+    accept={`image/*,audio/*,video/*,.zip,.dog,.json,.yml,.yaml,.ts,.js,.z64,.v64,.n64,${DOCUMENT_ACCEPT}`}
     multiple
     onchange={handleFileSelect}
   />
@@ -2269,7 +2371,7 @@ dog 2 flow=line fs=2space kv=space block=track case=any punct=none bools=10</pre
         <div class="bulk-batch-header">
           <div class="batch-title">Batch Output Formats</div>
           <div class="batch-presets">
-            {#each [["image", "🖼️ Images", batchImageFormats], ["audio", "🎵 Audios", batchAudioFormats], ["video", "🎞️ Videos", batchVideoFormats], ["data", "🐶 Data", batchDataFormats], ["rom", "🕹️ N64 ROMs", batchRomFormats]] as [type, label, fmts]}
+            {#each [["image", "🖼️ Images", batchImageFormats], ["audio", "🎵 Audios", batchAudioFormats], ["video", "🎞️ Videos", batchVideoFormats], ["data", "🐶 Data", batchDataFormats], ["rom", "🕹️ N64 ROMs", batchRomFormats], ["document", "📄 Documents", batchDocumentFormats]] as [type, label, fmts]}
               {#if bulkFiles.some((f) => f.fileType === type)}
                 <div class="preset-group">
                   <span>{label} ➔</span>
@@ -2321,6 +2423,14 @@ dog 2 flow=line fs=2space kv=space block=track case=any punct=none bools=10</pre
               {/if}
             {/each}
           </div>
+          {#if bulkFiles.some((f) => f.fileType === "image")}
+            <CropPicker
+              value={batchCrop}
+              onpick={(id) => (batchCrop = id)}
+              disabled={isConvertingBulk}
+              label="Crop images"
+            />
+          {/if}
           <!-- Same audio controls as a single file; they apply to every audio
                output in the batch ("input" = each file keeps its own rate) -->
           {#if showAudioControls}
@@ -2349,6 +2459,8 @@ dog 2 flow=line fs=2space kv=space block=track case=any punct=none bools=10</pre
                     <FileJson size={18} class="text-[#4ade80]" />
                   {:else if item.fileType === "rom"}
                     <Gamepad2 size={18} class="text-[#facc15]" />
+                  {:else if item.fileType === "document"}
+                    <span class="doc-tint"><FileText size={18} /></span>
                   {/if}
                 </div>
                 <div class="meta">
@@ -2546,7 +2658,8 @@ dog 2 flow=line fs=2space kv=space block=track case=any punct=none bools=10</pre
         <h3>Drop file or click to select</h3>
         <p class="upload-sub">
           Supports JPG, PNG, WEBP, AVIF, SVG, MP3, WAV, M4A, AAC, WEBM, MP4,
-          MOV, MKV, AVI, DOG, JSON, YML, TS, JS, MD, Z64, V64, N64
+          MOV, MKV, AVI, DOCX, PDF, ODT, RTF, HTML, TXT, DOC, DOG, JSON, YML,
+          TS, JS, MD, Z64, V64, N64
         </p>
       </div>
 
@@ -2686,6 +2799,20 @@ dog 2 flow=line fs=2space kv=space block=track case=any punct=none bools=10</pre
                 class="px-1.5 py-0.5 rounded bg-white/5 font-mono text-[10px]"
                 >AVI</span
               >
+            </div>
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <span class="font-bold doc-tint">📄 DOC</span>
+            <div class="flex flex-wrap items-center gap-2">
+              {#each DOCUMENT_OUTPUTS as fmt, i}
+                {#if i > 0}
+                  <span class="text-white/30 font-mono">⇄</span>
+                {/if}
+                <span
+                  class="px-1.5 py-0.5 rounded bg-white/5 font-mono text-[10px]"
+                  >{fmt.toUpperCase()}</span
+                >
+              {/each}
             </div>
           </div>
           <div class="flex flex-col gap-1.5">
@@ -2834,6 +2961,23 @@ dog 2 flow=line fs=2space kv=space block=track case=any punct=none bools=10</pre
                   src={item.url}
                   class="w-full max-h-40 rounded bg-black/30"
                 ></video>
+              {:else if item.kind === "document"}
+                <div
+                  class="w-full flex items-center gap-2 text-[10px] font-mono doc-tint bg-black/30 rounded p-2"
+                >
+                  <FileText size={14} />
+                  <span class="flex-1 truncate"
+                    >{item.name.split(".").pop().toUpperCase()} document</span
+                  >
+                  {#if item.url && isPdfBlob(item.blob)}
+                    <a
+                      class="underline shrink-0"
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener">Open</a
+                    >
+                  {/if}
+                </div>
               {:else if item.kind === "rom"}
                 <div
                   class="w-full flex items-center gap-2 text-[10px] font-mono text-[#facc15]/80 bg-black/30 rounded p-2"
@@ -2874,18 +3018,10 @@ dog 2 flow=line fs=2space kv=space block=track case=any punct=none bools=10</pre
               <Undo size={14} /> ORIGINAL
             </button>
           {/if}
-          {#if convertedFiles.some((it) => it.kind === "text" && it.blob && /\.(dog|json|yml|ts|js|md)$/.test(it.name))}
+          {#if reconvertCandidate(convertedFiles)}
             <button
               class="action-btn secondary"
-              onclick={() =>
-                reconvertOutput(
-                  convertedFiles.find(
-                    (it) =>
-                      it.kind === "text" &&
-                      it.blob &&
-                      /\.(dog|json|yml|ts|js|md)$/.test(it.name),
-                  ),
-                )}
+              onclick={() => reconvertOutput(reconvertCandidate(convertedFiles))}
               title="Feed the output back in and convert it to another format"
             >
               ♻ RECONVERT
@@ -2988,7 +3124,7 @@ dog 2 flow=line fs=2space kv=space block=track case=any punct=none bools=10</pre
                   title="Click to select another file"
                 >
                   {#if stillDecodable}
-                    <img src={previewUrl} alt="Upload preview" />
+                    <img src={previewUrl} alt="Upload preview" style={thumbStyle} />
                   {:else}
                     <!-- a HEIC this browser can't draw; its live clip still comes out -->
                     <FileImage size={48} class="text-[#ff5e00]" />
@@ -3239,6 +3375,24 @@ dog 2 flow=line fs=2space kv=space block=track case=any punct=none bools=10</pre
                     Replace
                   </div>
                 </div>
+              {:else if fileType === "document"}
+                <!-- svelte-ignore a11y_click_events_have_key_events -->
+                <!-- svelte-ignore a11y_no_static_element_interactions -->
+                <div
+                  class="preview-box audio-preview doc-tint cursor-pointer hover:opacity-80 transition-opacity relative group"
+                  onclick={() => document.getElementById("file-input").click()}
+                  title="Click to select another file"
+                >
+                  <FileText size={44} />
+                  <span class="audio-badge"
+                    >{docStats ? `${docStats.words} words` : "Reading…"}</span
+                  >
+                  <div
+                    class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-[10px] text-white font-bold font-sans uppercase"
+                  >
+                    Replace
+                  </div>
+                </div>
               {:else if fileType === "rom"}
                 <!-- svelte-ignore a11y_click_events_have_key_events -->
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -3428,6 +3582,15 @@ dog 2 flow=line fs=2space kv=space block=track case=any punct=none bools=10</pre
                     </div>
                   </div>
 
+                  <!-- Centre crop: cut first, then the resolution above applies -->
+                  <div class="settings-group mt-2">
+                    <CropPicker
+                      value={cropMode}
+                      onpick={setCrop}
+                      disabled={!naturalWidth}
+                    />
+                  </div>
+
                   <!-- Quality & Compression Sliders -->
                   <div class="settings-group">
                     <div
@@ -3504,6 +3667,10 @@ dog 2 flow=line fs=2space kv=space block=track case=any punct=none bools=10</pre
               >
                 <h3>Audio Output</h3>
                 {@render audioControls()}
+              </div>
+            {:else if fileType === "document" && docStats}
+              <div transition:slide={{ duration: 260 }}>
+                <DocumentPreview stats={docStats} />
               </div>
             {/if}
           </div>
