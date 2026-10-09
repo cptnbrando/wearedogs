@@ -22,6 +22,7 @@
     Gamepad2,
     Bug,
     ClipboardCopy,
+    TriangleAlert,
   } from "lucide-svelte";
   import {
     describeError,
@@ -87,6 +88,10 @@
   let showDogInfo = $state(false); // .dog format spec page
   let previewMaximized = $state(false); // input text pane expanded over the whole site
   let maximizedOutput = $state(null); // { name, text } — converted text expanded over the whole site
+
+  // .dog spec page — first appeared in git history at commit 02e4d85
+  const DOG_CONCEPTION_DATE = "August 31, 2026";
+  const DOG_WIP_WARNING = ".dog is still being worked on, you shouldn't be using it yet";
 
   // .dog encoding options — drives the header line of dog output
   const DOG_PRESETS = {
@@ -2108,12 +2113,23 @@
           </button>
         </div>
 
+        <div
+          class="flex flex-row items-center gap-3 p-3 sm:p-2.5 md:p-4 xl:p-5 2xl:p-7 rounded-lg border-4 2xl:border-8 border-amber-400 bg-amber-400/15 text-amber-300 font-sans font-black uppercase tracking-wide text-sm sm:text-sm md:text-base xl:text-lg 2xl:text-3xl leading-snug"
+          role="alert"
+        >
+          <TriangleAlert class="shrink-0 w-6 h-6 sm:w-5 sm:h-5 md:w-7 md:h-7 xl:w-8 xl:h-8 2xl:w-12 2xl:h-12" />
+          <span>{DOG_WIP_WARNING}</span>
+        </div>
+
         <div class="flex flex-col gap-1">
           <h2 class="text-2xl font-bold text-[#4ade80] tracking-tight font-sans">
             THE .DOG FORMAT <span class="text-white/30 text-sm align-top">v1</span>
           </h2>
           <p class="text-[10px] text-white/35 uppercase tracking-widest">
             Proprietary text encoding · DOGS Data Interchange Division · MIME text/x-dog
+          </p>
+          <p class="text-[10px] 2xl:text-sm text-white/35 uppercase tracking-widest">
+            Conceived {DOG_CONCEPTION_DATE}
           </p>
         </div>
 
