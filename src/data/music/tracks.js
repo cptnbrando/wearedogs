@@ -242,18 +242,4 @@ export const fullLibrary = [
     genre: "Hip-Hop",
     public: true
   },
-  {
-    id: "waddle",
-    title: "waddle",
-    artist: "Club Penguin",
-    album: "Club Penguin",
-    cover: "https://data.wearedogs.net/img/covers/2026/waddle.webp",
-    altCover: "https://data.wearedogs.net/img/covers/2026/waddle.png",
-    src: "",
-    instrumental: "https://data.wearedogs.net/music/2026/waddle.mp3",
-    dateAdded: "2026-10-09T16:17:00-05:00",
-    year: 2005,
-    genre: "Video Game",
-    public: true
-  },
 ];
