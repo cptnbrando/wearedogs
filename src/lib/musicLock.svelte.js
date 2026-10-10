@@ -7,7 +7,14 @@
 import { fullLibrary } from "../data/music/tracks.js";
 
 const STORAGE_KEY = "music_lockup_password";
-const CHECK_URL = "https://data.wearedogs.net/music/lockup/check.txt";
+const DATA_ORIGIN = "https://data.wearedogs.net/";
+const LOCKUP_SEGMENT = "/lockup/";
+const CHECK_URL = DATA_ORIGIN + "music" + LOCKUP_SEGMENT + "check.txt";
+
+/** True for files gated behind the lockup passcode on the data server. */
+export function isLockupUrl(url) {
+  return Boolean(url) && url.startsWith(DATA_ORIGIN) && url.includes(LOCKUP_SEGMENT);
+}
 
 /**
  * Verification target: a real lockup track from the library, not the check
@@ -54,6 +61,12 @@ class MusicLock {
       response.body?.cancel();
     } catch (e) { }
     return response.ok;
+  }
+
+  /** Fetch options for a music file: the auth header when it's a lockup file. */
+  fetchOptionsFor(url) {
+    if (!isLockupUrl(url) || !this.password) return {};
+    return { headers: { Authorization: `password=${this.password}` } };
   }
 
   /** Try a passcode against a real lockup track; persist and unlock on success. */

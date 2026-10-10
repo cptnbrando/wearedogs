@@ -3,6 +3,7 @@
  * Library for client-side image and audio format conversion.
  */
 import { encodeMp3, nearestMp3Rate } from "./mp3Pool.js";
+import { cropRect, NO_CROP } from "./imageCrop.js";
 
 /**
  * Resamples an AudioBuffer to a target sample rate.
@@ -124,18 +125,26 @@ export async function bufferToMp3(buffer, kbps, onProgress) {
  * @param {number} targetHeight 
  * @param {number} quality - 0 to 100
  * @param {number} compression - 0 to 100
+ * @param {string} [crop] - a CROP_PRESETS id (imageCrop.js); the centred
+ *   rectangle is cut out first, and a 0 width/height means "the crop's size"
  * @returns {Promise<Blob>}
  */
-export function convertImage(previewUrl, outputFormat, targetWidth, targetHeight, quality, compression) {
+export function convertImage(previewUrl, outputFormat, targetWidth, targetHeight, quality, compression, crop = NO_CROP) {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.src = previewUrl;
     img.onload = () => {
+      const src = cropRect(img.naturalWidth, img.naturalHeight, crop) || {
+        x: 0,
+        y: 0,
+        width: img.naturalWidth,
+        height: img.naturalHeight,
+      };
       const canvas = document.createElement("canvas");
-      canvas.width = targetWidth || img.naturalWidth;
-      canvas.height = targetHeight || img.naturalHeight;
+      canvas.width = targetWidth || src.width;
+      canvas.height = targetHeight || src.height;
       const ctx = canvas.getContext("2d");
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, src.x, src.y, src.width, src.height, 0, 0, canvas.width, canvas.height);
 
       if (outputFormat === "svg") {
         const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="${canvas.width}" height="${canvas.height}">

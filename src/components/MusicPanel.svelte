@@ -21,6 +21,7 @@
     Maximize2,
     Minimize2,
     Share2,
+    Download,
     Check,
     AlertTriangle,
     Diamond,
@@ -40,6 +41,8 @@
   const title = "MUSIC";
 
   const ERROR_COVER = "/img/error_cover.png";
+  // How long a downloaded track's blob URL lives before it's freed
+  const DOWNLOAD_REVOKE_DELAY_MS = 60000;
 
   function handleCoverError(e) {
     if (!e.target.src.endsWith(ERROR_COVER)) {
@@ -324,6 +327,36 @@
       .catch((err) => {
         console.error("Failed to copy share link:", err);
       });
+  }
+
+  let downloadingTrackId = $state(null);
+
+  // Downloads default to the instrumental; tracks without one fall back to
+  // the main mix. Fetched as a blob because the files are cross-origin (and
+  // lockup files need the auth header), so a plain <a download> won't save.
+  async function handleDownloadTrack(e, track) {
+    e.stopPropagation();
+    const url = track.instrumental || track.src;
+    if (!url || downloadingTrackId) return;
+    downloadingTrackId = track.id;
+    try {
+      const res = await fetch(url, musicLock.fetchOptionsFor(url));
+      if (!res.ok) throw new Error(`Fetch failed with status ${res.status}`);
+      const blobUrl = URL.createObjectURL(await res.blob());
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = decodeURIComponent(url.split("/").pop() || "") || `${track.id}.mp3`;
+      // Old Firefox ignores clicks on detached anchors; revoking right away
+      // cancels the save in Safari/Firefox, so give the download a head start.
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(blobUrl), DOWNLOAD_REVOKE_DELAY_MS);
+    } catch (err) {
+      console.error("Failed to download track:", err);
+    } finally {
+      downloadingTrackId = null;
+    }
   }
 
   onDestroy(() => {
@@ -1013,7 +1046,7 @@
               <!-- svelte-ignore a11y_click_events_have_key_events -->
               <!-- svelte-ignore a11y_no_static_element_interactions -->
               <div class="track-info mt-2" onclick={handleTrackInfoClick}>
-                <div class="flex items-center justify-center mb-1.5">
+                <div class="flex items-center justify-center gap-1.5 mb-1.5">
                   <button
                     class="player-share-btn"
                     onclick={(e) => handleShareTrack(e, currentTrack)}
@@ -1026,6 +1059,19 @@
                       <Share2 size={12} />
                     {/if}
                   </button>
+                  {#if currentTrack.instrumental || currentTrack.src}
+                    <button
+                      class="player-download-btn"
+                      class:downloading={downloadingTrackId === currentTrack.id}
+                      onclick={(e) => handleDownloadTrack(e, currentTrack)}
+                      title={currentTrack.instrumental
+                        ? "Download instrumental"
+                        : "Download track"}
+                      aria-label="Download track"
+                    >
+                      <Download size={12} />
+                    </button>
+                  {/if}
                 </div>
                 <div
                   class="scroll-container"
@@ -1444,6 +1490,19 @@
                         <Share2 size={12} />
                       {/if}
                     </button>
+                    {#if track.instrumental || track.src}
+                      <button
+                        class="tr-download-btn"
+                        class:downloading={downloadingTrackId === track.id}
+                        onclick={(e) => handleDownloadTrack(e, track)}
+                        title={track.instrumental
+                          ? "Download instrumental"
+                          : "Download track"}
+                        aria-label="Download track"
+                      >
+                        <Download size={12} />
+                      </button>
+                    {/if}
                   </div>
                 </div>
               {/each}

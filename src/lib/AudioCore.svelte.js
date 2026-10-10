@@ -3,7 +3,36 @@
  * Uses HTMLMediaElement streaming connected to Web Audio Context for native OS Media Session,
  * hardware key, and Bluetooth controls integration.
  */
-import { musicLock } from "./musicLock.svelte.js";
+import { musicLock, isLockupUrl } from "./musicLock.svelte.js";
+import { StreamGuard } from "./StreamGuard.js";
+import { bindMediaSession, syncMediaSession } from "./mediaSession.js";
+import { decodePeaks } from "./waveformPeaks.js";
+import { ShuffleQueue } from "./shuffleQueue.js";
+
+// With the screen off there's nobody to press play on a dead track, so the
+// player skips past it and never gives up. The first few skips are instant;
+// past that the network is probably gone (tunnel, dead zone), so it waits a
+// little longer before each try instead of racing through the library.
+const FREE_HIDDEN_SKIPS = 3;
+const SKIP_WAIT_MS = 5000;
+const MAX_SKIP_WAIT_MS = 30000;
+
+// repeatMode values; the repeat button cycles them in this order
+const REPEAT_OFF = 0;
+const REPEAT_ALL = 1;
+const REPEAT_ONE = 2;
+const REPEAT_DIAMOND = 3; // "show performance mode": play this song, then stop
+
+// "Previous" restarts the song once it's this far in
+const RESTART_THRESHOLD_S = 3;
+// A lockup song downloads whole before it plays. A fetch frozen by a dead
+// network would otherwise hold the player in "loading" forever.
+const LOCKUP_FETCH_TIMEOUT_MS = 60000;
+const METADATA_WAIT_MS = 1500;
+const PROGRESS_TICK_MS = 150;
+const INST_DRIFT_TOLERANCE_S = 0.05;
+// Element events that move the lock-screen scrubber
+const POSITION_EVENTS = ["loadedmetadata", "durationchange", "ratechange", "seeked", "playing"];
 
 export class AudioCore {
   audioCtx = null;
@@ -22,8 +51,10 @@ export class AudioCore {
   masterTabId = null;
   isSyncing = false;
 
-  // Shuffle queue state
-  shuffledQueue = [];
+  shuffle = new ShuffleQueue();
+  // Bumped by every loadTrack(); an older load that wakes up after a newer
+  // one started drops its result instead of overwriting the newer track
+  loadSeq = 0;
 
   // Reactive Svelte 5 Runes States
   isPlaying = $state(false);
@@ -36,14 +67,22 @@ export class AudioCore {
   currentTrackIndex = $state(0);
   isLoading = $state(false);
   isShuffled = $state(true);
-  repeatMode = $state(1); // 0 = Off, 1 = Repeat All, 2 = Repeat One, 3 = Diamond (stop after current)
+  repeatMode = $state(REPEAT_ALL); // REPEAT_OFF | REPEAT_ALL | REPEAT_ONE | REPEAT_DIAMOND
   activeAudioType = $state("music"); // 'music' | 'video'
   fetchErrors = $state({});
   waveformPeaks = $state({});
   /** Per-track instrumental load failures — set when inst fetch fails but vocal succeeds */
   instFailed = $state({});
+  /** Per-track vocal load failures — the song carries on as instrumental-only */
+  vocalFailed = $state({});
 
   progressInterval = null;
+  trackGuard = null;
+  instGuard = null;
+  // loadTrack() pauses while it swaps sources; this remembers it means to play
+  autoplayPending = false;
+  hiddenSkips = 0;
+  skipTimer = null;
   library = [];
   activeTrackBlobUrl = null;
   activeInstBlobUrl = null;
@@ -152,60 +191,42 @@ export class AudioCore {
     }
   }
 
-  shuffleArray(array) {
-    const arr = [...array];
-    for (let i = arr.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [arr[i], arr[j]] = [arr[j], arr[i]];
-    }
-    return arr;
-  }
-
-  initShuffleQueue() {
-    const indices = Array.from({ length: this.library.length }, (_, i) => i);
-    const filtered = indices.filter(idx => idx !== this.currentTrackIndex);
-    this.shuffledQueue = this.shuffleArray(filtered);
-  }
-
   setShuffle(val) {
     this.isShuffled = val;
     if (val) {
-      this.initShuffleQueue();
+      this.shuffle.deal(this.library.length, this.currentTrackIndex);
     } else {
-      this.shuffledQueue = [];
+      this.shuffle.upcoming = [];
     }
   }
 
-
+  /**
+   * Resolves a track URL to something the element can play. Lockup files
+   * come back as a blob: URL that the caller owns and must revoke.
+   * @param {string} url
+   * @param {"track" | "inst"} type
+   * @param {string | null} trackId set to decode the waveform from this side
+   * @returns {Promise<string>}
+   */
   async getAudioSource(url, type, trackId = null) {
     if (!url) return "";
     // Lockup files are gated server-side behind the calculator passcode, so
     // they must be fetched with the auth header and played from a blob.
-    if (url.startsWith("https://data.wearedogs.net/") && url.includes("/lockup/")) {
+    if (isLockupUrl(url)) {
+      const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+      const options = Object.assign({}, musicLock.fetchOptionsFor(url), controller ? { signal: controller.signal } : {});
+      const timer = controller ? setTimeout(() => controller.abort(), LOCKUP_FETCH_TIMEOUT_MS) : null;
       try {
-        const fetchOpts = {};
-        if (musicLock.password) {
-          fetchOpts.headers = { Authorization: `password=${musicLock.password}` };
-        }
-        const res = await fetch(url, fetchOpts);
-        if (res.ok) {
-          const blob = await res.blob();
-          const blobUrl = URL.createObjectURL(blob);
-          if (type === "track") {
-            this.activeTrackBlobUrl = blobUrl;
-            if (trackId) {
-              this.decodeTrackWaveform(trackId, blob);
-            }
-          } else if (type === "inst") {
-            this.activeInstBlobUrl = blobUrl;
-          }
-          return blobUrl;
-        } else {
-          throw new Error(`Fetch failed with status ${res.status}`);
-        }
+        const res = await fetch(url, options);
+        if (!res.ok) throw new Error(`Fetch failed with status ${res.status}`);
+        const blob = await res.blob();
+        if (type === "track" && trackId) this.decodeTrackWaveform(trackId, blob);
+        return URL.createObjectURL(blob);
       } catch (e) {
         console.warn(`Failed to fetch remote audio source for ${url}:`, e);
         throw e;
+      } finally {
+        clearTimeout(timer);
       }
     }
 
@@ -237,47 +258,17 @@ export class AudioCore {
 
   async decodeTrackWaveform(trackId, blob) {
     if (this.waveformPeaks[trackId]) return;
-    try {
-      const arrayBuffer = await blob.arrayBuffer();
-      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-      const tempContext = new AudioContextClass();
-      const audioBuffer = await tempContext.decodeAudioData(arrayBuffer);
-      const channelData = audioBuffer.getChannelData(0);
-
-      const barsCount = 60;
-      const step = Math.ceil(channelData.length / barsCount);
-      const computedPeaks = [];
-
-      for (let i = 0; i < barsCount; i++) {
-        let max = 0;
-        const start = i * step;
-        const end = Math.min(start + step, channelData.length);
-
-        for (let j = start; j < end; j++) {
-          const val = Math.abs(channelData[j]);
-          if (val > max) max = val;
-        }
-        computedPeaks.push(max);
-      }
-
-      const maxPeak = Math.max(...computedPeaks) || 1.0;
-      const finalPeaks = computedPeaks.map((p) => {
-        const val = p / maxPeak;
-        return Math.max(10, Math.round(val * 80 + 15));
-      });
-
-      this.waveformPeaks[trackId] = finalPeaks;
-      tempContext.close();
-    } catch (err) {
-      console.warn(`Failed to decode audio buffer for ${trackId}:`, err);
-    }
+    const peaks = await decodePeaks(blob);
+    if (peaks) this.waveformPeaks[trackId] = peaks;
   }
 
   init(lib) {
     this.library = lib;
-    this.setupMediaSession();
+    // Indices into the old library mean nothing in a new one
+    this.shuffle.history = [];
+    bindMediaSession(this);
     if (this.isShuffled) {
-      this.initShuffleQueue();
+      this.shuffle.deal(lib.length, this.currentTrackIndex);
     }
   }
 
@@ -308,25 +299,28 @@ export class AudioCore {
     this.instAudio.crossOrigin = "anonymous";
     this.instAudio.preload = "auto";
 
-    // Streaming surfaces load failures on the element, not a fetch()
-    this.trackAudio.addEventListener("error", () => {
-      if (!this.trackAudio.src) return;
-      this.failCurrentTrack();
-    });
-    this.instAudio.addEventListener("error", () => {
-      if (!this.instAudio.src) return;
+    // Streaming surfaces load failures on the element, not a fetch(). The
+    // guards retry dropped connections and stalls first (screen-off networking
+    // drops them all the time); only a stream they can't revive lands here.
+    // A dead vocal side falls back to the instrumental before the track dies.
+    const wantsPlayback = () => this.isPlaying || this.autoplayPending;
+    this.trackGuard = new StreamGuard(this.trackAudio, wantsPlayback, () => this.failVocalSide());
+    this.instGuard = new StreamGuard(this.instAudio, wantsPlayback, () => {
       const track = this.library[this.currentTrackIndex];
       if (track) {
         this.instFailed[track.id] = true;
         // An instrumental-only track has no other side to fall back on
-        if (!track.src) return this.failCurrentTrack();
+        if (this.isInstOnly(track)) return this.handleDeadTrack();
         // A dead instrumental side shouldn't mute the song
-        if (this.isInstrumental && track.src) {
+        if (this.isInstrumental) {
           this.isInstrumental = false;
           this.applyCrossfade();
         }
       }
     });
+    // Sound is coming out again, so the skip streak is over
+    this.trackAudio.addEventListener("playing", () => { this.hiddenSkips = 0; });
+    this.instAudio.addEventListener("playing", () => { this.hiddenSkips = 0; });
 
     // Bind event listeners for ending and duration changes
     this.trackAudio.addEventListener("ended", () => {
@@ -341,14 +335,21 @@ export class AudioCore {
     this.instAudio.addEventListener("ended", () => {
       // Handle ended from instAudio for inst-only tracks
       const track = this.library[this.currentTrackIndex];
-      if (track && !track.src && track.instrumental) this.onEnded();
+      if (track && this.isInstOnly(track) && track.instrumental) this.onEnded();
     });
     this.instAudio.addEventListener("durationchange", () => {
       // Update duration from instAudio only for inst-only tracks
       const track = this.library[this.currentTrackIndex];
-      if (track && !track.src && !isNaN(this.instAudio.duration)) {
+      if (track && this.isInstOnly(track) && !isNaN(this.instAudio.duration)) {
         this.duration = this.instAudio.duration;
       }
+    });
+    // Registered after the duration listeners above so the lock screen sees
+    // the new duration. Element events, not the progress timer: they still
+    // fire in a hidden, throttled tab.
+    POSITION_EVENTS.forEach((type) => {
+      this.trackAudio.addEventListener(type, () => this.syncSession());
+      this.instAudio.addEventListener(type, () => this.syncSession());
     });
 
     // Create gain nodes for crossfading
@@ -368,6 +369,35 @@ export class AudioCore {
     this.applyVolume();
   }
 
+  /**
+   * True when a track plays from its instrumental alone: it never had a vocal
+   * file, or the vocal file failed to load (e.g. deleted from R2).
+   * @param {{ id: string, src?: string }} track
+   * @returns {boolean}
+   */
+  isInstOnly(track) {
+    return !track.src || !!this.vocalFailed[track.id];
+  }
+
+  // The vocal side can't be fetched or decoded. If the instrumental is still
+  // good, demote the song to instrumental-only instead of killing it.
+  failVocalSide() {
+    const track = this.library[this.currentTrackIndex];
+    if (!track || this.vocalFailed[track.id]) return;
+    if (!track.instrumental || this.instFailed[track.id] || !this.instAudio?.src) {
+      return this.handleDeadTrack();
+    }
+    console.warn(`Vocal file failed for "${track.id}", playing instrumental only`);
+    this.vocalFailed[track.id] = true;
+    this.trackGuard.reset();
+    this.trackAudio.removeAttribute("src");
+    this.trackAudio.load();
+    this.isInstrumental = true;
+    this.applyCrossfade();
+    if (!isNaN(this.instAudio.duration)) this.duration = this.instAudio.duration;
+    if (!this.isSyncing) this.broadcastState("state_change");
+  }
+
   // The current track can't be fetched or decoded: flag it and make sure
   // nothing is left "playing" — no spinning deck, no running progress timer.
   failCurrentTrack() {
@@ -380,49 +410,107 @@ export class AudioCore {
     if (this.instAudio) this.instAudio.pause();
     this.isPlaying = false;
     if (wasPlaying) {
-      this.updateMediaSession();
+      this.syncSession();
       if (!this.isSyncing) this.broadcastState("state_change");
     }
   }
 
-  async loadTrack(index, autoplay = false) {
-    if (index < 0 || index >= this.library.length) return;
+  /**
+   * The current track's stream is gone for good. On screen, stop and let the
+   * deck glitch so the listener sees it. With the screen off nobody can press
+   * play, so flag it and keep moving on to the next song, forever.
+   */
+  handleDeadTrack() {
+    const track = this.library[this.currentTrackIndex];
+    // Mid-load failures are picked up by loadTrack() itself once its
+    // metadata wait resolves
+    if (this.isLoading) {
+      if (track) this.fetchErrors[track.id] = true;
+      return;
+    }
+    // Diamond mode means "this song, then silence": no skipping onward
+    if (this.repeatMode === REPEAT_DIAMOND || !this.shouldSkipDeadTrack(this.isPlaying)) {
+      return this.failCurrentTrack();
+    }
+    if (track) this.fetchErrors[track.id] = true;
+    this.skipDeadTrack();
+  }
 
+  /**
+   * @param {boolean} meantToPlay whether playback was running (or starting)
+   * @param {boolean} [auto] the player moved on by itself (song ended, dead-song
+   *   skip): nobody picked this song, so skip it on screen too
+   */
+  shouldSkipDeadTrack(meantToPlay, auto = false) {
+    if (!meantToPlay) return false;
+    if (auto) return true;
+    return typeof document !== "undefined" && document.visibilityState === "hidden";
+  }
+
+  // Next song, now for the first few dead ones in a row, then with a growing
+  // wait (5s, 10s, 20s, 30s, 30s...) while the network is out. Any track load
+  // in the meantime (a tap, a lock-screen button) cancels the pending skip.
+  skipDeadTrack() {
+    // Repeat off at the end of the run: there's nothing left to skip to
+    if (this.runIsOver()) return this.failCurrentTrack();
+    this.hiddenSkips++;
+    if (this.hiddenSkips <= FREE_HIDDEN_SKIPS) return this.nextTrack(true, true);
+    const wait = Math.min(MAX_SKIP_WAIT_MS, SKIP_WAIT_MS * Math.pow(2, this.hiddenSkips - FREE_HIDDEN_SKIPS - 1));
+    clearTimeout(this.skipTimer);
+    this.skipTimer = setTimeout(() => this.nextTrack(true, true), wait);
+  }
+
+  /**
+   * @param {number} index library index
+   * @param {boolean} [autoplay]
+   * @param {{ auto?: boolean, fromHistory?: boolean }} [opts] auto: the player
+   *   advanced by itself; fromHistory: "previous" is stepping back
+   */
+  async loadTrack(index, autoplay = false, opts = {}) {
+    if (index < 0 || index >= this.library.length) return;
+    const seq = ++this.loadSeq;
+
+    clearTimeout(this.skipTimer);
+    this.autoplayPending = autoplay;
     // Stop current playback immediately
     this.pause();
 
+    this.shuffle.noteChange(index, this.currentTrackIndex, !!opts.fromHistory);
     this.currentTrackIndex = index;
     const track = this.library[index];
 
     // Clear all error state on retry
     delete this.fetchErrors[track.id];
     delete this.instFailed[track.id];
+    delete this.vocalFailed[track.id];
 
     this.currentTime = 0;
+    // The old song's length would let the progress timer end this one early
+    this.duration = 0;
     this.isLoading = true;
 
     this.initContext();
-    await this.resumeContextSoon();
+    this.trackGuard.reset();
+    this.instGuard.reset();
+    // Not awaited: the elements start without it and the graph opens up when
+    // it lands. Waiting on a timer here stalls auto-advance in a hidden tab.
+    this.resumeContextSoon();
 
-    if (this.activeTrackBlobUrl) {
-      URL.revokeObjectURL(this.activeTrackBlobUrl);
-      this.activeTrackBlobUrl = null;
-    }
-    if (this.activeInstBlobUrl) {
-      URL.revokeObjectURL(this.activeInstBlobUrl);
-      this.activeInstBlobUrl = null;
-    }
-
-    // --- Fetch vocal track (required) ---
+    // --- Fetch vocal track (the instrumental can stand in for it) ---
     let loadFailed = false;
     let resolvedTrackSrc = "";
     try {
       resolvedTrackSrc = await this.getAudioSource(track.src, "track", track.id);
     } catch (err) {
       console.error("Error loading vocal track:", err);
-      this.isPlaying = false;
-      this.fetchErrors[track.id] = true;
-      loadFailed = true;
+      // (isPlaying is already false from the pause() above; setting it here
+      // could stop a newer load that's already playing)
+      if (track.instrumental) {
+        this.vocalFailed[track.id] = true;
+      } else {
+        this.fetchErrors[track.id] = true;
+        loadFailed = true;
+      }
     }
 
     // --- Fetch instrumental (optional — failure only disables that side) ---
@@ -437,10 +525,32 @@ export class AudioCore {
       }
     }
 
+    // A newer load took over while this one was fetching (a quick double
+    // tap, a lock-screen skip during a lockup download): its track wins, and
+    // this load's blobs would otherwise never be freed. Only blobs made here
+    // are ours to free: a source that came back unchanged belongs to the
+    // library, whatever its scheme.
+    const ownedBlobs = [
+      resolvedTrackSrc && resolvedTrackSrc !== track.src ? resolvedTrackSrc : null,
+      resolvedInstSrc && resolvedInstSrc !== track.instrumental ? resolvedInstSrc : null,
+    ];
+    if (seq !== this.loadSeq) {
+      ownedBlobs.forEach((url) => {
+        if (url) URL.revokeObjectURL(url);
+      });
+      return;
+    }
+
+    // Neither side resolved: nothing left to play
+    if (!loadFailed && !resolvedTrackSrc && !resolvedInstSrc) {
+      this.fetchErrors[track.id] = true;
+      loadFailed = true;
+    }
+
     // Set isInstrumental: if only inst loaded (no vocal src), force inst mode.
     // If both available, respect user preference. Otherwise vocal mode.
     const instAvailable = !!(track.instrumental && resolvedInstSrc && !this.instFailed[track.id]);
-    if (!track.src && instAvailable) {
+    if (this.isInstOnly(track) && instAvailable) {
       // Inst-only track (e.g. sleepless) — always instrumental
       this.isInstrumental = true;
     } else if (instAvailable) {
@@ -448,6 +558,15 @@ export class AudioCore {
     } else {
       this.isInstrumental = false;
     }
+
+    // The previous song's blobs (lockup files held whole in memory) go now
+    // that their element is about to change source; hours of play would
+    // otherwise keep every song ever played.
+    [this.activeTrackBlobUrl, this.activeInstBlobUrl].forEach((url) => {
+      if (url) URL.revokeObjectURL(url);
+    });
+    this.activeTrackBlobUrl = ownedBlobs[0];
+    this.activeInstBlobUrl = ownedBlobs[1];
 
     if (!loadFailed) {
       if (resolvedTrackSrc) {
@@ -484,9 +603,11 @@ export class AudioCore {
           durationSource.addEventListener("loadedmetadata", handler);
           // a dead URL errors instead of loading — don't sit out the timeout
           durationSource.addEventListener("error", done);
-          setTimeout(done, 1500);
+          setTimeout(done, METADATA_WAIT_MS);
         }
       });
+      // A newer load swapped the source mid-wait and owns the player now
+      if (seq !== this.loadSeq) return;
       // Streamed sources fail on the element, after the fetch step "succeeded"
       if (this.fetchErrors[track.id]) loadFailed = true;
     }
@@ -496,7 +617,14 @@ export class AudioCore {
     if (!loadFailed && autoplay) {
       this.play(0);
     }
-    this.updateMediaSession();
+    this.autoplayPending = false;
+    // Auto-advancing (or screen off) into a track that won't load: keep the
+    // music going with the next one
+    if (loadFailed && this.shouldSkipDeadTrack(autoplay, !!opts.auto)) {
+      this.skipDeadTrack();
+      return;
+    }
+    this.syncSession();
 
     if (!this.isSyncing) {
       this.broadcastState("state_change");
@@ -534,8 +662,9 @@ export class AudioCore {
         this.trackAudio.play().catch((e) => {
           console.error("Error playing trackAudio:", e);
           // No decodable source (slow 404, bad file) — not an ordinary
-          // AbortError from a pause() landing mid-play
-          if (e?.name === "NotSupportedError") this.failCurrentTrack();
+          // AbortError from a pause() landing mid-play. When the element
+          // itself errored, its StreamGuard already dealt with it.
+          if (e?.name === "NotSupportedError" && !this.trackAudio.error) this.failVocalSide();
         });
       }
       if (this.instAudio && this.instAudio.src) {
@@ -545,7 +674,7 @@ export class AudioCore {
 
     this.isPlaying = true;
     this.startProgressTimer();
-    this.updateMediaSession();
+    this.syncSession();
 
     if (!this.isSyncing) {
       this.broadcastState("state_change");
@@ -557,11 +686,25 @@ export class AudioCore {
     if (this.trackAudio) this.trackAudio.pause();
     if (this.instAudio) this.instAudio.pause();
     this.isPlaying = false;
-    this.updateMediaSession();
+    this.syncSession();
 
     if (!this.isSyncing) {
       this.broadcastState("state_change");
     }
+  }
+
+  /**
+   * A listener's pause (button, lock screen, headset): also calls off a
+   * pending dead-song skip, which would otherwise start the music again.
+   * In a follower tab it asks the playing tab instead.
+   */
+  requestPause() {
+    clearTimeout(this.skipTimer);
+    if (this.masterTabId && this.masterTabId !== this.tabId) {
+      this.broadcast({ type: "cmd_pause" });
+      return;
+    }
+    this.pause();
   }
 
   // Kick a suspended/interrupted context without letting the caller hang on
@@ -588,20 +731,16 @@ export class AudioCore {
     }
 
     if (this.isPlaying) {
-      if (this.masterTabId && this.masterTabId !== this.tabId) {
-        this.broadcast({ type: "cmd_pause" });
-      } else {
-        this.pause();
-      }
+      this.requestPause();
     } else {
       this.masterTabId = this.tabId;
       this.play(this.currentTime);
     }
-    this.updateMediaSession();
+    this.syncSession();
   }
 
   prevTrack() {
-    if (this.currentTime > 3) {
+    if (this.currentTime > RESTART_THRESHOLD_S) {
       this.seek(0);
       return;
     }
@@ -609,49 +748,80 @@ export class AudioCore {
       this.broadcast({ type: "cmd_prev" });
       return;
     }
+    const len = this.library.length;
+    // Shuffle goes back to the song that actually played before this one;
+    // with nothing to go back to, this one starts over
     const idx = this.isShuffled
-      ? (this.shuffledQueue.length > 0 ? this.shuffledQueue.shift() : Math.floor(Math.random() * this.library.length))
-      : this.currentTrackIndex > 0
-        ? this.currentTrackIndex - 1
-        : this.library.length - 1;
-    this.loadTrack(idx, this.isPlaying);
+      ? this.shuffle.back(len, this.currentTrackIndex)
+      : (this.currentTrackIndex - 1 + len) % len;
+    if (idx < 0) {
+      this.seek(0);
+      return;
+    }
+    this.loadTrack(idx, this.isPlaying, { fromHistory: true });
   }
 
-  nextTrack() {
+  /**
+   * @param {boolean} [autoplay] play the next track (defaults to whether this one is playing)
+   * @param {boolean} [auto] the player is moving on by itself (song ended, dead-song skip)
+   */
+  nextTrack(autoplay = this.isPlaying, auto = false) {
     if (this.masterTabId && this.masterTabId !== this.tabId) {
       this.broadcast({ type: "cmd_next" });
       return;
     }
-    let idx;
-    if (this.isShuffled) {
-      if (this.shuffledQueue.length === 0) {
-        if (this.repeatMode === 1) {
-          this.initShuffleQueue();
-        } else {
-          this.pause();
-          this.seek(0);
-          return;
-        }
-      }
-      idx = this.shuffledQueue.length > 0 ? this.shuffledQueue.shift() : 0;
-    } else {
-      idx = this.currentTrackIndex < this.library.length - 1
-        ? this.currentTrackIndex + 1
-        : 0;
-    }
-    this.loadTrack(idx, this.isPlaying);
+    const len = this.library.length;
+    if (len === 0) return;
+    // Shuffle deals a fresh order once the queue runs out, never starting
+    // with the song that just played
+    const idx = this.isShuffled
+      ? this.shuffle.next(len, this.currentTrackIndex)
+      : (this.currentTrackIndex + 1) % len;
+    this.loadTrack(idx, autoplay, { auto });
   }
 
-  seek(val) {
-    this.currentTime = val;
+  /**
+   * @param {number} val seconds
+   * @param {boolean} [fast] lock-screen scrubbing: fastSeek() where the element has it
+   */
+  seek(val, fast = false) {
+    if (!isFinite(val)) return;
+    const target = Math.max(0, this.duration > 0 ? Math.min(val, this.duration) : val);
+    this.currentTime = target;
     const isSelfMaster = (!this.masterTabId || this.masterTabId === this.tabId);
-    if (isSelfMaster) {
-      if (this.trackAudio && this.trackAudio.src) this.trackAudio.currentTime = val;
-      if (this.instAudio && this.instAudio.src) this.instAudio.currentTime = val;
-      this.broadcastState("state_change");
-    } else {
-      this.broadcast({ type: "cmd_seek", currentTime: val });
+    if (!isSelfMaster) {
+      this.broadcast({ type: "cmd_seek", currentTime: target });
+      return;
     }
+    // The progress timer pulls the instrumental back within tolerance of the
+    // vocal if fastSeek lands them on slightly different frames
+    [this.trackAudio, this.instAudio].forEach((el) => {
+      if (!el || !el.src) return;
+      if (fast && typeof el.fastSeek === "function") el.fastSeek(target);
+      else el.currentTime = target;
+    });
+    this.broadcastState("state_change");
+    this.syncSession();
+  }
+
+  /** The element whose clock the song follows: the instrumental for inst-only tracks. */
+  primaryAudio() {
+    const track = this.library[this.currentTrackIndex];
+    const instOnly = track && track.instrumental && this.isInstOnly(track);
+    return instOnly && this.instAudio && this.instAudio.src ? this.instAudio : this.trackAudio;
+  }
+
+  /** Tells the OS (lock screen, notification, headset) what's playing and where. */
+  syncSession() {
+    const el = this.primaryAudio();
+    const isSelfMaster = (!this.masterTabId || this.masterTabId === this.tabId);
+    syncMediaSession({
+      track: this.library[this.currentTrackIndex],
+      isPlaying: this.isPlaying,
+      duration: this.duration,
+      position: isSelfMaster && el && el.src ? el.currentTime : this.currentTime,
+      rate: el ? el.playbackRate : 1,
+    });
   }
 
   startProgressTimer() {
@@ -661,15 +831,14 @@ export class AudioCore {
         const isSelfMaster = (!this.masterTabId || this.masterTabId === this.tabId);
 
         if (isSelfMaster) {
-          const track = this.library[this.currentTrackIndex];
-          const isInstOnly = track && !track.src && track.instrumental;
-          const primaryAudio = (isInstOnly && this.instAudio?.src) ? this.instAudio : this.trackAudio;
+          const primaryAudio = this.primaryAudio();
+          const isInstOnly = primaryAudio === this.instAudio;
           this.currentTime = primaryAudio.currentTime;
 
-          // Keep instrumental in sync with the main track (within 50ms tolerance)
+          // Keep instrumental in sync with the main track
           if (!isInstOnly && this.instAudio && this.instAudio.src && !this.instAudio.paused) {
             const diff = Math.abs(this.instAudio.currentTime - this.trackAudio.currentTime);
-            if (diff > 0.05) {
+            if (diff > INST_DRIFT_TOLERANCE_S) {
               this.instAudio.currentTime = this.trackAudio.currentTime;
             }
           }
@@ -688,31 +857,42 @@ export class AudioCore {
           });
         }
       }
-    }, 150);
+    }, PROGRESS_TICK_MS);
   }
 
+  /**
+   * The song finished. Driven by the element's "ended" event, which fires
+   * in a hidden tab too; the progress timer is only a backup.
+   */
   onEnded() {
     // The native ended event and the progress timer's currentTime check can
     // both land here for the same song — a second call while the next track
     // is already loading would skip a track.
     if (this.isLoading) return;
-    if (this.repeatMode === 3) {
-      // Diamond mode: stop after the current track. Play restarts it from the top;
-      // picking a track, prev, and next all behave as usual.
-      this.isPlaying = false;
-      this.pause();
-      this.seek(0);
-    } else if (this.repeatMode === 2) {
+    if (this.repeatMode === REPEAT_ONE) {
       this.seek(0);
       this.play(0);
-    } else if (this.repeatMode === 1 || this.currentTrackIndex < this.library.length - 1 || this.isShuffled) {
-      this.nextTrack();
-    } else {
-      this.isPlaying = false;
+      return;
+    }
+    // Diamond mode stops after the current track; play restarts it from the
+    // top, and picking a track, prev and next all behave as usual.
+    if (this.repeatMode === REPEAT_DIAMOND || this.runIsOver()) {
       this.pause();
       this.seek(0);
+      return;
     }
-    this.updateMediaSession();
+    this.nextTrack(true, true);
+  }
+
+  /**
+   * Repeat off stops once every song has had its turn: the last one in
+   * library order, or an empty shuffle queue.
+   * @returns {boolean}
+   */
+  runIsOver() {
+    if (this.repeatMode !== REPEAT_OFF) return false;
+    if (this.isShuffled) return this.shuffle.upcoming.length === 0;
+    return this.currentTrackIndex >= this.library.length - 1;
   }
 
   applyCrossfade() {
@@ -735,7 +915,7 @@ export class AudioCore {
     // Block toggle to instrumental if: no instrumental URL, or the inst fetch failed
     if (isInst && (!track?.instrumental || this.instFailed[track?.id])) return false;
     // Block toggle to vocal if: no vocal src (inst-only track)
-    if (!isInst && track && !track.src) return false;
+    if (!isInst && track && this.isInstOnly(track)) return false;
     this.isInstrumental = isInst;
     this.userPrefersInstrumental = isInst;
     this.applyCrossfade();
@@ -784,64 +964,6 @@ export class AudioCore {
       this.musicGain.gain.exponentialRampToValueAtTime(this.volume, this.audioCtx.currentTime + 0.3);
     }
     this.activeAudioType = "music";
-  }
-
-  setupMediaSession() {
-    if (typeof navigator !== "undefined" && "mediaSession" in navigator) {
-      navigator.mediaSession.setActionHandler("play", () => this.togglePlay());
-      navigator.mediaSession.setActionHandler("pause", () => this.togglePlay());
-      navigator.mediaSession.setActionHandler("previoustrack", () => this.prevTrack());
-      navigator.mediaSession.setActionHandler("nexttrack", () => this.nextTrack());
-      navigator.mediaSession.setActionHandler("seekto", (details) => {
-        this.seek(details.seekTime);
-      });
-      navigator.mediaSession.setActionHandler("seekbackward", (details) => {
-        const offset = details.seekOffset || 10;
-        const newTime = Math.max(0, this.currentTime - offset);
-        this.seek(newTime);
-      });
-      navigator.mediaSession.setActionHandler("seekforward", (details) => {
-        const offset = details.seekOffset || 10;
-        const newTime = Math.min(this.duration, this.currentTime + offset);
-        this.seek(newTime);
-      });
-    }
-  }
-
-  updateMediaSession() {
-    if (typeof navigator !== "undefined" && "mediaSession" in navigator && this.library[this.currentTrackIndex]) {
-      const track = this.library[this.currentTrackIndex];
-      const origin = typeof window !== "undefined" ? window.location.origin : "";
-
-      const coverUrl = (track.cover.startsWith("data:") || track.cover.startsWith("http://") || track.cover.startsWith("https://"))
-        ? track.cover
-        : origin + track.cover;
-
-      navigator.mediaSession.metadata = new MediaMetadata({
-        title: track.title,
-        artist: track.artist,
-        album: track.album,
-        artwork: [
-          { src: coverUrl, sizes: "512x512", type: "image/webp" }
-        ]
-      });
-      navigator.mediaSession.playbackState = this.isPlaying ? "playing" : "paused";
-      this.updateMediaSessionPositionState();
-    }
-  }
-
-  updateMediaSessionPositionState() {
-    if (typeof navigator !== "undefined" && "mediaSession" in navigator && "setPositionState" in navigator.mediaSession) {
-      try {
-        navigator.mediaSession.setPositionState({
-          duration: this.duration || 0,
-          playbackRate: 1.0,
-          position: this.currentTime || 0
-        });
-      } catch (e) {
-        console.error("Error setting position state:", e);
-      }
-    }
   }
 }
 

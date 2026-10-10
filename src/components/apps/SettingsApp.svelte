@@ -15,7 +15,28 @@
     Save,
     Music,
     Dog,
+    Trash2,
   } from "lucide-svelte";
+  import { killCache } from "./killCache.js";
+
+  // How long "tap again to confirm" stays armed before it disarms itself
+  const KILL_CONFIRM_WINDOW_MS = 4000;
+
+  let killArmed = $state(false);
+  let killing = $state(false);
+  let killDisarmTimer = null;
+
+  function onKillCache() {
+    if (killing) return;
+    if (!killArmed) {
+      killArmed = true;
+      killDisarmTimer = setTimeout(() => (killArmed = false), KILL_CONFIRM_WINDOW_MS);
+      return;
+    }
+    clearTimeout(killDisarmTimer);
+    killing = true;
+    killCache();
+  }
 
   let themes = themeManager.getThemesList();
   let activeThemeId = $derived(themeManager.currentThemeId);
@@ -211,6 +232,36 @@
             </div>
           </div>
         {/each}
+      </div>
+    </section>
+
+    <section class="settings-section mt-8 2xl:mt-12">
+      <h3 class="section-title">Site Data</h3>
+
+      <div
+        class="kill-card flex flex-col items-stretch gap-3 sm:flex-row sm:items-center md:gap-4 xl:gap-6 2xl:p-6"
+      >
+        <p class="kill-desc flex-1 text-xs md:text-sm 2xl:text-base">
+          Destroys everything this site has saved on this device — theme,
+          settings, saved passwords, game saves, caches — then reloads fresh.
+        </p>
+        <button
+          type="button"
+          class="kill-btn shrink-0 px-4 py-3 text-xs sm:py-2 md:text-sm 2xl:px-6 2xl:py-3 2xl:text-base"
+          class:armed={killArmed}
+          disabled={killing}
+          aria-live="polite"
+          onclick={onKillCache}
+        >
+          <Trash2 size={16} />
+          {#if killing}
+            Killing…
+          {:else if killArmed}
+            Tap again to confirm
+          {:else}
+            Kill cache
+          {/if}
+        </button>
       </div>
     </section>
   </main>
@@ -438,6 +489,52 @@
     justify-content: space-between;
     align-items: center;
     gap: 8px;
+  }
+
+  .kill-card {
+    background: $bg-card-dark;
+    border: 1px solid $border-light;
+    border-radius: 12px;
+    padding: 14px;
+  }
+
+  .kill-desc {
+    margin: 0;
+    line-height: 1.4;
+    color: var(--color-text-muted, rgba(255, 255, 255, 0.55));
+  }
+
+  .kill-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-width: 12rem;
+    border-radius: 8px;
+    border: 1px solid $color-alert-red;
+    background: transparent;
+    color: $color-alert-red;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background $transition-speed-fast ease, color $transition-speed-fast ease;
+
+    &:hover,
+    &:focus-visible {
+      background: rgba(239, 68, 68, 0.12);
+    }
+
+    &.armed {
+      background: $color-alert-red;
+      color: var(--color-text, #ffffff);
+      animation: pulseGlow 0.6s ease-in-out infinite alternate;
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: progress;
+    }
   }
 
   .deck-desc {
