@@ -1,4 +1,8 @@
+@use "variables" as vars;
+
 .converter-app {
+  // Document accent, read by the format-group label (inline style) and .doc-tint
+  --converter-doc-color: #{vars.$color-doc-sky};
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -6,6 +10,11 @@
   box-sizing: border-box;
   overflow: hidden;
   background: rgba(7, 7, 11, 0.4);
+}
+
+// Document icons and labels: lucide icons draw in currentColor
+.doc-tint {
+  color: var(--converter-doc-color);
 }
 
 .app-content-scroll {

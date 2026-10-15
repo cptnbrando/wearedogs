@@ -1095,13 +1095,20 @@
   const MAIL_BATCH_SIZE = 40;
 
   /**
-   * The standardised default send: every Senate, statewide and federal office
-   * that publishes an address. It's a fixed list that fits in one mailto, so
-   * the big green button does something valid and predictable before anyone
-   * touches a checkbox. All 150 House districts at once would blow the limit —
-   * those come in through Find My Location, the stance buttons, or REACH ALL.
+   * The default send. A campaign can pin its own list with `defaultRecipients`
+   * in campaigns.json (the hemp campaign points the button at the Lt. Governor
+   * alone). Otherwise it's the standardised group: every Senate, statewide and
+   * federal office that publishes an address. Either way it's a fixed list that
+   * fits in one mailto, so the big green button does something valid and
+   * predictable before anyone touches a checkbox. All 150 House districts at
+   * once would blow the limit — those come in through Find My Location, the
+   * stance buttons, or REACH ALL.
    */
   let defaultReps = $derived.by(() => {
+    const pinned = (selectedCampaign?.defaultRecipients ?? []).filter(
+      (e) => e && e.trim(),
+    );
+    if (pinned.length > 0) return pinned;
     const nonHouse = lawmakers
       .filter((l) => l.email && l.email.trim() && l.chamber !== "house")
       .map((l) => l.email);
@@ -1109,7 +1116,14 @@
     return campaignRecipients.slice(0, MAIL_BATCH_SIZE);
   });
 
-  const DEFAULT_GROUP_LABEL = "Senate, statewide & federal offices";
+  let DEFAULT_GROUP_LABEL = $derived(
+    selectedCampaign?.defaultRecipients?.length > 0
+      ? (selectedCampaign.defaultRecipientsLabel ??
+          selectedCampaign.defaultRecipients
+            .map((e) => getRepInfo(e).name)
+            .join(", "))
+      : "Senate, statewide & federal offices",
+  );
 
   // Sync selected reps when campaign changes.
   //
@@ -1128,6 +1142,17 @@
       locationStatusText = "";
     });
   });
+
+  /**
+   * The selection is seeded as a copy of the default list, so identity never
+   * matches — compare contents to decide whether the subtitle names the group.
+   */
+  function isDefaultSelection(list) {
+    return (
+      list.length === defaultReps.length &&
+      list.every((e, i) => e === defaultReps[i])
+    );
+  }
 
   function getRepInfo(email) {
     const meta = lawmakers.find((r) => r.email === email);
@@ -3561,7 +3586,7 @@
                               <span
                                 class="text-[10px] font-mono text-zinc-950/80 font-semibold normal-case tracking-normal px-2"
                               >
-                                {blastList === defaultReps
+                                {isDefaultSelection(blastList)
                                   ? DEFAULT_GROUP_LABEL
                                   : `${blastList.length} selected recipients`}
                               </span>
