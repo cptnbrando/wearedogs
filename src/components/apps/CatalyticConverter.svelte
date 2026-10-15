@@ -279,7 +279,7 @@
 
   // Available output formats based on detected type
   const formatMap = {
-    image: ["png", "jpg", "webp", "avif", "svg"],
+    image: ["png", "jpg", "webp", "avif", "svg", "ico"],
     audio: ["mp3", "wav", "m4a", "aac", "webm", "mp4", "mov", "mkv", "avi"],
     video: ["mp4", "mov", "mkv", "avi", "mp3", "wav", "m4a", "aac", "webm"],
     data: ["dog", "json", "js", "yml", "ts", "md"],
@@ -330,7 +330,7 @@
                 {
                   name: "Image Formats",
                   color: "#ff5e00",
-                  formats: ["png", "jpg", "webp", "avif", "svg"],
+                  formats: ["png", "jpg", "webp", "avif", "svg", "ico"],
                 },
               ]
             : []),
@@ -381,7 +381,7 @@
     selectedFormats.some((f) => f === "jpg" || f === "webp"),
   );
   const hasCompressionSupport = $derived(
-    selectedFormats.some((f) => f === "png" || f === "webp"),
+    selectedFormats.some((f) => f === "png" || f === "webp" || f === "ico"),
   );
 
   const notices = [
@@ -1019,7 +1019,7 @@
 
     if (
       file.type.startsWith("image/") ||
-      ["jpg", "jpeg", "png", "webp", "gif", "avif", "svg", "heic", "heif"].includes(ext)
+      ["jpg", "jpeg", "png", "webp", "gif", "avif", "svg", "ico", "heic", "heif"].includes(ext)
     ) {
       fileType = "image";
       inputFormat = ext === "jpeg" ? "jpg" : ext;
@@ -1754,7 +1754,7 @@
       const name = f.name.toLowerCase();
       const ext = name.split(".").pop();
       let type = "unsupported";
-      if (["png", "jpg", "jpeg", "webp", "gif", "avif", "svg", "heic", "heif"].includes(ext)) {
+      if (["png", "jpg", "jpeg", "webp", "gif", "avif", "svg", "ico", "heic", "heif"].includes(ext)) {
         type = "image";
       } else if (["mp3", "wav", "m4a", "ogg", "aac", "webm"].includes(ext)) {
         type = "audio";
@@ -2657,7 +2657,7 @@ dog 2 flow=line fs=2space kv=space block=track case=any punct=none bools=10</pre
         </div>
         <h3>Drop file or click to select</h3>
         <p class="upload-sub">
-          Supports JPG, PNG, WEBP, AVIF, SVG, MP3, WAV, M4A, AAC, WEBM, MP4,
+          Supports JPG, PNG, WEBP, AVIF, SVG, ICO, MP3, WAV, M4A, AAC, WEBM, MP4,
           MOV, MKV, AVI, DOCX, PDF, ODT, RTF, HTML, TXT, DOC, DOG, JSON, YML,
           TS, JS, MD, Z64, V64, N64
         </p>
@@ -2701,6 +2701,11 @@ dog 2 flow=line fs=2space kv=space block=track case=any punct=none bools=10</pre
               <span
                 class="px-1.5 py-0.5 rounded bg-white/5 font-mono text-[10px]"
                 >SVG</span
+              >
+              <span class="text-white/30 font-mono">➔</span>
+              <span
+                class="px-1.5 py-0.5 rounded bg-white/5 font-mono text-[10px]"
+                >ICO</span
               >
             </div>
           </div>
