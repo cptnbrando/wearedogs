@@ -37,7 +37,8 @@
   // Repeat & trigger state
   let bpm = $state(140);
   let activeTimers = Array(MAX_PADS).fill(null);
-  let activeKeys = new Set();
+  // Held key → the pad it started, so keyup stops that pad even after a kit switch
+  let activeKeys = new Map();
   let isTouching = false;
 
   // Preload Buffer Caching
@@ -228,12 +229,23 @@
     },
   ];
 
-  let activeKitIndex = $state(0);
+  let activeKitIndex = $state(KITS.indexOf(JAK_KIT));
   let activeKit = $derived(KITS[activeKitIndex]);
   let padCount = $derived((activeKit.rows || DEFAULT_PAD_ROWS) * PAD_COLUMNS);
 
   function selectKit(idx) {
+    stopAllPads();
     activeKitIndex = idx;
+  }
+
+  // Kills every held repeat. Runs whenever a release event could be lost
+  // (kit switch, window blur, tab hidden) so no pad keeps looping on its own.
+  function stopAllPads() {
+    activeTimers.forEach((timer) => {
+      if (timer) clearTimeout(timer);
+    });
+    activeTimers.fill(null);
+    activeKeys.clear();
   }
 
   function initAudio() {
@@ -728,7 +740,7 @@
     if (e.target.closest(".delete-clip-btn")) {
       return;
     }
-    if (isTouching) return;
+    if (isTouching || e.button !== 0) return;
     startPad(idx);
   }
 
@@ -870,22 +882,20 @@
       activeKit.id === "custom" ? samplerStore.customClips : activeKit.sounds;
     const matchIdx = currentSounds.findIndex((s) => s.key === key);
     if (matchIdx !== -1 && matchIdx < padCount) {
-      activeKeys.add(key);
+      activeKeys.set(key, matchIdx);
       startPad(matchIdx);
     }
   }
 
   function handleKeyup(e) {
     const key = e.key.toLowerCase();
-    if (activeKeys.has(key)) {
-      activeKeys.delete(key);
-      const currentSounds =
-        activeKit.id === "custom" ? samplerStore.customClips : activeKit.sounds;
-      const matchIdx = currentSounds.findIndex((s) => s.key === key);
-      if (matchIdx !== -1) {
-        stopPad(matchIdx);
-      }
-    }
+    if (!activeKeys.has(key)) return;
+    stopPad(activeKeys.get(key));
+    activeKeys.delete(key);
+  }
+
+  function handleVisibilityChange() {
+    if (document.hidden) stopAllPads();
   }
 
   function handleContextMenu(e) {
@@ -1043,9 +1053,7 @@
 
   onDestroy(() => {
     if (animationFrameId) cancelAnimationFrame(animationFrameId);
-    activeTimers.forEach((timer) => {
-      if (timer) clearTimeout(timer);
-    });
+    stopAllPads();
     activeVoices.forEach((v) => {
       try {
         if (v.audioEl) {
@@ -1061,7 +1069,8 @@
   });
 </script>
 
-<svelte:window onkeydown={handleKeydown} onkeyup={handleKeyup} oncontextmenu={handleContextMenu} />
+<svelte:window onkeydown={handleKeydown} onkeyup={handleKeyup} oncontextmenu={handleContextMenu} onblur={stopAllPads} />
+<svelte:document onvisibilitychange={handleVisibilityChange} />
 
 <div
   class="soundboard-layout animated-pane w-full h-full"
