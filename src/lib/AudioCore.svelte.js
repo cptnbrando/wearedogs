@@ -3,11 +3,11 @@
  * Uses HTMLMediaElement streaming connected to Web Audio Context for native OS Media Session,
  * hardware key, and Bluetooth controls integration.
  */
-import { musicLock, isLockupUrl } from "./musicLock.svelte.js";
 import { StreamGuard } from "./StreamGuard.js";
 import { bindMediaSession, syncMediaSession } from "./mediaSession.js";
 import { decodePeaks } from "./waveformPeaks.js";
 import { ShuffleQueue } from "./shuffleQueue.js";
+import { TrackSources } from "./trackSources.js";
 
 // With the screen off there's nobody to press play on a dead track, so the
 // player skips past it and never gives up. The first few skips are instant;
@@ -25,9 +25,6 @@ const REPEAT_DIAMOND = 3; // "show performance mode": play this song, then stop
 
 // "Previous" restarts the song once it's this far in
 const RESTART_THRESHOLD_S = 3;
-// A lockup song downloads whole before it plays. A fetch frozen by a dead
-// network would otherwise hold the player in "loading" forever.
-const LOCKUP_FETCH_TIMEOUT_MS = 60000;
 const METADATA_WAIT_MS = 1500;
 const PROGRESS_TICK_MS = 150;
 const INST_DRIFT_TOLERANCE_S = 0.05;
@@ -52,6 +49,10 @@ export class AudioCore {
   isSyncing = false;
 
   shuffle = new ShuffleQueue();
+  sources = new TrackSources(
+    (trackId, blob) => this.decodeTrackWaveform(trackId, blob),
+    (trackId, url) => this.scheduleWaveformDecode(trackId, url),
+  );
   // Bumped by every loadTrack(); an older load that wakes up after a newer
   // one started drops its result instead of overwriting the newer track
   loadSeq = 0;
@@ -67,7 +68,7 @@ export class AudioCore {
   currentTrackIndex = $state(0);
   isLoading = $state(false);
   isShuffled = $state(true);
-  repeatMode = $state(REPEAT_ALL); // REPEAT_OFF | REPEAT_ALL | REPEAT_ONE | REPEAT_DIAMOND
+  repeatModeState = $state(REPEAT_ALL);
   activeAudioType = $state("music"); // 'music' | 'video'
   fetchErrors = $state({});
   waveformPeaks = $state({});
@@ -93,6 +94,21 @@ export class AudioCore {
     !!(this.library[this.currentTrackIndex]?.instrumental) &&
     !this.instFailed[this.library[this.currentTrackIndex]?.id]
   );
+
+  /** REPEAT_OFF | REPEAT_ALL | REPEAT_ONE | REPEAT_DIAMOND */
+  get repeatMode() {
+    return this.repeatModeState;
+  }
+
+  // Repeat one loops natively: the element never ends, so there's no gap for
+  // a screen-off phone to drop the notification and kill the music in
+  set repeatMode(mode) {
+    this.repeatModeState = mode;
+    [this.trackAudio, this.instAudio].forEach((el) => {
+      if (el) el.loop = mode === REPEAT_ONE;
+    });
+    this.warmNext();
+  }
 
   constructor() {
     if (typeof window !== "undefined" && typeof BroadcastChannel !== "undefined") {
@@ -198,48 +214,18 @@ export class AudioCore {
     } else {
       this.shuffle.upcoming = [];
     }
+    this.warmNext();
   }
 
-  /**
-   * Resolves a track URL to something the element can play. Lockup files
-   * come back as a blob: URL that the caller owns and must revoke.
-   * @param {string} url
-   * @param {"track" | "inst"} type
-   * @param {string | null} trackId set to decode the waveform from this side
-   * @returns {Promise<string>}
-   */
-  async getAudioSource(url, type, trackId = null) {
-    if (!url) return "";
-    // Lockup files are gated server-side behind the calculator passcode, so
-    // they must be fetched with the auth header and played from a blob.
-    if (isLockupUrl(url)) {
-      const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
-      const options = Object.assign({}, musicLock.fetchOptionsFor(url), controller ? { signal: controller.signal } : {});
-      const timer = controller ? setTimeout(() => controller.abort(), LOCKUP_FETCH_TIMEOUT_MS) : null;
-      try {
-        const res = await fetch(url, options);
-        if (!res.ok) throw new Error(`Fetch failed with status ${res.status}`);
-        const blob = await res.blob();
-        if (type === "track" && trackId) this.decodeTrackWaveform(trackId, blob);
-        return URL.createObjectURL(blob);
-      } catch (e) {
-        console.warn(`Failed to fetch remote audio source for ${url}:`, e);
-        throw e;
-      } finally {
-        clearTimeout(timer);
-      }
-    }
-
-    // Everything else streams straight off its URL. The old code fetched the
-    // whole MP3 into a blob first — with the screen off, the tab loses its
-    // media exemption in the silent gap between songs and the fetch freezes
-    // mid-download, killing auto-advance. The element's own streaming is done
-    // by the browser's media stack, which keeps loading while the page is
-    // throttled.
-    if (type === "track" && trackId) {
-      this.scheduleWaveformDecode(trackId, url);
-    }
-    return url;
+  // The song that comes next starts downloading now, so a lockup song starts
+  // the moment this one ends instead of after a silent download. Repeat one
+  // and diamond never move on by themselves.
+  warmNext() {
+    const len = this.library.length;
+    const staysPut = this.repeatModeState === REPEAT_ONE || this.repeatModeState === REPEAT_DIAMOND;
+    if (!len || staysPut || this.runIsOver()) return;
+    const idx = this.isShuffled ? this.shuffle.peek(len, this.currentTrackIndex) : (this.currentTrackIndex + 1) % len;
+    this.sources.warm(this.library[idx]);
   }
 
   // Waveform bars are decoration: fetch lazily, only while visible, and never
@@ -257,7 +243,9 @@ export class AudioCore {
   }
 
   async decodeTrackWaveform(trackId, blob) {
-    if (this.waveformPeaks[trackId]) return;
+    // Decoding opens a second audio context: not worth the risk to the one
+    // playing while the screen is off and nobody can see the bars
+    if (this.waveformPeaks[trackId] || document.visibilityState === "hidden") return;
     const peaks = await decodePeaks(blob);
     if (peaks) this.waveformPeaks[trackId] = peaks;
   }
@@ -280,7 +268,7 @@ export class AudioCore {
     // Phones suspend/interrupt the context on screen lock; all sound routes
     // through it, so playback dies silently unless it resumes itself.
     this.audioCtx.addEventListener("statechange", () => {
-      if (this.isPlaying && this.audioCtx && this.audioCtx.state !== "running") {
+      if ((this.isPlaying || this.autoplayPending) && this.audioCtx && this.audioCtx.state !== "running") {
         this.audioCtx.resume().catch(() => {});
       }
     });
@@ -295,9 +283,16 @@ export class AudioCore {
     this.trackAudio = new Audio();
     this.trackAudio.crossOrigin = "anonymous";
     this.trackAudio.preload = "auto";
+    this.trackAudio.loop = this.repeatModeState === REPEAT_ONE;
     this.instAudio = new Audio();
     this.instAudio.crossOrigin = "anonymous";
     this.instAudio.preload = "auto";
+    this.instAudio.loop = this.repeatModeState === REPEAT_ONE;
+    // Back on screen showing "playing" while nothing plays: make it true
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState !== "visible") return;
+      if (this.primaryAudio().paused || this.audioCtx.state !== "running") this.revive();
+    });
 
     // Streaming surfaces load failures on the element, not a fetch(). The
     // guards retry dropped connections and stalls first (screen-off networking
@@ -472,8 +467,16 @@ export class AudioCore {
 
     clearTimeout(this.skipTimer);
     this.autoplayPending = autoplay;
-    // Stop current playback immediately
-    this.pause();
+    // Stop current playback immediately. Moving straight on to another song
+    // never reports a pause: a "paused" gap with the screen off lets the OS
+    // drop the notification, and the next song then never makes a sound.
+    if (autoplay) {
+      clearInterval(this.progressInterval);
+      this.trackAudio?.pause();
+      this.instAudio?.pause();
+    } else {
+      this.pause();
+    }
 
     this.shuffle.noteChange(index, this.currentTrackIndex, !!opts.fromHistory);
     this.currentTrackIndex = index;
@@ -500,11 +503,11 @@ export class AudioCore {
     let loadFailed = false;
     let resolvedTrackSrc = "";
     try {
-      resolvedTrackSrc = await this.getAudioSource(track.src, "track", track.id);
+      resolvedTrackSrc = await this.sources.get(track, "track");
     } catch (err) {
       console.error("Error loading vocal track:", err);
-      // (isPlaying is already false from the pause() above; setting it here
-      // could stop a newer load that's already playing)
+      // (isPlaying is left alone: setting it here could stop a newer load
+      // that's already playing; the end of this load settles it)
       if (track.instrumental) {
         this.vocalFailed[track.id] = true;
       } else {
@@ -517,7 +520,7 @@ export class AudioCore {
     let resolvedInstSrc = "";
     if (!loadFailed && track.instrumental) {
       try {
-        resolvedInstSrc = await this.getAudioSource(track.instrumental, "inst", track.id);
+        resolvedInstSrc = await this.sources.get(track, "inst");
       } catch (err) {
         console.warn("Instrumental fetch failed, disabling inst side:", err);
         this.instFailed[track.id] = true;
@@ -569,20 +572,14 @@ export class AudioCore {
     this.activeInstBlobUrl = ownedBlobs[1];
 
     if (!loadFailed) {
-      if (resolvedTrackSrc) {
-        this.trackAudio.src = resolvedTrackSrc;
-        this.trackAudio.load();
-      } else {
-        this.trackAudio.removeAttribute("src");
-        this.trackAudio.load();
-      }
-      if (resolvedInstSrc) {
-        this.instAudio.src = resolvedInstSrc;
-        this.instAudio.load();
-      } else {
-        this.instAudio.removeAttribute("src");
-        this.instAudio.load();
-      }
+      [[this.trackAudio, resolvedTrackSrc], [this.instAudio, resolvedInstSrc]].forEach(([el, src]) => {
+        if (src) el.src = src;
+        else el.removeAttribute("src");
+        el.load();
+      });
+      // Play now, in the same task as the "ended" that got us here: waiting
+      // on metadata first leaves a silent gap a hidden tab may never get past
+      if (this.autoplayPending) this.play(0);
 
       // For inst-only tracks, resolve duration from instAudio; otherwise trackAudio
       const durationSource = resolvedTrackSrc ? this.trackAudio : this.instAudio;
@@ -613,10 +610,6 @@ export class AudioCore {
     }
 
     this.isLoading = false;
-
-    if (!loadFailed && autoplay) {
-      this.play(0);
-    }
     this.autoplayPending = false;
     // Auto-advancing (or screen off) into a track that won't load: keep the
     // music going with the next one
@@ -624,6 +617,7 @@ export class AudioCore {
       this.skipDeadTrack();
       return;
     }
+    if (loadFailed) this.failCurrentTrack();
     this.syncSession();
 
     if (!this.isSyncing) {
@@ -670,6 +664,7 @@ export class AudioCore {
       if (this.instAudio && this.instAudio.src) {
         this.instAudio.play().catch(e => console.error("Error playing instAudio:", e));
       }
+      this.warmNext();
     }
 
     this.isPlaying = true;
@@ -700,6 +695,7 @@ export class AudioCore {
    */
   requestPause() {
     clearTimeout(this.skipTimer);
+    this.autoplayPending = false;
     if (this.masterTabId && this.masterTabId !== this.tabId) {
       this.broadcast({ type: "cmd_pause" });
       return;
@@ -834,6 +830,8 @@ export class AudioCore {
           const primaryAudio = this.primaryAudio();
           const isInstOnly = primaryAudio === this.instAudio;
           this.currentTime = primaryAudio.currentTime;
+          const guard = isInstOnly ? this.instGuard : this.trackGuard;
+          if (guard.clockStuck(this.isLoading)) this.revive();
 
           // Keep instrumental in sync with the main track
           if (!isInstOnly && this.instAudio && this.instAudio.src && !this.instAudio.paused) {
@@ -858,6 +856,20 @@ export class AudioCore {
         }
       }
     }, PROGRESS_TICK_MS);
+  }
+
+  /**
+   * Restarts playback that says it's on but makes no sound. Does what a
+   * listener's pause-then-play would: wakes the audio graph and starts the
+   * elements over from where they are.
+   */
+  revive() {
+    const isSelfMaster = !this.masterTabId || this.masterTabId === this.tabId;
+    if (!this.isPlaying || this.isLoading || !isSelfMaster || !this.trackAudio) return;
+    [this.trackAudio, this.instAudio].forEach((el) => {
+      if (el.src) el.pause();
+    });
+    this.play(this.primaryAudio().currentTime);
   }
 
   /**

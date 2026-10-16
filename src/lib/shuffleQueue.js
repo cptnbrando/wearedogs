@@ -59,8 +59,20 @@ export class ShuffleQueue {
    * @returns {number}
    */
   next(length, current) {
+    const idx = this.peek(length, current);
+    this.upcoming.shift();
+    return idx;
+  }
+
+  /**
+   * The song next() will return, left on the queue.
+   * @param {number} length library size
+   * @param {number} current index playing now
+   * @returns {number}
+   */
+  peek(length, current) {
     if (this.upcoming.length === 0) this.deal(length, current);
-    return this.upcoming.length > 0 ? this.upcoming.shift() : current;
+    return this.upcoming.length > 0 ? this.upcoming[0] : current;
   }
 
   /**

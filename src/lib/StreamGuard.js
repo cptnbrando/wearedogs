@@ -18,6 +18,10 @@ const RETRY_DELAYS_MS = [0, 2000, 6000];
 const STALL_TIMEOUT_MS = 10000;
 // Movement smaller than this during a stall check is buffering jitter
 const STALL_PROGRESS_EPSILON_S = 0.25;
+// A playing element whose clock hasn't moved for this long is stuck
+const STUCK_CLOCK_MS = 4000;
+// readyState from which an element has data to play; below it, it's buffering
+const HAVE_FUTURE_DATA = 3;
 
 export class StreamGuard {
   /**
@@ -35,6 +39,8 @@ export class StreamGuard {
     this.stallTimer = null;
     this.retryTimer = null;
     this.pendingResume = null;
+    this.clock = 0;
+    this.clockMovedAt = 0;
 
     el.addEventListener("error", () => this.onError());
     el.addEventListener("playing", () => {
@@ -110,6 +116,27 @@ export class StreamGuard {
     this.pendingResume = resume;
     el.addEventListener("loadedmetadata", resume);
     el.load();
+  }
+
+  /**
+   * Call on every progress tick. True once the clock has sat still for
+   * STUCK_CLOCK_MS while the element has data and isn't paused: a suspended
+   * audio graph, or a play() the OS swallowed. Buffering is the stall timer's
+   * job, and an element the OS paused (a phone call) is left alone.
+   * @param {boolean} idle the owner is between songs: nothing to judge yet
+   * @returns {boolean}
+   */
+  clockStuck(idle) {
+    const el = this.el;
+    const now = Date.now();
+    if (idle || el.paused || el.readyState < HAVE_FUTURE_DATA || el.currentTime !== this.clock) {
+      this.clock = el.currentTime;
+      this.clockMovedAt = now;
+      return false;
+    }
+    if (now - this.clockMovedAt < STUCK_CLOCK_MS) return false;
+    this.clockMovedAt = now;
+    return true;
   }
 
   /** A retry's seek-back belongs to its own track, never the next one. */

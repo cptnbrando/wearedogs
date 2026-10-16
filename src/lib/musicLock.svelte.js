@@ -10,6 +10,9 @@ const STORAGE_KEY = "music_lockup_password";
 const DATA_ORIGIN = "https://data.wearedogs.net/";
 const LOCKUP_SEGMENT = "/lockup/";
 const CHECK_URL = DATA_ORIGIN + "music" + LOCKUP_SEGMENT + "check.txt";
+// A lockup song downloads whole before it plays. A fetch frozen by a dead
+// network would otherwise hold the player in "loading" forever.
+const FETCH_TIMEOUT_MS = 60000;
 
 /** True for files gated behind the lockup passcode on the data server. */
 export function isLockupUrl(url) {
@@ -67,6 +70,25 @@ class MusicLock {
   fetchOptionsFor(url) {
     if (!isLockupUrl(url) || !this.password) return {};
     return { headers: { Authorization: `password=${this.password}` } };
+  }
+
+  /**
+   * Downloads a music file whole, with the auth header when it's a lockup
+   * file, giving up after FETCH_TIMEOUT_MS.
+   * @param {string} url
+   * @returns {Promise<Blob>}
+   */
+  async fetchBlob(url) {
+    const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+    const options = Object.assign({}, this.fetchOptionsFor(url), controller ? { signal: controller.signal } : {});
+    const timer = controller ? setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS) : null;
+    try {
+      const res = await fetch(url, options);
+      if (!res.ok) throw new Error(`Fetch failed with status ${res.status}`);
+      return await res.blob();
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   /** Try a passcode against a real lockup track; persist and unlock on success. */
