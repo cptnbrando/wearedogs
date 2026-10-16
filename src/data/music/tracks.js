@@ -34,6 +34,20 @@ export const fullLibrary = [
     public: false
   },
   {
+    id: "dangerous",
+    title: "Dangerous",
+    artist: "Michael Jackson",
+    album: "Dangerous",
+    cover: "https://data.wearedogs.net/img/covers/2026/dangerous.webp",
+    altCover: "https://data.wearedogs.net/img/covers/2026/dangerous.png",
+    src: "https://data.wearedogs.net/music/lockup/dangerous.mp3",
+    instrumental: "https://data.wearedogs.net/music/lockup/dangerous-free.mp3",
+    dateAdded: "2026-10-16T12:00:00-05:00",
+    year: 1991,
+    genre: "Pop",
+    public: false
+  },
+  {
     id: "rain",
     title: "Pourin Rain (ft. Skratch Bastid)",
     artist: "Zeds Dead",
