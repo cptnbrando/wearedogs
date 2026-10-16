@@ -34,6 +34,20 @@ export const fullLibrary = [
     public: false
   },
   {
+    id: "dangerous",
+    title: "Dangerous",
+    artist: "Michael Jackson",
+    album: "Dangerous",
+    cover: "https://data.wearedogs.net/img/covers/2026/dangerous.webp",
+    altCover: "https://data.wearedogs.net/img/covers/2026/dangerous.png",
+    src: "https://data.wearedogs.net/music/lockup/dangerous.mp3",
+    instrumental: "https://data.wearedogs.net/music/lockup/dangerous-free.mp3",
+    dateAdded: "2026-10-16T12:00:00-05:00",
+    year: 1991,
+    genre: "Pop",
+    public: false
+  },
+  {
     id: "rain",
     title: "Pourin Rain (ft. Skratch Bastid)",
     artist: "Zeds Dead",
@@ -205,13 +219,13 @@ export const fullLibrary = [
     album: "Sunburn",
     cover: "https://data.wearedogs.net/img/covers/2026/sunburn.webp",
     altCover: "https://data.wearedogs.net/img/covers/2026/sunburn.png",
-    src: "https://data.wearedogs.net/music/2026/howmuchweed.mp3",
-    instrumental: "https://data.wearedogs.net/music/2026/howmuchweed-free.mp3",
+    src: "https://data.wearedogs.net/music/lockup/howmuchweed.mp3",
+    instrumental: "https://data.wearedogs.net/music/lockup/howmuchweed-free.mp3",
     dateAdded: "2026-08-31T17:42:43-05:00",
     year: 2026,
     genre: "Pop",
     attrib:"https://dominicfike.com/",
-    public: true
+    public: false
   },
   {
     id: "goat",

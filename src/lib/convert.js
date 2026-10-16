@@ -3,6 +3,13 @@
  * Library for client-side image and audio format conversion.
  */
 import { encodeMp3, nearestMp3Rate } from "./mp3Pool.js";
+import { cropRect, NO_CROP } from "./imageCrop.js";
+
+// ICO: one PNG image behind a 22-byte header (6-byte ICONDIR + 16-byte entry).
+// Read by every browser and Windows Vista+. An entry is 256 px at most
+const ICO_MAX_PX = 256;
+const ICO_HEADER_BYTES = 22;
+const ICO_BITS_PER_PIXEL = 32;
 
 /**
  * Resamples an AudioBuffer to a target sample rate.
@@ -119,23 +126,35 @@ export async function bufferToMp3(buffer, kbps, onProgress) {
 /**
  * Converts an image file to target format, resolution, quality, and compression.
  * @param {string} previewUrl 
- * @param {string} outputFormat - 'jpg' | 'png' | 'webp'
+ * @param {string} outputFormat - 'jpg' | 'png' | 'webp' | 'avif' | 'svg' | 'ico'
  * @param {number} targetWidth 
  * @param {number} targetHeight 
  * @param {number} quality - 0 to 100
  * @param {number} compression - 0 to 100
+ * @param {string} [crop] - a CROP_PRESETS id (imageCrop.js); the centred
+ *   rectangle is cut out first, and a 0 width/height means "the crop's size"
  * @returns {Promise<Blob>}
  */
-export function convertImage(previewUrl, outputFormat, targetWidth, targetHeight, quality, compression) {
+export function convertImage(previewUrl, outputFormat, targetWidth, targetHeight, quality, compression, crop = NO_CROP) {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.src = previewUrl;
     img.onload = () => {
+      const src = cropRect(img.naturalWidth, img.naturalHeight, crop) || {
+        x: 0,
+        y: 0,
+        width: img.naturalWidth,
+        height: img.naturalHeight,
+      };
       const canvas = document.createElement("canvas");
-      canvas.width = targetWidth || img.naturalWidth;
-      canvas.height = targetHeight || img.naturalHeight;
+      const width = targetWidth || src.width;
+      const height = targetHeight || src.height;
+      // An icon shrinks to fit 256 px, keeping its shape
+      const fit = outputFormat === "ico" ? Math.min(1, ICO_MAX_PX / Math.max(width, height)) : 1;
+      canvas.width = Math.max(1, Math.round(width * fit));
+      canvas.height = Math.max(1, Math.round(height * fit));
       const ctx = canvas.getContext("2d");
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, src.x, src.y, src.width, src.height, 0, 0, canvas.width, canvas.height);
 
       if (outputFormat === "svg") {
         const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="${canvas.width}" height="${canvas.height}">
@@ -172,11 +191,8 @@ export function convertImage(previewUrl, outputFormat, targetWidth, targetHeight
 
       canvas.toBlob(
         (blob) => {
-          if (blob) {
-            resolve(blob);
-          } else {
-            reject(new Error("Canvas export failed."));
-          }
+          if (!blob) return reject(new Error("Canvas export failed."));
+          resolve(outputFormat === "ico" ? pngToIco(blob, canvas.width, canvas.height) : blob);
         },
         mimeType,
         exportQuality
@@ -184,6 +200,26 @@ export function convertImage(previewUrl, outputFormat, targetWidth, targetHeight
     };
     img.onerror = () => reject(new Error("Failed to load image."));
   });
+}
+
+/**
+ * Wraps a PNG (256 px or smaller) in a single-image ICO file.
+ * @param {Blob} png
+ * @param {number} width
+ * @param {number} height
+ * @returns {Blob}
+ */
+function pngToIco(png, width, height) {
+  const header = new DataView(new ArrayBuffer(ICO_HEADER_BYTES));
+  header.setUint16(2, 1, true); // type: icon
+  header.setUint16(4, 1, true); // one image
+  header.setUint8(6, width % ICO_MAX_PX); // 0 means 256
+  header.setUint8(7, height % ICO_MAX_PX);
+  header.setUint16(10, 1, true); // colour planes
+  header.setUint16(12, ICO_BITS_PER_PIXEL, true);
+  header.setUint32(14, png.size, true);
+  header.setUint32(18, ICO_HEADER_BYTES, true); // image starts right after the header
+  return new Blob([header.buffer, png], { type: "image/x-icon" });
 }
 
 /**

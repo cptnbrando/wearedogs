@@ -7,7 +7,7 @@
 ## Core Orchestration Instructions
 - **Target Engine**: When explicitly asked, the `Swarm-Coordinator` must execute `git checkout -b ai-[currentmonth]/[task-name]` from a clean master branch. If not explicitly asked to make separate branches, or to accomplish multiple tasks, complete work on the currently checked out branch.
 - **Transpilation Guard**: Every file edited must adhere to the Potato Target (Chrome 40+ compatibility via transpile steps).
-- **Nobody is allowed to merge branches, or any code, or anything into master, ever. Never git push anything anywhere, no code changes you make can touch a network without my explicit command.**
+- **Nobody is allowed to merge branches, or any code, or anything into master, ever. You can push to any branch, and create new branches, and merge other branches, but never touch master/main branch.**
 
 ### 1. Structure & Control Flow
 * SINGLE-LINE FUNCTIONS: If a function can be written in one line, it should not be isolated as a function. Inline it or refactor.
@@ -51,12 +51,12 @@ Every single UI component generated MUST contain explicit Tailwind breakpoint pr
 - This is a Vite Svelte project, using tailwindCSS and SCSS for styling. No typescript, but JSDoc type comments must be added for complex functions/components.
 - All data is being held in a Cloudflare R2 database. This is accessible at https://data.wearedogs.net. Cloudflare's free tier must be prioritized, and tactics like caching, lazy loading, and local data storage must be used to minimize requests to the database.
 - Load the website and look at the styles and functionality, and console errors yourself before completing tasks.
-- Create new branches for tasks, do not push anything to github. Never run git push. Or git reset or git rebase. You may commit your changes locally to your specific branches.
+- Create new branches for tasks. Never git reset or git rebase.
 - Once the change passes styling, modularity, and testing criteria, you may notify me that the task is complete. I will then review the changes and request changes. Do not create any Pull Requests, unless you are absolutely certain that the changes are perfect and you have followed all other instructions.
 - If a script is creating a dynamicly changing file, such as changelog.json for the changelog app, make sure that it is added to .gitignore.
 - CRITICAL: Don't use runes by default, they should be a reserved feature. They are too performance heavy.
 
-# ABSOLUTELY CRITICAL: NEVER TOUCH THE GIT MASTER BRANCH OR THE MAIN BRANCH. NEVER EVER EVER.
+# ABSOLUTELY CRITICAL: NEVER TOUCH THE GIT MASTER BRANCH OR THE MAIN BRANCH. NEVER EVER EVER. IT MUST BE LEFT EXACTLY AS YOU FOUND IT. YOU MAY CREATE PRs TO MERGE INTO MASTER/MAIN.
 
 # ABSOLUTELY CRITICAL: ALWAYS CREATE STYLES FOR MOBILE LANDSCAPE, MOBILE PORTRAIT, TABLET LANDSCAPE, TABLET PORTRAIT, DESKTOP LANDSCAPE, DESKTOP PORTRAIT, TV, AND ULTRA-WIDE DISPLAYS. FOLLOW THE STYLING GUIDELINES ABOVE TO MINIMIZE CROPPED OUT CONTENT AND INACCESSIBLE ELEMENTS ACROSS ALL DEVICES. THE CHANGE IS INCOMPLETE IF IT DOES NOT ACCOUNT FOR ALL OF THESE VIEWPORTS. TAILWINDCSS IS YOUR BEST FRIEND FOR THIS.
 

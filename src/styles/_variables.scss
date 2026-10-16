@@ -7,6 +7,16 @@ $color-neon-red: var(--color-neon-red, #ff3344);        // Main primary accent &
 $color-neon-green: var(--color-neon-green, #00d75f);      // Success, advancing status, and win states
 $color-alert-red: var(--color-alert-red, #ef4444);       // Elimination status, offline warnings
 
+// ── Catalytic Converter: documents & crop ──
+// Document formats accent (format group label, file icons, stats panel).
+// Used in styles/CatalyticConverter.scss and apps/DocumentPreview.svelte.
+$color-doc-sky: var(--color-doc-sky, #38bdf8);
+$color-doc-sky-soft: rgba(56, 189, 248, 0.08); // DocumentPreview stat tiles
+$color-doc-sky-line: rgba(56, 189, 248, 0.25); // DocumentPreview borders, CropPicker selected ring
+// Image accent the converter already uses for image formats; CropPicker's selected chip.
+$color-image-orange: var(--color-image-orange, #ff5e00);
+$color-image-orange-soft: rgba(255, 94, 0, 0.12);
+
 // ── Background Gradients & Colors ──
 $bg-app-dark: var(--bg-app, #050508);
 $bg-radial-overlay: var(--bg-radial-overlay, radial-gradient(circle at top, rgba(30, 10, 15, 0.55) 0%, rgba(5, 5, 8, 1) 100%));

@@ -18,6 +18,11 @@ export const VALID_APPS = new Set([
   'passwords',
 ]);
 
+/** One-segment short urls that open an app directly: dogs.red/cc → converter. */
+const APP_SHORT_URLS = {
+  'cc': 'converter',
+};
+
 /**
  * Show slug → catalog key map used when resolving GoPro deep links.
  * Exported so GoPro.svelte can reference the same source of truth.
@@ -106,6 +111,11 @@ export function parsePath(path) {
   // /.dog  (straight to the .dog format spec inside the converter)
   if (parts.length === 1 && (s0 === '.dog' || s0 === 'dog')) {
     return { type: 'app', app: 'converter', dogSpec: true };
+  }
+
+  // /cc  (app short urls)
+  if (parts.length === 1 && APP_SHORT_URLS[s0]) {
+    return { type: 'app', app: APP_SHORT_URLS[s0] };
   }
 
   // /music  (panel, no track)

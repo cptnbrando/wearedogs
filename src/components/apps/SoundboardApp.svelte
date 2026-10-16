@@ -10,25 +10,47 @@
     Zap,
   } from "lucide-svelte";
   import { samplerStore } from "../../lib/samplerStore.svelte.js";
+  import { JAK_KIT } from "../../lib/soundboardJakKit.js";
+  import { timeStretch } from "../../lib/timeStretch.js";
+
+  // Pad grid: 4 columns; kits default to 4 rows, larger kits set their own `rows`
+  const PAD_COLUMNS = 4;
+  const DEFAULT_PAD_ROWS = 4;
+  const MAX_PADS = 20;
+
+  // Mobile landscape: bound columns to the chassis height so the pad grid can't
+  // stretch the row and push the encoders deck out; pads share the leftover space
+  const ML_CHASSIS_ROWS = "grid-rows-[minmax(0,1fr)]";
+  const ML_COLUMN = "min-h-0";
+  const ML_PAD_WRAPPER = "flex-1 min-h-0";
+  const ML_PAD_GRID = "flex-1 min-h-0 auto-rows-[minmax(0,1fr)]";
+  const ML_PAD_CARD = "h-auto!";
 
   // Sampler state
   let audioCtx = null;
   let analyserNode = null;
-  let activePads = $state(Array(16).fill(0));
+  let activePads = $state(Array(MAX_PADS).fill(0));
   let activeVoices = $state([]);
   let isError = $state(false);
   let failedPads = $state(new Set());
 
   // Repeat & trigger state
   let bpm = $state(140);
-  let activeTimers = Array(16).fill(null);
-  let activeKeys = new Set();
+  let activeTimers = Array(MAX_PADS).fill(null);
+  // Held key → the pad it started, so keyup stops that pad even after a kit switch
+  let activeKeys = new Map();
   let isTouching = false;
 
   // Preload Buffer Caching
   const bufferCache = new Map();
   let preloadedCount = $state(0);
   const MAX_VOICES = 12;
+
+  // Keep-pitch mode: speed changes length only, via pre-stretched buffers
+  let keepPitch = $state(false);
+  const stretchCache = new Map();
+  const STRETCH_CACHE_MAX = 32;
+  const STRETCH_FACTOR_DECIMALS = 2;
 
   // OP-1 Encoders (Knobs) state
   let knobPitch = $state(1.0); // 0.5 to 2.0
@@ -183,13 +205,7 @@
         },
       ],
     },
-    {
-      id: "kit2",
-      name: "Kit 2 (Empty)",
-      color: "#00ff66",
-      glow: "rgba(0, 255, 102, 0.4)",
-      sounds: [],
-    },
+    JAK_KIT,
     {
       id: "kit3",
       name: "Kit 3 (Empty)",
@@ -213,11 +229,23 @@
     },
   ];
 
-  let activeKitIndex = $state(0);
+  let activeKitIndex = $state(KITS.indexOf(JAK_KIT));
   let activeKit = $derived(KITS[activeKitIndex]);
+  let padCount = $derived((activeKit.rows || DEFAULT_PAD_ROWS) * PAD_COLUMNS);
 
   function selectKit(idx) {
+    stopAllPads();
     activeKitIndex = idx;
+  }
+
+  // Kills every held repeat. Runs whenever a release event could be lost
+  // (kit switch, window blur, tab hidden) so no pad keeps looping on its own.
+  function stopAllPads() {
+    activeTimers.forEach((timer) => {
+      if (timer) clearTimeout(timer);
+    });
+    activeTimers.fill(null);
+    activeKeys.clear();
   }
 
   function initAudio() {
@@ -468,10 +496,12 @@
     audio.crossOrigin = "anonymous";
     audio.currentTime = clip.start;
     audio.volume = masterVolume;
-    audio.playbackRate = knobSpeed * knobPitch;
+    // Media elements can't pitch-shift on their own: keep-pitch plays at speed only
+    const clipRate = keepPitch ? knobSpeed : knobSpeed * knobPitch;
+    audio.playbackRate = clipRate;
 
     if (typeof audio.preservesPitch !== "undefined") {
-      audio.preservesPitch = false; // pitch shift with speed
+      audio.preservesPitch = keepPitch;
     }
 
     const triggerErrorAnimation = () => {
@@ -521,7 +551,7 @@
     });
 
     // Stop exactly at clip endpoint (taking rate into account)
-    const clipDurationSec = (clip.end - clip.start) / (knobSpeed * knobPitch);
+    const clipDurationSec = (clip.end - clip.start) / clipRate;
 
     setTimeout(() => {
       try {
@@ -530,6 +560,24 @@
       } catch (e) {}
       activeVoices = activeVoices.filter((v) => v.audioEl !== audio);
     }, clipDurationSec * 1000);
+  }
+
+  /**
+   * Time-stretched copy of a decoded buffer, cached per url and rounded factor.
+   * @param {string} url
+   * @param {AudioBuffer} buffer
+   * @param {number} factor - output duration / input duration
+   * @returns {AudioBuffer}
+   */
+  function getStretchedBuffer(url, buffer, factor) {
+    const key = url + "|" + factor.toFixed(STRETCH_FACTOR_DECIMALS);
+    const cached = stretchCache.get(key);
+    if (cached) return cached;
+
+    const stretched = timeStretch(audioCtx, buffer, Number(factor.toFixed(STRETCH_FACTOR_DECIMALS)));
+    if (stretchCache.size >= STRETCH_CACHE_MAX) stretchCache.delete(stretchCache.keys().next().value);
+    stretchCache.set(key, stretched);
+    return stretched;
   }
 
   // Play direct audio file (leverages preloaded memory buffers for instant triggers)
@@ -562,13 +610,12 @@
           const fallbackAudio = new Audio(url);
           fallbackAudio.crossOrigin = "anonymous";
           fallbackAudio.volume = masterVolume;
-          fallbackAudio.playbackRate =
-            knobSpeed *
-            knobPitch *
-            (options.speed || 1.0) *
-            (options.pitch || 1.0);
+          const fallbackSpeed = knobSpeed * (options.speed || 1.0);
+          fallbackAudio.playbackRate = keepPitch
+            ? fallbackSpeed
+            : fallbackSpeed * knobPitch * (options.pitch || 1.0);
           if (typeof fallbackAudio.preservesPitch !== "undefined") {
-            fallbackAudio.preservesPitch = false;
+            fallbackAudio.preservesPitch = keepPitch;
           }
           const gainNode = audioCtx.createGain();
           const source = audioCtx.createMediaElementSource(fallbackAudio);
@@ -590,8 +637,11 @@
     }
 
     try {
+      const pitch = knobPitch * (options.pitch || 1.0);
+      const speed = knobSpeed * (options.speed || 1.0);
       const source = audioCtx.createBufferSource();
-      source.buffer = buffer;
+      // Keep pitch: stretch to the target length first, then play at the pitch rate
+      source.buffer = keepPitch ? getStretchedBuffer(url, buffer, pitch / speed) : buffer;
 
       const gain = audioCtx.createGain();
       const filter = audioCtx.createBiquadFilter();
@@ -604,10 +654,8 @@
       filter.frequency.setValueAtTime(knobCutoff, audioCtx.currentTime);
       gain.gain.setValueAtTime(masterVolume, audioCtx.currentTime);
 
-      const pitchMultiplier = options.pitch || 1.0;
-      const speedMultiplier = options.speed || 1.0;
       source.playbackRate.setValueAtTime(
-        knobSpeed * knobPitch * speedMultiplier * pitchMultiplier,
+        keepPitch ? pitch : speed * pitch,
         audioCtx.currentTime,
       );
 
@@ -692,7 +740,7 @@
     if (e.target.closest(".delete-clip-btn")) {
       return;
     }
-    if (isTouching) return;
+    if (isTouching || e.button !== 0) return;
     startPad(idx);
   }
 
@@ -833,23 +881,21 @@
     const currentSounds =
       activeKit.id === "custom" ? samplerStore.customClips : activeKit.sounds;
     const matchIdx = currentSounds.findIndex((s) => s.key === key);
-    if (matchIdx !== -1 && matchIdx < 16) {
-      activeKeys.add(key);
+    if (matchIdx !== -1 && matchIdx < padCount) {
+      activeKeys.set(key, matchIdx);
       startPad(matchIdx);
     }
   }
 
   function handleKeyup(e) {
     const key = e.key.toLowerCase();
-    if (activeKeys.has(key)) {
-      activeKeys.delete(key);
-      const currentSounds =
-        activeKit.id === "custom" ? samplerStore.customClips : activeKit.sounds;
-      const matchIdx = currentSounds.findIndex((s) => s.key === key);
-      if (matchIdx !== -1) {
-        stopPad(matchIdx);
-      }
-    }
+    if (!activeKeys.has(key)) return;
+    stopPad(activeKeys.get(key));
+    activeKeys.delete(key);
+  }
+
+  function handleVisibilityChange() {
+    if (document.hidden) stopAllPads();
   }
 
   function handleContextMenu(e) {
@@ -1007,9 +1053,7 @@
 
   onDestroy(() => {
     if (animationFrameId) cancelAnimationFrame(animationFrameId);
-    activeTimers.forEach((timer) => {
-      if (timer) clearTimeout(timer);
-    });
+    stopAllPads();
     activeVoices.forEach((v) => {
       try {
         if (v.audioEl) {
@@ -1025,7 +1069,8 @@
   });
 </script>
 
-<svelte:window onkeydown={handleKeydown} onkeyup={handleKeyup} oncontextmenu={handleContextMenu} />
+<svelte:window onkeydown={handleKeydown} onkeyup={handleKeyup} oncontextmenu={handleContextMenu} onblur={stopAllPads} />
+<svelte:document onvisibilitychange={handleVisibilityChange} />
 
 <div
   class="soundboard-layout animated-pane w-full h-full"
@@ -1043,12 +1088,12 @@
       style="width: {baseWidth}px; height: {baseHeight}px; transform: scale({scale}); transform-origin: center center; flex-shrink: 0; display: flex;"
     >
       <div
-        class="op1-chassis w-full h-full"
+        class="op1-chassis w-full h-full {isMobileLandscape ? ML_CHASSIS_ROWS : ''}"
         class:grid-layout={!isPortrait}
         class:chassis-error={isError}
       >
         <!-- Left Column: Screen + Knobs -->
-        <div class="chassis-left flex flex-col justify-between gap-3">
+        <div class="chassis-left flex flex-col justify-between gap-3 {isMobileLandscape ? ML_COLUMN : ''}">
           <!-- LCD Display screen (Waveform + Info indicators) -->
           {#if !isMobileLandscape}
             <div class="op1-screen-unit">
@@ -1161,28 +1206,42 @@
               <span class="knob-value">{knobPitch.toFixed(2)}x</span>
             </div>
 
-            <!-- Knob 2: Playback Speed (Green) -->
-            <div
-              class="encoder-slot"
-              role="slider"
-              aria-label="Playback Speed"
-              aria-valuemin="0.5"
-              aria-valuemax="2.0"
-              aria-valuenow={knobSpeed}
-              tabindex="0"
-              onmousedown={(e) => startKnobDrag("speed", e)}
-              ontouchstart={(e) => handleTouchStart("speed", e)}
-              ondblclick={() => resetKnob("speed")}
-              onkeydown={(e) => handleKnobKeydown("speed", e)}
-            >
+            <!-- Knob 2: Playback Speed (Green) + keep-pitch switch -->
+            <div class="encoder-group">
               <div
-                class="knob-cap color-green"
-                style="transform: rotate({(knobSpeed - 1.25) * 180}deg)"
+                class="encoder-slot"
+                role="slider"
+                aria-label="Playback Speed"
+                aria-valuemin="0.5"
+                aria-valuemax="2.0"
+                aria-valuenow={knobSpeed}
+                tabindex="0"
+                onmousedown={(e) => startKnobDrag("speed", e)}
+                ontouchstart={(e) => handleTouchStart("speed", e)}
+                ondblclick={() => resetKnob("speed")}
+                onkeydown={(e) => handleKnobKeydown("speed", e)}
               >
-                <div class="notch"></div>
+                <div
+                  class="knob-cap color-green"
+                  style="transform: rotate({(knobSpeed - 1.25) * 180}deg)"
+                >
+                  <div class="notch"></div>
+                </div>
+                <span class="knob-title">SPEED</span>
+                <span class="knob-value">{knobSpeed.toFixed(2)}x</span>
               </div>
-              <span class="knob-title">SPEED</span>
-              <span class="knob-value">{knobSpeed.toFixed(2)}x</span>
+              <button
+                type="button"
+                class="pitch-lock-switch"
+                class:on={keepPitch}
+                role="switch"
+                aria-checked={keepPitch}
+                title="Keep pitch: speed changes length, not pitch"
+                onclick={() => (keepPitch = !keepPitch)}
+              >
+                <span class="switch-track"><span class="switch-thumb"></span></span>
+                <span class="switch-label">KEEP PITCH</span>
+              </button>
             </div>
 
             <!-- Knob 3: BPM Tempo (Orange) -->
@@ -1237,15 +1296,15 @@
         </div>
 
         <!-- Right Column: Launchpad + Footer -->
-        <div class="chassis-right flex flex-col justify-between gap-3">
-          <!-- Novation Launchpad Pad Matrix grid (4x4) -->
-          <div class="launchpad-grid-wrapper">
+        <div class="chassis-right flex flex-col justify-between gap-3 {isMobileLandscape ? ML_COLUMN : ''}">
+          <!-- Novation Launchpad Pad Matrix grid (4 columns, 4 or 5 rows) -->
+          <div class="launchpad-grid-wrapper {isMobileLandscape ? ML_PAD_WRAPPER : ''}">
             <div class="launchpad-tag">
               LAUNCHPAD SAMPLES GRID ({activeKit.name.toUpperCase()})
             </div>
 
-            <div class="launchpad-grid">
-              {#each Array(16) as _, i}
+            <div class="launchpad-grid {isMobileLandscape ? ML_PAD_GRID : ''}" class:five-rows={padCount > PAD_COLUMNS * DEFAULT_PAD_ROWS}>
+              {#each Array(padCount) as _, i}
                 {@const sound =
                   activeKit.id === "custom"
                     ? samplerStore.customClips[i]
@@ -1257,7 +1316,7 @@
                     class="pad-card {sound.color || ''} {activeKit.id ===
                     'custom'
                       ? 'custom-pad'
-                      : 'procedural-pad'}"
+                      : 'procedural-pad'} {isMobileLandscape ? ML_PAD_CARD : ''}"
                     class:active={activePads[i] > 0}
                     class:pad-error={failedPads.has(i)}
                     style={activeKit.id === "custom"
@@ -1301,7 +1360,7 @@
                     {/if}
                   </button>
                 {:else}
-                  <div class="pad-card empty-pad">
+                  <div class="pad-card empty-pad {isMobileLandscape ? ML_PAD_CARD : ''}">
                     <span class="empty-dot"></span>
                   </div>
                 {/if}
@@ -1314,11 +1373,11 @@
             <div class="kb-badge"><Keyboard size={12} /> TRIGGERS ENABLED</div>
             {#if activeKit.id === "custom"}
               <div class="clip-counter">
-                TOTAL CUSTOM PADS: {samplerStore.customClips.length}/16
+                TOTAL CUSTOM PADS: {samplerStore.customClips.length}/{padCount}
               </div>
             {:else}
               <div class="clip-counter">
-                PRESET SOUNDS: {activeKit.sounds.length}/16
+                PRESET SOUNDS: {activeKit.sounds.length}/{padCount}
               </div>
             {/if}
           </footer>
@@ -1552,6 +1611,65 @@
     background: #ff55bb;
   }
 
+  .encoder-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .pitch-lock-switch {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+  }
+
+  .switch-track {
+    width: 22px;
+    height: 12px;
+    border-radius: 6px;
+    background: #252530;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    position: relative;
+    transition: background 0.2s;
+  }
+
+  .switch-thumb {
+    position: absolute;
+    top: 1px;
+    left: 1px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.5);
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .pitch-lock-switch.on .switch-track {
+    background: #00ff66;
+    border-color: #00ff66;
+  }
+
+  .pitch-lock-switch.on .switch-thumb {
+    transform: translateX(10px);
+    background: black;
+  }
+
+  .switch-label {
+    font-size: 0.5rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: rgba(255, 255, 255, 0.35);
+  }
+
+  .pitch-lock-switch.on .switch-label {
+    color: #00ff66;
+  }
+
   .knob-title {
     font-size: 0.58rem;
     font-weight: 700;
@@ -1584,6 +1702,20 @@
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 10px;
+  }
+
+  /* 5-row kits shrink pads so the grid keeps the 4x4 footprint (5x46 + 4x8 <= 4x60 + 3x10) */
+  .launchpad-grid.five-rows {
+    gap: 8px;
+  }
+
+  .launchpad-grid.five-rows .pad-card {
+    height: 46px;
+  }
+
+  .launchpad-grid.five-rows .pad-emoji {
+    font-size: 0.95rem;
+    margin-bottom: 0;
   }
 
   .pad-card {
@@ -1785,5 +1917,15 @@
     background: #ff55bb;
     color: black;
     box-shadow: 0 0 15px #ff55bb;
+  }
+
+  .pad-red:hover {
+    border-color: #ff4d2e;
+    background: rgba(255, 77, 46, 0.04);
+  }
+  .pad-red.active {
+    background: #ff4d2e;
+    color: black;
+    box-shadow: 0 0 15px #ff4d2e;
   }
 </style>
