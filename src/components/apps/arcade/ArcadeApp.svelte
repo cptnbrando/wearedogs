@@ -518,7 +518,7 @@
     window.NepEmu = game.console;
     window.NepPlayer = "#emulator";
     window.gameUrl = game.file;
-    window.psxBios = "/neptun/test/bios/psxBios.zip";
+    window.psxBios = "/neptun/bios/psxBios.zip";
     window.psxSkipBios = true;
     window.NepZoom = zoomEnabled ? "enable" : "disable";
     window.NepMaxWidth = "100%";
