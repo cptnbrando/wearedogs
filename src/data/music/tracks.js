@@ -205,13 +205,13 @@ export const fullLibrary = [
     album: "Sunburn",
     cover: "https://data.wearedogs.net/img/covers/2026/sunburn.webp",
     altCover: "https://data.wearedogs.net/img/covers/2026/sunburn.png",
-    src: "https://data.wearedogs.net/music/2026/howmuchweed.mp3",
-    instrumental: "https://data.wearedogs.net/music/2026/howmuchweed-free.mp3",
+    src: "https://data.wearedogs.net/music/lockup/howmuchweed.mp3",
+    instrumental: "https://data.wearedogs.net/music/lockup/howmuchweed-free.mp3",
     dateAdded: "2026-08-31T17:42:43-05:00",
     year: 2026,
     genre: "Pop",
     attrib:"https://dominicfike.com/",
-    public: true
+    public: false
   },
   {
     id: "goat",
