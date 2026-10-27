@@ -13,11 +13,15 @@
     // showThumbnails: thumbnail strip under the frame
     // ribbon: campaign-style serrated position ribbon along the frame's
     //         bottom edge (replaces the dots overlay)
+    // pngFallback: .webp slides get a <picture> whose <img> loads the .png
+    //              twin on browsers without WebP (only set where every .webp
+    //              has one, e.g. the map's review photos)
     accent = "emerald",
     aspectClass = "aspect-[896/1088]",
     fit = "contain",
     showThumbnails = true,
     ribbon = false,
+    pngFallback = false,
   } = $props();
 
   let activeDotClass = $derived(
@@ -42,6 +46,7 @@
   );
 
   const VIDEO_EXT = /\.(mp4|webm|ogv|ogg|mov|m4v)(\?.*)?$/i;
+  const WEBP_EXT = /\.webp(\?.*)?$/i;
 
   function isVideo(url) {
     return typeof url === "string" && VIDEO_EXT.test(url);
@@ -206,6 +211,20 @@
           preload="metadata"
           draggable="false"
         ></video>
+      {:else if pngFallback && WEBP_EXT.test(displayImages[activeIdx])}
+        <picture
+          in:slideIn={{ duration: 350, direction: scrollDirection }}
+          out:slideOut={{ duration: 350, direction: scrollDirection }}
+          class="absolute inset-0 block w-full h-full"
+        >
+          <source srcset={displayImages[activeIdx]} type="image/webp" />
+          <img
+            src={displayImages[activeIdx].replace(WEBP_EXT, ".png$1")}
+            alt={`${productTitle} - Image ${activeIdx + 1}`}
+            class="block w-full h-full {fitClass} transition-transform duration-300 group-hover:scale-102"
+            draggable="false"
+          />
+        </picture>
       {:else}
         <img
           in:slideIn={{ duration: 350, direction: scrollDirection }}

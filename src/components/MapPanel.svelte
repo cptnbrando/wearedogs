@@ -24,6 +24,10 @@
   // back on the pre-map entry instead of a leftover /map duplicate.
   let { isClosing = false, onClose, depth = $bindable(1) } = $props();
 
+  // Review photos live on R2 as .webp with a .png twin; thumbnails offer the
+  // webp via <source> and fall back to the png for browsers without WebP.
+  const WEBP_EXT = /\.webp(\?.*)?$/i;
+
   // The blurb banner renders twice (mobile + desktop) and CSS hides one of
   // them; slide() measures a display:none node as NaN and spams keyframe
   // warnings every rotation, so the hidden twin skips the transition.
@@ -1876,6 +1880,7 @@
                     fit="cover"
                     showThumbnails={false}
                     ribbon={true}
+                    pngFallback={true}
                   />
                 {/key}
               </div>
@@ -2118,12 +2123,16 @@
                 transition:fade={{ duration: 150 }}
               >
                 {#if spot.images && spot.images.length > 0}
-                  <img
-                    class="spot-thumb"
-                    src={spot.images[0]}
-                    alt={spot.name}
-                    loading="lazy"
-                  />
+                  <picture class="spot-thumb">
+                    {#if WEBP_EXT.test(spot.images[0])}
+                      <source srcset={spot.images[0]} type="image/webp" />
+                    {/if}
+                    <img
+                      src={spot.images[0].replace(WEBP_EXT, ".png$1")}
+                      alt={spot.name}
+                      loading="lazy"
+                    />
+                  </picture>
                 {/if}
                 <div class="spot-card-body">
                 <div class="spot-card-head">
@@ -2242,12 +2251,16 @@
                       transition:fade={{ duration: 150 }}
                     >
                       {#if spot.images && spot.images.length > 0}
-                        <img
-                          class="spot-thumb"
-                          src={spot.images[0]}
-                          alt={spot.name}
-                          loading="lazy"
-                        />
+                        <picture class="spot-thumb">
+                          {#if WEBP_EXT.test(spot.images[0])}
+                            <source srcset={spot.images[0]} type="image/webp" />
+                          {/if}
+                          <img
+                            src={spot.images[0].replace(WEBP_EXT, ".png$1")}
+                            alt={spot.name}
+                            loading="lazy"
+                          />
+                        </picture>
                       {/if}
                       <div class="spot-card-body">
                       <div class="spot-card-head">
@@ -2608,14 +2621,24 @@
     transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
+  /* <picture> box; the <img> inside is the .webp's .png twin (or the plain
+     image) and fills it. */
   .spot-thumb {
+    display: block;
     width: 64px;
     height: 64px;
-    object-fit: cover;
+    overflow: hidden;
     border-radius: 8px;
     border: 1px solid rgba(255, 255, 255, 0.08);
     flex-shrink: 0;
     background: rgba(0, 0, 0, 0.4);
+  }
+
+  .spot-thumb img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
   }
 
   .spot-card-body {
