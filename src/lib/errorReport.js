@@ -42,7 +42,7 @@ export function friendlyErrorMessage(err, fileSize = 0) {
     const big = fileSize > 1024 * 1024 * 1024;
     return big
       ? `The browser could not read this file. At ${formatSize(fileSize)} it is too large to load into memory for this conversion.`
-      : "The browser could not read this file. It was probably moved, renamed or changed after you picked it — drop it in again.";
+      : "The browser could not read this file. It was probably moved, renamed or changed after you picked it — pick it again. On a phone, save it to the device first.";
   }
   return err?.message || "An error occurred during format conversion.";
 }
