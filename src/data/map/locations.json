@@ -314,7 +314,9 @@
     "mapsUrl": "https://maps.google.com/?q=Sushi+Train+3300+E+51st+St+Tulsa+OK",
     "address": "3300 E 51st St, Tulsa, OK 74135",
     "description": "Conveyor belt sushi delivered by an actual mini train. Grab color-coded plates as they roll by, or go all-you-can-eat.",
-    "images": []
+    "images": [
+      "https://data.wearedogs.net/img/reviews/sushitrain1.webp"
+    ]
   },
   {
     "id": "takumi-sushi",
@@ -328,7 +330,14 @@
     "mapsUrl": "https://maps.google.com/?q=Takumi+Sushi+14060+Dallas+Pkwy+Dallas+TX",
     "address": "14060 Dallas Pkwy Ste B, Dallas, TX 75240",
     "description": "All-you-can-eat sushi in North Dallas, right off the Tollway at Spring Valley.",
-    "images": []
+    "images": [
+      "https://data.wearedogs.net/img/reviews/takumi1.webp",
+      "https://data.wearedogs.net/img/reviews/takumi2.webp",
+      "https://data.wearedogs.net/img/reviews/takumi3.webp",
+      "https://data.wearedogs.net/img/reviews/takumi4.webp",
+      "https://data.wearedogs.net/img/reviews/takumi5.webp",
+      "https://data.wearedogs.net/img/reviews/takumi6.webp"
+    ]
   },
   {
     "id": "bellagreen",
@@ -342,6 +351,34 @@
     "mapsUrl": "https://maps.google.com/?q=Bellagreen+8041+Walnut+Hill+Ln+Dallas+TX",
     "address": "8041 Walnut Hill Ln Ste 810, Dallas, TX 75231",
     "description": "Fast-casual American bistro at The Hill with a huge gluten-free menu and weekend brunch.",
-    "images": []
+    "images": [
+      "https://data.wearedogs.net/img/reviews/bellagreen1.webp",
+      "https://data.wearedogs.net/img/reviews/bellagreen2.webp",
+      "https://data.wearedogs.net/img/reviews/bellagreen3.webp",
+      "https://data.wearedogs.net/img/reviews/bellagreen4.webp",
+      "https://data.wearedogs.net/img/reviews/bellagreen5.webp",
+      "https://data.wearedogs.net/img/reviews/bellagreen6.webp"
+    ]
+  },
+  {
+    "id": "kauboi-bbq",
+    "name": "Kauboi Japanese BBQ & Izakaya",
+    "cityName": "Dallas TX",
+    "category": "restaurant",
+    "subCategory": "japanese bbq",
+    "cuisine": "japanese bbq",
+    "rating": 4.5,
+    "websiteUrl": "https://www.kauboibbq.com/",
+    "mapsUrl": "https://maps.google.com/?q=Kauboi+Japanese+BBQ+1900+Preston+Rd+Plano+TX",
+    "address": "1900 Preston Rd Ste 343, Plano, TX 75093",
+    "description": "Tableside Japanese BBQ and izakaya in Plano. All-you-can-eat or course menus, with A5 wagyu on the grill.",
+    "images": [
+      "https://data.wearedogs.net/img/reviews/kauboi1.webp",
+      "https://data.wearedogs.net/img/reviews/kauboi2.webp",
+      "https://data.wearedogs.net/img/reviews/kauboi3.webp",
+      "https://data.wearedogs.net/img/reviews/kauboi4.webp",
+      "https://data.wearedogs.net/img/reviews/kauboi5.webp",
+      "https://data.wearedogs.net/img/reviews/kauboi6.webp"
+    ]
   }
 ]
