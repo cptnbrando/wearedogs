@@ -343,5 +343,27 @@
     "address": "8041 Walnut Hill Ln Ste 810, Dallas, TX 75231",
     "description": "Fast-casual American bistro at The Hill with a huge gluten-free menu and weekend brunch.",
     "images": []
+  },
+  {
+    "id": "kauboi-japanese-bbq-izakaya",
+    "name": "Kauboi Japanese BBQ & Izakaya",
+    "cityName": "Dallas TX",
+    "category": "restaurant",
+    "subCategory": "sushi / japanese bbq / all you can eat",
+    "cuisine": "sushi",
+    "rating": 4.95,
+    "websiteUrl": "https://www.kauboibbq.com/",
+    "mapsUrl": "https://maps.google.com/?q=Kauboi+Japanese+BBQ+%26+Izakaya+1900+Preston+Rd+Plano+TX",
+    "address": "1900 Preston Rd Ste 343, Plano, TX 75093",
+    "description": "The best all-you-can-eat sushi around. $26.99 weekday lunch and $6 happy hour cocktails.",
+    "images": [
+      "https://data.wearedogs.net/img/reviews/kauboi1.webp",
+      "https://data.wearedogs.net/img/reviews/kauboi2.webp",
+      "https://data.wearedogs.net/img/reviews/kauboi3.webp",
+      "https://data.wearedogs.net/img/reviews/kauboi4.webp",
+      "https://data.wearedogs.net/img/reviews/kauboi5.webp",
+      "https://data.wearedogs.net/img/reviews/kauboi6.webp",
+      "https://data.wearedogs.net/img/reviews/kauboi7.webp"
+    ]
   }
 ]

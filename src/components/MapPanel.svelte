@@ -1999,9 +1999,11 @@
                 <p class="text-xs text-zinc-350 italic leading-relaxed">
                   "{selectedSpot.review.text}"
                 </p>
-                <div class="text-[9px] text-zinc-500 font-mono self-end">
-                  — Reviewed by {selectedSpot.review.author}
-                </div>
+                {#if selectedSpot.review.author}
+                  <div class="text-[9px] text-zinc-500 font-mono self-end">
+                    — Reviewed by {selectedSpot.review.author}
+                  </div>
+                {/if}
               </div>
             {/if}
 
