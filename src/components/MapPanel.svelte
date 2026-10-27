@@ -1887,6 +1887,7 @@
             {/if}
 
             <!-- Dining Recommendations: Best dishes, best times to eat -->
+            {#if selectedSpot.bestDishes || selectedSpot.bestTimes || selectedSpot.moreInfo}
             <div
               class="bg-black/40 border border-white/5 rounded-xl p-3 flex flex-col gap-2"
             >
@@ -1922,6 +1923,7 @@
                 {/if}
               </div>
             </div>
+            {/if}
 
             <!-- Address and clickable directions -->
             <div
@@ -2004,9 +2006,11 @@
                 <p class="text-xs text-zinc-350 italic leading-relaxed">
                   "{selectedSpot.review.text}"
                 </p>
-                <div class="text-[9px] text-zinc-500 font-mono self-end">
-                  — Reviewed by {selectedSpot.review.author}
-                </div>
+                {#if selectedSpot.review.author}
+                  <div class="text-[9px] text-zinc-500 font-mono self-end">
+                    — Reviewed by {selectedSpot.review.author}
+                  </div>
+                {/if}
               </div>
             {/if}
 
