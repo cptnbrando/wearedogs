@@ -8,8 +8,9 @@ CREATE TABLE IF NOT EXISTS likes (
 
 CREATE INDEX IF NOT EXISTS likes_ip_hash ON likes (ip_hash);
 
--- Running totals, so reading the like count is one row read instead of a
--- COUNT(*) that D1 bills as a full table scan.
+-- Running totals: 'likes', so reading the count is one row read instead of a
+-- COUNT(*) that D1 bills as a full table scan, and one 'attempts:YYYY-MM-DD'
+-- row per day, the Worker's hard stop below D1's free tier.
 CREATE TABLE IF NOT EXISTS counters (
   name TEXT PRIMARY KEY,
   value INTEGER NOT NULL DEFAULT 0
@@ -21,9 +22,3 @@ CREATE TRIGGER IF NOT EXISTS likes_count AFTER INSERT ON likes
 BEGIN
   UPDATE counters SET value = value + 1 WHERE name = 'likes';
 END;
-
--- Like attempts per UTC day: the Worker's hard stop below D1's free tier.
-CREATE TABLE IF NOT EXISTS usage (
-  day TEXT PRIMARY KEY,
-  like_attempts INTEGER NOT NULL DEFAULT 0
-) WITHOUT ROWID;

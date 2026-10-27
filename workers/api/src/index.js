@@ -14,9 +14,10 @@
 
 const LIKES_PATH = "/likes";
 const COUNTER_NAME = "likes";
+const ATTEMPTS_PREFIX = "attempts:";
 // Households and phone carriers share one public IP, so allow a few per IP
 const MAX_LIKES_PER_IP = 3;
-// Each attempt writes about 4 D1 rows (usage, like row, its index, counter).
+// Each attempt writes about 4 D1 rows (attempts counter, like row, its index, like total).
 // 15k attempts = 60k rows, well below the free tier's 100k rows/day.
 const DAILY_LIKE_ATTEMPT_CAP = 15000;
 // One D1 read per colo per minute at most, whatever the traffic
@@ -85,13 +86,14 @@ async function addLike(request, env, ctx, ip, cors) {
   const fp = await readFingerprint(request);
   if (!fp) return reply(400, { error: "Bad request" }, cors);
 
-  const day = new Date().toISOString().slice(0, 10);
+  // Today's attempts share the counters table with the like total
+  const attemptsKey = ATTEMPTS_PREFIX + new Date().toISOString().slice(0, 10);
   const budget = await env.DB.prepare(
-    `INSERT INTO usage (day, like_attempts) VALUES (?1, 1)
-     ON CONFLICT (day) DO UPDATE SET like_attempts = like_attempts + 1 WHERE like_attempts < ?2
-     RETURNING like_attempts`,
+    `INSERT INTO counters (name, value) VALUES (?1, 1)
+     ON CONFLICT (name) DO UPDATE SET value = value + 1 WHERE value < ?2
+     RETURNING value`,
   )
-    .bind(day, DAILY_LIKE_ATTEMPT_CAP)
+    .bind(attemptsKey, DAILY_LIKE_ATTEMPT_CAP)
     .first();
   if (!budget) return reply(503, { error: RESTING_MESSAGE }, cors);
 
