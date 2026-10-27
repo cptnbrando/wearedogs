@@ -386,5 +386,26 @@
       "https://data.wearedogs.net/img/reviews/kauboi5.webp",
       "https://data.wearedogs.net/img/reviews/kauboi6.webp"
     ]
+  },
+  {
+    "id": "king-pot",
+    "name": "King Pot",
+    "cityName": "Dallas TX",
+    "category": "restaurant",
+    "subCategory": "korean bbq / hot pot",
+    "cuisine": "kbbq",
+    "rating": 4.5,
+    "websiteUrl": "https://www.kingpotmckinney.com/",
+    "mapsUrl": "https://maps.google.com/?q=King+Pot+159+S+Central+Expy+McKinney+TX",
+    "address": "159 S Central Expy, McKinney, TX 75070",
+    "description": "Great ALL YOU CAN EAT spread for low prices.",
+    "images": [
+      "https://data.wearedogs.net/img/reviews/kingpot1.webp",
+      "https://data.wearedogs.net/img/reviews/kingpot2.webp",
+      "https://data.wearedogs.net/img/reviews/kingpot3.webp",
+      "https://data.wearedogs.net/img/reviews/kingpot4.webp",
+      "https://data.wearedogs.net/img/reviews/kingpot5.webp",
+      "https://data.wearedogs.net/img/reviews/kingpot6.webp"
+    ]
   }
 ]

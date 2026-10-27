@@ -201,5 +201,13 @@
     "bestTimes": "Weekday lunch, 11am - 3pm, for $26.99 all-you-can-eat. Weekday happy hour, 2pm - 5pm, for $6 cocktails.",
     "directions": "In Preston Park Village at Preston Rd and Park Blvd in west Plano. Plenty of parking in the shopping center lot.",
     "moreInfo": "Japanese BBQ and izakaya in Plano. Order all-you-can-eat sushi, or grill wagyu tableside off the BBQ and course menus."
+  },
+  "king-pot": {
+    "review": {
+      "reviewedAt": "2026-10-26T23:35:56-05:00",
+      "text": "Great ALL YOU CAN EAT spread for low prices. Wide array of side dishes and banchan. Great cuts of kbbq and hot pot meat, with more traditional flavors. Legendary array of food for very reasonable prices.",
+      "rating": 4.5
+    },
+    "moreInfo": "All-you-can-eat Korean BBQ and hot pot in McKinney, with a dual-flavor broth: spicy Sichuan or a clear savory base."
   }
 }
