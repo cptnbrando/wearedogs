@@ -6,7 +6,8 @@
  * in localStorage for COUNT_TTL_MS, and a browser that already liked never
  * posts again. No accounts: each like carries a random device ID, per-signal
  * device hashes (deviceSignals.js) and a Turnstile token (turnstileToken.js),
- * and the Worker drops repeats from the same device and IP.
+ * and the Worker drops repeats from the same device and IP. All of that
+ * starts only on the click (the consent); public/privacy.html explains it.
  *
  * Each site calls the API on its own domain: same-site requests, and one
  * shared count behind both.
@@ -24,15 +25,21 @@ const STORAGE_KEY = "wad-likes";
 const DEVICE_KEY = "wad-device";
 const DEVICE_ID_BYTES = 16;
 const COUNT_TTL_MS = 10 * 60 * 1000;
+// The Worker forgets a device's fingerprint after RETENTION_DAYS (20) and lets it
+// like again; the button forgets at the same time, so it reopens for a new like.
+const LIKE_MEMORY_DAYS = 20;
+const LIKE_MEMORY_MS = LIKE_MEMORY_DAYS * 24 * 60 * 60 * 1000;
 const REQUEST_TIMEOUT_MS = 8000;
 
-/** @typedef {{ count: number|null, at: number, liked: boolean }} LikeCache */
+/** @typedef {{ count: number|null, at: number, liked: boolean, likedAt?: number }} LikeCache */
 
-/** @returns {LikeCache} */
+/** @returns {LikeCache} what this browser remembers; a like older than LIKE_MEMORY_DAYS reads as not liked */
 export function readCache() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
-    if (saved) return saved;
+    if (!saved) return { count: null, at: 0, liked: false };
+    const remembered = saved.liked && Date.now() - (saved.likedAt || 0) < LIKE_MEMORY_MS;
+    return { ...saved, liked: remembered };
   } catch {
     // Storage disabled (private mode) or corrupt: fall through to empty
   }
@@ -60,7 +67,7 @@ export function loadCount() {
 export function sendLike() {
   return Promise.all([collectSignals(), getTurnstileToken()])
     .then(([signals, token]) => request("POST", { id: deviceId(), signals, token }))
-    .then((data) => writeCache({ count: data.count, liked: true }).count);
+    .then((data) => writeCache({ count: data.count, liked: true, likedAt: Date.now() }).count);
 }
 
 /** A random ID kept per browser; a fresh one each time if storage is unavailable. */

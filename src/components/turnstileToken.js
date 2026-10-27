@@ -1,8 +1,9 @@
 /**
  * turnstileToken.js
  * Cloudflare Turnstile proof-of-human for LikeButton, in invisible mode: no
- * checkbox or puzzle is ever shown. The script loads only once someone
- * reaches for the like card, so visitors who never like never load it.
+ * checkbox or puzzle is ever shown. The script loads only when someone
+ * clicks like, which is their consent (see public/privacy.html): nothing
+ * reaches Cloudflare's challenge servers before that.
  *
  * The widget "wearedogs-api likes" covers wearedogs.net, dogs.red and
  * wearedogs.pages.dev. Dev uses Cloudflare's always-pass invisible test key,
@@ -19,8 +20,8 @@ const HOST_STYLE = "position:fixed;left:0;bottom:0;width:0;height:0;overflow:hid
 
 let scriptLoad = null;
 
-/** Starts loading the Turnstile script; safe to call repeatedly. */
-export function preloadTurnstile() {
+/** Loads the Turnstile script once; a failed load can be retried. */
+function loadTurnstile() {
   if (scriptLoad) return scriptLoad;
   scriptLoad = new Promise((resolve, reject) => {
     const script = document.createElement("script");
@@ -38,7 +39,7 @@ export function preloadTurnstile() {
 
 /** @returns {Promise<string>} a single-use token for one like */
 export function getTurnstileToken() {
-  return preloadTurnstile().then(
+  return loadTurnstile().then(
     (turnstile) =>
       new Promise((resolve, reject) => {
         const host = document.createElement("div");

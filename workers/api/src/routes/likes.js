@@ -42,6 +42,15 @@ const DEVICE_ID_PATTERN = /^[0-9a-f]{32}$/;
 const SIGNAL_PATTERN = /^[0-9a-f]{1,16}$/;
 const RESTING_MESSAGE = "Likes are resting until tomorrow";
 const COUNT_SQL = "SELECT value FROM counters WHERE name = ?1";
+// Fingerprint records are deleted after this long, as public/privacy.html
+// promises; the device can then like again. Same value as LIKE_MEMORY_DAYS in
+// src/components/likeClient.js. The count never goes down.
+const RETENTION_DAYS = 20;
+const DAY_MS = 24 * 60 * 60 * 1000;
+// Likes forgotten per daily run, so one run can't blow the write budget
+const PRUNE_BATCH = 1000;
+// Deleting a like removes its row and its index entry
+const PRUNE_ROWS_PER_LIKE = 2;
 
 export default {
   path: "/likes",
@@ -56,6 +65,23 @@ export default {
     if (request.method === "GET") return readCount(env, ctx, visitor);
     if (request.method === "POST") return addLike(request, env, ctx, visitor);
     return reply(405, { error: "Method not allowed" }, { ...visitor.cors, Allow: "GET, POST, OPTIONS" });
+  },
+
+  /**
+   * Daily: deletes fingerprint records (device, IP and signal hashes) older than
+   * RETENTION_DAYS, after which that device can like again. Likes are forever:
+   * the count lives in counters and is never decremented.
+   * @param {{ DB: D1Database }} env
+   */
+  async scheduled(env) {
+    const cutoff = Date.now() - RETENTION_DAYS * DAY_MS;
+    const { meta } = await env.DB.prepare(
+      "DELETE FROM likes WHERE device_hash IN (SELECT device_hash FROM likes WHERE created_at < ?1 LIMIT ?2)",
+    )
+      .bind(cutoff, PRUNE_BATCH)
+      .run();
+    // Recorded after the fact: at most PRUNE_BATCH * 2 rows, inside the budget's headroom
+    if (meta.changes) await spendWrites(env, APP, meta.changes * PRUNE_ROWS_PER_LIKE, Number.MAX_SAFE_INTEGER);
   },
 };
 

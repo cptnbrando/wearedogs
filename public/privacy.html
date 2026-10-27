@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Privacy policy · DOGS</title>
+    <meta name="description" content="What the DOGS like button collects, why, and for how long." />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <!--
+      Static on purpose: served as-is by GitHub Pages (wearedogs.net) and
+      Cloudflare Pages (dogs.red), readable on anything down to Chrome 40.
+      Linked from the consent notice in src/components/LikeButton.svelte.
+      Keep in step with workers/api/src/routes/likes.js (RETENTION_DAYS,
+      SIGNAL_KEYS), src/components/likeClient.js (LIKE_MEMORY_DAYS) and
+      src/components/deviceSignals.js.
+    -->
+    <style>
+      /* Palette: page #000, text #f5f5f7, muted rgba(245,245,247,0.65), rules rgba(245,245,247,0.14), accent #ff3344 */
+      html {
+        -webkit-text-size-adjust: 100%;
+      }
+      body {
+        margin: 0;
+        background: #000;
+        color: #f5f5f7;
+        font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+      }
+      main {
+        max-width: 44rem;
+        margin: 0 auto;
+        padding: 2rem 1.25rem 4rem;
+      }
+      a {
+        color: #ff3344;
+      }
+      a:focus {
+        outline: 2px solid #f5f5f7;
+        outline-offset: 2px;
+      }
+      .back {
+        display: inline-block;
+        color: rgba(245, 245, 247, 0.65);
+        text-decoration: none;
+        font-size: 0.875em;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+      h1 {
+        margin: 1.25rem 0 0.25rem;
+        font-size: 2em;
+        line-height: 1.15;
+        letter-spacing: -0.02em;
+      }
+      h2 {
+        margin: 2.25rem 0 0.5rem;
+        padding-top: 1.25rem;
+        border-top: 1px solid rgba(245, 245, 247, 0.14);
+        font-size: 1.2em;
+      }
+      .muted {
+        color: rgba(245, 245, 247, 0.65);
+      }
+      ul,
+      ol {
+        padding-left: 1.25em;
+      }
+      li {
+        margin: 0.35em 0;
+      }
+      code {
+        font-size: 0.9em;
+        color: #f5f5f7;
+        background: rgba(245, 245, 247, 0.1);
+        padding: 0.1em 0.35em;
+        border-radius: 4px;
+      }
+      /* Phone landscape: tight height, so tighten the rhythm */
+      @media (max-height: 500px) and (orientation: landscape) {
+        main {
+          padding-top: 1rem;
+        }
+        h2 {
+          margin-top: 1.5rem;
+        }
+      }
+      /* Tablet and up */
+      @media (min-width: 768px) {
+        body {
+          font-size: 17px;
+        }
+        main {
+          padding: 3.5rem 2rem 5rem;
+        }
+        h1 {
+          font-size: 2.5em;
+        }
+      }
+      /* Desktop */
+      @media (min-width: 1280px) {
+        body {
+          font-size: 18px;
+        }
+      }
+      /* TV and ultra-wide: read from across the room */
+      @media (min-width: 1920px) {
+        body {
+          font-size: 22px;
+        }
+      }
+      @media (min-width: 2560px) {
+        body {
+          font-size: 28px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <a class="back" href="/">&larr; DOGS</a>
+      <h1>Privacy policy</h1>
+      <p class="muted">Effective 27 October 2026 · covers wearedogs.net and dogs.red (the same site)</p>
+
+      <p>
+        Reading this site sends nothing about you to us. The only feature that does is the
+        <strong>like button</strong> on the info page. This page explains exactly what happens when you press it.
+      </p>
+
+      <h2>What happens when you like DOGS</h2>
+      <p>When you click the thumbs-up, and not before:</p>
+      <ol>
+        <li>
+          Your browser saves two small items in its own storage (localStorage, not cookies): a random ID for this
+          browser (<code>wad-device</code>), and the fact that you liked plus the like count (<code>wad-likes</code>).
+        </li>
+        <li>
+          Your browser reads a few traits of your device to build a <strong>device fingerprint</strong>: browser name
+          (without version numbers), operating system platform, languages, time zone, screen size and colour depth,
+          CPU core count, memory and touch support, how your graphics hardware describes itself, and how your device
+          draws a small test image and renders a short silent test sound. Each trait is turned into a one-way hash
+          <em>on your device</em>; the raw values never leave it.
+        </li>
+        <li>
+          <a href="https://www.cloudflare.com/products/turnstile/" rel="noopener">Cloudflare Turnstile</a>, an
+          invisible check that you are a person rather than a bot, runs in the background. To do that, Cloudflare
+          processes information such as your IP address and browser details under its
+          <a href="https://www.cloudflare.com/turnstile-privacy-policy/" rel="noopener">Turnstile privacy addendum</a>.
+        </li>
+        <li>
+          The hashes, the random ID and the Turnstile result are sent to our API (<code>api.wearedogs.net</code> or
+          <code>api.dogs.red</code>), which runs on Cloudflare.
+        </li>
+      </ol>
+
+      <h2>What we store</h2>
+      <ul>
+        <li>the random ID, hashed again with a secret key</li>
+        <li>
+          your IP address, hashed with a secret key (for IPv6, only the network half: your connection, not your
+          device)
+        </li>
+        <li>each device-trait hash, hashed again with a secret key</li>
+        <li>the time you liked</li>
+      </ul>
+      <p>
+        We never store your raw IP address or raw device information, and without our secret key the stored hashes
+        cannot be turned back into them. Your like itself is just +1 on the count, a number with nothing attached to
+        it.
+      </p>
+
+      <h2>Why</h2>
+      <p>
+        To count one like per device without making anyone sign up, and to stop bots from inflating the count. A like
+        is treated as a repeat when it comes from the same network as an earlier like and the device traits nearly all
+        match. That is the only use. We do not use any of this to follow you across other sites, build a profile of
+        you, show ads, or sell or share it with anyone. Cloudflare runs the service on our behalf.
+      </p>
+
+      <h2>Legal basis</h2>
+      <p>
+        Your consent, given by clicking the like button: the notice that appears above it says so, and links here. If
+        you never click it, none of the above happens.
+      </p>
+
+      <h2>How long we keep it</h2>
+      <p>
+        <strong>Your like is forever:</strong> the count only ever goes up. The fingerprint record behind it (the
+        hashes and the time) is deleted automatically <strong>20 days</strong> after you like. From then on we have no
+        way to recognise your device, so the button opens up again and you can like DOGS again.
+      </p>
+      <p>
+        Your browser also stops treating you as having liked after 20 days. It keeps its two stored items until you
+        clear them.
+      </p>
+
+      <h2>Your choices and rights</h2>
+      <ul>
+        <li>Don't click like, and nothing is collected.</li>
+        <li>Clear this site's data in your browser settings to remove the two stored items.</li>
+        <li>
+          Because we only keep keyed hashes, we cannot tell which stored record is yours, so we cannot look it up,
+          export it or delete it individually before the 20 days are up. You can still ask us anything about it, or
+          object, using the <strong>email us</strong> card on the info page.
+        </li>
+        <li>You can also complain to your local data protection authority.</li>
+      </ul>
+
+      <h2>Hosting</h2>
+      <p>
+        Like any website, the hosts that serve these pages see standard request information such as IP addresses:
+        <a href="https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement" rel="noopener">GitHub Pages</a>
+        for wearedogs.net, and
+        <a href="https://www.cloudflare.com/privacypolicy/" rel="noopener">Cloudflare</a> for dogs.red, our media and
+        our API.
+      </p>
+
+      <h2>Changes</h2>
+      <p>If this changes, this page and its date change with it.</p>
+    </main>
+  </body>
+</html>

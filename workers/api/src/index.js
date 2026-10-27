@@ -15,6 +15,7 @@
  *   3. its tables in migrations/NNNN_<app>.sql
  *   4. spend writes through spendWrites(env, "<app>", rows, cap)
  *   5. its own rate limiter in wrangler.jsonc if it needs different limits
+ *   6. optional daily upkeep: export scheduled(env), run by the cron in wrangler.jsonc
  */
 
 import { reply, corsHeaders } from "./lib/http.js";
@@ -49,5 +50,11 @@ export default {
 
     const ip = request.headers.get("CF-Connecting-IP") || "";
     return route.handle(request, env, ctx, { ip, ipKey: ipKey(ip), cors, url });
+  },
+
+  /** Daily upkeep from the cron trigger: every route that exports scheduled(env) gets a turn. */
+  async scheduled(controller, env, ctx) {
+    const jobs = Object.values(ROUTES).filter((route) => route.scheduled);
+    ctx.waitUntil(Promise.all(jobs.map((route) => route.scheduled(env))));
   },
 };
