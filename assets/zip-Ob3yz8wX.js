@@ -1,1 +1,0 @@
-import{a as e,c as t}from"./vendor-B11YeUvQ.js";function n(e){return new Promise((n,r)=>{let i={};for(let t of e)i[t.name]=t.data;t(i,(e,t)=>{e?r(e):n(new Blob([t],{type:`application/zip`}))})})}function r(t){return new Promise((n,r)=>{e(t,(e,t)=>{e?r(e):n(t)})})}export{r as n,n as t};
