@@ -3,6 +3,7 @@
   import { Mail } from "lucide-svelte";
   import BinaryBackground from "./BinaryBackground.svelte";
   import DogsLogo from "./DogsLogo.svelte";
+  import LikeButton from "./LikeButton.svelte";
   import { audioCore } from "../lib/AudioCore.svelte.js";
 
   // Props mapping the flag colors toggle state
@@ -155,9 +156,9 @@
             >
           </a>
 
-          <!-- Location Info Box (spans full width underneath) -->
+          <!-- Location Info Box -->
           <div
-            class="info-card full-width-card flex items-center justify-center gap-2.5 rounded-xl md:rounded-2xl bg-[#f8f9fa] border border-black/5 hover:border-black/10 hover:shadow-lg transition-all duration-300"
+            class="info-card flex items-center justify-center gap-2.5 rounded-xl md:rounded-2xl bg-[#f8f9fa] border border-black/5 hover:border-black/10 hover:shadow-lg transition-all duration-300"
           >
             <span class="text-base md:text-lg pointer-events-none">🏙️</span>
             <span
@@ -165,6 +166,8 @@
               >somewhere between Tulsa OK and Dallas TX</span
             >
           </div>
+
+          <LikeButton {active} />
         </div>
       </div>
 
@@ -286,14 +289,14 @@
     text-shadow: 0 0 15px rgba(214, 26, 44, 0.35) !important;
   }
 
-  /* Chic Card hover styling */
-  .info-card {
+  /* Chic Card hover styling. :global so LikeButton's card matches its siblings */
+  .cards-grid :global(.info-card) {
     transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     text-decoration: none;
     text-align: center;
   }
 
-  .info-card:hover {
+  .cards-grid :global(.info-card:hover) {
     transform: translateY(-5px);
     background: #ffffff;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
@@ -301,7 +304,7 @@
   }
 
   /* Theme highlight integrated colors */
-  .wad-colored .info-card:hover {
+  .wad-colored .cards-grid :global(.info-card:hover) {
     border-color: var(--color-neon-red, #ff3344) !important;
     box-shadow: 0 12px 35px
       rgba(var(--color-neon-purple-rgb, 255, 51, 68), 0.12);
@@ -315,12 +318,8 @@
     width: 100%;
   }
 
-  .full-width-card {
-    grid-column: span 2 / span 2;
-  }
-
   /* Cards padding and responsiveness */
-  .info-card {
+  .cards-grid :global(.info-card) {
     padding: 1.125rem 0.75rem;
     transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   }
@@ -329,7 +328,7 @@
     .cards-grid {
       gap: 1rem;
     }
-    .info-card {
+    .cards-grid :global(.info-card) {
       padding: 1.75rem 1.5rem;
     }
   }
@@ -338,7 +337,7 @@
     .cards-grid {
       gap: 0.375rem; /* gap-1.5 */
     }
-    .info-card {
+    .cards-grid :global(.info-card) {
       padding: 0.75rem 0.625rem;
     }
   }
