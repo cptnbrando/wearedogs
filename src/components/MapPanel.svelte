@@ -3,6 +3,7 @@
   import BasePanel from "./BasePanel.svelte";
   import ProductImageSlideshow from "./apps/ProductImageSlideshow.svelte";
   import mapSpots from "../data/map/index.js";
+  import { formatReviewDate, reviewAge } from "./mapReviewDate.js";
   import { spring } from "svelte/motion";
   import { fade, slide, fly } from "svelte/transition";
   import { cubicOut } from "svelte/easing";
@@ -418,13 +419,19 @@
     });
   });
 
-  let sortMode = $state("alpha"); // 'alpha' | 'equator' | 'population' | 'listings' | 'cuisine'
+  let sortMode = $state("alpha"); // 'alpha' | 'equator' | 'population' | 'listings' | 'cuisine' | 'newest'
   let groupByCuisine = $derived(sortMode === "cuisine");
+  const NEWEST_GROUP = "Newest Reviews";
+  // Latest review first; spots without a review yet go last
+  const reviewedTime = (spot) => (spot.review?.reviewedAt ? Date.parse(spot.review.reviewedAt) : 0);
+  const byNewest = (a, b) => reviewedTime(b) - reviewedTime(a);
 
   // Group filtered spots (when no city is selected). Every mode but
   // "cuisine" groups by cityName; "cuisine" groups by the spot's cuisine tag
-  // (sushi, kbbq, ...) with the best-rated spot first inside each group.
+  // (sushi, kbbq, ...) with the best-rated spot first inside each group;
+  // "newest" is one group, latest review first.
   let groupedSpots = $derived.by(() => {
+    if (sortMode === "newest") return { [NEWEST_GROUP]: [...filteredSpots].sort(byNewest) };
     const groups = {};
     for (const spot of filteredSpots) {
       const key = groupByCuisine
@@ -481,7 +488,7 @@
     return cities;
   });
 
-  const SORT_MODES = ["alpha", "equator", "population", "listings", "cuisine"];
+  const SORT_MODES = ["alpha", "equator", "population", "listings", "cuisine", "newest"];
   function cycleSortMode() {
     const idx = SORT_MODES.indexOf(sortMode);
     sortMode = SORT_MODES[(idx + 1) % SORT_MODES.length];
@@ -493,13 +500,14 @@
     if (mode === "population") return "Population";
     if (mode === "listings") return "Most Listings";
     if (mode === "cuisine") return "Cuisine";
+    if (mode === "newest") return NEWEST_GROUP;
     return mode;
   }
 
   // Sort for the spots of one selected city. Separate from sortMode because
   // that one orders city groups; this one orders (or groups) spots.
-  let citySortMode = $state("alpha"); // 'alpha' | 'rating' | 'cuisine'
-  const CITY_SORT_MODES = ["alpha", "rating", "cuisine"];
+  let citySortMode = $state("alpha"); // 'alpha' | 'rating' | 'cuisine' | 'newest'
+  const CITY_SORT_MODES = ["alpha", "rating", "cuisine", "newest"];
   function cycleCitySortMode() {
     const idx = CITY_SORT_MODES.indexOf(citySortMode);
     citySortMode = CITY_SORT_MODES[(idx + 1) % CITY_SORT_MODES.length];
@@ -508,16 +516,19 @@
     if (mode === "alpha") return "A-Z";
     if (mode === "rating") return "Top Rated";
     if (mode === "cuisine") return "Cuisine";
+    if (mode === "newest") return NEWEST_GROUP;
     return mode;
   }
 
   // The selected city's spots as [{ label, spots }]. One unlabeled group for
-  // alpha/rating; one labeled group per cuisine (best-rated first) for cuisine.
+  // alpha/rating/newest; one labeled group per cuisine (best-rated first) for cuisine.
   let cityGroups = $derived.by(() => {
     if (!selectedCity || filteredSpots.length === 0) return [];
     const spots = [...filteredSpots];
     if (citySortMode === "alpha") {
       spots.sort((a, b) => a.name.localeCompare(b.name));
+    } else if (citySortMode === "newest") {
+      spots.sort(byNewest);
     } else {
       spots.sort((a, b) => b.rating - a.rating);
     }
@@ -1999,8 +2010,11 @@
                 <p class="text-xs text-zinc-350 italic leading-relaxed">
                   "{selectedSpot.review.text}"
                 </p>
-                <div class="text-[9px] text-zinc-500 font-mono self-end">
-                  — Reviewed by {selectedSpot.review.author}
+                <div class="flex flex-wrap justify-between gap-x-3 gap-y-0.5 text-[9px] 2xl:text-xs text-zinc-500 font-mono">
+                  {#if selectedSpot.review.reviewedAt}
+                    <span>{formatReviewDate(selectedSpot.review.reviewedAt)}</span>
+                  {/if}
+                  <span class="ml-auto">— Reviewed by {selectedSpot.review.author}</span>
                 </div>
               </div>
             {/if}
@@ -2202,6 +2216,9 @@
                   >
                     {spot.rating} / 5
                   </span>
+                  {#if citySortMode === "newest" && spot.review?.reviewedAt}
+                    <span class="review-age">{reviewAge(new Date(spot.review.reviewedAt))}</span>
+                  {/if}
                 </div>
 
                 <p class="spot-desc">{spot.description}</p>
@@ -2331,6 +2348,9 @@
                         >
                           {spot.rating} / 5
                         </span>
+                        {#if sortMode === "newest" && spot.review?.reviewedAt}
+                          <span class="review-age">{reviewAge(new Date(spot.review.reviewedAt))}</span>
+                        {/if}
                       </div>
 
                       <p class="spot-desc">{spot.description}</p>
@@ -2666,6 +2686,14 @@
     font-weight: 700;
     color: rgba(255, 255, 255, 0.4);
     margin-left: 6px;
+  }
+
+  .review-age {
+    margin-left: auto;
+    font-family: monospace;
+    font-size: 0.6rem;
+    color: rgba(255, 255, 255, 0.35);
+    white-space: nowrap;
   }
 
   .spot-desc {
