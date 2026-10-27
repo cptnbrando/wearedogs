@@ -1,33 +1,30 @@
 /**
  * likeClient.js
- * Talks to the likes Worker (workers/api) for LikeButton.svelte.
+ * Talks to the likes route of the API Worker (workers/api) for LikeButton.svelte.
  *
  * Requests are kept rare for Cloudflare's free tier: the count is remembered
  * in localStorage for COUNT_TTL_MS, and a browser that already liked never
- * posts again. No accounts: the Worker dedupes on a fingerprint hash of
- * stable browser traits, so clearing storage does not grant a second like.
+ * posts again. No accounts: each like carries a random device ID, per-signal
+ * device hashes (deviceSignals.js) and a Turnstile token (turnstileToken.js),
+ * and the Worker drops repeats from the same device and IP.
  *
- * XHR rather than fetch so Chrome 40 can like DOGS too. Hashing is a plain JS
- * hash because crypto.subtle is missing on the LAN dev origin (not a secure
- * context); the Worker re-hashes it with a secret salt anyway.
+ * Each site calls the API on its own domain: same-site requests, and one
+ * shared count behind both.
+ *
+ * XHR rather than fetch so Chrome 40 can reach the API too.
  */
 
-const LIKES_URL = import.meta.env.DEV ? "/api/likes" : "https://api.wearedogs.net/likes";
+import { collectSignals } from "./deviceSignals.js";
+import { getTurnstileToken } from "./turnstileToken.js";
+
+const API_BY_SITE = { "dogs.red": "https://api.dogs.red", "wearedogs.pages.dev": "https://api.dogs.red" };
+const DEFAULT_API = "https://api.wearedogs.net";
+const LIKES_URL = import.meta.env.DEV ? "/api/likes" : `${API_BY_SITE[location.hostname] || DEFAULT_API}/likes`;
 const STORAGE_KEY = "wad-likes";
+const DEVICE_KEY = "wad-device";
+const DEVICE_ID_BYTES = 16;
 const COUNT_TTL_MS = 10 * 60 * 1000;
 const REQUEST_TIMEOUT_MS = 8000;
-const HASH_SEEDS = [0x9e3779b1, 0x85ebca6b];
-const HASH_HEX_LENGTH = 14;
-const CANVAS_WIDTH = 220;
-const CANVAS_HEIGHT = 40;
-const CANVAS_TEXT = "WEAREDOGS bark \u{1F415} 2026";
-const CANVAS_FONT = "16px Arial, sans-serif";
-const CANVAS_INK = "#f60";
-const CANVAS_WASH = "rgba(102, 204, 0, 0.7)";
-const CANVAS_BLOCK = [100, 1, 62, 20]; // x, y, w, h of the ink block under the text
-const CANVAS_TEXT_AT = [4, 12];
-// Browser updates bump version numbers; dropping digits keeps the print stable
-const VERSION_DIGITS = /[\d._]+/g;
 
 /** @typedef {{ count: number|null, at: number, liked: boolean }} LikeCache */
 
@@ -47,7 +44,7 @@ function writeCache(patch) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
   } catch {
-    // Not persisted; the Worker still dedupes on the fingerprint
+    // Not persisted; the Worker still dedupes on the device signals
   }
   return next;
 }
@@ -61,7 +58,28 @@ export function loadCount() {
 
 /** @returns {Promise<number>} the count after this browser's like */
 export function sendLike() {
-  return request("POST", { fp: fingerprint() }).then((data) => writeCache({ count: data.count, liked: true }).count);
+  return Promise.all([collectSignals(), getTurnstileToken()])
+    .then(([signals, token]) => request("POST", { id: deviceId(), signals, token }))
+    .then((data) => writeCache({ count: data.count, liked: true }).count);
+}
+
+/** A random ID kept per browser; a fresh one each time if storage is unavailable. */
+function deviceId() {
+  try {
+    const saved = localStorage.getItem(DEVICE_KEY);
+    if (saved) return saved;
+  } catch {
+    // Storage disabled: fall through to a fresh ID
+  }
+  const bytes = new Uint8Array(DEVICE_ID_BYTES);
+  crypto.getRandomValues(bytes);
+  const id = Array.prototype.map.call(bytes, (b) => (b < 16 ? "0" : "") + b.toString(16)).join("");
+  try {
+    localStorage.setItem(DEVICE_KEY, id);
+  } catch {
+    // Not persisted
+  }
+  return id;
 }
 
 /**
@@ -87,66 +105,4 @@ function request(method, body) {
     xhr.setRequestHeader("Content-Type", "application/json");
     xhr.send(JSON.stringify(body));
   });
-}
-
-/** Stable-ish browser traits, hashed to hex. Nothing here leaves the page unhashed. */
-function fingerprint() {
-  const nav = navigator;
-  const screenInfo = window.screen || {};
-  // Phones swap width and height on rotation
-  const sides = [screenInfo.width, screenInfo.height].sort((a, b) => a - b);
-  let timeZone = "";
-  try {
-    timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
-  } catch {
-    // Pre-Intl browsers
-  }
-  const traits = [
-    (nav.userAgent || "").replace(VERSION_DIGITS, ""),
-    nav.language,
-    (nav.languages || []).join(","),
-    nav.platform,
-    nav.hardwareConcurrency,
-    nav.deviceMemory,
-    nav.maxTouchPoints,
-    sides.join("x"),
-    screenInfo.colorDepth,
-    timeZone,
-    canvasPrint(),
-  ].join("|");
-  return HASH_SEEDS.map((seed) => cyrb53(traits, seed).toString(16).padStart(HASH_HEX_LENGTH, "0")).join("");
-}
-
-/** GPU, font and anti-aliasing differences make the same drawing render slightly differently per device. */
-function canvasPrint() {
-  try {
-    const canvas = document.createElement("canvas");
-    canvas.width = CANVAS_WIDTH;
-    canvas.height = CANVAS_HEIGHT;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return "";
-    ctx.textBaseline = "top";
-    ctx.font = CANVAS_FONT;
-    ctx.fillStyle = CANVAS_INK;
-    ctx.fillRect(CANVAS_BLOCK[0], CANVAS_BLOCK[1], CANVAS_BLOCK[2], CANVAS_BLOCK[3]);
-    ctx.fillStyle = CANVAS_WASH;
-    ctx.fillText(CANVAS_TEXT, CANVAS_TEXT_AT[0], CANVAS_TEXT_AT[1]);
-    return canvas.toDataURL();
-  } catch {
-    return "";
-  }
-}
-
-/** cyrb53: small, fast 53-bit string hash with good spread. */
-function cyrb53(str, seed) {
-  let h1 = 0xdeadbeef ^ seed;
-  let h2 = 0x41c6ce57 ^ seed;
-  for (let i = 0; i < str.length; i++) {
-    const ch = str.charCodeAt(i);
-    h1 = Math.imul(h1 ^ ch, 2654435761);
-    h2 = Math.imul(h2 ^ ch, 1597334677);
-  }
-  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
-  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
-  return 4294967296 * (2097151 & h2) + (h1 >>> 0);
 }

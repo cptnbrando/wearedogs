@@ -2,6 +2,7 @@
   import { tick } from "svelte";
   import { ThumbsUp } from "lucide-svelte";
   import { readCache, loadCount, sendLike } from "./likeClient.js";
+  import { preloadTurnstile } from "./turnstileToken.js";
 
   /** True while the info page is on screen; a returning liker's count refreshes then. */
   export let active = false;
@@ -42,6 +43,12 @@
     textWidth = `${textEl.scrollWidth}px`;
   }
 
+  // Reaching for the card starts the human check early, so clicking feels instant
+  function warmUp() {
+    if (liked) return;
+    preloadTurnstile().catch(() => {});
+  }
+
   function like() {
     if (liked || pending) return;
     liked = true;
@@ -65,6 +72,9 @@
   aria-pressed={liked}
   aria-label={liked ? "You like DOGS" : "Like DOGS"}
   onclick={like}
+  onpointerenter={warmUp}
+  onfocus={warmUp}
+  ontouchstart={warmUp}
 >
   <span class="like-group inline-flex items-center">
     <span

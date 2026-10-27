@@ -1,24 +1,36 @@
-// wearedogs-api: serves https://api.wearedogs.net (the site itself stays on GitHub Pages).
+// wearedogs-api: the one Worker for every DOGS app (see src/index.js), at
+// https://api.wearedogs.net (GitHub Pages site) and https://api.dogs.red (Cloudflare Pages site).
 //
 //   npx wrangler d1 migrations apply sql --remote -c workers/api/wrangler.jsonc
 //   npx wrangler deploy -c workers/api/wrangler.jsonc
 //   npx wrangler dev -c workers/api/wrangler.jsonc    (local D1; secrets come from workers/api/.dev.vars)
 //
-// HASH_SALT is a secret (npx wrangler secret put HASH_SALT -c workers/api/wrangler.jsonc).
-// Changing it orphans every stored hash, so repeat likes would count again.
+// Secrets (npx wrangler secret put <NAME> -c workers/api/wrangler.jsonc):
+//   HASH_SALT         salts every stored hash. Changing it orphans them all, so repeat likes would count again.
+//   TURNSTILE_SECRET  for the invisible Turnstile widget "wearedogs-api likes" (dashboard > Turnstile),
+//                     which covers wearedogs.net, dogs.red and wearedogs.pages.dev.
+// Local dev uses Cloudflare's always-pass test keys: in .dev.vars set
+// TURNSTILE_SECRET=1x0000000000000000000000000000000AA and TURNSTILE_HOSTNAMES="".
 //
-// Free tier, enforced in src/index.js: D1 writes stop at DAILY_LIKE_ATTEMPT_CAP
-// (~60k of the 100k rows/day), the count is edge-cached so D1 reads stay far
-// under 5M/day, and the rate limiters below cost nothing.
+// Free tier: the account's 100k D1 rows written a day are shared with wordsmith, so
+// src/lib/budget.js caps this Worker at 40k and each app below that. Counts are
+// edge-cached, so D1 reads stay far under 5M a day. Rate limiters and Turnstile cost nothing.
 {
   "name": "wearedogs-api",
   "main": "src/index.js",
   "compatibility_date": "2026-10-27",
-  // Only the custom domain answers: no workers.dev or preview URLs that skip the zone's protections
+  // Only the custom domains answer: no workers.dev or preview URLs that skip the zones' protections
   "workers_dev": false,
   "preview_urls": false,
-  "routes": [{ "pattern": "api.wearedogs.net", "custom_domain": true }],
-  "vars": { "ALLOWED_ORIGINS": "https://wearedogs.net,https://www.wearedogs.net" },
+  "routes": [
+    { "pattern": "api.wearedogs.net", "custom_domain": true },
+    { "pattern": "api.dogs.red", "custom_domain": true }
+  ],
+  "vars": {
+    "ALLOWED_ORIGINS": "https://wearedogs.net,https://www.wearedogs.net,https://dogs.red,https://wearedogs.pages.dev",
+    // Hostnames a Turnstile token may come from (the token reports the page's host)
+    "TURNSTILE_HOSTNAMES": "wearedogs.net,www.wearedogs.net,dogs.red,wearedogs.pages.dev"
+  },
   "d1_databases": [
     {
       "binding": "DB",
