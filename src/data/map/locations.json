@@ -310,12 +310,18 @@
     "subCategory": "sushi / conveyor belt",
     "cuisine": "sushi",
     "rating": 4.5,
-    "websiteUrl": "https://sushitraintulsaok.com/",
+    "websiteUrl": "https://www.sushitraintulsa.com/",
     "mapsUrl": "https://maps.google.com/?q=Sushi+Train+3300+E+51st+St+Tulsa+OK",
     "address": "3300 E 51st St, Tulsa, OK 74135",
     "description": "Conveyor belt sushi delivered by an actual mini train. Grab color-coded plates as they roll by, or go all-you-can-eat.",
     "images": [
-      "https://data.wearedogs.net/img/reviews/sushitrain1.webp"
+      "https://data.wearedogs.net/img/reviews/sushitrain1.webp",
+      "https://data.wearedogs.net/img/reviews/sushitrain2.webp",
+      "https://data.wearedogs.net/img/reviews/sushitrain3.webp",
+      "https://data.wearedogs.net/img/reviews/sushitrain4.webp",
+      "https://data.wearedogs.net/img/reviews/sushitrain5.webp",
+      "https://data.wearedogs.net/img/reviews/sushitrain6.webp",
+      "https://data.wearedogs.net/img/reviews/sushitrain7.webp"
     ]
   },
   {
