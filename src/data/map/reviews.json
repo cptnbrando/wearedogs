@@ -40,7 +40,7 @@
       "author": "CaptainBrando!",
       "reviewedAt": "2026-07-21T01:41:52-05:00",
       "text": "Outstanding hot pot experience with automated conveyor delivery and fresh, high quality ingredients!",
-      "rating": 4.6
+      "rating": 4
     },
     "bestDishes": "Spicy Pork Bulgogi, Spicy Beef Bulgogi, Unlimited Cream Cheese Wontons, Dinner Snow Crab Legs, Spicy Miso Soup with Beef Toro",
     "bestTimes": "Lunch or early dinner.",
@@ -136,7 +136,7 @@
       "author": "CaptainBrando!",
       "reviewedAt": "2026-07-21T02:25:51-05:00",
       "text": "The best pork belly ramen you gon find. A luxurious broth, spectacular toppings, it's just the kinda bowl that can bring a man to life, kill him, then bring him back again. Out of this world! Delightful sushi, great sake, just an awesome place in an awesome city",
-      "rating": 5
+      "rating": 4.9
     },
     "bestDishes": "Pork Belly Ramen, Sushi, Sake",
     "bestTimes": "Dinner and late night drinks.",
@@ -179,16 +179,35 @@
     "directions": "About 45 minutes north of Punta Cana International Airport (PUJ) on the Uvero Alto coast. Book a resort transfer or taxi from the airport.",
     "moreInfo": "Adults-only all-inclusive resort by Fiesta Americana on the quiet Uvero Alto stretch of Punta Cana. Swim-up suites are worth the upgrade."
   },
-  "kauboi-japanese-bbq-izakaya": {
+  "takumi-sushi": {
+    "review": {
+      "reviewedAt": "2026-10-26T23:06:35-05:00",
+      "text": "Cheapest AYCE sushi in DFW, and the cuts are plentiful but the side dishes aren't as strong. But for $22 dollars AYCE sushi, it is remarkable quality for the price, and should be visited as much as possible. Sushi and nigiri are both in the AYCE. Nigiri is usually $4 a piece, so this is an incredible deal. $22 for as much of it as you want, insane deal. It is remarkable the premier chef's special rolls and nigiri are included in the all you can eat. Despite the lower score I am at this place most often when I'm in town.",
+      "rating": 3.9
+    },
+    "bestDishes": "Snapper nigiri, white tuna nigiri, salmon cucumber roll, Dynamite roll, Shaggy Dog roll, Rainbow roll."
+  },
+  "bellagreen": {
+    "bestDishes": "Kale caesar salad with blackened chicken and fresh sundried tomatoes, pumpkin cheesecake, brick chicken, fire-roasted tomato basil soup."
+  },
+  "kauboi-bbq": {
     "review": {
       "author": "CaptainBrando!",
       "reviewedAt": "2026-10-26T21:41:00-05:00",
-      "text": "Best ALL YOU CAN EAT sushi I've had in my life so far. Flavorful sushi rice, great thick cuts of fish. Fresh fish and excellent types of sushi. Everything tastes delicious here. $26.99 weekday lunch and $6 happy hour cocktails. Absolutely outstanding deal.",
-      "rating": 4.95
+      "text": "Best ALL YOU CAN EAT sushi I've had in my life so far. Flavorful sushi rice, great thick cuts of fish. 26.99 for lunch 11am - 3pm weekdays, and happy hour 2pm-5pm weekdays for remarkable $6 cocktails. Absolutely outstanding deal. Fresh fish and excellent types of sushi. Everything tastes delicious here.",
+      "rating": 5
     },
     "bestDishes": "Unlimited wagyu beef nigiri, spicy garlic edamame, Yuki Slush Slinger, albacore nigiri, yellowtail carpaccio, Mamacita roll, eel nigiri.",
-    "bestTimes": "Weekday lunch, 11am-3pm, is $26.99 all-you-can-eat. Happy hour runs 2pm-5pm weekdays with $6 cocktails, so 2-3pm gets both.",
+    "bestTimes": "Weekday lunch, 11am - 3pm, for $26.99 all-you-can-eat. Weekday happy hour, 2pm - 5pm, for $6 cocktails.",
     "directions": "In Preston Park Village at Preston Rd and Park Blvd in west Plano. Plenty of parking in the shopping center lot.",
-    "moreInfo": "Japanese BBQ and izakaya with all-you-can-eat sushi, Japanese and Korean meats. Remarkable $6 cocktails at happy hour."
+    "moreInfo": "Japanese BBQ and izakaya in Plano. Order all-you-can-eat sushi, or grill wagyu tableside off the BBQ and course menus."
+  },
+  "king-pot": {
+    "review": {
+      "reviewedAt": "2026-10-26T23:35:56-05:00",
+      "text": "Great ALL YOU CAN EAT spread for low prices. Wide array of side dishes and banchan. Great cuts of kbbq and hot pot meat, with more traditional flavors. Legendary array of food for very reasonable prices.",
+      "rating": 4.5
+    },
+    "moreInfo": "All-you-can-eat Korean BBQ and hot pot in McKinney, with a dual-flavor broth: spicy Sichuan or a clear savory base."
   }
 }

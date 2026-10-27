@@ -4,6 +4,8 @@
 public/batman/*.mp4
 # !public/batman/batman1.mp4
 src/components/apps/arcade/rom/*
+# Review photos are served from data.wearedogs.net; local copies stay local
+public/img/reviews/
 
 public/changelog.json
 scripts/public/changelog.json

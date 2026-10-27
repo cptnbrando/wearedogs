@@ -63,7 +63,7 @@
     "category": "restaurant",
     "subCategory": "asian / hot pot",
     "cuisine": "hot pot",
-    "rating": 4.6,
+    "rating": 4,
     "websiteUrl": "https://seapotplano.com/",
     "mapsUrl": "https://maps.google.com/?q=Seapot+Hotpot+%26+Dimsum+Plano+TX",
     "address": "1900 North Central Expressway, Plano, TX 75074",
@@ -230,7 +230,7 @@
     "category": "restaurant",
     "subCategory": "japanese / ramen / sushi",
     "cuisine": "japanese",
-    "rating": 5,
+    "rating": 4.9,
     "websiteUrl": "http://yokozunasushi.com/locations/yokozuna-downtown-tulsa/",
     "mapsUrl": "https://maps.google.com/?q=Yokozuna+Downtown+Tulsa+OK",
     "address": "309 E 2nd St, Tulsa, OK 74120",
@@ -309,12 +309,20 @@
     "category": "restaurant",
     "subCategory": "sushi / conveyor belt",
     "cuisine": "sushi",
-    "rating": 4.5,
-    "websiteUrl": "https://sushitraintulsaok.com/",
+    "rating": 4.3,
+    "websiteUrl": "https://www.sushitraintulsa.com/",
     "mapsUrl": "https://maps.google.com/?q=Sushi+Train+3300+E+51st+St+Tulsa+OK",
     "address": "3300 E 51st St, Tulsa, OK 74135",
     "description": "Conveyor belt sushi delivered by an actual mini train. Grab color-coded plates as they roll by.",
-    "images": []
+    "images": [
+      "https://data.wearedogs.net/img/reviews/sushitrain1.webp",
+      "https://data.wearedogs.net/img/reviews/sushitrain2.webp",
+      "https://data.wearedogs.net/img/reviews/sushitrain3.webp",
+      "https://data.wearedogs.net/img/reviews/sushitrain4.webp",
+      "https://data.wearedogs.net/img/reviews/sushitrain5.webp",
+      "https://data.wearedogs.net/img/reviews/sushitrain6.webp",
+      "https://data.wearedogs.net/img/reviews/sushitrain7.webp"
+    ]
   },
   {
     "id": "takumi-sushi",
@@ -323,12 +331,19 @@
     "category": "restaurant",
     "subCategory": "sushi / all you can eat",
     "cuisine": "sushi",
-    "rating": 4.5,
+    "rating": 3.9,
     "websiteUrl": "https://www.takumispringvalley.com/",
     "mapsUrl": "https://maps.google.com/?q=Takumi+Sushi+14060+Dallas+Pkwy+Dallas+TX",
     "address": "14060 Dallas Pkwy Ste B, Dallas, TX 75240",
     "description": "All-you-can-eat sushi in North Dallas, right off the Tollway at Spring Valley.",
-    "images": []
+    "images": [
+      "https://data.wearedogs.net/img/reviews/takumi1.webp",
+      "https://data.wearedogs.net/img/reviews/takumi2.webp",
+      "https://data.wearedogs.net/img/reviews/takumi3.webp",
+      "https://data.wearedogs.net/img/reviews/takumi4.webp",
+      "https://data.wearedogs.net/img/reviews/takumi5.webp",
+      "https://data.wearedogs.net/img/reviews/takumi6.webp"
+    ]
   },
   {
     "id": "bellagreen",
@@ -337,33 +352,60 @@
     "category": "restaurant",
     "subCategory": "american bistro",
     "cuisine": "american",
-    "rating": 4.5,
+    "rating": 4.6,
     "websiteUrl": "https://bellagreen.com/",
     "mapsUrl": "https://maps.google.com/?q=Bellagreen+8041+Walnut+Hill+Ln+Dallas+TX",
     "address": "8041 Walnut Hill Ln Ste 810, Dallas, TX 75231",
     "description": "Fast-casual American bistro at The Hill with a huge gluten-free menu and weekend brunch.",
-    "images": []
+    "images": [
+      "https://data.wearedogs.net/img/reviews/bellagreen1.webp",
+      "https://data.wearedogs.net/img/reviews/bellagreen2.webp",
+      "https://data.wearedogs.net/img/reviews/bellagreen3.webp",
+      "https://data.wearedogs.net/img/reviews/bellagreen4.webp",
+      "https://data.wearedogs.net/img/reviews/bellagreen5.webp",
+      "https://data.wearedogs.net/img/reviews/bellagreen6.webp"
+    ]
   },
   {
-    "id": "kauboi-japanese-bbq-izakaya",
+    "id": "kauboi-bbq",
     "name": "Kauboi Japanese BBQ & Izakaya",
     "cityName": "Dallas TX",
     "category": "restaurant",
-    "subCategory": "sushi / japanese bbq / all you can eat",
+    "subCategory": "sushi / japanese bbq",
     "cuisine": "sushi",
-    "rating": 4.95,
+    "rating": 5,
     "websiteUrl": "https://www.kauboibbq.com/",
     "mapsUrl": "https://maps.google.com/?q=Kauboi+Japanese+BBQ+%26+Izakaya+1900+Preston+Rd+Plano+TX",
     "address": "1900 Preston Rd Ste 343, Plano, TX 75093",
-    "description": "The best all-you-can-eat sushi around. $26.99 weekday lunch and $6 happy hour cocktails.",
+    "description": "Best ALL YOU CAN EAT sushi I've had in my life so far.",
     "images": [
       "https://data.wearedogs.net/img/reviews/kauboi1.webp",
       "https://data.wearedogs.net/img/reviews/kauboi2.webp",
       "https://data.wearedogs.net/img/reviews/kauboi3.webp",
       "https://data.wearedogs.net/img/reviews/kauboi4.webp",
       "https://data.wearedogs.net/img/reviews/kauboi5.webp",
-      "https://data.wearedogs.net/img/reviews/kauboi6.webp",
-      "https://data.wearedogs.net/img/reviews/kauboi7.webp"
+      "https://data.wearedogs.net/img/reviews/kauboi6.webp"
+    ]
+  },
+  {
+    "id": "king-pot",
+    "name": "King Pot",
+    "cityName": "Dallas TX",
+    "category": "restaurant",
+    "subCategory": "korean bbq / hot pot",
+    "cuisine": "kbbq",
+    "rating": 4.5,
+    "websiteUrl": "https://www.kingpotmckinney.com/",
+    "mapsUrl": "https://maps.google.com/?q=King+Pot+159+S+Central+Expy+McKinney+TX",
+    "address": "159 S Central Expy, McKinney, TX 75070",
+    "description": "Great ALL YOU CAN EAT spread for low prices.",
+    "images": [
+      "https://data.wearedogs.net/img/reviews/kingpot1.webp",
+      "https://data.wearedogs.net/img/reviews/kingpot2.webp",
+      "https://data.wearedogs.net/img/reviews/kingpot3.webp",
+      "https://data.wearedogs.net/img/reviews/kingpot4.webp",
+      "https://data.wearedogs.net/img/reviews/kingpot5.webp",
+      "https://data.wearedogs.net/img/reviews/kingpot6.webp"
     ]
   }
 ]
