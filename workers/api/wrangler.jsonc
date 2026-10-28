@@ -1,0 +1,53 @@
+// dogs-api: the one Worker for every DOGS app (see src/index.js), at
+// https://api.wearedogs.net (GitHub Pages site) and https://api.dogs.red (Cloudflare Pages site).
+//
+//   npx wrangler d1 migrations apply sql --remote -c workers/api/wrangler.jsonc
+//   npx wrangler deploy -c workers/api/wrangler.jsonc
+//   npx wrangler dev -c workers/api/wrangler.jsonc    (local D1; secrets come from workers/api/.dev.vars)
+//
+// Secrets (npx wrangler secret put <NAME> -c workers/api/wrangler.jsonc):
+//   HASH_SALT         salts every stored hash. Changing it orphans them all, so repeat likes would count again.
+//   TURNSTILE_SECRET  for the invisible Turnstile widget "wearedogs-api likes" (dashboard > Turnstile),
+//                     which covers wearedogs.net, dogs.red and wearedogs.pages.dev.
+// Local dev uses Cloudflare's always-pass invisible test keys: in .dev.vars set
+// TURNSTILE_SECRET=1x0000000000000000000000000000000AA and
+// TURNSTILE_HOSTNAMES="localhost,127.0.0.1". Verification always requires an allowed
+// hostname and expected action in local development and production.
+//
+// Free tier: D1 allows 100k rows written a day account-wide. This Worker caps its own
+// writes at 40k, reserving headroom for Wordsmith, but cannot meter Wordsmith's usage.
+// Counts are edge-cached to reduce D1 reads. Keep an account-level usage alert in place.
+{
+  "name": "dogs-api",
+  "main": "src/index.js",
+  "compatibility_date": "2026-10-27",
+  // Only the custom domains answer: no workers.dev or preview URLs that skip the zones' protections
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [
+    { "pattern": "api.wearedogs.net", "custom_domain": true },
+    { "pattern": "api.dogs.red", "custom_domain": true }
+  ],
+  "vars": {
+    "ALLOWED_ORIGINS": "https://wearedogs.net,https://www.wearedogs.net,https://dogs.red,https://wearedogs.pages.dev",
+    // Hostnames a Turnstile token may come from (the token reports the page's host)
+    "TURNSTILE_HOSTNAMES": "wearedogs.net,www.wearedogs.net,dogs.red,wearedogs.pages.dev"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "sql",
+      "database_id": "104d3edd-ec68-44e6-8b95-98a0a16df6d2",
+      "migrations_dir": "migrations"
+    }
+  ],
+  // Per-IP, per-colo limits after the Worker starts; use zone WAF rate limits to protect request quota.
+  // Periods can only be 10 or 60 seconds.
+  "ratelimits": [
+    { "name": "LIKE_LIMITER", "namespace_id": "1001", "simple": { "limit": 5, "period": 60 } },
+    { "name": "READ_LIMITER", "namespace_id": "1002", "simple": { "limit": 30, "period": 60 } }
+  ],
+  // Hourly cleanup removes fingerprint records after their 20-day window; Free allows 5 crons per account.
+  "triggers": { "crons": ["0 * * * *"] },
+  "observability": { "enabled": true }
+}

@@ -51,6 +51,16 @@ export default defineConfig({
         // dev proxy forwards the browser's localhost referer, which gets a
         // 403 block page. Present the real site's referer instead.
         headers: { Referer: 'https://wearedogs.net/' },
+      },
+      // The likes Worker (workers/api) only answers wearedogs.net origins, so
+      // present the real one. LIKES_API_TARGET=http://localhost:8787 points it
+      // at `wrangler dev` and its local D1 instead of the live count.
+      '/api/likes': {
+        // Keep local development isolated; set LIKES_API_TARGET explicitly to use a remote API.
+        target: process.env.LIKES_API_TARGET || 'http://localhost:8787',
+        changeOrigin: true,
+        rewrite: () => '/likes',
+        headers: { Origin: 'https://wearedogs.net' },
       }
     }
   },

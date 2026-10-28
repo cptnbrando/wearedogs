@@ -17,6 +17,17 @@ $color-doc-sky-line: rgba(56, 189, 248, 0.25); // DocumentPreview borders, CropP
 $color-image-orange: var(--color-image-orange, #ff5e00);
 $color-image-orange-soft: rgba(255, 94, 0, 0.12);
 
+// ── Like button (components/LikeButton.svelte, on the DOGS info page) ──
+// The button is a light info card, so idle ink matches the other cards' black text.
+$color-like-fill: var(--color-neon-red, #ff3344);        // Filled thumb circle once liked
+$color-like-glow: rgba(255, 51, 68, 0.4);               // Ripple ring + glow behind the filled thumb
+$color-like-idle-bg: rgba(0, 0, 0, 0.04);               // Thumb circle before liking
+$color-like-idle-line: rgba(0, 0, 0, 0.12);             // Its hairline border
+$color-like-ink: #000000;                               // Idle thumb icon and focus ring
+$color-like-ink-filled: #ffffff;                        // Thumb icon on the filled circle
+$color-like-text: #000000;                              // "200 people like DOGS"
+$color-consent-text-muted: #525252;                     // Pre-click data notice below the like button
+
 // ── Background Gradients & Colors ──
 $bg-app-dark: var(--bg-app, #050508);
 $bg-radial-overlay: var(--bg-radial-overlay, radial-gradient(circle at top, rgba(30, 10, 15, 0.55) 0%, rgba(5, 5, 8, 1) 100%));
