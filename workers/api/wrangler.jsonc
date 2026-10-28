@@ -1,4 +1,4 @@
-// wearedogs-api: the one Worker for every DOGS app (see src/index.js), at
+// dogs-api: the one Worker for every DOGS app (see src/index.js), at
 // https://api.wearedogs.net (GitHub Pages site) and https://api.dogs.red (Cloudflare Pages site).
 //
 //   npx wrangler d1 migrations apply sql --remote -c workers/api/wrangler.jsonc
@@ -16,7 +16,7 @@
 // src/lib/budget.js caps this Worker at 40k and each app below that. Counts are
 // edge-cached, so D1 reads stay far under 5M a day. Rate limiters and Turnstile cost nothing.
 {
-  "name": "wearedogs-api",
+  "name": "dogs-api",
   "main": "src/index.js",
   "compatibility_date": "2026-10-27",
   // Only the custom domains answer: no workers.dev or preview URLs that skip the zones' protections

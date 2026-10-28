@@ -331,39 +331,7 @@
   @media (prefers-reduced-motion: reduce) {
     .like-thumb,
     .like-thumb::before,
-    // Consent notice: a small dark bubble pointing down at the card
-  .like-notice {
-    max-width: 16rem;
-    max-width: min(16rem, calc(100vw - 3rem));
-    color: vars.$color-consent-text;
-    background: vars.$color-consent-bg;
-    box-shadow: 0 8px 24px vars.$color-consent-shadow;
-
-    a {
-      color: inherit;
-    }
-
-    a:focus-visible {
-      outline: 2px solid vars.$color-consent-text;
-      outline-offset: 2px;
-    }
-  }
-
-  // Tucked half behind the bubble, so only a triangle shows below it
-  .like-notice-arrow {
-    background: vars.$color-consent-bg;
-    -webkit-transform: rotate(45deg);
-    transform: rotate(45deg);
-    pointer-events: none;
-  }
-
-  @media (min-width: 1536px) {
-    .like-notice {
-      max-width: 26rem;
-    }
-  }
-
-  .like-text {
+    .like-text {
       transition-duration: 0.01ms;
     }
 

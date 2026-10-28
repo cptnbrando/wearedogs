@@ -1,5 +1,5 @@
 /**
- * wearedogs-api: the one Worker behind every DOGS app, served at
+ * dogs-api: the one Worker behind every DOGS app, served at
  * api.wearedogs.net and api.dogs.red.
  *
  * Kept as a single Worker on purpose: the free tier's 100k requests and D1
