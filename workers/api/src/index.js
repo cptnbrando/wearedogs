@@ -2,9 +2,11 @@
  * dogs-api: the one Worker behind every DOGS app, served at
  * api.wearedogs.net and api.dogs.red.
  *
- * Kept as a single Worker on purpose: the free tier's 100k requests and D1
- * rows a day are account-wide, and one Worker means one place to cap them
- * (lib/budget.js) and one set of gates for every app:
+ * Kept as a single Worker on purpose: D1's daily row budget is account-wide,
+ * and one Worker means one place to cap this Worker's writes (lib/budget.js)
+ * and one set of gates for every app. Per-IP limits here run after invocation
+ * and do not protect the account's Workers request quota; use zone-level WAF
+ * rules for pre-Worker rate limiting.
  *   - Origin allowlist + CORS (ALLOWED_ORIGINS)
  *   - browser-like User-Agent
  *   - per-route rate limiters and, for writes, Turnstile (lib/turnstile.js)
@@ -23,6 +25,7 @@ import { ipKey } from "./lib/hash.js";
 import likes from "./routes/likes.js";
 
 const ROUTES = { [likes.path]: likes };
+const SERVICE_UNAVAILABLE = "Service temporarily unavailable";
 const BOT_UA_PATTERN =
   /bot|crawl|spider|slurp|curl|wget|python|httpclient|okhttp|scrapy|headless|phantom|go-http|java\//i;
 
@@ -49,10 +52,14 @@ export default {
     if (!userAgent || BOT_UA_PATTERN.test(userAgent)) return reply(403, { error: "Forbidden" }, cors);
 
     const ip = request.headers.get("CF-Connecting-IP") || "";
-    return route.handle(request, env, ctx, { ip, ipKey: ipKey(ip), cors, url });
+    try {
+      return await route.handle(request, env, ctx, { ip, ipKey: ipKey(ip), cors, url });
+    } catch {
+      return reply(503, { error: SERVICE_UNAVAILABLE }, cors);
+    }
   },
 
-  /** Daily upkeep from the cron trigger: every route that exports scheduled(env) gets a turn. */
+  /** Scheduled upkeep: every route that exports scheduled(env) gets a turn. */
   async scheduled(controller, env, ctx) {
     const jobs = Object.values(ROUTES).filter((route) => route.scheduled);
     ctx.waitUntil(Promise.all(jobs.map((route) => route.scheduled(env))));

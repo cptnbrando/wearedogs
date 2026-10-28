@@ -5,9 +5,9 @@
  * Requests are kept rare for Cloudflare's free tier: the count is remembered
  * in localStorage for COUNT_TTL_MS, and a browser that already liked never
  * posts again. No accounts: each like carries a random device ID, per-signal
- * device hashes (deviceSignals.js) and a Turnstile token (turnstileToken.js),
- * and the Worker drops repeats from the same device and IP. All of that
- * starts only on the click (the consent); public/privacy.html explains it.
+ * device hashes (deviceSignals.js) and a Turnstile token (turnstileToken.js).
+ * The Worker uses these as best-effort repeat and abuse checks. The adjacent
+ * disclosure is visible before click; public/privacy.html explains the details.
  *
  * Each site calls the API on its own domain: same-site requests, and one
  * shared count behind both.
@@ -29,16 +29,18 @@ const COUNT_TTL_MS = 10 * 60 * 1000;
 // like again; the button forgets at the same time, so it reopens for a new like.
 const LIKE_MEMORY_DAYS = 20;
 const LIKE_MEMORY_MS = LIKE_MEMORY_DAYS * 24 * 60 * 60 * 1000;
+const CLEANUP_INTERVAL_MS = 60 * 60 * 1000;
 const REQUEST_TIMEOUT_MS = 8000;
 
 /** @typedef {{ count: number|null, at: number, liked: boolean, likedAt?: number }} LikeCache */
 
-/** @returns {LikeCache} what this browser remembers; a like older than LIKE_MEMORY_DAYS reads as not liked */
+/** @returns {LikeCache} what this browser remembers through the next hourly cleanup after 20 days */
 export function readCache() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
     if (!saved) return { count: null, at: 0, liked: false };
-    const remembered = saved.liked && Date.now() - (saved.likedAt || 0) < LIKE_MEMORY_MS;
+    const cleanupAt = Math.ceil(((saved.likedAt || 0) + LIKE_MEMORY_MS) / CLEANUP_INTERVAL_MS) * CLEANUP_INTERVAL_MS;
+    const remembered = saved.liked && Date.now() < cleanupAt;
     return { ...saved, liked: remembered };
   } catch {
     // Storage disabled (private mode) or corrupt: fall through to empty

@@ -121,12 +121,14 @@
       <p class="muted">Effective 27 October 2026 · covers wearedogs.net and dogs.red (the same site)</p>
 
       <p>
-        Reading this site sends nothing about you to us. The only feature that does is the
-        <strong>like button</strong> on the info page. This page explains exactly what happens when you press it.
+        Like any website, our hosts and external services receive standard connection information when they serve
+        pages or assets. The like button adds device signals only after you press it. A browser that remembers an
+        earlier like may also request the current count when the info page opens; that request includes your IP for
+        rate limiting but sends no device fingerprint.
       </p>
 
       <h2>What happens when you like DOGS</h2>
-      <p>When you click the thumbs-up, and not before:</p>
+      <p>The note beside the thumbs-up describes this before you click. When you press it, your browser:</p>
       <ol>
         <li>
           Your browser saves two small items in its own storage (localStorage, not cookies): a random ID for this
@@ -136,8 +138,9 @@
           Your browser reads a few traits of your device to build a <strong>device fingerprint</strong>: browser name
           (without version numbers), operating system platform, languages, time zone, screen size and colour depth,
           CPU core count, memory and touch support, how your graphics hardware describes itself, and how your device
-          draws a small test image and renders a short silent test sound. Each trait is turned into a one-way hash
-          <em>on your device</em>; the raw values never leave it.
+          draws a small test image and renders a short silent test sound. Each trait is reduced to a short hash
+          <em>on your device</em>; the raw values never leave it. These client-side hashes are not cryptographic and
+          some low-variation traits may be guessable, so treat them as pseudonymous data.
         </li>
         <li>
           <a href="https://www.cloudflare.com/products/turnstile/" rel="noopener">Cloudflare Turnstile</a>, an
@@ -146,8 +149,9 @@
           <a href="https://www.cloudflare.com/turnstile-privacy-policy/" rel="noopener">Turnstile privacy addendum</a>.
         </li>
         <li>
-          The hashes, the random ID and the Turnstile result are sent to our API (<code>api.wearedogs.net</code> or
-          <code>api.dogs.red</code>), which runs on Cloudflare.
+          The hashes, random ID and Turnstile result are sent to our API (<code>api.wearedogs.net</code> or
+          <code>api.dogs.red</code>), which runs on Cloudflare. The request also carries standard connection data,
+          including your IP address; the Worker uses it for rate limiting and derives a keyed hash for repeat checks.
         </li>
       </ol>
 
@@ -169,27 +173,30 @@
 
       <h2>Why</h2>
       <p>
-        To count one like per device without making anyone sign up, and to stop bots from inflating the count. A like
-        is treated as a repeat when it comes from the same network as an earlier like and the device traits nearly all
-        match. That is the only use. We do not use any of this to follow you across other sites, build a profile of
-        you, show ads, or sell or share it with anyone. Cloudflare runs the service on our behalf.
+        To discourage repeat likes without making anyone sign up, and to limit bots inflating the count. A repeated
+        random browser ID is blocked; otherwise a like may be treated as a repeat when it comes from the same network
+        as a recent like and enough device signals match. This is an abuse deterrent, not a guarantee that one person
+        can only like once. We do not use these signals to follow you across other sites, build a profile, show ads,
+        or sell or share them. Cloudflare runs the service on our behalf.
       </p>
 
       <h2>Legal basis</h2>
       <p>
-        Your consent, given by clicking the like button: the notice that appears above it says so, and links here. If
-        you never click it, none of the above happens.
+        Your consent, given by clicking the like button after reading the disclosure beside it and this policy. If
+        you never click it, the device fingerprint and Turnstile check do not run. A returning browser may still make
+        the count-refresh request described above.
       </p>
 
       <h2>How long we keep it</h2>
       <p>
         <strong>Your like is forever:</strong> the count only ever goes up. The fingerprint record behind it (the
-        hashes and the time) is deleted automatically <strong>20 days</strong> after you like. From then on we have no
-        way to recognise your device, so the button opens up again and you can like DOGS again.
+        hashes and the time) is scheduled for deletion at the first hourly cleanup after it becomes
+        <strong>20 days</strong> old. Cloudflare outages or exhausted account D1 limits can delay that cleanup. The
+        like control reopens at the cleanup boundary, so you can like DOGS again.
       </p>
       <p>
-        Your browser also stops treating you as having liked after 20 days. It keeps its two stored items until you
-        clear them.
+        Your browser keeps treating you as having liked until the first hourly cleanup after 20 days. It keeps its
+        two stored items until you clear them.
       </p>
 
       <h2>Your choices and rights</h2>
@@ -198,7 +205,7 @@
         <li>Clear this site's data in your browser settings to remove the two stored items.</li>
         <li>
           Because we only keep keyed hashes, we cannot tell which stored record is yours, so we cannot look it up,
-          export it or delete it individually before the 20 days are up. You can still ask us anything about it, or
+          export it or delete it individually before the cleanup after the 20-day mark. You can still ask us anything about it, or
           object, using the <strong>email us</strong> card on the info page.
         </li>
         <li>You can also complain to your local data protection authority.</li>
@@ -211,6 +218,11 @@
         for wearedogs.net, and
         <a href="https://www.cloudflare.com/privacypolicy/" rel="noopener">Cloudflare</a> for dogs.red, our media and
         our API.
+      </p>
+      <p>
+        We load fonts from <a href="https://policies.google.com/privacy" rel="noopener">Google Fonts</a>; Google may
+        receive standard connection information when your browser requests those files. Some pages also load images,
+        audio or video from <code>data.wearedogs.net</code>, served by Cloudflare.
       </p>
 
       <h2>Changes</h2>

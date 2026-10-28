@@ -56,7 +56,8 @@ export default defineConfig({
       // present the real one. LIKES_API_TARGET=http://localhost:8787 points it
       // at `wrangler dev` and its local D1 instead of the live count.
       '/api/likes': {
-        target: process.env.LIKES_API_TARGET || 'https://api.wearedogs.net',
+        // Keep local development isolated; set LIKES_API_TARGET explicitly to use a remote API.
+        target: process.env.LIKES_API_TARGET || 'http://localhost:8787',
         changeOrigin: true,
         rewrite: () => '/likes',
         headers: { Origin: 'https://wearedogs.net' },

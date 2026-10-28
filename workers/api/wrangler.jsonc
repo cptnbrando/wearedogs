@@ -9,12 +9,14 @@
 //   HASH_SALT         salts every stored hash. Changing it orphans them all, so repeat likes would count again.
 //   TURNSTILE_SECRET  for the invisible Turnstile widget "wearedogs-api likes" (dashboard > Turnstile),
 //                     which covers wearedogs.net, dogs.red and wearedogs.pages.dev.
-// Local dev uses Cloudflare's always-pass test keys: in .dev.vars set
-// TURNSTILE_SECRET=1x0000000000000000000000000000000AA and TURNSTILE_HOSTNAMES="".
+// Local dev uses Cloudflare's always-pass invisible test keys: in .dev.vars set
+// TURNSTILE_SECRET=1x0000000000000000000000000000000AA and
+// TURNSTILE_HOSTNAMES="localhost,127.0.0.1". Verification always requires an allowed
+// hostname and expected action in local development and production.
 //
-// Free tier: the account's 100k D1 rows written a day are shared with wordsmith, so
-// src/lib/budget.js caps this Worker at 40k and each app below that. Counts are
-// edge-cached, so D1 reads stay far under 5M a day. Rate limiters and Turnstile cost nothing.
+// Free tier: D1 allows 100k rows written a day account-wide. This Worker caps its own
+// writes at 40k, reserving headroom for Wordsmith, but cannot meter Wordsmith's usage.
+// Counts are edge-cached to reduce D1 reads. Keep an account-level usage alert in place.
 {
   "name": "dogs-api",
   "main": "src/index.js",
@@ -39,12 +41,13 @@
       "migrations_dir": "migrations"
     }
   ],
-  // Per-IP, per-colo limits. Periods can only be 10 or 60 seconds.
+  // Per-IP, per-colo limits after the Worker starts; use zone WAF rate limits to protect request quota.
+  // Periods can only be 10 or 60 seconds.
   "ratelimits": [
     { "name": "LIKE_LIMITER", "namespace_id": "1001", "simple": { "limit": 5, "period": 60 } },
     { "name": "READ_LIMITER", "namespace_id": "1002", "simple": { "limit": 30, "period": 60 } }
   ],
-  // Daily upkeep (src/index.js scheduled): e.g. like fingerprints older than 20 days are deleted (the count stays). Free plan allows 5 crons per account.
-  "triggers": { "crons": ["17 4 * * *"] },
+  // Hourly cleanup removes fingerprint records after their 20-day window; Free allows 5 crons per account.
+  "triggers": { "crons": ["0 * * * *"] },
   "observability": { "enabled": true }
 }

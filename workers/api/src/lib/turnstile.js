@@ -16,13 +16,22 @@ export async function verifyTurnstile(env, token, ip, action) {
   form.append("secret", env.TURNSTILE_SECRET);
   form.append("response", token);
   if (ip) form.append("remoteip", ip);
-  const res = await fetch(SITEVERIFY_URL, { method: "POST", body: form });
-  if (!res.ok) return false;
+  try {
+    const res = await fetch(SITEVERIFY_URL, { method: "POST", body: form });
+    if (!res.ok) return false;
 
-  const outcome = await res.json();
-  if (!outcome.success) return false;
-  // Cloudflare's test keys (local dev) report a placeholder hostname, so dev leaves this empty
-  const hostnames = (env.TURNSTILE_HOSTNAMES || "").split(",").filter(Boolean);
-  if (!hostnames.length) return true;
-  return hostnames.includes(outcome.hostname) && outcome.action === action;
+    const outcome = await res.json();
+    const hostnames = (env.TURNSTILE_HOSTNAMES || "")
+      .split(",")
+      .map((hostname) => hostname.trim())
+      .filter(Boolean);
+    return Boolean(
+      outcome.success &&
+      hostnames.length &&
+      hostnames.includes(outcome.hostname) &&
+      outcome.action === action,
+    );
+  } catch {
+    return false;
+  }
 }

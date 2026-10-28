@@ -26,9 +26,7 @@ $color-like-idle-line: rgba(0, 0, 0, 0.12);             // Its hairline border
 $color-like-ink: #000000;                               // Idle thumb icon and focus ring
 $color-like-ink-filled: #ffffff;                        // Thumb icon on the filled circle
 $color-like-text: #000000;                              // "200 people like DOGS"
-$color-consent-bg: #0c0c0e;                             // "By liking DOGS, you agree..." bubble above the card (opaque: its pointer sits behind it)
-$color-consent-text: #ffffff;                           // Its text and privacy-policy link
-$color-consent-shadow: rgba(0, 0, 0, 0.25);             // Lifts the bubble off the light cards
+$color-consent-text-muted: #525252;                     // Pre-click data notice below the like button
 
 // ── Background Gradients & Colors ──
 $bg-app-dark: var(--bg-app, #050508);

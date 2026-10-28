@@ -1,22 +1,29 @@
 /**
  * The daily D1 write budget every route spends from.
  *
- * D1's free tier (100k rows written a day) is account-wide: wordsmith and any
- * future Worker draw from the same pool. This Worker keeps itself to
- * DAILY_WRITE_BUDGET, and each app gets its own sub-cap so one noisy app
- * can't starve the others. Spending is checked before the work is done, so
- * once a cap is hit nothing more is written until 00:00 UTC.
+ * D1's free tier (100k rows written a day) is account-wide. This Worker only
+ * reserves its own DAILY_WRITE_BUDGET; it cannot see Wordsmith's writes or
+ * guarantee the account-wide limit by itself. Each app also gets a sub-cap.
+ * Spending is checked before business writes, so this Worker stops at its cap.
  *
  * Totals live in `counters` as `writes:all:YYYY-MM-DD` and
  * `writes:<app>:YYYY-MM-DD` rows.
  */
 
 const DAILY_WRITE_BUDGET = 40000;
-// The two counter upserts below are writes too
-const BUDGET_ROWS = 2;
-const SPEND_SQL = `INSERT INTO counters (name, value) VALUES (?1, ?2)
-  ON CONFLICT (name) DO UPDATE SET value = value + ?2 WHERE value + ?2 <= ?3
-  RETURNING value`;
+// Covers two daily counter inserts on first use and their two reservation updates.
+const BUDGET_ROWS = 4;
+const ENSURE_COUNTER_SQL = "INSERT OR IGNORE INTO counters (name, value) VALUES (?1, 0)";
+const SPEND_SQL = `UPDATE counters SET value = value + ?1
+  WHERE name IN (?2, ?3)
+    AND EXISTS (
+      SELECT 1 FROM counters AS total_counter, counters AS app_counter
+      WHERE total_counter.name = ?2
+        AND total_counter.value + ?1 <= ?4
+        AND app_counter.name = ?3
+        AND app_counter.value + ?1 <= ?5
+    )
+  RETURNING name`;
 
 /**
  * Reserves `rows` D1 row writes for `app` today.
@@ -28,10 +35,13 @@ const SPEND_SQL = `INSERT INTO counters (name, value) VALUES (?1, ?2)
  */
 export async function spendWrites(env, app, rows, appCap) {
   const day = new Date().toISOString().slice(0, 10);
+  const allName = `writes:all:${day}`;
+  const appName = `writes:${app}:${day}`;
   const total = rows + BUDGET_ROWS;
-  const [all, mine] = await env.DB.batch([
-    env.DB.prepare(SPEND_SQL).bind(`writes:all:${day}`, total, DAILY_WRITE_BUDGET),
-    env.DB.prepare(SPEND_SQL).bind(`writes:${app}:${day}`, total, appCap),
+  const [, , reserved] = await env.DB.batch([
+    env.DB.prepare(ENSURE_COUNTER_SQL).bind(allName),
+    env.DB.prepare(ENSURE_COUNTER_SQL).bind(appName),
+    env.DB.prepare(SPEND_SQL).bind(total, allName, appName, DAILY_WRITE_BUDGET, appCap),
   ]);
-  return all.results.length > 0 && mine.results.length > 0;
+  return reserved.results.length === 2;
 }
