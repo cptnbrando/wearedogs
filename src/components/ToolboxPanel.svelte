@@ -127,7 +127,8 @@
   }
 
   const hiddenApps = {
-    gopro: { id: "gopro", title: "DOGS TV", icon: Video }
+    gopro: { id: "gopro", title: "DOGS TV", icon: Video },
+    memes: { id: "memes", title: "MEMES", icon: Smile },
   };
 
   // Derive the active header state (icon, title, etc) from active or focused app
@@ -381,12 +382,6 @@
     //   desc: "Investigate missing people and dogs.",
     //   icon: Search,
     // },
-    {
-      id: "memes",
-      title: "MEMES",
-      desc: "Create custom memes and explore pop culture.",
-      icon: Smile,
-    },
     {
       id: "frames",
       title: "Frames",
