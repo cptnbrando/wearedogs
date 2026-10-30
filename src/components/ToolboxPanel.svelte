@@ -26,6 +26,7 @@
     Film,
     Calculator,
     KeyRound,
+    Bomb,
   } from "lucide-svelte";
   import DogsLogo from "./DogsLogo.svelte";
   import AppCard from "./AppCard.svelte";
@@ -79,6 +80,7 @@
     wiretap: "./apps/Wiretap.svelte",
     frames: "./apps/Frames.svelte",
     passwords: "./apps/passwords/PasswordsApp.svelte",
+    pocketsand: "./apps/pocketsand/PocketSandApp.svelte",
   };
 
   // Lazy loaded app components caching
@@ -278,6 +280,7 @@
     wiretap: "#00ff66",
     frames: "#ff5e00",
     passwords: "#00d75f",
+    pocketsand: "#e8c07d",
   };
 
   // CRITICAL: The changelog and settings apps MUST always remain next to each other at the bottom of the toolbox list, with settings last.
@@ -317,6 +320,12 @@
       title: "Password Generator",
       desc: "Generate secure random passwords up to 200 characters with entropy analysis.",
       icon: KeyRound,
+    },
+    {
+      id: "pocketsand",
+      title: "Pocket Sand",
+      desc: "One-tap clipboard payloads for stress testing text boxes.",
+      icon: Bomb,
     },
     {
       id: "dataflash",

@@ -1,0 +1,97 @@
+POCKET SAND PRESENTS: A BEE, A TEXT BOX, AND THE LAWS OF AVIATION
+(An original stand-in. Swap this file for any long script you have the rights to paste.)
+
+FADE IN:
+
+EXT. HONEYCOMB TOWER - DAWN
+
+Ten thousand hexagons glow gold in the early light. Somewhere inside, an alarm clock shaped like a sunflower buzzes. A small bee named DEX rolls out of a wax bunk, stretches all six legs, and squints at the sky.
+
+DEX
+Every engineer who ever lived has run the numbers on me. Wings too small. Body too round. The math says I stay on the ground. The math has never met me before breakfast.
+
+He sips nectar from a thimble-sized mug, burns his tongue, and keeps talking anyway.
+
+DEX (CONT'D)
+Here is the thing about rules. A rule is just a story somebody wrote down and forgot to update. Somebody said a bee cannot fly. Somebody said a text box only needs two hundred and fifty-five characters. Somebody said nobody would ever paste an entire movie into the comments field. Somebody was wrong three times before lunch.
+
+INT. HIVE CORRIDOR - CONTINUOUS
+
+DEX buzzes down a corridor lined with job postings. "POLLEN LOGISTICS." "WAX QUALITY ASSURANCE." "SENIOR HONEY DEVELOPER, TEN YEARS OF EXPERIENCE WITH A FLOWER THAT BLOOMED LAST TUESDAY." He laughs and keeps moving.
+
+His best friend, a nervous bee named MARGO, catches up with a clipboard.
+
+MARGO
+You are late for orientation. They are assigning lifelong careers today. Lifelong. As in forever. As in the same job until the end of time.
+
+DEX
+Margo, I have a question nobody at orientation will answer. What happens when the input is bigger than the box?
+
+MARGO
+The box gets bigger?
+
+DEX
+Sometimes. Sometimes the box truncates you halfway through a sentence and pretends nothing happened. Sometimes the whole page freezes and a little spinning wheel shows up to apologize. Sometimes the database screams. I want to know which one. I want to know before the humans find out.
+
+EXT. MEADOW - DAY
+
+Wind ripples through an ocean of clover. DEX and MARGO hover at the edge of the hive, staring at a world that looks enormous from up here.
+
+MARGO
+They say the humans have screens now. Glowing rectangles. They type into them all day long.
+
+DEX
+And every rectangle has a limit nobody told them about. A maximum length. A forbidden character. An emoji that breaks the layout. A quote mark that turns into a database command. It is the most beautiful problem I have ever heard of.
+
+MARGO
+You are a very strange bee.
+
+DEX
+I am a stress test with wings.
+
+He launches. For one long second the laws of aviation hold their breath. Then he climbs, wobbling, impossible, over the clover and toward the city skyline.
+
+INT. COFFEE SHOP - DAY
+
+A laptop sits open on a sticky table. A web form blinks: "TELL US ABOUT YOURSELF (OPTIONAL)." DEX lands on the space bar.
+
+DEX
+Optional. They always say optional.
+
+He walks across the keyboard, one key at a time, typing a sentence that never ends. It wraps once. Twice. Ten times. The scroll bar shrinks to a sliver. Somewhere in a server room far away, a fan spins up.
+
+MARGO (V.O.)
+Dex. Dex, what are you doing?
+
+DEX
+Testing the limits. Paragraph after paragraph. Line after line. If the field holds, we celebrate. If the field breaks, we file a bug report and we celebrate harder, because we found it first.
+
+The form finally answers with a red banner: "MAXIMUM 500 CHARACTERS." DEX counts on his legs.
+
+DEX (CONT'D)
+Five hundred. Five hundred! I have more to say than that about pollen alone.
+
+EXT. ROOFTOP - SUNSET
+
+DEX and MARGO sit on the edge of a rooftop, legs dangling, watching the city lights come on one rectangle at a time.
+
+MARGO
+So what did we learn today?
+
+DEX
+We learned that every box has a bottom. We learned that limits should be loud, not silent. We learned that a good form tells you what went wrong instead of eating your words. And we learned that a bee can fly, no matter what the spreadsheet says, as long as nobody tells the bee.
+
+MARGO
+That is not how aerodynamics works.
+
+DEX
+That is exactly how aerodynamics works. You flap until the numbers give up.
+
+They laugh. The sun dips behind the skyline. Somewhere below, a developer opens a bug ticket titled "Field accepts entire screenplay, page dies." DEX sees the notification glow on a distant window and nods, satisfied.
+
+DEX (CONT'D)
+Tomorrow, the search bar.
+
+FADE OUT.
+
+THE END

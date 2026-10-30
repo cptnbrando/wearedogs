@@ -16,6 +16,7 @@
     Film,
     Calculator,
     KeyRound,
+    Bomb,
   } from "lucide-svelte";
 
   let { appId } = $props();
@@ -174,6 +175,13 @@
     <KeyRound
       size={28}
       style="color: var(--color-neon-green, #00d75f); filter: drop-shadow(0 0 6px rgba(0, 215, 95, 0.4));"
+    />
+  </div>
+{:else if appId === "pocketsand"}
+  <div class="flex items-center justify-center h-full">
+    <Bomb
+      size={28}
+      style="color: var(--color-sand, #e8c07d); filter: drop-shadow(0 0 6px rgba(232, 192, 125, 0.4));"
     />
   </div>
 {/if}
