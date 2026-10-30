@@ -15,8 +15,9 @@
   });
 
   // Sizes are measured once: code points (what a human calls characters) and
-  // UTF-8 bytes (what a database column actually stores)
-  const measure = (bag) => ({
+  // UTF-8 bytes (what a database column actually stores). Built-on-tap bags
+  // are ASCII, so their size is both.
+  const measure = (bag) => bag.build ? { ...bag, chars: bag.size, bytes: bag.size } : ({
     ...bag,
     preview: bag.text ? bag.text.slice(0, PREVIEW_CHARS) : LOADING_PREVIEW,
     chars: Array.from(bag.text).length,
@@ -43,8 +44,9 @@
   /** @param {typeof bags[number]} bag */
   async function throwSand(bag) {
     if (failedIds.includes(bag.id)) return showToast(false, `Couldn't load ${bag.title}`);
-    if (!bag.text) return showToast(false, `${bag.title} is still loading`);
-    if (!(await copyText(bag.text))) return showToast(false, `Couldn't copy ${bag.title}`);
+    const text = bag.build ? bag.build() : bag.text;
+    if (!text) return showToast(false, `${bag.title} is still loading`);
+    if (!(await copyText(text))) return showToast(false, `Couldn't copy ${bag.title}`);
     showToast(true, `${bag.title} copied · ${bag.chars.toLocaleString()} chars`, bag.id);
   }
 

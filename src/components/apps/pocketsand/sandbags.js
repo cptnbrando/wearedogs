@@ -1,6 +1,8 @@
 // Payloads for the Pocket Sand app: one click copies a string built to stress a
 // text box. Kept free of Svelte so the arsenal stays data and can grow freely.
-// Every string is built once, when the app is first opened. A bag with `src`
+// Every string is built once, when the app is first opened. A bag with `build`
+// is too big to keep around: it is built on tap, and its `size` is known up
+// front because it is pure ASCII (one char = one byte). A bag with `src`
 // starts empty and the app fills it from the first of those URLs that answers,
 // minus anything `strip` matches.
 //
@@ -21,6 +23,10 @@ const ASCII_DEL = 0x7f;
 const WALL_TARGET_CHARS = 100000;
 const LONG_WORD_CHARS = 10000;
 const NEST_DEPTH = 512;
+const BREAKER_LINE_CHARS = 100;
+const BREAKER_LABEL_DIGITS = 10;
+const BREAKER_PREVIEW_LINES = 3;
+const BREAKER_SIZES = [1000000, 10000000];
 const ZALGO_MARKS_PER_CHAR = 18;
 const COMBINING_FIRST = 0x300;
 const COMBINING_COUNT = 0x70;
@@ -89,8 +95,19 @@ const wallOfText = () => {
 
 const lines = (list) => list.join("\n");
 
+// Every line is exactly BREAKER_LINE_CHARS long and opens with its own char
+// offset, so wherever a paste gets cut off, the last line says how far it got
+const BREAKER_FILLER = " WOOF".repeat(BREAKER_LINE_CHARS).slice(0, BREAKER_LINE_CHARS - BREAKER_LABEL_DIGITS - 1);
+const clipboardBreaker = (size) => {
+  let out = "";
+  for (let at = 0; at < size; at += BREAKER_LINE_CHARS) {
+    out += String(at).padStart(BREAKER_LABEL_DIGITS, "0") + BREAKER_FILLER + "\n";
+  }
+  return out;
+};
+
 /**
- * @typedef {{ id: string, title: string, tag: string, glyph: string, text: string, src?: string[], strip?: RegExp }} Sandbag
+ * @typedef {{ id: string, title: string, tag: string, glyph: string, text: string, src?: string[], strip?: RegExp, size?: number, preview?: string, build?: () => string }} Sandbag
  * @type {Sandbag[]}
  */
 export const SANDBAGS = [
@@ -110,6 +127,16 @@ export const SANDBAGS = [
     glyph: "🧱",
     text: wallOfText(),
   },
+  ...BREAKER_SIZES.map((size) => ({
+    id: `breaker${size}`,
+    title: `${size / 1000000}M Breaker`,
+    tag: "Length",
+    glyph: "💥",
+    text: "",
+    size,
+    preview: clipboardBreaker(BREAKER_PREVIEW_LINES * BREAKER_LINE_CHARS),
+    build: () => clipboardBreaker(size),
+  })),
   {
     id: "longword",
     title: "Endless Word",
