@@ -1,10 +1,19 @@
 // Payloads for the Pocket Sand app: one click copies a string built to stress a
 // text box. Kept free of Svelte so the arsenal stays data and can grow freely.
-// Every string is built once, when the app is first opened.
+// Every string is built once, when the app is first opened. A bag with `src`
+// starts empty and the app fills it from the first of those URLs that answers,
+// minus anything `strip` matches.
 //
 // Only paste these into fields you own or are allowed to test.
 
-import BEE_TEXT from "./bee.txt?raw";
+// Tried in order. The gist is pinned to one revision, so the payload never
+// changes underneath a test; the repo copy is the backup.
+const BEE_MOVIE_URLS = [
+  "https://gist.githubusercontent.com/MattIPv4/045239bc27b16b2bcf7a3a9a4648c08a/raw/2411e31293a35f3e565f61e7490a806d4720ea7e/bee%2520movie%2520script",
+  "https://raw.githubusercontent.com/kogatoerigotsun/The-Bee-Movie-Script/master/Script",
+];
+// The repo copy opens with a stray .gitattributes header; start at the script
+const BEE_MOVIE_START = /^[\s\S]*?(?=According to all known laws)/;
 
 const ASCII_PRINTABLE_FIRST = 0x20;
 const ASCII_PRINTABLE_LAST = 0x7e;
@@ -81,7 +90,7 @@ const wallOfText = () => {
 const lines = (list) => list.join("\n");
 
 /**
- * @typedef {{ id: string, title: string, tag: string, glyph: string, text: string }} Sandbag
+ * @typedef {{ id: string, title: string, tag: string, glyph: string, text: string, src?: string[], strip?: RegExp }} Sandbag
  * @type {Sandbag[]}
  */
 export const SANDBAGS = [
@@ -90,7 +99,9 @@ export const SANDBAGS = [
     title: "Bee Movie",
     tag: "Length",
     glyph: "🐝",
-    text: BEE_TEXT,
+    text: "",
+    src: BEE_MOVIE_URLS,
+    strip: BEE_MOVIE_START,
   },
   {
     id: "wall",

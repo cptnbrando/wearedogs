@@ -1,11 +1,13 @@
 <script>
-  import { onDestroy } from "svelte";
+  import { onMount, onDestroy } from "svelte";
   import { Check, AlertCircle } from "lucide-svelte";
   import { SANDBAGS } from "./sandbags.js";
   import { copyText } from "../../../lib/clipboard.js";
 
   const TOAST_MS = 2600;
   const PREVIEW_CHARS = 160;
+  const LOADING_PREVIEW = "Loading…";
+  const FAILED_PREVIEW = "Couldn't reach the source. Reopen the app to retry.";
   const ENCODER = new TextEncoder();
   const NUMBER_FORMAT = new Intl.NumberFormat("en-US", {
     notation: "compact",
@@ -14,30 +16,58 @@
 
   // Sizes are measured once: code points (what a human calls characters) and
   // UTF-8 bytes (what a database column actually stores)
-  const BAGS = SANDBAGS.map((bag) => ({
+  const measure = (bag) => ({
     ...bag,
-    preview: bag.text.slice(0, PREVIEW_CHARS),
+    preview: bag.text ? bag.text.slice(0, PREVIEW_CHARS) : LOADING_PREVIEW,
     chars: Array.from(bag.text).length,
     bytes: ENCODER.encode(bag.text).length,
-  }));
+  });
 
+  let bags = SANDBAGS.map(measure);
+  let failedIds = [];
   let toast = null;
   let toastTimer = null;
   let thrownId = null;
 
-  /** @param {typeof BAGS[number]} bag */
-  async function throwSand(bag) {
-    const ok = await copyText(bag.text);
+  /** @param {boolean} ok @param {string} text @param {string | null} id */
+  function showToast(ok, text, id = null) {
     clearTimeout(toastTimer);
-    thrownId = ok ? bag.id : null;
-    toast = ok
-      ? { ok, text: `${bag.title} copied · ${bag.chars.toLocaleString()} chars` }
-      : { ok, text: `Couldn't copy ${bag.title}` };
+    thrownId = id;
+    toast = { ok, text };
     toastTimer = setTimeout(() => {
       toast = null;
       thrownId = null;
     }, TOAST_MS);
   }
+
+  /** @param {typeof bags[number]} bag */
+  async function throwSand(bag) {
+    if (failedIds.includes(bag.id)) return showToast(false, `Couldn't load ${bag.title}`);
+    if (!bag.text) return showToast(false, `${bag.title} is still loading`);
+    if (!(await copyText(bag.text))) return showToast(false, `Couldn't copy ${bag.title}`);
+    showToast(true, `${bag.title} copied · ${bag.chars.toLocaleString()} chars`, bag.id);
+  }
+
+  // Remote bags are fetched up front, so a tap copies from memory and stays
+  // inside the user gesture the clipboard demands. The HTTP cache keeps
+  // repeat visits off the network.
+  onMount(() => {
+    for (const { id, src, strip } of SANDBAGS.filter((bag) => bag.src)) {
+      src
+        .reduce(
+          (prev, url) => prev.catch(() => fetch(url).then((res) => (res.ok ? res.text() : Promise.reject(res.status)))),
+          Promise.reject(),
+        )
+        .then((raw) => {
+          const text = strip ? raw.replace(strip, "") : raw;
+          bags = bags.map((bag) => (bag.id === id ? measure({ ...bag, text }) : bag));
+        })
+        .catch(() => {
+          failedIds = [...failedIds, id];
+          bags = bags.map((bag) => (bag.id === id ? { ...bag, preview: FAILED_PREVIEW } : bag));
+        });
+    }
+  });
 
   onDestroy(() => clearTimeout(toastTimer));
 </script>
@@ -48,14 +78,14 @@
   <p
     class="sand-hint shrink-0 px-4 pt-3 pb-2 text-[0.65rem] @3xl:px-5 @3xl:pt-4 @6xl:px-8 @6xl:text-xs [@media(max-height:500px)]:hidden"
   >
-    Tap a bag to copy it · {BAGS.length} payloads for stress testing text boxes you own
+    Tap a bag to copy it · {bags.length} payloads for stress testing text boxes you own
   </p>
 
   <div class="sand-scroll min-h-0 grow overflow-x-hidden overflow-y-auto">
     <ul
       class="mx-auto grid w-full max-w-7xl grid-cols-2 gap-2.5 px-4 pb-20 @lg:grid-cols-3 @3xl:grid-cols-4 @3xl:gap-3 @3xl:px-5 @6xl:grid-cols-5 @6xl:gap-4 @6xl:px-8 @[110rem]:grid-cols-6 [@media(max-height:500px)]:grid-cols-4 [@media(max-height:500px)]:gap-2 [@media(max-height:500px)]:pt-2"
     >
-      {#each BAGS as bag (bag.id)}
+      {#each bags as bag (bag.id)}
         <li class="min-w-0">
           <button
             class="sand-card flex w-full flex-col text-left"
