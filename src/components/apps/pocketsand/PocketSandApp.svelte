@@ -382,6 +382,32 @@
     font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
     line-height: 1.4;
     resize: none;
+    // The page hides scrollbars everywhere (app.scss); a paste box needs one
+    // to show how far a payload runs. Standard props win on modern browsers,
+    // the -webkit- ones cover older Chrome that ignores them.
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: $color-sand-line transparent;
+
+    &::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+      border: none;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: $color-sand-line;
+      border: 2px solid $bg-input-dark;
+      border-radius: 4px;
+    }
+
+    &::-webkit-scrollbar-thumb:hover {
+      background: $color-sand;
+      border-color: $bg-input-dark;
+    }
     // The page sets user-select: none on body; a paste box has to opt back in
     user-select: text;
     -webkit-user-select: text;
