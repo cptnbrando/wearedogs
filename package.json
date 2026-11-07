@@ -35,7 +35,7 @@
     "qrcode": "^1.5.4",
     "svelte-i18n": "^4.0.1",
     "tesseract.js": "^7.0.0",
-    "three": "^0.187.0",
+    "three": "^0.184.0",
     "wasm-media-encoders": "^0.7.0"
   },
   "blahblahblah": {
@@ -52,10 +52,14 @@
     "fflate": "Needed for catalytic converter to open zip files",
     "@lottiefiles/dotlottie-wc": "Used for dog logo animation",
     "tesseract.js": "Used for OCR image to text",
+    "three": "Held on r184 (the ^ stays on 0.184.x). r187 calls WeakRef and FinalizationRegistry when a renderer starts. Older browsers lack them and transpiling cannot add them, so check that before moving past r186.",
+    "overrides.svelte-i18n.esbuild": "svelte-i18n declares esbuild 0.19, which npm audit flags. Nothing in its installed files imports esbuild, so forcing the patched version is safe.",
     "@huggingface/transformers": "Used for Wiretap to transcribe MP3 and audio files 100% offline in browser using Whisper",
     "marked": "Markdown parser for the fundraiser bios in src/data/fundraiser/bios/. Reason: StorePanel had three hand-rolled regex passes to turn <a href> markup, <url> brackets and bare pasted URLs into links, and a bare URL silently rendered as dead text. One parser replaces all three, so bios are now plain markdown and inline formatting works for free. No install scripts."
   },
   "overrides": {
-    "esbuild": "^0.28.2"
+    "svelte-i18n": {
+      "esbuild": "^0.28.2"
+    }
   }
 }
