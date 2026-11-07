@@ -7,6 +7,9 @@ import markdownData from './scripts/vite-plugin-md-data.js'
 import staticData from './scripts/vite-plugin-static-data.js'
 import blogTimeline from './scripts/vite-plugin-blog-timeline.js'
 
+const THREE_BUILD_MODULES = /[\\/]node_modules[\\/]three[\\/]build[\\/]/
+const THREE_CORE_MODULE = /[\\/]node_modules[\\/]three[\\/]build[\\/]three\.core/
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
@@ -62,13 +65,19 @@ export default defineConfig({
     cssTarget: 'chrome40',
 
     chunkSizeWarningLimit: 800,
-    rollupOptions: {
+    rolldownOptions: {
       output: {
-        manualChunks(id) {
-          if (id.includes('tesseract.js')) return 'chunk-tesseract';
-          if (id.includes('node_modules')) return 'vendor';
-        }
-      }
-    }
+        // Everything else splits automatically, so a library stays behind the
+        // lazy import that needs it. A catch-all vendor chunk would modulepreload
+        // all of them on the landing page. Only three is grouped: threlte imports
+        // it whole, and as one chunk its legacy build passes the size limit.
+        codeSplitting: {
+          groups: [
+            { name: 'three-core', test: THREE_CORE_MODULE, priority: 1 },
+            { name: 'three', test: THREE_BUILD_MODULES },
+          ],
+        },
+      },
+    },
   }
 })
