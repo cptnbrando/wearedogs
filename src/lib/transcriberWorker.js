@@ -1,4 +1,7 @@
-import { pipeline, env } from "@xenova/transformers";
+import { pipeline, env } from "@huggingface/transformers";
+
+// The same 8-bit weights the old @xenova/transformers loaded by default.
+const MODEL_DTYPE = "q8";
 
 // Configure ONNX runtime inside dedicated Web Worker
 env.allowLocalModels = false;
@@ -14,6 +17,7 @@ self.onmessage = async (e) => {
       if (!transcriber) {
         self.postMessage({ status: "progress", progress: 15, text: "Loading in-browser Whisper AI model..." });
         transcriber = await pipeline("automatic-speech-recognition", "Xenova/whisper-tiny.en", {
+          dtype: MODEL_DTYPE,
           progress_callback: (p) => {
             if (p && p.status === "progress" && p.progress) {
               const pct = Math.round(p.progress);

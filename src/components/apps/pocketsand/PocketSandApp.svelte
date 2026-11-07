@@ -1,7 +1,8 @@
 <script>
   import { onMount, onDestroy, tick } from "svelte";
-  import { Check, AlertCircle, ChevronUp, ChevronDown, Eraser } from "lucide-svelte";
+  import { Check, AlertCircle, ChevronUp, ChevronDown, Eraser, ArrowUpToLine, ArrowDownToLine } from "lucide-svelte";
   import { SANDBAGS } from "./sandbags.js";
+  import { scrollRail } from "./scrollRail.js";
   import { copyText } from "../../../lib/clipboard.js";
 
   const TOAST_MS = 2600;
@@ -50,6 +51,10 @@
   let thrownId = null;
 
   // Test pad: a slide-up box to paste sandbags into, right here
+  // Without pointer events the drag rail can't work, so the textarea keeps
+  // its own scrollbar instead
+  const HAS_RAIL = typeof PointerEvent !== "undefined";
+  const PAD_INPUT_ID = "sand-pad-input";
   let padOpen = false;
   let padText = "";
   let padEl = null;
@@ -74,6 +79,11 @@
     if (e.key !== "Escape") return;
     e.stopPropagation();
     closePad();
+  }
+
+  /** @param {boolean} toEnd */
+  function jumpPad(toEnd) {
+    padEl.scrollTop = toEnd ? padEl.scrollHeight : 0;
   }
 
   function clearPad() {
@@ -197,16 +207,45 @@
         <ChevronDown size={18} />
       </button>
     </div>
-    <textarea
-      bind:this={padEl}
-      bind:value={padText}
-      class="pad-input min-h-0 w-full grow p-3 text-base @3xl:text-sm @6xl:text-base"
-      placeholder="Tap a bag, then paste it here"
-      spellcheck="false"
-      autocomplete="off"
-      aria-label="Paste test area"
-      onkeydown={handlePadKeydown}
-    ></textarea>
+    <div class="flex min-h-0 grow gap-2 @6xl:gap-3">
+      <textarea
+        id={PAD_INPUT_ID}
+        bind:this={padEl}
+        bind:value={padText}
+        class="pad-input h-full min-w-0 grow p-3 text-base @3xl:text-sm @6xl:text-base"
+        class:railed={HAS_RAIL}
+        placeholder="Tap a bag, then paste it here"
+        spellcheck="false"
+        autocomplete="off"
+        aria-label="Paste test area"
+        onkeydown={handlePadKeydown}
+      ></textarea>
+      <div class="flex w-9 shrink-0 flex-col gap-1.5 @6xl:w-11">
+        <button
+          class="pad-btn flex h-9 shrink-0 items-center justify-center @6xl:h-11"
+          onclick={() => jumpPad(false)}
+          disabled={!padText}
+          aria-label="Jump to the top"
+        >
+          <ArrowUpToLine size={16} />
+        </button>
+        {#if HAS_RAIL}
+          <div class="pad-rail relative min-h-0 grow" use:scrollRail={{ targetId: PAD_INPUT_ID, content: padText }} aria-hidden="true">
+            <span class="pad-thumb absolute inset-x-0 top-0 block"></span>
+          </div>
+        {:else}
+          <span class="grow"></span>
+        {/if}
+        <button
+          class="pad-btn flex h-9 shrink-0 items-center justify-center @6xl:h-11"
+          onclick={() => jumpPad(true)}
+          disabled={!padText}
+          aria-label="Jump to the end"
+        >
+          <ArrowDownToLine size={16} />
+        </button>
+      </div>
+    </div>
   </section>
 
   <div
@@ -382,9 +421,13 @@
     font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
     line-height: 1.4;
     resize: none;
+    // Reaching either end must not start scrolling the bag list behind it
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
     // The page hides scrollbars everywhere (app.scss); a paste box needs one
     // to show how far a payload runs. Standard props win on modern browsers,
-    // the -webkit- ones cover older Chrome that ignores them.
+    // the -webkit- ones cover older Chrome that ignores them. The drag rail
+    // replaces it wherever pointer events exist.
     overflow-y: auto;
     scrollbar-width: thin;
     scrollbar-color: $color-sand-line transparent;
@@ -408,6 +451,15 @@
       background: $color-sand;
       border-color: $bg-input-dark;
     }
+
+    &.railed {
+      scrollbar-width: none;
+
+      &::-webkit-scrollbar {
+        display: none;
+      }
+    }
+
     // The page sets user-select: none on body; a paste box has to opt back in
     user-select: text;
     -webkit-user-select: text;
@@ -419,6 +471,36 @@
 
     &::placeholder {
       color: rgba(255, 255, 255, 0.25);
+    }
+  }
+
+  // Wide enough for a thumb on a phone. touch-action: none keeps a drag here
+  // from scrolling or zooming the page.
+  .pad-rail {
+    background: $bg-input-dark;
+    border: 1px solid $border-light;
+    border-radius: 8px;
+    cursor: pointer;
+    touch-action: none;
+
+    &:global(.is-idle) {
+      cursor: default;
+
+      .pad-thumb {
+        visibility: hidden;
+      }
+    }
+  }
+
+  // Moved on transform only, so dragging never reflows the pad
+  .pad-thumb {
+    background: $color-sand-line;
+    border: 2px solid $bg-input-dark;
+    border-radius: 6px;
+    will-change: transform;
+
+    .pad-rail:hover & {
+      background: $color-sand;
     }
   }
 
