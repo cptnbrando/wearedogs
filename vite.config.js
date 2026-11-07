@@ -68,6 +68,10 @@ export default defineConfig({
 
     chunkSizeWarningLimit: 800,
     rolldownOptions: {
+      // plugin-legacy's Babel pass always dominates a 26s build, so this report
+      // prints every time. Set it back to true if builds get slow again: it is
+      // how the old vendor chunk's 153s pass was spotted.
+      checks: { bundlerTimings: false },
       output: {
         // Everything else splits automatically, so a library stays behind the
         // lazy import that needs it. A catch-all vendor chunk would modulepreload
