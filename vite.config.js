@@ -6,6 +6,7 @@ import shareCards from './scripts/vite-plugin-share-cards.js'
 import markdownData from './scripts/vite-plugin-md-data.js'
 import staticData from './scripts/vite-plugin-static-data.js'
 import blogTimeline from './scripts/vite-plugin-blog-timeline.js'
+import dropCdnWasm from './scripts/vite-plugin-drop-cdn-wasm.js'
 
 const THREE_BUILD_MODULES = /[\\/]node_modules[\\/]three[\\/]build[\\/]/
 const THREE_CORE_MODULE = /[\\/]node_modules[\\/]three[\\/]build[\\/]three\.core/
@@ -31,6 +32,7 @@ export default defineConfig({
     // Emits real HTML at each /store/campaign/<id> and /store/product/<id> so
     // shared links preview with that item's own image, title and description.
     shareCards({ origin: 'https://wearedogs.net' }),
+    dropCdnWasm(),
   ],
   resolve: {
     conditions: ['browser'],
