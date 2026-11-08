@@ -18,6 +18,11 @@ export class ShuffleQueue {
   /** @type {number[]} indices that played before the current one, most recent last */
   history = [];
 
+  /** @param {(index: number) => boolean} [skip] indices never dealt (hidden tracks) */
+  constructor(skip = () => false) {
+    this.skip = skip;
+  }
+
   /**
    * Deals a new random order of every song except the current one.
    * @param {number} length library size
@@ -26,7 +31,7 @@ export class ShuffleQueue {
   deal(length, current) {
     const order = [];
     for (let i = 0; i < length; i++) {
-      if (i !== current) order.push(i);
+      if (i !== current && !this.skip(i)) order.push(i);
     }
     // Fisher-Yates
     for (let i = order.length - 1; i > 0; i--) {

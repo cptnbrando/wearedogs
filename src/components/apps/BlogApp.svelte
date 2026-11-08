@@ -11,13 +11,23 @@
     Loader2,
     Check,
     AlertCircle,
+    ChartColumn,
+    ChevronDown,
+    FileText,
+    Timer,
+    PenLine,
+    History,
   } from "lucide-svelte";
+  import { slide } from "svelte/transition";
   import { getPosts, getPostContent } from "../../lib/blogApi.js";
+  import { formatReadTime, formatDay } from "../../lib/blogStats.js";
   import BlogMusic from "../BlogMusic.svelte";
   import ReadingRail from "../ReadingRail.svelte";
 
   // Constants
   const SHARE_COOLDOWN_MS = 2000;
+  const STATS_SLIDE_MS = 220;
+  const STATS_PANEL_ID = "blog-post-stats";
 
   // Props
   let {
@@ -35,6 +45,8 @@
   let isLoadingPost = $state(false);
   let loadError = $state(null);
   let showCopiedAlert = $state(false);
+  // The stats drop-down under the actions row (bio, words, read time, edits)
+  let showStats = $state(false);
 
   // The reader's scroll pane and rendered body, for the reading rail
   let readerPane = $state(null);
@@ -164,6 +176,25 @@
     return `${formattedDate} at ${formattedTime}`;
   }
 
+  /**
+   * Compact header stamp: "Fri, Aug 7, 2026 · 12:21 PM" (time only when the date has one).
+   * @param {string} dateStr - ISO date string
+   * @returns {string}
+   */
+  function formatPostStamp(dateStr) {
+    const date = new Date(dateStr);
+    if (!dateStr || isNaN(date.getTime())) return dateStr || "";
+    const day = date.toLocaleDateString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+    if (!dateStr.includes("T")) return day;
+    const time = date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+    return `${day} · ${time}`;
+  }
+
   // Sync isReading state with activePost selection
   $effect(() => {
     isReading = activePost !== null;
@@ -215,6 +246,7 @@
     activePost = post;
     isLoadingPost = true;
     activeContent = null;
+    showStats = false;
     initialSlug = post.slug;
 
     // Pick a random language glyph set for this transition
@@ -248,7 +280,7 @@
       glyphs,
     );
     scrambleText(
-      formatBlogDate(post.date),
+      formatPostStamp(post.date),
       (v) => {
         scrambledDate = v;
       },
@@ -522,45 +554,38 @@
             class:glitching-pane={isGlitching}
             class:colored-glitch={isFlagColors}
           >
-            <!-- Detail Header -->
-            <div class="flex flex-col gap-3 border-b border-white/5 pb-5">
+            <!-- Detail Header: byline, title, actions; the bio and stats
+                 fold out of the Stats button -->
+            <header class="post-head flex flex-col gap-3 sm:gap-2.5 md:gap-4 border-b border-white/5 pb-5 md:pb-6">
               <div
-                class="flex items-center gap-4 text-xs text-white/40 font-mono"
+                class="post-byline flex flex-wrap items-center gap-x-3 gap-y-1.5 sm:gap-x-4 text-[10px] md:text-[11px] 2xl:text-sm font-mono uppercase tracking-wider text-white/45"
               >
-                <span class="flex items-center gap-1"
-                  ><Calendar size={12} />
-                  {isGlitching
-                    ? scrambledDate
-                    : formatBlogDate(activePost.date)}</span
+                <span
+                  class="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-white/75"
                 >
-                <span class="flex items-center gap-1"
-                  ><User size={12} />
-                  {isGlitching ? scrambledAuthor : activePost.author}</span
-                >
+                  <User size={12} class="text-[#b455ff] shrink-0" />
+                  {isGlitching ? scrambledAuthor : activePost.author}
+                </span>
+                <time datetime={activePost.date} class="inline-flex items-center gap-1.5">
+                  <Calendar size={12} class="shrink-0" />
+                  {isGlitching ? scrambledDate : formatPostStamp(activePost.date)}
+                </time>
               </div>
 
               <h1
-                class="text-2xl md:text-3xl font-extrabold text-white tracking-tight leading-tight"
+                class="text-3xl sm:text-2xl md:text-4xl xl:text-5xl font-extrabold text-white tracking-tight leading-[1.1]"
                 class:text-matrix={isGlitching}
                 class:colored-glitch={isFlagColors}
               >
                 {isGlitching ? scrambledTitle : activePost.title}
               </h1>
 
-              <p
-                class="text-sm text-white/60 leading-relaxed italic border-l-2 border-[#b455ff]/40 pl-3 py-0.5"
-                class:text-matrix={isGlitching}
-                class:colored-glitch={isFlagColors}
-              >
-                {isGlitching ? scrambledDesc : activePost.description}
-              </p>
-
               <!-- Actions row -->
-              <div class="flex items-center justify-between mt-3 z-20">
+              <div class="flex flex-wrap items-center gap-2 z-20">
                 <button
                   type="button"
                   onclick={handleShare}
-                  class="share-btn text-xs text-white/70 hover:text-white flex items-center gap-1.5 transition-colors border border-white/10 px-3 py-1.5 rounded-lg bg-white/[0.04] cursor-pointer hover:bg-white/[0.08]"
+                  class="post-action"
                   aria-label="Share this article"
                 >
                   {#if showCopiedAlert}
@@ -571,8 +596,56 @@
                     <span>Share</span>
                   {/if}
                 </button>
+                <button
+                  type="button"
+                  onclick={() => (showStats = !showStats)}
+                  class="post-action"
+                  class:open={showStats}
+                  aria-expanded={showStats}
+                  aria-controls={STATS_PANEL_ID}
+                >
+                  <ChartColumn size={14} class="text-[#b455ff]" />
+                  <span>Stats</span>
+                  <ChevronDown size={14} class="chevron text-white/40" />
+                </button>
               </div>
-            </div>
+
+              {#if showStats}
+                <div
+                  id={STATS_PANEL_ID}
+                  class="post-stats flex flex-col gap-3 md:gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-3 sm:p-3 md:p-4 2xl:p-6"
+                  transition:slide={{ duration: STATS_SLIDE_MS }}
+                >
+                  {#if activePost.description}
+                    <p
+                      class="text-sm md:text-base 2xl:text-lg text-white/65 leading-relaxed italic border-l-2 border-[#b455ff]/50 pl-3"
+                      class:text-matrix={isGlitching}
+                      class:colored-glitch={isFlagColors}
+                    >
+                      {isGlitching ? scrambledDesc : activePost.description}
+                    </p>
+                  {/if}
+                  <dl class="grid grid-cols-2 sm:grid-cols-4 gap-2 md:gap-3">
+                    <div class="stat-tile">
+                      <dt><FileText size={12} /> Words</dt>
+                      <dd>{activeContent.stats.words.toLocaleString("en-US")}</dd>
+                    </div>
+                    <div class="stat-tile">
+                      <dt><Timer size={12} /> Read</dt>
+                      <dd>{formatReadTime(activeContent.stats.readMinutes)}</dd>
+                    </div>
+                    <div class="stat-tile">
+                      <dt><PenLine size={12} /> Edits</dt>
+                      <dd>{activeContent.stats.edits ?? "—"}</dd>
+                    </div>
+                    <div class="stat-tile">
+                      <dt><History size={12} /> Last edit</dt>
+                      <dd>{formatDay(activeContent.stats.lastEdit)}</dd>
+                    </div>
+                  </dl>
+                </div>
+              {/if}
+            </header>
 
             <!-- Parsed Markdown Body -->
             <div
@@ -601,6 +674,102 @@
 </div>
 
 <style>
+  /* ── Post header actions & stats drop-down ── */
+  .post-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 12px;
+    cursor: pointer;
+    transition:
+      color 0.15s,
+      background 0.15s,
+      border-color 0.15s;
+  }
+  .post-action:hover,
+  .post-action.open {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.08);
+  }
+  .post-action.open {
+    border-color: rgba(180, 85, 255, 0.45);
+  }
+  .post-action :global(.chevron) {
+    transition: transform 0.2s ease;
+  }
+  .post-action.open :global(.chevron) {
+    transform: rotate(180deg);
+  }
+
+  .stat-tile {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+  .stat-tile dt {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-family: ui-monospace, monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.4);
+  }
+  .stat-tile dd {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.25;
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+  }
+  @media (min-width: 420px) {
+    .stat-tile dd {
+      font-size: 17px;
+    }
+  }
+
+  /* Mobile landscape: short screens, keep the header tight */
+  @media (orientation: landscape) and (max-height: 500px) {
+    .post-head {
+      gap: 8px;
+      padding-bottom: 12px;
+    }
+    .stat-tile {
+      padding: 6px 10px;
+    }
+    .stat-tile dd {
+      font-size: 15px;
+    }
+  }
+
+  @media (min-width: 1920px) {
+    .post-action {
+      font-size: 15px;
+      padding: 8px 16px;
+    }
+    .stat-tile {
+      padding: 16px 18px;
+    }
+    .stat-tile dt {
+      font-size: 13px;
+    }
+    .stat-tile dd {
+      font-size: 22px;
+    }
+  }
+
   /* The reading rail is this pane's scrollbar */
   .reading-detail-pane {
     scrollbar-width: none;

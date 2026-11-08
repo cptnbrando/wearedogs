@@ -29,7 +29,7 @@
   import { audioCore } from "../lib/AudioCore.svelte.js";
   import { musicLock } from "../lib/musicLock.svelte.js";
   import { onDoubleTap } from "../lib/doubleTap.js";
-  import { fullLibrary } from "../data/music/tracks.js";
+  import { playerLibrary } from "../data/music/tracks.js";
   import { settingsManager } from "../lib/settingsManager.svelte.js";
   import { VisualizerEngine } from "../lib/visualizer/VisualizerEngine.js";
   import DogsLogo from "./DogsLogo.svelte";
@@ -240,11 +240,7 @@
 
   // Non-public tracks live in the server's lockup folder and stay hidden until
   // the calculator passcode unlocks them (persisted in localStorage)
-  let library = $derived(
-    musicLock.unlocked
-      ? fullLibrary
-      : fullLibrary.filter((t) => t.public !== false),
-  );
+  let library = $derived(playerLibrary(musicLock.unlocked));
 
   // Derive sort values
   function getTrackFilename(track) {
@@ -263,8 +259,9 @@
     return "Fall";
   }
 
+  // Hidden tracks (another app's soundtrack) never show in the list
   let sortedLibrary = $derived.by(() => {
-    let list = [...library];
+    let list = library.filter((t) => !t.hidden);
     if (sortBy === "artist") {
       list.sort((a, b) => a.artist.localeCompare(b.artist));
     } else if (sortBy === "album") {
@@ -373,8 +370,9 @@
       }
     } else if (!audioCore.hasPickedRandomTrack) {
       audioCore.hasPickedRandomTrack = true;
-      const randomIdx = Math.floor(Math.random() * library.length);
-      audioCore.loadTrack(randomIdx, false);
+      const listed = library.filter((t) => !t.hidden);
+      const pick = listed[Math.floor(Math.random() * listed.length)];
+      audioCore.loadTrack(library.indexOf(pick), false);
     }
   });
 
@@ -1376,7 +1374,7 @@
             <div class="tl-header flex justify-between items-center gap-3">
               <div class="flex items-center gap-2">
                 <List size={13} /><span>TRACKS</span>
-                <span class="tl-count">{library.length}</span>
+                <span class="tl-count">{sortedLibrary.length}</span>
               </div>
 
               <!-- Sorting selector dropdown -->
