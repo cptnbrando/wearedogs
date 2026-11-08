@@ -27,6 +27,7 @@ export class BlogMusicDeck {
   /** @type {HTMLAudioElement | null} */
   audio = null;
   savedMainVolume = 1;
+  savedMainMuted = false;
 
   /**
    * @param {string} src - the post's track
@@ -47,6 +48,7 @@ export class BlogMusicDeck {
     if (audioCore.isPlaying || isHiddenTrackLoaded(this.src)) {
       this.mode = "main";
       this.savedMainVolume = audioCore.volume;
+      this.savedMainMuted = audioCore.isMuted;
     } else {
       this.mode = "local";
       this.ensureAudio();
@@ -57,7 +59,7 @@ export class BlogMusicDeck {
 
   /** The post left the screen (route change, hidden panel, unmount). */
   depart() {
-    if (this.mode === "main") audioCore.setVolume(this.savedMainVolume);
+    if (this.mode === "main") this.restoreMain();
     if (this.mode === "local" && this.audio && !this.audio.paused) {
       const at = this.audio.currentTime;
       this.audio.pause();
@@ -76,6 +78,13 @@ export class BlogMusicDeck {
     if (v === 0) this.audio.pause();
     else if (this.audio.paused) this.playLocal();
     this.emit();
+  }
+
+  // Back to the volume and mute the main player had when the post opened
+  restoreMain() {
+    audioCore.setVolume(this.savedMainVolume);
+    audioCore.isMuted = this.savedMainMuted;
+    audioCore.applyVolume();
   }
 
   /** @param {number} v */

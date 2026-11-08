@@ -194,14 +194,16 @@ function localDay(ms) {
  * @param {string} headDay - the HEAD commit's day
  */
 function revise(text, known, replayed, headDay) {
-  const textHash = hash(text);
+  // Line endings are checkout noise (core.autocrlf), not an edit
+  const lf = (str) => str && str.replace(/\r\n/g, "\n");
+  const textHash = hash(lf(text));
   if (known && known.hash === textHash) return known;
   if (!replayed) {
     // Shallow clone: the text moved on since the record, by exactly this commit
     const edits = known ? known.edits + 1 : 0;
     return { edits, lastEdit: headDay || localDay(Date.now()), hash: textHash };
   }
-  const dirty = replayed.lastText !== text;
+  const dirty = lf(replayed.lastText) !== lf(text);
   const versions = replayed.versions + (dirty ? 1 : 0);
   const lastEdit = dirty || !replayed.lastDay ? localDay(Date.now()) : replayed.lastDay;
   return { edits: Math.max(0, versions - 1), lastEdit, hash: textHash };
