@@ -673,7 +673,9 @@
   </div>
 </div>
 
-<style>
+<style lang="scss">
+  @use "../../styles/variables" as vars;
+
   /* ── Post header actions & stats drop-down ── */
   .post-action {
     display: inline-flex;
@@ -681,9 +683,9 @@
     gap: 6px;
     padding: 6px 12px;
     border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(255, 255, 255, 0.04);
-    color: rgba(255, 255, 255, 0.7);
+    border: 1px solid vars.$color-blog-line;
+    background: vars.$bg-input-dark;
+    color: vars.$color-blog-ink;
     font-size: 12px;
     cursor: pointer;
     transition:
@@ -693,11 +695,11 @@
   }
   .post-action:hover,
   .post-action.open {
-    color: #fff;
-    background: rgba(255, 255, 255, 0.08);
+    color: vars.$color-blog-ink-strong;
+    background: vars.$bg-blog-hover;
   }
   .post-action.open {
-    border-color: rgba(180, 85, 255, 0.45);
+    border-color: vars.$color-blog-accent-line;
   }
   .post-action :global(.chevron) {
     transition: transform 0.2s ease;
@@ -713,8 +715,8 @@
     min-width: 0;
     padding: 10px 12px;
     border-radius: 12px;
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: vars.$bg-blog-tile;
+    border: 1px solid vars.$border-light;
   }
   .stat-tile dt {
     display: flex;
@@ -724,14 +726,14 @@
     font-size: 10px;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.4);
+    color: vars.$color-blog-ink-dim;
   }
   .stat-tile dd {
     margin: 0;
     font-size: 15px;
     font-weight: 700;
     line-height: 1.25;
-    color: #fff;
+    color: vars.$color-blog-ink-strong;
     font-variant-numeric: tabular-nums;
   }
   @media (min-width: 420px) {

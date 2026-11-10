@@ -6,7 +6,7 @@
 import { musicLock, isLockupUrl } from "./musicLock.svelte.js";
 import { StreamGuard } from "./StreamGuard.js";
 import { bindMediaSession, syncMediaSession } from "./mediaSession.js";
-import { decodePeaks } from "./waveformPeaks.js";
+import { loadPeaks } from "./waveformPeaks.js";
 import { ShuffleQueue } from "./shuffleQueue.js";
 
 // With the screen off there's nobody to press play on a dead track, so the
@@ -221,7 +221,7 @@ export class AudioCore {
         const res = await fetch(url, options);
         if (!res.ok) throw new Error(`Fetch failed with status ${res.status}`);
         const blob = await res.blob();
-        if (type === "track" && trackId) this.decodeTrackWaveform(trackId, blob);
+        if (type === "track" && trackId) loadPeaks(this.waveformPeaks, trackId, blob);
         return URL.createObjectURL(blob);
       } catch (e) {
         console.warn(`Failed to fetch remote audio source for ${url}:`, e);
@@ -237,30 +237,10 @@ export class AudioCore {
     // mid-download, killing auto-advance. The element's own streaming is done
     // by the browser's media stack, which keeps loading while the page is
     // throttled.
-    if (type === "track" && trackId) {
-      this.scheduleWaveformDecode(trackId, url);
-    }
+    // Waveform bars are decoration: fetched lazily and never allowed to block
+    // or fail playback (waveformPeaks.js)
+    if (type === "track" && trackId) loadPeaks(this.waveformPeaks, trackId, url);
     return url;
-  }
-
-  // Waveform bars are decoration: fetch lazily, only while visible, and never
-  // let them block or fail playback. (The response comes from HTTP cache when
-  // the stream already pulled it.)
-  scheduleWaveformDecode(trackId, url) {
-    if (this.waveformPeaks[trackId]) return;
-    if (typeof document !== "undefined" && document.visibilityState !== "visible") return;
-    fetch(url)
-      .then((res) => (res.ok ? res.blob() : null))
-      .then((blob) => {
-        if (blob) this.decodeTrackWaveform(trackId, blob);
-      })
-      .catch(() => {});
-  }
-
-  async decodeTrackWaveform(trackId, blob) {
-    if (this.waveformPeaks[trackId]) return;
-    const peaks = await decodePeaks(blob);
-    if (peaks) this.waveformPeaks[trackId] = peaks;
   }
 
   init(lib) {
@@ -502,7 +482,9 @@ export class AudioCore {
     let loadFailed = false;
     let resolvedTrackSrc = "";
     try {
-      resolvedTrackSrc = await this.getAudioSource(track.src, "track", track.id);
+      // No waveform for a hidden track: drawing one downloads and decodes the
+      // whole file, and another app's soundtrack can run for hours
+      resolvedTrackSrc = await this.getAudioSource(track.src, "track", track.hidden ? null : track.id);
     } catch (err) {
       console.error("Error loading vocal track:", err);
       // (isPlaying is already false from the pause() above; setting it here

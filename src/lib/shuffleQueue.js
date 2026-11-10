@@ -52,7 +52,8 @@ export class ShuffleQueue {
   noteChange(index, current, fromHistory) {
     const queued = this.upcoming.indexOf(index);
     if (queued !== -1) this.upcoming.splice(queued, 1);
-    if (fromHistory || index === current || current < 0) return;
+    // A skipped song is not one to step back onto either
+    if (fromHistory || index === current || current < 0 || this.skip(current)) return;
     this.history.push(current);
     if (this.history.length > MAX_HISTORY) this.history.shift();
   }
@@ -79,7 +80,7 @@ export class ShuffleQueue {
     let idx = this.history.pop();
     while (idx !== undefined && (idx >= length || idx === current)) idx = this.history.pop();
     if (idx === undefined) return -1;
-    this.upcoming.unshift(current);
+    if (!this.skip(current)) this.upcoming.unshift(current);
     return idx;
   }
 }

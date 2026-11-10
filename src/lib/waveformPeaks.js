@@ -50,3 +50,26 @@ export async function decodePeaks(blob) {
     if (closing && typeof closing.catch === "function") closing.catch(() => {});
   }
 }
+
+/**
+ * Fills `cache[trackId]` with a song's bars, unless they are already there.
+ * A URL is only fetched while the page is visible (the response comes from
+ * HTTP cache when the stream already pulled it). Never rejects.
+ * @param {Record<string, number[]>} cache bars by track id
+ * @param {string} trackId
+ * @param {Blob | string} source the encoded audio, or where to fetch it
+ * @returns {Promise<void>}
+ */
+export async function loadPeaks(cache, trackId, source) {
+  if (cache[trackId]) return;
+  let blob = source;
+  if (typeof source === "string") {
+    if (typeof document !== "undefined" && document.visibilityState !== "visible") return;
+    blob = await fetch(source)
+      .then((res) => (res.ok ? res.blob() : null))
+      .catch(() => null);
+  }
+  if (!blob || cache[trackId]) return;
+  const peaks = await decodePeaks(blob);
+  if (peaks) cache[trackId] = peaks;
+}
