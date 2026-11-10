@@ -2,6 +2,12 @@
  * The music player's track library. Non-public tracks live in the server's
  * lockup folder and stay hidden until the calculator passcode unlocks them
  * (MusicPanel filters on `public` via musicLock).
+ *
+ * `hidden: true` tracks belong to another app (e.g. a blog post's soundtrack).
+ * They are never listed, shuffled or stepped onto; they only reach the player
+ * when that app hands one over (src/lib/hiddenTracks.js). Once there, the
+ * player shows, controls and visualizes them like any other. `from` is the
+ * page the track lives on.
  */
 export const fullLibrary = [
   {
@@ -256,4 +262,28 @@ export const fullLibrary = [
     genre: "Hip-Hop",
     public: true
   },
+  {
+    id: "toyota-jazz",
+    title: "Toyota Jazz",
+    artist: "DOG BLOG",
+    album: "Toyota",
+    cover: "/img/blog/toyota-cityscape.svg",
+    altCover: "",
+    src: "https://data.wearedogs.net/music/2026/jazz.mp3",
+    instrumental: "",
+    dateAdded: "2026-09-18T03:27:57-05:00",
+    year: 2026,
+    genre: "Jazz",
+    public: true,
+    hidden: true,
+    from: "/apps/blog/080726-toyota",
+  },
 ];
+
+/**
+ * The library the player runs on: lockup tracks only once unlocked.
+ * @param {boolean} unlocked - musicLock.unlocked
+ */
+export function playerLibrary(unlocked) {
+  return unlocked ? fullLibrary : fullLibrary.filter((t) => t.public !== false);
+}

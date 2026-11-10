@@ -18,6 +18,11 @@ export class ShuffleQueue {
   /** @type {number[]} indices that played before the current one, most recent last */
   history = [];
 
+  /** @param {(index: number) => boolean} [skip] indices never dealt (hidden tracks) */
+  constructor(skip = () => false) {
+    this.skip = skip;
+  }
+
   /**
    * Deals a new random order of every song except the current one.
    * @param {number} length library size
@@ -26,7 +31,7 @@ export class ShuffleQueue {
   deal(length, current) {
     const order = [];
     for (let i = 0; i < length; i++) {
-      if (i !== current) order.push(i);
+      if (i !== current && !this.skip(i)) order.push(i);
     }
     // Fisher-Yates
     for (let i = order.length - 1; i > 0; i--) {
@@ -47,7 +52,8 @@ export class ShuffleQueue {
   noteChange(index, current, fromHistory) {
     const queued = this.upcoming.indexOf(index);
     if (queued !== -1) this.upcoming.splice(queued, 1);
-    if (fromHistory || index === current || current < 0) return;
+    // A skipped song is not one to step back onto either
+    if (fromHistory || index === current || current < 0 || this.skip(current)) return;
     this.history.push(current);
     if (this.history.length > MAX_HISTORY) this.history.shift();
   }
@@ -74,7 +80,7 @@ export class ShuffleQueue {
     let idx = this.history.pop();
     while (idx !== undefined && (idx >= length || idx === current)) idx = this.history.pop();
     if (idx === undefined) return -1;
-    this.upcoming.unshift(current);
+    if (!this.skip(current)) this.upcoming.unshift(current);
     return idx;
   }
 }

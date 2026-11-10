@@ -1,123 +1,87 @@
 <script>
-  // Background music for a blog post: plays the post's `music:` track from a
-  // random point, looping, with nothing on screen but a volume slider pinned
-  // to the left edge of the viewport. The slider's knob is a vinyl record that
-  // spins while the track plays. No play/pause control on purpose.
+  // A blog post's soundtrack, with nothing on screen but a volume slider pinned
+  // to the left edge. Its knob is a vinyl record that spins while music plays.
+  // The slider is the only control: 0 pauses, up plays. What it plays (the
+  // post's track, or the main player when that is already going) and the
+  // handover to the main player on the way out live in blogMusicDeck.js.
   import { onMount } from "svelte";
   import { Volume1, Volume2, VolumeX } from "lucide-svelte";
   import { audioCore } from "../lib/AudioCore.svelte.js";
+  import { BlogMusicDeck } from "./blogMusicDeck.js";
+
+  const PRESENCE_POLL_MS = 400;
+  const KEY_STEP = 0.05;
+  const KEY_STEP_BIG = 0.1;
+  const BLOG_POST_PATH = /\/apps\/blog\/[^/]+/;
 
   // `label` is the picture printed on the record's label (a square image).
   let { src, label = "/img/blog/toyota-cityscape.svg" } = $props();
 
-  let audio = $state(null);
-  // Always starts silent: the track is running underneath, the reader turns
-  // it up when they want it.
-  let volume = $state(0);
-  let playing = $state(false);
-  let blocked = $state(false); // autoplay refused until the reader interacts
+  let mode = $state(null);
+  let localVolume = $state(0);
+  let localPlaying = $state(false);
   let dragging = $state(false);
   let trackEl = $state(null);
   let rootEl = $state(null);
-  let started = false; // the track has played at least once (autoplay gate passed)
+  let deck = null;
 
-  // Random start: pick a point once the duration is known. Fresh
-  // pseudo-randomness every load, so a 3-hour file lands somewhere new.
-  function seekRandom() {
-    if (!audio || !Number.isFinite(audio.duration) || audio.duration <= 0) return;
-    // Leave the last 30 s alone so it does not immediately wrap around.
-    const span = Math.max(1, audio.duration - 30);
-    audio.currentTime = Math.random() * span;
-  }
+  // In main mode the slider mirrors the main player: silent (paused) reads 0
+  let volume = $derived(
+    mode === "main" ? (audioCore.isPlaying ? audioCore.volume : 0) : localVolume,
+  );
+  let playing = $derived(mode === "main" ? audioCore.isPlaying : localPlaying);
+  // Driving the main player, the record wears whatever is on it
+  let recordLabel = $derived(
+    mode === "main"
+      ? audioCore.library[audioCore.currentTrackIndex]?.cover || label
+      : label,
+  );
 
-  async function tryPlay() {
-    if (!audio) return;
-    try {
-      await audio.play();
-      blocked = false;
-      started = true;
-    } catch {
-      // Browsers refuse audio before any user gesture: wait for the first one.
-      blocked = true;
-    }
-  }
-
-  function onFirstGesture() {
-    if (!blocked) return;
-    tryPlay();
-  }
-
-  // The music belongs to this post only. It stops the moment the post is no
-  // longer what is on screen: the URL leaves /apps/blog/<post>, or the widget
-  // is hidden because a parent panel swapped away without unmounting it. It
-  // picks up again when the post is back. (Unmounting also stops it, below.)
+  // The post is on screen: the URL is /apps/blog/<post> and the widget is not
+  // hidden by a parent panel that swapped away without unmounting it.
   function isPostShowing() {
-    if (typeof location === "undefined") return false;
-    if (!/\/apps\/blog\/[^/]+/.test(location.pathname)) return false;
+    if (!BLOG_POST_PATH.test(location.pathname)) return false;
     return !!(rootEl && rootEl.isConnected && rootEl.getClientRects().length > 0);
   }
 
   function syncToPresence() {
-    if (!audio) return;
-    if (isPostShowing()) {
-      if (audio.paused && started) tryPlay();
-    } else if (!audio.paused) {
-      audio.pause();
-    }
+    if (isPostShowing()) deck.arrive();
+    else deck.depart();
   }
 
   onMount(() => {
-    // The site's own player would otherwise play over the post's track.
-    try {
-      if (audioCore?.isPlaying) audioCore.pause();
-    } catch {}
-    audio = new Audio();
-    audio.preload = "auto";
-    audio.loop = true;
-    audio.crossOrigin = "anonymous";
-    audio.volume = volume;
-    audio.addEventListener("loadedmetadata", () => {
-      seekRandom();
-      tryPlay();
+    deck = new BlogMusicDeck(src, (state) => {
+      mode = state.mode;
+      localVolume = state.volume;
+      localPlaying = state.playing;
     });
-    audio.addEventListener("playing", () => (playing = true));
-    audio.addEventListener("pause", () => (playing = false));
-    audio.addEventListener("waiting", () => (playing = false));
-    audio.src = src;
+    deck.arrive();
 
-    const gestures = ["pointerdown", "keydown", "touchstart", "wheel"];
-    gestures.forEach((g) => window.addEventListener(g, onFirstGesture, { passive: true }));
-
-    // Route changes come through history (the site router) and popstate;
-    // a cheap poll also catches a parent hiding the widget without a route change.
+    // Route changes come through history and popstate; a cheap poll also
+    // catches a parent hiding the widget without a route change.
+    const halt = () => deck.halt();
     window.addEventListener("popstate", syncToPresence);
-    window.addEventListener("pagehide", () => audio?.pause());
-    const presenceTimer = setInterval(syncToPresence, 400);
+    window.addEventListener("pagehide", halt);
+    const presenceTimer = setInterval(syncToPresence, PRESENCE_POLL_MS);
 
-    if (import.meta.env.DEV) window.__blogMusic = audio; // dev-only handle for checks
+    if (import.meta.env.DEV) window.__blogMusic = deck; // dev-only handle for checks
 
     return () => {
-      gestures.forEach((g) => window.removeEventListener(g, onFirstGesture));
       window.removeEventListener("popstate", syncToPresence);
+      window.removeEventListener("pagehide", halt);
       clearInterval(presenceTimer);
-      audio.pause();
-      audio.removeAttribute("src");
-      audio.load();
-      if (import.meta.env.DEV && window.__blogMusic === audio) window.__blogMusic = null;
-      audio = null;
+      deck.destroy();
+      if (import.meta.env.DEV && window.__blogMusic === deck) window.__blogMusic = null;
+      deck = null;
     };
-  });
-
-  $effect(() => {
-    if (audio) audio.volume = volume;
   });
 
   // ── The slider ──────────────────────────────────────────────────────────
   // A custom control rather than <input type="range">: a native thumb cannot
   // be a spinning record with a printed label. Same interactions though:
   // drag, click anywhere on the track, arrow keys, Home/End, mouse wheel.
-  function clamp01(v) {
-    return Math.min(1, Math.max(0, v));
+  function setVolume(v) {
+    deck?.setVolume(Math.min(1, Math.max(0, v)));
   }
 
   function setFromPointer(clientY) {
@@ -125,7 +89,7 @@
     const rect = trackEl.getBoundingClientRect();
     const col = parseFloat(getComputedStyle(trackEl).getPropertyValue("--col")) || 24;
     const usable = rect.height - col; // the knob's centre travels this far
-    volume = clamp01((rect.bottom - clientY - col / 2) / usable);
+    setVolume((rect.bottom - clientY - col / 2) / usable);
   }
 
   function onPointerDown(e) {
@@ -145,16 +109,16 @@
     } catch {}
   }
   function onKey(e) {
-    const step = e.shiftKey ? 0.1 : 0.05;
-    if (e.key === "ArrowUp" || e.key === "ArrowRight") volume = clamp01(volume + step);
-    else if (e.key === "ArrowDown" || e.key === "ArrowLeft") volume = clamp01(volume - step);
-    else if (e.key === "Home") volume = 0;
-    else if (e.key === "End") volume = 1;
+    const step = e.shiftKey ? KEY_STEP_BIG : KEY_STEP;
+    if (e.key === "ArrowUp" || e.key === "ArrowRight") setVolume(volume + step);
+    else if (e.key === "ArrowDown" || e.key === "ArrowLeft") setVolume(volume - step);
+    else if (e.key === "Home") setVolume(0);
+    else if (e.key === "End") setVolume(1);
     else return;
     e.preventDefault();
   }
   function onWheel(e) {
-    volume = clamp01(volume + (e.deltaY < 0 ? 0.05 : -0.05));
+    setVolume(volume + (e.deltaY < 0 ? KEY_STEP : -KEY_STEP));
     e.preventDefault();
   }
 </script>
@@ -163,7 +127,7 @@
 <div
   bind:this={rootEl}
   class="blog-music fixed left-2 top-1/2 -translate-y-1/2 z-30 flex flex-col items-center gap-2 select-none"
-  title={blocked ? "Click anywhere to start the music" : "Music volume"}
+  title={mode === "main" ? "Music player volume" : "Music volume"}
 >
   <div class="text-[#dc143c]" class:opacity-40={volume === 0}>
     {#if volume === 0}
@@ -181,7 +145,7 @@
     bind:this={trackEl}
     role="slider"
     tabindex="0"
-    aria-label="Music volume"
+    aria-label={mode === "main" ? "Music player volume" : "Music volume"}
     aria-orientation="vertical"
     aria-valuemin="0"
     aria-valuemax="100"
@@ -206,7 +170,7 @@
       aria-hidden="true"
     >
       <div class="disc">
-        <div class="label" style="background-image: url({label})"></div>
+        <div class="label" style="background-image: url({recordLabel})"></div>
         <div class="hole"></div>
         <div class="sheen"></div>
       </div>
@@ -214,9 +178,6 @@
   </div>
 
   <span class="text-[9px] font-mono text-[#dc143c]/60 tabular-nums">{Math.round(volume * 100)}</span>
-  {#if blocked}
-    <span class="pulse-dot" aria-hidden="true"></span>
-  {/if}
 </div>
 
 <style>
@@ -328,25 +289,6 @@
   @keyframes spin {
     to {
       transform: rotate(360deg);
-    }
-  }
-
-  .pulse-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 9999px;
-    background: #ff2a4d;
-    animation: pulse 1.2s ease-in-out infinite;
-  }
-  @keyframes pulse {
-    0%,
-    100% {
-      opacity: 0.3;
-      transform: scale(0.8);
-    }
-    50% {
-      opacity: 1;
-      transform: scale(1.2);
     }
   }
 

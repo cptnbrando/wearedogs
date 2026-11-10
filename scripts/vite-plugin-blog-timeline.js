@@ -3,8 +3,18 @@
  * so the reader's scrollbar can show WHEN each stretch of a post was written.
  *
  * Exposed to the app as `virtual:blog-timeline`:
- *   { "<slug>": { "<line key>": "YYYY-MM-DD", … }, … }
- * blogApi.js stamps those days onto the rendered blocks as `data-w`.
+ *   default:   { "<slug>": { "<line key>": "YYYY-MM-DD", … }, … }
+ *   revisions: { "<slug>": { edits, lastEdit: "YYYY-MM-DD", hash }, … }
+ * blogApi.js stamps those days onto the rendered blocks as `data-w`; the
+ * revisions feed the post's stats drop-down.
+ *
+ * Revisions
+ *   Every commit that touched a post is one version; uncommitted changes are
+ *   one more. Edits = versions − 1 (writing the post is not an edit of it).
+ *   The last edit is the newest version's day. A record whose `hash` still
+ *   matches the post's text is kept as is, so committing the post together
+ *   with this file leaves a clean tree. A shallow clone that finds the text
+ *   changed since the record counts it as one more edit on the HEAD commit's day.
  *
  * How a line gets its day
  *   The post's history is replayed oldest → newest (`git log --follow`, one
@@ -32,7 +42,7 @@
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { bodyLines, createLineKeyer, isDatable } from "../src/lib/blogTimeline.js";
+import { bodyLines, createLineKeyer, hash, isDatable } from "../src/lib/blogTimeline.js";
 
 const VIRTUAL_ID = "virtual:blog-timeline";
 const RESOLVED_ID = "\0" + VIRTUAL_ID;
@@ -176,6 +186,29 @@ function localDay(ms) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
+/**
+ * How many times a post has been edited, and when last.
+ * @param {string} text - the post as it is on disk
+ * @param {{ edits: number, lastEdit: string, hash: string } | undefined} known - the committed record
+ * @param {false | { versions: number, lastDay: string | null, lastText: string | null }} replayed - git history, when visible
+ * @param {string} headDay - the HEAD commit's day
+ */
+function revise(text, known, replayed, headDay) {
+  // Line endings are checkout noise (core.autocrlf), not an edit
+  const lf = (str) => str && str.replace(/\r\n/g, "\n");
+  const textHash = hash(lf(text));
+  if (known && known.hash === textHash) return known;
+  if (!replayed) {
+    // Shallow clone: the text moved on since the record, by exactly this commit
+    const edits = known ? known.edits + 1 : 0;
+    return { edits, lastEdit: headDay || localDay(Date.now()), hash: textHash };
+  }
+  const dirty = lf(replayed.lastText) !== lf(text);
+  const versions = replayed.versions + (dirty ? 1 : 0);
+  const lastEdit = dirty || !replayed.lastDay ? localDay(Date.now()) : replayed.lastDay;
+  return { edits: Math.max(0, versions - 1), lastEdit, hash: textHash };
+}
+
 export default function blogTimeline() {
   let root = process.cwd();
   // relPath → the replayed state at a given HEAD. Saving a post only needs the
@@ -202,22 +235,31 @@ export default function blogTimeline() {
       state = dateLines(texts[i], state, sessionDay);
     });
 
-    const result = { head, state, lastCommitMs, sessionDay };
+    const last = history[history.length - 1];
+    const result = {
+      head,
+      state,
+      lastCommitMs,
+      sessionDay,
+      versions: history.length,
+      lastDay: last ? last.iso.slice(0, 10) : null,
+      lastText: texts.length ? texts[texts.length - 1] : null,
+    };
     replayCache.set(relPath, result);
     return result;
   }
 
   function readArtifact() {
     try {
-      return JSON.parse(fs.readFileSync(path.join(root, ARTIFACT), "utf8")).posts || {};
+      return JSON.parse(fs.readFileSync(path.join(root, ARTIFACT), "utf8"));
     } catch {
       return {};
     }
   }
 
-  function writeArtifact(posts) {
+  function writeArtifact(posts, revisions) {
     const file = path.join(root, ARTIFACT);
-    const json = JSON.stringify({ "//": ARTIFACT_NOTE, posts }, null, 2) + "\n";
+    const json = JSON.stringify({ "//": ARTIFACT_NOTE, posts, revisions }, null, 2) + "\n";
     let current = null;
     try {
       current = fs.readFileSync(file, "utf8");
@@ -230,8 +272,11 @@ export default function blogTimeline() {
     const shallow = gitText(root, ["rev-parse", "--is-shallow-repository"]) === "true";
     const canReplay = !!head && !shallow;
     const headDay = head ? (gitText(root, ["log", "-1", "--format=%aI"]) || "").slice(0, 10) : "";
-    const recorded = readArtifact();
+    const artifact = readArtifact();
+    const recorded = artifact.posts || {};
+    const recordedRevisions = artifact.revisions || {};
     const posts = {};
+    const revisions = {};
 
     const files = fs
       .readdirSync(path.join(root, BLOG_DIR))
@@ -269,11 +314,12 @@ export default function blogTimeline() {
         if (day) days[key] = day;
       }
       posts[slug] = days;
+      revisions[slug] = revise(text, recordedRevisions[slug], canReplay && replay(relPath, head), headDay);
     }
 
     // Only a checkout that can see history gets to write the record
-    if (canReplay) writeArtifact(posts);
-    return posts;
+    if (canReplay) writeArtifact(posts, revisions);
+    return { posts, revisions };
   }
 
   const isBlogPost = (file) => {
@@ -293,7 +339,9 @@ export default function blogTimeline() {
     },
 
     load(id) {
-      if (id === RESOLVED_ID) return `export default ${JSON.stringify(build())};`;
+      if (id !== RESOLVED_ID) return;
+      const { posts, revisions } = build();
+      return `export default ${JSON.stringify(posts)};\nexport const revisions = ${JSON.stringify(revisions)};`;
     },
 
     configureServer(server) {

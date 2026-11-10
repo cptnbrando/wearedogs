@@ -6,7 +6,7 @@
 import { musicLock, isLockupUrl } from "./musicLock.svelte.js";
 import { StreamGuard } from "./StreamGuard.js";
 import { bindMediaSession, syncMediaSession } from "./mediaSession.js";
-import { decodePeaks } from "./waveformPeaks.js";
+import { loadPeaks } from "./waveformPeaks.js";
 import { ShuffleQueue } from "./shuffleQueue.js";
 
 // With the screen off there's nobody to press play on a dead track, so the
@@ -51,7 +51,8 @@ export class AudioCore {
   masterTabId = null;
   isSyncing = false;
 
-  shuffle = new ShuffleQueue();
+  // Hidden tracks (src/data/music/tracks.js) are never dealt or stepped onto
+  shuffle = new ShuffleQueue((i) => !!this.library[i]?.hidden);
   // Bumped by every loadTrack(); an older load that wakes up after a newer
   // one started drops its result instead of overwriting the newer track
   loadSeq = 0;
@@ -220,7 +221,7 @@ export class AudioCore {
         const res = await fetch(url, options);
         if (!res.ok) throw new Error(`Fetch failed with status ${res.status}`);
         const blob = await res.blob();
-        if (type === "track" && trackId) this.decodeTrackWaveform(trackId, blob);
+        if (type === "track" && trackId) loadPeaks(this.waveformPeaks, trackId, blob);
         return URL.createObjectURL(blob);
       } catch (e) {
         console.warn(`Failed to fetch remote audio source for ${url}:`, e);
@@ -236,30 +237,10 @@ export class AudioCore {
     // mid-download, killing auto-advance. The element's own streaming is done
     // by the browser's media stack, which keeps loading while the page is
     // throttled.
-    if (type === "track" && trackId) {
-      this.scheduleWaveformDecode(trackId, url);
-    }
+    // Waveform bars are decoration: fetched lazily and never allowed to block
+    // or fail playback (waveformPeaks.js)
+    if (type === "track" && trackId) loadPeaks(this.waveformPeaks, trackId, url);
     return url;
-  }
-
-  // Waveform bars are decoration: fetch lazily, only while visible, and never
-  // let them block or fail playback. (The response comes from HTTP cache when
-  // the stream already pulled it.)
-  scheduleWaveformDecode(trackId, url) {
-    if (this.waveformPeaks[trackId]) return;
-    if (typeof document !== "undefined" && document.visibilityState !== "visible") return;
-    fetch(url)
-      .then((res) => (res.ok ? res.blob() : null))
-      .then((blob) => {
-        if (blob) this.decodeTrackWaveform(trackId, blob);
-      })
-      .catch(() => {});
-  }
-
-  async decodeTrackWaveform(trackId, blob) {
-    if (this.waveformPeaks[trackId]) return;
-    const peaks = await decodePeaks(blob);
-    if (peaks) this.waveformPeaks[trackId] = peaks;
   }
 
   init(lib) {
@@ -463,8 +444,9 @@ export class AudioCore {
   /**
    * @param {number} index library index
    * @param {boolean} [autoplay]
-   * @param {{ auto?: boolean, fromHistory?: boolean }} [opts] auto: the player
-   *   advanced by itself; fromHistory: "previous" is stepping back
+   * @param {{ auto?: boolean, fromHistory?: boolean, startAt?: number }} [opts] auto: the player
+   *   advanced by itself; fromHistory: "previous" is stepping back; startAt:
+   *   autoplay from this many seconds in (a hidden track handed over mid-song)
    */
   async loadTrack(index, autoplay = false, opts = {}) {
     if (index < 0 || index >= this.library.length) return;
@@ -500,7 +482,9 @@ export class AudioCore {
     let loadFailed = false;
     let resolvedTrackSrc = "";
     try {
-      resolvedTrackSrc = await this.getAudioSource(track.src, "track", track.id);
+      // No waveform for a hidden track: drawing one downloads and decodes the
+      // whole file, and another app's soundtrack can run for hours
+      resolvedTrackSrc = await this.getAudioSource(track.src, "track", track.hidden ? null : track.id);
     } catch (err) {
       console.error("Error loading vocal track:", err);
       // (isPlaying is already false from the pause() above; setting it here
@@ -615,7 +599,7 @@ export class AudioCore {
     this.isLoading = false;
 
     if (!loadFailed && autoplay) {
-      this.play(0);
+      this.play(opts.startAt || 0);
     }
     this.autoplayPending = false;
     // Auto-advancing (or screen off) into a track that won't load: keep the
@@ -753,7 +737,7 @@ export class AudioCore {
     // with nothing to go back to, this one starts over
     const idx = this.isShuffled
       ? this.shuffle.back(len, this.currentTrackIndex)
-      : (this.currentTrackIndex - 1 + len) % len;
+      : this.stepIndex(this.currentTrackIndex, -1);
     if (idx < 0) {
       this.seek(0);
       return;
@@ -776,8 +760,22 @@ export class AudioCore {
     // with the song that just played
     const idx = this.isShuffled
       ? this.shuffle.next(len, this.currentTrackIndex)
-      : (this.currentTrackIndex + 1) % len;
+      : this.stepIndex(this.currentTrackIndex, 1);
     this.loadTrack(idx, autoplay, { auto });
+  }
+
+  /**
+   * The neighbouring listed track in library order, wrapping around.
+   * @param {number} from library index
+   * @param {1 | -1} dir
+   * @returns {number} `from` itself when nothing else is listed
+   */
+  stepIndex(from, dir) {
+    const len = this.library.length;
+    let i = from;
+    do i = (i + dir + len) % len;
+    while (this.library[i]?.hidden && i !== from);
+    return i;
   }
 
   /**
@@ -892,7 +890,8 @@ export class AudioCore {
   runIsOver() {
     if (this.repeatMode !== REPEAT_OFF) return false;
     if (this.isShuffled) return this.shuffle.upcoming.length === 0;
-    return this.currentTrackIndex >= this.library.length - 1;
+    // Stepping forward wraps around past the last listed track
+    return this.stepIndex(this.currentTrackIndex, 1) <= this.currentTrackIndex;
   }
 
   applyCrossfade() {

@@ -291,7 +291,10 @@
             disabled={isRecording}
           >
             {#each audioCore.library as track, idx}
-              <option value={idx}>{track.title} ({track.artist})</option>
+              <!-- Hidden tracks only show while they are the one playing -->
+              {#if !track.hidden || idx === selectedTrackIndex}
+                <option value={idx}>{track.title} ({track.artist})</option>
+              {/if}
             {/each}
           </select>
         </div>
