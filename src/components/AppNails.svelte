@@ -17,6 +17,7 @@
     Calculator,
     KeyRound,
     Bomb,
+    Plane,
   } from "lucide-svelte";
 
   let { appId } = $props();
@@ -182,6 +183,13 @@
     <Bomb
       size={28}
       style="color: var(--color-sand, #e8c07d); filter: drop-shadow(0 0 6px rgba(232, 192, 125, 0.4));"
+    />
+  </div>
+{:else if appId === "scrubber"}
+  <div class="flex items-center justify-center h-full">
+    <Plane
+      size={28}
+      style="color: var(--color-scrub, #7cc4ff); filter: drop-shadow(0 0 6px rgba(124, 196, 255, 0.4));"
     />
   </div>
 {/if}
