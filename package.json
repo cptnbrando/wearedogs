@@ -33,6 +33,7 @@
     "lucide-svelte": "^1.0.1",
     "marked": "^18.1.3",
     "qrcode": "^1.5.4",
+    "scrubber-js": "https://github.com/YEAHDOGS/Scrubber-js/releases/download/v0.1.1/scrubber-js-0.1.1.tgz",
     "svelte-i18n": "^4.0.1",
     "tesseract.js": "^7.0.0",
     "three": "^0.184.0",
@@ -55,6 +56,7 @@
     "three": "Held on r184 (the ^ stays on 0.184.x). r187 calls WeakRef and FinalizationRegistry when a renderer starts. Older browsers lack them and transpiling cannot add them, so check that before moving past r186.",
     "overrides.svelte-i18n.esbuild": "svelte-i18n declares esbuild 0.19, which npm audit flags. Nothing in its installed files imports esbuild, so forcing the patched version is safe.",
     "@huggingface/transformers": "Used for Wiretap to transcribe MP3 and audio files 100% offline in browser using Whisper",
+    "scrubber-js": "Used for the Scrubber app: removes aircraft Doppler tones and mains hum from audio in a WebAssembly module (272 KB, no dependencies of its own). Our own fork at github.com/YEAHDOGS/Scrubber-js, installed from a release file so the lockfile pins its hash and a plain npm ci needs no git.",
     "marked": "Markdown parser for the fundraiser bios in src/data/fundraiser/bios/. Reason: StorePanel had three hand-rolled regex passes to turn <a href> markup, <url> brackets and bare pasted URLs into links, and a bare URL silently rendered as dead text. One parser replaces all three, so bios are now plain markdown and inline formatting works for free. No install scripts."
   },
   "overrides": {
