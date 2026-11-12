@@ -27,6 +27,7 @@
     Calculator,
     KeyRound,
     Bomb,
+    Building2,
   } from "lucide-svelte";
   import DogsLogo from "./DogsLogo.svelte";
   import AppCard from "./AppCard.svelte";
@@ -81,6 +82,7 @@
     frames: "./apps/Frames.svelte",
     passwords: "./apps/passwords/PasswordsApp.svelte",
     pocketsand: "./apps/pocketsand/PocketSandApp.svelte",
+    dogsinc: "./apps/dogsinc/DogsIncApp.svelte",
   };
 
   // Lazy loaded app components caching
@@ -282,6 +284,7 @@
     frames: "#ff5e00",
     passwords: "#00d75f",
     pocketsand: "#e8c07d",
+    dogsinc: "#00d75f",
   };
 
   // CRITICAL: The changelog and settings apps MUST always remain next to each other at the bottom of the toolbox list, with settings last.
@@ -363,6 +366,12 @@
       title: "Arcade",
       desc: "Play retro consoles (GBA, N64, NDS, Genesis).",
       icon: Gamepad2,
+    },
+    {
+      id: "dogsinc",
+      title: "DOGS INC",
+      desc: "Build a tower, hire the dogs, click the box, and keep the money coming.",
+      icon: Building2,
     },
     {
       id: "stopwatch",

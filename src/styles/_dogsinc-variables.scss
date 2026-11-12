@@ -1,0 +1,42 @@
+// DOGS INC palette, type scale and layout tokens.
+// Used by: components/apps/dogsinc/DogsIncApp.svelte, DogsIncTower.svelte, DogsIncSidePanel.svelte
+// Site-wide colors come from _variables.scss so the app matches the rest of the toolbox.
+
+@use "variables" as site;
+
+// ── Color ──
+// Terminal stage behind the tower and click box.
+$dogsinc-stage-bg: #060705;
+// Default ASCII ink: employees, desks, lobby lines.
+$dogsinc-ink: site.$color-neon-green;
+// Money, goal checkmarks and the current-goal bar.
+$dogsinc-gold: site.$color-neon-gold;
+// Night sky: moon, stars.
+$dogsinc-night-ink: #7fb6ff;
+// Janitors and the cafe/restroom accents.
+$dogsinc-accent: site.$color-image-orange;
+// Ghost (unbuilt) floors, locked shop rows, secondary text.
+$dogsinc-dim: rgba(255, 255, 255, 0.35);
+// Panel borders and dividers.
+$dogsinc-line: rgba(255, 255, 255, 0.12);
+// Shop row hover / focus background.
+$dogsinc-hover-bg: rgba(255, 255, 255, 0.05);
+
+// ── Type ──
+$dogsinc-mono: ui-monospace, Menlo, Consolas, "Courier New", monospace;
+// Tower font-size per breakpoint. Mobile portrait uses vw so the 44-col block fits width;
+// the taller breakpoints use vh so the 30-row block fits height.
+$dogsinc-tower-size-mobile: 2.6vw;
+$dogsinc-tower-size-landscape: 2.2vh;
+$dogsinc-tower-size-tablet: 1.9vh;
+$dogsinc-tower-size-desktop: 2.1vh;
+$dogsinc-tower-size-tv: 2.6vh;
+
+// Tower line-height: fixed so the block never grows as rows change.
+$dogsinc-tower-line-height: 1.15;
+
+// ── Breakpoints (mirror Tailwind defaults) ──
+$dogsinc-bp-landscape: 640px;   // sm
+$dogsinc-bp-tablet: 768px;      // md
+$dogsinc-bp-desktop: 1280px;    // xl
+$dogsinc-bp-tv: 1536px;         // 2xl
