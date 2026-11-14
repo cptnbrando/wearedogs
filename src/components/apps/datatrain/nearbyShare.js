@@ -1,24 +1,26 @@
 // Drop Train: hands files and text to the operating system's share sheet (Web Share API).
-// AirDrop and Quick Share then carry them device to device over Bluetooth and
-// peer-to-peer Wi-Fi. No page, server or internet connection is involved in the transfer.
+// The page only opens the sheet; whichever service the person picks there (AirDrop,
+// Quick Share, another app) does the actual transfer.
 const KB = 1024;
 const MB = KB * KB;
 const PROBE_FILE_NAME = 'probe.txt';
 const PROBE_MIME = 'text/plain';
-const FALLBACK_MIME = 'application/octet-stream';
 const IOS_PATTERN = /iPhone|iPad|iPod/;
 const MAC_PATTERN = /Macintosh/;
 const ANDROID_PATTERN = /Android/;
 const CHROME_OS_PATTERN = /CrOS/;
 const WINDOWS_PATTERN = /Windows/;
+const CHROMIUM_PATTERN = /Chrome\//;
+// Desktop Chrome and Edge refuse a share above these limits (Chromium share_service_impl).
+const DESKTOP_SHARE_LIMIT = { files: 10, bytes: 50 * MB };
 const PLATFORMS = {
   apple: { id: 'apple', service: 'AirDrop', target: 'Apple devices', receive: 'On the other iPhone, iPad or Mac, set AirDrop to Contacts Only or Everyone for 10 Minutes.' },
   android: { id: 'android', service: 'Quick Share', target: 'Android, Windows and Chromebooks', receive: 'On the other device, open Quick Share and set who can share with you to Everyone or Contacts.' },
   windows: { id: 'windows', service: 'Quick Share', target: 'Android, Windows and Chromebooks', receive: 'On the other device, open Quick Share and set who can share with you. Windows also offers Nearby Sharing to other PCs.' },
-  other: { id: 'other', service: 'nearby sharing', target: 'nearby devices', receive: 'Make sure the other device is nearby and visible to your sharing app.' },
+  other: { id: 'other', service: 'Nearby sharing', target: 'nearby devices', receive: 'Make sure the other device is nearby and visible to your sharing app.' },
 };
 const SHARE_ERRORS = {
-  NotAllowedError: 'The share sheet needs a fresh tap. Tap Send again.',
+  NotAllowedError: 'This browser blocked the share. Tap Send again, or send with Air Train.',
   InvalidStateError: 'A share sheet is already open. Finish or close it first.',
   DataError: 'This browser will not share these files. Send them with Air Train instead.',
   TypeError: 'This browser will not share these files. Send them with Air Train instead.',
@@ -34,6 +36,14 @@ export function detectPlatform() {
   if (ANDROID_PATTERN.test(agent) || CHROME_OS_PATTERN.test(agent)) return PLATFORMS.android;
   if (WINDOWS_PATTERN.test(agent)) return PLATFORMS.windows;
   return PLATFORMS.other;
+}
+
+/** @returns {{files: number, bytes: number}|null} Per-share limits, or null where none are known. */
+export function detectShareLimit() {
+  if (typeof navigator === 'undefined') return null;
+  const agent = navigator.userAgent;
+  if (!CHROMIUM_PATTERN.test(agent) || ANDROID_PATTERN.test(agent) || IOS_PATTERN.test(agent)) return null;
+  return DESKTOP_SHARE_LIMIT;
 }
 
 /** True when this browser can hand files to the system share sheet. */
@@ -53,11 +63,6 @@ export function canShareFile(file) {
   } catch {
     return false;
   }
-}
-
-/** Wrap a received Blob as a named File so the share sheet keeps its name and type. */
-export function toShareFile(blob, name, mime) {
-  return new File([blob], name, { type: mime || FALLBACK_MIME });
 }
 
 /**

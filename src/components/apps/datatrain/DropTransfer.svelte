@@ -1,7 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { Share2, Smartphone, Wifi, WifiOff, Plus, Send, File, X, Radio } from 'lucide-svelte';
-  import { detectPlatform, supportsFileShare, canShareFile, shareNearby, formatBytes } from './nearbyShare.js';
+  import { detectPlatform, detectShareLimit, supportsFileShare, canShareFile, shareNearby, formatBytes } from './nearbyShare.js';
   import './dropTrain.scss';
 
   /** Switches Data Train to Air Train for files the share sheet refuses. */
@@ -12,6 +12,7 @@
   const TEXT_PLACEHOLDER = 'A link, a note, an address…';
   const FULL_LIST = 'That is a full load. Send these before adding more.';
   const platform = detectPlatform();
+  const limit = detectShareLimit();
   let canFiles = false;
   let canText = false;
   let checked = false;
@@ -23,6 +24,8 @@
   let fileInput;
   $: shareable = staged.filter(entry => entry.ok);
   $: refused = staged.length - shareable.length;
+  $: shareBytes = shareable.reduce((sum, entry) => sum + entry.file.size, 0);
+  $: overLimit = !!limit && (shareable.length > limit.files || shareBytes > limit.bytes);
   $: statusLabel = !checked ? 'Checking this browser…' : canFiles ? platform.service + ' ready' : canText ? 'Text only in this browser' : 'Not available in this browser';
 
   onMount(() => {
@@ -63,7 +66,7 @@
   }
 
   function sendFiles() {
-    if (!shareable.length) return;
+    if (!shareable.length || overLimit) return;
     send({ files: shareable.map(entry => entry.file) }, () => {});
   }
 
@@ -77,7 +80,7 @@
 
 <section class="dt-air dt-drop w-full flex flex-col sm:flex-col md:flex-col lg:flex-col xl:flex-col 2xl:flex-col" aria-label="Drop Train">
   <header class="dt-air-header">
-    <div class="dt-heading"><Share2 size={19} aria-hidden="true" /><h2>Drop Train</h2><span>AirDrop & Quick Share. No internet.</span></div>
+    <div class="dt-heading"><Share2 size={19} aria-hidden="true" /><h2>Drop Train</h2><span>AirDrop & Quick Share, nearby.</span></div>
     <div class="dt-connection" class:dt-online={canFiles} role="status"><i></i>{statusLabel}</div>
   </header>
 
@@ -96,7 +99,7 @@
       <div class="dt-pair-intro">
         <div class="dt-device-symbols" aria-hidden="true"><Smartphone size={30} /><Wifi size={22} /><Smartphone size={30} /></div>
         <h3>No pairing.<br />Just nearby.</h3>
-        <p class="dt-lead">Send to {platform.target} with {platform.service}. Files go device to device over Bluetooth and peer-to-peer Wi-Fi. This page never sees them.</p>
+        <p class="dt-lead">Send to {platform.target} with {platform.service}. {platform.service} sends them straight to the nearby device. Nothing is uploaded from this page.</p>
         <ol class="dt-steps">
           <li><span>1</span>Choose files or write a note.</li>
           <li><span>2</span>Tap Send, then pick {platform.service}.</li>
@@ -121,7 +124,8 @@
                 </li>
               {/each}
             </ul>
-            <button class="dt-primary dt-drop-send" disabled={!shareable.length} onclick={sendFiles}><Send size={17} />Send {shareable.length} {shareable.length === 1 ? 'file' : 'files'} with {platform.service}</button>
+            <button class="dt-primary dt-drop-send" disabled={!shareable.length || overLimit} onclick={sendFiles}><Send size={17} />Send {shareable.length} {shareable.length === 1 ? 'file' : 'files'} with {platform.service}</button>
+            {#if overLimit}<p class="dt-drop-limit-note" role="status">This browser shares up to {limit.files} files and {formatBytes(limit.bytes)} at a time. Remove some, or <button onclick={onUseAir}>use Air Train →</button></p>{/if}
             {#if refused}<p class="dt-drop-refused-note">{refused === 1 ? 'One file needs' : refused + ' files need'} Air Train instead. <button onclick={onUseAir}>Open Air Train →</button></p>{/if}
           {/if}
         {:else if checked}
@@ -136,5 +140,5 @@
       </div>
     </div>
   {/if}
-  <footer class="dt-footnote"><span><Wifi size={13} />No pairing link, no account · works without internet.</span></footer>
+  <footer class="dt-footnote"><span><Wifi size={13} />No pairing link, no account · AirDrop and Quick Share work without internet.</span></footer>
 </section>

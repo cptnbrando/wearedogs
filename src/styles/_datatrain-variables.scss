@@ -1,4 +1,4 @@
-// Data Train's shared palette and sizing. Used only by datatrain/dataTrain.scss.
+// Data Train's shared palette and sizing. Used by datatrain/dataTrain.scss, dropTrain.scss and the QR Train styles.
 // Cyan preserves the existing toolbox identity; opaque surfaces keep text readable.
 $surface: #080b0e;
 $panel: #10161b;
@@ -20,5 +20,10 @@ $radius: 8px;
 $space: 16px;
 $body: 14px;
 $small: 12px;
+// Fine print: footnotes and the Air Train WebRTC / PeerJS line (dataTrain.scss).
+$tiny: 11px;
+// TV / ultra-wide text for Drop Train list names and buttons (dropTrain.scss).
+$tv-body: 15px;
+$tv-large: 18px;
 $display: 36px;
 $wide: 1280px;

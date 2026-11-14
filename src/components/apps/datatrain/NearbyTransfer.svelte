@@ -6,7 +6,7 @@
   import { createPairingLink, parsePairingLink, takePairingLink } from './pairingLink.js';
   import { copyText } from '../../../lib/clipboard.js';
   import TransferList from './TransferList.svelte';
-  import { supportsFileShare, canShareFile, toShareFile, shareNearby } from './nearbyShare.js';
+  import { supportsFileShare, canShareFile, detectShareLimit, shareNearby } from './nearbyShare.js';
 
   const MAX_TEXT_LENGTH = 16000;
   const COPY_ERROR = 'Copy is unavailable here. Select the text and copy it manually.';
@@ -42,6 +42,7 @@
   let helpOpen = false;
   let helpClose;
   let canShareFiles = false;
+  const shareLimit = detectShareLimit();
   // Received Blob -> shareable File (or null); weak so removed items are released.
   const shareFiles = new WeakMap();
   $: connected = state.status === 'connected';
@@ -137,9 +138,9 @@
 
   /** @param {{blob?: Blob, name: string, mime: string}} item */
   function shareFileFor(item) {
-    if (!item.blob) return null;
+    if (!item.blob || (shareLimit && item.blob.size > shareLimit.bytes)) return null;
     if (!shareFiles.has(item.blob)) {
-      const file = toShareFile(item.blob, item.name, item.mime);
+      const file = new File([item.blob], item.name, { type: item.mime });
       shareFiles.set(item.blob, canShareFile(file) ? file : null);
     }
     return shareFiles.get(item.blob);
