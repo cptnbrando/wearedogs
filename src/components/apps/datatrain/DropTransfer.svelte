@@ -91,7 +91,7 @@
     <div class="dt-pair-grid">
       <div class="dt-pair-message"><WifiOff size={40} /><h3>This browser can't reach AirDrop or Quick Share.</h3>
         <p>Open Data Train in Safari on an iPhone, iPad or Mac, or in Chrome or Edge on Android, Windows or a Chromebook. Air Train works everywhere else.</p>
-        <button class="dt-primary" onclick={onUseAir}><Radio size={16} />Use Air Train</button>
+        <button type="button" class="dt-primary" onclick={onUseAir}><Radio size={16} />Use Air Train</button>
       </div>
     </div>
   {:else}
@@ -110,8 +110,8 @@
       <div class="dt-pair-action dt-drop-action">
         {#if canFiles}
           <div class="dt-drop-row">
-            <button class={staged.length ? 'dt-secondary' : 'dt-primary'} onclick={() => fileInput.click()}><Plus size={17} />Choose files</button>
-            {#if staged.length}<button class="dt-quiet" onclick={() => { staged = []; notice = ''; actionError = ''; }}>Clear</button>{/if}
+            <button type="button" class={staged.length ? 'dt-secondary' : 'dt-primary'} onclick={() => fileInput.click()}><Plus size={17} />Choose files</button>
+            {#if staged.length}<button type="button" class="dt-quiet" onclick={() => { staged = []; notice = ''; actionError = ''; }}>Clear</button>{/if}
             <input class="dt-file-input" bind:this={fileInput} type="file" multiple aria-label="Choose files to send nearby" onchange={addFiles} />
           </div>
           {#if staged.length}
@@ -120,16 +120,16 @@
                 <li class:dt-drop-refused={!entry.ok}>
                   <File size={16} aria-hidden="true" />
                   <div class="dt-transfer-name"><strong title={entry.file.name}>{entry.file.name}</strong><span>{formatBytes(entry.file.size)}{entry.ok ? '' : ' · this browser won\'t share this type'}</span></div>
-                  <button class="dt-icon-button" onclick={() => staged = staged.filter(item => item.id !== entry.id)} aria-label={'Remove ' + entry.file.name}><X size={15} /></button>
+                  <button type="button" class="dt-icon-button" onclick={() => staged = staged.filter(item => item.id !== entry.id)} aria-label={'Remove ' + entry.file.name}><X size={15} /></button>
                 </li>
               {/each}
             </ul>
-            <button class="dt-primary dt-drop-send" disabled={!shareable.length || overLimit} onclick={sendFiles}><Send size={17} />Send {shareable.length} {shareable.length === 1 ? 'file' : 'files'} with {platform.service}</button>
-            {#if overLimit}<p class="dt-drop-limit-note" role="status">This browser shares up to {limit.files} files and {formatBytes(limit.bytes)} at a time. Remove some, or <button onclick={onUseAir}>use Air Train →</button></p>{/if}
-            {#if refused}<p class="dt-drop-refused-note">{refused === 1 ? 'One file needs' : refused + ' files need'} Air Train instead. <button onclick={onUseAir}>Open Air Train →</button></p>{/if}
+            <button type="button" class="dt-primary dt-drop-send" disabled={!shareable.length || overLimit} onclick={sendFiles}><Send size={17} />Send {shareable.length} {shareable.length === 1 ? 'file' : 'files'} with {platform.service}</button>
+            {#if overLimit}<p class="dt-drop-limit-note" role="status">This browser shares up to {limit.files} files and {formatBytes(limit.bytes)} at a time. Remove some, or <button type="button" onclick={onUseAir}>use Air Train →</button></p>{/if}
+            {#if refused}<p class="dt-drop-refused-note">{refused === 1 ? 'One file needs' : refused + ' files need'} Air Train instead. <button type="button" onclick={onUseAir}>Open Air Train →</button></p>{/if}
           {/if}
         {:else if checked}
-          <p class="dt-drop-refused-note">This browser shares text only. For files, <button onclick={onUseAir}>use Air Train →</button></p>
+          <p class="dt-drop-refused-note">This browser shares text only. For files, <button type="button" onclick={onUseAir}>use Air Train →</button></p>
         {/if}
         {#if canText}
           <form class="dt-text-form dt-drop-text" onsubmit={sendText}>

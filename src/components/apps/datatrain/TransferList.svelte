@@ -33,7 +33,7 @@
         {#if item.url && item.mime.indexOf('image/') === 0}<img class="dt-preview" src={item.url} alt={'Preview of ' + item.name} loading="lazy" />
         {:else if item.url && item.mime.indexOf('audio/') === 0}<audio class="dt-preview-audio" src={item.url} controls preload="metadata"></audio>{/if}
         {#if item.status === 'complete' && direction === 'received'}
-          {#if item.kind === 'file'}<a class="dt-save" href={item.url} download={item.name}><Download size={15} />Save file</a>{#if canShare && canShare(item)}<button class="dt-save dt-share" onclick={() => onShare(item)} aria-label={'Share ' + item.name + ' with AirDrop, Quick Share or another app'}><Share2 size={15} />Share</button>{/if}
+          {#if item.kind === 'file'}<a class="dt-save" href={item.url} download={item.name}><Download size={15} />Save file</a>{#if canShare && canShare(item)}<button type="button" class="dt-save dt-share" onclick={() => onShare(item)} aria-label={'Share ' + item.name + ' with AirDrop, Quick Share or another app'}><Share2 size={15} />Share</button>{/if}
           {:else}<button class="dt-save" onclick={() => onCopy(item.text)}><Copy size={15} />Copy text</button>{/if}
         {/if}
       </article>

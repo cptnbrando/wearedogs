@@ -80,4 +80,5 @@ export async function shareNearby(payload) {
   }
 }
 
-export const formatBytes = (bytes) => bytes < KB ? bytes + ' B' : bytes < MB ? (bytes / KB).toFixed(1) + ' KB' : (bytes / MB).toFixed(1) + ' MB';
+/** @param {number} bytes @returns {string} Human size, e.g. "1.4 MB" (Drop Train list, Air Train transfers). */
+export const formatBytes =(bytes) => bytes < KB ? bytes + ' B' : bytes < MB ? (bytes / KB).toFixed(1) + ' KB' : (bytes / MB).toFixed(1) + ' MB';
