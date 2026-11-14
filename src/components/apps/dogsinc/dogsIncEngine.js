@@ -28,6 +28,7 @@ import {
   BUY_MODES,
   MAX_BULK_BUY,
 } from './dogsIncConfig.js';
+import { encodeSave } from './dogsIncSaveCode.js';
 
 const MS_PER_SEC = 1000;
 const THOUSAND = 1000;
@@ -140,6 +141,12 @@ export class DogsIncEngine {
     this.eventSeq = 0;
     this.buyCount = BUY_MODES[0].count;
     this.buyMode = BUY_MODES[0].id;
+    // Save the moment the page is hidden or closed (tab switch, refresh, app switch on a
+    // phone), not just on the 5-second timer.
+    this.saveOnHide = () => {
+      if (document.visibilityState === 'hidden') this.save();
+    };
+    this.saveNow = () => this.save();
     this.applyOfflineEarnings();
     this.store = writable(this.snapshot());
   }
@@ -148,12 +155,16 @@ export class DogsIncEngine {
   start() {
     if (this.timer !== null) return;
     this.timer = setInterval(() => this.tick(), TICK_MS);
+    document.addEventListener('visibilitychange', this.saveOnHide);
+    window.addEventListener('pagehide', this.saveNow);
   }
 
   /** Stops the loop and saves. Call when the app closes. */
   stop() {
     if (this.timer !== null) clearInterval(this.timer);
     this.timer = null;
+    document.removeEventListener('visibilitychange', this.saveOnHide);
+    window.removeEventListener('pagehide', this.saveNow);
     this.save();
   }
 
@@ -197,6 +208,7 @@ export class DogsIncEngine {
     this.state.cash -= entry.cost;
     this.state.owned[id] += entry.qty;
     this.checkGoals();
+    this.save();
     this.publish();
     return entry.qty;
   }
@@ -229,8 +241,29 @@ export class DogsIncEngine {
       this.announce(boon.label + '! x' + boon.mult + ' for ' + boon.seconds + 's', 'boon');
     }
     this.checkGoals();
+    this.save();
     this.publish();
     return true;
+  }
+
+  /** @returns {string} a transfer code for the company as it is right now */
+  exportCode() {
+    return encodeSave(this.state);
+  }
+
+  /**
+   * Replaces this device's company with one from a transfer code (already validated by
+   * decodeSave). No offline earnings: the company arrives exactly as it was sent.
+   * @param {object} state
+   */
+  importState(state) {
+    this.state = Object.assign(freshState(), state, { owned: Object.assign(zeroOwned(), state.owned) });
+    this.flier = null;
+    this.boost = null;
+    this.welcomeGain = 0;
+    this.nextFlierAt = this.frame + FLIER_FIRST_TICKS;
+    this.save();
+    this.publish();
   }
 
   /** Hides the "while you were away" line. */
@@ -416,6 +449,7 @@ export class DogsIncEngine {
       .filter((item) => item.unlockGoal > before && item.unlockGoal <= this.state.goalsDone)
       .map((item) => item.name);
     this.announce(unlocked.length ? 'Mission done · New: ' + unlocked.join(' + ') : 'Mission done!', 'goal');
+    this.save();
   }
 
   /** @returns {number} whole-dollar gain already added while away */
