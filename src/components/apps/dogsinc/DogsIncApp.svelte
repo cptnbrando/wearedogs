@@ -162,8 +162,13 @@
         <div><dt>Restrooms</dt><dd>{$game.owned.restroom}</dd></div>
         <div><dt>Nights</dt><dd>{$game.nights}</dd></div>
         <div><dt>Clicks</dt><dd>{$game.clicks}</dd></div>
-        <div><dt>Golden bones</dt><dd>{$game.bones}</dd></div>
+        <div><dt>Bones</dt><dd>{$game.bones}</dd></div>
       </dl>
+      {#if !compact}
+        <div class="dogsinc-rail-missions">
+          <DogsIncMissions snap={$game} />
+        </div>
+      {/if}
     </aside>
 
     <div class="dogsinc-stage">
@@ -194,12 +199,12 @@
       </div>
     </div>
 
+    <!-- Phones: missions here (upgrades live in the drawer). Tablet and up: upgrades only. -->
     <div class="dogsinc-side-wrap">
-      <DogsIncMissions snap={$game} />
-      {#if !compact}
-        <div class="dogsinc-side-shop">
-          <DogsIncShop snap={$game} onBuy={handleBuy} onMode={handleMode} />
-        </div>
+      {#if compact}
+        <DogsIncMissions snap={$game} />
+      {:else}
+        <DogsIncShop snap={$game} onBuy={handleBuy} onMode={handleMode} />
       {/if}
     </div>
   </div>
@@ -508,11 +513,20 @@
     }
   }
 
-  .dogsinc-side-shop {
-    flex-shrink: 0;
-    margin-top: 12px;
+  // Tablet and up: missions sit in the rail under the stats and take the rest of its height;
+  // the checklist scrolls inside if the rail runs short.
+  .dogsinc-rail-missions {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    margin-top: 14px;
     padding-top: 12px;
     border-top: 1px solid $dogsinc-line;
+
+    > :global(.dogsinc-missions) {
+      flex: 1 1 auto;
+    }
   }
 
   .dogsinc-drawer-stats {
@@ -530,6 +544,7 @@
     flex-direction: column;
     flex: 0 0 auto;
     width: 13rem;
+    min-height: 0;
     padding: 12px;
     border-right: 1px solid $dogsinc-line;
     font-size: 13px;
@@ -553,15 +568,28 @@
     }
   }
 
+  // Two columns so the missions below get most of the rail's height.
   .dogsinc-stats {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: 12px;
+    flex-shrink: 0;
     margin: 12px 0 0;
     padding: 0;
 
     div {
       display: flex;
       justify-content: space-between;
+      gap: 4px;
+      min-width: 0;
       padding: 3px 0;
       border-bottom: 1px dashed $dogsinc-line;
+    }
+
+    dt {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     dt {
@@ -668,11 +696,6 @@
       flex: 0 0 18rem;
       padding: 12px;
       overflow-y: auto;
-
-      > :global(.dogsinc-missions) {
-        flex: 0 0 auto;
-        padding: 0;
-      }
     }
 
     .dogsinc-click pre {
