@@ -189,7 +189,7 @@
   <div class="flex items-center justify-center h-full">
     <Building2
       size={28}
-      style="color: var(--color-neon-green, #00d75f); filter: drop-shadow(0 0 6px rgba(0, 215, 95, 0.4));"
+      style="color: var(--color-neon-gold, #e6b900); filter: drop-shadow(0 0 6px rgba(230, 185, 0, 0.4));"
     />
   </div>
 {/if}

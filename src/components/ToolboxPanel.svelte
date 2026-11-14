@@ -284,7 +284,7 @@
     frames: "#ff5e00",
     passwords: "#a66bff",
     pocketsand: "#e8c07d",
-    dogsinc: "#00d75f",
+    dogsinc: "#e6b900",
   };
 
   // CRITICAL: The changelog and settings apps MUST always remain next to each other at the bottom of the toolbox list, with settings last.
