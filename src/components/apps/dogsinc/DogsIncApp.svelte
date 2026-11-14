@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { ChevronDown } from 'lucide-svelte';
   import { DogsIncEngine, formatMoney } from './dogsIncEngine.js';
+  import { MAX_DRAWN_FLOORS, SHORT_DRAWN_FLOORS } from './dogsIncConfig.js';
   import { buildClickBoxRows } from './dogsIncArt.js';
   import DogsIncTower from './DogsIncTower.svelte';
   import DogsIncMissions from './DogsIncMissions.svelte';
@@ -11,6 +12,8 @@
   // Phones (portrait, or landscape of any width) get the pull-down upgrades drawer;
   // tablets and up keep the shop in the side panel.
   const COMPACT_QUERY = '(max-width: 767px), (max-height: 500px)';
+  // Landscape phones: a 4-floor tower with the click box beside it, so it stays readable.
+  const SHORT_QUERY = '(orientation: landscape) and (max-height: 500px)';
   const PARTICLE_MS = 900;
   const MAX_PARTICLES = 14;
   /** Click particles start somewhere across the middle of the box (percent of its width). */
@@ -25,6 +28,8 @@
   const game = engine.store;
 
   let compact = true;
+  let short = false;
+  let shortMedia = null;
   let drawerOpen = false;
   let particles = [];
   let particleSeq = 0;
@@ -37,21 +42,32 @@
     compact = media.matches;
     if (!compact) drawerOpen = false;
   };
+  const syncShort = () => {
+    short = shortMedia.matches;
+  };
+
+  /** matchMedia change listener, with the old addListener API for legacy browsers. */
+  function listen(list, handler, on) {
+    if (list.addEventListener) list[on ? 'addEventListener' : 'removeEventListener']('change', handler);
+    else list[on ? 'addListener' : 'removeListener'](handler);
+  }
 
   onMount(() => {
     engine.start();
     media = window.matchMedia(COMPACT_QUERY);
+    shortMedia = window.matchMedia(SHORT_QUERY);
     syncCompact();
-    if (media.addEventListener) media.addEventListener('change', syncCompact);
-    else media.addListener(syncCompact);
+    syncShort();
+    listen(media, syncCompact, true);
+    listen(shortMedia, syncShort, true);
   });
 
   onDestroy(() => {
     engine.stop();
     clearTimeout(toastTimer);
     if (!media) return;
-    if (media.removeEventListener) media.removeEventListener('change', syncCompact);
-    else media.removeListener(syncCompact);
+    listen(media, syncCompact, false);
+    listen(shortMedia, syncShort, false);
   });
 
   /** Short haptic tick where the device supports it. */
@@ -156,7 +172,7 @@
           While you were away: {welcome}
         </button>
       {/if}
-      <DogsIncTower snap={$game} onCatch={handleCatch} />
+      <DogsIncTower snap={$game} onCatch={handleCatch} floorsShown={short ? SHORT_DRAWN_FLOORS : MAX_DRAWN_FLOORS} />
       <div class="dogsinc-click-wrap">
         <button
           type="button"
@@ -204,6 +220,7 @@
   // Layout modes: phone portrait (base) · phone landscape / small tablet (row) ·
   // tablet & up with real height (rail | stage | side panel) · desktop · TV.
   $tablet-up: "(min-width: #{$dogsinc-bp-tablet}) and (min-height: 501px)";
+  $row-layout: "(min-width: #{$dogsinc-bp-landscape}), (orientation: landscape) and (max-height: 500px)";
 
   .dogsinc {
     position: relative;
@@ -422,17 +439,23 @@
     to { opacity: 0; transform: translate(-50%, -70px); }
   }
 
+  // Toasts hang just under the click box, never over the tower. On phones they float over
+  // the top of the missions card for a moment; wider layouts keep a strip for them.
   .dogsinc-toast {
     position: absolute;
-    bottom: 100%;
+    top: 100%;
     left: 50%;
     z-index: 3;
     width: max-content;
+    // cqw = the stage (a size container outside phone portrait), else the screen width.
     max-width: 92vw;
-    margin: 0 0 10px;
+    max-width: calc(100cqw - 16px);
+    margin: 8px 0 0;
+    line-height: 1.35;
+    white-space: normal;
     padding: 6px 12px;
     border: 1px solid $dogsinc-gold;
-    border-radius: 999px;
+    border-radius: 12px;
     background: $dogsinc-drawer-bg;
     color: $dogsinc-gold;
     font-size: 12px;
@@ -450,7 +473,7 @@
   }
 
   @keyframes dogsinc-toast-in {
-    from { opacity: 0; transform: translate(-50%, 8px); }
+    from { opacity: 0; transform: translate(-50%, -6px); }
     to { opacity: 1; transform: translate(-50%, 0); }
   }
 
@@ -559,7 +582,9 @@
   }
 
   // ── Landscape phones and small tablets: stage left, missions right (saves height).
-  @media (min-width: $dogsinc-bp-landscape) {
+  // From here up the stage is a size container: DogsIncTower fits its font to it, and
+  // --dogsinc-click-reserve keeps room for the click box (4 rows of its font + gap + padding).
+  @media #{$row-layout} {
     .dogsinc-body {
       flex-direction: row;
     }
@@ -567,6 +592,12 @@
     .dogsinc-stage {
       flex: 1 1 0;
       justify-content: center;
+      container-type: size;
+      overflow: hidden;
+      // Room under the click box for toasts; container units exclude padding, so the tower
+      // shrinks to leave it free.
+      padding-bottom: $dogsinc-toast-room;
+      --dogsinc-click-reserve: #{$dogsinc-click-reserve-landscape};
     }
 
     .dogsinc-side-wrap {
@@ -581,6 +612,44 @@
     }
   }
 
+  // ── Landscape phones: 4-floor tower with the click box beside it (see SHORT_QUERY).
+  @media (orientation: landscape) and (max-height: 500px) {
+    .dogsinc-stage {
+      flex-direction: row;
+      gap: 14px;
+      --dogsinc-click-reserve: #{$dogsinc-stage-pad-x};
+      --dogsinc-click-reserve-x: #{$dogsinc-click-reserve-beside};
+      --dogsinc-tower-em-tall: #{$dogsinc-tower-em-tall-short};
+    }
+
+    .dogsinc-stage {
+      padding-bottom: 6px;
+    }
+
+    .dogsinc-click-wrap {
+      margin-top: 0;
+    }
+
+    .dogsinc-side-wrap {
+      flex-basis: 38%;
+    }
+
+    // The click box is vertically centered beside the tower: the toast sits under it, exactly
+    // as wide as the box (wrapping if needed), so it never reaches over the tower.
+    .dogsinc-toast {
+      left: 0;
+      right: 0;
+      width: auto;
+      max-width: none;
+      margin-top: 6px;
+      padding: 4px 6px;
+      font-size: 10px;
+      line-height: 1.3;
+      transform: none;
+      animation: none;
+    }
+  }
+
   // ── Tablet+: stats rail | stage | missions + shop. The topbar and drawer give way to the rail.
   @media #{$tablet-up} {
     .dogsinc-topbar {
@@ -589,6 +658,10 @@
 
     .dogsinc-rail {
       display: flex;
+    }
+
+    .dogsinc-stage {
+      --dogsinc-click-reserve: #{$dogsinc-click-reserve-tablet};
     }
 
     .dogsinc-side-wrap {
@@ -615,6 +688,10 @@
       width: 100%;
     }
 
+    .dogsinc-stage {
+      --dogsinc-click-reserve: #{$dogsinc-click-reserve-desktop};
+    }
+
     .dogsinc-rail {
       width: 16rem;
       font-size: 15px;
@@ -633,6 +710,11 @@
   @media (min-width: $dogsinc-bp-tv) and (min-height: 501px) {
     .dogsinc-body {
       max-width: 120rem;
+    }
+
+    .dogsinc-stage {
+      padding-bottom: $dogsinc-toast-room-tv;
+      --dogsinc-click-reserve: #{$dogsinc-click-reserve-tv};
     }
 
     .dogsinc-rail {

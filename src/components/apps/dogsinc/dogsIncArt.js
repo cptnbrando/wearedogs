@@ -240,14 +240,15 @@ function slab(edge, fill) {
 
 /**
  * Renders the whole building as fixed-width painted rows.
- * The tower always draws MAX_DRAWN_FLOORS floors so the block never changes size.
+ * The tower always draws the same number of floors for a layout, so the block never changes size.
  * @param {object} snap - engine snapshot
- * @returns {PaintedRow[]} TOWER_ROWS rows, each TOWER_WIDTH chars
+ * @param {number} [drawnFloors] floors in the window (MAX_DRAWN_FLOORS, fewer on short screens)
+ * @returns {PaintedRow[]} rows, each TOWER_WIDTH chars (TOWER_ROWS at the default window)
  */
-export function buildTowerRows(snap) {
+export function buildTowerRows(snap, drawnFloors = MAX_DRAWN_FLOORS) {
   const janitors = janitorCells(snap);
-  const topFloor = Math.max(snap.floors, MAX_DRAWN_FLOORS);
-  const bottomFloor = topFloor - MAX_DRAWN_FLOORS + 1;
+  const topFloor = Math.max(snap.floors, drawnFloors);
+  const bottomFloor = topFloor - drawnFloors + 1;
 
   const rows = skyRows(snap);
   rows.push(slab('+', ROOF_FILL));

@@ -415,7 +415,7 @@ export class DogsIncEngine {
     const unlocked = SHOP_ITEMS
       .filter((item) => item.unlockGoal > before && item.unlockGoal <= this.state.goalsDone)
       .map((item) => item.name);
-    this.announce(unlocked.length ? 'Mission complete! Unlocked ' + unlocked.join(' + ') : 'Mission complete!', 'goal');
+    this.announce(unlocked.length ? 'Mission done · New: ' + unlocked.join(' + ') : 'Mission done!', 'goal');
   }
 
   /** @returns {number} whole-dollar gain already added while away */

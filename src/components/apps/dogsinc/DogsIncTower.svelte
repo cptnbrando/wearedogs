@@ -1,11 +1,14 @@
 <script>
   import { Bone } from 'lucide-svelte';
   import { buildTowerRows, TOWER_SKY_ROWS } from './dogsIncArt.js';
+  import { MAX_DRAWN_FLOORS } from './dogsIncConfig.js';
 
   /** @type {object} engine snapshot */
   export let snap;
   /** @type {() => void} taps the golden bone */
   export let onCatch;
+  /** @type {number} floors shown in the tower window */
+  export let floorsShown = MAX_DRAWN_FLOORS;
 
   // INK code -> CSS class. Kept beside the markup that uses it; colors live in _dogsinc-variables.
   const INK_CLASS = {
@@ -38,7 +41,7 @@
     }).join('\n');
   }
 
-  $: html = toHtml(buildTowerRows(snap));
+  $: html = toHtml(buildTowerRows(snap, floorsShown));
   $: boneLeft = snap.flier === null ? 0 : snap.flier * 100;
   $: boneTop = snap.flier === null ? 0 : (Math.sin(snap.flier * Math.PI * 2 * BOB_CYCLES) + 1) / 2;
 </script>
@@ -131,23 +134,20 @@
     }
   }
 
-  @media (min-width: $dogsinc-bp-landscape) {
+  // Every layout except phone portrait: the stage is a size container (DogsIncApp), so the
+  // tower takes the largest font where its full width AND height fit, leaving room for the
+  // click box below (--dogsinc-click-reserve). Browsers without container queries keep the vh size.
+  @media (min-width: $dogsinc-bp-landscape), (orientation: landscape) and (max-height: 500px) {
     .dogsinc-tower-wrap {
       font-size: $dogsinc-tower-size-landscape;
-    }
-  }
-
-  @media (min-width: $dogsinc-bp-tablet) {
-    .dogsinc-tower-wrap {
-      font-size: $dogsinc-tower-size-tablet;
+      font-size: min(
+        calc((100cqw - #{$dogsinc-stage-pad-x} - var(--dogsinc-click-reserve-x, 0px)) / #{$dogsinc-tower-em-wide}),
+        calc((100cqh - var(--dogsinc-click-reserve)) / var(--dogsinc-tower-em-tall, #{$dogsinc-tower-em-tall}))
+      );
     }
   }
 
   @media (min-width: $dogsinc-bp-desktop) {
-    .dogsinc-tower-wrap {
-      font-size: $dogsinc-tower-size-desktop;
-    }
-
     .dogsinc-bone {
       width: 48px;
       height: 48px;
@@ -155,9 +155,4 @@
     }
   }
 
-  @media (min-width: $dogsinc-bp-tv) {
-    .dogsinc-tower-wrap {
-      font-size: $dogsinc-tower-size-tv;
-    }
-  }
 </style>

@@ -38,6 +38,8 @@ export const RESTROOM_BONUS = 0.05;
 // ── Art ──
 /** Floors drawn in the tower window at once. */
 export const MAX_DRAWN_FLOORS = 8;
+/** Landscape phones are only ~200px tall: their tower window shows fewer floors. */
+export const SHORT_DRAWN_FLOORS = 4;
 
 // ── Shop ──
 // cost = baseCost * growth^owned. `unlockGoal` = goals finished before it shows.
