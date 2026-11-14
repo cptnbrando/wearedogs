@@ -21,7 +21,7 @@
   const STATUS_LABELS = {
     idle: 'Ready to pair', starting: 'Preparing your connection…', waiting: 'Waiting for your other device',
     connecting: 'Connecting · approve on the other device', pending: 'Device requesting access',
-    connected: 'Connected · ready both ways', disconnected: 'Connection ended',
+    connected: 'Connected', disconnected: 'Connection ended',
     error: 'Connection needs attention', unsupported: 'Browser not supported',
   };
   let session;

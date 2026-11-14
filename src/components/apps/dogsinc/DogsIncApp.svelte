@@ -1,6 +1,6 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
-  import { ChevronDown } from 'lucide-svelte';
+  import { ChevronDown, QrCode } from 'lucide-svelte';
   import { DogsIncEngine, formatMoney } from './dogsIncEngine.js';
   import { MAX_DRAWN_FLOORS, SHORT_DRAWN_FLOORS } from './dogsIncConfig.js';
   import { buildClickBoxRows } from './dogsIncArt.js';
@@ -8,6 +8,8 @@
   import DogsIncMissions from './DogsIncMissions.svelte';
   import DogsIncShop from './DogsIncShop.svelte';
   import DogsIncDrawer from './DogsIncDrawer.svelte';
+  import DogsIncTransfer from './DogsIncTransfer.svelte';
+  import { takeSaveLink } from './saveLink.js';
 
   // Phones (portrait, or landscape of any width) get the pull-down upgrades drawer;
   // tablets and up keep the shop in the side panel.
@@ -23,11 +25,15 @@
   const BUZZ_BUY_MS = 12;
   const BUZZ_BONE = [20, 40, 20];
   const BOOST_TAGS = { frenzy: 'FRENZY', rush: 'RUSH' };
+  const SAVE_HASH = '#save=';
+  const TRANSFER_LABEL = 'Move company to another device';
 
   const engine = new DogsIncEngine();
   const game = engine.store;
 
   let compact = true;
+  let transferOpen = false;
+  let incomingCode = null;
   let short = false;
   let shortMedia = null;
   let drawerOpen = false;
@@ -60,11 +66,15 @@
     syncShort();
     listen(media, syncCompact, true);
     listen(shortMedia, syncShort, true);
+    const code = takeSaveLink() || hashSaveCode();
+    if (code) openTransfer(code);
+    window.addEventListener('hashchange', handleHash);
   });
 
   onDestroy(() => {
     engine.stop();
     clearTimeout(toastTimer);
+    window.removeEventListener('hashchange', handleHash);
     if (!media) return;
     listen(media, syncCompact, false);
     listen(shortMedia, syncShort, false);
@@ -96,6 +106,32 @@
   }
 
   const handleMode = (modeId) => engine.setBuyMode(modeId);
+
+  /** @returns {string|null} a save code in the current URL fragment, which is then cleared */
+  function hashSaveCode() {
+    if (location.hash.indexOf(SAVE_HASH) !== 0) return null;
+    const code = location.hash.slice(SAVE_HASH.length);
+    history.replaceState(history.state, '', location.pathname + location.search);
+    return code;
+  }
+
+  /** A save link opened in a tab that already has the game running. */
+  function handleHash() {
+    const code = hashSaveCode();
+    if (code) openTransfer(code);
+  }
+
+  /** @param {string|null} [code] a scanned save to offer; none shows this company's QR */
+  function openTransfer(code) {
+    incomingCode = typeof code === 'string' ? code : null;
+    drawerOpen = false;
+    transferOpen = true;
+  }
+
+  const closeTransfer = () => {
+    transferOpen = false;
+    incomingCode = null;
+  };
   const handleDismiss = () => engine.dismissWelcome();
   const closeDrawer = () => {
     drawerOpen = false;
@@ -205,6 +241,7 @@
         <DogsIncMissions snap={$game} />
       {:else}
         <DogsIncShop snap={$game} onBuy={handleBuy} onMode={handleMode} />
+        <button type="button" class="dogsinc-transfer-open" onclick={() => openTransfer()}><QrCode size={16} />{TRANSFER_LABEL}</button>
       {/if}
     </div>
   </div>
@@ -215,7 +252,18 @@
         <span>Floors {$game.floors}</span><span>Staff {$game.owned.hire}</span><span>Janitors {$game.owned.janitor}</span><span>Bones {$game.bones}</span>
       </p>
       <DogsIncShop snap={$game} onBuy={handleBuy} onMode={handleMode} />
+      <button type="button" class="dogsinc-transfer-open" onclick={() => openTransfer()}><QrCode size={16} />{TRANSFER_LABEL}</button>
     </DogsIncDrawer>
+  {/if}
+
+  {#if transferOpen}
+    <DogsIncTransfer
+      snap={$game}
+      getCode={() => engine.exportCode()}
+      onImport={(state) => engine.importState(state)}
+      onClose={closeTransfer}
+      {incomingCode}
+    />
   {/if}
 </section>
 
@@ -526,6 +574,32 @@
 
     > :global(.dogsinc-missions) {
       flex: 1 1 auto;
+    }
+  }
+
+  // Save transfer: under the upgrades, in the drawer (phones) and the right panel (wider).
+  .dogsinc-transfer-open {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    min-height: 40px;
+    margin-top: 10px;
+    padding: 8px 12px;
+    border: 1px dashed $dogsinc-gold;
+    border-radius: 8px;
+    background: transparent;
+    color: $dogsinc-gold;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+      background: $dogsinc-gold-soft;
+      outline: none;
     }
   }
 

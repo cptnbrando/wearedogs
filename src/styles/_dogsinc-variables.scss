@@ -35,6 +35,8 @@ $dogsinc-on-gold: #1b1500;
 // Drawer surface and the dimmed stage behind it.
 $dogsinc-drawer-bg: #0b0d09;
 $dogsinc-scrim: rgba(0, 0, 0, 0.55);
+// Behind the save-transfer QR code: scanners need a light quiet zone (DogsIncTransfer.svelte).
+$dogsinc-qr-paper: #fff;
 // Tower paint: building frame by day / night, clouds, cafe, restroom.
 $dogsinc-frame: rgba(0, 215, 95, 0.55);
 $dogsinc-frame-night: rgba(127, 182, 255, 0.45);

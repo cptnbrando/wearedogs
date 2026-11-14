@@ -12,7 +12,7 @@
   } from "lucide-svelte";
   import SwipeTabNav from "./SwipeTabNav.svelte";
   import DogsLogo from "./DogsLogo.svelte";
-  import { audioCore } from "../lib/AudioCore.svelte.js";
+  import { goHome } from "../lib/goHome.js";
   import { onDoubleTap } from "../lib/doubleTap.js";
   import {
     languageVitals,
@@ -205,13 +205,8 @@
       <div class="brand">
         <button
           class="logo-btn"
-          onclick={() =>
-            window.dispatchEvent(
-              new CustomEvent(
-                audioCore.isPlaying ? "open-music-panel" : "open-info-panel",
-              ),
-            )}
-          aria-label="Open DOGS Info"
+          onclick={goHome}
+          aria-label="Go to the DOGS home page"
         >
           <DogsLogo size="panel" />
         </button>

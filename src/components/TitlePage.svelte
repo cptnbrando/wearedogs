@@ -20,6 +20,12 @@
   } from "../lib/router.svelte.js";
   import { audioCore } from "../lib/AudioCore.svelte.js";
   import { rememberPairingLink } from "./apps/datatrain/pairingLink.js";
+  import { GO_HOME_EVENT } from "../lib/goHome.js";
+  import { rememberSaveLink } from "./apps/dogsinc/saveLink.js";
+
+  // Apps opened from links that carry data in the URL fragment (Air Train pairing,
+  // DOGS INC save transfer): open them right away so a slow cold load can't drop the link.
+  const FRAGMENT_LINK_APPS = ["dataflash", "dogsinc"];
 
   // Active view state: 'stats' | 'networking' | 'toolbox' | 'music' | 'store' | 'map' | null
   let {
@@ -176,11 +182,18 @@
       showInfo = false;
       openPage("music");
     };
+    // Panel logos: back to the landing page from anywhere (panel, app, or both).
+    const handleGoHome = () => {
+      showInfo = false;
+      if (activePage) closePage();
+    };
     window.addEventListener("open-info-panel", handleOpenInfo);
     window.addEventListener("open-music-panel", handleOpenMusic);
+    window.addEventListener(GO_HOME_EVENT, handleGoHome);
     return () => {
       window.removeEventListener("open-info-panel", handleOpenInfo);
       window.removeEventListener("open-music-panel", handleOpenMusic);
+      window.removeEventListener(GO_HOME_EVENT, handleGoHome);
     };
   });
 
@@ -212,6 +225,7 @@
   onMount(() => {
     const path = window.location.pathname;
     rememberPairingLink(path, window.location.hash);
+    rememberSaveLink(path, window.location.hash);
     // Map spot deep links live in the hash (/map#spot=<id>) — capture it before
     // the replaceState below wipes it, so it can be restored when the map opens.
     const mapSpotHash = /spot=[^&]+/.test(window.location.hash)
@@ -307,8 +321,8 @@
       deepLinkApp = params.app;
       if (params.dogSpec) window.__openDogSpec = true;
       openPage("toolbox");
-      // Pairing must survive a cold toolbox import on a slow phone connection.
-      if (params.app === "dataflash") activeApp = params.app;
+      // Fragment links must survive a cold toolbox import on a slow phone connection.
+      if (FRAGMENT_LINK_APPS.indexOf(params.app) !== -1) activeApp = params.app;
       setTimeout(() => {
         deepLinkApp = null;
       }, 400);
