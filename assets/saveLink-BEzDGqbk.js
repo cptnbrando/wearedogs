@@ -1,0 +1,1 @@
+var e=/^#save=([A-Za-z0-9_-]{8,2000})$/,t=`/apps/dogsinc`,n=null;function r(r,i){if(r!==t&&r!==`/apps/dogsinc/`)return;let a=e.exec(String(i||``));n=a?a[1]:null}function i(){let e=n;return n=null,e}function a(e){return location.origin+`/apps/dogsinc#save=`+e}export{r as n,i as r,a as t};

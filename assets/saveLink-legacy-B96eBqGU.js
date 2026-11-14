@@ -1,0 +1,1 @@
+System.register([],function(n,t){var e,r,i;return n({n:function(n,t){if(n===r||"/apps/dogsinc/"===n){var s=e.exec(String(t||""));i=s?s[1]:null}},r:function(){var n=i;return i=null,n},t:function(n){return location.origin+"/apps/dogsinc#save="+n}}),{setters:[],execute:function(){e=/^#save=([A-Za-z0-9_-]{8,2000})$/,r="/apps/dogsinc",i=null}}});
