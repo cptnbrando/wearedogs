@@ -328,7 +328,7 @@
     {
       id: "dataflash",
       title: "Data Train",
-      desc: "Multi-protocol secure data dispatcher (QR, BT, USB, AirRTC).",
+      desc: "Scan a QR code and send files and text between your devices.",
       icon: Zap,
     },
     {
