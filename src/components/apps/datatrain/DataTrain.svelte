@@ -1,16 +1,12 @@
 <script>
   import NearbyTransfer from './NearbyTransfer.svelte';
   import QrTransfer from './QrTransfer.svelte';
-  import BluetoothTransfer from './BluetoothTransfer.svelte';
-  import UsbTransfer from './UsbTransfer.svelte';
-  import { Radio, QrCode, Bluetooth, Usb } from 'lucide-svelte';
+  import { Radio, QrCode } from 'lucide-svelte';
   import './dataTrain.scss';
 
   const TABS = [
     { id: 'air', label: 'Air Train', icon: Radio },
     { id: 'qr', label: 'QR Train', icon: QrCode },
-    { id: 'bluetooth', label: 'Blue Train', icon: Bluetooth },
-    { id: 'usb', label: 'USB Train', icon: Usb },
   ];
   let activeTab = 'air';
 </script>
@@ -28,13 +24,9 @@
     <div class="dt-air-container" hidden={activeTab !== 'air'}><NearbyTransfer /></div>
     {#if activeTab === 'qr'}
       <div class="dt-legacy">
-        <p class="dt-optical-note">QR Train sends tiny files through flashing images. For photos, audio, and text between devices, use <button onclick={() => activeTab = 'air'}>Air Train →</button></p>
         <QrTransfer />
+        <p class="dt-optical-note">Tiny files via flashing QR codes. Photos, audio, text: <button onclick={() => activeTab = 'air'}>Air Train →</button></p>
       </div>
-    {:else if activeTab === 'bluetooth'}
-      <BluetoothTransfer onAir={() => activeTab = 'air'} />
-    {:else if activeTab === 'usb'}
-      <UsbTransfer onAir={() => activeTab = 'air'} />
     {/if}
   </div>
 </div>

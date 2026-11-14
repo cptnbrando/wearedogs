@@ -11,6 +11,11 @@ $accent-ink: #03272b;
 $success: #83e4be;
 $error: #ffb6b6;
 $qr-paper: #fff;
+// QR Train accent (used across qrTransfer.scss).
+$qr-cyan: #00f0ff;
+// Dims the workspace behind the How sharing works box.
+$scrim: rgba(0, 0, 0, .72);
+$shadow: 0 18px 48px rgba(0, 0, 0, .6);
 $radius: 8px;
 $space: 16px;
 $body: 14px;

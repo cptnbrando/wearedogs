@@ -282,7 +282,7 @@
     settings: "#ff3344",
     wiretap: "#00ff66",
     frames: "#ff5e00",
-    passwords: "#00d75f",
+    passwords: "#a66bff",
     pocketsand: "#e8c07d",
     dogsinc: "#00d75f",
   };
@@ -308,22 +308,16 @@
       icon: QrCode,
     },
     {
-      id: "reader",
-      title: "Image Reader",
-      desc: "Extract editable text from images.",
-      icon: FileText,
-    },
-    {
-      id: "wiretap",
-      title: "Wiretap",
-      desc: "Record audio and video streams with live transcriptions and waveforms.",
-      icon: Mic,
-    },
-    {
       id: "passwords",
       title: "Password Generator",
       desc: "Generate secure random passwords up to 200 characters with entropy analysis.",
       icon: KeyRound,
+    },
+    {
+      id: "soundboard",
+      title: "Dog Soundboard",
+      desc: "Bark bark bark.",
+      icon: Volume2,
     },
     {
       id: "pocketsand",
@@ -338,6 +332,24 @@
       icon: Zap,
     },
     {
+      id: "reader",
+      title: "Image Reader",
+      desc: "Extract editable text from images.",
+      icon: FileText,
+    },
+    {
+      id: "wiretap",
+      title: "Wiretap",
+      desc: "Record audio and video streams with live transcriptions and waveforms.",
+      icon: Mic,
+    },
+    {
+      id: "dogsinc",
+      title: "DOGS INC",
+      desc: "Build a tower, hire the dogs, click the box, and keep the money coming.",
+      icon: Building2,
+    },
+    {
       id: "soundstripper",
       title: "Sound Stripper",
       desc: "Extract vocal acapellas by subtracting reference instrumental bleed.",
@@ -350,12 +362,6 @@
       icon: Sparkles,
     },
     {
-      id: "soundboard",
-      title: "Dog Soundboard",
-      desc: "Bark bark bark.",
-      icon: Volume2,
-    },
-    {
       id: "snake",
       title: "Snake",
       desc: "The classic. AI mode included.",
@@ -366,12 +372,6 @@
       title: "Arcade",
       desc: "Play retro consoles (GBA, N64, NDS, Genesis).",
       icon: Gamepad2,
-    },
-    {
-      id: "dogsinc",
-      title: "DOGS INC",
-      desc: "Build a tower, hire the dogs, click the box, and keep the money coming.",
-      icon: Building2,
     },
     {
       id: "stopwatch",

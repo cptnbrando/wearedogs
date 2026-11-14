@@ -67,3 +67,35 @@ export const GOALS = [
 /** After the tutorial goals, targets become lifetime-earnings milestones. */
 export const EXTRA_GOAL_BASE = 25000;
 export const EXTRA_GOAL_GROWTH = 5;
+
+// ── Golden bone (catchable sky event) ──
+// A bone drifts across the sky every so often. Tap it before it leaves for a random boon.
+/** Ticks between bones (random between min and max). 10 ticks = 1 second. */
+export const FLIER_GAP_MIN_TICKS = 350;
+export const FLIER_GAP_MAX_TICKS = 750;
+/** First bone of a session comes sooner so new players meet it. */
+export const FLIER_FIRST_TICKS = 150;
+/** How long one crossing takes. */
+export const FLIER_FLIGHT_TICKS = 90;
+/** Smallest cash burst, so early-game catches still feel good. */
+export const BOON_CASH_FLOOR = 25;
+/**
+ * Boons a caught bone can grant. `weight` sets how often each is rolled.
+ * cash: instant payout of `seconds` worth of current income (or clicks, whichever is bigger).
+ * frenzy: clicks pay `mult`x for `seconds`. rush: income pays `mult`x for `seconds`.
+ */
+export const BOONS = [
+  { id: 'cash', weight: 5, seconds: 45, label: 'Bone bonus' },
+  { id: 'frenzy', weight: 3, seconds: 12, mult: 7, label: 'Click frenzy' },
+  { id: 'rush', weight: 3, seconds: 20, mult: 3, label: 'Rush hour' },
+];
+
+// ── Shop buy amounts ──
+/** Buy-mode buttons in the shop. 0 means "as many as you can afford". */
+export const BUY_MODES = [
+  { id: 'one', label: 'x1', count: 1 },
+  { id: 'ten', label: 'x10', count: 10 },
+  { id: 'max', label: 'MAX', count: 0 },
+];
+/** Safety cap for MAX buys so one tap can never spin forever. */
+export const MAX_BULK_BUY = 500;

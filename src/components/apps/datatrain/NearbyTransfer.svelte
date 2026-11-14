@@ -1,7 +1,7 @@
 <script>
-  import { onMount } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import QRCode from 'qrcode';
-  import { ArrowUpRight, Link, Copy, RefreshCw, Monitor, Smartphone, Check, X, Plus, Send, Radio, ClipboardPaste } from 'lucide-svelte';
+  import { ArrowUpRight, Link, Copy, RefreshCw, Monitor, Smartphone, Check, X, Plus, Send, Radio, ClipboardPaste, Info } from 'lucide-svelte';
   import { TransferSession } from './transferSession.js';
   import { createPairingLink, parsePairingLink, takePairingLink } from './pairingLink.js';
   import { copyText } from '../../../lib/clipboard.js';
@@ -10,6 +10,13 @@
   const MAX_TEXT_LENGTH = 16000;
   const COPY_ERROR = 'Copy is unavailable here. Select the text and copy it manually.';
   const PASTE_EMPTY = 'Your clipboard is empty, or this browser blocked access. Paste into the box instead.';
+  const TEXT_PLACEHOLDER = 'Copy and paste anything';
+  const HELP_POINTS = [
+    'Your browsers find each other through PeerJS, a free pairing service. Files and text then travel device to device, encrypted. Nothing is stored on DOGS servers.',
+    'Works on different networks too. If it won\'t connect, turn on your phone\'s hotspot and join your laptop to it.',
+    'Up to 100 MB per file, and 200 MB waiting in your inbox.',
+    'Save files before you leave. Closing or refreshing the page ends the session.',
+  ];
   const QR_OPTIONS = { width: 264, margin: 4, errorCorrectionLevel: 'M' };
   const STATUS_LABELS = {
     idle: 'Ready to pair', starting: 'Preparing your connection…', waiting: 'Waiting for your other device',
@@ -30,6 +37,8 @@
   let currentQrLink = '';
   let mobilePane = 'sent';
   let canPaste = false;
+  let helpOpen = false;
+  let helpClose;
   $: connected = state.status === 'connected';
   $: sentItems = state.items.filter(item => item.direction === 'sent');
   $: receivedItems = state.items.filter(item => item.direction === 'received');
@@ -120,12 +129,24 @@
     });
   }
 
+  async function openHelp() {
+    helpOpen = true;
+    await tick();
+    if (helpClose) helpClose.focus();
+  }
+
+  function closeHelp() {
+    helpOpen = false;
+  }
+
   function restart() {
     qrImage = '';
     currentQrLink = '';
     run(() => session.host());
   }
 </script>
+
+<svelte:window onkeydown={(event) => { if (helpOpen && event.key === 'Escape') closeHelp(); }} />
 
 <section class="dt-air w-full flex flex-col sm:flex-col md:flex-col lg:flex-col xl:flex-col 2xl:flex-col" aria-label="Air Train">
   <header class="dt-air-header">
@@ -192,9 +213,18 @@
       </div>
       <div class="dt-send-dock">
         <div class="dt-file-action"><button class="dt-primary" disabled={!connected} onclick={() => fileInput.click()}><Plus size={18} />Send files</button><span>Photos, audio, anything.<br />Up to 100 MB per file.</span><input class="dt-file-input" bind:this={fileInput} type="file" multiple aria-label="Choose files to send" onchange={sendFiles} /></div>
-        <form class="dt-text-form" onsubmit={sendText}><label for="train-text">Send text to your other device</label><div class="dt-input-row"><textarea id="train-text" bind:value={draft} maxlength={MAX_TEXT_LENGTH} rows="2" placeholder="Paste a link, a note, a little something…"></textarea>{#if canPaste}<button class="dt-secondary" type="button" disabled={!connected} onclick={pasteDraft} aria-label="Paste from clipboard"><ClipboardPaste size={18} /><span>Paste</span></button>{/if}<button class="dt-secondary" type="submit" disabled={!connected || !draft.trim()} aria-label="Send text"><Send size={18} /><span>Send</span></button></div></form>
+        <form class="dt-text-form" onsubmit={sendText}><label for="train-text">Send text to your other device</label><div class="dt-input-row"><textarea id="train-text" bind:value={draft} maxlength={MAX_TEXT_LENGTH} rows="2" placeholder={TEXT_PLACEHOLDER}></textarea>{#if canPaste}<button class="dt-secondary" type="button" disabled={!connected} onclick={pasteDraft} aria-label="Paste from clipboard"><ClipboardPaste size={18} /><span>Paste</span></button>{/if}<button class="dt-secondary" type="submit" disabled={!connected || !draft.trim()} aria-label="Send text"><Send size={18} /><span>Send</span></button></div></form>
       </div>
     </div>
   {/if}
-  <footer class="dt-footnote"><span><ArrowUpRight size={13} />{connected ? 'Direct device connection · save received files before leaving.' : 'Internet needed to pair · no account needed.'}</span><details><summary>How sharing works</summary><p>PeerJS's free signaling service helps your browsers find each other. Files and text travel over an encrypted WebRTC connection, without being stored on DOGS servers. Some networks block direct connections; try the same Wi-Fi or a personal hotspot. Transfers are limited to 100 MB per file and 200 MB in the inbox. Leaving or refreshing clears this session. Clipboard sharing is manual: paste here, then copy on the receiving device.</p></details></footer>
+  <footer class="dt-footnote"><span><ArrowUpRight size={13} />{connected ? 'Direct device connection · save received files before leaving.' : 'Internet needed to pair · no account needed.'}</span><button type="button" class="dt-help-open" onclick={openHelp}><Info size={13} />How sharing works</button></footer>
+  {#if helpOpen}
+    <div class="dt-help-layer">
+      <button type="button" class="dt-help-scrim" tabindex="-1" aria-label="Close how sharing works" onclick={closeHelp}></button>
+      <div class="dt-help" role="dialog" aria-modal="true" aria-labelledby="dt-help-title">
+        <div class="dt-help-head"><h3 id="dt-help-title">How sharing works</h3><button type="button" class="dt-icon-button" bind:this={helpClose} onclick={closeHelp} aria-label="Close"><X size={16} /></button></div>
+        <ul>{#each HELP_POINTS as point}<li>{point}</li>{/each}</ul>
+      </div>
+    </div>
+  {/if}
 </section>

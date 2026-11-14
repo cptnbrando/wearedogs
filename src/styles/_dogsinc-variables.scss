@@ -1,5 +1,6 @@
 // DOGS INC palette, type scale and layout tokens.
-// Used by: components/apps/dogsinc/DogsIncApp.svelte, DogsIncTower.svelte, DogsIncSidePanel.svelte
+// Used by: components/apps/dogsinc/DogsIncApp.svelte, DogsIncTower.svelte, DogsIncMissions.svelte,
+// DogsIncShop.svelte, DogsIncDrawer.svelte
 // Site-wide colors come from _variables.scss so the app matches the rest of the toolbox.
 
 @use "variables" as site;
@@ -21,6 +22,35 @@ $dogsinc-dim: rgba(255, 255, 255, 0.35);
 $dogsinc-line: rgba(255, 255, 255, 0.12);
 // Shop row hover / focus background.
 $dogsinc-hover-bg: rgba(255, 255, 255, 0.05);
+
+// ── Rogue layer (non-ASCII UI on top of the tower) ──
+// Gold as plain hex: the site token is a CSS var, which Sass cannot fade with rgba().
+$dogsinc-gold-hex: #e6b900;
+// Glow behind the click box, the upgrades tab and the golden bone.
+$dogsinc-gold-glow: rgba(230, 185, 0, 0.45);
+// Soft gold fill: affordable shop cards, the mission card, the active buy mode.
+$dogsinc-gold-soft: rgba(230, 185, 0, 0.12);
+// Ink on solid gold (tab, buttons).
+$dogsinc-on-gold: #1b1500;
+// Drawer surface and the dimmed stage behind it.
+$dogsinc-drawer-bg: #0b0d09;
+$dogsinc-scrim: rgba(0, 0, 0, 0.55);
+// Tower paint: building frame by day / night, clouds, cafe, restroom.
+$dogsinc-frame: rgba(0, 215, 95, 0.55);
+$dogsinc-frame-night: rgba(127, 182, 255, 0.45);
+$dogsinc-cloud: rgba(255, 255, 255, 0.7);
+$dogsinc-cafe: #ffb347;
+$dogsinc-restroom: #5fe3ff;
+// Click frenzy and rush-hour tints.
+$dogsinc-frenzy: #ff4fd8;
+$dogsinc-rush: #5fe3ff;
+
+// ── Motion ──
+$dogsinc-drawer-ms: 220ms;
+$dogsinc-particle-ms: 900ms;
+// Topbar height is fixed so the upgrades tab never pushes the click box down.
+// 37.8px is the height the original text-only topbar had: the click box stays exactly where it was.
+$dogsinc-topbar-h: 37.8px;
 
 // ── Type ──
 $dogsinc-mono: ui-monospace, Menlo, Consolas, "Courier New", monospace;

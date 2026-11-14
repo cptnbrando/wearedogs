@@ -5,6 +5,9 @@ import {
 } from './dogsIncConfig.js';
 
 // ── Tower geometry (every row is exactly TOWER_WIDTH chars; row count is fixed) ──
+// Glyphs stay plain ASCII on purpose: phones without a full monospace font fall back to
+// proportional glyphs for box-drawing characters, which would change the tower's width
+// and shove the click box. Color does the decorating instead.
 const LABEL_WIDTH = 4;
 const SLOT_WIDTH = 7;
 const SLOT_AREA_WIDTH = SLOTS_PER_FLOOR * SLOT_WIDTH;
@@ -18,7 +21,15 @@ const FLOOR_ROWS = 3;
 const LOBBY_ROWS = 2;
 /** Total rows: sky, roof, floors, lobby, ground. */
 export const TOWER_ROWS = SKY_ROWS + 1 + MAX_DRAWN_FLOORS * FLOOR_ROWS + LOBBY_ROWS + 1;
+/** Sky rows sit at the top of the block; the golden bone flies through them. */
+export const TOWER_SKY_ROWS = SKY_ROWS;
 const FIRST_AMENITY_FLOOR = 2;
+
+// ── Color codes (one char per glyph; DogsIncTower maps them to CSS classes) ──
+export const INK = {
+  frame: 'f', desk: 'i', worker: 'e', sun: 's', moon: 'm', star: 'm',
+  cloud: 'w', janitor: 'a', cafe: 'c', restroom: 'r', ghost: 'd', sign: 's', label: 'd',
+};
 
 // ── Glyphs ──
 const SUN_GLYPH = 'O';
@@ -28,6 +39,8 @@ const STAR_BRIGHT = '*';
 const STAR_DIM = '.';
 const STAR_SPOTS = [3, 11, 19, 27, 35, 40];
 const CLOUD_SPOTS = [6, 26];
+/** Ticks per one-column cloud drift. */
+const CLOUD_DRIFT_TICKS = 25;
 const TWINKLE_PERIOD = 30;
 const TWINKLE_ON = 15;
 const EMPLOYEE_GLYPH = 'o';
@@ -49,7 +62,9 @@ const EMPTY_ROOM_BOTTOM = '  .  ';
 const ROOF_FILL = '^';
 const FLOOR_SEPARATOR = '-';
 const GROUND_FILL = '=';
-const LOBBY_TOP_TEXT = ' LOBBY    DOGS INC   [E]';
+const LOBBY_LEFT_TEXT = ' LOBBY    ';
+const LOBBY_SIGN_TEXT = 'DOGS INC';
+const LOBBY_RIGHT_TEXT = '   [E]';
 const LOBBY_BOTTOM_FILL = '_';
 
 // ── Click box ──
@@ -57,20 +72,29 @@ const CLICK_BOX_INNER = 16;
 const CLICK_LABEL = '$ CLICK $';
 const CLICK_BORDER_FILL = '-';
 
-// ── Progress bar ──
-const BAR_CELLS = 20;
-const BAR_FILLED = '#';
-const BAR_EMPTY = '-';
+/**
+ * @typedef {{t: string, c: string}} PaintedRow  text plus a same-length string of color codes
+ */
 
 /**
- * Overwrites part of a string, keeping its length.
- * @param {string} text
- * @param {number} index
- * @param {string} insert
- * @returns {string}
+ * @param {number} width
+ * @param {string} [ink]
+ * @returns {PaintedRow} a blank row
  */
-function put(text, index, insert) {
-  return text.slice(0, index) + insert + text.slice(index + insert.length);
+function blank(width, ink = INK.desk) {
+  return { t: ' '.repeat(width), c: ink.repeat(width) };
+}
+
+/**
+ * Overwrites part of a row in place, keeping its length, and colors the new glyphs.
+ * @param {PaintedRow} row
+ * @param {number} index
+ * @param {string} text
+ * @param {string} ink one INK code
+ */
+function paint(row, index, text, ink) {
+  row.t = row.t.slice(0, index) + text + row.t.slice(index + text.length);
+  row.c = row.c.slice(0, index) + ink.repeat(text.length) + row.c.slice(index + text.length);
 }
 
 /**
@@ -84,27 +108,28 @@ function centered(text, width) {
 }
 
 /**
- * Two sky rows: the sun or moon arcs across the top row, stars or clouds sit below it.
+ * Two sky rows: the sun or moon arcs across the top row, stars or drifting clouds below.
  * @param {{clock:number,isNight:boolean,frame:number}} snap
- * @returns {string[]}
+ * @returns {PaintedRow[]}
  */
 function skyRows(snap) {
-  let celestial = ' '.repeat(TOWER_WIDTH);
-  let scenery = ' '.repeat(TOWER_WIDTH);
+  const celestial = blank(TOWER_WIDTH);
+  const scenery = blank(TOWER_WIDTH);
   const span = TOWER_WIDTH - 1;
   if (snap.isNight) {
     const moonX = Math.floor(((snap.clock - NIGHT_START) / (1 - NIGHT_START)) * span);
-    celestial = put(celestial, moonX, MOON_GLYPH);
+    paint(celestial, moonX, MOON_GLYPH, INK.moon);
     STAR_SPOTS.forEach((x, i) => {
       const bright = (snap.frame + i * 5) % TWINKLE_PERIOD < TWINKLE_ON;
-      scenery = put(scenery, x, bright ? STAR_BRIGHT : STAR_DIM);
+      paint(scenery, x, bright ? STAR_BRIGHT : STAR_DIM, INK.star);
     });
     return [celestial, scenery];
   }
   const sunX = Math.floor((snap.clock / NIGHT_START) * span);
-  celestial = put(celestial, sunX, SUN_GLYPH);
+  paint(celestial, sunX, SUN_GLYPH, INK.sun);
+  const drift = Math.floor(snap.frame / CLOUD_DRIFT_TICKS);
   CLOUD_SPOTS.forEach((x) => {
-    scenery = put(scenery, x, CLOUD_GLYPH);
+    paint(scenery, (x + drift) % (TOWER_WIDTH - CLOUD_GLYPH.length), CLOUD_GLYPH, INK.cloud);
   });
   return [celestial, scenery];
 }
@@ -138,86 +163,114 @@ function seatGlyph(seat, frame) {
 }
 
 /**
+ * @param {number} floorNo
+ * @returns {PaintedRow} a floor's head row with only its "F3" label filled in
+ */
+function labelledRow(floorNo) {
+  const row = blank(TOWER_INNER);
+  paint(row, 0, ('F' + floorNo).padEnd(LABEL_WIDTH), INK.label);
+  return row;
+}
+
+/**
  * Head row and desk row for one built office floor, plus its right-hand amenity column.
  * @param {object} snap
  * @param {number} floorNo
  * @param {Object<number, number[]>} janitors
- * @returns {string[]} [headRow, deskRow], each TOWER_INNER wide
+ * @returns {PaintedRow[]} [headRow, deskRow], each TOWER_INNER wide
  */
 function officeRows(snap, floorNo, janitors) {
-  let head = ('F' + floorNo).padEnd(LABEL_WIDTH) + ' '.repeat(TOWER_INNER - LABEL_WIDTH);
-  let desk = ' '.repeat(TOWER_INNER);
+  const head = labelledRow(floorNo);
+  const desk = blank(TOWER_INNER);
   const deskArt = snap.owned.chair > 0 ? DESK_CHAIR : DESK_PLAIN;
   for (let s = 0; s < SLOTS_PER_FLOOR; s += 1) {
     const slotStart = LABEL_WIDTH + s * SLOT_WIDTH;
     const seat = (floorNo - 1) * SLOTS_PER_FLOOR + s;
     if (seat < snap.owned.hire && !snap.isNight) {
-      head = put(head, slotStart + 2, seatGlyph(seat, snap.frame));
+      paint(head, slotStart + 2, seatGlyph(seat, snap.frame), INK.worker);
     }
-    desk = put(desk, slotStart, deskArt);
+    paint(desk, slotStart, deskArt, INK.desk);
   }
   (janitors[floorNo] || []).forEach((offset) => {
     const col = LABEL_WIDTH + offset;
-    if (head[col] === ' ') head = put(head, col, JANITOR_GLYPH);
+    if (head.t[col] === ' ') paint(head, col, JANITOR_GLYPH, INK.janitor);
   });
+  if (floorNo < FIRST_AMENITY_FLOOR) return [head, desk];
   const amenityIndex = floorNo - FIRST_AMENITY_FLOOR;
-  if (floorNo >= FIRST_AMENITY_FLOOR) {
-    const cafeBuilt = amenityIndex < snap.owned.cafe;
-    const restroomBuilt = amenityIndex < snap.owned.restroom;
-    head = put(head, AMENITY_START, cafeBuilt ? CAFE_TOP : EMPTY_ROOM_TOP);
-    desk = put(desk, AMENITY_START, cafeBuilt ? CAFE_BOTTOM : EMPTY_ROOM_BOTTOM);
-    head = put(head, AMENITY_START + HALF_AMENITY_WIDTH, restroomBuilt ? RESTROOM_TOP : EMPTY_ROOM_TOP);
-    desk = put(desk, AMENITY_START + HALF_AMENITY_WIDTH, restroomBuilt ? RESTROOM_BOTTOM : EMPTY_ROOM_BOTTOM);
-  }
+  const cafeBuilt = amenityIndex < snap.owned.cafe;
+  const restroomBuilt = amenityIndex < snap.owned.restroom;
+  const restroomStart = AMENITY_START + HALF_AMENITY_WIDTH;
+  paint(head, AMENITY_START, cafeBuilt ? CAFE_TOP : EMPTY_ROOM_TOP, INK.cafe);
+  paint(desk, AMENITY_START, cafeBuilt ? CAFE_BOTTOM : EMPTY_ROOM_BOTTOM, cafeBuilt ? INK.cafe : INK.ghost);
+  paint(head, restroomStart, restroomBuilt ? RESTROOM_TOP : EMPTY_ROOM_TOP, INK.restroom);
+  paint(desk, restroomStart, restroomBuilt ? RESTROOM_BOTTOM : EMPTY_ROOM_BOTTOM, restroomBuilt ? INK.restroom : INK.ghost);
   return [head, desk];
 }
 
 /**
  * A floor the player hasn't built yet. Dots mark where desks will go.
  * @param {number} floorNo
- * @returns {string[]} [headRow, deskRow]
+ * @returns {PaintedRow[]} [headRow, deskRow]
  */
 function ghostRows(floorNo) {
-  let desk = ' '.repeat(TOWER_INNER);
+  const desk = blank(TOWER_INNER, INK.ghost);
   for (let s = 0; s < SLOTS_PER_FLOOR; s += 1) {
-    desk = put(desk, LABEL_WIDTH + s * SLOT_WIDTH + 2, GHOST_GLYPH);
+    paint(desk, LABEL_WIDTH + s * SLOT_WIDTH + 2, GHOST_GLYPH, INK.ghost);
   }
-  return [('F' + floorNo).padEnd(LABEL_WIDTH) + ' '.repeat(TOWER_INNER - LABEL_WIDTH), desk];
+  return [labelledRow(floorNo), desk];
 }
 
 /**
- * Renders the whole building as fixed-width text rows.
+ * @param {PaintedRow} inner
+ * @returns {PaintedRow} the row framed by building walls
+ */
+function walled(inner) {
+  return { t: '|' + inner.t + '|', c: INK.frame + inner.c + INK.frame };
+}
+
+/**
+ * @param {string} edge
+ * @param {string} fill
+ * @returns {PaintedRow} a full-width structural row such as a floor slab
+ */
+function slab(edge, fill) {
+  const text = edge + fill.repeat(TOWER_INNER) + edge;
+  return { t: text, c: INK.frame.repeat(text.length) };
+}
+
+/**
+ * Renders the whole building as fixed-width painted rows.
  * The tower always draws MAX_DRAWN_FLOORS floors so the block never changes size.
  * @param {object} snap - engine snapshot
- * @returns {string[]} TOWER_ROWS rows, each TOWER_WIDTH chars
+ * @returns {PaintedRow[]} TOWER_ROWS rows, each TOWER_WIDTH chars
  */
 export function buildTowerRows(snap) {
-  const wall = (inner) => '|' + inner + '|';
-  const separator = '+' + FLOOR_SEPARATOR.repeat(TOWER_INNER) + '+';
   const janitors = janitorCells(snap);
   const topFloor = Math.max(snap.floors, MAX_DRAWN_FLOORS);
   const bottomFloor = topFloor - MAX_DRAWN_FLOORS + 1;
 
   const rows = skyRows(snap);
-  rows.push('+' + ROOF_FILL.repeat(TOWER_INNER) + '+');
+  rows.push(slab('+', ROOF_FILL));
   for (let floorNo = topFloor; floorNo >= bottomFloor; floorNo -= 1) {
     const [head, desk] = floorNo > snap.floors
       ? ghostRows(floorNo)
       : officeRows(snap, floorNo, janitors);
-    rows.push(wall(head), wall(desk), separator);
+    rows.push(walled(head), walled(desk), slab('+', FLOOR_SEPARATOR));
   }
-  rows.push(
-    wall(LOBBY_TOP_TEXT.padEnd(TOWER_INNER)),
-    wall(LOBBY_BOTTOM_FILL.repeat(TOWER_INNER)),
-    '+' + GROUND_FILL.repeat(TOWER_INNER) + '+',
-  );
+  const lobby = blank(TOWER_INNER);
+  paint(lobby, 0, LOBBY_LEFT_TEXT, INK.label);
+  paint(lobby, LOBBY_LEFT_TEXT.length, LOBBY_SIGN_TEXT, INK.sign);
+  paint(lobby, LOBBY_LEFT_TEXT.length + LOBBY_SIGN_TEXT.length, LOBBY_RIGHT_TEXT, INK.label);
+  const lobbyFloor = blank(TOWER_INNER, INK.frame);
+  paint(lobbyFloor, 0, LOBBY_BOTTOM_FILL.repeat(TOWER_INNER), INK.frame);
+  rows.push(walled(lobby), walled(lobbyFloor), slab('+', GROUND_FILL));
   return rows;
 }
 
 /**
  * The big box. Caption shows what one click pays.
  * @param {string} caption e.g. "+$12"
- * @returns {string[]} three rows, each CLICK_BOX_INNER + 2 wide
+ * @returns {string[]} four rows, each CLICK_BOX_INNER + 2 wide
  */
 export function buildClickBoxRows(caption) {
   const border = '+' + CLICK_BORDER_FILL.repeat(CLICK_BOX_INNER) + '+';
@@ -227,14 +280,4 @@ export function buildClickBoxRows(caption) {
     '|' + centered(caption, CLICK_BOX_INNER) + '|',
     border,
   ];
-}
-
-/**
- * ASCII progress bar, e.g. [####----------------] 25%.
- * @param {number} ratio 0–1
- * @returns {string}
- */
-export function buildBarRow(ratio) {
-  const filled = Math.round(Math.max(0, Math.min(1, ratio)) * BAR_CELLS);
-  return '[' + BAR_FILLED.repeat(filled) + BAR_EMPTY.repeat(BAR_CELLS - filled) + ']';
 }

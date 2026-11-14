@@ -19,6 +19,14 @@ import {
   GOALS,
   EXTRA_GOAL_BASE,
   EXTRA_GOAL_GROWTH,
+  FLIER_GAP_MIN_TICKS,
+  FLIER_GAP_MAX_TICKS,
+  FLIER_FIRST_TICKS,
+  FLIER_FLIGHT_TICKS,
+  BOON_CASH_FLOOR,
+  BOONS,
+  BUY_MODES,
+  MAX_BULK_BUY,
 } from './dogsIncConfig.js';
 
 const MS_PER_SEC = 1000;
@@ -27,6 +35,8 @@ const MONEY_SUFFIXES = ['', 'K', 'M', 'B', 'T', 'Qa', 'Qi'];
 const MONEY_DECIMALS_SMALL = 2;
 const MONEY_DECIMALS_LARGE = 1;
 const MONEY_DECIMAL_CUTOFF = 10;
+const TICKS_PER_SEC = MS_PER_SEC / TICK_MS;
+const NO_MULT = 1;
 
 /**
  * Short money label for the HUD: $950, $1.25K, $3.40M, ...
@@ -68,6 +78,7 @@ function freshState() {
     nights: 0,
     clock: 0,
     goalsDone: 0,
+    bones: 0,
     owned: zeroOwned(),
     savedAt: 0,
   };
@@ -94,6 +105,22 @@ function readSave() {
   return state;
 }
 
+/** @returns {number} ticks until the next golden bone */
+function randomGap() {
+  return FLIER_GAP_MIN_TICKS + Math.floor(Math.random() * (FLIER_GAP_MAX_TICKS - FLIER_GAP_MIN_TICKS));
+}
+
+/** @returns {object} a boon from BOONS, picked by weight */
+function rollBoon() {
+  const totalWeight = BOONS.reduce((sum, boon) => sum + boon.weight, 0);
+  let roll = Math.random() * totalWeight;
+  for (let i = 0; i < BOONS.length; i += 1) {
+    roll -= BOONS[i].weight;
+    if (roll < 0) return BOONS[i];
+  }
+  return BOONS[0];
+}
+
 /**
  * Game core for DOGS INC. Owns all state and rules; the Svelte shell only
  * calls click() / buy() and renders the published snapshot.
@@ -106,6 +133,13 @@ export class DogsIncEngine {
     this.saveAccumulator = 0;
     this.timer = null;
     this.welcomeGain = 0;
+    this.flier = null;
+    this.nextFlierAt = FLIER_FIRST_TICKS;
+    this.boost = null;
+    this.event = null;
+    this.eventSeq = 0;
+    this.buyCount = BUY_MODES[0].count;
+    this.buyMode = BUY_MODES[0].id;
     this.applyOfflineEarnings();
     this.store = writable(this.snapshot());
   }
@@ -130,6 +164,8 @@ export class DogsIncEngine {
     this.frame += 1;
     this.state.clock = (this.state.clock + dtSec) % DAY_LENGTH_SEC;
     if (wasNight && !this.isNight()) this.state.nights += 1;
+    this.tickFlier();
+    if (this.boost && this.frame >= this.boost.until) this.boost = null;
     this.earn(this.perSec() * dtSec);
     this.checkGoals();
     this.saveAccumulator += TICK_MS;
@@ -149,17 +185,49 @@ export class DogsIncEngine {
   }
 
   /**
-   * Buys one unit of a shop item if it is unlocked, under its limit, and affordable.
+   * Buys the current buy-mode amount of a shop item (x1, x10 or as many as affordable).
    * @param {string} id
-   * @returns {boolean} true when the purchase happened
+   * @returns {number} units bought (0 when the purchase was refused)
    */
   buy(id) {
     const item = SHOP_ITEMS.find((entry) => entry.id === id);
-    if (!item) return false;
+    if (!item) return 0;
     const entry = this.shopEntry(item);
-    if (!entry.canBuy) return false;
+    if (!entry.canBuy) return 0;
     this.state.cash -= entry.cost;
-    this.state.owned[id] += 1;
+    this.state.owned[id] += entry.qty;
+    this.checkGoals();
+    this.publish();
+    return entry.qty;
+  }
+
+  /** @param {string} modeId one of the BUY_MODES ids */
+  setBuyMode(modeId) {
+    const mode = BUY_MODES.find((entry) => entry.id === modeId);
+    if (!mode) return;
+    this.buyMode = mode.id;
+    this.buyCount = mode.count;
+    this.publish();
+  }
+
+  /**
+   * Taps the golden bone. Rolls a weighted random boon and applies it.
+   * @returns {boolean} true when a bone was in the sky
+   */
+  catchFlier() {
+    if (!this.flier) return false;
+    this.flier = null;
+    this.nextFlierAt = this.frame + randomGap();
+    this.state.bones += 1;
+    const boon = rollBoon();
+    if (boon.id === 'cash') {
+      const gain = Math.max(BOON_CASH_FLOOR, this.perSec() * boon.seconds, this.clickValue() * boon.seconds);
+      this.earn(gain);
+      this.announce(boon.label + ' +' + formatMoney(gain), 'boon');
+    } else {
+      this.boost = { id: boon.id, mult: boon.mult, label: boon.label, until: this.frame + boon.seconds * TICKS_PER_SEC };
+      this.announce(boon.label + '! x' + boon.mult + ' for ' + boon.seconds + 's', 'boon');
+    }
     this.checkGoals();
     this.publish();
     return true;
@@ -191,9 +259,39 @@ export class DogsIncEngine {
     return 1 + this.state.owned.floor;
   }
 
-  /** @returns {number} cash per click */
+  /** @returns {number} cash per click, including an active click frenzy */
   clickValue() {
-    return BASE_CLICK_VALUE + this.state.owned.mouse;
+    return (BASE_CLICK_VALUE + this.state.owned.mouse) * this.boostMult('frenzy');
+  }
+
+  /**
+   * @param {string} id boon id
+   * @returns {number} the active boost's multiplier when it matches id, else 1
+   */
+  boostMult(id) {
+    return this.boost && this.boost.id === id ? this.boost.mult : NO_MULT;
+  }
+
+  /** Spawns, flies and expires the golden bone. */
+  tickFlier() {
+    if (this.flier && this.frame - this.flier.start >= FLIER_FLIGHT_TICKS) {
+      this.flier = null;
+      this.nextFlierAt = this.frame + randomGap();
+    }
+    if (!this.flier && this.frame >= this.nextFlierAt) {
+      this.flier = { start: this.frame };
+      this.nextFlierAt = Infinity;
+    }
+  }
+
+  /**
+   * Queues a one-line message for the HUD toast.
+   * @param {string} text
+   * @param {'boon'|'goal'} kind
+   */
+  announce(text, kind) {
+    this.eventSeq += 1;
+    this.event = { id: this.eventSeq, text, kind };
   }
 
   /**
@@ -204,9 +302,10 @@ export class DogsIncEngine {
   perSec() {
     const { owned } = this.state;
     const amenityMult = 1 + CAFE_BONUS * owned.cafe + RESTROOM_BONUS * owned.restroom;
-    if (this.isNight()) return owned.janitor * JANITOR_INCOME * amenityMult;
+    const rush = this.boostMult('rush');
+    if (this.isNight()) return owned.janitor * JANITOR_INCOME * amenityMult * rush;
     const deskMult = 1 + CHAIR_BONUS * owned.chair;
-    return owned.hire * EMPLOYEE_INCOME * deskMult * amenityMult;
+    return owned.hire * EMPLOYEE_INCOME * deskMult * amenityMult * rush;
   }
 
   /** @returns {Object<string, number>} raw numbers that goals and the HUD read */
@@ -221,6 +320,7 @@ export class DogsIncEngine {
       cafes: owned.cafe,
       restrooms: owned.restroom,
       floors: this.floorCount(),
+      bones: this.state.bones,
     };
   }
 
@@ -249,15 +349,37 @@ export class DogsIncEngine {
   }
 
   /**
+   * Price of the next units under the current buy mode. A fixed count (x10) stops early
+   * only at the building's limit; MAX (count 0) buys as many as the cash covers.
+   * @param {{id:string,baseCost:number,growth:number,kind:string}} item
+   * @returns {{qty:number,total:number}}
+   */
+  quote(item) {
+    const owned = this.state.owned[item.id];
+    const room = this.limitOf(item) - owned;
+    const wanted = this.buyCount || MAX_BULK_BUY;
+    let qty = 0;
+    let total = 0;
+    while (qty < wanted && qty < room) {
+      const next = Math.floor(item.baseCost * Math.pow(item.growth, owned + qty));
+      if (!this.buyCount && total + next > this.state.cash) break;
+      total += next;
+      qty += 1;
+    }
+    if (qty) return { qty, total };
+    // MAX with nothing affordable: show the next unit's price, but it can't be bought yet.
+    return { qty: 0, total: this.costOf(item) };
+  }
+
+  /**
    * View model for one shop row.
-   * @param {{id:string,name:string,desc:string,kind:string,unlockGoal:number}} item
+   * @param {{id:string,name:string,desc:string,kind:string,unlockGoal:number,baseCost:number,growth:number}} item
    */
   shopEntry(item) {
     const owned = this.state.owned[item.id];
-    const limit = this.limitOf(item);
-    const cost = this.costOf(item);
     const unlocked = this.isUnlocked(item);
-    const maxed = owned >= limit;
+    const maxed = owned >= this.limitOf(item);
+    const { qty, total } = this.quote(item);
     return {
       id: item.id,
       name: item.name,
@@ -266,8 +388,9 @@ export class DogsIncEngine {
       unlocked,
       owned,
       maxed,
-      cost,
-      canBuy: unlocked && !maxed && this.state.cash >= cost,
+      qty,
+      cost: total,
+      canBuy: unlocked && !maxed && qty > 0 && this.state.cash >= total,
     };
   }
 
@@ -282,11 +405,17 @@ export class DogsIncEngine {
   /** Marks goals done in order. Several can finish on one call. */
   checkGoals() {
     const stats = this.stats();
+    const before = this.state.goalsDone;
     let goal = this.currentGoal();
     while (stats[goal.stat] >= goal.min) {
       this.state.goalsDone += 1;
       goal = this.currentGoal();
     }
+    if (this.state.goalsDone === before) return;
+    const unlocked = SHOP_ITEMS
+      .filter((item) => item.unlockGoal > before && item.unlockGoal <= this.state.goalsDone)
+      .map((item) => item.name);
+    this.announce(unlocked.length ? 'Mission complete! Unlocked ' + unlocked.join(' + ') : 'Mission complete!', 'goal');
   }
 
   /** @returns {number} whole-dollar gain already added while away */
@@ -325,6 +454,13 @@ export class DogsIncEngine {
       goal: this.goalProgress(),
       welcomeGain: this.welcomeGain,
       shop: SHOP_ITEMS.map((item) => this.shopEntry(item)),
+      buyMode: this.buyMode,
+      bones: state.bones,
+      flier: this.flier ? (this.frame - this.flier.start) / FLIER_FLIGHT_TICKS : null,
+      boost: this.boost
+        ? { id: this.boost.id, label: this.boost.label, mult: this.boost.mult, secondsLeft: Math.ceil((this.boost.until - this.frame) / TICKS_PER_SEC) }
+        : null,
+      event: this.event,
     };
   }
 
