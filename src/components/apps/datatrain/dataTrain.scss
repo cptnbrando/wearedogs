@@ -211,3 +211,13 @@
 @media (min-width: 1536px) and (min-height: 800px) {
   .dt-help { max-width: 560px; padding: 24px; li { font-size: 16px; } }
 }
+// Air Train's WebRTC / PeerJS disclosure on the pairing screen.
+.dt-tech { color: t.$muted; font-size: 11px; line-height: 1.5; margin-top: 8px !important; a { color: t.$accent; } }
+@media (orientation: landscape) and (max-height: 500px) {
+  .dt-tech { margin-top: 4px !important; }
+}
+@media (min-width: 1536px) and (min-height: 800px) {
+  .dt-tech { font-size: t.$small; }
+}
+// Share (AirDrop / Quick Share) sits beside Save file and matches its size.
+.dt-shell .dt-share { font-size: t.$small; line-height: 18px; margin-left: 8px; }

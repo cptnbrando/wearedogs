@@ -6,13 +6,15 @@
   import { createPairingLink, parsePairingLink, takePairingLink } from './pairingLink.js';
   import { copyText } from '../../../lib/clipboard.js';
   import TransferList from './TransferList.svelte';
+  import { supportsFileShare, canShareFile, toShareFile, shareNearby } from './nearbyShare.js';
 
   const MAX_TEXT_LENGTH = 16000;
   const COPY_ERROR = 'Copy is unavailable here. Select the text and copy it manually.';
   const PASTE_EMPTY = 'Your clipboard is empty, or this browser blocked access. Paste into the box instead.';
   const TEXT_PLACEHOLDER = 'Copy and paste anything';
+  const WEBRTC_URL = 'https://webrtc.org/';
+  const PEERJS_URL = 'https://peerjs.com/';
   const HELP_POINTS = [
-    'Your browsers find each other through PeerJS, a free pairing service. Files and text then travel device to device, encrypted. Nothing is stored on DOGS servers.',
     'Works on different networks too. If it won\'t connect, turn on your phone\'s hotspot and join your laptop to it.',
     'Up to 100 MB per file, and 200 MB waiting in your inbox.',
     'Save files before you leave. Closing or refreshing the page ends the session.',
@@ -39,6 +41,9 @@
   let canPaste = false;
   let helpOpen = false;
   let helpClose;
+  let canShareFiles = false;
+  // Received Blob -> shareable File (or null); weak so removed items are released.
+  const shareFiles = new WeakMap();
   $: connected = state.status === 'connected';
   $: sentItems = state.items.filter(item => item.direction === 'sent');
   $: receivedItems = state.items.filter(item => item.direction === 'received');
@@ -47,6 +52,7 @@
 
   onMount(() => {
     canPaste = !!(navigator.clipboard && navigator.clipboard.readText);
+    canShareFiles = supportsFileShare();
     session = new TransferSession({ onChange: next => { if (!disposed) state = next; } });
     const invite = takePairingLink() || parsePairingLink(location.hash);
     if (invite) run(() => session.join(invite.code, invite.secret));
@@ -129,6 +135,22 @@
     });
   }
 
+  /** @param {{blob?: Blob, name: string, mime: string}} item */
+  function shareFileFor(item) {
+    if (!item.blob) return null;
+    if (!shareFiles.has(item.blob)) {
+      const file = toShareFile(item.blob, item.name, item.mime);
+      shareFiles.set(item.blob, canShareFile(file) ? file : null);
+    }
+    return shareFiles.get(item.blob);
+  }
+
+  /** Hand a received file on to AirDrop, Quick Share, Photos or any other app. */
+  function shareReceived(item) {
+    const file = shareFileFor(item);
+    if (file) run(() => shareNearby({ files: [file] }));
+  }
+
   async function openHelp() {
     helpOpen = true;
     await tick();
@@ -173,6 +195,7 @@
           <li><span>3</span>Send files or paste text, either way.</li>
         </ol>
         <p class="dt-pair-help">Keep both pages open. Use the same Wi-Fi for the best connection.</p>
+        <p class="dt-tech">Runs on <a href={WEBRTC_URL} target="_blank" rel="noopener noreferrer">WebRTC</a> and the free public <a href={PEERJS_URL} target="_blank" rel="noopener noreferrer">PeerJS</a> servers. Your data stays encrypted, even when it passes through them.</p>
       </div>
       <div class="dt-pair-action">
         {#if state.status === 'waiting'}
@@ -208,7 +231,7 @@
         </section>
         <section class="dt-pane" class:dt-mobile-hidden={mobilePane !== 'received'} aria-label="Incoming transfers">
           <div class="dt-pane-title"><div><Smartphone size={18} /><h3>{state.peerName || 'Other device'}</h3></div><span>{receivedItems.length} received</span></div>
-          <TransferList items={receivedItems} direction="received" onCopy={(text) => copy(text, 'Text copied. Paste it anywhere on this device.')} onCancel={(id) => run(() => session.cancelTransfer(id))} onRemove={(id) => session.removeItem(id)} />
+          <TransferList items={receivedItems} direction="received" canShare={canShareFiles ? (item) => !!shareFileFor(item) : null} onShare={shareReceived} onCopy={(text) => copy(text, 'Text copied. Paste it anywhere on this device.')} onCancel={(id) => run(() => session.cancelTransfer(id))} onRemove={(id) => session.removeItem(id)} />
         </section>
       </div>
       <div class="dt-send-dock">
@@ -217,13 +240,16 @@
       </div>
     </div>
   {/if}
-  <footer class="dt-footnote"><span><ArrowUpRight size={13} />{connected ? 'Direct device connection · save received files before leaving.' : 'Internet needed to pair · no account needed.'}</span><button type="button" class="dt-help-open" onclick={openHelp}><Info size={13} />How sharing works</button></footer>
+  <footer class="dt-footnote"><span><ArrowUpRight size={13} />{connected ? 'Encrypted device connection · save received files before leaving.' : 'Internet needed to pair · no account needed.'}</span><button type="button" class="dt-help-open" onclick={openHelp}><Info size={13} />How sharing works</button></footer>
   {#if helpOpen}
     <div class="dt-help-layer">
       <button type="button" class="dt-help-scrim" tabindex="-1" aria-label="Close how sharing works" onclick={closeHelp}></button>
       <div class="dt-help" role="dialog" aria-modal="true" aria-labelledby="dt-help-title">
         <div class="dt-help-head"><h3 id="dt-help-title">How sharing works</h3><button type="button" class="dt-icon-button" bind:this={helpClose} onclick={closeHelp} aria-label="Close"><X size={16} /></button></div>
-        <ul>{#each HELP_POINTS as point}<li>{point}</li>{/each}</ul>
+        <ul>
+          <li>Air Train runs on <a href={WEBRTC_URL} target="_blank" rel="noopener noreferrer">WebRTC</a>, the browser standard for device-to-device connections. Your browsers find each other through the free public <a href={PEERJS_URL} target="_blank" rel="noopener noreferrer">PeerJS</a> servers.</li>
+          <li>Files and text are encrypted between your two devices. When your networks allow it, they go straight across. When a network blocks that, the encrypted data passes through a PeerJS relay server, which cannot read it. Nothing is stored on DOGS servers.</li>
+          {#each HELP_POINTS as point}<li>{point}</li>{/each}</ul>
       </div>
     </div>
   {/if}
