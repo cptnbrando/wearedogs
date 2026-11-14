@@ -1,14 +1,14 @@
 <script>
-  import { ArrowDownLeft, ArrowUpRight, File, MessageSquare, Download, Copy, X } from 'lucide-svelte';
+  import { ArrowDownLeft, ArrowUpRight, File, MessageSquare, Download, Copy, X, Share2 } from 'lucide-svelte';
+  import { formatBytes } from './nearbyShare.js';
   export let items = [];
   export let direction = 'sent';
   export let onCopy;
   export let onCancel;
   export let onRemove;
-
-  const KB = 1024;
-  const MB = KB * KB;
-  const formatBytes = (bytes) => bytes < KB ? bytes + ' B' : bytes < MB ? (bytes / KB).toFixed(1) + ' KB' : (bytes / MB).toFixed(1) + ' MB';
+  /** Optional: offered only where the share sheet (AirDrop / Quick Share) accepts this file. */
+  export let canShare = null;
+  export let onShare = null;
 </script>
 
 <div class="dt-transfer-list w-full flex flex-col sm:flex-col md:flex-col lg:flex-col xl:flex-col 2xl:flex-col">
@@ -33,7 +33,7 @@
         {#if item.url && item.mime.indexOf('image/') === 0}<img class="dt-preview" src={item.url} alt={'Preview of ' + item.name} loading="lazy" />
         {:else if item.url && item.mime.indexOf('audio/') === 0}<audio class="dt-preview-audio" src={item.url} controls preload="metadata"></audio>{/if}
         {#if item.status === 'complete' && direction === 'received'}
-          {#if item.kind === 'file'}<a class="dt-save" href={item.url} download={item.name}><Download size={15} />Save file</a>
+          {#if item.kind === 'file'}<a class="dt-save" href={item.url} download={item.name}><Download size={15} />Save file</a>{#if canShare && canShare(item)}<button type="button" class="dt-save dt-share" onclick={() => onShare(item)} aria-label={'Share ' + item.name + ' with AirDrop, Quick Share or another app'}><Share2 size={15} />Share</button>{/if}
           {:else}<button class="dt-save" onclick={() => onCopy(item.text)}><Copy size={15} />Copy text</button>{/if}
         {/if}
       </article>
