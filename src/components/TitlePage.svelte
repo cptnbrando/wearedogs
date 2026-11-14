@@ -19,6 +19,7 @@
     CAMPAIGN_STATS_ID,
   } from "../lib/router.svelte.js";
   import { audioCore } from "../lib/AudioCore.svelte.js";
+  import { rememberPairingLink } from "./apps/datatrain/pairingLink.js";
 
   // Active view state: 'stats' | 'networking' | 'toolbox' | 'music' | 'store' | 'map' | null
   let {
@@ -210,6 +211,7 @@
   // ---------------------------------------------------------------------------
   onMount(() => {
     const path = window.location.pathname;
+    rememberPairingLink(path, window.location.hash);
     // Map spot deep links live in the hash (/map#spot=<id>) — capture it before
     // the replaceState below wipes it, so it can be restored when the map opens.
     const mapSpotHash = /spot=[^&]+/.test(window.location.hash)
@@ -305,6 +307,8 @@
       deepLinkApp = params.app;
       if (params.dogSpec) window.__openDogSpec = true;
       openPage("toolbox");
+      // Pairing must survive a cold toolbox import on a slow phone connection.
+      if (params.app === "dataflash") activeApp = params.app;
       setTimeout(() => {
         deepLinkApp = null;
       }, 400);

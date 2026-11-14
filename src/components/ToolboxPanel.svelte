@@ -27,6 +27,7 @@
     Calculator,
     KeyRound,
     Bomb,
+    Building2,
   } from "lucide-svelte";
   import DogsLogo from "./DogsLogo.svelte";
   import AppCard from "./AppCard.svelte";
@@ -81,6 +82,7 @@
     frames: "./apps/Frames.svelte",
     passwords: "./apps/passwords/PasswordsApp.svelte",
     pocketsand: "./apps/pocketsand/PocketSandApp.svelte",
+    dogsinc: "./apps/dogsinc/DogsIncApp.svelte",
   };
 
   // Lazy loaded app components caching
@@ -280,8 +282,9 @@
     settings: "#ff3344",
     wiretap: "#00ff66",
     frames: "#ff5e00",
-    passwords: "#00d75f",
+    passwords: "#a66bff",
     pocketsand: "#e8c07d",
+    dogsinc: "#e6b900",
   };
 
   // CRITICAL: The changelog and settings apps MUST always remain next to each other at the bottom of the toolbox list, with settings last.
@@ -305,6 +308,30 @@
       icon: QrCode,
     },
     {
+      id: "passwords",
+      title: "Password Generator",
+      desc: "Generate secure random passwords up to 200 characters with entropy analysis.",
+      icon: KeyRound,
+    },
+    {
+      id: "soundboard",
+      title: "Dog Soundboard",
+      desc: "Bark bark bark.",
+      icon: Volume2,
+    },
+    {
+      id: "pocketsand",
+      title: "Pocket Sand",
+      desc: "One-tap clipboard payloads for stress testing text boxes.",
+      icon: Bomb,
+    },
+    {
+      id: "dataflash",
+      title: "Data Train",
+      desc: "Scan a QR code and send files and text between your devices.",
+      icon: Zap,
+    },
+    {
       id: "reader",
       title: "Image Reader",
       desc: "Extract editable text from images.",
@@ -317,22 +344,10 @@
       icon: Mic,
     },
     {
-      id: "passwords",
-      title: "Password Generator",
-      desc: "Generate secure random passwords up to 200 characters with entropy analysis.",
-      icon: KeyRound,
-    },
-    {
-      id: "pocketsand",
-      title: "Pocket Sand",
-      desc: "One-tap clipboard payloads for stress testing text boxes.",
-      icon: Bomb,
-    },
-    {
-      id: "dataflash",
-      title: "Data Train",
-      desc: "Multi-protocol secure data dispatcher (QR, BT, USB, AirRTC).",
-      icon: Zap,
+      id: "dogsinc",
+      title: "DOGS INC",
+      desc: "Build a tower, hire the dogs, click the box, and keep the money coming.",
+      icon: Building2,
     },
     {
       id: "soundstripper",
@@ -345,12 +360,6 @@
       title: "Windshield Wiper",
       desc: "Clean watermarks, logos, and text from images and videos using canvas magic.",
       icon: Sparkles,
-    },
-    {
-      id: "soundboard",
-      title: "Dog Soundboard",
-      desc: "Bark bark bark.",
-      icon: Volume2,
     },
     {
       id: "snake",

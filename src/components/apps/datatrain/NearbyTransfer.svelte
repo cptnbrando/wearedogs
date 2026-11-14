@@ -1,1172 +1,230 @@
 <script>
-  import { onMount, onDestroy } from "svelte";
-  import QRCode from "qrcode";
-  import jsQR from "jsqr";
-  import {
-    Share2,
-    Camera,
-    Download,
-    FileText,
-    CheckCircle,
-    RefreshCw,
-    AlertCircle,
-    Copy,
-    Check,
-  } from "lucide-svelte";
+  import { onMount, tick } from 'svelte';
+  import QRCode from 'qrcode';
+  import { ArrowUpRight, Link, Copy, RefreshCw, Monitor, Smartphone, Check, X, Plus, Send, Radio, ClipboardPaste, Info } from 'lucide-svelte';
+  import { TransferSession } from './transferSession.js';
+  import { createPairingLink, parsePairingLink, takePairingLink } from './pairingLink.js';
+  import { copyText } from '../../../lib/clipboard.js';
+  import TransferList from './TransferList.svelte';
 
-  // App States: 'idle' | 'setup_send' | 'setup_receive' | 'connecting' | 'connected' | 'transmitting' | 'receiving' | 'complete'
-  let role = $state("idle"); // 'idle' | 'send' | 'receive'
-  let step = $state("idle"); // 'idle' | 'offer' | 'scan_offer' | 'answer' | 'wait_answer' | 'connected' | 'syncing' | 'complete'
-
-  // Files
-  let selectedFile = $state(null);
-  let fileInputEl = $state(null);
-  let receivedFileBlob = $state(null);
-  let receivedFileName = $state("");
-  let receivedFileSize = $state(0);
-
-  // Connection Signaling Keys
-  let sdpOfferString = $state("");
-  let sdpAnswerString = $state("");
-  let inputSdpString = $state("");
-  let offerQrCanvas = $state(null);
-  let answerQrCanvas = $state(null);
-
-  // WebRTC Instance references
-  let pc = null;
-  let dataChannel = null;
-  let iceCandidates = [];
-  let isCopySuccess = $state(false);
-
-  // Camera Scanner
-  let videoEl = $state(null);
-  let scanCanvasEl = $state(null);
-  let isScanning = $state(false);
-  let stream = null;
-  let scanInterval = null;
-
-  // Transfer stats
-  let progress = $state(0);
-  let bytesTransferred = $state(0);
-  let totalBytes = $state(0);
+  const MAX_TEXT_LENGTH = 16000;
+  const COPY_ERROR = 'Copy is unavailable here. Select the text and copy it manually.';
+  const PASTE_EMPTY = 'Your clipboard is empty, or this browser blocked access. Paste into the box instead.';
+  const TEXT_PLACEHOLDER = 'Copy and paste anything';
+  const HELP_POINTS = [
+    'Your browsers find each other through PeerJS, a free pairing service. Files and text then travel device to device, encrypted. Nothing is stored on DOGS servers.',
+    'Works on different networks too. If it won\'t connect, turn on your phone\'s hotspot and join your laptop to it.',
+    'Up to 100 MB per file, and 200 MB waiting in your inbox.',
+    'Save files before you leave. Closing or refreshing the page ends the session.',
+  ];
+  const QR_OPTIONS = { width: 264, margin: 4, errorCorrectionLevel: 'M' };
+  const STATUS_LABELS = {
+    idle: 'Ready to pair', starting: 'Preparing your connection…', waiting: 'Waiting for your other device',
+    connecting: 'Connecting · approve on the other device', pending: 'Device requesting access',
+    connected: 'Connected · ready both ways', disconnected: 'Connection ended',
+    error: 'Connection needs attention', unsupported: 'Browser not supported',
+  };
+  let session;
+  let state = { status: 'starting', items: [], code: '', secret: '', peerName: '', busy: false };
+  let qrImage = '';
+  let pairLink = '';
+  let pastedLink = '';
+  let draft = '';
+  let notice = '';
+  let actionError = '';
+  let fileInput;
+  let disposed = false;
+  let currentQrLink = '';
+  let mobilePane = 'sent';
+  let canPaste = false;
+  let helpOpen = false;
+  let helpClose;
+  $: connected = state.status === 'connected';
+  $: sentItems = state.items.filter(item => item.direction === 'sent');
+  $: receivedItems = state.items.filter(item => item.direction === 'received');
+  $: pairLink = createPairingLink(state.code, state.secret);
+  $: if (pairLink && pairLink !== currentQrLink && state.status === 'waiting') drawQr(pairLink);
 
   onMount(() => {
-    // Check if WebRTC is supported
+    canPaste = !!(navigator.clipboard && navigator.clipboard.readText);
+    session = new TransferSession({ onChange: next => { if (!disposed) state = next; } });
+    const invite = takePairingLink() || parsePairingLink(location.hash);
+    if (invite) run(() => session.join(invite.code, invite.secret));
+    else run(() => session.host());
+    window.addEventListener('hashchange', joinUpdatedLink);
+    return () => {
+      disposed = true;
+      window.removeEventListener('hashchange', joinUpdatedLink);
+      session.destroy();
+    };
   });
 
-  onDestroy(() => {
-    cleanupConnection();
-  });
-
-  function cleanupConnection() {
-    stopCamera();
-    if (dataChannel) {
-      dataChannel.close();
-    }
-    if (pc) {
-      pc.close();
-    }
+  function joinUpdatedLink() {
+    const invite = parsePairingLink(location.hash);
+    if (!invite || connected || state.items.length) return;
+    history.replaceState(history.state, '', location.pathname + location.search);
+    run(() => session.join(invite.code, invite.secret));
   }
 
-  // --- WebRTC Sender Flow ---
-  async function initializeSender() {
-    if (!selectedFile) return;
-    role = "send";
-    step = "offer";
-    totalBytes = selectedFile.size;
-
-    // Create RTCPeerConnection
-    pc = new RTCPeerConnection({
-      iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
-    });
-
-    // Create Data Channel
-    dataChannel = pc.createDataChannel("fileShareChannel", { ordered: true });
-    setupDataChannelEvents(dataChannel);
-
-    pc.onicecandidate = (event) => {
-      if (event.candidate) {
-        iceCandidates.push(event.candidate);
-      } else {
-        // ICE gathering finished, generate SDP offer including candidates
-        generateOfferQR();
-      }
-    };
-
-    const offer = await pc.createOffer();
-    await pc.setLocalDescription(offer);
-
-    // Backup safety timeout for SDP generation if ICE gathering hangs
-    setTimeout(() => {
-      if (!sdpOfferString) {
-        generateOfferQR();
-      }
-    }, 1200);
-  }
-
-  function generateOfferQR() {
-    const localSdp = pc.localDescription;
-    const packet = {
-      type: "offer",
-      sdp: localSdp.sdp,
-      fileName: selectedFile.name,
-      fileSize: selectedFile.size,
-      fileType: selectedFile.type,
-    };
-
-    sdpOfferString = btoa(JSON.stringify(packet));
-    step = "wait_answer";
-
-    // Draw QR Code
-    setTimeout(() => {
-      if (offerQrCanvas) {
-        QRCode.toCanvas(
-          offerQrCanvas,
-          sdpOfferString,
-          { margin: 1, scale: 4 },
-          (err) => {
-            if (err) console.error(err);
-          },
-        );
-      }
-    }, 100);
-  }
-
-  async function applyReceiverAnswer() {
-    if (!inputSdpString) return;
+  async function drawQr(link) {
+    currentQrLink = link;
     try {
-      const decoded = JSON.parse(atob(inputSdpString));
-      if (decoded.type !== "answer") {
-        alert("Invalid connection key. Must be a receiver answer key.");
-        return;
-      }
-      const remoteDesc = new RTCSessionDescription({
-        type: "answer",
-        sdp: decoded.sdp,
-      });
-      await pc.setRemoteDescription(remoteDesc);
-      step = "connecting";
-    } catch (e) {
-      console.error(e);
-      alert("Failed to parse remote answer code.");
+      const image = await QRCode.toDataURL(link, QR_OPTIONS);
+      if (!disposed && currentQrLink === link) qrImage = image;
+    } catch {
+      actionError = 'Could not draw the QR code. Use Copy pairing link instead.';
     }
   }
 
-  // --- WebRTC Receiver Flow ---
-  function initializeReceiver() {
-    role = "receive";
-    step = "scan_offer";
-    startCamera();
+  /** Keep failures local to the action; connection errors come from the session. */
+  async function run(action) {
+    actionError = '';
+    notice = '';
+    try { await action(); }
+    catch (error) { if (!disposed) actionError = error.message; }
   }
 
-  async function applySenderOffer(offerBase64) {
-    try {
-      const decoded = JSON.parse(atob(offerBase64));
-      if (decoded.type !== "offer") {
-        alert("Invalid connection key. Must be a sender offer key.");
-        return;
-      }
-
-      receivedFileName = decoded.fileName;
-      receivedFileSize = decoded.fileSize;
-      totalBytes = decoded.fileSize;
-      stopCamera();
-
-      // Create RTCPeerConnection
-      pc = new RTCPeerConnection({
-        iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
-      });
-
-      pc.ondatachannel = (event) => {
-        setupDataChannelEvents(event.channel);
-      };
-
-      pc.onicecandidate = (event) => {
-        if (!event.candidate) {
-          generateAnswerQR();
-        }
-      };
-
-      const remoteDesc = new RTCSessionDescription({
-        type: "offer",
-        sdp: decoded.sdp,
-      });
-      await pc.setRemoteDescription(remoteDesc);
-
-      const answer = await pc.createAnswer();
-      await pc.setLocalDescription(answer);
-
-      // Timeout safety
-      setTimeout(() => {
-        if (step !== "answer") {
-          generateAnswerQR();
-        }
-      }, 1200);
-    } catch (e) {
-      console.error(e);
-      alert("Failed to parse sender connection key.");
-    }
-  }
-
-  function generateAnswerQR() {
-    const packet = {
-      type: "answer",
-      sdp: pc.localDescription.sdp,
-    };
-    sdpAnswerString = btoa(JSON.stringify(packet));
-    step = "answer";
-
-    // Draw Answer QR
-    setTimeout(() => {
-      if (answerQrCanvas) {
-        QRCode.toCanvas(
-          answerQrCanvas,
-          sdpAnswerString,
-          { margin: 1, scale: 4 },
-          (err) => {
-            if (err) console.error(err);
-          },
-        );
-      }
-    }, 100);
-  }
-
-  // --- Peer Data Channel Event Setup ---
-  let receivedChunks = [];
-
-  function setupDataChannelEvents(channel) {
-    channel.binaryType = "arraybuffer";
-
-    channel.onopen = () => {
-      step = "connected";
-      if (role === "send") {
-        transmitFileInChunks();
-      }
-    };
-
-    channel.onmessage = (event) => {
-      // Chunk received
-      receivedChunks.push(event.data);
-      bytesTransferred += event.data.byteLength;
-      progress = Math.round((bytesTransferred / totalBytes) * 100);
-      step = "syncing";
-
-      if (bytesTransferred >= totalBytes) {
-        completeTransferReceive();
-      }
-    };
-
-    channel.onclose = () => {
-      console.log("WebRTC Data Channel closed");
-    };
-  }
-
-  // File chunking and transmission loop
-  function transmitFileInChunks() {
-    step = "syncing";
-    const CHUNK_SIZE = 16384; // 16 KB chunk size
-    const reader = new FileReader();
-
-    reader.onload = (e) => {
-      const buffer = e.target.result;
-      let offset = 0;
-
-      const sendNextChunk = () => {
-        while (offset < buffer.byteLength) {
-          // If bufferedAmount is high, pause and wait for queue clear
-          if (dataChannel.bufferedAmount > 1048576) {
-            // 1 MB buffer threshold
-            setTimeout(sendNextChunk, 50);
-            return;
-          }
-          const slice = buffer.slice(offset, offset + CHUNK_SIZE);
-          dataChannel.send(slice);
-          offset += slice.byteLength;
-          bytesTransferred = offset;
-          progress = Math.round((bytesTransferred / totalBytes) * 100);
-        }
-
-        playChime();
-        step = "complete";
-      };
-
-      sendNextChunk();
-    };
-
-    reader.readAsArrayBuffer(selectedFile);
-  }
-
-  function completeTransferReceive() {
-    receivedFileBlob = new Blob(receivedChunks);
-    playChime();
-    step = "complete";
-  }
-
-  function downloadReceivedFile() {
-    if (!receivedFileBlob) return;
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(receivedFileBlob);
-    a.download = receivedFileName;
-    a.click();
-  }
-
-  function playChime() {
-    try {
-      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      const notes = [349.23, 440.0, 523.25, 698.46]; // F4, A4, C5, F5
-      notes.forEach((freq, idx) => {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-
-        osc.type = "sine";
-        osc.frequency.setValueAtTime(freq, audioCtx.currentTime + idx * 0.08);
-        gain.gain.setValueAtTime(0.2, audioCtx.currentTime + idx * 0.08);
-        gain.gain.exponentialRampToValueAtTime(
-          0.01,
-          audioCtx.currentTime + idx * 0.08 + 0.3,
-        );
-
-        osc.start(audioCtx.currentTime + idx * 0.08);
-        osc.stop(audioCtx.currentTime + idx * 0.08 + 0.3);
-      });
-    } catch (e) {
-      console.error(e);
-    }
-  }
-
-  // --- Camera QR Scanner logic ---
-  async function startCamera() {
-    try {
-      stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" },
-      });
-      if (videoEl) {
-        videoEl.srcObject = stream;
-        videoEl.setAttribute("playsinline", true);
-        videoEl.play();
-        isScanning = true;
-        startScanning();
-      }
-    } catch (err) {
-      console.error("Camera access failed:", err);
-    }
-  }
-
-  function stopCamera() {
-    isScanning = false;
-    if (stream) {
-      stream.getTracks().forEach((track) => track.stop());
-      stream = null;
-    }
-    if (scanInterval) {
-      clearInterval(scanInterval);
-      scanInterval = null;
-    }
-  }
-
-  function startScanning() {
-    if (scanInterval) clearInterval(scanInterval);
-    scanInterval = setInterval(() => {
-      if (!isScanning || !videoEl || !scanCanvasEl) return;
-
-      const ctx = scanCanvasEl.getContext("2d");
-      scanCanvasEl.width = videoEl.videoWidth;
-      scanCanvasEl.height = videoEl.videoHeight;
-
-      if (scanCanvasEl.width > 0 && scanCanvasEl.height > 0) {
-        ctx.drawImage(videoEl, 0, 0, scanCanvasEl.width, scanCanvasEl.height);
-        const imgData = ctx.getImageData(
-          0,
-          0,
-          scanCanvasEl.width,
-          scanCanvasEl.height,
-        );
-        const code = jsQR(imgData.data, imgData.width, imgData.height);
-        if (code) {
-          if (step === "scan_offer") {
-            applySenderOffer(code.data);
-          } else if (step === "wait_answer") {
-            inputSdpString = code.data;
-            applyReceiverAnswer();
-          }
-        }
-      }
-    }, 60);
-  }
-
-  function copyToClipboard(text) {
-    navigator.clipboard.writeText(text).then(() => {
-      isCopySuccess = true;
-      setTimeout(() => (isCopySuccess = false), 1500);
+  async function copy(value, label) {
+    await run(async () => {
+      if (!(await copyText(value))) throw new Error(COPY_ERROR);
+      notice = label;
     });
   }
 
-  function resetAll() {
-    cleanupConnection();
-    role = "idle";
-    step = "idle";
-    selectedFile = null;
-    receivedFileBlob = null;
-    receivedFileName = "";
-    sdpOfferString = "";
-    sdpAnswerString = "";
-    inputSdpString = "";
-    progress = 0;
-    bytesTransferred = 0;
-    totalBytes = 0;
-    receivedChunks = [];
+  function joinLink(event) {
+    event.preventDefault();
+    const invite = parsePairingLink(pastedLink);
+    if (!invite) {
+      actionError = 'Paste the complete Air Train pairing link, including the part after #.';
+      return;
+    }
+    run(() => session.join(invite.code, invite.secret));
+  }
+
+  async function sendFiles(event) {
+    const files = Array.prototype.slice.call(event.target.files || []);
+    event.target.value = '';
+    if (!files.length) return;
+    mobilePane = 'sent';
+    await run(() => session.sendFiles(files));
+  }
+
+  async function sendText(event) {
+    event.preventDefault();
+    if (!draft.trim() || !connected) return;
+    const message = draft;
+    await run(async () => {
+      const accepted = await session.sendText(message);
+      if (!accepted) return;
+      if (draft === message) draft = '';
+    });
+  }
+
+  /** Pull the clipboard into the draft; browsers ask permission on the first tap. */
+  async function pasteDraft() {
+    await run(async () => {
+      const text = await navigator.clipboard.readText();
+      if (!text) throw new Error(PASTE_EMPTY);
+      draft = text.slice(0, MAX_TEXT_LENGTH);
+    });
+  }
+
+  async function openHelp() {
+    helpOpen = true;
+    await tick();
+    if (helpClose) helpClose.focus();
+  }
+
+  function closeHelp() {
+    helpOpen = false;
+  }
+
+  function restart() {
+    qrImage = '';
+    currentQrLink = '';
+    run(() => session.host());
   }
 </script>
 
-<div class="air-layout">
-  <div class="air-card">
-    <div class="card-header">
-      <Share2 class="text-fuchsia-400 animate-pulse" size={18} />
-      <h2>AIR TRAIN (WebRTC Peer Link)</h2>
-    </div>
+<svelte:window onkeydown={(event) => { if (helpOpen && event.key === 'Escape') closeHelp(); }} />
 
-    <!-- Initial state: select Role -->
-    {#if role === "idle"}
-      <div class="setup-slate">
-        <Share2 class="text-neutral-500 mb-2 animate-bounce" size={32} />
-        <h3>DIRECT NEARBY SHARING</h3>
-        <p>
-          Transfer files directly between two devices in your browser without
-          uploading to any server. Completely secure and encrypted.
-        </p>
+<section class="dt-air w-full flex flex-col sm:flex-col md:flex-col lg:flex-col xl:flex-col 2xl:flex-col" aria-label="Air Train">
+  <header class="dt-air-header">
+    <div class="dt-heading"><Radio size={19} aria-hidden="true" /><h2>Air Train</h2><span>Files & text. Both ways.</span></div>
+    <div class="dt-connection" class:dt-online={connected} role="status"><i></i>{STATUS_LABELS[state.status] || state.status}</div>
+    {#if connected}<button class="dt-quiet dt-disconnect" onclick={() => session.disconnect()}>Disconnect</button>{/if}
+    {#if !connected && state.items.length}<button class="dt-quiet dt-disconnect" onclick={restart}>Clear session & reconnect</button>{/if}
+  </header>
 
-        <div class="role-selector">
-          <div class="send-setup-block">
-            <span class="step-label">TO SEND A FILE</span>
-            <button
-              class="role-btn sender-btn"
-              onclick={() => fileInputEl.click()}
-            >
-              Select File to Share
-            </button>
-            <input
-              bind:this={fileInputEl}
-              type="file"
-              onchange={(e) => {
-                selectedFile = e.target.files[0];
-                initializeSender();
-              }}
-              class="hidden-input"
-            />
+  {#if state.error || actionError}
+    <p class="dt-error" role="alert">{actionError || state.error}</p>
+  {/if}
+  {#if notice}<p class="dt-notice" role="status">{notice}</p>{/if}
+
+  {#if !connected && !state.items.length}
+    <div class="dt-pair-grid">
+      <div class="dt-pair-intro">
+        <div class="dt-device-symbols" aria-hidden="true"><Monitor size={34} /><span>↔</span><Smartphone size={28} /></div>
+        <h3>Your devices.<br />One connection.</h3>
+        <p class="dt-lead">That photo on your phone. That track on your laptop. Get them where you want them.</p>
+        <ol class="dt-steps">
+          <li><span>1</span>Scan with your phone's camera.</li>
+          <li><span>2</span>Open the link. Approve on this device.</li>
+          <li><span>3</span>Send files or paste text, either way.</li>
+        </ol>
+        <p class="dt-pair-help">Keep both pages open. Use the same Wi-Fi for the best connection.</p>
+      </div>
+      <div class="dt-pair-action">
+        {#if state.status === 'waiting'}
+          {#if qrImage}<img class="dt-qr" src={qrImage} width="264" height="264" alt="Scan this pairing QR code with your other device's camera" />{/if}
+          <p class="dt-qr-caption">Scan to connect to this device</p>
+          <button class="dt-primary" onclick={() => copy(pairLink, 'Pairing link copied. Open it on your other device.')}><Copy size={16} />Copy pairing link</button>
+          <details class="dt-join"><summary>Already have a pairing link?</summary>
+            <form onsubmit={joinLink}>
+              <label for="train-link">Pairing link from your other device</label>
+              <div class="dt-input-row"><input id="train-link" bind:value={pastedLink} placeholder="Paste the full link" autocomplete="off" spellcheck="false" /><button class="dt-secondary" type="submit">Connect</button></div>
+            </form>
+          </details>
+        {:else if state.status === 'pending'}
+          <div class="dt-pair-message"><Smartphone size={40} /><h3>Let this device aboard?</h3><p>{state.pendingName || 'Another device'} has your pairing link. Approve only if you just scanned it.</p>
+            <div class="dt-input-row"><button class="dt-primary" onclick={() => run(() => session.acceptPeer())}><Check size={17} />Allow connection</button><button class="dt-secondary" onclick={() => run(() => session.rejectPeer())}><X size={17} />Decline</button></div>
           </div>
-
-          <div class="or-divider">OR</div>
-
-          <div class="receive-setup-block">
-            <span class="step-label">TO RECEIVE A FILE</span>
-            <button class="role-btn receiver-btn" onclick={initializeReceiver}>
-              Receive File
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- SENDER STEPS -->
-    {:else if role === "send" && step === "wait_answer"}
-      <div class="signaling-slate">
-        <span class="step-badge">Sender Step 1 of 2</span>
-        <h3>Scan or Copy Connection Code</h3>
-        <p>
-          Open <strong>Air Train Receive</strong> on the other device and scan this
-          QR code or copy the connection string.
-        </p>
-
-        <div class="qr-box">
-          <canvas bind:this={offerQrCanvas}></canvas>
-        </div>
-
-        <div class="fallback-copy-paste">
-          <button
-            class="copy-code-btn"
-            onclick={() => copyToClipboard(sdpOfferString)}
-          >
-            {#if isCopySuccess}
-              <Check size={13} /> Copied!
-            {:else}
-              <Copy size={13} /> Copy Offer Key
-            {/if}
-          </button>
-        </div>
-
-        <div class="answer-verification-box">
-          <label for="answer-pasted" class="input-label"
-            >Paste Receiver's Answer Key:</label
-          >
-          <div class="input-row">
-            <input
-              id="answer-pasted"
-              type="text"
-              placeholder="Paste generated answer key here..."
-              bind:value={inputSdpString}
-              class="form-input"
-            />
-            <button class="apply-btn" onclick={applyReceiverAnswer}
-              >Connect</button
-            >
-          </div>
-        </div>
-
-        <button class="abort-btn" onclick={resetAll}>Abort</button>
-      </div>
-
-      <!-- RECEIVER STEPS -->
-    {:else if role === "receive" && step === "scan_offer"}
-      <div class="scanner-slate">
-        <span class="step-badge">Receiver Step 1 of 2</span>
-        <h3>Scan Sender's QR Code</h3>
-        <p>
-          Position the sender's QR code in the viewfinder, or paste the
-          connection offer key below.
-        </p>
-
-        <div class="viewfinder">
-          <canvas bind:this={scanCanvasEl} class="hidden-canvas"></canvas>
-          <!-- svelte-ignore a11y_media_has_caption -->
-          <video bind:this={videoEl} class="scanner-video"></video>
-          <div class="focus-brackets"></div>
-        </div>
-
-        <div class="manual-input-box">
-          <label for="offer-pasted" class="input-label"
-            >Or Paste Sender's Offer Key:</label
-          >
-          <div class="input-row">
-            <input
-              id="offer-pasted"
-              type="text"
-              placeholder="Paste offer key here..."
-              bind:value={inputSdpString}
-              class="form-input"
-            />
-            <button
-              class="apply-btn"
-              onclick={() => applySenderOffer(inputSdpString)}>Verify</button
-            >
-          </div>
-        </div>
-
-        <button class="abort-btn" onclick={resetAll}>Abort</button>
-      </div>
-    {:else if role === "receive" && step === "answer"}
-      <div class="signaling-slate">
-        <span class="step-badge">Receiver Step 2 of 2</span>
-        <h3>Return Answer Code</h3>
-        <p>
-          Scan this answer QR code with the Sender device's camera (if
-          available) or copy the answer key below to paste on the sender.
-        </p>
-
-        <div class="qr-box">
-          <canvas bind:this={answerQrCanvas}></canvas>
-        </div>
-
-        <div class="fallback-copy-paste">
-          <button
-            class="copy-code-btn"
-            onclick={() => copyToClipboard(sdpAnswerString)}
-          >
-            {#if isCopySuccess}
-              <Check size={13} /> Copied!
-            {:else}
-              <Copy size={13} /> Copy Answer Key
-            {/if}
-          </button>
-        </div>
-
-        <div class="connection-hud">
-          <span class="hud-label">Awaiting P2P Link...</span>
-          <div class="hud-loader animate-pulse">Establishing tunnel</div>
-        </div>
-
-        <button class="abort-btn" onclick={resetAll}>Abort</button>
-      </div>
-
-      <!-- JOINT TRANSFER STATES -->
-    {:else if step === "connecting"}
-      <div class="radar-slate">
-        <div class="radar-pulse"></div>
-        <h3>ESTABLISHING PEER CONNECTION</h3>
-        <p>Negotiating direct link over WebRTC...</p>
-        <button class="abort-btn mt-6" onclick={resetAll}>Cancel</button>
-      </div>
-    {:else if step === "connected" || step === "syncing"}
-      <div class="syncing-slate">
-        <div class="pill-linked">
-          <span class="dot-green"></span>
-          <span>WebRTC Connected</span>
-        </div>
-
-        <div class="transfer-card">
-          <FileText size={24} class="text-fuchsia-400 mb-2" />
-          <span class="file-name"
-            >{role === "send" ? selectedFile.name : receivedFileName}</span
-          >
-          <span class="file-size"
-            >Size: {(totalBytes / 1024).toFixed(1)} KB</span
-          >
-
-          <div class="bar-container">
-            <div class="bar-fill" style="width: {progress}%"></div>
-            <span class="percentage">{progress}%</span>
-          </div>
-
-          <small
-            >{role === "send"
-              ? "Uploading chunks..."
-              : "Downloading chunks..."}</small
-          >
-        </div>
-      </div>
-    {:else if step === "complete"}
-      <div class="complete-slate">
-        <CheckCircle class="text-green-400 mb-2" size={36} />
-        <h3>Air Link Sync Complete</h3>
-
-        {#if role === "send"}
-          <p class="summary">File successfully transferred directly to peer.</p>
+        {:else if state.status === 'starting' || state.status === 'connecting' || state.status === 'waiting'}
+          <div class="dt-pair-message"><Radio size={42} /><h3>{state.status === 'connecting' ? 'Almost there.' : 'Making a connection.'}</h3><p>{state.status === 'connecting' ? 'Look for the connection request on your other device and choose Allow connection.' : 'Preparing a private pairing link for your other device.'}</p><button class="dt-quiet" onclick={restart}>Start over</button></div>
         {:else}
-          <p class="summary">
-            {receivedFileName} ({(totalBytes / 1024).toFixed(1)} KB)
-          </p>
-          <button
-            class="action-btn-main confirm"
-            onclick={downloadReceivedFile}
-          >
-            <Download size={13} /> Download File
-          </button>
+          <div class="dt-pair-message"><Link size={40} /><h3>{state.status === 'unsupported' ? 'A newer browser is needed.' : 'Ready for another connection?'}</h3><p>{state.status === 'unsupported' ? 'This browser cannot create a secure device connection. Try a current browser on both devices, or use QR Train for small offline transfers.' : 'Make a fresh link, then scan it on your other device. Previous links will no longer work.'}</p>
+            {#if state.status !== 'unsupported'}<button class="dt-primary" onclick={restart}><RefreshCw size={16} />New connection</button>{/if}
+          </div>
         {/if}
-
-        <button class="action-btn-main reset mt-4" onclick={resetAll}>
-          Finish Share
-        </button>
       </div>
-    {/if}
-  </div>
-</div>
-
-<style lang="scss">
-  .air-layout {
-    width: 100%;
-    height: 100%;
-    overflow-y: auto;
-    padding: 16px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-
-  .air-card {
-    background: rgba(13, 13, 23, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 12px;
-    padding: 18px;
-    width: 100%;
-    max-width: 460px;
-    min-height: 300px;
-    display: flex;
-    flex-direction: column;
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(12px);
-  }
-
-  .card-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 16px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-    padding-bottom: 8px;
-
-    h2 {
-      font-size: 0.85rem;
-      font-weight: 800;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      margin: 0;
-      color: white;
-    }
-  }
-
-  /* ── Setup / Initial state ── */
-  .setup-slate {
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    padding: 10px;
-
-    h3 {
-      font-size: 0.82rem;
-      font-weight: 750;
-      color: white;
-      margin: 4px 0;
-    }
-
-    p {
-      font-size: 0.65rem;
-      color: rgba(255, 255, 255, 0.45);
-      margin-bottom: 24px;
-      max-width: 320px;
-    }
-  }
-
-  .role-selector {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    gap: 14px;
-
-    @media (min-width: 640px) {
-      flex-direction: row;
-      align-items: stretch;
-    }
-  }
-
-  .send-setup-block,
-  .receive-setup-block {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    background: rgba(255, 255, 255, 0.01);
-    border: 1px solid rgba(255, 255, 255, 0.03);
-    border-radius: 8px;
-    padding: 14px;
-  }
-
-  .step-label {
-    font-size: 0.58rem;
-    font-weight: 750;
-    color: rgba(255, 255, 255, 0.3);
-    letter-spacing: 0.05em;
-    margin-bottom: 8px;
-  }
-
-  .or-divider {
-    align-self: center;
-    font-size: 0.6rem;
-    font-weight: 850;
-    color: rgba(255, 255, 255, 0.2);
-  }
-
-  .role-btn {
-    border: none;
-    border-radius: 6px;
-    font-weight: 750;
-    font-size: 0.72rem;
-    padding: 8px 16px;
-    cursor: pointer;
-    outline: none;
-    width: 100%;
-    transition: all 0.2s;
-  }
-
-  .sender-btn {
-    background: linear-gradient(135deg, #d946ef, #a21caf);
-    color: white;
-    box-shadow: 0 4px 12px rgba(217, 70, 239, 0.2);
-
-    &:hover {
-      box-shadow: 0 4px 18px rgba(217, 70, 239, 0.35);
-    }
-  }
-
-  .receiver-btn {
-    background: rgba(255, 255, 255, 0.04);
-    color: white;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.08);
-    }
-  }
-
-  .hidden-input {
-    display: none;
-  }
-
-  /* ── Signaling slates ── */
-  .signaling-slate,
-  .scanner-slate {
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-  }
-
-  .step-badge {
-    background: rgba(217, 70, 239, 0.1);
-    border: 1px solid rgba(217, 70, 239, 0.25);
-    color: #e879f9;
-    font-size: 0.58rem;
-    font-weight: 700;
-    padding: 2px 8px;
-    border-radius: 10px;
-    margin-bottom: 6px;
-  }
-
-  h3 {
-    font-size: 0.85rem;
-    font-weight: 750;
-    color: white;
-    margin: 4px 0;
-  }
-
-  p {
-    font-size: 0.65rem;
-    color: rgba(255, 255, 255, 0.45);
-    margin-bottom: 12px;
-    max-width: 320px;
-  }
-
-  .qr-box {
-    background: white;
-    border-radius: 8px;
-    padding: 10px;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
-    margin-bottom: 12px;
-
-    canvas {
-      display: block;
-      width: 140px !important;
-      height: 140px !important;
-    }
-  }
-
-  .copy-code-btn {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    color: white;
-    font-size: 0.65rem;
-    font-weight: 700;
-    padding: 6px 14px;
-    border-radius: 6px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-bottom: 16px;
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.06);
-    }
-  }
-
-  .answer-verification-box,
-  .manual-input-box {
-    background: rgba(0, 0, 0, 0.25);
-    border: 1px solid rgba(255, 255, 255, 0.03);
-    border-radius: 8px;
-    padding: 10px;
-    width: 100%;
-    margin-bottom: 16px;
-    text-align: left;
-  }
-
-  .input-label {
-    font-size: 0.58rem;
-    font-weight: 750;
-    color: rgba(255, 255, 255, 0.35);
-    letter-spacing: 0.03em;
-    margin-bottom: 4px;
-    display: block;
-  }
-
-  .input-row {
-    display: grid;
-    grid-template-columns: 1fr 80px;
-    gap: 8px;
-  }
-
-  .form-input {
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 4px;
-    padding: 6px 10px;
-    font-size: 0.72rem;
-    color: white;
-    outline: none;
-
-    &:focus {
-      border-color: #d946ef;
-    }
-  }
-
-  .apply-btn {
-    background: #d946ef;
-    color: white;
-    font-weight: 700;
-    font-size: 0.7rem;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-  }
-
-  .abort-btn {
-    background: transparent;
-    border: none;
-    color: rgba(255, 255, 255, 0.35);
-    cursor: pointer;
-    font-size: 0.68rem;
-    text-decoration: underline;
-
-    &:hover {
-      color: #ef4444;
-    }
-  }
-
-  /* ── Web scanner viewfinder ── */
-  .viewfinder {
-    width: 220px;
-    height: 165px;
-    background: black;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 8px;
-    position: relative;
-    overflow: hidden;
-    margin-bottom: 16px;
-  }
-
-  .hidden-canvas {
-    display: none;
-  }
-
-  .scanner-video {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-
-  .focus-brackets {
-    position: absolute;
-    inset: 20px;
-    border: 1px dashed rgba(217, 70, 239, 0.4);
-    pointer-events: none;
-    box-shadow: 0 0 100px rgba(0, 0, 0, 0.5);
-  }
-
-  /* ── syncing slate ── */
-  .syncing-slate {
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 10px;
-  }
-
-  .pill-linked {
-    background: rgba(74, 222, 128, 0.05);
-    border: 1px solid rgba(74, 222, 128, 0.15);
-    padding: 4px 12px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 0.65rem;
-    font-weight: 700;
-    color: #4ade80;
-    margin-bottom: 16px;
-  }
-
-  .dot-green {
-    width: 6px;
-    height: 6px;
-    background: #4ade80;
-    border-radius: 50%;
-  }
-
-  .transfer-card {
-    background: rgba(0, 0, 0, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.03);
-    border-radius: 8px;
-    padding: 14px;
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-
-    .file-name {
-      font-size: 0.72rem;
-      font-weight: 700;
-      color: white;
-      max-width: 280px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .file-size {
-      font-size: 0.6rem;
-      color: rgba(255, 255, 255, 0.4);
-      margin-bottom: 12px;
-    }
-  }
-
-  .bar-container {
-    width: 100%;
-    height: 12px;
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 6px;
-    position: relative;
-    overflow: hidden;
-    margin-bottom: 6px;
-  }
-
-  .bar-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #c084fc, #d946ef);
-    transition: width 0.1s linear;
-  }
-
-  .percentage {
-    position: absolute;
-    right: 8px;
-    top: 0;
-    font-size: 0.52rem;
-    font-weight: 850;
-    color: white;
-  }
-
-  .transfer-card small {
-    font-size: 0.58rem;
-    color: rgba(255, 255, 255, 0.35);
-  }
-
-  /* ── complete slate ── */
-  .complete-slate {
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    padding: 20px;
-
-    h3 {
-      font-size: 0.85rem;
-      font-weight: 750;
-      color: white;
-      margin: 4px 0;
-    }
-
-    .summary {
-      font-size: 0.68rem;
-      color: rgba(255, 255, 255, 0.45);
-      margin-bottom: 20px;
-    }
-  }
-
-  .action-btn-main {
-    border: none;
-    border-radius: 6px;
-    font-weight: 750;
-    font-size: 0.72rem;
-    padding: 8px 24px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    outline: none;
-    transition: all 0.2s;
-
-    &.confirm {
-      background: #d946ef;
-      color: white;
-      box-shadow: 0 4px 12px rgba(217, 70, 239, 0.2);
-
-      &:hover {
-        background: #c026d3;
-      }
-    }
-
-    &.reset {
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      color: white;
-
-      &:hover {
-        background: rgba(255, 255, 255, 0.06);
-      }
-    }
-  }
-
-  .radar-slate {
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    position: relative;
-    padding: 20px;
-
-    h3 {
-      font-size: 0.75rem;
-      font-weight: 750;
-      color: white;
-      margin: 10px 0 2px 0;
-    }
-
-    p {
-      font-size: 0.62rem;
-      color: rgba(255, 255, 255, 0.4);
-    }
-  }
-
-  .radar-pulse {
-    width: 60px;
-    height: 60px;
-    border: 1px solid rgba(217, 70, 239, 0.3);
-    border-radius: 50%;
-    animation: pingPulse 1.8s infinite ease-out;
-  }
-
-  @keyframes pingPulse {
-    0% {
-      transform: scale(0.6);
-      opacity: 0.8;
-    }
-    100% {
-      transform: scale(1.6);
-      opacity: 0;
-    }
-  }
-
-  .connection-hud {
-    background: rgba(0, 0, 0, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.03);
-    border-radius: 6px;
-    padding: 8px 12px;
-    width: 100%;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-
-    .hud-label {
-      font-size: 0.62rem;
-      font-weight: 700;
-      color: rgba(255, 255, 255, 0.45);
-    }
-
-    .hud-loader {
-      font-size: 0.62rem;
-      font-weight: 700;
-      color: #e879f9;
-    }
-  }
-</style>
+    </div>
+  {:else}
+    <div class="dt-workspace">
+      <nav class="dt-pane-switch" aria-label="Transfer lists"><button class:dt-selected={mobilePane === 'sent'} aria-pressed={mobilePane === 'sent'} onclick={() => mobilePane = 'sent'}>Sending · {sentItems.length}</button><button class:dt-selected={mobilePane === 'received'} aria-pressed={mobilePane === 'received'} onclick={() => mobilePane = 'received'}>Received · {receivedItems.length}</button></nav>
+      <div class="dt-panes">
+        <section class="dt-pane" class:dt-mobile-hidden={mobilePane !== 'sent'} aria-label="Outgoing transfers">
+          <div class="dt-pane-title"><div><Monitor size={18} /><h3>This device</h3></div><span>{sentItems.length} sent / queued</span></div>
+          <TransferList items={sentItems} direction="sent" onCopy={(text) => copy(text, 'Text copied.')} onCancel={(id) => run(() => session.cancelTransfer(id))} onRemove={(id) => session.removeItem(id)} />
+        </section>
+        <section class="dt-pane" class:dt-mobile-hidden={mobilePane !== 'received'} aria-label="Incoming transfers">
+          <div class="dt-pane-title"><div><Smartphone size={18} /><h3>{state.peerName || 'Other device'}</h3></div><span>{receivedItems.length} received</span></div>
+          <TransferList items={receivedItems} direction="received" onCopy={(text) => copy(text, 'Text copied. Paste it anywhere on this device.')} onCancel={(id) => run(() => session.cancelTransfer(id))} onRemove={(id) => session.removeItem(id)} />
+        </section>
+      </div>
+      <div class="dt-send-dock">
+        <div class="dt-file-action"><button class="dt-primary" disabled={!connected} onclick={() => fileInput.click()}><Plus size={18} />Send files</button><span>Photos, audio, anything.<br />Up to 100 MB per file.</span><input class="dt-file-input" bind:this={fileInput} type="file" multiple aria-label="Choose files to send" onchange={sendFiles} /></div>
+        <form class="dt-text-form" onsubmit={sendText}><label for="train-text">Send text to your other device</label><div class="dt-input-row"><textarea id="train-text" bind:value={draft} maxlength={MAX_TEXT_LENGTH} rows="2" placeholder={TEXT_PLACEHOLDER}></textarea>{#if canPaste}<button class="dt-secondary" type="button" disabled={!connected} onclick={pasteDraft} aria-label="Paste from clipboard"><ClipboardPaste size={18} /><span>Paste</span></button>{/if}<button class="dt-secondary" type="submit" disabled={!connected || !draft.trim()} aria-label="Send text"><Send size={18} /><span>Send</span></button></div></form>
+      </div>
+    </div>
+  {/if}
+  <footer class="dt-footnote"><span><ArrowUpRight size={13} />{connected ? 'Direct device connection · save received files before leaving.' : 'Internet needed to pair · no account needed.'}</span><button type="button" class="dt-help-open" onclick={openHelp}><Info size={13} />How sharing works</button></footer>
+  {#if helpOpen}
+    <div class="dt-help-layer">
+      <button type="button" class="dt-help-scrim" tabindex="-1" aria-label="Close how sharing works" onclick={closeHelp}></button>
+      <div class="dt-help" role="dialog" aria-modal="true" aria-labelledby="dt-help-title">
+        <div class="dt-help-head"><h3 id="dt-help-title">How sharing works</h3><button type="button" class="dt-icon-button" bind:this={helpClose} onclick={closeHelp} aria-label="Close"><X size={16} /></button></div>
+        <ul>{#each HELP_POINTS as point}<li>{point}</li>{/each}</ul>
+      </div>
+    </div>
+  {/if}
+</section>

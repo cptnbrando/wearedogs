@@ -1,0 +1,674 @@
+@use '../../../styles/datatrain-variables' as t;
+
+// QR Train: optical file transfer. Mobile shows one dock at a time (Transmit / Receive);
+// tablet and up show both side by side. Everything fits one screen height: the docks flex,
+// the QR canvas and camera viewfinder shrink, and the status row stays one line.
+.qr-layout {
+  width: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  gap: 12px;
+
+  /* ── Status row: specs + clarity ── */
+  .qr-status-row {
+    flex-shrink: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 16px;
+    padding: 8px 12px;
+    background: rgba(13, 13, 23, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+  }
+
+  .qr-specs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 12px;
+    min-width: 0;
+    margin: 0;
+    font-size: 0.66rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.55);
+
+    span {
+      white-space: nowrap;
+    }
+
+    .online-glow {
+      color: t.$qr-cyan;
+      text-shadow: 0 0 8px rgba(0, 240, 255, 0.4);
+    }
+  }
+
+  .qr-clarity {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .control-label {
+    font-size: 0.6rem;
+    font-weight: 750;
+    color: rgba(255, 255, 255, 0.45);
+    letter-spacing: 0.05em;
+  }
+
+  .toggles-row {
+    display: grid;
+    grid-template-columns: repeat(3, auto);
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .clarity-btn {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 0.66rem;
+    font-weight: 700;
+    padding: 6px 10px;
+    min-height: 30px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: color 0.2s, background 0.2s;
+
+    &:hover {
+      color: white;
+    }
+
+    &:focus-visible {
+      outline: 1px solid t.$qr-cyan;
+      outline-offset: -1px;
+    }
+
+    &.active {
+      background: rgba(0, 240, 255, 0.1);
+      color: t.$qr-cyan;
+    }
+  }
+
+  /* ── View toggles bar ── */
+  .view-toggles-bar {
+    flex-shrink: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+    overflow: hidden;
+
+    @media (min-width: 768px) and (min-height: 501px) {
+      display: none; // Hidden on wide views since they will have columns
+    }
+  }
+
+  .mode-switch-btn {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.72rem;
+    font-weight: 750;
+    padding: 10px 0;
+    cursor: pointer;
+    transition: all 0.2s;
+    outline: none;
+
+    &.active {
+      background: rgba(255, 255, 255, 0.05);
+      color: white;
+    }
+  }
+
+  /* ── Workspace grid ── */
+  .workspace-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    gap: 12px;
+    flex: 1 1 auto;
+    min-height: 0;
+
+    @media (min-width: 768px) and (min-height: 501px) {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+  }
+
+  .pane {
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+    min-height: 0;
+    overflow: hidden;
+    background: rgba(13, 13, 23, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 12px;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+
+    @media (min-width: 768px) and (min-height: 501px) {
+      display: flex !important; // both docks side by side on wide screens
+      opacity: 1 !important;
+      filter: none !important;
+      pointer-events: auto !important;
+    }
+
+    &.active-view {
+      display: flex;
+    }
+
+    &.faded {
+      opacity: 0.15;
+      filter: blur(8px) grayscale(0.5);
+      pointer-events: none;
+    }
+  }
+
+  .pane-indicator {
+    flex-shrink: 0;
+    font-size: 0.58rem;
+    font-weight: 750;
+    color: rgba(255, 255, 255, 0.3);
+    letter-spacing: 0.08em;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    padding-bottom: 6px;
+  }
+
+  /* ── Panel Cards ── */
+  .panel-card {
+    flex-shrink: 0;
+    background: rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    padding: 10px;
+  }
+
+  .uploader-fields {
+    display: grid;
+    grid-template-columns: 130px 24px 1fr;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .dropzone-label {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px dashed rgba(255, 255, 255, 0.15);
+    border-radius: 6px;
+    padding: 14px 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+    color: rgba(255, 255, 255, 0.5);
+    transition: all 0.2s;
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-align: center;
+
+    &:hover {
+      background: rgba(0, 240, 255, 0.03);
+      border-color: t.$qr-cyan;
+      color: white;
+    }
+  }
+
+  .hidden-input {
+    display: none;
+  }
+
+  .divider {
+    text-align: center;
+    font-size: 0.55rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.25);
+  }
+
+  .text-input-field {
+    width: 100%;
+    height: 60px;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    padding: 8px;
+    color: white;
+    font-size: 0.72rem;
+    resize: none;
+    outline: none;
+
+    &:focus {
+      border-color: t.$qr-cyan;
+    }
+  }
+
+  .file-descriptor {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    background: rgba(74, 222, 128, 0.04);
+    border: 1px solid rgba(74, 222, 128, 0.1);
+    padding: 6px 10px;
+    border-radius: 4px;
+  }
+
+  .file-details {
+    font-size: 0.68rem;
+    color: #e2e8f0;
+    flex-grow: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .clear-btn {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.4);
+    cursor: pointer;
+    font-size: 0.72rem;
+
+    &:hover {
+      color: #f43f5e;
+    }
+  }
+
+  .engine-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 8px 12px;
+  }
+
+  .slider-group {
+    flex: 1 1 120px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .clarity-slider {
+    width: 100%;
+    accent-color: t.$qr-cyan;
+    cursor: pointer;
+  }
+
+  .buttons-row {
+    flex: 0 0 auto;
+    display: grid;
+    grid-template-columns: auto auto;
+    gap: 8px;
+
+    .action-btn {
+      min-height: 34px;
+      padding: 8px 12px;
+      white-space: nowrap;
+    }
+  }
+
+  .action-btn {
+    border: none;
+    border-radius: 6px;
+    font-weight: 750;
+    font-size: 0.72rem;
+    padding: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.2s;
+    outline: none;
+
+    &.start {
+      background: linear-gradient(135deg, t.$qr-cyan, #008fa3);
+      color: #080c14;
+      box-shadow: 0 4px 12px rgba(0, 240, 255, 0.2);
+
+      &:hover:not(:disabled) {
+        box-shadow: 0 4px 16px rgba(0, 240, 255, 0.35);
+      }
+    }
+
+    &.pause {
+      background: #eab308;
+      color: #09090b;
+    }
+
+    &.reset {
+      background: rgba(255, 255, 255, 0.05);
+      color: #cbd5e1;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: white;
+      }
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      box-shadow: none !important;
+    }
+  }
+
+  /* ── Projection board ── */
+  .projection-board {
+    flex: 1 1 auto;
+    min-height: 150px;
+    container-type: inline-size;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 8px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .countdown-curtain {
+    position: absolute;
+    inset: 0;
+    background: rgba(6, 6, 10, 0.95);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    z-index: 10;
+
+    .number {
+      font-size: 2.8rem;
+      font-weight: 800;
+      color: t.$qr-cyan;
+      text-shadow: 0 0 16px rgba(0, 240, 255, 0.5);
+    }
+
+    .label {
+      font-size: 0.58rem;
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.4);
+      letter-spacing: 0.05em;
+    }
+  }
+
+  .qrcode-output-canvas {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: 100%;
+    min-height: 100px;
+    max-height: 300px;
+    max-height: min(300px, 100cqw);
+    width: auto;
+    max-width: 100%;
+    aspect-ratio: 1;
+    object-fit: contain;
+    background: white;
+    border-radius: 6px;
+    padding: 6px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  }
+
+  .projection-meta {
+    flex-shrink: 0;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.58rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.3);
+    margin-top: 8px;
+  }
+
+  // One dock at a time (phones, and landscape phones of any width): the toggle bar names it.
+  @media (max-width: 767px), (max-height: 500px) {
+    .pane-indicator {
+      display: none;
+    }
+  }
+
+  // Phone portrait: specs collapse to one ellipsized line beside the clarity toggle.
+  @media (max-width: 767px) and (orientation: portrait) {
+    .qr-status-row {
+      flex-wrap: nowrap;
+      padding: 6px 10px;
+    }
+
+    .qr-specs {
+      display: block;
+      flex: 1 1 auto;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+
+      span {
+        margin-right: 10px;
+      }
+    }
+
+    .qr-clarity {
+      flex-shrink: 0;
+
+      .control-label {
+        display: none;
+      }
+    }
+
+    .clarity-btn {
+      padding: 6px 8px;
+    }
+
+    .uploader-fields {
+      grid-template-columns: 112px 20px 1fr;
+    }
+  }
+
+  // Short screens (landscape phones, small portrait phones): tighter spacing.
+  @media (max-height: 600px) {
+    padding: 8px;
+    gap: 8px;
+
+    .pane {
+      padding: 8px;
+      gap: 8px;
+    }
+
+    .panel-card {
+      padding: 8px;
+    }
+
+    .text-input-field {
+      height: 44px;
+    }
+
+    .dropzone-label {
+      padding: 8px 4px;
+    }
+
+    .qr-status-row {
+      padding: 6px 10px;
+    }
+  }
+
+  // Narrow docks: Clear becomes an icon so the speed slider keeps its row.
+  @media (max-width: 480px), (max-height: 500px) {
+    .btn-text {
+      display: none;
+    }
+  }
+
+  // Tiny portrait phones (320×568, 360×640): the dock keeps usable sizes and the page scrolls a little
+  // rather than crushing the QR.
+  @media (max-width: 767px) and (max-height: 650px) and (orientation: portrait) {
+    .workspace-grid {
+      flex: 0 0 auto;
+      grid-template-rows: auto;
+    }
+
+    .projection-board {
+      flex: 0 0 170px;
+    }
+
+    .viewfinder-window {
+      flex: 0 0 150px;
+    }
+  }
+
+  // Short screens (small phones): drop the frame counters, keep the QR big.
+  @media (max-height: 700px) {
+    .projection-meta {
+      display: none;
+    }
+
+    .projection-board {
+      min-height: 120px;
+      padding: 8px;
+    }
+
+    .dropzone-label {
+      padding: 8px 4px;
+      flex-direction: row;
+    }
+
+    .text-input-field {
+      height: 44px;
+    }
+  }
+
+  // Landscape phones: controls column on the left, the active dock on the right,
+  // and inside the dock the QR / camera sits beside its controls.
+  @media (orientation: landscape) and (max-height: 500px) {
+    display: grid;
+    grid-template-columns: minmax(150px, 30%) minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    align-content: stretch;
+
+    .view-toggles-bar {
+      grid-column: 1;
+      grid-row: 1;
+    }
+
+    .qr-status-row {
+      grid-column: 1;
+      grid-row: 2;
+      align-self: start;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 6px;
+    }
+
+    .qr-specs {
+      font-size: 0.6rem;
+    }
+
+    .qr-clarity {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 4px;
+    }
+
+    .toggles-row {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .clarity-btn {
+      padding: 4px 2px;
+      font-size: 0.58rem;
+      white-space: normal;
+    }
+
+    .workspace-grid {
+      grid-column: 2;
+      grid-row: 1 / 3;
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .tx-pane.active-view,
+    .rx-pane.active-view {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-rows: auto auto minmax(0, 1fr);
+      align-items: start;
+    }
+
+    .tx-pane .projection-board,
+    .rx-pane .viewfinder-window {
+      grid-column: 2;
+      grid-row: 1 / 4;
+      height: 100%;
+      min-height: 0;
+    }
+
+    .tx-pane .projection-board {
+      container-type: normal;
+      aspect-ratio: 1;
+      width: auto;
+    }
+
+    .qrcode-output-canvas {
+      min-height: 0;
+      max-height: 100%;
+    }
+
+    // Camera box: stretch to the dock's height, width set from the screen height.
+    .rx-pane .viewfinder-window {
+      align-self: stretch;
+      height: auto;
+      aspect-ratio: auto;
+      width: 40vh;
+      min-width: 120px;
+      max-width: none;
+    }
+
+    .uploader-fields {
+      grid-template-columns: 96px minmax(0, 1fr);
+      gap: 6px;
+    }
+
+    .divider {
+      display: none;
+    }
+
+    .text-input-field {
+      height: 34px;
+    }
+
+    .grid-card {
+      min-height: 34px;
+      padding: 6px;
+    }
+  }
+
+  // TV / ultra-wide: larger type and a bigger QR so it scans from across the room.
+  @media (min-width: 1536px) and (min-height: 800px) {
+    .qr-specs,
+    .clarity-btn {
+      font-size: 0.8rem;
+    }
+
+    .qrcode-output-canvas {
+      max-height: 420px;
+    }
+
+    .viewfinder-window {
+      max-width: 480px;
+    }
+  }
+}
