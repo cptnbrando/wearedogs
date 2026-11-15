@@ -28,6 +28,8 @@
     KeyRound,
     Bomb,
     Building2,
+    Castle,
+    NotebookPen,
   } from "lucide-svelte";
   import DogsLogo from "./DogsLogo.svelte";
   import AppCard from "./AppCard.svelte";
@@ -48,6 +50,10 @@
   } = $props();
 
   const TITLE_DEFAULT = "Toolbox";
+  // DOGS apps that live on their own sites. Their tiles open in a new tab.
+  const WORDSMITH_URL = "https://wordsmith.dogs.red/";
+  const CASTLE_URL = "https://castle.dogs.red/";
+  const NEW_TAB_FEATURES = "noopener,noreferrer";
 
   let isReadingPost = $state(false);
   let appsGridEl = $state(null);
@@ -285,10 +291,27 @@
     passwords: "#a66bff",
     pocketsand: "#e8c07d",
     dogsinc: "#e6b900",
+    wordsmith: "#ff3344",
+    castle: "#00d7ff",
   };
 
   // CRITICAL: The changelog and settings apps MUST always remain next to each other at the bottom of the toolbox list, with settings last.
+  // Apps with an href live on their own site: they stay first and open in a new tab.
   const apps = [
+    {
+      id: "wordsmith",
+      title: "Wordsmith",
+      desc: "Notes and feature requests that AI agents pick up and ship.",
+      icon: NotebookPen,
+      href: WORDSMITH_URL,
+    },
+    {
+      id: "castle",
+      title: "Castle",
+      desc: "Your personal cloud: your home, kept in one box.",
+      icon: Castle,
+      href: CASTLE_URL,
+    },
     {
       id: "blog",
       title: "Dog Blog",
@@ -496,9 +519,13 @@
       scrollFocusedCardIntoView();
     } else if (e.key === "Enter") {
       e.preventDefault();
-      if (focusedIdx >= 0 && focusedIdx < appIds.length) {
-        activeApp = appIds[focusedIdx];
+      if (focusedIdx < 0 || focusedIdx >= appIds.length) return;
+      const target = apps[focusedIdx];
+      if (target.href) {
+        window.open(target.href, "_blank", NEW_TAB_FEATURES);
+        return;
       }
+      activeApp = target.id;
     }
   }
 
@@ -594,14 +621,17 @@
               <AppCard
                 {app}
                 index={i}
+                accent={appColors[app.id]}
                 isFocused={focusedIdx === i}
                 {isKeyboardNav}
                 tabIndex={focusedIdx === i || (i === 0 && focusedIdx === -1)
                   ? 0
                   : -1}
                 onclick={() => {
-                  activeApp = app.id;
                   focusedIdx = i;
+                  // External tiles are links: the browser opens the new tab.
+                  if (app.href) return;
+                  activeApp = app.id;
                 }}
                 onmouseenter={() => {
                   focusedIdx = i;
