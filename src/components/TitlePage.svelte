@@ -3,7 +3,6 @@
   import { initialLocale } from "../lib/i18n.js";
   import { locale } from "svelte-i18n";
   import {
-    ChartNoAxesColumn,
     Component,
     Music,
     ShoppingCart,
@@ -27,7 +26,7 @@
   // DOGS INC save transfer): open them right away so a slow cold load can't drop the link.
   const FRAGMENT_LINK_APPS = ["dataflash", "dogsinc"];
 
-  // Active view state: 'stats' | 'networking' | 'toolbox' | 'music' | 'store' | 'map' | null
+  // Active view state: 'stats' | 'toolbox' | 'music' | 'store' | 'map' | null
   let {
     activePage = $bindable(null),
     showInfo = $bindable(false),
@@ -655,19 +654,6 @@
         <Component size={28} />
       </button>
 
-      <!-- Networking -->
-      <!-- <button
-        class="runic-btn border-neon-cyan"
-        onclick={(e) => {
-          e.stopPropagation();
-          openPage("networking");
-        }}
-        title="Mesh Network"
-        aria-label="Mesh Network"
-      >
-        <ChartNoAxesColumn size={28} />
-      </button> -->
-
       <!-- Map -->
       <button
         class="runic-btn border-neon-green"
@@ -687,9 +673,7 @@
 </WeAreDogs>
 
 <!-- Overlay Panels -->
-{#if activePage === "networking"}
-  <NetworkingPanel {isClosing} onClose={closePage} />
-{:else if activePage}
+{#if activePage}
   {#if loadedPanels[activePage]}
     {@const Panel = loadedPanels[activePage]}
     {#if activePage === "stats"}
