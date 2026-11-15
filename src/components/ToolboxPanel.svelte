@@ -26,10 +26,12 @@
     Film,
     Calculator,
     KeyRound,
+    Bomb,
+    Building2,
   } from "lucide-svelte";
   import DogsLogo from "./DogsLogo.svelte";
   import AppCard from "./AppCard.svelte";
-  import { audioCore } from "../lib/AudioCore.svelte.js";
+  import { goHome } from "../lib/goHome.js";
   import { onDoubleTap } from "../lib/doubleTap.js";
 
   let {
@@ -79,6 +81,8 @@
     wiretap: "./apps/Wiretap.svelte",
     frames: "./apps/Frames.svelte",
     passwords: "./apps/passwords/PasswordsApp.svelte",
+    pocketsand: "./apps/pocketsand/PocketSandApp.svelte",
+    dogsinc: "./apps/dogsinc/DogsIncApp.svelte",
   };
 
   // Lazy loaded app components caching
@@ -125,7 +129,8 @@
   }
 
   const hiddenApps = {
-    gopro: { id: "gopro", title: "DOGS TV", icon: Video }
+    gopro: { id: "gopro", title: "DOGS TV", icon: Video },
+    memes: { id: "memes", title: "MEMES", icon: Smile },
   };
 
   // Derive the active header state (icon, title, etc) from active or focused app
@@ -277,7 +282,9 @@
     settings: "#ff3344",
     wiretap: "#00ff66",
     frames: "#ff5e00",
-    passwords: "#00d75f",
+    passwords: "#a66bff",
+    pocketsand: "#e8c07d",
+    dogsinc: "#e6b900",
   };
 
   // CRITICAL: The changelog and settings apps MUST always remain next to each other at the bottom of the toolbox list, with settings last.
@@ -301,6 +308,30 @@
       icon: QrCode,
     },
     {
+      id: "passwords",
+      title: "Password Generator",
+      desc: "Generate secure random passwords up to 200 characters with entropy analysis.",
+      icon: KeyRound,
+    },
+    {
+      id: "soundboard",
+      title: "Dog Soundboard",
+      desc: "Bark bark bark.",
+      icon: Volume2,
+    },
+    {
+      id: "pocketsand",
+      title: "Pocket Sand",
+      desc: "One-tap clipboard payloads for stress testing text boxes.",
+      icon: Bomb,
+    },
+    {
+      id: "dataflash",
+      title: "Data Train",
+      desc: "Scan a QR code and send files and text between your devices.",
+      icon: Zap,
+    },
+    {
       id: "reader",
       title: "Image Reader",
       desc: "Extract editable text from images.",
@@ -313,16 +344,10 @@
       icon: Mic,
     },
     {
-      id: "passwords",
-      title: "Password Generator",
-      desc: "Generate secure random passwords up to 200 characters with entropy analysis.",
-      icon: KeyRound,
-    },
-    {
-      id: "dataflash",
-      title: "Data Train",
-      desc: "Multi-protocol secure data dispatcher (QR, BT, USB, AirRTC).",
-      icon: Zap,
+      id: "dogsinc",
+      title: "DOGS INC",
+      desc: "Build a tower, hire the dogs, click the box, and keep the money coming.",
+      icon: Building2,
     },
     {
       id: "soundstripper",
@@ -335,12 +360,6 @@
       title: "Windshield Wiper",
       desc: "Clean watermarks, logos, and text from images and videos using canvas magic.",
       icon: Sparkles,
-    },
-    {
-      id: "soundboard",
-      title: "Dog Soundboard",
-      desc: "Bark bark bark.",
-      icon: Volume2,
     },
     {
       id: "snake",
@@ -372,12 +391,6 @@
     //   desc: "Investigate missing people and dogs.",
     //   icon: Search,
     // },
-    {
-      id: "memes",
-      title: "MEMES",
-      desc: "Create custom memes and explore pop culture.",
-      icon: Smile,
-    },
     {
       id: "frames",
       title: "Frames",
@@ -512,13 +525,10 @@
     <header class="panel-header">
       <button
         class="logo-btn"
-        onclick={() =>
-          window.dispatchEvent(
-            new CustomEvent(
-              audioCore.isPlaying ? "open-music-panel" : "open-info-panel",
-            ),
-          )}
-        aria-label="Open DOGS Info"
+        onclick={() => {
+          if (confirmClose()) goHome();
+        }}
+        aria-label="Go to the DOGS home page"
       >
         <DogsLogo size="panel" />
       </button>

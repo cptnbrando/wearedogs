@@ -28,6 +28,13 @@ $color-like-ink-filled: #ffffff;                        // Thumb icon on the fil
 $color-like-text: #000000;                              // "200 people like DOGS"
 $color-consent-text-muted: #525252;                     // Pre-click data notice below the like button
 
+// ── Pocket Sand: card highlight, tag chips and copy toast ──
+// Used in apps/pocketsand/PocketSandApp.svelte; the toolbox icon color matches.
+$color-sand: var(--color-sand, #e8c07d);
+$color-sand-soft: rgba(232, 192, 125, 0.12);
+$color-sand-line: rgba(232, 192, 125, 0.4);
+$color-sand-glow: rgba(232, 192, 125, 0.25);
+
 // ── Background Gradients & Colors ──
 $bg-app-dark: var(--bg-app, #050508);
 $bg-radial-overlay: var(--bg-radial-overlay, radial-gradient(circle at top, rgba(30, 10, 15, 0.55) 0%, rgba(5, 5, 8, 1) 100%));

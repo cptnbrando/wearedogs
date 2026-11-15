@@ -2,6 +2,7 @@
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <script>
   import { onMount, onDestroy } from "svelte";
+  import { cubicOut } from "svelte/easing";
 
   let {
     images = [],
@@ -13,11 +14,15 @@
     // showThumbnails: thumbnail strip under the frame
     // ribbon: campaign-style serrated position ribbon along the frame's
     //         bottom edge (replaces the dots overlay)
+    // pngFallback: .webp slides get a <picture> whose <img> loads the .png
+    //              twin on browsers without WebP (only set where every .webp
+    //              has one, e.g. the map's review photos)
     accent = "emerald",
     aspectClass = "aspect-[896/1088]",
     fit = "contain",
     showThumbnails = true,
     ribbon = false,
+    pngFallback = false,
   } = $props();
 
   let activeDotClass = $derived(
@@ -42,6 +47,14 @@
   );
 
   const VIDEO_EXT = /\.(mp4|webm|ogv|ogg|mov|m4v)(\?.*)?$/i;
+  const WEBP_EXT = /\.webp(\?.*)?$/i;
+  // Slide duration; the ribbon fill transition in <style> matches it
+  const SLIDE_MS = 450;
+  const REDUCED_MOTION =
+    typeof window !== "undefined" &&
+    window.matchMedia &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const slideMs = REDUCED_MOTION ? 0 : SLIDE_MS;
 
   function isVideo(url) {
     return typeof url === "string" && VIDEO_EXT.test(url);
@@ -58,17 +71,22 @@
   let dragStartY = 0;
   let isDragging = $state(false);
 
-  function slideIn(node, { duration = 350, direction = 1 }) {
+  // Slides are applied |global: they sit inside {#key activeIdx} > {#if},
+  // and Svelte 5's local-by-default transitions never fire there because
+  // only the parent {#key} block re-renders.
+  function slideIn(node, { duration = SLIDE_MS, direction = 1 }) {
     return {
       duration,
+      easing: cubicOut,
       css: (t) =>
         `transform: translate3d(${(1 - t) * 100 * direction}%, 0, 0); opacity: ${t};`,
     };
   }
 
-  function slideOut(node, { duration = 350, direction = 1 }) {
+  function slideOut(node, { duration = SLIDE_MS, direction = 1 }) {
     return {
       duration,
+      easing: cubicOut,
       css: (t) =>
         `transform: translate3d(${(1 - t) * -100 * direction}%, 0, 0); opacity: ${t};`,
     };
@@ -194,8 +212,8 @@
       {#if isVideo(displayImages[activeIdx])}
         <!-- svelte-ignore a11y_media_has_caption -->
         <video
-          in:slideIn={{ duration: 350, direction: scrollDirection }}
-          out:slideOut={{ duration: 350, direction: scrollDirection }}
+          in:slideIn|global={{ duration: slideMs, direction: scrollDirection }}
+          out:slideOut|global={{ duration: slideMs, direction: scrollDirection }}
           src={displayImages[activeIdx]}
           class="absolute inset-0 w-full h-full {fitClass} z-10"
           controls
@@ -206,10 +224,24 @@
           preload="metadata"
           draggable="false"
         ></video>
+      {:else if pngFallback && WEBP_EXT.test(displayImages[activeIdx])}
+        <picture
+          in:slideIn|global={{ duration: slideMs, direction: scrollDirection }}
+          out:slideOut|global={{ duration: slideMs, direction: scrollDirection }}
+          class="absolute inset-0 block w-full h-full"
+        >
+          <source srcset={displayImages[activeIdx]} type="image/webp" />
+          <img
+            src={displayImages[activeIdx].replace(WEBP_EXT, ".png$1")}
+            alt={`${productTitle} - Image ${activeIdx + 1}`}
+            class="block w-full h-full {fitClass} transition-transform duration-300 group-hover:scale-102"
+            draggable="false"
+          />
+        </picture>
       {:else}
         <img
-          in:slideIn={{ duration: 350, direction: scrollDirection }}
-          out:slideOut={{ duration: 350, direction: scrollDirection }}
+          in:slideIn|global={{ duration: slideMs, direction: scrollDirection }}
+          out:slideOut|global={{ duration: slideMs, direction: scrollDirection }}
           src={displayImages[activeIdx]}
           alt={`${productTitle} - Image ${activeIdx + 1}`}
           class="absolute inset-0 w-full h-full {fitClass} transition-transform duration-300 group-hover:scale-102"
@@ -324,19 +356,44 @@
     pointer-events: none;
   }
 
-  /* Each slide is one skewed tooth; skew is the serration. */
+  /* Each slide is one skewed tooth; skew is the serration. The red fill is
+     a child bar that slides in from the left (and back out to the left when
+     the carousel steps back or wraps), in step with the image slide
+     (450ms = SLIDE_MS in <script>). */
   .ribbon-seg {
+    position: relative;
     flex: 1;
     transform: skewX(-24deg);
     border-radius: 1px;
     background: rgba(255, 255, 255, 0.16);
-    transition:
-      background-color 0.35s ease,
-      box-shadow 0.35s ease;
   }
 
-  .ribbon-seg.filled {
+  .ribbon-seg::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
     background: #ef4444;
     box-shadow: 0 0 8px rgba(239, 68, 68, 0.75);
+    -webkit-transform: scaleX(0);
+    transform: scaleX(0);
+    -webkit-transform-origin: left center;
+    transform-origin: left center;
+    -webkit-transition: -webkit-transform 450ms cubic-bezier(0.33, 1, 0.68, 1);
+    transition: transform 450ms cubic-bezier(0.33, 1, 0.68, 1);
+  }
+
+  .ribbon-seg.filled::after {
+    -webkit-transform: scaleX(1);
+    transform: scaleX(1);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ribbon-seg::after {
+      -webkit-transition: none;
+      transition: none;
+    }
   }
 </style>

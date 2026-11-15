@@ -41,6 +41,7 @@
     reconvertCandidate,
     reopensAsFile,
   } from "./converterDocuments.js";
+  import { holdFiles } from "./converterHold.js";
   import { NO_CROP, cropRect, thumbnailFit } from "../../lib/imageCrop.js";
   import {
     describeError,
@@ -993,9 +994,10 @@
     }
   }
 
-  function handleFileSelect(e) {
+  async function handleFileSelect(e) {
     if (e.target.files) {
-      const files = Array.from(e.target.files);
+      // Read before anything else: a phone's picked file can vanish moments later
+      const files = await holdFiles(Array.from(e.target.files));
       // Clear the input so selecting the same file(s) again re-fires change
       e.target.value = "";
       if (files.length === 1 && files[0].name.endsWith(".zip")) {
