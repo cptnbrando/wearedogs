@@ -18,6 +18,8 @@
     KeyRound,
     Bomb,
     Building2,
+    Castle,
+    NotebookPen,
   } from "lucide-svelte";
 
   let { appId } = $props();
@@ -190,6 +192,20 @@
     <Building2
       size={28}
       style="color: var(--color-neon-gold, #e6b900); filter: drop-shadow(0 0 6px rgba(230, 185, 0, 0.4));"
+    />
+  </div>
+{:else if appId === "wordsmith"}
+  <div class="flex items-center justify-center h-full">
+    <NotebookPen
+      size={28}
+      style="color: var(--color-neon-red, #ff3344); filter: drop-shadow(0 0 6px rgba(255, 51, 68, 0.4));"
+    />
+  </div>
+{:else if appId === "castle"}
+  <div class="flex items-center justify-center h-full">
+    <Castle
+      size={28}
+      style="color: var(--color-neon-cyan, #00d7ff); filter: drop-shadow(0 0 6px rgba(0, 215, 255, 0.4));"
     />
   </div>
 {/if}

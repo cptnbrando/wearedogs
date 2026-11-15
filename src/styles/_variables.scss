@@ -7,6 +7,16 @@ $color-neon-red: var(--color-neon-red, #ff3344);        // Main primary accent &
 $color-neon-green: var(--color-neon-green, #00d75f);      // Success, advancing status, and win states
 $color-alert-red: var(--color-alert-red, #ef4444);       // Elimination status, offline warnings
 
+// ── Dog Blog: post header actions and the stats drop-down ──
+// Used in apps/BlogApp.svelte (.post-action buttons, .stat-tile).
+$color-blog-accent-line: rgba(180, 85, 255, 0.45); // Border of the open Stats button (the blog's purple)
+$color-blog-ink: rgba(255, 255, 255, 0.7);          // Action button text at rest
+$color-blog-ink-strong: #ffffff;                    // Hovered/open button text and stat values
+$color-blog-ink-dim: rgba(255, 255, 255, 0.4);      // Stat tile labels
+$color-blog-line: rgba(255, 255, 255, 0.1);         // Action button border
+$bg-blog-hover: rgba(255, 255, 255, 0.08);          // Hovered/open action button
+$bg-blog-tile: rgba(0, 0, 0, 0.3);                  // Stat tile background
+
 // ── Catalytic Converter: documents & crop ──
 // Document formats accent (format group label, file icons, stats panel).
 // Used in styles/CatalyticConverter.scss and apps/DocumentPreview.svelte.
