@@ -1,10 +1,10 @@
 <script>
   import { onMount } from "svelte";
-  import { Mail } from "lucide-svelte";
   import BinaryBackground from "./BinaryBackground.svelte";
   import DogsLogo from "./DogsLogo.svelte";
   import LikeButton from "./LikeButton.svelte";
   import MailingList from "./MailingList.svelte";
+  import InfoBanner from "./InfoBanner.svelte";
   import { audioCore } from "../lib/AudioCore.svelte.js";
 
   // Props mapping the flag colors toggle state
@@ -124,7 +124,7 @@
       </div>
     </div>
 
-    <!-- Bottom Section: Info Cards & Mailto button -->
+    <!-- Bottom Section: mailing list, likes and the privacy banner -->
     <div
       class="company-section w-full max-lg:landscape:w-[48%] lg:w-full flex flex-col justify-between max-lg:landscape:h-full gap-2 max-lg:landscape:gap-0 md:gap-6 mb-2 max-sm:mb-16 landscape:mb-0 lg:mb-0 pointer-events-none"
     >
@@ -133,43 +133,11 @@
         class="flex flex-col gap-2 max-lg:landscape:gap-1.5 md:gap-6 w-full max-lg:landscape:my-auto pointer-events-auto"
         class:landscape:max-lg:hidden={activeLandscapeTab === "skeleton"}
       >
+        <!-- Mailing list on top, the like count and thumb side by side, the privacy banner last -->
         <div class="cards-grid">
-          <!-- Founding Info Card -->
-          <div
-            class="info-card flex items-center justify-center gap-2.5 rounded-xl md:rounded-2xl bg-[#f8f9fa] border border-black/5 hover:border-black/10 hover:shadow-lg transition-all duration-300"
-          >
-            <span class="text-base md:text-lg pointer-events-none">📅</span>
-            <span
-              class="card-value text-xs sm:text-sm md:text-base font-bold text-black"
-              >formed in 2026</span
-            >
-          </div>
-
-          <!-- Email Link Card -->
-          <a
-            href="mailto:brando@wearedogs.net?subject=Hello%20There!&body=BARK%20BARK%20BARK%20BARK%20BARK%20BARK%20BARK"
-            class="info-card contact-card flex items-center justify-center gap-2 rounded-xl md:rounded-2xl bg-[#f8f9fa] border border-black/5 hover:border-black/10 hover:shadow-lg transition-all duration-300"
-          >
-            <Mail size={16} class="text-black" />
-            <span
-              class="card-value text-xs sm:text-sm md:text-base font-bold text-black"
-              >email us</span
-            >
-          </a>
-
-          <!-- Location Info Box -->
-          <div
-            class="info-card flex items-center justify-center gap-2.5 rounded-xl md:rounded-2xl bg-[#f8f9fa] border border-black/5 hover:border-black/10 hover:shadow-lg transition-all duration-300"
-          >
-            <span class="text-base md:text-lg pointer-events-none">🏙️</span>
-            <span
-              class="card-value text-xs sm:text-sm md:text-base font-bold text-black"
-              >somewhere between Tulsa OK and Dallas TX</span
-            >
-          </div>
-
-          <LikeButton {active} />
           <MailingList {active} />
+          <LikeButton {active} />
+          <InfoBanner {active} />
         </div>
       </div>
 

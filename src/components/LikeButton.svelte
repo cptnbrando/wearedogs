@@ -1,4 +1,6 @@
 <script>
+  // Two cells of the info grid (DogsMain.svelte): the like count on the left, the thumb button on the right.
+  // The disclosure for what a like sends lives in the banner under the grid.
   import { onDestroy } from "svelte";
   import { ThumbsUp } from "lucide-svelte";
   import { readCache, loadCount, sendLike } from "./likeClient.js";
@@ -6,7 +8,6 @@
   const ICON_STROKE = 1.75;
   const SHAKE_MS = 500;
   const CELEBRATE_MS = 650;
-  const PRIVACY_URL = "/privacy.html";
   const COUNT_PLACEHOLDER = "—";
   const COUNT_FORMAT = typeof Intl === "undefined" ? null : new Intl.NumberFormat("en-US");
   const INITIAL_CACHE = readCache();
@@ -76,46 +77,38 @@
   }
 </script>
 
-<div class="like-slot relative flex w-full min-w-0 flex-col sm:flex-col md:flex-col lg:flex-col xl:flex-col 2xl:flex-col max-lg:landscape:flex-col">
-  <button
-    type="button"
-    class="info-card like-card w-full flex items-center justify-center rounded-xl md:rounded-2xl"
-    class:liked
-    class:failed
-    class:celebrating
-    aria-pressed={liked}
-    aria-label={liked ? "You like DOGS" : "Like DOGS"}
-    onclick={like}
-  >
-    <span class="like-group inline-flex items-center">
-      <span class="like-thumb relative shrink-0 rounded-full flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 md:w-11 md:h-11 lg:w-11 lg:h-11 xl:w-12 xl:h-12 2xl:w-16 2xl:h-16 max-lg:landscape:w-8 max-lg:landscape:h-8" aria-hidden="true">
-        <span class="like-icon relative z-10 flex">
-          <ThumbsUp class="w-[18px] h-[18px] sm:w-5 sm:h-5 md:w-5 md:h-5 lg:w-5 lg:h-5 xl:w-6 xl:h-6 2xl:w-8 2xl:h-8 max-lg:landscape:w-4 max-lg:landscape:h-4" strokeWidth={ICON_STROKE} />
-        </span>
-        <span class="like-particles">
-          {#each PARTICLES as particle}
-            <span class="like-particle particle-{particle}"></span>
-          {/each}
-        </span>
-      </span>
-      <span class="like-text text-left text-xs sm:text-sm md:text-base lg:text-base xl:text-lg 2xl:text-2xl max-lg:landscape:text-xs">
-        <strong class="like-count" aria-hidden="true">
-          <span class="count-current" class:rolling={celebrating && previousCount !== null}>{countText}</span>
-          {#if celebrating && previousCount !== null}
-            <span class="count-previous">{previousText}</span>
-          {/if}
-        </strong>
-        <span class="like-wording block whitespace-nowrap"><span>{verb}</span> <strong class="block xl:inline font-black">DOGS</strong></span>
-      </span>
-    </span>
-  </button>
-  <!-- Outside the button's fixed accessible name so updates are announced once. -->
+<div class="info-card like-count-card flex flex-col items-center justify-center rounded-xl md:rounded-2xl" class:celebrating>
+  <strong class="like-count font-black leading-none text-3xl sm:text-3xl md:text-4xl lg:text-4xl xl:text-5xl 2xl:text-7xl max-lg:landscape:text-2xl" aria-hidden="true">
+    <span class="count-current" class:rolling={celebrating && previousCount !== null}>{countText}</span>
+    {#if celebrating && previousCount !== null}
+      <span class="count-previous">{previousText}</span>
+    {/if}
+  </strong>
+  <span class="like-wording mt-1 whitespace-nowrap text-[11px] sm:text-xs md:text-sm lg:text-sm xl:text-base 2xl:text-xl max-lg:landscape:mt-0.5 max-lg:landscape:text-[10px]" aria-hidden="true">{verb} <strong class="font-black">DOGS</strong></span>
   <span class="sr-only" aria-live="polite" aria-atomic="true">{count === null ? "Like count unavailable" : `${countText} ${verb} DOGS`}</span>
-  <p class="like-consent px-2 pt-2 text-center text-[11px] leading-snug sm:text-xs md:px-3 md:text-sm lg:text-sm xl:text-sm 2xl:text-lg max-lg:landscape:pt-1 max-lg:landscape:text-[10px]">
-    Liking sends hashed device signals and a Cloudflare check to help limit repeat votes.
-    <a href={PRIVACY_URL} target="_blank" rel="noopener">Read the privacy policy</a>.
-  </p>
 </div>
+
+<button
+  type="button"
+  class="info-card like-card flex items-center justify-center rounded-xl md:rounded-2xl"
+  class:liked
+  class:failed
+  class:celebrating
+  aria-pressed={liked}
+  aria-label={liked ? "You like DOGS" : "Like DOGS"}
+  onclick={like}
+>
+  <span class="like-thumb relative shrink-0 rounded-full flex items-center justify-center w-11 h-11 sm:w-12 sm:h-12 md:w-14 md:h-14 lg:w-14 lg:h-14 xl:w-16 xl:h-16 2xl:w-24 2xl:h-24 max-lg:landscape:w-9 max-lg:landscape:h-9" aria-hidden="true">
+    <span class="like-icon relative z-10 flex">
+      <ThumbsUp class="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 lg:w-7 lg:h-7 xl:w-8 xl:h-8 2xl:w-12 2xl:h-12 max-lg:landscape:w-[18px] max-lg:landscape:h-[18px]" strokeWidth={ICON_STROKE} />
+    </span>
+    <span class="like-particles">
+      {#each PARTICLES as particle}
+        <span class="like-particle particle-{particle}"></span>
+      {/each}
+    </span>
+  </span>
+</button>
 
 <style lang="scss">
   @use "sass:list";
@@ -125,18 +118,25 @@
   $EASE_POP: cubic-bezier(0.22, 1, 0.36, 1);
   $PARTICLE_ANGLES: -105deg, -45deg, 15deg, 75deg, 135deg, 195deg;
 
-  // Override the parent card's transition: all; only transforms/opacity animate here.
-  .like-slot .like-card {
+  // Both cards override the grid's shared hover lift and transition: only transforms/opacity animate here.
+  .like-count-card,
+  .like-card {
     min-width: 0;
-    padding-left: 0.5rem;
-    padding-right: 0.5rem;
-    cursor: pointer;
     background: vars.$color-like-card;
     border: 1px solid vars.$color-like-idle-line;
-    -webkit-tap-highlight-color: transparent;
     transition: none;
 
     &:hover { transform: none; }
+  }
+
+  .like-count-card {
+    color: vars.$color-like-text;
+  }
+
+  .like-card {
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+
     &:focus { outline: 2px solid vars.$color-like-ink; outline-offset: 3px; }
     &:focus:not(:focus-visible) { outline: none; }
     &:focus-visible { outline: 2px solid vars.$color-like-ink; outline-offset: 3px; }
@@ -144,7 +144,6 @@
     &.failed { animation: like-shake 0.45s ease; }
   }
 
-  .like-group { flex-shrink: 0; }
   .like-thumb {
     color: vars.$color-like-ink;
     background: vars.$color-like-idle-bg;
@@ -177,61 +176,33 @@
     .like-icon { animation: like-pop 0.5s $EASE_POP; }
   }
 
-  .like-text {
-    color: vars.$color-like-text;
-    width: 10ch;
-    flex-shrink: 0;
-    margin-left: 0.625rem;
-    line-height: 1.25;
-  }
   .like-count {
-    // Always reserves the same line, including the first-load placeholder and carries.
+    // One line tall and clipped, so the old total rolls up and out while the new one rolls in.
     position: relative;
     display: block;
-    width: 10ch;
-    min-width: 10ch;
-    height: 1.25em;
+    height: 1em;
     overflow: hidden;
+    text-align: center;
     font-variant-numeric: tabular-nums;
     font-feature-settings: "tnum";
   }
   .count-current { display: block; }
   .count-current.rolling { animation: count-in 0.4s $EASE_OUT both; }
-  .count-previous { position: absolute; top: 0; left: 0; animation: count-out 0.3s $EASE_OUT both; }
-  .like-wording { min-width: 10ch; }
-
-  @media (max-width: 400px) {
-    .like-text { font-size: 11px; margin-left: 0.375rem; }
-    .like-thumb { width: 2rem; height: 2rem; }
-  }
+  .count-previous { position: absolute; top: 0; left: 0; right: 0; animation: count-out 0.3s $EASE_OUT both; }
 
   .like-particles { position: absolute; top: 50%; left: 50%; width: 0; height: 0; pointer-events: none; }
   .like-particle {
-    position: absolute; top: -2px; left: -2px; width: 4px; height: 4px;
+    position: absolute; top: -2px; left: -2px; width: 5px; height: 5px;
     border-radius: 50%; background: vars.$color-like-particle; opacity: 0;
   }
   @for $i from 0 through 5 {
     $angle: list.nth($PARTICLE_ANGLES, $i + 1);
     .celebrating .particle-#{$i} { animation: like-particle-#{$i} 0.55s $EASE_OUT both; }
     @keyframes like-particle-#{$i} {
-      0% { opacity: 0; transform: rotate($angle) translateX(0.7rem) scale(0.5); }
+      0% { opacity: 0; transform: rotate($angle) translateX(1rem) scale(0.5); }
       20% { opacity: 1; }
-      100% { opacity: 0; transform: rotate($angle) translateX(2.3rem) scale(0.3); }
+      100% { opacity: 0; transform: rotate($angle) translateX(3rem) scale(0.3); }
     }
-  }
-
-  .like-consent {
-    color: vars.$color-consent-text-muted;
-    a { color: vars.$color-like-text; text-decoration: underline; text-underline-offset: 2px; }
-    a:focus-visible { outline: 2px solid vars.$color-like-ink; outline-offset: 2px; }
-  }
-
-  @media (min-width: 1280px) { .like-text { width: 14ch; } }
-  @media (min-width: 1536px) { .like-text { margin-left: 1.25rem; } }
-  // Very short landscape screens retain a compact two-line total.
-  @media (max-width: 1023px) and (orientation: landscape) and (max-height: 400px) {
-    .like-slot .like-card { padding: 0.375rem 0.5rem; }
-    .like-consent { font-size: 9px; line-height: 1.15; }
   }
 
   @keyframes like-fill { from { transform: scale(0); } to { transform: scale(1); } }
@@ -252,9 +223,9 @@
     75% { transform: translateX(4px); }
   }
   @media (prefers-reduced-motion: reduce) {
-    .like-slot .like-card, .like-thumb, .like-thumb::before, .like-thumb::after,
+    .like-card, .like-thumb, .like-thumb::before, .like-thumb::after,
     .like-icon, .like-particle, .count-current, .count-previous { animation: none !important; transition: none !important; }
-    .like-slot .like-thumb { transform: none !important; }
+    .like-card .like-thumb { transform: none !important; }
     .count-previous { display: none; }
   }
 </style>
