@@ -1,11 +1,13 @@
 <script>
   import NearbyTransfer from './NearbyTransfer.svelte';
   import QrTransfer from './QrTransfer.svelte';
-  import { Radio, QrCode } from 'lucide-svelte';
+  import DropTransfer from './DropTransfer.svelte';
+  import { Radio, QrCode, Share2 } from 'lucide-svelte';
   import './dataTrain.scss';
 
   const TABS = [
     { id: 'air', label: 'Air Train', icon: Radio },
+    { id: 'drop', label: 'Drop Train', icon: Share2 },
     { id: 'qr', label: 'QR Train', icon: QrCode },
   ];
   let activeTab = 'air';
@@ -22,6 +24,7 @@
   </nav>
   <div class="dt-content">
     <div class="dt-air-container" hidden={activeTab !== 'air'}><NearbyTransfer /></div>
+    <div class="dt-air-container" hidden={activeTab !== 'drop'}><DropTransfer onUseAir={() => activeTab = 'air'} /></div>
     {#if activeTab === 'qr'}
       <div class="dt-legacy">
         <QrTransfer />
