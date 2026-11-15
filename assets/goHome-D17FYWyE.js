@@ -1,1 +1,0 @@
-var e=`go-home`;function t(){window.dispatchEvent(new CustomEvent(e))}export{t as n,e as t};

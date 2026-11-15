@@ -1,0 +1,1 @@
+function e(e){let t=0;return n=>{let r=Date.now();r-t<400?(t=0,e(n)):t=r}}export{e as t};

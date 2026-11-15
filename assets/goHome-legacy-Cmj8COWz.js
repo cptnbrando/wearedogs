@@ -1,1 +1,0 @@
-System.register([],function(t,e){var n;return t("n",function(){window.dispatchEvent(new CustomEvent(n))}),{setters:[],execute:function(){t("t",n="go-home")}}});

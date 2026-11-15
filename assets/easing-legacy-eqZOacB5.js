@@ -1,0 +1,1 @@
+(function(){System.register([],function(e,t){function n(e){var t=e-1;return t*t*t+1}return e(`t`,n),{setters:[],execute:function(){}}})})();
