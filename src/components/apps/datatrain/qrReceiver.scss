@@ -1,0 +1,375 @@
+@use '../../../styles/datatrain-variables' as t;
+
+// QR Train receiver dock (camera, reassembly grid) and the transfer-complete dialog.
+// Imported before qrTransfer.scss so that file's breakpoint rules override these base rules.
+.qr-layout {
+  /* ── Scanner components ── */
+  .receiver-controls {
+    flex-shrink: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .btn-group {
+    display: flex;
+    gap: 8px;
+  }
+
+  .control-btn {
+    border: none;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 0.68rem;
+    padding: 6px 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+    outline: none;
+
+    &.run {
+      background: t.$qr-cyan;
+      color: #09090b;
+    }
+
+    &.halt {
+      background: #e11d48;
+      color: white;
+    }
+
+    &.clear {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #cbd5e1;
+    }
+  }
+
+  .loopback-btn {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.5);
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 0.65rem;
+    padding: 6px 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    outline: none;
+    transition: all 0.2s;
+
+    &.active {
+      background: rgba(74, 222, 128, 0.08);
+      border-color: rgba(74, 222, 128, 0.25);
+      color: #4ade80;
+    }
+  }
+
+  .viewfinder-window {
+    flex: 0 1 auto;
+    min-height: 90px;
+    max-height: 100%;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    position: relative;
+    overflow: hidden;
+    aspect-ratio: 4/3;
+    max-width: 320px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  .analyzer-canvas {
+    display: none;
+  }
+
+  .live-viewfinder {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .virtual-hud {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 20px;
+    z-index: 5;
+    background: rgba(6, 6, 10, 0.4);
+
+    &.offline {
+      background: rgba(6, 6, 10, 0.85);
+    }
+
+    span {
+      font-size: 0.72rem;
+      font-weight: 750;
+      letter-spacing: 0.05em;
+      color: #e2e8f0;
+      margin-bottom: 4px;
+    }
+
+    small {
+      font-size: 0.6rem;
+      color: rgba(255, 255, 255, 0.35);
+      max-width: 220px;
+    }
+  }
+
+  .scanner-sweep-bar {
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, t.$qr-cyan, transparent);
+    position: absolute;
+    top: 0;
+    left: 0;
+    box-shadow: 0 0 8px t.$qr-cyan;
+    animation: qrScanBar 2.5s linear infinite;
+  }
+
+  @keyframes qrScanBar {
+    0% {
+      top: 0%;
+    }
+    100% {
+      top: 100%;
+    }
+  }
+
+  /* ── Reassembly specs ── */
+  .reassembly-dashboard {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .progress-info-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .file-labels {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .name {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #f1f5f9;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 180px;
+    }
+
+    .count {
+      font-size: 0.6rem;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.4);
+    }
+  }
+
+  .progressbar-track {
+    height: 14px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .progressbar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #008fa3, t.$qr-cyan);
+    box-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
+    transition: width 0.1s linear;
+  }
+
+  .pct-val {
+    position: absolute;
+    right: 8px;
+    top: 1px;
+    font-size: 0.58rem;
+    font-weight: 850;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  }
+
+  .grid-card {
+    background: rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    padding: 10px;
+    min-height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .grid-status-alert {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.3);
+    letter-spacing: 0.03em;
+  }
+
+  .packet-grid {
+    display: grid;
+    grid-template-columns: repeat(10, 18px);
+    gap: 4px;
+    justify-content: center;
+    max-height: 100px;
+    overflow-y: auto;
+    width: 100%;
+    padding: 4px;
+  }
+
+  .packet-cell {
+    aspect-ratio: 1;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 2px;
+    transition: background 0.1s;
+
+    &.filled {
+      background: t.$qr-cyan;
+      border-color: t.$qr-cyan;
+      box-shadow: 0 0 6px rgba(0, 240, 255, 0.6);
+    }
+  }
+
+  /* ── Completion Dialog ── */
+  .completion-dialog-curtain {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 100;
+  }
+
+  .dialog-card {
+    background: #09090f;
+    border: 1px solid rgba(0, 240, 255, 0.2);
+    border-radius: 12px;
+    padding: 24px;
+    width: 100%;
+    max-width: 380px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    box-shadow: 0 10px 40px rgba(0, 240, 255, 0.15);
+
+    h2 {
+      margin: 12px 0 4px 0;
+      font-size: 1rem;
+      font-weight: 750;
+      letter-spacing: 0.05em;
+    }
+  }
+
+  .check-badge {
+    color: #4ade80;
+    filter: drop-shadow(0 0 10px rgba(74, 222, 128, 0.4));
+  }
+
+  .file-meta-label {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.5);
+    margin-bottom: 20px;
+    word-break: break-all;
+  }
+
+  .dialog-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    width: 100%;
+    margin-bottom: 24px;
+  }
+
+  .stat-cell {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    .title {
+      font-size: 0.55rem;
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+
+    .val {
+      font-size: 0.8rem;
+      font-weight: 750;
+      color: white;
+    }
+  }
+
+  .buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    width: 100%;
+
+    button {
+      border: none;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 0.75rem;
+      padding: 10px 0;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s;
+      outline: none;
+    }
+
+    .confirm {
+      background: t.$qr-cyan;
+      color: #09090b;
+
+      &:hover {
+        background: #00d2e0;
+      }
+    }
+
+    .dismiss {
+      background: rgba(255, 255, 255, 0.05);
+      color: #cbd5e1;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: white;
+      }
+    }
+  }
+}

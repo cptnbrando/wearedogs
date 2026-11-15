@@ -27,6 +27,7 @@
     Diamond,
   } from "lucide-svelte";
   import { audioCore } from "../lib/AudioCore.svelte.js";
+  import { goHome } from "../lib/goHome.js";
   import { musicLock } from "../lib/musicLock.svelte.js";
   import { onDoubleTap } from "../lib/doubleTap.js";
   import { fullLibrary } from "../data/music/tracks.js";
@@ -765,11 +766,8 @@
       <div class="brand">
         <button
           class="logo-btn"
-          onclick={() => {
-            if (audioCore.isPlaying) return;
-            window.dispatchEvent(new CustomEvent("open-info-panel"));
-          }}
-          aria-label="Open DOGS Info"
+          onclick={goHome}
+          aria-label="Go to the DOGS home page"
         >
           <DogsLogo size="panel" />
         </button>
