@@ -11,7 +11,7 @@
  * automated abuse harder. The count is shared by every site the Worker serves.
  */
 
-import { reply, JSON_TYPE } from "../lib/http.js";
+import { reply, readBoundedBody, JSON_TYPE } from "../lib/http.js";
 import { hash } from "../lib/hash.js";
 import { spendWrites } from "../lib/budget.js";
 import { verifyTurnstile } from "../lib/turnstile.js";
@@ -167,7 +167,7 @@ async function readLike(request) {
   if (!(request.headers.get("Content-Type") || "").startsWith(JSON_TYPE)) return null;
   if (Number(request.headers.get("Content-Length") || 0) > MAX_BODY_BYTES) return null;
 
-  const body = await readBoundedBody(request);
+  const body = await readBoundedBody(request, MAX_BODY_BYTES);
   if (body === null) return null;
   let data;
   try {
@@ -183,35 +183,6 @@ async function readLike(request) {
   return { id: data.id, token: data.token, signals };
 }
 
-/** Reads no more than MAX_BODY_BYTES from an untrusted request stream. */
-async function readBoundedBody(request) {
-  if (!request.body) return "";
-  const reader = request.body.getReader();
-  const chunks = [];
-  let byteLength = 0;
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      byteLength += value.byteLength;
-      if (byteLength > MAX_BODY_BYTES) {
-        await reader.cancel();
-        return null;
-      }
-      chunks.push(value);
-    }
-  } catch {
-    return null;
-  }
-
-  const bytes = new Uint8Array(byteLength);
-  let offset = 0;
-  chunks.forEach((chunk) => {
-    bytes.set(chunk, offset);
-    offset += chunk.byteLength;
-  });
-  return new TextDecoder().decode(bytes);
-}
 
 /** True when every required signal and at least MIN_MATCHING_SIGNALS match. Missing signals never match. */
 function sameDevice(stored, incoming) {

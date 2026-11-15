@@ -52,6 +52,13 @@ export default defineConfig({
         // 403 block page. Present the real site's referer instead.
         headers: { Referer: 'https://wearedogs.net/' },
       },
+      // The mailing-list route of the same Worker; MAIL_API_TARGET works like LIKES_API_TARGET below.
+      '/api/mail': {
+        target: process.env.MAIL_API_TARGET || 'http://localhost:8787',
+        changeOrigin: true,
+        rewrite: () => '/mail',
+        headers: { Origin: 'https://wearedogs.net' },
+      },
       // The likes Worker (workers/api) only answers wearedogs.net origins, so
       // present the real one. LIKES_API_TARGET=http://localhost:8787 points it
       // at `wrangler dev` and its local D1 instead of the live count.

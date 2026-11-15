@@ -1,8 +1,8 @@
 /**
  * turnstileToken.js
- * Cloudflare Turnstile proof-of-human for LikeButton, in invisible mode: no
+ * Cloudflare Turnstile proof-of-human for likes and mail, in invisible mode: no
  * checkbox or puzzle is ever shown. The script loads only when someone
- * clicks like, which is their consent (see public/privacy.html): nothing
+ * clicks like or submits the mailing form (see public/privacy.html): nothing
  * reaches Cloudflare's challenge servers before that.
  *
  * The widget "wearedogs-api likes" covers wearedogs.net, dogs.red and
@@ -12,8 +12,8 @@
 
 const SCRIPT_URL = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
 const SITE_KEY = import.meta.env.DEV ? "1x00000000000000000000BB" : "0x4AAAAAAFn0k2xvNoVQuLjj";
-// Must match TURNSTILE_ACTION in workers/api/src/routes/likes.js
-const ACTION = "like";
+// Callers may supply their route action; preserve like for existing callers.
+const DEFAULT_ACTION = "like";
 const TOKEN_TIMEOUT_MS = 15000;
 // Invisible widgets draw nothing, but still need a host element in the page
 const HOST_STYLE = "position:fixed;left:0;bottom:0;width:0;height:0;overflow:hidden";
@@ -37,8 +37,9 @@ function loadTurnstile() {
   return scriptLoad;
 }
 
-/** @returns {Promise<string>} a single-use token for one like */
-export function getTurnstileToken() {
+/** @param {string} [action] route action; defaults to like
+ * @returns {Promise<string>} a single-use token for this action */
+export function getTurnstileToken(action = DEFAULT_ACTION) {
   return loadTurnstile().then(
     (turnstile) =>
       new Promise((resolve, reject) => {
@@ -55,7 +56,7 @@ export function getTurnstileToken() {
         const timer = setTimeout(() => finish(reject, new Error("Turnstile timed out")), TOKEN_TIMEOUT_MS);
         widgetId = turnstile.render(host, {
           sitekey: SITE_KEY,
-          action: ACTION,
+          action,
           callback: (token) => finish(resolve, token),
           // Returning true tells Turnstile the error was handled, so it doesn't log it
           "error-callback": () => {

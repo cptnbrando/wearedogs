@@ -4,6 +4,7 @@
   import BinaryBackground from "./BinaryBackground.svelte";
   import DogsLogo from "./DogsLogo.svelte";
   import LikeButton from "./LikeButton.svelte";
+  import MailingList from "./MailingList.svelte";
   import { audioCore } from "../lib/AudioCore.svelte.js";
 
   // Props mapping the flag colors toggle state
@@ -107,7 +108,7 @@
 
       <!-- Inline 3D Canvas for mobile portrait viewports -->
       <div
-        class="block landscape:hidden lg:hidden w-full h-[40vh] relative z-0"
+        class="inline-canvas block landscape:hidden lg:hidden w-full h-[18vh] relative z-0"
       >
         {#if !isDesktopOrLandscape && ThreeDCanvas && activePage === null}
           <ThreeDCanvas {isFlagColors} {active} />
@@ -168,6 +169,7 @@
           </div>
 
           <LikeButton {active} />
+          <MailingList {active} />
         </div>
       </div>
 
@@ -340,6 +342,11 @@
     .cards-grid :global(.info-card) {
       padding: 0.75rem 0.625rem;
     }
+  }
+
+  /* Make room for the fixed signup card on short portrait phones. */
+  @media (max-height: 650px) and (orientation: portrait) {
+    .inline-canvas { height: 4vh; }
   }
 
   /* Futuristic stagger entry/exit transitions - Default (Exit State) is swift */

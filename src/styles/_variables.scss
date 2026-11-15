@@ -26,6 +26,8 @@ $color-like-idle-line: rgba(0, 0, 0, 0.12);             // Its hairline border
 $color-like-ink: #000000;                               // Idle thumb icon and focus ring
 $color-like-ink-filled: #ffffff;                        // Thumb icon on the filled circle
 $color-like-text: #000000;                              // "200 people like DOGS"
+$color-like-card: #f8f9fa;                              // LikeButton.svelte: matches the adjacent info cards
+$color-like-particle: #ff3344;                          // LikeButton.svelte: click-only thumb burst
 $color-consent-text-muted: #525252;                     // Pre-click data notice below the like button
 
 // ── Pocket Sand: card highlight, tag chips and copy toast ──
@@ -85,3 +87,11 @@ $transition-speed-normal: 0.25s;
     box-shadow: 0 0 20px rgba($color-neon-red, 0.35);
   }
 }
+
+// ── Mailing list (src/components/MailingList.svelte, DOGS info card) ──
+$color-mail-card: #f8f9fa; // Matches sibling info cards
+$color-mail-ink: #000000; // Card copy, controls and focus outlines
+$color-mail-muted: #525252; // Yearly frequency and privacy disclosure
+$color-mail-line: rgba(0, 0, 0, 0.15); // Input and card borders
+$color-mail-input: #ffffff; // Email input and submit text
+$color-mail-error: #a31621; // Error message on the light card

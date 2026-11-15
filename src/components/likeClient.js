@@ -32,16 +32,20 @@ const LIKE_MEMORY_MS = LIKE_MEMORY_DAYS * 24 * 60 * 60 * 1000;
 const CLEANUP_INTERVAL_MS = 60 * 60 * 1000;
 const REQUEST_TIMEOUT_MS = 8000;
 
+let voteRevision = 0;
+let countRequest = null;
+
 /** @typedef {{ count: number|null, at: number, liked: boolean, likedAt?: number }} LikeCache */
 
 /** @returns {LikeCache} what this browser remembers through the next hourly cleanup after 20 days */
 export function readCache() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
-    if (!saved) return { count: null, at: 0, liked: false };
+    if (!saved || typeof saved !== "object") return { count: null, at: 0, liked: false };
     const cleanupAt = Math.ceil(((saved.likedAt || 0) + LIKE_MEMORY_MS) / CLEANUP_INTERVAL_MS) * CLEANUP_INTERVAL_MS;
     const remembered = saved.liked && Date.now() < cleanupAt;
-    return { ...saved, liked: remembered };
+    const count = typeof saved.count === "number" && isFinite(saved.count) && saved.count >= 0 && Math.floor(saved.count) === saved.count ? saved.count : null;
+    return { ...saved, count, liked: Boolean(remembered) };
   } catch {
     // Storage disabled (private mode) or corrupt: fall through to empty
   }
@@ -62,11 +66,23 @@ function writeCache(patch) {
 export function loadCount() {
   const cache = readCache();
   if (cache.count !== null && Date.now() - cache.at < COUNT_TTL_MS) return Promise.resolve(cache.count);
-  return request("GET").then((data) => writeCache({ count: data.count }).count);
+  if (countRequest) return countRequest;
+  const revision = voteRevision;
+  countRequest = request("GET").then((data) => {
+    // A GET begun before a vote must never overwrite the confirmed POST cache.
+    if (revision === voteRevision) writeCache({ count: data.count });
+    countRequest = null;
+    return data.count;
+  }, (error) => {
+    countRequest = null;
+    throw error;
+  });
+  return countRequest;
 }
 
 /** @returns {Promise<number>} the count after this browser's like */
 export function sendLike() {
+  voteRevision += 1;
   return Promise.all([collectSignals(), getTurnstileToken()])
     .then(([signals, token]) => request("POST", { id: deviceId(), signals, token }))
     .then((data) => writeCache({ count: data.count, liked: true, likedAt: Date.now() }).count);
@@ -104,7 +120,11 @@ function request(method, body) {
     xhr.onload = () => {
       if (xhr.status !== 200) return reject(new Error(`Likes ${xhr.status}`));
       try {
-        resolve(JSON.parse(xhr.responseText));
+        const data = JSON.parse(xhr.responseText);
+        if (!data || typeof data.count !== "number" || !isFinite(data.count) || data.count < 0 || Math.floor(data.count) !== data.count) {
+          return reject(new Error("Invalid like count"));
+        }
+        resolve(data);
       } catch (err) {
         reject(err);
       }

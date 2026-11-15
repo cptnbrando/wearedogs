@@ -11,6 +11,7 @@
  *   - browser-like User-Agent
  *   - per-route rate limiters and, for writes, Turnstile (lib/turnstile.js)
  *
+ * Apps: /likes (counter), /mail (roughly yearly mailing-list signup).
  * Adding an app:
  *   1. src/routes/<app>.js exporting { path: "/<app>", handle(request, env, ctx, visitor) }
  *   2. register it in ROUTES below
@@ -23,8 +24,9 @@
 import { reply, corsHeaders } from "./lib/http.js";
 import { ipKey } from "./lib/hash.js";
 import likes from "./routes/likes.js";
+import mail from "./routes/mail.js";
 
-const ROUTES = { [likes.path]: likes };
+const ROUTES = { [likes.path]: likes, [mail.path]: mail };
 const SERVICE_UNAVAILABLE = "Service temporarily unavailable";
 const BOT_UA_PATTERN =
   /bot|crawl|spider|slurp|curl|wget|python|httpclient|okhttp|scrapy|headless|phantom|go-http|java\//i;
