@@ -331,6 +331,12 @@
       icon: QrCode,
     },
     {
+      id: "dataflash",
+      title: "Data Train",
+      desc: "Send files and text between your devices: pair with a QR code, or use AirDrop and Quick Share.",
+      icon: Zap,
+    },
+    {
       id: "passwords",
       title: "Password Generator",
       desc: "Generate secure random passwords up to 200 characters with entropy analysis.",
@@ -347,12 +353,6 @@
       title: "Pocket Sand",
       desc: "One-tap clipboard payloads for stress testing text boxes.",
       icon: Bomb,
-    },
-    {
-      id: "dataflash",
-      title: "Data Train",
-      desc: "Scan a QR code and send files and text between your devices.",
-      icon: Zap,
     },
     {
       id: "reader",

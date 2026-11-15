@@ -6,6 +6,10 @@ import shareCards from './scripts/vite-plugin-share-cards.js'
 import markdownData from './scripts/vite-plugin-md-data.js'
 import staticData from './scripts/vite-plugin-static-data.js'
 import blogTimeline from './scripts/vite-plugin-blog-timeline.js'
+import dropCdnWasm from './scripts/vite-plugin-drop-cdn-wasm.js'
+
+const THREE_BUILD_MODULES = /[\\/]node_modules[\\/]three[\\/]build[\\/]/
+const THREE_CORE_MODULE = /[\\/]node_modules[\\/]three[\\/]build[\\/]three\.core/
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -28,6 +32,7 @@ export default defineConfig({
     // Emits real HTML at each /store/campaign/<id> and /store/product/<id> so
     // shared links preview with that item's own image, title and description.
     shareCards({ origin: 'https://wearedogs.net' }),
+    dropCdnWasm(),
   ],
   resolve: {
     conditions: ['browser'],
@@ -52,7 +57,7 @@ export default defineConfig({
         // 403 block page. Present the real site's referer instead.
         headers: { Referer: 'https://wearedogs.net/' },
       },
-      // The mailing-list route of the same Worker; MAIL_API_TARGET works like LIKES_API_TARGET below.
+      // The mailing-list route of the API Worker (workers/api); MAIL_API_TARGET works like LIKES_API_TARGET below.
       '/api/mail': {
         target: process.env.MAIL_API_TARGET || 'http://localhost:8787',
         changeOrigin: true,
@@ -68,7 +73,7 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: () => '/likes',
         headers: { Origin: 'https://wearedogs.net' },
-      }
+      },
     }
   },
   build: {
@@ -79,13 +84,23 @@ export default defineConfig({
     cssTarget: 'chrome40',
 
     chunkSizeWarningLimit: 800,
-    rollupOptions: {
+    rolldownOptions: {
+      // plugin-legacy's Babel pass always dominates a 26s build, so this report
+      // prints every time. Set it back to true if builds get slow again: it is
+      // how the old vendor chunk's 153s pass was spotted.
+      checks: { bundlerTimings: false },
       output: {
-        manualChunks(id) {
-          if (id.includes('tesseract.js')) return 'chunk-tesseract';
-          if (id.includes('node_modules')) return 'vendor';
-        }
-      }
-    }
+        // Everything else splits automatically, so a library stays behind the
+        // lazy import that needs it. A catch-all vendor chunk would modulepreload
+        // all of them on the landing page. Only three is grouped: threlte imports
+        // it whole, and as one chunk its legacy build passes the size limit.
+        codeSplitting: {
+          groups: [
+            { name: 'three-core', test: THREE_CORE_MODULE, priority: 1 },
+            { name: 'three', test: THREE_BUILD_MODULES },
+          ],
+        },
+      },
+    },
   }
 })

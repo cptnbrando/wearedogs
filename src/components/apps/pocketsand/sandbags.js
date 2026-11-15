@@ -143,16 +143,6 @@ export const SANDBAGS = [
     glyph: "🧱",
     text: wallOfText(),
   },
-  ...BREAKER_SIZES.map((size) => ({
-    id: `breaker${size}`,
-    title: `${size / 1000000}M Breaker`,
-    tag: "Length",
-    glyph: "💥",
-    text: "",
-    size,
-    preview: clipboardBreaker(BREAKER_PREVIEW_LINES * BREAKER_LINE_CHARS),
-    build: () => clipboardBreaker(size),
-  })),
   {
     id: "longword",
     title: "Endless Word",
@@ -458,4 +448,16 @@ export const SANDBAGS = [
       "---",
     ]),
   },
+  // Last on purpose: copying 1M+ chars can freeze a phone, so a stray tap
+  // near the top of the list should never land on one
+  ...BREAKER_SIZES.map((size) => ({
+    id: `breaker${size}`,
+    title: `${size / 1000000}M Breaker`,
+    tag: "Length",
+    glyph: "💥",
+    text: "",
+    size,
+    preview: clipboardBreaker(BREAKER_PREVIEW_LINES * BREAKER_LINE_CHARS),
+    build: () => clipboardBreaker(size),
+  })),
 ];

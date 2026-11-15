@@ -36,8 +36,12 @@ export function isDatable(text) {
   return /[\p{L}\p{N}]/u.test(text);
 }
 
-// cyrb53 (bryc, public domain): a 53-bit string hash, identical in Node and browsers.
-function hash(str) {
+/**
+ * cyrb53 (bryc, public domain): a 53-bit string hash, identical in Node and browsers.
+ * @param {string} str
+ * @returns {string} base-36
+ */
+export function hash(str) {
   let h1 = 0xdeadbeef;
   let h2 = 0x41c6ce57;
   for (let i = 0; i < str.length; i++) {
