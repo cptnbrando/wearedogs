@@ -18,9 +18,11 @@ export const VALID_APPS = new Set([
   'passwords', 'pocketsand', 'dogsinc',
 ]);
 
-/** One-segment short urls that open an app directly: dogs.red/cc → converter. */
+/** One-segment short urls that open an app directly: dogs.red/cc → converter, dogs.red/d → Data Train. */
 const APP_SHORT_URLS = {
   'cc': 'converter',
+  'd': 'dataflash',
+  'data': 'dataflash',
 };
 
 /**
