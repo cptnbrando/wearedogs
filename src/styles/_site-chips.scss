@@ -1,0 +1,14 @@
+// ── Landing site chips (components/SiteChips.svelte, under the landing tiles in TitlePage.svelte) ──
+// Dark glass like the landing tiles; each chip takes its app accent on hover and in flag-colors mode.
+$color-chip-wordsmith: var(--color-neon-red, #ff3344);   // Wordsmith accent, same as its toolbox tile
+$color-chip-castle: var(--color-neon-cyan, #00d7ff);      // Castle accent, same as its toolbox tile
+$color-chip-money24: var(--color-neon-green, #00ff66);    // Money 24 accent, same as its toolbox tile
+$color-chip-forty: var(--color-neon-gold, #e6b900);        // 40 accent, same as its toolbox tile
+$color-chip-subscribe: var(--color-neon-gold, #e6b900);    // Subscribe to DOGS chip (buymeacoffee.com membership)
+$color-chip-ink: rgba(255, 255, 255, 0.82);               // Chip name, icons and arrow
+$color-chip-ink-hover: #ffffff;                           // Text and default border on hover/focus
+$color-chip-muted: rgba(255, 255, 255, 0.55);             // The blurb
+$color-chip-glass: rgba(10, 10, 15, 0.45);                // Chip background, matches .runic-btn
+$color-chip-glass-hover: rgba(255, 255, 255, 0.1);        // Chip background on hover/focus
+$color-chip-line: rgba(255, 255, 255, 0.15);              // Resting border
+$color-chip-shadow: rgba(0, 0, 0, 0.3);                   // Drop shadow under each chip
