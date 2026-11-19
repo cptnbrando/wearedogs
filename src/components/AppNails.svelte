@@ -20,8 +20,6 @@
     Building2,
     Castle,
     NotebookPen,
-    ChartCandlestick,
-    CalendarCheck,
   } from "lucide-svelte";
 
   let { appId } = $props();
@@ -208,20 +206,6 @@
     <Castle
       size={28}
       style="color: var(--color-neon-cyan, #00d7ff); filter: drop-shadow(0 0 6px rgba(0, 215, 255, 0.4));"
-    />
-  </div>
-{:else if appId === "money24"}
-  <div class="flex items-center justify-center h-full">
-    <ChartCandlestick
-      size={28}
-      style="color: var(--color-neon-green, #00ff66); filter: drop-shadow(0 0 6px rgba(0, 255, 102, 0.4));"
-    />
-  </div>
-{:else if appId === "forty"}
-  <div class="flex items-center justify-center h-full">
-    <CalendarCheck
-      size={28}
-      style="color: var(--color-neon-gold, #e6b900); filter: drop-shadow(0 0 6px rgba(230, 185, 0, 0.4));"
     />
   </div>
 {/if}

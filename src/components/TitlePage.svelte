@@ -11,7 +11,6 @@
     ChevronDown,
   } from "lucide-svelte";
   import WeAreDogs from "./WeAreDogs.svelte";
-  import SiteChips from "./SiteChips.svelte";
   import {
     parsePath,
     panelToUrl,
@@ -670,7 +669,6 @@
         <Map size={28} />
       </button>
     </div>
-    <SiteChips colored={weAreDogsColored} />
   {/if}
 </WeAreDogs>
 
