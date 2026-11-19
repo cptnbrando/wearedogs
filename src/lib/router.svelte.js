@@ -1,5 +1,6 @@
 import { langs } from './langUtils.js';
 import { CAMPAIGN_ALIASES } from './campaignAliases.js';
+import { APP_SHORT_URLS } from './appShortUrls.js';
 
 export { CAMPAIGN_ALIASES };
 
@@ -17,11 +18,6 @@ export const VALID_APPS = new Set([
   'soundstripper', 'converter', 'reader', 'windshieldwiper', 'changelog', 'wiretap', 'frames',
   'passwords', 'pocketsand', 'dogsinc', 'fingerprint',
 ]);
-
-/** One-segment short urls that open an app directly: dogs.red/cc → converter. */
-const APP_SHORT_URLS = {
-  'cc': 'converter',
-};
 
 /**
  * Show slug → catalog key map used when resolving GoPro deep links.

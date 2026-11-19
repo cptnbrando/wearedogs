@@ -3,12 +3,13 @@
   // "subscribe to DOGS" (a Buy Me a Coffee membership) and the DOGS apps that live on their own sites.
   // Three layouts, all absolutely or fixed positioned so the WEAREDOGS letters never move:
   //   portrait (phones, tablets, tall desktops): under the tiles, subscribe tall on the left, the apps stacked right
+  //     (two rows of two once they step down to one-line chips)
   //   landscape with the tiles under the letters: the apps in the bottom-left corner, subscribe in the bottom-right
-  //   short landscape, where the tiles dock to the right edge: the apps under the language card, subscribe bottom-left
+  //   short landscape, where the tiles dock to the right edge: the apps two by two under the language card, subscribe bottom-left
   // Portrait measures the room under the tiles (siteChipsLayout.js) and steps down to one-line chips, then to the
   // corners, when a tall phrase like DOGS RUN THIS %#$@ leaves too little.
   import { onMount, tick } from "svelte";
-  import { ArrowUpRight, Castle, Coffee, NotebookPen } from "lucide-svelte";
+  import { ArrowUpRight, CalendarCheck, Castle, ChartCandlestick, Coffee, NotebookPen } from "lucide-svelte";
   import { FIT_COMPACT, FIT_CORNERS, FIT_ROOMY, fitsBesideTiles, readAnchors, watchLayout } from "./siteChipsLayout.js";
 
   /** Flag-colors mode: each chip takes its accent. */
@@ -24,6 +25,8 @@
   const APPS = [
     { id: "castle", name: "castle", blurb: "make your data yours", url: "https://castle.dogs.red/", icon: Castle },
     { id: "wordsmith", name: "wordsmith", blurb: "speak your truth", url: "https://wordsmith.dogs.red/", icon: NotebookPen },
+    { id: "money24", name: "money 24", blurb: "trade around the clock", url: "https://money24.dogs.red/", icon: ChartCandlestick },
+    { id: "forty", name: "40", blurb: "track any habit", url: "https://40.dogs.red/", icon: CalendarCheck },
   ];
   const GROUPS = [
     { id: "subscribe", label: "Support DOGS", chips: [SUBSCRIBE] },
@@ -89,7 +92,7 @@
 </div>
 
 <style lang="scss">
-  @use "../styles/variables" as vars;
+  @use "../styles/site-chips" as vars;
 
   // The tile row's place comes from siteChipsLayout.js as --nav-top / --nav-bottom; these are TitlePage.svelte's
   // desktop defaults for the instant before it is measured.
@@ -127,11 +130,8 @@
     max-width: 6.5em;
   }
 
-  .chip-castle,
-  .chip-wordsmith {
-    .chip-name {
-      white-space: nowrap;
-    }
+  .group-apps .chip-name {
+    white-space: nowrap;
   }
 
   // Portrait lists wordsmith first
@@ -185,6 +185,14 @@
 
   .chip-castle {
     --chip-accent: #{vars.$color-chip-castle};
+  }
+
+  .chip-money24 {
+    --chip-accent: #{vars.$color-chip-money24};
+  }
+
+  .chip-forty {
+    --chip-accent: #{vars.$color-chip-forty};
   }
 
   .chip-blurb {
@@ -242,10 +250,30 @@
     .chip-blurb {
       display: none;
     }
+  }
 
-    .chip-subscribe .chip-name {
-      max-width: none;
-      white-space: nowrap;
+  // Four apps in two rows of two, so the one-line chips stay as short as the tile row is from the bottom.
+  // Subscribe keeps its two lines beside them; the arrows go, the chips are links either way.
+  @mixin apps-grid($scope) {
+    #{$scope} .group-apps {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, auto));
+    }
+
+    #{$scope} .group-apps :global(.chip-arrow) {
+      display: none;
+    }
+  }
+
+  @include apps-grid(".site-chips.fit-compact:not(.fit-corners)");
+
+  // Give the longest app name enough room on narrow portrait phones.
+  @media (max-width: 360px) and (orientation: portrait) {
+    .site-chips.fit-compact:not(.fit-corners) {
+      .group-subscribe { flex: 0 0 30%; }
+      .group-apps { flex: 1; min-width: 0; }
+      .site-chip { gap: 4px; padding-left: 6px; padding-right: 6px; font-size: 10px; }
+      .chip-subscribe :global(.chip-arrow) { display: none; }
     }
   }
 
@@ -323,6 +351,12 @@
     .chip-wordsmith {
       order: 0;
     }
+
+    @include apps-grid(".site-chips");
+
+    .chip-blurb {
+      display: none;
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -336,7 +370,9 @@
       transition: none;
     }
   }
-  // Phones in either orientation: the gallery on page two owns external links.
+
+  // Phones in either orientation show no chips at all, subscribe included: the gallery on page two
+  // carries the app links there. Tablets and larger keep them.
   @media (max-width: 767px), (orientation: landscape) and (max-height: 599px) and (max-width: 1023px) {
     .site-chips { display: none !important; }
   }

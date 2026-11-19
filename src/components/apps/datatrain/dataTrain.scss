@@ -224,5 +224,7 @@
 @media (min-width: 1536px) and (min-height: 800px) {
   .dt-shell .dt-tech { font-size: t.$small; }
 }
-// Share (AirDrop / Quick Share) sits beside Save file and matches its size.
-.dt-shell .dt-share { font-size: t.$small; line-height: 18px; margin-left: 8px; }
+// Share (AirDrop / Quick Share) and Copy sit beside Save file and match its size. The gap trails each
+// button, so one that wraps onto a second row on a narrow phone still lines up with the first.
+.dt-shell .dt-transfer .dt-save { margin-right: 8px; }
+.dt-shell .dt-share { font-size: t.$small; line-height: 18px; }
