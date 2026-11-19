@@ -9,6 +9,7 @@
     isKeyboardNav,
     tabIndex = -1,
     accent = null,
+    compact = false,
     onclick,
     onmouseenter,
     onfocus,
@@ -16,6 +17,7 @@
 
   const EXTERNAL_REL = "noopener noreferrer";
   const EXTERNAL_TARGET = "_blank";
+  const COMPACT_ICON_SIZE = 28;
 
   const Icon = $derived(app.icon);
   // Apps on their own site render as links so middle-click, long-press and "open in new tab" all work.
@@ -31,6 +33,11 @@
 </script>
 
 {#snippet cardBody()}
+  {#if compact}
+    <!-- Square tile: just the symbol and the name. -->
+    <Icon size={COMPACT_ICON_SIZE} class="app-compact-icon" aria-hidden="true" />
+    <span class="app-compact-title">{app.title}</span>
+  {:else}
   <div class="app-visual">
     <AppNails appId={app.id} />
   </div>
@@ -44,12 +51,14 @@
     </span>
     <span class="app-desc">{app.desc}</span>
   </div>
+  {/if}
 {/snippet}
 
 {#if isExternal}
   <a
     bind:this={buttonEl}
     class="app-card external"
+    class:compact
     class:focused={isFocused && isKeyboardNav}
     style={accent ? `--tile-accent: ${accent}` : undefined}
     data-app-idx={index}
@@ -126,6 +135,34 @@
       0 8px 30px rgba(0, 0, 0, 0.35);
   }
 
+  /* Square tiles in the toolbox's top row (ToolboxPanel .external-row): symbol over name.
+     The row sets the width; min-height keeps them tile-shaped where aspect-ratio is unknown. */
+  .app-card.compact {
+    flex-direction: column;
+    justify-content: center;
+    gap: 8px;
+    padding: 6px;
+    min-height: 64px;
+    aspect-ratio: 1 / 1;
+    text-align: center;
+  }
+
+  .app-card.compact :global(.app-compact-icon) {
+    color: var(--tile-accent, white);
+    flex-shrink: 0;
+  }
+
+  .app-compact-title {
+    max-width: 100%;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: white;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   .app-visual {
     width: 64px;
     height: 64px;
@@ -176,12 +213,37 @@
     .app-card.external {
       padding: 11px;
     }
+
+    .app-card.compact {
+      padding: 2px;
+      gap: 6px;
+    }
+  }
+
+  /* Narrowest phones: four tiles share ~270px, so the name gets every pixel. */
+  @media (max-width: 360px) {
+    .app-card.compact {
+      min-height: 56px;
+    }
+
+    .app-compact-title {
+      font-size: 0.62rem;
+    }
   }
 
   @media (min-width: 1920px) {
     .app-card.external {
       border-width: 3px;
       padding: 14px;
+    }
+
+    .app-card.compact {
+      padding: 10px;
+      gap: 12px;
+    }
+
+    .app-compact-title {
+      font-size: 0.95rem;
     }
   }
 </style>

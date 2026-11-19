@@ -60,7 +60,6 @@
   const NEW_TAB_FEATURES = "noopener,noreferrer";
 
   let isReadingPost = $state(false);
-  let appsGridEl = $state(null);
   let isKeyboardNav = $state(false);
 
   // 1. Tell Vite to code-split and find all .svelte apps inside apps/ recursively
@@ -475,6 +474,8 @@
 
   const appIds = $derived(apps.map((a) => a.id));
   const appCount = $derived(apps.length);
+  // External apps come first in `apps`, so their indexes are 0..externalCount-1 (the top row).
+  const externalCount = apps.filter((a) => a.href).length;
 
   let focusedIdx = $state(-1);
 
@@ -527,15 +528,18 @@
     } else if (e.key === "ArrowDown") {
       e.preventDefault();
       isKeyboardNav = true;
-      focusedIdx = focusedIdx === -1 ? 0 : (focusedIdx + cols) % appCount;
+      if (focusedIdx === -1) focusedIdx = 0;
+      // From the top row, drop into the first row of the grid.
+      else if (focusedIdx < externalCount) focusedIdx = externalCount + Math.min(focusedIdx, cols - 1);
+      else focusedIdx = (focusedIdx + cols) % appCount;
       scrollFocusedCardIntoView();
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       isKeyboardNav = true;
-      focusedIdx =
-        focusedIdx === -1
-          ? appCount - 1
-          : (focusedIdx - cols + appCount) % appCount;
+      if (focusedIdx === -1) focusedIdx = appCount - 1;
+      // From the first row of the grid, climb into the top row.
+      else if (focusedIdx >= externalCount && focusedIdx < externalCount + cols) focusedIdx = Math.min(focusedIdx - externalCount, externalCount - 1);
+      else focusedIdx = (focusedIdx - cols + appCount) % appCount;
       scrollFocusedCardIntoView();
     } else if (e.key === "Enter") {
       e.preventDefault();
@@ -629,18 +633,11 @@
     <div class="panel-body">
       {#if activeApp === null}
         <!-- APPS LAUNCHER GRID VIEW -->
-        <div class="launcher-view animated-pane">
-          <div
-            class="apps-grid"
-            bind:this={appsGridEl}
-            onmouseleave={() => {
-              if (!isKeyboardNav) focusedIdx = -1;
-            }}
-          >
-            {#each apps as app, i}
+        {#snippet appTile(app, i)}
               <AppCard
                 {app}
                 index={i}
+                compact={!!app.href}
                 accent={appColors[app.id]}
                 isFocused={focusedIdx === i}
                 {isKeyboardNav}
@@ -661,6 +658,22 @@
                   focusedIdx = i;
                 }}
               />
+        {/snippet}
+        <div
+          class="launcher-view animated-pane"
+          onmouseleave={() => {
+            if (!isKeyboardNav) focusedIdx = -1;
+          }}
+        >
+          <!-- DOGS apps on their own sites: one row of square tiles above the grid. -->
+          <nav class="external-row flex flex-row sm:flex-row md:flex-row lg:flex-row xl:flex-row 2xl:flex-row" aria-label="DOGS apps on their own sites">
+            {#each apps as app, i}
+              {#if app.href}{@render appTile(app, i)}{/if}
+            {/each}
+          </nav>
+          <div class="apps-grid">
+            {#each apps as app, i}
+              {#if !app.href}{@render appTile(app, i)}{/if}
             {/each}
           </div>
         </div>
@@ -945,10 +958,40 @@
     flex-direction: column;
   }
 
+  /* One row, never wrapping: each tile shrinks evenly on narrow phones and stops at --external-tile. */
+  .external-row {
+    --external-tile: 96px;
+    flex-wrap: nowrap;
+    flex-shrink: 0;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .external-row :global(.app-card) {
+    flex: 0 1 var(--external-tile);
+    min-width: 0;
+  }
+
   .apps-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 16px;
+  }
+
+  @media (min-width: 1920px) {
+    .external-row {
+      --external-tile: 136px;
+      gap: 16px;
+    }
+  }
+
+  /* Mobile landscape: little height to spare, so the row stays small. */
+  @media (max-height: 500px) and (orientation: landscape) {
+    .external-row {
+      --external-tile: 72px;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
   }
 
   /* ── Footer ── */
@@ -1044,6 +1087,17 @@
     .apps-grid {
       grid-template-columns: 1fr;
       gap: 12px;
+    }
+
+    .external-row {
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+  }
+
+  @media (max-width: 360px) {
+    .external-row {
+      gap: 6px;
     }
 
     .panel-footer {
