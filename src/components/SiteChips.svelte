@@ -267,6 +267,16 @@
 
   @include apps-grid(".site-chips.fit-compact:not(.fit-corners)");
 
+  // Give the longest app name enough room on narrow portrait phones.
+  @media (max-width: 360px) and (orientation: portrait) {
+    .site-chips.fit-compact:not(.fit-corners) {
+      .group-subscribe { flex: 0 0 30%; }
+      .group-apps { flex: 1; min-width: 0; }
+      .site-chip { gap: 4px; padding-left: 6px; padding-right: 6px; font-size: 10px; }
+      .chip-subscribe :global(.chip-arrow) { display: none; }
+    }
+  }
+
   // ── Corners: a full-width band over the tile row; the two groups sit in its corners, bottoms level with the tiles ──
   @mixin corner-layout($scope) {
     #{$scope} {
