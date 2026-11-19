@@ -8,7 +8,7 @@
 // Secrets (npx wrangler secret put <NAME> -c workers/api/wrangler.jsonc):
 //   HASH_SALT         salts every stored hash. Changing it orphans them all, so repeat likes would count again.
 //   TURNSTILE_SECRET  for the invisible Turnstile widget "wearedogs-api likes" (dashboard > Turnstile),
-//                     which covers wearedogs.net, dogs.red and wearedogs.pages.dev. Likes, mail and
+//                     which covers wearedogs.net, dogs.red (and their subdomains), wearedogs.pages.dev and yeahdogs.github.io. Likes, mail, waitlist and
 //                     fingerprint share it, each with its own action.
 // Local dev uses Cloudflare's always-pass invisible test keys: in .dev.vars set
 // TURNSTILE_SECRET=1x0000000000000000000000000000000AA and
@@ -32,9 +32,9 @@
     { "pattern": "api.dogs.red", "custom_domain": true }
   ],
   "vars": {
-    "ALLOWED_ORIGINS": "https://wearedogs.net,https://www.wearedogs.net,https://dogs.red,https://wearedogs.pages.dev,https://castle.dogs.red,https://money24.dogs.red,https://40.dogs.red,https://40.wearedogs.net",
+    "ALLOWED_ORIGINS": "https://wearedogs.net,https://www.wearedogs.net,https://dogs.red,https://wearedogs.pages.dev,https://castle.dogs.red,https://money24.dogs.red,https://40.dogs.red,https://40.wearedogs.net,https://yeahdogs.github.io",
     // Hostnames a Turnstile token may come from (the token reports the page's host)
-    "TURNSTILE_HOSTNAMES": "wearedogs.net,www.wearedogs.net,dogs.red,wearedogs.pages.dev,castle.dogs.red,money24.dogs.red,40.dogs.red,40.wearedogs.net"
+    "TURNSTILE_HOSTNAMES": "wearedogs.net,www.wearedogs.net,dogs.red,wearedogs.pages.dev,castle.dogs.red,money24.dogs.red,40.dogs.red,40.wearedogs.net,yeahdogs.github.io"
   },
   "d1_databases": [
     {
