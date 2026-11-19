@@ -9,6 +9,9 @@
   /** Optional: offered only where the share sheet (AirDrop / Quick Share) accepts this file. */
   export let canShare = null;
   export let onShare = null;
+  /** Optional: true for a received picture or short text file that can go straight to the clipboard. */
+  export let canCopyFile = null;
+  export let onCopyFile = null;
 </script>
 
 <div class="dt-transfer-list w-full flex flex-col sm:flex-col md:flex-col lg:flex-col xl:flex-col 2xl:flex-col">
@@ -33,7 +36,7 @@
         {#if item.url && item.mime.indexOf('image/') === 0}<img class="dt-preview" src={item.url} alt={'Preview of ' + item.name} loading="lazy" />
         {:else if item.url && item.mime.indexOf('audio/') === 0}<audio class="dt-preview-audio" src={item.url} controls preload="metadata"></audio>{/if}
         {#if item.status === 'complete' && direction === 'received'}
-          {#if item.kind === 'file'}<a class="dt-save" href={item.url} download={item.name}><Download size={15} />Save file</a>{#if canShare && canShare(item)}<button type="button" class="dt-save dt-share" onclick={() => onShare(item)} aria-label={'Share ' + item.name + ' with AirDrop, Quick Share or another app'}><Share2 size={15} />Share</button>{/if}
+          {#if item.kind === 'file'}<a class="dt-save" href={item.url} download={item.name}><Download size={15} />Save file</a>{#if canShare && canShare(item)}<button type="button" class="dt-save dt-share" onclick={() => onShare(item)} aria-label={'Share ' + item.name + ' with AirDrop, Quick Share or another app'}><Share2 size={15} />Share</button>{/if}{#if canCopyFile && canCopyFile(item)}<button type="button" class="dt-save dt-share" onclick={() => onCopyFile(item)} aria-label={'Copy ' + item.name + ' to the clipboard'}><Copy size={15} />Copy</button>{/if}
           {:else}<button class="dt-save" onclick={() => onCopy(item.text)}><Copy size={15} />Copy text</button>{/if}
         {/if}
       </article>

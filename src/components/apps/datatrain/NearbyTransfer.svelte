@@ -7,10 +7,13 @@
   import { copyText } from '../../../lib/clipboard.js';
   import TransferList from './TransferList.svelte';
   import { supportsFileShare, canShareFile, detectShareLimit, shareNearby } from './nearbyShare.js';
+  import { supportsImageCopy, isImageItem, isShortTextCandidate, readShortText, copyImage } from './copyItem.js';
 
   const MAX_TEXT_LENGTH = 16000;
   const COPY_ERROR = 'Copy is unavailable here. Select the text and copy it manually.';
-  const PASTE_EMPTY = 'Your clipboard is empty, or this browser blocked access. Paste into the box instead.';
+  const TEXT_COPIED = 'Text copied. Paste it anywhere on this device.';
+  const IMAGE_COPIED = 'Picture copied. Paste it anywhere on this device.';
+  const PASTE_EMPTY ='Your clipboard is empty, or this browser blocked access. Paste into the box instead.';
   const TEXT_PLACEHOLDER = 'Copy and paste anything';
   const WEBRTC_URL = 'https://webrtc.org/';
   const PEERJS_URL = 'https://peerjs.com/';
@@ -45,6 +48,9 @@
   const shareLimit = detectShareLimit();
   // Received Blob -> shareable File (or null); weak so removed items are released.
   const shareFiles = new WeakMap();
+  let canCopyImages = false;
+  // Received text-file Blob -> its text when short enough to copy (or null). Reassigned once a file is read so the list redraws.
+  let shortTexts = new WeakMap();
   $: connected = state.status === 'connected';
   $: sentItems = state.items.filter(item => item.direction === 'sent');
   $: receivedItems = state.items.filter(item => item.direction === 'received');
@@ -54,6 +60,7 @@
   onMount(() => {
     canPaste = !!(navigator.clipboard && navigator.clipboard.readText);
     canShareFiles = supportsFileShare();
+    canCopyImages = supportsImageCopy();
     session = new TransferSession({ onChange: next => { if (!disposed) state = next; } });
     const invite = takePairingLink() || parsePairingLink(location.hash);
     if (invite) run(() => session.join(invite.code, invite.secret));
@@ -152,6 +159,33 @@
     if (file) run(() => shareNearby({ files: [file] }));
   }
 
+  /**
+   * Whether a received file gets a Copy button: a picture, or a text file under the character limit.
+   * A text file is read once, in the background; its button appears when the text turns out short enough.
+   * @param {{blob?: Blob, mime: string}} item
+   * @param {WeakMap<Blob, string|null>} texts the texts read so far; passed in so the list redraws when one arrives
+   */
+  function canCopyFile(item, texts) {
+    if (isImageItem(item)) return canCopyImages;
+    if (!isShortTextCandidate(item)) return false;
+    if (texts.has(item.blob)) return texts.get(item.blob) !== null;
+    texts.set(item.blob, null);
+    readShortText(item.blob).then((text) => {
+      if (disposed || text === null) return;
+      texts.set(item.blob, text);
+      shortTexts = texts;
+    });
+    return false;
+  }
+
+  function copyReceivedFile(item) {
+    if (!isImageItem(item)) return copy(shortTexts.get(item.blob), TEXT_COPIED);
+    return run(async () => {
+      await copyImage(item.url);
+      notice = IMAGE_COPIED;
+    });
+  }
+
   async function openHelp() {
     helpOpen = true;
     await tick();
@@ -232,7 +266,7 @@
         </section>
         <section class="dt-pane" class:dt-mobile-hidden={mobilePane !== 'received'} aria-label="Incoming transfers">
           <div class="dt-pane-title"><div><Smartphone size={18} /><h3>{state.peerName || 'Other device'}</h3></div><span>{receivedItems.length} received</span></div>
-          <TransferList items={receivedItems} direction="received" canShare={canShareFiles ? (item) => !!shareFileFor(item) : null} onShare={shareReceived} onCopy={(text) => copy(text, 'Text copied. Paste it anywhere on this device.')} onCancel={(id) => run(() => session.cancelTransfer(id))} onRemove={(id) => session.removeItem(id)} />
+          <TransferList items={receivedItems} direction="received" canShare={canShareFiles ? (item) => !!shareFileFor(item) : null} onShare={shareReceived} canCopyFile={(item) => canCopyFile(item, shortTexts)} onCopyFile={copyReceivedFile} onCopy={(text) => copy(text, TEXT_COPIED)} onCancel={(id) => run(() => session.cancelTransfer(id))} onRemove={(id) => session.removeItem(id)} />
         </section>
       </div>
       <div class="dt-send-dock">
