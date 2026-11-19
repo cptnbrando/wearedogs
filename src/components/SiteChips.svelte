@@ -92,7 +92,7 @@
 </div>
 
 <style lang="scss">
-  @use "../styles/variables" as vars;
+  @use "../styles/site-chips" as vars;
 
   // The tile row's place comes from siteChipsLayout.js as --nav-top / --nav-bottom; these are TitlePage.svelte's
   // desktop defaults for the instant before it is measured.

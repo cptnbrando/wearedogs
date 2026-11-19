@@ -49,11 +49,17 @@ function toPng(url) {
     const image = new Image();
     image.onerror = () => reject(new Error(ERROR_IMAGE));
     image.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = image.naturalWidth;
-      canvas.height = image.naturalHeight;
-      canvas.getContext('2d').drawImage(image, 0, 0);
-      canvas.toBlob((png) => (png ? resolve(png) : reject(new Error(ERROR_IMAGE))), CLIPBOARD_IMAGE_MIME);
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = image.naturalWidth;
+        canvas.height = image.naturalHeight;
+        const context = canvas.getContext('2d');
+        if (!context) throw new Error(ERROR_IMAGE);
+        context.drawImage(image, 0, 0);
+        canvas.toBlob((png) => (png ? resolve(png) : reject(new Error(ERROR_IMAGE))), CLIPBOARD_IMAGE_MIME);
+      } catch {
+        reject(new Error(ERROR_IMAGE));
+      }
     };
     image.src = url;
   });

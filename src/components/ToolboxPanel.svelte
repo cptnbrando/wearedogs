@@ -537,6 +537,8 @@
       e.preventDefault();
       isKeyboardNav = true;
       if (focusedIdx === -1) focusedIdx = appCount - 1;
+      // The external tiles form a single row: Up stays in that top row.
+      else if (focusedIdx < externalCount) return;
       // From the first row of the grid, climb into the top row.
       else if (focusedIdx >= externalCount && focusedIdx < externalCount + cols) focusedIdx = Math.min(focusedIdx - externalCount, externalCount - 1);
       else focusedIdx = (focusedIdx - cols + appCount) % appCount;
@@ -1093,18 +1095,17 @@
       gap: 8px;
       margin-bottom: 12px;
     }
-  }
-
-  @media (max-width: 360px) {
-    .external-row {
-      gap: 6px;
-    }
-
     .panel-footer {
       height: auto;
       min-height: 48px;
       padding-top: 8px;
       padding-bottom: max(14px, env(safe-area-inset-bottom, 14px));
+    }
+  }
+
+  @media (max-width: 360px) {
+    .external-row {
+      gap: 6px;
     }
   }
 
