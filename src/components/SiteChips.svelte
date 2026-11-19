@@ -370,4 +370,10 @@
       transition: none;
     }
   }
+
+  // Phones in either orientation show no chips at all, subscribe included: the gallery on page two
+  // carries the app links there. Tablets and larger keep them.
+  @media (max-width: 767px), (orientation: landscape) and (max-height: 599px) and (max-width: 1023px) {
+    .site-chips { display: none !important; }
+  }
 </style>

@@ -32,6 +32,7 @@
     NotebookPen,
     ChartCandlestick,
     CalendarCheck,
+    Fingerprint,
   } from "lucide-svelte";
   import DogsLogo from "./DogsLogo.svelte";
   import AppCard from "./AppCard.svelte";
@@ -92,6 +93,7 @@
     passwords: "./apps/passwords/PasswordsApp.svelte",
     pocketsand: "./apps/pocketsand/PocketSandApp.svelte",
     dogsinc: "./apps/dogsinc/DogsIncApp.svelte",
+    fingerprint: "./apps/fingerprint/FingerprintApp.svelte",
   };
 
   // Lazy loaded app components caching
@@ -294,6 +296,7 @@
     passwords: "#a66bff",
     pocketsand: "#e8c07d",
     dogsinc: "#e6b900",
+    fingerprint: "#ff4f81",
     wordsmith: "#ff3344",
     castle: "#00d7ff",
     money24: "#00ff66",
@@ -360,6 +363,12 @@
       title: "Password Generator",
       desc: "Generate secure random passwords up to 200 characters with entropy analysis.",
       icon: KeyRound,
+    },
+    {
+      id: "fingerprint",
+      title: "Fingerprint",
+      desc: "See everything your browser gives away, and whether we can recognise you without a login.",
+      icon: Fingerprint,
     },
     {
       id: "soundboard",

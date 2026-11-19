@@ -1,0 +1,28 @@
+// Tokens for the landing's second page: DogsMain.svelte (layout), AppGallery.svelte (the app gallery),
+// LikeButton.svelte (the pencil-sketch like) and InfoBanner.svelte (the privacy footnote).
+
+// ---- Page ---------------------------------------------------------------------------------------------
+$page-bg: var(--bg-main, #08090b);            // DogsMain: the whole page
+$ink: #f4f3ee;                                // Headings and body copy on the dark page
+$muted: #a9aab0;                              // Taglines, captions, footnotes
+$faint: rgba(244, 243, 238, 0.45);            // Slide numbers, idle rail items
+$line: rgba(244, 243, 238, 0.14);             // Hairlines between sections
+$accent: var(--color-neon-red, #ff3344);      // Selected app, focus rings in flag-colors mode
+$font: var(--font-primary, Arial, sans-serif);
+$mono: var(--font-mono, "JetBrains Mono", monospace);
+$ease: cubic-bezier(0.16, 1, 0.3, 1);         // Every entrance and slide change
+
+// ---- Gallery (AppGallery.svelte) ----------------------------------------------------------------------
+$stage-bg: #0d0f12;                           // Behind each capture while it loads
+$stage-line: rgba(244, 243, 238, 0.22);       // The sketched corner marks around the stage
+$chip-bg: rgba(8, 9, 11, 0.78);               // "sample data" label and the play button over a capture
+$link-ink: #08090b;                           // Text on the solid "try the demo" button
+$link-bg: #f4f3ee;                            // The solid "try the demo" button
+
+// ---- Like (LikeButton.svelte) -------------------------------------------------------------------------
+$paper: #f4f1e8;                              // The sketchpad the thumb is drawn on
+$paper-grain: rgba(40, 42, 46, 0.05);         // Faint ruled lines on the paper
+$graphite: #2a2b2f;                           // Pencil strokes: thumb outline, count, scribbles
+$graphite-soft: rgba(42, 43, 47, 0.55);       // Hatching inside the thumb once liked
+$like-mark: #e8283a;                          // The red pencil circle drawn around a liked thumb
+$paper-shadow: rgba(0, 0, 0, 0.35);           // Lifts the paper off the dark page

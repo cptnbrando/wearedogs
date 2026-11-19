@@ -22,6 +22,7 @@
     NotebookPen,
     ChartCandlestick,
     CalendarCheck,
+    Fingerprint,
   } from "lucide-svelte";
 
   let { appId } = $props();
@@ -180,6 +181,13 @@
     <KeyRound
       size={28}
       style="color: var(--color-neon-green, #00d75f); filter: drop-shadow(0 0 6px rgba(0, 215, 95, 0.4));"
+    />
+  </div>
+{:else if appId === "fingerprint"}
+  <div class="flex items-center justify-center h-full">
+    <Fingerprint
+      size={28}
+      style="color: var(--color-fingerprint, #ff4f81); filter: drop-shadow(0 0 6px rgba(255, 79, 129, 0.4));"
     />
   </div>
 {:else if appId === "pocketsand"}
