@@ -202,7 +202,7 @@
         <div
           class="text-white/20 text-xs font-mono tracking-widest uppercase animate-pulse"
         >
-          Initializing 3D Visualizer...
+          Loading the DOGS apps...
         </div>
       </div>
     {/if}
