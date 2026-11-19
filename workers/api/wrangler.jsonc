@@ -32,9 +32,9 @@
     { "pattern": "api.dogs.red", "custom_domain": true }
   ],
   "vars": {
-    "ALLOWED_ORIGINS": "https://wearedogs.net,https://www.wearedogs.net,https://dogs.red,https://wearedogs.pages.dev",
+    "ALLOWED_ORIGINS": "https://wearedogs.net,https://www.wearedogs.net,https://dogs.red,https://wearedogs.pages.dev,https://castle.dogs.red,https://money24.dogs.red,https://40.dogs.red,https://40.wearedogs.net",
     // Hostnames a Turnstile token may come from (the token reports the page's host)
-    "TURNSTILE_HOSTNAMES": "wearedogs.net,www.wearedogs.net,dogs.red,wearedogs.pages.dev"
+    "TURNSTILE_HOSTNAMES": "wearedogs.net,www.wearedogs.net,dogs.red,wearedogs.pages.dev,castle.dogs.red,money24.dogs.red,40.dogs.red,40.wearedogs.net"
   },
   "d1_databases": [
     {

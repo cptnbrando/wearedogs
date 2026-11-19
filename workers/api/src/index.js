@@ -12,7 +12,8 @@
  *   - per-route rate limiters and, for writes, Turnstile (lib/turnstile.js)
  *
  * Apps: /likes (counter), /mail (roughly yearly mailing-list signup),
- * /fingerprint (consented device recognition for the Fingerprint app).
+ * /fingerprint (consented device recognition for the Fingerprint app),
+ * /waitlist (Castle, Money 24 and 40 waitlist signups).
  * Adding an app:
  *   1. src/routes/<app>.js exporting { path: "/<app>", handle(request, env, ctx, visitor) }
  *   2. register it in ROUTES below
@@ -28,8 +29,9 @@ import { ipKey } from "./lib/hash.js";
 import likes from "./routes/likes.js";
 import mail from "./routes/mail.js";
 import fingerprint from "./routes/fingerprint.js";
+import waitlist from "./routes/waitlist.js";
 
-const ROUTES = { [likes.path]: likes, [mail.path]: mail, [fingerprint.path]: fingerprint };
+const ROUTES = { [likes.path]: likes, [mail.path]: mail, [fingerprint.path]: fingerprint, [waitlist.path]: waitlist };
 const SERVICE_UNAVAILABLE = "Service temporarily unavailable";
 const BOT_UA_PATTERN =
   /bot|crawl|spider|slurp|curl|wget|python|httpclient|okhttp|scrapy|headless|phantom|go-http|java\//i;
