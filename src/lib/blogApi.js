@@ -12,7 +12,8 @@
 
 // When each line of each post was written, from git history
 // (scripts/vite-plugin-blog-timeline.js): { slug: { lineKey: "YYYY-MM-DD" } }
-import writingTimeline from "virtual:blog-timeline";
+import writingTimeline, { revisions } from "virtual:blog-timeline";
+import { postStats } from "./blogStats.js";
 import { createLineKeyer, isDatable } from "./blogTimeline.js";
 // Chapter names per post, anchored to opening words — kept out of the .md files
 // so naming a chapter never touches the writing: { slug: [{ title, at }] }
@@ -242,7 +243,7 @@ export async function getPosts() {
 /**
  * Fetches the content of a specific blog post by its slug. Parses the markdown.
  * @param {string} slug - The post unique slug
- * @returns {Promise<{ metadata: Record<string, string>, bodyHtml: string } | null>}
+ * @returns {Promise<{ metadata: Record<string, string>, bodyHtml: string, stats: import('./blogStats.js').PostStats } | null>}
  */
 export async function getPostContent(slug) {
   if (apiCache[slug]) return apiCache[slug];
@@ -250,6 +251,7 @@ export async function getPostContent(slug) {
   const post = postsManifest.find((p) => p.slug === slug);
   if (post) {
     const parsed = parseMarkdown(post.rawContent, writingTimeline[slug], postChapters[slug]);
+    parsed.stats = postStats(post.rawContent, revisions[slug]);
     apiCache[slug] = parsed;
     return parsed;
   }

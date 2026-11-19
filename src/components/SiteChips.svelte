@@ -5,16 +5,20 @@
   //   portrait (phones, tablets, tall desktops): under the tiles, subscribe tall on the left, the apps stacked right
   //   landscape with the tiles under the letters: the apps in the bottom-left corner, subscribe in the bottom-right
   //   short landscape, where the tiles dock to the right edge: the apps under the language card, subscribe bottom-left
-  import { onMount } from "svelte";
+  // Portrait measures the room under the tiles (siteChipsLayout.js) and steps down to one-line chips, then to the
+  // corners, when a tall phrase like DOGS RUN THIS %#$@ leaves too little.
+  import { onMount, tick } from "svelte";
   import { ArrowUpRight, Castle, Coffee, NotebookPen } from "lucide-svelte";
+  import { FIT_COMPACT, FIT_CORNERS, FIT_ROOMY, fitsBesideTiles, readAnchors, watchLayout } from "./siteChipsLayout.js";
 
   /** Flag-colors mode: each chip takes its accent. */
   export let colored = false;
 
   const ICON_STROKE = 2;
   const STAGGER_MS = 70;
-  // WeAreDogs.svelte's language card; the short-landscape layout hangs the app chips under it
-  const LANG_CARD_SELECTOR = ".lang-display";
+  const PORTRAIT_QUERY = "(orientation: portrait)";
+  // Keep this much screen below the lowest chip
+  const BOTTOM_MARGIN_PX = 12;
   const SUBSCRIBE = { id: "subscribe", name: "subscribe to DOGS", blurb: "", url: "https://buymeacoffee.com/dogsdogsdogs", icon: Coffee };
   // Same sites as their tiles in ToolboxPanel.svelte
   const APPS = [
@@ -26,29 +30,39 @@
     { id: "apps", label: "Other DOGS apps", chips: APPS },
   ];
 
-  /** Bottom edge of the language card in px, for the short-landscape layout. */
-  let cardBottom = 0;
+  /** @type {HTMLDivElement} */
+  let root;
+  let fit = FIT_ROOMY;
+  /** @type {import("./siteChipsLayout.js").ChipAnchors} */
+  let anchors = { navTop: 0, navBottom: 0, cardBottom: 0 };
+
+  /** Re-reads the anchors, then picks the roomiest portrait layout whose chips stay on screen. Landscape is CSS only. */
+  async function refit() {
+    if (!root) return;
+    anchors = readAnchors(root);
+    fit = FIT_ROOMY;
+    await tick();
+    if (!matchMedia(PORTRAIT_QUERY).matches) return;
+    if (root.getBoundingClientRect().bottom <= innerHeight - BOTTOM_MARGIN_PX) return;
+    fit = FIT_COMPACT;
+    await tick();
+    if (root.getBoundingClientRect().bottom <= innerHeight - BOTTOM_MARGIN_PX) return;
+    if (fitsBesideTiles(root)) fit = FIT_CORNERS;
+  }
 
   onMount(() => {
-    const card = document.querySelector(LANG_CARD_SELECTOR);
-    if (!card) return;
-    const update = () => (cardBottom = Math.round(card.getBoundingClientRect().bottom));
-    update();
-    // The card grows open as the tiles appear and changes height with the language
-    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(update);
-    if (observer) observer.observe(card);
-    window.addEventListener("resize", update);
-    return () => {
-      if (observer) observer.disconnect();
-      window.removeEventListener("resize", update);
-    };
+    refit();
+    return watchLayout(root, refit);
   });
 </script>
 
 <div
+  bind:this={root}
   class="site-chips flex flex-row sm:flex-row md:flex-row lg:flex-row xl:flex-row 2xl:flex-row max-lg:landscape:flex-col gap-3 md:gap-6 2xl:gap-10"
   class:colored
-  style="--card-bottom: {cardBottom}px"
+  class:fit-compact={fit !== FIT_ROOMY}
+  class:fit-corners={fit === FIT_CORNERS}
+  style="--nav-top: {anchors.navTop}px; --nav-bottom: {anchors.navBottom}px; --card-bottom: {anchors.cardBottom}px"
 >
   {#each GROUPS as group, groupIndex (group.id)}
     <nav class="chip-group group-{group.id} flex flex-col gap-1.5 md:gap-2 2xl:gap-3 max-lg:landscape:gap-1" aria-label={group.label}>
@@ -77,13 +91,12 @@
 <style lang="scss">
   @use "../styles/variables" as vars;
 
-  // Tile sizes and offsets from TitlePage.svelte's .hieroglyphic-nav, so the chips line up with the tile row.
-  $TILE: 72px;
-  $TILE_SMALL: 52px;
-  $TILE_SHORT: 44px;
-  $TILE_TINY: 36px;
-  $NAV_TOP: 2.5rem;
+  // The tile row's place comes from siteChipsLayout.js as --nav-top / --nav-bottom; these are TitlePage.svelte's
+  // desktop defaults for the instant before it is measured.
+  $NAV_TOP_FALLBACK: calc(100% + 2.5rem);
+  $NAV_BOTTOM_FALLBACK: calc(100% + 2.5rem + 72px);
   $GAP: 1.25rem;
+  $GAP_COMPACT: 0.5rem;
   // Portrait: the chips spread a little wider than the tile row
   $SPREAD: min(90vw, 30rem);
   $SPREAD_TV: min(90vw, 44rem);
@@ -96,7 +109,7 @@
   // ── Portrait: under the tiles ──
   .site-chips {
     position: absolute;
-    top: calc(100% + #{$NAV_TOP} + #{$TILE} + #{$GAP});
+    top: calc(var(--nav-bottom, #{$NAV_BOTTOM_FALLBACK}) + #{$GAP});
     left: 50%;
     z-index: 80;
     width: $SPREAD;
@@ -213,18 +226,9 @@
     }
   }
 
-  // Same tiers as the tiles
-  @media (max-width: 600px) {
-    .site-chips {
-      top: calc(100% + 3.5rem + #{$TILE_SMALL} + 1rem);
-    }
-  }
-
-  // Short portrait phones (iPhone SE and smaller): closer to the tiles, one line per chip
-  @media (orientation: portrait) and (max-height: 640px) {
-    .site-chips {
-      top: calc(100% + 3.5rem + #{$TILE_SMALL} + 0.5rem);
-    }
+  // ── One-line chips: chosen by refit() when two-line chips would run off the bottom ──
+  .site-chips.fit-compact {
+    top: calc(var(--nav-bottom, #{$NAV_BOTTOM_FALLBACK}) + #{$GAP_COMPACT});
 
     .chip-group {
       gap: 0.25rem;
@@ -238,43 +242,55 @@
     .chip-blurb {
       display: none;
     }
-  }
-
-  // ── Landscape with the tiles under the letters: the bottom corners, level with the tile row ──
-  @media (orientation: landscape) and (min-height: 621px) {
-    // A full-width band over the tile row; the two groups sit in its corners, bottoms level with the tiles
-    .site-chips {
-      top: calc(100% + #{$NAV_TOP});
-      left: calc(50% - 50vw);
-      width: 100vw;
-      height: $TILE;
-      pointer-events: none;
-      transform: none;
-    }
-
-    .chip-group {
-      position: absolute;
-      bottom: 0;
-    }
-
-    .group-apps {
-      left: max(#{$EDGE_WIDE}, env(safe-area-inset-left));
-    }
-
-    .group-subscribe {
-      right: max(#{$EDGE_WIDE}, env(safe-area-inset-right));
-    }
 
     .chip-subscribe .chip-name {
       max-width: none;
       white-space: nowrap;
     }
+  }
+
+  // ── Corners: a full-width band over the tile row; the two groups sit in its corners, bottoms level with the tiles ──
+  @mixin corner-layout($scope) {
+    #{$scope} {
+      top: var(--nav-top, #{$NAV_TOP_FALLBACK});
+      left: calc(50% - 50vw);
+      width: 100vw;
+      height: calc(var(--nav-bottom, #{$NAV_BOTTOM_FALLBACK}) - var(--nav-top, #{$NAV_TOP_FALLBACK}));
+      pointer-events: none;
+      transform: none;
+    }
+
+    #{$scope} .chip-group {
+      position: absolute;
+      bottom: 0;
+    }
+
+    #{$scope} .group-apps {
+      left: max(#{$EDGE_WIDE}, env(safe-area-inset-left));
+    }
+
+    #{$scope} .group-subscribe {
+      right: max(#{$EDGE_WIDE}, env(safe-area-inset-right));
+    }
+
+    #{$scope} .chip-subscribe .chip-name {
+      max-width: none;
+      white-space: nowrap;
+    }
 
     // Castle over wordsmith
-    .chip-wordsmith {
+    #{$scope} .chip-wordsmith {
       order: 0;
     }
   }
+
+  // Landscape with the tiles under the letters
+  @media (orientation: landscape) and (min-height: 621px) {
+    @include corner-layout(".site-chips");
+  }
+
+  // Portrait when even one-line chips would run off the bottom
+  @include corner-layout(".site-chips.fit-corners");
 
   // ── Short landscape: the tiles dock to the right edge; the apps hang under the language card, subscribe bottom-left ──
   @media (orientation: landscape) and (max-height: 620px) {

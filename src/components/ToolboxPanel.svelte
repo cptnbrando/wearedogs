@@ -30,6 +30,8 @@
     Building2,
     Castle,
     NotebookPen,
+    ChartCandlestick,
+    CalendarCheck,
   } from "lucide-svelte";
   import DogsLogo from "./DogsLogo.svelte";
   import AppCard from "./AppCard.svelte";
@@ -53,6 +55,8 @@
   // DOGS apps that live on their own sites. Their tiles open in a new tab.
   const WORDSMITH_URL = "https://wordsmith.dogs.red/";
   const CASTLE_URL = "https://castle.dogs.red/";
+  const MONEY24_URL = "https://money24.dogs.red/";
+  const FORTY_URL = "https://40.dogs.red/";
   const NEW_TAB_FEATURES = "noopener,noreferrer";
 
   let isReadingPost = $state(false);
@@ -293,6 +297,8 @@
     dogsinc: "#e6b900",
     wordsmith: "#ff3344",
     castle: "#00d7ff",
+    money24: "#00ff66",
+    forty: "#e6b900",
   };
 
   // CRITICAL: The changelog and settings apps MUST always remain next to each other at the bottom of the toolbox list, with settings last.
@@ -313,6 +319,20 @@
       href: CASTLE_URL,
     },
     {
+      id: "money24",
+      title: "Money 24",
+      desc: "An AI that trades around the clock. In development.",
+      icon: ChartCandlestick,
+      href: MONEY24_URL,
+    },
+    {
+      id: "forty",
+      title: "40",
+      desc: "Track any habit. Everything public is wiped every 40 days.",
+      icon: CalendarCheck,
+      href: FORTY_URL,
+    },
+    {
       id: "blog",
       title: "Dog Blog",
       desc: "Read articles about punk rock tech, development, and music.",
@@ -331,6 +351,12 @@
       icon: QrCode,
     },
     {
+      id: "dataflash",
+      title: "Data Train",
+      desc: "Send files and text between your devices: pair with a QR code, or use AirDrop and Quick Share.",
+      icon: Zap,
+    },
+    {
       id: "passwords",
       title: "Password Generator",
       desc: "Generate secure random passwords up to 200 characters with entropy analysis.",
@@ -347,12 +373,6 @@
       title: "Pocket Sand",
       desc: "One-tap clipboard payloads for stress testing text boxes.",
       icon: Bomb,
-    },
-    {
-      id: "dataflash",
-      title: "Data Train",
-      desc: "Scan a QR code and send files and text between your devices.",
-      icon: Zap,
     },
     {
       id: "reader",

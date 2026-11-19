@@ -8,7 +8,7 @@ export { CAMPAIGN_ALIASES };
 // ---------------------------------------------------------------------------
 
 /** Panel names that map directly to activePage in TitlePage. */
-const VALID_PANELS = new Set(['music', 'stats', 'map', 'store', 'networking']);
+const VALID_PANELS = new Set(['music', 'stats', 'map', 'store']);
 
 /** App slugs recognized by ToolboxPanel. */
 export const VALID_APPS = new Set([
@@ -144,7 +144,7 @@ export function parsePath(path) {
     return { type: 'campaign-stats', tab: CAMPAIGN_STATS_TABS[s1] };
   }
 
-  // /stats  /map  /store  /networking
+  // /stats  /map  /store
   if (parts.length === 1 && VALID_PANELS.has(s0)) {
     return { type: 'panel', panel: s0 };
   }

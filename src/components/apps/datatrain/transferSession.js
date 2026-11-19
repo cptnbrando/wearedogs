@@ -498,7 +498,11 @@ export class TransferSession {
     let blob;
     try {
       blob = new Blob(job.chunks, { type: job.item.mime });
-      if (job.item.kind === "file") job.item.url = URL.createObjectURL(blob);
+      if (job.item.kind === "file") {
+        job.item.url = URL.createObjectURL(blob);
+        // Kept so the share sheet (AirDrop / Quick Share) can open from a tap without an async fetch.
+        job.item.blob = blob;
+      }
     } catch {
       this._transferFailure(job.id, ERRORS.memory);
       return;

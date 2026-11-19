@@ -1,45 +1,33 @@
 <script>
+  // The top row of the info grid (DogsMain.svelte): an always-open email field that saves the address to D1
+  // through mailClient.js. The line under it says how rarely we write, and turns into the error when one happens.
+  // The card is a fixed height in every state, so nothing around it moves.
   import { onMount, tick } from "svelte";
   import { hasJoined, joinMailingList } from "./mailClient.js";
 
   const FREQUENCY = "about one email a year. that's it.";
-  const JOIN_LABEL = "📬 join the mailing list";
-  const JOINED_LABEL = "you're on the list. talk soon!";
+  const LABEL = "email address";
+  const PLACEHOLDER = "your email";
+  const JOIN = "join";
+  const JOINING = "joining…";
+  const JOINED_LABEL = "📬 you're on the list. talk soon!";
   const MAX_EMAIL_LENGTH = 254;
 
+  /** True while the info page is on screen; its controls leave the tab order otherwise. */
   export let active = false;
+
   let joined = false;
-  let expanded = false;
   let busy = false;
   let email = "";
   let error = "";
-  let input;
-  let trigger;
+  /** @type {HTMLParagraphElement} */
   let confirmation;
-  $: if (!active) expanded = false;
 
-  onMount(() => { joined = hasJoined(); });
+  onMount(() => {
+    joined = hasJoined();
+  });
 
-  /** Opens the in-place form and focuses its labelled email input. */
-  async function openForm() {
-    expanded = true;
-    error = "";
-    await tick();
-    if (input) input.focus();
-  }
-
-  /** Escape returns keyboard focus without changing the card footprint. */
-  async function collapse(event) {
-    if (!expanded) return;
-    if (event.key !== "Escape") return;
-    event.stopPropagation();
-    expanded = false;
-    error = "";
-    await tick();
-    if (trigger) trigger.focus();
-  }
-
-  /** Keeps request handling in the client; only presentation state lives here. */
+  /** Sends the address; request handling stays in mailClient.js. */
   async function submit() {
     if (busy) return;
     busy = true;
@@ -47,7 +35,6 @@
     try {
       await joinMailingList(email);
       joined = true;
-      expanded = false;
       email = "";
       await tick();
       if (active && confirmation) confirmation.focus();
@@ -59,83 +46,142 @@
   }
 </script>
 
-<svelte:window on:keydown={collapse} />
-
-<div class="info-card mailing-card col-span-2 w-full flex flex-col sm:col-span-2 max-lg:landscape:col-span-2 md:col-span-2 lg:col-span-2 xl:col-span-2 2xl:col-span-2 rounded-xl md:rounded-2xl text-xs sm:text-sm md:text-sm lg:text-base xl:text-base 2xl:text-lg" class:mail-error={error !== ""}>
-  <div class="mail-main">
-    {#if joined}
-      <p class="joined font-bold" bind:this={confirmation} tabindex="-1">{JOINED_LABEL}</p>
-    {:else if expanded}
-      <form class="mail-form" on:submit|preventDefault={submit} aria-busy={busy}>
-        <label class="sr-only" for="mailing-list-email">email address</label>
-        <input bind:this={input} bind:value={email} id="mailing-list-email" type="email" autocomplete="email" inputmode="email" maxlength={MAX_EMAIL_LENGTH} required placeholder="your email" aria-describedby="mail-frequency mail-status" readonly={busy} tabindex={active ? 0 : -1} />
-        <button class="submit font-bold" type="submit" disabled={busy} tabindex={active ? 0 : -1}>{busy ? "joining…" : "join"}</button>
-      </form>
-    {:else}
-      <button class="mail-trigger font-bold" type="button" bind:this={trigger} on:click={openForm} tabindex={active ? 0 : -1} aria-expanded={expanded}>{JOIN_LABEL}</button>
-    {/if}
-  </div>
-  <p id="mail-frequency" class="frequency">{FREQUENCY}</p>
-  <div class="mail-status" id="mail-status" aria-live="polite" aria-atomic="true">
-    {#if error}<span class="error">{error}</span>
-    {:else if joined}<span class="sr-only">{JOINED_LABEL}</span>
-    {:else}<span>no sharing. <a href="/privacy.html" tabindex={active ? 0 : -1}>privacy</a></span>{/if}
-  </div>
+<div
+  class="info-card mailing-card col-span-2 sm:col-span-2 md:col-span-2 lg:col-span-2 xl:col-span-2 2xl:col-span-2 max-lg:landscape:col-span-2 flex w-full flex-col justify-center rounded-xl md:rounded-2xl px-2.5 md:px-3 xl:px-4 2xl:px-6 h-[72px] sm:h-[72px] md:h-20 lg:h-20 xl:h-[88px] 2xl:h-32 max-lg:landscape:h-[60px] text-sm md:text-base 2xl:text-2xl max-lg:landscape:text-xs"
+  class:mail-error={error !== ""}
+>
+  {#if joined}
+    <p class="joined flex flex-1 items-center justify-center font-bold" bind:this={confirmation} tabindex="-1">{JOINED_LABEL}</p>
+  {:else}
+    <form class="mail-form flex flex-1 items-stretch gap-1.5 md:gap-2 2xl:gap-3" on:submit|preventDefault={submit} aria-busy={busy}>
+      <label class="sr-only" for="mailing-list-email">{LABEL}</label>
+      <input
+        id="mailing-list-email"
+        class="mail-input min-w-0 flex-1 rounded-md md:rounded-lg 2xl:rounded-xl px-2.5 md:px-3 2xl:px-5"
+        type="email"
+        autocomplete="email"
+        inputmode="email"
+        maxlength={MAX_EMAIL_LENGTH}
+        required
+        placeholder={PLACEHOLDER}
+        aria-describedby="mail-status"
+        readonly={busy}
+        tabindex={active ? 0 : -1}
+        bind:value={email}
+      />
+      <button class="mail-submit shrink-0 rounded-md md:rounded-lg 2xl:rounded-xl px-3 md:px-4 2xl:px-7 font-bold" type="submit" disabled={busy} tabindex={active ? 0 : -1}>{busy ? JOINING : JOIN}</button>
+    </form>
+  {/if}
+  <p class="mail-status mt-1 truncate text-center text-[10px] sm:text-[11px] md:text-xs lg:text-xs xl:text-xs 2xl:text-base max-lg:landscape:mt-0.5 max-lg:landscape:text-[9px]" id="mail-status" aria-live="polite">
+    {#if error}<span class="error">{error}</span>{:else}{FREQUENCY}{/if}
+  </p>
 </div>
 
 <style lang="scss">
   @use "../styles/variables" as v;
 
+  // Fixed height in every state; the grid's shared hover lift stays off so the field never jumps while typing
   .mailing-card {
     box-sizing: border-box;
-    height: 88px;
     min-width: 0;
-    padding: 7px 10px !important;
-    justify-content: center;
+    padding-top: 0.5rem !important;
+    padding-bottom: 0.375rem !important;
     background: v.$color-mail-card;
     color: v.$color-mail-ink;
     border: 1px solid v.$color-mail-line;
     transform: none !important;
   }
-  .mail-main { height: 34px; flex: 0 0 34px; min-width: 0; }
-  .mail-trigger, .joined { width: 100%; height: 100%; margin: 0; }
-  .mail-trigger { border: 0; background: transparent; cursor: pointer; }
-  .joined { display: flex; align-items: center; justify-content: center; }
-  .mail-form { display: flex; width: 100%; height: 100%; }
-  input {
-    min-width: 0;
+
+  .mail-form,
+  .joined {
+    min-height: 0;
+    margin: 0;
+  }
+
+  .mail-input {
     width: 0;
-    flex: 1 1 auto;
-    padding: 4px 8px;
     background: v.$color-mail-input;
     color: v.$color-mail-ink;
     border: 1px solid v.$color-mail-line;
-    border-radius: 6px;
     user-select: text;
+    // 16px keeps phones from zooming into the field
     font-size: 16px;
   }
-  input::placeholder { color: v.$color-mail-muted; opacity: 1; }
-  button { color: inherit; font: inherit; }
-  .mail-trigger, .submit { font-weight: 700; }
-  .submit { margin-left: 6px; padding: 4px 12px; border: 0; border-radius: 6px; background: v.$color-mail-ink; color: v.$color-mail-input; cursor: pointer; }
-  .submit:disabled { opacity: 0.65; cursor: wait; }
-  input:focus, button:focus, a:focus { outline: 2px solid v.$color-mail-ink; outline-offset: 2px; }
-  .frequency { margin: 3px 0 0; font-size: 11px; line-height: 15px; color: v.$color-mail-muted; }
-  .mail-status { height: 14px; flex: 0 0 14px; font-size: 10px; line-height: 14px; color: v.$color-mail-muted; }
-  .mail-status a { color: inherit; text-decoration: underline; }
-  .error { color: v.$color-mail-error; }
-  .mail-error .mail-main { animation: mail-shake 240ms ease-out; }
-  @keyframes mail-shake { 25%, 75% { transform: translateX(-3px); } 50% { transform: translateX(3px); } }
-  @media (min-width: 768px) { .mailing-card { height: 100px; } .frequency { font-size: 12px; } }
-  @media (min-width: 1024px) { .mailing-card { height: 104px; } }
-  @media (min-width: 1280px) { .mail-form { max-width: 460px; margin: 0 auto; } }
-  @media (min-width: 1536px) { .mailing-card { height: 120px; } .mail-main { height: 40px; flex-basis: 40px; } .frequency { font-size: 14px; line-height: 20px; } .mail-status { font-size: 12px; height: 18px; flex-basis: 18px; line-height: 18px; } }
-  @media (min-width: 2560px) { .mailing-card { font-size: 24px; } .frequency { font-size: 16px; } }
-  @media (max-width: 1023px) and (orientation: landscape) {
-    .mailing-card { height: 76px; padding: 4px 8px !important; font-size: 12px; }
-    .mail-main { height: 32px; flex-basis: 32px; }
-    .frequency { font-size: 10px; margin-top: 1px; }
-    .mail-status { font-size: 9px; }
+
+  .mail-input::placeholder {
+    color: v.$color-mail-muted;
+    opacity: 1;
   }
-  @media (prefers-reduced-motion: reduce) { .mailing-card { transition: none !important; } .mail-error .mail-main { animation: none; } }
+
+  .mail-submit {
+    border: 0;
+    background: v.$color-mail-ink;
+    color: v.$color-mail-input;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .mail-submit:disabled {
+    opacity: 0.65;
+    cursor: wait;
+  }
+
+  .mail-input:focus,
+  .mail-submit:focus,
+  .joined:focus {
+    outline: 2px solid v.$color-mail-ink;
+    outline-offset: 2px;
+  }
+
+  .mail-status {
+    flex: 0 0 auto;
+    color: v.$color-mail-muted;
+    line-height: 1.3;
+  }
+
+  .error {
+    color: v.$color-mail-error;
+  }
+
+  .mail-error .mail-form {
+    animation: mail-shake 240ms ease-out;
+  }
+
+  @keyframes mail-shake {
+    25%,
+    75% {
+      transform: translateX(-3px);
+    }
+    50% {
+      transform: translateX(3px);
+    }
+  }
+
+  @media (min-width: 1536px) {
+    .mail-input {
+      font-size: 1.5rem;
+    }
+  }
+
+  @media (max-width: 1023px) and (orientation: landscape) {
+    .mailing-card {
+      padding-top: 0.3rem !important;
+      padding-bottom: 0.25rem !important;
+    }
+
+    .mail-input {
+      font-size: 14px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mailing-card {
+      transition: none !important;
+    }
+
+    .mail-error .mail-form {
+      animation: none;
+    }
+  }
 </style>
