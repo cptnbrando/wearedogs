@@ -1,7 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
 import { CAMPAIGN_ALIASES } from "../src/lib/campaignAliases.js";
-import { APP_SHORT_URLS } from "../src/lib/appShortUrls.js";
 
 /**
  * Share cards for every deep-linkable item: campaigns, products and blog posts.
@@ -25,20 +24,6 @@ import { APP_SHORT_URLS } from "../src/lib/appShortUrls.js";
  */
 
 const DEFAULT_ORIGIN = "https://wearedogs.net";
-
-/**
- * Toolbox apps with a card of their own, keyed by app slug. Each is written at
- * /apps/<slug> and at every short url in APP_SHORT_URLS that opens that app
- * (dogs.red/d, dogs.red/data). Banner artwork lives in scripts/share-banners/.
- */
-const APP_CARDS = {
-  dataflash: {
-    title: "Data Train",
-    description:
-      "Scan a QR code and send files and text between your devices. No account, no app to install, nothing to plug in.",
-    image: "/share/datatrain.png",
-  },
-};
 
 /** Attribute-safe escaping for values dropped into content="…". */
 function esc(value) {
@@ -345,27 +330,6 @@ export default function shareCards(options = {}) {
           fs.writeFileSync(path.join(outDir, alias, "index.html"), html, "utf8");
           fs.writeFileSync(path.join(outDir, `${alias}.html`), html, "utf8");
           written.push(alias);
-        }
-      }
-
-      // Toolbox apps: /apps/<slug> plus its short urls, all canonical to the
-      // /apps/<slug> page for the same reason the campaign aliases are.
-      for (const [app, card] of Object.entries(APP_CARDS)) {
-        const html = renderCard(baseHtml, {
-          title: `${card.title} — DOGS`,
-          description: summarize(card.description),
-          url: `${origin}/apps/${app}`,
-          image: pickImage(card, origin, fallbackImage, hasLocalFile),
-        });
-        const aliases = Object.keys(APP_SHORT_URLS).filter(
-          (alias) => APP_SHORT_URLS[alias] === app,
-        );
-        for (const routePath of [`apps/${app}`, ...aliases]) {
-          const base = path.join(outDir, ...routePath.split("/"));
-          fs.mkdirSync(base, { recursive: true });
-          fs.writeFileSync(path.join(base, "index.html"), html, "utf8");
-          fs.writeFileSync(`${base}.html`, html, "utf8");
-          written.push(routePath);
         }
       }
 
