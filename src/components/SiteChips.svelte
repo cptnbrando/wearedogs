@@ -320,4 +320,8 @@
       transition: none;
     }
   }
+  // Phones in either orientation: the gallery on page two owns external links.
+  @media (max-width: 767px), (orientation: landscape) and (max-height: 599px) and (max-width: 1023px) {
+    .site-chips { display: none !important; }
+  }
 </style>
