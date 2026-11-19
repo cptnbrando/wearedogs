@@ -194,57 +194,6 @@
 </div>
 
 <style>
-  /* Contact Card */
-  .contact-card {
-    cursor: pointer;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-
-  .contact-card :global(svg) {
-    stroke: #000000;
-    transition: stroke 0.3s ease;
-  }
-
-  /* Color highlights for active color mode on contact-card */
-  :global(.wad-colored) .contact-card {
-    background: var(
-      --color-neon-purple,
-      var(--color-neon-red, #ff3344)
-    ) !important;
-    border-color: transparent !important;
-    box-shadow: 0 0 15px rgba(var(--color-neon-purple-rgb, 255, 51, 68), 0.35) !important;
-  }
-  :global(.wad-colored) .contact-card .card-value {
-    color: #ffffff !important;
-  }
-  :global(.wad-colored) .contact-card :global(svg) {
-    stroke: #ffffff !important;
-  }
-
-  :global(.wad-colored) .contact-card:hover {
-    background: var(
-      --color-neon-purple,
-      var(--color-neon-red, #ff3344)
-    ) !important;
-    opacity: 0.9;
-    box-shadow: 0 0 25px rgba(var(--color-neon-purple-rgb, 255, 51, 68), 0.5) !important;
-  }
-
-  /* Default theme uses neon red scrollbar color when active */
-  :global(html[data-theme="default"]) :global(.wad-colored) .contact-card {
-    background: #d61a2c !important;
-    box-shadow: 0 0 15px rgba(214, 26, 44, 0.35) !important;
-    border-color: transparent !important;
-  }
-  :global(html[data-theme="default"])
-    :global(.wad-colored)
-    .contact-card:hover {
-    background: #d61a2c !important;
-    opacity: 0.9;
-    box-shadow: 0 0 25px rgba(214, 26, 44, 0.5) !important;
-  }
-
   /* Dictionary Highlight & Theme transitions */
   .dict-def.colored,
   .dict-word.colored {
