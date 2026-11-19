@@ -1,0 +1,122 @@
+{
+  "groups": [
+    { "id": "network", "title": "Network", "blurb": "What our Cloudflare server sees before your browser runs a line of code." },
+    { "id": "browser", "title": "Browser", "blurb": "Software settings your browser reports to every site that asks." },
+    { "id": "hardware", "title": "Hardware", "blurb": "Your screen, chips and how they draw and play things." }
+  ],
+  "signals": {
+    "ip": { "group": "network", "label": "IP address", "bits": 0, "why": "Points to your connection, and often your household. It changes with networks, so trackers pair it with device traits." },
+    "isp": { "group": "network", "label": "ISP / ASN", "bits": 0, "why": "The company and network block your traffic comes from. Mobile, home, office and VPN networks all look different." },
+    "location": { "group": "network", "label": "Approximate location", "bits": 0, "why": "Looked up from your IP address. Usually right about the city, sometimes only the region." },
+    "coords": { "group": "network", "label": "Coordinates", "bits": 0, "why": "The centre of the IP's estimated area, not your GPS position." },
+    "edgeTz": { "group": "network", "label": "Network time zone", "bits": 0, "why": "Compared against your device clock below: a mismatch is a classic VPN or proxy giveaway." },
+    "vpnHint": { "group": "network", "label": "VPN / proxy hint", "bits": 0, "why": "If your device's time zone and your IP's time zone disagree, you are probably routed somewhere else." },
+    "colo": { "group": "network", "label": "Cloudflare data centre", "bits": 0, "why": "The nearest edge site that answered you, given as an airport code." },
+    "protocol": { "group": "network", "label": "HTTP version", "bits": 0, "why": "Old browsers, proxies and bots often speak older protocol versions." },
+    "tls": { "group": "network", "label": "TLS version and cipher", "bits": 0, "why": "How your browser negotiated encryption. Each browser build has its own preferences." },
+    "tlsHello": { "group": "network", "label": "TLS hello fingerprint", "bits": 0, "why": "Hashes of the cipher and extension lists your browser offered. Close to what JA3 and JA4 fingerprints measure, and it can expose a browser lying about its user agent." },
+    "rtt": { "group": "network", "label": "Round trip time", "bits": 0, "why": "Milliseconds from Cloudflare to you and back. A hint at distance and connection type." },
+    "headers": { "group": "network", "label": "Request headers", "bits": 0, "why": "Sent with every request, scripts or not. Language and encoding lists vary between people." },
+
+    "ua": { "group": "browser", "label": "User agent", "bits": 10, "why": "Names your browser, version and operating system in one line. One of the oldest tracking signals." },
+    "uaHints": { "group": "browser", "label": "Client hints", "bits": 6, "why": "Chromium browsers hand over exact versions, CPU architecture, bitness and sometimes the phone model when asked." },
+    "platform": { "group": "browser", "label": "Platform and vendor", "bits": 2, "why": "Your operating system family and browser maker, straight from the browser." },
+    "languages": { "group": "browser", "label": "Languages", "bits": 5, "why": "The ordered list of languages you accept. Uncommon combinations narrow you down fast." },
+    "timezone": { "group": "browser", "label": "Time zone", "bits": 3, "why": "Your device clock's zone and offset. Places you on the map without asking." },
+    "intl": { "group": "browser", "label": "Number and date format", "bits": 3, "why": "How your locale writes numbers, dates, calendars and clocks." },
+    "privacy": { "group": "browser", "label": "Do Not Track / GPC", "bits": 1, "why": "Ironically, turning these on makes you rarer and so easier to tell apart." },
+    "storageApis": { "group": "browser", "label": "Cookies and storage", "bits": 1, "why": "Whether cookies, localStorage, sessionStorage and IndexedDB work. Blocked storage is itself unusual." },
+    "plugins": { "group": "browser", "label": "Plugins", "bits": 1, "why": "Modern browsers report the same fixed PDF list; anything else stands out." },
+    "mimeTypes": { "group": "browser", "label": "MIME types and PDF viewer", "bits": 1, "why": "File types the browser says it can show inline." },
+    "permissions": { "group": "browser", "label": "Permission states", "bits": 3, "why": "Which permissions you have granted, denied or never been asked about. Stable, and different for everyone." },
+    "automation": { "group": "browser", "label": "Automation flag", "bits": 0, "why": "navigator.webdriver is true when the browser is driven by a script. Bot detectors read it first." },
+    "connection": { "group": "browser", "label": "Connection estimate", "bits": 1, "why": "The browser's guess at your network speed and whether data saver is on." },
+    "features": { "group": "browser", "label": "Web APIs present", "bits": 4, "why": "Which newer APIs exist pins down the exact browser engine and version, even when the user agent lies." },
+    "codecs": { "group": "browser", "label": "Media codecs", "bits": 3, "why": "Which audio and video formats can play depends on the browser, OS and licences installed." },
+    "prefs": { "group": "browser", "label": "Display preferences", "bits": 3, "why": "Dark mode, reduced motion, contrast, colour gamut, HDR and pointer type, as CSS media queries report them." },
+
+    "screen": { "group": "hardware", "label": "Screen", "bits": 5, "why": "Resolution, usable area and colour depth. Laptops, phones and monitors come in a few hundred combinations." },
+    "viewport": { "group": "hardware", "label": "Pixel ratio and window", "bits": 3, "why": "Display scaling and the size of this window right now. Changes as you resize, but the ratio stays." },
+    "cpu": { "group": "hardware", "label": "CPU threads", "bits": 2, "why": "Logical processor count, straight from the hardware." },
+    "memory": { "group": "hardware", "label": "Device memory", "bits": 1, "why": "Your RAM, rounded into a few buckets by the browser." },
+    "touch": { "group": "hardware", "label": "Touch points", "bits": 1, "why": "How many fingers your screen tracks at once. Zero on most desktops." },
+    "battery": { "group": "hardware", "label": "Battery", "bits": 1, "why": "Charge level and charging state. Changes over time, but researchers once used it to link sessions minutes apart." },
+    "mediaDevices": { "group": "hardware", "label": "Cameras and microphones", "bits": 2, "why": "How many audio and video devices are plugged in. Names stay hidden without permission." },
+    "gpu": { "group": "hardware", "label": "Graphics card", "bits": 6, "why": "WebGL reveals the vendor and often the exact model of your GPU and its driver." },
+    "webgl": { "group": "hardware", "label": "WebGL limits", "bits": 4, "why": "Texture sizes, shader limits and precision differ between GPU and driver versions." },
+    "webglExt": { "group": "hardware", "label": "WebGL extensions", "bits": 3, "why": "The list of graphics extensions your GPU and browser support together." },
+    "canvas": { "group": "hardware", "label": "Canvas render", "bits": 8, "why": "We draw text, an emoji and colours, then hash the pixels. Fonts, anti-aliasing and the GPU change the result slightly per device." },
+    "audio": { "group": "hardware", "label": "Audio render", "bits": 5, "why": "A silent tone is rendered offline; the sum of its samples differs with the audio stack and CPU." },
+    "fonts": { "group": "hardware", "label": "Installed fonts", "bits": 9, "why": "We measure text in dozens of typefaces. Office suites, design tools and languages leave their own sets." },
+    "voices": { "group": "hardware", "label": "Speech voices", "bits": 4, "why": "Text-to-speech voices come with the OS and its language packs." },
+    "math": { "group": "hardware", "label": "Math engine quirks", "bits": 2, "why": "Trig and log functions round the last digit differently between JavaScript engines and CPUs." },
+    "storageQuota": { "group": "hardware", "label": "Storage quota", "bits": 2, "why": "How much the browser lets this site store, tied to free disk space. Incognito modes often give themselves away here." }
+  },
+  "levels": [
+    { "max": 1, "label": "low" },
+    { "max": 4, "label": "medium" },
+    { "max": 99, "label": "high" }
+  ],
+  "uaHints": ["architecture", "bitness", "model", "platformVersion", "fullVersionList", "wow64", "formFactors"],
+  "permissions": [
+    "geolocation", "notifications", "camera", "microphone", "persistent-storage", "midi", "clipboard-read",
+    "clipboard-write", "background-sync", "accelerometer", "gyroscope", "magnetometer", "screen-wake-lock", "local-fonts"
+  ],
+  "features": [
+    ["navigator", "serviceWorker"], ["navigator", "bluetooth"], ["navigator", "usb"], ["navigator", "hid"],
+    ["navigator", "serial"], ["navigator", "xr"], ["navigator", "gpu"], ["navigator", "share"],
+    ["navigator", "wakeLock"], ["navigator", "credentials"], ["navigator", "clipboard"], ["navigator", "mediaSession"],
+    ["navigator", "keyboard"], ["navigator", "virtualKeyboard"], ["navigator", "contacts"], ["navigator", "locks"],
+    ["navigator", "userActivation"], ["navigator", "ink"], ["navigator", "scheduling"], ["navigator", "login"],
+    ["window", "WebAssembly"], ["window", "SharedArrayBuffer"], ["window", "BigInt"], ["window", "OffscreenCanvas"],
+    ["window", "PaymentRequest"], ["window", "Notification"], ["window", "ResizeObserver"], ["window", "BroadcastChannel"],
+    ["window", "structuredClone"], ["window", "IdleDetector"], ["window", "EyeDropper"], ["window", "showOpenFilePicker"],
+    ["window", "documentPictureInPicture"], ["window", "CompressionStream"], ["window", "Sanitizer"], ["window", "Temporal"]
+  ],
+  "codecs": [
+    ["H.264", "video/mp4; codecs=\"avc1.42E01E\""],
+    ["HEVC", "video/mp4; codecs=\"hvc1.1.6.L93.B0\""],
+    ["AV1", "video/mp4; codecs=\"av01.0.05M.08\""],
+    ["VP8", "video/webm; codecs=\"vp8\""],
+    ["VP9", "video/webm; codecs=\"vp9\""],
+    ["Theora", "video/ogg; codecs=\"theora\""],
+    ["AAC", "audio/mp4; codecs=\"mp4a.40.2\""],
+    ["MP3", "audio/mpeg"],
+    ["Opus", "audio/ogg; codecs=\"opus\""],
+    ["Vorbis", "audio/ogg; codecs=\"vorbis\""],
+    ["FLAC", "audio/flac"],
+    ["WAV", "audio/wav; codecs=\"1\""]
+  ],
+  "mediaQueries": [
+    ["dark", "(prefers-color-scheme: dark)"],
+    ["reduced motion", "(prefers-reduced-motion: reduce)"],
+    ["more contrast", "(prefers-contrast: more)"],
+    ["forced colours", "(forced-colors: active)"],
+    ["inverted", "(inverted-colors: inverted)"],
+    ["P3 gamut", "(color-gamut: p3)"],
+    ["Rec.2020 gamut", "(color-gamut: rec2020)"],
+    ["HDR", "(dynamic-range: high)"],
+    ["coarse pointer", "(pointer: coarse)"],
+    ["fine pointer", "(pointer: fine)"],
+    ["hover", "(hover: hover)"],
+    ["reduced data", "(prefers-reduced-data: reduce)"]
+  ],
+  "fonts": [
+    "Arial", "Arial Narrow", "Arial Black", "Calibri", "Cambria", "Candara", "Consolas", "Constantia", "Corbel",
+    "Courier New", "Ebrima", "Franklin Gothic Medium", "Gabriola", "Gadugi", "Georgia", "Impact", "Javanese Text",
+    "Leelawadee UI", "Lucida Console", "Lucida Sans Unicode", "Malgun Gothic", "Microsoft Himalaya",
+    "Microsoft JhengHei", "Microsoft YaHei", "MS Gothic", "MV Boli", "Palatino Linotype", "Segoe Print",
+    "Segoe Script", "Segoe UI", "SimSun", "Sitka Text", "Sylfaen", "Tahoma", "Times New Roman", "Trebuchet MS",
+    "Verdana", "Yu Gothic", "Comic Sans MS", "Century Gothic", "Book Antiqua", "Bookman Old Style", "Garamond",
+    "Wingdings", "American Typewriter", "Avenir", "Avenir Next", "Baskerville", "Big Caslon", "Chalkboard",
+    "Charter", "Cochin", "Copperplate", "Didot", "Futura", "Geneva", "Gill Sans", "Helvetica", "Helvetica Neue",
+    "Hoefler Text", "Lucida Grande", "Menlo", "Monaco", "Optima", "PingFang SC", "Skia", "Snell Roundhand",
+    "Zapfino", "DejaVu Sans", "Liberation Sans", "Ubuntu", "Cantarell", "Noto Sans", "Droid Sans", "FreeSans",
+    "Roboto", "Source Code Pro", "Fira Sans", "Minion Pro", "Myriad Pro", "Adobe Garamond Pro", "Helvetica LT Std"
+  ],
+  "math": [
+    ["acos", 0.123], ["acosh", 1e308], ["asin", 0.123], ["asinh", 1], ["atan", 2], ["atanh", 0.5],
+    ["cbrt", 100], ["cos", 21], ["cosh", 1], ["exp", 1], ["expm1", 1], ["log1p", 10],
+    ["sin", -1e300], ["sinh", 1], ["tan", -1e300], ["tanh", 1], ["pow", -100]
+  ]
+}

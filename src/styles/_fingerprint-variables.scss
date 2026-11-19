@@ -1,0 +1,59 @@
+// Fingerprint app palette, type scale and layout tokens.
+// Used by: components/apps/fingerprint/fingerprint.scss (FingerprintApp.svelte).
+// The toolbox tile accent (#ff4f81) is the same colour, set in ToolboxPanel.svelte appColors.
+
+// ── Colour ──
+// App background behind the report.
+$fp-surface: #09080c;
+// Cards: groups, the summary rail and the consent banner.
+$fp-panel: #131118;
+// Hovered rows, value wells and the visitor ID plate.
+$fp-raised: #1c1922;
+// Body text.
+$fp-ink: #f3f0f5;
+// Secondary text: "why this identifies you" notes, labels.
+$fp-muted: #a9a2b3;
+// Card borders and dividers.
+$fp-line: #2d2836;
+// Brand accent: buttons, the fingerprint mark, high-entropy bars.
+$fp-accent: #ff4f81;
+// Primary button hover.
+$fp-accent-hover: #ff6b95;
+// Soft accent fill and edge behind the fingerprint mark.
+$fp-accent-wash: rgba(255, 79, 129, 0.12);
+$fp-accent-edge: rgba(255, 79, 129, 0.35);
+// Text on the accent colour.
+$fp-accent-ink: #2a0612;
+// Medium-entropy bars.
+$fp-medium: #ffb347;
+// Low-entropy bars.
+$fp-low: #7fd1ff;
+// "Seen before" state.
+$fp-seen: #ffd35c;
+// "First visit" and "forgotten" states.
+$fp-fresh: #7ff0b4;
+// Server unavailable / errors, and the Forget me button.
+$fp-warn: #ff9f9f;
+$fp-warn-edge: rgba(255, 159, 159, 0.4);
+// Dims the app behind the consent banner.
+$fp-scrim: rgba(0, 0, 0, 0.72);
+$fp-shadow: 0 18px 48px rgba(0, 0, 0, 0.6);
+
+// ── Type ──
+$fp-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+$fp-body: 14px;
+$fp-small: 12px;
+$fp-tiny: 11px;
+// TV / ultra-wide: read from across the room.
+$fp-tv-body: 17px;
+$fp-tv-small: 14px;
+
+// ── Layout ──
+$fp-radius: 10px;
+$fp-gap: 12px;
+// Summary rail width on tablets, desktops and TVs.
+$fp-rail: 260px;
+$fp-rail-wide: 300px;
+$fp-rail-tv: 340px;
+// The consent banner never grows wider than this.
+$fp-banner-max: 640px;

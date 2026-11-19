@@ -64,6 +64,14 @@ export default defineConfig({
         rewrite: () => '/mail',
         headers: { Origin: 'https://wearedogs.net' },
       },
+      // The Fingerprint app's route of the API Worker, subpaths included (/api/fingerprint/network);
+      // FINGERPRINT_API_TARGET works like LIKES_API_TARGET below.
+      '/api/fingerprint': {
+        target: process.env.FINGERPRINT_API_TARGET || 'http://localhost:8787',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
+        headers: { Origin: 'https://wearedogs.net' },
+      },
       // The likes Worker (workers/api) only answers wearedogs.net origins, so
       // present the real one. LIKES_API_TARGET=http://localhost:8787 points it
       // at `wrangler dev` and its local D1 instead of the live count.

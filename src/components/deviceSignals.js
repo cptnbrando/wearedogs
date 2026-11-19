@@ -70,10 +70,19 @@ export function collectSignals() {
     };
     const signals = {};
     SIGNALS.forEach((key) => {
-      signals[key] = traits[key] ? cyrb53(traits[key], HASH_SEED).toString(16).padStart(HASH_HEX_LENGTH, "0") : "";
+      signals[key] = hashTrait(traits[key]);
     });
     return signals;
   });
+}
+
+/**
+ * The hash every signal above is reduced to; also used by the Fingerprint app.
+ * @param {string} text a raw trait
+ * @returns {string} 14 hex characters, or "" when there is no trait
+ */
+export function hashTrait(text) {
+  return text ? cyrb53(text, HASH_SEED).toString(16).padStart(HASH_HEX_LENGTH, "0") : "";
 }
 
 function timeZone() {
@@ -85,7 +94,7 @@ function timeZone() {
 }
 
 /** GPU, font and anti-aliasing differences make the same drawing render slightly differently per device. */
-function canvasPrint() {
+export function canvasPrint() {
   try {
     const canvas = document.createElement("canvas");
     canvas.width = CANVAS_WIDTH;
@@ -127,7 +136,7 @@ function webglPrint() {
 }
 
 /** @returns {Promise<string>} a sum of rendered samples, or "" when audio is unavailable or slow */
-function audioPrint() {
+export function audioPrint() {
   return new Promise((resolve) => {
     const Offline = window.OfflineAudioContext || window.webkitOfflineAudioContext;
     if (!Offline) return resolve("");
