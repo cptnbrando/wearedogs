@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1795116128,
+    "firstCommitTimestamp": 1795116551,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 244391
+    "averageLinesAltered": 244415
   },
   "entries": [
     {
       "version": "1.0.3",
       "name": "Master",
       "date": "2026-11-19",
-      "timestamp": 1795116093,
+      "timestamp": 1795116514,
       "commits": [
         {
-          "hash": "74b74f7",
-          "message": "chore(api): allow the 40 landing page's origin on the waitlist",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/74b74f7ad59e4c523ac20d11b4c48abdb291d3f3",
-          "timestamp": 1795116128,
-          "linesChanged": 244391
+          "hash": "d9e3fc8",
+          "message": "feat(api): one list per app instead of a shared waitlist table",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/d9e3fc8d74951168dc25c2d4e4ec1bc6a9fd36fe",
+          "timestamp": 1795116551,
+          "linesChanged": 244415
         }
       ]
     },
