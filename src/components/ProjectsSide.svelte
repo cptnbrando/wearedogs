@@ -97,7 +97,8 @@
     margin: 0 auto;
   }
   .entry { grid-area: entry; }
-  .showcase { grid-area: showcase; }
+  // Clips at its own edge: copy too long for a small screen is cut, never laid over the like below
+  .showcase { grid-area: showcase; overflow: hidden; }
   .community { grid-area: community; }
 
   // Landscape everywhere: a left rail for the heading and the like, the gallery filling the rest
@@ -130,6 +131,9 @@
     .lede { order: 3; width: 100%; }
   }
   .colored .title { color: g.$accent; }
+  // The narrowest phones: the byline goes so the flip button stays on the heading row
+  @media (orientation: portrait) and (max-width: 374px) { .byline { display: none; } }
+  @media (orientation: portrait) and (max-height: 600px) { .side .shell { row-gap: 10px; } }
 
   // Short phones: the heading stays one tight block so the gallery keeps the height
   @media (orientation: portrait) and (max-height: 700px) {

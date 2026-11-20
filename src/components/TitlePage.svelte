@@ -21,6 +21,7 @@
   import { audioCore } from "../lib/AudioCore.svelte.js";
   import { rememberPairingLink } from "./apps/datatrain/pairingLink.js";
   import { GO_HOME_EVENT } from "../lib/goHome.js";
+  import { OPEN_DOGS_PAGE_EVENT } from "../lib/openDogsPage.js";
   import { rememberSaveLink } from "./apps/dogsinc/saveLink.js";
 
   // Apps opened from links that carry data in the URL fragment (Air Train pairing,
@@ -29,6 +30,8 @@
   // The fifth landing tile: supporting DOGS on Buy Me a Coffee (the other apps live in the toolbox and on page two)
   const COFFEE_URL = "https://buymeacoffee.com/dogsdogsdogs";
   const COFFEE_LABEL = "Subscribe to DOGS";
+  // How long a requested toolbox app stays in ToolboxPanel's initialApp prop before it is cleared
+  const DEEP_LINK_CLEAR_MS = 400;
 
   // Active view state: 'stats' | 'toolbox' | 'music' | 'store' | 'map' | null
   let {
@@ -190,10 +193,27 @@
       showInfo = false;
       if (activePage) closePage();
     };
+    // The app gallery (DOGS HOME) opens a panel or a toolbox app in place, without leaving the page
+    const handleOpenDogsPage = (e) => {
+      const { panel = null, app = null } = e.detail || {};
+      if (activePage !== null) return;
+      showInfo = false;
+      if (!app) {
+        if (panel) openPage(panel);
+        return;
+      }
+      deepLinkApp = app;
+      openPage("toolbox");
+      setTimeout(() => {
+        deepLinkApp = null;
+      }, DEEP_LINK_CLEAR_MS);
+    };
     window.addEventListener("open-info-panel", handleOpenInfo);
     window.addEventListener("open-music-panel", handleOpenMusic);
     window.addEventListener(GO_HOME_EVENT, handleGoHome);
+    window.addEventListener(OPEN_DOGS_PAGE_EVENT, handleOpenDogsPage);
     return () => {
+      window.removeEventListener(OPEN_DOGS_PAGE_EVENT, handleOpenDogsPage);
       window.removeEventListener("open-info-panel", handleOpenInfo);
       window.removeEventListener("open-music-panel", handleOpenMusic);
       window.removeEventListener(GO_HOME_EVENT, handleGoHome);

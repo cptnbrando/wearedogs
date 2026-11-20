@@ -7,17 +7,24 @@
  *
  * Each app's slides are its features: the slide picker doubles as the feature list, so a phone shows one
  * feature at a time and a desktop shows them all beside the picture.
+ *
+ * DOGS HOME is this website. Its slides are tools built into it, so they open in place over the page
+ * (lib/openDogsPage.js) instead of in a new tab; each slide says which panel or toolbox app it opens.
  */
 
 const MEDIA_BASE = "/media/apps/";
 
 /**
- * @typedef {{ title: string, text: string, image: string }} GallerySlide
+ * @typedef {{ panel?: string, app?: string }} GalleryTarget A panel ("map", "toolbox") or a toolbox app id
+ * @typedef {{ title: string, text: string, image: string, open?: GalleryTarget }} GallerySlide
  * @typedef {{
  *   id: string, name: string, tagline: string, summary: string, status: string,
  *   url: string, demo: string, demoLabel: string, video: string, poster: string,
- *   slides: GallerySlide[]
+ *   slides: GallerySlide[],
+ *   inPlace?: boolean, urlLabel?: string, captureLabel?: string
  * }} GalleryApp
+ *   inPlace: part of this site; its links open in place, and the main button opens the slide on show.
+ *   urlLabel: what the address link reads when it isn't the url itself. captureLabel: replaces "sample data".
  */
 
 /** @type {GalleryApp[]} */
@@ -86,6 +93,27 @@ export const APP_GALLERY = [
     poster: `${MEDIA_BASE}forty.webp`,
     slides: [
       { title: "Private first", text: "No real name needed. What you track is yours unless you choose to share it.", image: `${MEDIA_BASE}forty.webp` },
+    ],
+  },
+  {
+    id: "home",
+    name: "DOGS HOME",
+    tagline: "This website. /util",
+    summary: "The toolbox built into wearedogs.net: everyday tools for files, links and places, free and one tap away.",
+    status: "Free · built into this site",
+    url: "/apps",
+    urlLabel: "/util",
+    demo: "/apps",
+    demoLabel: "Open the toolbox",
+    video: "",
+    poster: `${MEDIA_BASE}home-datatrain.webp`,
+    inPlace: true,
+    captureLabel: "live capture · this site",
+    slides: [
+      { title: "Data Train", text: "Send files and text between your devices: pair with a QR code, or use AirDrop and Quick Share.", image: `${MEDIA_BASE}home-datatrain.webp`, open: { app: "dataflash" } },
+      { title: "Catalytic Converter", text: "Turn images, audio, video, documents and data files into the format you need.", image: `${MEDIA_BASE}home-converter.webp`, open: { app: "converter" } },
+      { title: "Maps", text: "Where to go, and where not to go: the spots the dogs rate around the world.", image: `${MEDIA_BASE}home-map.webp`, open: { panel: "map" } },
+      { title: "QR Generator", text: "Resizable QR codes with an optional logo in the middle, ready to copy or download.", image: `${MEDIA_BASE}home-qr.webp`, open: { app: "qrgenerator" } },
     ],
   },
 ];
