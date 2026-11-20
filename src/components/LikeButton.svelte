@@ -1,9 +1,10 @@
 <script>
-  // The like on the apps side of the landing's card (ProjectsSide.svelte): a slip of sketchbook paper that reads
-  // "127 people like DOGS" beside a thumb drawn in pencil, sitting in a soft round bubble. The thumb sketches itself
-  // in whenever the page comes on screen and gives a little wave under the pointer; a like hatches it in, circles it
-  // in red pencil, underlines DOGS and adds "you too!". The slip is the same height as the yearly-email card
-  // (MailingList.svelte) at every size, so the two can trade places without a jump.
+  // The like on the apps side of the landing's card (ProjectsSide.svelte): a hollow pencil sketch of the
+  // MADE BY DOGS sticker. Where the sticker has the dog, this box has a thumb drawn in pencil; where it says
+  // MADE BY DOGS, this one says "127 people / like DOGS", centered in its half in the site's own type, not the
+  // sticker's capitals. The thumb sketches itself in whenever the page comes
+  // on screen; a like hatches it in, circles it in red pencil and underlines DOGS. The box is the same height
+  // as the yearly-email card (MailingList.svelte) at every size, so the two can trade places without a jump.
   // likeClient.js does the talking and the repeat-like checks; InfoBanner.svelte says what a like sends.
   import { onDestroy } from "svelte";
   import { readCache, loadCount, sendLike } from "./likeClient.js";
@@ -12,16 +13,22 @@
   const CELEBRATE_MS = 900;
   const COUNT_PLACEHOLDER = "…";
   const COUNT_FORMAT = typeof Intl === "undefined" ? null : new Intl.NumberFormat("en-US");
-  const VERB_ONE = "person likes";
-  const VERB_MANY = "people like";
+  const WHO_ONE = "person";
+  const WHO_MANY = "people";
+  const VERB_ONE = "likes";
+  const VERB_MANY = "like";
   const NAME = "DOGS";
-  const YOU_TOO = ", you too!";
   // lucide's thumbs-up, redrawn stroke by stroke
   const THUMB_CUFF = "M7 10v12";
   const THUMB_HAND = "M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z";
   // A loose red-pencil loop that overshoots where it started, like a hand circling something
   const SCRIBBLE = "M21.5 4.5C17-1.5 4.5-1 .5 6.5-3 13 0 22.5 8 25.5c7.5 2.5 16.5-1 18.5-8.5 1.5-5.5-1-11.5-7-13.5";
   const UNDERLINE = "M2 6C20 3 38 8 55 5s33-2 43 1";
+  // The box: four pencil strokes that overshoot at the corners, then a second lighter pass slightly off them
+  const FRAME_FIRST = "M4 5C70 2 160 6 296 3M297 2C299 30 295 68 297 97M298 96C200 99 100 95 3 98M4 99C1 70 5 34 3 4";
+  const FRAME_SECOND = "M2 7C100 4 210 8 298 6M295 1C296 40 299 70 295 99M296 94C190 97 80 93 5 96M6 97C4 60 7 30 5 2";
+  const DIVIDER_FIRST = "M5 1C4 30 6 70 5 99";
+  const DIVIDER_SECOND = "M6 4C7 40 4 66 6 97";
   const HATCH_GAP = 3.2;
   const HATCH_LINES = 15;
   const HATCH_START = 3;
@@ -54,9 +61,11 @@
 
   $: countText = count === null ? COUNT_PLACEHOLDER : COUNT_FORMAT ? COUNT_FORMAT.format(count) : String(count);
   $: previousText = previousCount === null ? COUNT_PLACEHOLDER : COUNT_FORMAT ? COUNT_FORMAT.format(previousCount) : String(previousCount);
+  $: who = count === 1 ? WHO_ONE : WHO_MANY;
   $: verb = count === 1 ? VERB_ONE : VERB_MANY;
+  $: spokenVerb = count === 1 ? "person likes" : "people like";
   $: label = liked ? "You like DOGS" : "Like DOGS";
-  $: spoken = count === null ? label : `${label}. ${countText} ${verb} DOGS`;
+  $: spoken = count === null ? label : `${label}. ${countText} ${spokenVerb} DOGS`;
 
   onDestroy(() => {
     destroyed = true;
@@ -96,7 +105,7 @@
 
 <button
   type="button"
-  class="sketch w-full flex items-center rounded-xl sm:rounded-xl md:rounded-2xl lg:rounded-2xl xl:rounded-2xl 2xl:rounded-3xl max-lg:landscape:rounded-xl gap-3 sm:gap-3 md:gap-4 lg:gap-4 xl:gap-4 2xl:gap-7 max-lg:landscape:gap-2.5 px-3 sm:px-3 md:px-4 lg:px-4 xl:px-5 2xl:px-8 max-lg:landscape:px-2.5 h-[72px] sm:h-[72px] md:h-20 lg:h-20 xl:h-[88px] 2xl:h-32 max-lg:landscape:h-[60px]"
+  class="sketch w-full grid h-[72px] sm:h-[72px] md:h-20 lg:h-20 xl:h-[88px] 2xl:h-32 max-lg:landscape:h-[60px]"
   class:drawn={active}
   class:liked
   class:failed
@@ -107,8 +116,13 @@
   tabindex={active ? 0 : -1}
   on:click={like}
 >
-  <span class="bubble flex shrink-0 items-center justify-center rounded-full w-12 h-12 sm:w-12 sm:h-12 md:w-14 md:h-14 lg:w-14 lg:h-14 xl:w-16 xl:h-16 2xl:w-24 2xl:h-24 max-lg:landscape:w-10 max-lg:landscape:h-10" aria-hidden="true">
-    <svg class="thumb w-8 h-8 sm:w-8 sm:h-8 md:w-9 md:h-9 lg:w-9 lg:h-9 xl:w-10 xl:h-10 2xl:w-16 2xl:h-16 max-lg:landscape:w-7 max-lg:landscape:h-7" viewBox="-6 -6 36 36" focusable="false">
+  <svg class="frame" viewBox="0 0 300 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+    <path class="frame-first" d={FRAME_FIRST} />
+    <path class="frame-second" d={FRAME_SECOND} />
+  </svg>
+
+  <span class="thumb-cell flex items-center justify-center h-full w-[min(72px,30cqw)] sm:w-[min(72px,30cqw)] md:w-[min(80px,30cqw)] lg:w-[min(80px,30cqw)] xl:w-[min(88px,30cqw)] 2xl:w-[min(128px,30cqw)] max-lg:landscape:w-[min(60px,30cqw)]" aria-hidden="true">
+    <svg class="thumb w-10 h-10 sm:w-10 sm:h-10 md:w-11 md:h-11 lg:w-11 lg:h-11 xl:w-12 xl:h-12 2xl:w-[4.5rem] 2xl:h-[4.5rem] max-lg:landscape:w-8 max-lg:landscape:h-8" viewBox="-6 -6 36 36" focusable="false">
       <defs><clipPath id={CLIP_ID}><path d={THUMB_HAND} /></clipPath></defs>
       <g class="hatch" clip-path="url(#{CLIP_ID})">
         {#each HATCH as start, index}
@@ -121,17 +135,22 @@
     </svg>
   </span>
 
-  <!-- Sized to the slip (cqw), so "people like DOGS, you too!" always fits on one line, even in a narrow rail -->
-  <span class="words flex flex-col justify-center min-w-0 text-left" aria-hidden="true">
-    <span class="count font-black text-[min(26px,9cqw)] sm:text-[min(26px,9cqw)] md:text-[min(30px,9cqw)] lg:text-[min(30px,9cqw)] xl:text-[min(32px,9cqw)] 2xl:text-[min(52px,9cqw)] max-lg:landscape:text-[min(22px,9cqw)]">
-      <span class="count-current" class:rolling={celebrating && previousCount !== null}>{countText}</span>
-      {#if celebrating && previousCount !== null}<span class="count-previous">{previousText}</span>{/if}
+  <!-- The right half: both lines centered across it and down it, with even padding on both sides -->
+  <span class="words relative flex flex-col items-center justify-center text-center min-w-0 h-full px-3 sm:px-3 md:px-4 lg:px-4 xl:px-5 2xl:px-8 max-lg:landscape:px-2 text-[min(21px,8cqw)] sm:text-[min(21px,8cqw)] md:text-[min(24px,8cqw)] lg:text-[min(24px,8cqw)] xl:text-[min(26px,8cqw)] 2xl:text-[min(40px,8cqw)] max-lg:landscape:text-[min(18px,8cqw)]" aria-hidden="true">
+    <svg class="divider" viewBox="0 0 10 100" preserveAspectRatio="none" focusable="false">
+      <path class="frame-first" d={DIVIDER_FIRST} />
+      <path class="frame-second" d={DIVIDER_SECOND} />
+    </svg>
+    <span class="line whitespace-nowrap">
+      <span class="count">
+        <span class="count-current" class:rolling={celebrating && previousCount !== null}>{countText}</span>
+        {#if celebrating && previousCount !== null}<span class="count-previous">{previousText}</span>{/if}
+      </span>
+      {who}
     </span>
-    <span class="whitespace-nowrap text-[min(15px,4.6cqw)] sm:text-[min(15px,4.6cqw)] md:text-[min(16px,4.6cqw)] lg:text-[min(16px,4.6cqw)] xl:text-[min(17px,4.6cqw)] 2xl:text-[min(28px,4.6cqw)] max-lg:landscape:text-[min(13px,4.6cqw)]">
-      {verb} <span class="dogs font-black">{NAME}<svg class="underline" viewBox="0 0 100 10" preserveAspectRatio="none" focusable="false"><path d={UNDERLINE} pathLength="1" /></svg></span>{#if liked}<span class="you-too">{YOU_TOO}</span>{/if}
-    </span>
+    <span class="line whitespace-nowrap">{verb} <span class="dogs">{NAME}<svg class="underline" viewBox="0 0 100 10" preserveAspectRatio="none" focusable="false"><path d={UNDERLINE} pathLength="1" /></svg></span></span>
   </span>
-  <span class="sr-only" aria-live="polite">{liked && !pending ? `Thanks. ${countText} ${verb} DOGS` : ""}</span>
+  <span class="sr-only" aria-live="polite">{liked && !pending ? `Thanks. ${countText} ${spokenVerb} DOGS` : ""}</span>
 </button>
 
 <style lang="scss">
@@ -141,44 +160,47 @@
   $HATCH_STAGGER_MS: 28ms;
   $HATCH_COUNT: 15;
 
-  // The slip is its own size container: in a narrow rail the words shrink with it (cqw) instead of running out of
-  // it. Browsers without container units drop those sizes and fall back to the inherited text size, which fits.
+  // The box is its own size container: in a narrow rail the words and the thumb cell shrink with it (cqw)
+  // instead of running out of it. Browsers without container units drop those sizes and fall back to the
+  // thumb's own width and the inherited text size, which still fit.
   .sketch {
     position: relative;
     container-type: inline-size;
-    max-width: 100%;
-    color: g.$graphite;
-    font-family: g.$font;
-    line-height: 1.15;
-    background-color: g.$paper;
-    // Ruled sketchbook paper
-    background-image: repeating-linear-gradient(0deg, transparent 0, transparent 11px, g.$paper-grain 11px, g.$paper-grain 12px);
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: stretch;
+    padding: 0;
+    color: g.$sketch-line;
+    background: transparent;
     border: 0;
-    box-shadow: 0 10px 28px g.$paper-shadow;
-    transform: rotate(-1deg);
-    transition: transform 0.35s g.$ease, box-shadow 0.35s g.$ease;
+    border-radius: 0;
+    text-align: left;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
+    transition: transform 0.35s g.$ease, background-color 0.35s g.$ease;
 
     &:focus { outline: 2px solid g.$ink; outline-offset: 4px; }
     &:focus:not(:focus-visible) { outline: none; }
-    &:active:not(.liked) { transform: rotate(-1deg) scale(0.97); }
+    &:active:not(.liked) { transform: scale(0.98); }
     &.liked { cursor: default; }
     &.failed { animation: like-shake 0.45s ease; }
   }
 
-  // The thumb's bubble: a warm circle that leans in under the pointer and turns rosy once liked
-  .bubble { background-color: g.$bubble; transition: transform 0.35s g.$ease, background-color 0.35s g.$ease; }
-  .liked .bubble { background-color: g.$bubble-liked; }
-  .celebrating .bubble { animation: bubble-pop 0.5s g.$ease; }
-
   @media (hover: hover) {
-    .sketch:not(.liked):hover { transform: rotate(0deg) translateY(-2px); box-shadow: 0 14px 32px g.$paper-shadow; }
-    .sketch:not(.liked):hover .bubble { transform: scale(1.06); }
-    .sketch:not(.liked):hover .thumb { animation: wave 0.7s ease; }
+    .sketch:not(.liked):hover { background-color: g.$sketch-hover; transform: translateY(-2px); }
+    .sketch:not(.liked):hover .thumb { animation: pencil-tap 0.6s ease; }
   }
 
-  .thumb { overflow: visible; transform-origin: 30% 80%; }
+  // ---- The box and the divider, in pencil; the strokes stay the same width however wide the box is ----
+  .frame, .divider { position: absolute; overflow: visible; pointer-events: none; }
+  .frame { top: 0; left: 0; width: 100%; height: 100%; }
+  .divider { top: 0; left: -5px; width: 10px; height: 100%; }
+  .frame path, .divider path { fill: none; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+  .frame-first { stroke: g.$sketch-line; stroke-width: 2; }
+  .frame-second { stroke: g.$sketch-soft; stroke-width: 1; }
+  .drawn .frame, .drawn .divider { animation: frame-in 0.7s g.$ease 0.1s backwards; }
+
+  // ---- The thumb ----
+  .thumb { overflow: visible; }
 
   .stroke, .scribble, .hatch-line, .underline path {
     fill: none;
@@ -186,14 +208,14 @@
     stroke-linejoin: round;
   }
 
-  .stroke { stroke: g.$graphite; stroke-width: 1.6; }
+  .stroke { stroke: g.$sketch-line; stroke-width: 1.6; }
 
   // The outline redraws each time the page comes on screen. Only the animation carries a dash, so a browser
   // without dash support simply shows the finished drawing.
   .drawn .stroke-hand { animation: sketch-in $DRAW_MS g.$ease 0.35s backwards; }
   .drawn .stroke-cuff { animation: sketch-in-cuff 0.35s g.$ease 1.05s backwards; }
 
-  .hatch-line { stroke: g.$graphite-soft; stroke-width: 0.9; opacity: 0; }
+  .hatch-line { stroke: g.$sketch-soft; stroke-width: 0.9; opacity: 0; }
   .liked .hatch-line { opacity: 1; }
   @for $i from 0 through $HATCH_COUNT - 1 {
     .celebrating .hatch-#{$i} { animation: hatch-in 0.22s ease-out ($i * $HATCH_STAGGER_MS) backwards; }
@@ -209,13 +231,19 @@
   .liked .scribble { stroke-dashoffset: 0; opacity: 1; }
   .celebrating .scribble { animation: scribble-in 0.6s ease-out 0.3s backwards; }
 
+  // ---- The words, in the site's own type: a calm weight, the count and DOGS a little bolder ----
+  .words { font-family: g.$font; font-weight: 500; line-height: 1.2; letter-spacing: 0; }
+  .line { display: block; }
+
   .count {
     // One line tall and clipped, so the old total rolls up and out while the new one rolls in
     position: relative;
-    display: block;
-    height: 1.05em;
-    line-height: 1.05em;
+    display: inline-block;
+    height: 1.2em;
+    line-height: 1.2em;
     overflow: hidden;
+    font-weight: 800;
+    vertical-align: bottom;
     font-variant-numeric: tabular-nums;
     font-feature-settings: "tnum";
   }
@@ -223,13 +251,13 @@
   .count-current.rolling { animation: count-in 0.45s g.$ease both; }
   .count-previous { position: absolute; top: 0; left: 0; animation: count-out 0.35s g.$ease both; }
 
-  .dogs { position: relative; display: inline-block; }
+  .dogs { position: relative; display: inline-block; font-weight: 800; }
   .underline {
     position: absolute;
     left: -2%;
-    bottom: -0.3em;
+    bottom: -0.22em;
     width: 104%;
-    height: 0.45em;
+    height: 0.3em;
     overflow: visible;
 
     path { stroke: g.$like-mark; stroke-width: 2.4; stroke-dasharray: 1; stroke-dashoffset: 1; opacity: 0; vector-effect: non-scaling-stroke; }
@@ -237,9 +265,10 @@
   .liked .underline path { stroke-dashoffset: 0; opacity: 1; }
   .celebrating .underline path { animation: scribble-in 0.4s ease-out 0.7s backwards; }
 
-  .you-too { color: g.$like-mark; font-weight: 700; }
-  .celebrating .you-too { display: inline-block; animation: you-too-in 0.4s g.$ease 0.8s backwards; }
-
+  @keyframes frame-in {
+    from { opacity: 0; clip-path: inset(0 100% 0 0); }
+    to { opacity: 1; clip-path: inset(0 0 0 0); }
+  }
   @keyframes sketch-in {
     from { stroke-dasharray: 80; stroke-dashoffset: 80; }
     to { stroke-dasharray: 80; stroke-dashoffset: 0; }
@@ -256,27 +285,21 @@
     from { stroke-dashoffset: 1; opacity: 1; }
     to { stroke-dashoffset: 0; opacity: 1; }
   }
-  @keyframes wave {
+  @keyframes pencil-tap {
     0%, 100% { transform: rotate(0); }
-    25% { transform: rotate(-12deg); }
-    50% { transform: rotate(6deg); }
-    75% { transform: rotate(-4deg); }
+    30% { transform: rotate(-6deg); }
+    60% { transform: rotate(3deg); }
   }
-  @keyframes bubble-pop {
-    0%, 100% { transform: scale(1); }
-    40% { transform: scale(1.15); }
-  }
-  @keyframes you-too-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
   @keyframes count-in { from { opacity: 0; transform: translateY(100%); } to { opacity: 1; transform: translateY(0); } }
   @keyframes count-out { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-100%); } }
   @keyframes like-shake {
-    0%, 100% { transform: rotate(-1deg) translateX(0); }
-    25% { transform: rotate(-1deg) translateX(-5px); }
-    75% { transform: rotate(-1deg) translateX(5px); }
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .sketch, .bubble, .thumb, .stroke, .hatch-line, .scribble, .underline path, .count-current, .count-previous, .you-too {
+    .sketch, .frame, .divider, .thumb, .stroke, .hatch-line, .scribble, .underline path, .count-current, .count-previous {
       animation: none !important;
       transition: none !important;
     }
