@@ -7,11 +7,11 @@
     Music,
     ShoppingCart,
     Map,
+    Coffee,
     ChevronUp,
     ChevronDown,
   } from "lucide-svelte";
   import WeAreDogs from "./WeAreDogs.svelte";
-  import SiteChips from "./SiteChips.svelte";
   import {
     parsePath,
     panelToUrl,
@@ -26,6 +26,9 @@
   // Apps opened from links that carry data in the URL fragment (Air Train pairing,
   // DOGS INC save transfer): open them right away so a slow cold load can't drop the link.
   const FRAGMENT_LINK_APPS = ["dataflash", "dogsinc"];
+  // The fifth landing tile: supporting DOGS on Buy Me a Coffee (the other apps live in the toolbox and on page two)
+  const COFFEE_URL = "https://buymeacoffee.com/dogsdogsdogs";
+  const COFFEE_LABEL = "Subscribe to DOGS";
 
   // Active view state: 'stats' | 'toolbox' | 'music' | 'store' | 'map' | null
   let {
@@ -669,8 +672,20 @@
       >
         <Map size={28} />
       </button>
+
+      <!-- Buy Me a Coffee -->
+      <a
+        class="runic-btn border-neon-blue"
+        href={COFFEE_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        onclick={(e) => e.stopPropagation()}
+        title={COFFEE_LABEL}
+        aria-label={COFFEE_LABEL}
+      >
+        <Coffee size={28} />
+      </a>
     </div>
-    <SiteChips colored={weAreDogsColored} />
   {/if}
 </WeAreDogs>
 
@@ -815,6 +830,23 @@
     --shadow-color: rgba(0, 215, 95, 0.35);
   }
 
+  .hieroglyphic-nav.colored .runic-btn.border-neon-blue {
+    --border-color: rgba(0, 150, 255, 0.4);
+    --icon-color: #0096ff;
+    --shadow-color: rgba(0, 150, 255, 0.35);
+  }
+
+  /* The coffee tile is a link; it looks and moves exactly like the buttons beside it */
+  a.runic-btn {
+    box-sizing: border-box;
+    text-decoration: none;
+  }
+
+  .runic-btn:focus-visible {
+    outline: 2px solid var(--icon-color, #ffffff);
+    outline-offset: 3px;
+  }
+
   @media (max-width: 600px) {
     .hieroglyphic-nav {
       gap: 1rem;
@@ -866,6 +898,13 @@
     .runic-btn :global(svg) {
       width: 14px !important;
       height: 14px !important;
+    }
+  }
+
+  /* Five tiles on the narrowest phones: tighter gaps so the row stays inside the screen */
+  @media (max-width: 360px) and (orientation: portrait) {
+    .hieroglyphic-nav {
+      gap: 0.6rem;
     }
   }
 
