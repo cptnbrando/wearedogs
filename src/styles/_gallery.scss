@@ -19,10 +19,9 @@ $chip-bg: rgba(8, 9, 11, 0.78);               // "sample data" label and the pla
 $link-ink: #08090b;                           // Text on the solid "try the demo" button
 $link-bg: #f4f3ee;                            // The solid "try the demo" button
 
-// ---- Like (LikeButton.svelte) -------------------------------------------------------------------------
-$paper: #f4f1e8;                              // The sketchpad the thumb is drawn on
-$paper-grain: rgba(40, 42, 46, 0.05);         // Faint ruled lines on the paper
-$graphite: #2a2b2f;                           // Pencil strokes: thumb outline, count, scribbles
-$graphite-soft: rgba(42, 43, 47, 0.55);       // Hatching inside the thumb once liked
-$like-mark: #e8283a;                          // The red pencil circle drawn around a liked thumb
-$paper-shadow: rgba(0, 0, 0, 0.35);           // Lifts the paper off the dark page
+// ---- Like (LikeButton.svelte): a hollow pencil sketch of the MADE BY DOGS sticker, the thumb where the dog is -
+$sketch-line: #f4f3ee;                        // The box, the divider, the thumb outline and the words
+$sketch-soft: rgba(244, 243, 238, 0.5);       // The second, lighter pass of the pencil around the box; the hatching
+$sketch-hover: rgba(244, 243, 238, 0.06);     // A breath of fill under the pointer
+$like-mark: #ff3344;                          // The red pencil circle around a liked thumb and the line under DOGS
+$sticker-font: Impact, Haettenschweiler, "Arial Narrow Bold", "Roboto Condensed", sans-serif-condensed, "Arial Narrow", sans-serif; // The sticker's tall condensed capitals

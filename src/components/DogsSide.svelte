@@ -10,10 +10,15 @@
   import DogsLogo from "./DogsLogo.svelte";
   import FlipButton from "./FlipButton.svelte";
   import { audioCore } from "../lib/AudioCore.svelte.js";
+  import stickerUrl from "../assets/made-by-dogs-sticker.webp";
 
   const FLIP_LABEL = "see the apps";
   const ALSO = "also: a small team that builds apps. they're on the other side.";
   const LOADING = "Fetching the dogs...";
+  const STICKER_ALT = "Made by DOGS";
+  // The sticker's own pixel size (from logo.dogs.red), so its box is reserved before it loads
+  const STICKER_WIDTH = 720;
+  const STICKER_HEIGHT = 240;
 
   /** Flag-colors mode from the first page. */
   export let isFlagColors = false;
@@ -72,7 +77,17 @@
           <!-- <span class="also block mt-1 2xl:mt-3">{ALSO}</span> -->
         </p>
       </div>
-      <FlipButton label={FLIP_LABEL} {active} {onflip} />
+      <div class="actions flex flex-row sm:flex-row md:flex-row lg:flex-col xl:flex-col 2xl:flex-col max-lg:landscape:flex-col items-center lg:items-start xl:items-start 2xl:items-start max-lg:landscape:items-start gap-4 md:gap-6 lg:gap-6 xl:gap-8 2xl:gap-12 max-lg:landscape:gap-2">
+        <FlipButton label={FLIP_LABEL} {active} {onflip} />
+        <img
+          class="sticker h-10 w-auto sm:h-10 md:h-14 lg:h-auto lg:w-[220px] xl:w-[260px] 2xl:w-[440px] max-lg:landscape:h-9 max-lg:landscape:w-auto"
+          src={stickerUrl}
+          alt={STICKER_ALT}
+          width={STICKER_WIDTH}
+          height={STICKER_HEIGHT}
+          draggable="false"
+        />
+      </div>
     </header>
 
     <div class="stage relative min-h-0 min-w-0">
@@ -125,16 +140,15 @@
   .phonetic { color: g.$muted; }
   .part { color: g.$faint; }
   .dict-def { color: g.$ink; max-width: 34ch; transition: color 0.5s; }
-  .also { color: g.$muted; }
   .colored .dict-word, .colored .dict-def { color: g.$accent; }
   .loading { color: g.$faint; }
+  // Slapped on a little crooked, like a real sticker
+  .sticker { display: block; max-width: 100%; transform: rotate(-2deg); box-shadow: 0 6px 18px g.$chip-bg; }
 
-  // Short phones: the entry gives up its second line so the dogs keep the height
+  // Short phones: tighter padding so the dogs keep the height
   @media (orientation: portrait) and (max-height: 700px) {
     .side .shell { padding-top: 40px; padding-bottom: 20px; }
-    .also { display: none; }
   }
-  @media (orientation: landscape) and (max-height: 420px) { .also { display: none; } }
 
   // ---- Entrance: the entry slides in, the dogs walk on after it ---------------------------------------
   .entry, .stage {

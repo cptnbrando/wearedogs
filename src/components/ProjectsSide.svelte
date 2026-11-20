@@ -1,10 +1,12 @@
 <script>
   // Side one of the landing's two-sided card (DogsMain.svelte): the app gallery, the pencil-sketch like and a
-  // quiet way to join the yearly email. The dictionary entry and the dancing dogs are on the back.
+  // quiet way to join the yearly email. Opening the email puts its card in the like's place (same size, so
+  // nothing moves); closing it brings the like back. The dictionary entry and the dancing dogs are on the back.
   //   phones, portrait:   heading on top, gallery in the middle, like at the thumb's reach
   //   phones, landscape:  heading and like on the left, gallery on the right
   //   tablets, portrait:  same order as phones with room for every feature note
   //   desktop and TV:     heading and like in a left rail, gallery filling the rest
+  import { tick } from "svelte";
   import DogsLogo from "./DogsLogo.svelte";
   import AppGallery from "./AppGallery.svelte";
   import LikeButton from "./LikeButton.svelte";
@@ -30,7 +32,17 @@
   export let onflip = () => {};
 
   let joining = false;
+  /** @type {HTMLDivElement} */
+  let slotEl;
   $: if (!active) joining = false;
+
+  /** Swaps the like for the email card and back; the email field takes the focus when it opens. */
+  async function toggleJoin() {
+    joining = !joining;
+    if (!joining) return;
+    await tick();
+    slotEl?.querySelector("input")?.focus();
+  }
 </script>
 
 <div class="side w-full h-full" class:shown class:colored={isFlagColors}>
@@ -58,16 +70,14 @@
     </div>
 
     <footer class="community flex flex-col sm:flex-col md:flex-row lg:flex-col xl:flex-col 2xl:flex-col max-lg:landscape:flex-col items-start gap-3 md:gap-6 lg:gap-4 xl:gap-5 2xl:gap-8 max-lg:landscape:gap-2">
-      <div class="like-row relative flex flex-wrap items-center gap-x-5 gap-y-1 md:gap-x-6 2xl:gap-x-10 w-full md:w-auto lg:w-full">
-        <LikeButton {active} />
-        <div class="join-wrap whitespace-nowrap">
-          <button type="button" class="join text-xs sm:text-xs md:text-sm lg:text-sm xl:text-base 2xl:text-2xl max-lg:landscape:text-[11px]" aria-expanded={joining} tabindex={active ? 0 : -1} on:click={() => { joining = !joining; }}>
-            {joining ? CLOSE_LABEL : JOIN_LABEL}
-          </button>
-          {#if joining}
-            <div class="signup w-[280px] md:w-[320px] 2xl:w-[520px]"><MailingList {active} /></div>
-          {/if}
+      <div class="like-row flex flex-col items-start gap-1 md:gap-1.5 2xl:gap-3 w-full md:w-[320px] md:shrink-0 lg:w-full max-lg:landscape:gap-0.5">
+        <div bind:this={slotEl} class="like-slot relative w-full max-w-[300px] sm:max-w-[300px] md:max-w-[320px] lg:max-w-[320px] xl:max-w-[340px] 2xl:max-w-[520px] max-lg:landscape:max-w-[280px]">
+          <div class="like-face" class:away={joining} inert={joining}><LikeButton active={active && !joining} /></div>
+          {#if joining}<MailingList {active} />{/if}
         </div>
+        <button type="button" class="join text-xs sm:text-xs md:text-sm lg:text-sm xl:text-base 2xl:text-2xl max-lg:landscape:text-[11px]" aria-expanded={joining} tabindex={active ? 0 : -1} on:click={toggleJoin}>
+          {joining ? CLOSE_LABEL : JOIN_LABEL}
+        </button>
       </div>
       <InfoBanner {active} />
     </footer>
@@ -132,8 +142,8 @@
     background: none; border: 0; padding: 0; min-height: 40px; cursor: pointer;
     color: g.$ink; text-align: left; text-decoration: underline; text-underline-offset: 4px;
   }
-  // Opens above the like row, from its left edge, so it never leaves the screen
-  .signup { position: absolute; left: 0; bottom: calc(100% + 10px); z-index: 20; max-width: calc(100vw - 40px); box-shadow: 0 14px 40px g.$paper-shadow; }
+  // The email card takes the like's place; the like stays mounted (no second count request) but out of sight
+  .like-face.away { display: none; }
 
   // ---- Entrance: the heading slides in, the gallery develops, the like settles last -------------------
   .entry, .showcase, .community {

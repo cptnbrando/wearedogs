@@ -10,7 +10,9 @@
   import { attachCardFlip, readSide, saveSide, SIDE_APPS, SIDE_DOGS } from "./cardFlip.js";
 
   const FLIP_MS = 850;            // One turn of the card; keep in step with --flip-ms below
-  const ARRIVE_MS = 550;          // The page's own scroll-snap settling before a gesture can turn the card
+  const ARRIVE_MS = 250;          // A beat after the page has snapped into place before a gesture can turn the card
+  const REPEAT_MS = 600;          // Shortest time between two turns; a turn asked for sooner waits, it isn't lost
+  const SETTLED_PX = 2;           // The page counts as arrived once its top is this close to the screen's top
   const LANDING_ID = "landing-page";
   const SIDE_NAMES = ["the DOGS apps", "the DOGS dictionary entry and dancing dogs"];
 
@@ -40,10 +42,10 @@
   }
 
   onMount(() => attachCardFlip(pageEl, {
-    isEnabled: () => ready && Date.now() - arrivedAt > ARRIVE_MS,
+    isEnabled: () => ready && Date.now() - arrivedAt > ARRIVE_MS && Math.abs(pageEl.getBoundingClientRect().top) < SETTLED_PX,
     onFlip: flip,
     onUp: () => document.getElementById(LANDING_ID)?.scrollIntoView({ behavior: "smooth" }),
-    lockMs: FLIP_MS,
+    lockMs: REPEAT_MS,
   }));
 </script>
 
