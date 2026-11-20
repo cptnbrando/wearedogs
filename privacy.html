@@ -131,16 +131,28 @@
       <p>The banner under the like button describes this before you click. When you press it, your browser:</p>
       <ol>
         <li>
-          Your browser saves two small items in its own storage (localStorage, not cookies): a random ID for this
+          Your browser saves two small items in its own storage (localStorage, not cookies. The difference being that all cookies are public to any website on the internet.): a random ID for this
           browser (<code>wad-device</code>), and the fact that you liked plus the like count (<code>wad-likes</code>).
         </li>
         <li>
-          Your browser reads a few traits of your device to build a <strong>device fingerprint</strong>: browser name
+          A famous study on data privacy and re-identification (published in Nature Communications by Luc Rocher, Julien M. Hendrickx, and Yves-Alexandre de Montjoye) found that it only takes 15 demographic traits to uniquely identify 99.98% of Americans—effectively pinpointing a single individual in a crowd of 330 million people (the entire U.S. population).
+
+          Depending on the context, two other well-known privacy benchmarks use similar phrasing:
+
+          The "3 Traits" Rule (ZIP, Gender, Birthdate): Research by Latanya Sweeney famously demonstrated that just 3 traits (5-digit ZIP code, gender, and date of birth) uniquely identify 87% of the U.S. population—roughly 1 person in a crowd of hundreds of millions.
+
+          The "4 Points" Rule (Location Data): Research by Yves-Alexandre de Montjoye found that just 4 spatio-temporal points (approximate places and times) are enough to uniquely identify 95% of individuals in a mobile dataset of 1.5 million people.
+        </li>
+        <li>
+          Uniquely identifying a browser across the internet works the same way. Your browser reads a few traits of your device to build a <strong>device fingerprint</strong>: browser name
           (without version numbers), operating system platform, languages, time zone, screen size and colour depth,
           CPU core count, memory and touch support, how your graphics hardware describes itself, and how your device
           draws a small test image and renders a short silent test sound. Each trait is reduced to a short hash
           <em>on your device</em>; the raw values never leave it. These client-side hashes are not cryptographic and
           some low-variation traits may be guessable, so treat them as pseudonymous data.
+        </li>
+        <li>
+          These client side tracking based hashes are generated in milliseconds. The traits are inherent to the machine.
         </li>
         <li>
           <a href="https://www.cloudflare.com/products/turnstile/" rel="noopener">Cloudflare Turnstile</a>, an
@@ -167,13 +179,13 @@
       </ul>
       <p>
         We never store your raw IP address or raw device information, and without our secret key the stored hashes
-        cannot be turned back into them. Your like itself is just +1 on the count, a number with nothing attached to
+        cannot be turned back into them. Your like itself is just +1 on the count, anonymous, a number with nothing attached to
         it.
       </p>
 
       <h2>Why</h2>
       <p>
-        To discourage repeat likes without making anyone sign up, and to limit bots inflating the count. A repeated
+        To discourage repeat likes without making anyone sign up, anonymously battle testing components of our larger identity verification service DOGS ID, and to limit bots inflating the count. A repeated
         random browser ID is blocked; otherwise a like may be treated as a repeat when it comes from the same network
         as a recent like and enough device signals match. This is an abuse deterrent, not a guarantee that one person
         can only like once. We do not use these signals to follow you across other sites, build a profile, show ads,
