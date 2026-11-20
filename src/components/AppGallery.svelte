@@ -5,10 +5,13 @@
   // next app. Data and media paths live in src/data/appGallery.js.
   import { ArrowUpRight, ChevronLeft, ChevronRight, Play, X } from "lucide-svelte";
   import { APP_GALLERY } from "../data/appGallery.js";
+  import { openDogsPage } from "../lib/openDogsPage.js";
 
   const SWIPE_PX = 40;
   const ICON_STROKE = 2;
   const SAMPLE_LABEL = "demo capture · sample data";
+  const TOOLBOX = { panel: "toolbox" };
+  const OPEN_PREFIX = "Open ";
 
   /** True while the second page is on screen with no panel over it. */
   export let active = false;
@@ -23,6 +26,22 @@
   $: app = APP_GALLERY[appIndex];
   $: slide = app.slides[slideIndex];
   $: if (!active) playing = false;
+  // DOGS HOME lives on this site: its main button opens the tool on show, in place
+  $: target = app.inPlace ? slide.open || TOOLBOX : null;
+  $: tryHref = !target ? app.demo : target.app ? `/apps/${target.app}` : target.panel === TOOLBOX.panel ? app.demo : `/${target.panel}`;
+  $: tryLabel = target && slide.open ? OPEN_PREFIX + slide.title : app.demoLabel;
+
+  /**
+   * Opens a DOGS HOME link over the page instead of following it; other apps' links leave as usual,
+   * and a modified click (new tab) is left to the browser.
+   * @param {MouseEvent} event
+   * @param {{ panel?: string, app?: string } | null} where
+   */
+  function openInPlace(event, where) {
+    if (!where || event.metaKey || event.ctrlKey || event.shiftKey) return;
+    event.preventDefault();
+    openDogsPage(where);
+  }
 
   /** Opens an app at its first feature. */
   function pickApp(index) {
@@ -61,10 +80,10 @@
 </script>
 
 <section class="gallery flex flex-col sm:flex-col md:flex-col lg:flex-col xl:flex-col 2xl:flex-col" aria-label="Apps made by DOGS">
-  <div class="apps flex flex-row sm:flex-row md:flex-row lg:flex-row xl:flex-row 2xl:flex-row" role="group" aria-label="Choose an app">
+  <div class="apps flex flex-row sm:flex-row md:flex-row lg:flex-row xl:flex-row 2xl:flex-row" role="group" aria-label="Choose an app" style={`--app-count: ${APP_GALLERY.length}`}>
     {#each APP_GALLERY as item, index}
       <button type="button" class="app-pick" class:chosen={appIndex === index} aria-pressed={appIndex === index} tabindex={active ? 0 : -1} on:click={() => pickApp(index)}>
-        <span class="app-number" aria-hidden="true">0{index + 1}</span>{item.name}
+        <span class="app-number" aria-hidden="true">0{index + 1}</span><span class="app-name">{item.name}</span>
       </button>
     {/each}
   </div>
@@ -82,7 +101,7 @@
         {/if}
       {/key}
       <span class="corner corner-tl" aria-hidden="true"></span><span class="corner corner-br" aria-hidden="true"></span>
-      <span class="sample">{SAMPLE_LABEL}</span>
+      <span class="sample">{app.captureLabel || SAMPLE_LABEL}</span>
       {#if app.video && !playing}
         <button type="button" class="play" tabindex={active ? 0 : -1} on:click={() => { failed = false; playing = true; }}>
           <Play size={14} strokeWidth={ICON_STROKE} aria-hidden="true" />watch the demo
@@ -116,8 +135,8 @@
       </ol>
       <p class="current-text" aria-hidden="true">{slide.text}</p>
       <div class="links">
-        <a class="try" href={app.demo} target="_blank" rel="noopener" tabindex={active ? 0 : -1}>{app.demoLabel}<ArrowUpRight size={15} strokeWidth={ICON_STROKE} aria-hidden="true" /></a>
-        <a class="visit" href={app.url} target="_blank" rel="noopener" tabindex={active ? 0 : -1}>{app.url.replace("https://", "").replace(/\/$/, "")}</a>
+        <a class="try" href={tryHref} target={app.inPlace ? null : "_blank"} rel="noopener" tabindex={active ? 0 : -1} on:click={(event) => openInPlace(event, target)}>{tryLabel}<ArrowUpRight size={15} strokeWidth={ICON_STROKE} aria-hidden="true" /></a>
+        <a class="visit" href={app.url} target={app.inPlace ? null : "_blank"} rel="noopener" tabindex={active ? 0 : -1} on:click={(event) => openInPlace(event, app.inPlace ? TOOLBOX : null)}>{app.urlLabel || app.url.replace("https://", "").replace(/\/$/, "")}</a>
         <span class="status">{app.status}</span>
       </div>
     </div>
@@ -222,10 +241,46 @@
     .try { min-height: 36px; }
   }
 
+  // ---- Phones: the apps as equal segments, each name centred under its number, a hairline between ------
+  // A long name (DOGS HOME) breaks onto a second line inside its own segment instead of crowding the next one.
+  @media (orientation: portrait) and (max-width: 767px), (orientation: landscape) and (max-height: 599px) {
+    .apps { display: grid; grid-template-columns: repeat(var(--app-count), minmax(0, 1fr)); }
+    .app-pick {
+      display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 3px;
+      min-height: 46px; padding: 2px 3px 9px; font-size: 11px; line-height: 1.15; text-align: center; white-space: normal;
+    }
+    .app-pick + .app-pick { box-shadow: inset 1px 0 0 g.$line; }
+    .app-number { display: block; margin: 0; font-size: 9px; letter-spacing: 0.06em; }
+    .app-name { text-wrap: balance; }
+  }
+  @media (orientation: portrait) and (max-width: 374px) { .app-pick { font-size: 10px; } }
+
+  // Short phones in portrait: one-line tabs, the features in one swipeable row (the arrows on the picture
+  // page through them too) and a shorter picture, so the gallery never runs into the like below it
+  @media (orientation: portrait) and (max-height: 700px) {
+    .app-number { display: none; }
+    .app-pick { min-height: 36px; padding-top: 6px; }
+    .stage { min-height: 96px; }
+    .features { flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; -ms-overflow-style: none; }
+    .features::-webkit-scrollbar { display: none; }
+    .features li { flex: 0 0 auto; }
+    .feature-title { white-space: nowrap; }
+  }
+  // The smallest phones (iPhone SE 1st gen): a shorter picture still, and the note held to three lines
+  @media (orientation: portrait) and (max-height: 600px) {
+    .gallery, .exhibit { gap: 6px; }
+    .stage { min-height: 72px; }
+    .app-pick { min-height: 32px; padding-bottom: 6px; }
+    .try { min-height: 32px; }
+    .feature { min-height: 28px; }
+    .current-text { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
+  }
+
   // ---- Mobile landscape: picture left, words right ----------------------------------------------------
   @media (orientation: landscape) and (max-height: 599px) {
     .gallery { gap: 6px; }
-    .app-pick { min-height: 30px; font-size: 12px; }
+    .app-pick { min-height: 30px; padding-top: 4px; padding-bottom: 6px; font-size: 12px; }
+    .app-number { display: none; }
     .exhibit { flex-direction: row; gap: 12px; }
     .stage { flex: 1.25 1 0; min-height: 0; }
     .details { flex: 1 1 0; gap: 4px; min-height: 0; overflow: hidden; }
@@ -242,21 +297,20 @@
     .arrows button { width: 32px; height: 28px; }
   }
 
-  // ---- Tablet portrait: tall picture, features listed with their notes --------------------------------
+  // ---- Tablet portrait: tall picture, the features as tabs with the picked one's note under them --------
   @media (min-width: 768px) and (orientation: portrait) {
     .gallery { gap: 16px; }
     .app-pick { min-height: 48px; font-size: 16px; }
     .app-number { display: inline; }
     .exhibit { gap: 18px; }
-    .stage { min-height: 260px; }
+    .stage { min-height: 200px; }
     .details { gap: 10px; }
     h3 { font-size: 40px; }
     .tagline { font-size: 16px; }
     .summary { display: block; font-size: 15px; }
-    .features { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 24px; }
+    .features { gap: 6px 26px; }
     .feature-title { font-size: 15px; }
-    .feature-text { display: block; margin-top: 6px; font-size: 13px; line-height: 1.45; color: g.$muted; }
-    .current-text { display: none; }
+    .current-text { font-size: 15px; line-height: 1.5; max-width: 60ch; }
     .try { min-height: 46px; font-size: 15px; padding: 0 18px; }
     .visit { font-size: 13px; }
     .status { display: inline; font-size: 11px; }

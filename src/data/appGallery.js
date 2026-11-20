@@ -7,17 +7,24 @@
  *
  * Each app's slides are its features: the slide picker doubles as the feature list, so a phone shows one
  * feature at a time and a desktop shows them all beside the picture.
+ *
+ * DOGS HOME is this website. Its slides are tools built into it, so they open in place over the page
+ * (lib/openDogsPage.js) instead of in a new tab; each slide says which panel or toolbox app it opens.
  */
 
 const MEDIA_BASE = "/media/apps/";
 
 /**
- * @typedef {{ title: string, text: string, image: string }} GallerySlide
+ * @typedef {{ panel?: string, app?: string }} GalleryTarget A panel ("map", "toolbox") or a toolbox app id
+ * @typedef {{ title: string, text: string, image: string, open?: GalleryTarget }} GallerySlide
  * @typedef {{
  *   id: string, name: string, tagline: string, summary: string, status: string,
  *   url: string, demo: string, demoLabel: string, video: string, poster: string,
- *   slides: GallerySlide[]
+ *   slides: GallerySlide[],
+ *   inPlace?: boolean, urlLabel?: string, captureLabel?: string
  * }} GalleryApp
+ *   inPlace: part of this site; its links open in place, and the main button opens the slide on show.
+ *   urlLabel: what the address link reads when it isn't the url itself. captureLabel: replaces "sample data".
  */
 
 /** @type {GalleryApp[]} */
@@ -26,7 +33,7 @@ export const APP_GALLERY = [
     id: "castle",
     name: "Castle",
     tagline: "Your cloud, in your house.",
-    summary: "One box at home for the whole family's files, devices and backups. No landlord in the cloud.",
+    summary: "One expandable, modular box for the whole family's files. Your network, your rules.",
     status: "Interactive demo · in development",
     url: "https://castle.dogs.red/",
     demo: "https://castle.dogs.red/demo/",
@@ -34,21 +41,21 @@ export const APP_GALLERY = [
     video: `${MEDIA_BASE}castle.mp4`,
     poster: `${MEDIA_BASE}castle-home.webp`,
     slides: [
-      { title: "Storage", text: "A drive like the big clouds, on your own disks. Each person in the house gets their own space.", image: `${MEDIA_BASE}castle-storage.webp` },
-      { title: "Security", text: "Checks you can read: who can reach the box, disk encryption, and a tamper-evident activity record.", image: `${MEDIA_BASE}castle-security.webp` },
-      { title: "Devices", text: "Household profiles with PINs, plus live traffic for the machine Castle runs on.", image: `${MEDIA_BASE}castle-network.webp` },
-      { title: "Automation", text: "Clones run virtual machines, containers and an Android emulator, with the automations that drive them.", image: `${MEDIA_BASE}castle-home.webp` },
+      { title: "Storage", text: "A drive like the big clouds, on your own disks. Each person in the house gets their own private space. Encrypted and locked, or shareable. Searchable with AI.", image: `${MEDIA_BASE}castle-storage.webp` },
+      { title: "Security", text: "Monitor security cam / dashcam footage, standardize firewall deployments, scan for vulnerabilities with AI.", image: `${MEDIA_BASE}castle-security.webp` },
+      { title: "Devices", text: "Automated backups of Windows, iOS, or Android devices, including phone calls, texts, emails, pictures, videos, and more.", image: `${MEDIA_BASE}castle-network.webp` },
+      { title: "Automation", text: "Run VMs, containers, and emulators, with automations that drive them. Automate data entry work, or spin up secure, ethereal boxes for dev instantly.", image: `${MEDIA_BASE}castle-home.webp` },
     ],
   },
   {
     id: "wordsmith",
     name: "Wordsmith",
-    tagline: "Speak your truth.",
-    summary: "Notes become tickets, AI agents pick them up, and you review what ships. One shared space for the whole idea.",
-    status: "Public demo · sample projects",
+    tagline: "Make it happen.",
+    summary: "Project management for the agentic AI world. SCRUM with an MCP server.",
+    status: "Available today",
     url: "https://wordsmith.dogs.red/",
     demo: "https://wordsmith.dogs.red/",
-    demoLabel: "Launch the demo",
+    demoLabel: "Free to start",
     video: `${MEDIA_BASE}wordsmith.mp4`,
     poster: `${MEDIA_BASE}wordsmith.webp`,
     slides: [
@@ -60,9 +67,9 @@ export const APP_GALLERY = [
   {
     id: "money24",
     name: "Money 24",
-    tagline: "Watch. Plan. Paper trade.",
-    summary: "A research desk for markets, news and trade plans, tested with paper money before real money ever moves.",
-    status: "Paper-trading demo · not financial advice",
+    tagline: "Make your money make money.",
+    summary: "Hands off algorithmic quant trading across 6 markets, driven by AI.",
+    status: "Interactive demo · in development",
     url: "https://money24.dogs.red/",
     demo: "https://money24.dogs.red/home.html",
     demoLabel: "Open the demo",
@@ -76,9 +83,9 @@ export const APP_GALLERY = [
   {
     id: "forty",
     name: "40",
-    tagline: "Track any habit.",
-    summary: "Your records stay private by default. Anything you share in public is wiped every 40 days.",
-    status: "Live · free account",
+    tagline: "Live forever, speak today.",
+    summary: "A social media that deletes itself every forty days.",
+    status: "Closed Beta · free account",
     url: "https://40.dogs.red/",
     demo: "https://40.dogs.red/",
     demoLabel: "Start tracking",
@@ -86,6 +93,27 @@ export const APP_GALLERY = [
     poster: `${MEDIA_BASE}forty.webp`,
     slides: [
       { title: "Private first", text: "No real name needed. What you track is yours unless you choose to share it.", image: `${MEDIA_BASE}forty.webp` },
+    ],
+  },
+  {
+    id: "home",
+    name: "DOGS HOME",
+    tagline: "This website. /util",
+    summary: "The toolbox built into wearedogs.net: everyday tools for files, links and places, free and one tap away.",
+    status: "Free · built into this site",
+    url: "/apps",
+    urlLabel: "/util",
+    demo: "/apps",
+    demoLabel: "Open the toolbox",
+    video: "",
+    poster: `${MEDIA_BASE}home-datatrain.webp`,
+    inPlace: true,
+    captureLabel: "live capture · this site",
+    slides: [
+      { title: "Data Train", text: "Send files and text between your devices: pair with a QR code, or use AirDrop and Quick Share.", image: `${MEDIA_BASE}home-datatrain.webp`, open: { app: "dataflash" } },
+      { title: "Catalytic Converter", text: "Turn images, audio, video, documents and data files into the format you need.", image: `${MEDIA_BASE}home-converter.webp`, open: { app: "converter" } },
+      { title: "Maps", text: "Where to go, and where not to go: the spots the dogs rate around the world.", image: `${MEDIA_BASE}home-map.webp`, open: { panel: "map" } },
+      { title: "QR Generator", text: "Resizable QR codes with an optional logo in the middle, ready to copy or download.", image: `${MEDIA_BASE}home-qr.webp`, open: { app: "qrgenerator" } },
     ],
   },
 ];
