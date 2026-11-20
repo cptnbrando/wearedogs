@@ -4,7 +4,7 @@
   /** True while the second page is on screen; its links leave the tab order otherwise. */
   export let active = false;
 
-  const NOTICE = "A like sends hashed device signals and a Cloudflare check to keep it to one like per device. Joining saves only your email.";
+  const NOTICE = "By interacting with this website, you agree to our Privacy Policy.";
   const PRIVACY_LABEL = "privacy";
   const PRIVACY_URL = "/privacy.html";
   const EMAIL_LABEL = "email us";

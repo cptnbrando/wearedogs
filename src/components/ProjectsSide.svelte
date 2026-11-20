@@ -15,8 +15,8 @@
 
   const TITLE = "apps";
   const BYLINE = "by DOGS";
-  const LEDE = "what a small team of dogs has been building.";
-  const FLIP_LABEL = "meet the dogs";
+  const LEDE = "what we've been building.";
+  const FLIP_LABEL = "BARKBARKBARK";
   const JOIN_LABEL = "join the yearly email";
   const CLOSE_LABEL = "close";
 

@@ -69,7 +69,7 @@
         </div>
         <p class="dict-def font-light tracking-wide leading-relaxed mt-2 mb-0 2xl:mt-5 text-sm sm:text-sm md:text-lg lg:text-lg xl:text-xl 2xl:text-3xl max-lg:landscape:text-xs max-lg:landscape:mt-1">
           a carnivorous mammal (<span class="italic">Canis Familiaris</span>) that has long been domesticated as a pet.
-          <span class="also block mt-1 2xl:mt-3">{ALSO}</span>
+          <!-- <span class="also block mt-1 2xl:mt-3">{ALSO}</span> -->
         </p>
       </div>
       <FlipButton label={FLIP_LABEL} {active} {onflip} />

@@ -21,9 +21,9 @@
   <button type="button" class="flip text-xs sm:text-xs md:text-sm lg:text-sm xl:text-base 2xl:text-2xl max-lg:landscape:text-[11px]" tabindex={active ? 0 : -1} on:click={onflip}>
     <span class="icon" aria-hidden="true"><RefreshCw size="1.15em" strokeWidth={ICON_STROKE} /></span>{label}
   </button>
-  <span class="hint text-[10px] sm:text-[10px] md:text-xs lg:text-xs xl:text-sm 2xl:text-lg max-lg:landscape:text-[9px]" aria-hidden="true">
+  <!-- <span class="hint text-[10px] sm:text-[10px] md:text-xs lg:text-xs xl:text-sm 2xl:text-lg max-lg:landscape:text-[9px]" aria-hidden="true">
     <span class="pointer">{HINT_POINTER}</span><span class="touch">{HINT_TOUCH}</span>
-  </span>
+  </span> -->
 </div>
 
 <style lang="scss">
