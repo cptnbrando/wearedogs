@@ -62,6 +62,7 @@ export const APP_GALLERY = [
     name: "Money 24",
     tagline: "Make your money make money.",
     summary: "Hands off algorithmic quant trading across 6 markets, driven by AI.",
+    status: "Interactive demo · in development",
     url: "https://money24.dogs.red/",
     demo: "https://money24.dogs.red/home.html",
     demoLabel: "Open the demo",
