@@ -7,6 +7,7 @@
    * pasted: they go along as hints, and they are kept exactly as written, with
    * only the times taken from what the model heard (captionsAlign.js).
    */
+  import { untrack } from "svelte";
   import { CloudUpload, Square } from "lucide-svelte";
   import { linesFromWords } from "../../../lib/lyricsFormat.js";
   import { admin } from "../../../lib/admin.svelte.js";
@@ -37,9 +38,10 @@
 
   const online = new OnlineTranscriber();
 
-  let agreed = $state(readAgreed());
-  // The words already here (pasted for tap along, say) are the words to keep
-  let known = $state(project.lines.map((line) => line.words.map((word) => word.x).join(" ")).join("\n"));
+  const agreedBefore = readAgreed();
+  let agreed = $state(agreedBefore);
+  // The words already here when the panel opens (pasted for tap along, say) are the words to keep
+  let known = $state(untrack(() => project.lines.map((line) => line.words.map((word) => word.x).join(" ")).join("\n")));
   let language = $state("");
   let note = $state("");
 
@@ -64,7 +66,7 @@
   }
 
   // Asking what is left today sends nothing about the file; it waits for the warning to be accepted
-  if (agreed) online.refreshAllowance(admin.token);
+  if (agreedBefore) online.refreshAllowance(admin.token);
 
   /** Puts heard words into the editor: as the pasted words with heard times, or as heard. */
   function useWords(words) {
