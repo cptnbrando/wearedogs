@@ -41,7 +41,8 @@
   let selectedAudioDevice = $state("");
   let selectedVideoDevice = $state("");
   let isPermissionsGranted = $state(false);
-  let isCheckingPermissions = $state(true);
+  // False until the visitor presses Grant access (or had already allowed both)
+  let isCheckingPermissions = $state(false);
 
   // Settings collapse state
   let isInputsCollapsed = $state(true);
@@ -359,6 +360,8 @@
   }
 
   // Enumerate hardware devices
+  const PERMISSIONS_NEEDED = ["camera", "microphone"];
+
   async function initDevices() {
     try {
       isCheckingPermissions = true;
@@ -1031,8 +1034,25 @@
     }
   });
 
+  /**
+   * Opening Wiretap never asks for the camera or microphone: the Grant access
+   * button does. When both were already allowed, the devices load straight
+   * away, since nothing is asked then.
+   */
+  async function initIfAlreadyAllowed() {
+    if (!navigator.permissions || !navigator.permissions.query) return;
+    try {
+      const answers = await Promise.all(
+        PERMISSIONS_NEEDED.map((name) => navigator.permissions.query({ name })),
+      );
+      if (answers.every((answer) => answer.state === "granted")) initDevices();
+    } catch (e) {
+      // This browser cannot say (Firefox, older Safari): wait for the button
+    }
+  }
+
   onMount(() => {
-    initDevices();
+    initIfAlreadyAllowed();
     isInputsCollapsed = window.innerWidth < 768 || window.innerHeight < 500;
     isPrickSettingsCollapsed =
       window.innerWidth < 768 || window.innerHeight < 500;
@@ -1093,8 +1113,9 @@
             ACCESS REQUIRED
           </h3>
           <p class="text-xs text-white/60 mb-6 leading-relaxed">
-            Wiretap requires camera and microphone permissions to capture
-            surveillance streams and generate transcriptions.
+            Wiretap needs your camera and microphone to capture streams and
+            write transcriptions. Press the button and your browser will ask
+            you to allow them. Nothing is asked before that.
           </p>
         </div>
         <button
