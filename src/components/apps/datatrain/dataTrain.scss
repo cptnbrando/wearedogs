@@ -84,9 +84,15 @@
 .dt-held-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
 // Previous rides (rides.js): quick reconnect on the pairing screen
 .dt-rides { width: 100%; display: flex; flex-direction: column; gap: 8px; padding-top: 4px; }
+.dt-rides-head { display: flex; align-items: center; justify-content: center; gap: 4px 12px; flex-wrap: wrap; }
 .dt-rides-title { color: t.$muted; font-size: t.$small; text-align: center; }
+.dt-rides-lock { display: inline-flex; align-items: center; gap: 5px; padding: 4px 6px; }
+// The PIN box takes a ride's place in the list, so asking for it adds no height
+.dt-pin { display: flex; align-items: center; gap: 8px; min-height: 42px; label { flex: 1; min-width: 0; color: t.$muted; font-size: t.$small; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } input { width: 6.5em; flex-shrink: 0; background: t.$surface; color: t.$ink; border: 1px solid t.$accent; border-radius: t.$radius; padding: 8px 10px; font-size: 18px; letter-spacing: .35em; text-align: center; &::placeholder { color: t.$muted; opacity: 1; } } }
 .dt-ride { display: flex; align-items: center; gap: 6px; .dt-secondary { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } }
 .dt-rides-help { color: t.$muted; font-size: 11px; line-height: 1.5; text-align: center; }
+// Phones held upright have the least room on the pairing screen: only the PIN's own words stay
+@media (max-width: 767px) and (orientation: portrait) { .dt-rides-help:not(.dt-pin-help) { display: none; } .dt-rides { gap: 6px; } }
 .dt-send-dock { flex-shrink: 0; display: flex; flex-direction: column; gap: 12px; padding: 14px 0; }
 .dt-file-action { display: flex; align-items: center; gap: 12px; span { color: t.$muted; font-size: 11px; line-height: 1.5; } }
 .dt-file-input { display: none; }
@@ -105,7 +111,8 @@
   .dt-qr-caption { display: none; }
   // Short screens: the reconnect buttons alone, and the big-video strip kept low
   .dt-rides { gap: 4px; padding-top: 0; }
-  .dt-rides-title, .dt-rides-help { display: none; }
+  .dt-rides-head, .dt-rides-help:not(.dt-pin-help) { display: none; }
+  .dt-pin { min-height: 34px; input { padding: 4px 8px; font-size: 16px; } }
   .dt-ride .dt-secondary { min-height: 34px; padding: 5px 10px; }
   .dt-held { max-height: 30%; }
   .dt-pair-help { font-size: 11px; margin-top: 12px; }

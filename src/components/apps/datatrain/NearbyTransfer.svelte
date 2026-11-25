@@ -5,7 +5,8 @@
   import { tether } from '../../../lib/tether.svelte.js';
   import { MAX_FILE_BYTES } from './transferSession.js';
   import { isBigVideo, videoToMp3 } from './shrinkVideo.js';
-  import { listRides, saveRide, forgetRide } from './rides.js';
+  import { listRides, saveRide, forgetRide, openRide, lockRides, unlockRides, resetLockedRides, ridesLocked, canLockRides } from './rides.js';
+  import PreviousRides from './PreviousRides.svelte';
   import { formatBytes } from './nearbyShare.js';
   import { createPairingLink, parsePairingLink, takePairingLink } from './pairingLink.js';
   import { copyText } from '../../../lib/clipboard.js';
@@ -68,6 +69,9 @@
   // Devices paired with lately (rides.js), offered on the pairing screen
   let rides = [];
   let savedRideCode = '';
+  // An optional four-digit PIN seals the saved rides (lib/pinVault.js)
+  let ridesHavePin = false;
+  let pinPossible = false;
   // Received text-file Blob -> its text when short enough to copy (or null). Reassigned once a file is read so the list redraws.
   let shortTexts = new WeakMap();
   $: connected = state.status === 'connected';
@@ -82,7 +86,8 @@
     canPaste = !!(navigator.clipboard && navigator.clipboard.readText);
     canShareFiles = supportsFileShare();
     canCopyImages = supportsImageCopy();
-    rides = listRides();
+    refreshRides();
+    pinPossible = canLockRides();
     // The session lives in the tether, so leaving Air Train does not hang up
     const held = tether.open(next => { if (!disposed) state = next; });
     session = held.session;
@@ -179,10 +184,19 @@
     dropHeld(held.id);
   }
 
-  function rememberRide(current) {
-    savedRideCode = current.code;
-    saveRide({ code: current.code, secret: current.secret, role: session.role, peerName: current.peerName });
+  function refreshRides() {
     rides = listRides();
+    ridesHavePin = ridesLocked();
+  }
+
+  async function rememberRide(current) {
+    savedRideCode = current.code;
+    try {
+      await saveRide({ code: current.code, secret: current.secret, role: session.role, peerName: current.peerName });
+    } catch (error) {
+      // The ride could not be sealed or stored: this pairing still works, it is just not remembered
+    }
+    if (!disposed) refreshRides();
   }
 
   /**
@@ -190,25 +204,43 @@
    * code waits on the old code and the other side dials it; the waiting side
    * is still asked to allow the connection.
    */
-  function reconnect(ride) {
+  async function reconnect(ride, pin) {
+    // A sealed ride opens with the PIN; a wrong one is said in the list, and nothing connects
+    const opened = await openRide(ride.id, pin);
+    actionError = '';
     qrImage = '';
     currentQrLink = '';
-    if (ride.role === 'host') {
-      run(async () => {
-        await session.host(ride.code, ride.secret);
-        notice = RECONNECT_WAITING;
-      });
+    // This pairing is already a ride: connecting must not save it a second time
+    savedRideCode = opened.code;
+    if (opened.role === 'host') {
+      await session.host(opened.code, opened.secret);
+      notice = RECONNECT_WAITING;
       return;
     }
-    run(async () => {
-      await session.join(ride.code, ride.secret);
-      notice = RECONNECT_DIALLING;
-    });
+    await session.join(opened.code, opened.secret);
+    notice = RECONNECT_DIALLING;
   }
 
   function forget(ride) {
-    forgetRide(ride.code);
-    rides = listRides();
+    forgetRide(ride.id);
+    refreshRides();
+  }
+
+  async function setRidesPin(pin) {
+    await lockRides(pin);
+    refreshRides();
+    notice = 'PIN set. Saved rides are encrypted on this device.';
+  }
+
+  async function removeRidesPin(pin) {
+    await unlockRides(pin);
+    refreshRides();
+    notice = 'PIN removed.';
+  }
+
+  function resetRidesPin() {
+    resetLockedRides();
+    refreshRides();
   }
 
   async function sendText(event) {
@@ -327,13 +359,7 @@
           <p class="dt-qr-caption">Scan to connect to this device</p>
           <button class="dt-primary" onclick={() => copy(pairLink, 'Pairing link copied. Open it on your other device.')}><Copy size={16} />Copy pairing link</button>
           {#if rides.length}
-            <div class="dt-rides" role="group" aria-label="Previous rides">
-              <p class="dt-rides-title">Previous rides</p>
-              {#each rides as ride (ride.code)}
-                <div class="dt-ride"><button class="dt-secondary" type="button" onclick={() => reconnect(ride)}><RefreshCw size={15} />Reconnect to {ride.peerName}</button><button class="dt-icon-button" type="button" onclick={() => forget(ride)} aria-label={'Forget ' + ride.peerName}><X size={15} /></button></div>
-              {/each}
-              <p class="dt-rides-help">Press Reconnect on both devices. The one that showed the QR code is asked to allow it again.</p>
-            </div>
+            <PreviousRides {rides} locked={ridesHavePin} canLock={pinPossible} onReconnect={reconnect} onForget={forget} onLock={setRidesPin} onUnlock={removeRidesPin} onReset={resetRidesPin} />
           {/if}
           <details class="dt-join"><summary>Already have a pairing link?</summary>
             <form onsubmit={joinLink}>
