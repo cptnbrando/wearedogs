@@ -39,7 +39,7 @@
   import { musicPaletteStyle } from "../lib/musicPalettes.js";
   import { linkOrigin } from "../lib/homeOrigin.js";
   import { settingsManager } from "../lib/settingsManager.svelte.js";
-  import { VisualizerEngine } from "../lib/visualizer/VisualizerEngine.js";
+  import { VisualizerEngine, shadersSupported } from "../lib/visualizer/VisualizerEngine.js";
   import DogsLogo from "./DogsLogo.svelte";
   import { PRESETS, NO_SIGNAL_PRESET } from "../lib/visualizer/presets.js";
   import { MilkdropEngine, milkdropSupported } from "../lib/visualizer/MilkdropEngine.js";
@@ -102,9 +102,12 @@
   const MILKDROP_ID = "milkdrop";
   const ENGINE_MILKDROP = "milkdrop";
   const ENGINE_SHADER = "shader";
-  const VISUALIZERS = milkdropSupported()
+  const HAS_MILKDROP = milkdropSupported();
+  const VISUALIZERS = HAS_MILKDROP
     ? [{ id: MILKDROP_ID, name: "MilkDrop" }]
     : PRESETS;
+  // A browser with no WebGL at all keeps the record: there is no picture to switch on
+  const CAN_VISUALIZE = HAS_MILKDROP || shadersSupported();
 
   const TV_KEY = "music_tv_v1";
   const TV_ON = "on";
@@ -143,7 +146,7 @@
   let hasMusicPlayed = $state(false);
   // The record is the visualizer whenever the TV is on. MilkDrop only needs
   // the player's audio graph to exist; the plain shaders wait for a song.
-  let showVisualizer = $derived(tvOn && (isMilkdrop ? !!audioCore.analyser : hasMusicPlayed));
+  let showVisualizer = $derived(CAN_VISUALIZE && tvOn && (isMilkdrop ? !!audioCore.analyser : hasMusicPlayed));
 
   function setTv(on) {
     tvOn = on;
@@ -1522,14 +1525,16 @@
                 {/if}
 
                 <!-- TV: the visualizer, struck through when off. Full screen. Lyrics. -->
-                <StrikeToggle
-                  on={tvOn}
-                  accent
-                  label={tvOn ? "Visualizer: on" : "Visualizer: off"}
-                  onclick={() => setTv(!tvOn)}
-                >
-                  <Tv size={14} />
-                </StrikeToggle>
+                {#if CAN_VISUALIZE}
+                  <StrikeToggle
+                    on={tvOn}
+                    accent
+                    label={tvOn ? "Visualizer: on" : "Visualizer: off"}
+                    onclick={() => setTv(!tvOn)}
+                  >
+                    <Tv size={14} />
+                  </StrikeToggle>
+                {/if}
                 <button
                   class="ctrl ctrl-xs"
                   onclick={enterFullscreen}
