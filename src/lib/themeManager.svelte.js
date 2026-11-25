@@ -12,8 +12,16 @@ const SUN_MARGIN_MS = 5000;
 /** setTimeout cannot wait longer than this. */
 const MAX_TIMER_MS = 2147000000;
 
+/**
+ * Themes that exist but are not offered: the light page is not good enough yet
+ * (flag-colour letters vanish on it, and the paper wants to be pure white).
+ * A browser that saved one of these gets Default. Empty this list to offer them again.
+ */
+const HIDDEN_THEME_IDS = [DAY_THEME_ID, AUTO_THEME_ID];
+
 /** A theme id the manager can apply. */
-const isThemeId = (id) => !!themesData[id] || id === RANDOM_THEME_ID || id === AUTO_THEME_ID;
+const isThemeId = (id) =>
+  HIDDEN_THEME_IDS.indexOf(id) === -1 && (!!themesData[id] || id === RANDOM_THEME_ID || id === AUTO_THEME_ID);
 
 /**
  * Manage dynamic site-wide theme switching with LocalStorage persistence and random support.
@@ -72,7 +80,7 @@ class ThemeManager {
     }));
     list.push({ id: AUTO_THEME_ID, name: AUTO_THEME_NAME });
     list.push({ id: RANDOM_THEME_ID, name: 'Random' });
-    return list;
+    return list.filter((theme) => isThemeId(theme.id));
   }
 
   /**
@@ -84,7 +92,7 @@ class ThemeManager {
     let activeId = this.currentThemeId;
     clearTimeout(this.sunTimer);
     if (activeId === RANDOM_THEME_ID) {
-      const keys = Object.keys(themesData).filter(k => k !== RANDOM_THEME_ID);
+      const keys = Object.keys(themesData).filter(isThemeId);
       activeId = keys[Math.floor(Math.random() * keys.length)];
     }
     if (activeId === AUTO_THEME_ID) {
