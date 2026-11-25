@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1795609318,
+    "firstCommitTimestamp": 1795609867,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 258870
+    "averageLinesAltered": 258904
   },
   "entries": [
     {
       "version": "1.0.3",
       "name": "Master",
       "date": "2026-11-25",
-      "timestamp": 1795609349,
+      "timestamp": 1795609898,
       "commits": [
         {
-          "hash": "d5291e9",
-          "message": "Merge pull request #96 from cptnbrando/ai-november2026/reload-replaced-song",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/d5291e96004e0b3167b4c4180f353333c8d9ac49",
-          "timestamp": 1795609318,
-          "linesChanged": 258870
+          "hash": "16ec019",
+          "message": "Merge pull request #97 from cptnbrando/ai-november2026/dogs-red-is-home",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/16ec01978f99acc0ae69e9d653a42062550a3ecc",
+          "timestamp": 1795609867,
+          "linesChanged": 258904
         }
       ]
     },

@@ -1,0 +1,1 @@
+(function(){System.register([],function(e,t){var n,r;function i(){return typeof location>`u`?n:r.indexOf(location.hostname)===-1?location.origin:n}return e(`t`,i),{setters:[],execute:function(){n=`https://dogs.red`,r=[`wearedogs.net`,`www.wearedogs.net`,`wearedogs.pages.dev`]}}})})();

@@ -1,0 +1,1 @@
+var e=`https://dogs.red`,t=[`wearedogs.net`,`www.wearedogs.net`,`wearedogs.pages.dev`];function n(){return typeof location>`u`?e:t.indexOf(location.hostname)===-1?location.origin:e}export{n as t};
