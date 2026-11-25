@@ -1,0 +1,613 @@
+// The Captions app (CaptionsApp.svelte and its panels). One sheet for all of
+// them, every class prefixed cap-. Spacing and type sizes are Tailwind classes
+// in the markup; this holds the look, the editor's grid and the waveform.
+@use "../../../styles/variables" as *;
+
+// A screen this short is a phone on its side: everything gives up height
+$short-screen: 500px;
+$muted: var(--color-text-muted, rgba(255, 255, 255, 0.55));
+$ink: var(--color-text, #ffffff);
+
+.cap-app {
+  // Read by the waveform's canvas drawing (CaptionsTransport.svelte)
+  --cap-wave: rgba(255, 255, 255, 0.28);
+  --cap-played: rgba(255, 225, 77, 0.75);
+  --cap-mark: rgba(255, 255, 255, 0.22);
+  --cap-accent: #{$color-captions};
+  --cap-ink: rgba(255, 255, 255, 0.8);
+  color: $ink;
+}
+
+.cap-muted {
+  color: $muted;
+}
+
+.cap-error {
+  color: $color-alert-red;
+}
+
+.cap-ok {
+  color: $color-neon-green;
+}
+
+.cap-heading {
+  margin: 0;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: $color-captions;
+}
+
+.cap-clock {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.cap-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 8px;
+  border: 1px solid $border-light;
+  background: $bg-input-dark;
+  color: $ink;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background $transition-speed-fast ease, border-color $transition-speed-fast ease;
+
+  &:hover,
+  &:focus-visible {
+    border-color: $color-captions-line;
+  }
+
+  &.is-on,
+  &.cap-btn-main {
+    border-color: $color-captions;
+    color: $color-captions;
+  }
+
+  &.is-on {
+    background: $color-captions-soft;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+}
+
+// A button that is a row in a list of actions: its label starts at the left
+.cap-btn-row {
+  justify-content: flex-start;
+  text-align: left;
+}
+
+// A row button with a second line under its label
+.cap-btn-stack {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.cap-input {
+  border-radius: 8px;
+  border: 1px solid $border-light;
+  background: $bg-input-dark;
+  color: $ink;
+  font: inherit;
+
+  &:focus-visible {
+    outline: 1px solid $color-captions;
+  }
+}
+
+.cap-chip {
+  border-radius: 999px;
+  border: 1px solid $border-light;
+  background: transparent;
+  color: inherit;
+}
+
+button.cap-chip {
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    border-color: $color-captions-line;
+    color: $ink;
+  }
+}
+
+// ── First screen ──
+.cap-start.is-dragging .cap-choice:first-child {
+  border-color: $color-captions;
+  background: $color-captions-soft;
+}
+
+.cap-lead {
+  margin: 0;
+  font-weight: 600;
+}
+
+.cap-choice,
+.cap-song {
+  border-radius: 12px;
+  border: 1px solid $border-light;
+  background: $bg-card-dark;
+  color: $ink;
+  cursor: pointer;
+  transition: border-color $transition-speed-fast ease, background $transition-speed-fast ease;
+
+  &:hover,
+  &:focus-visible {
+    border-color: $color-captions;
+    background: $color-captions-soft;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: progress;
+  }
+}
+
+.cap-choice {
+  text-align: center;
+
+  svg {
+    color: $color-captions;
+  }
+}
+
+.cap-songs {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+// ── The editor's grid ──
+// Phone upright: the stage, one panel (lines or a tool), and the tabs under the thumb.
+.cap-editor {
+  display: grid;
+  grid-template:
+    "stage" auto
+    "panel" minmax(0, 1fr)
+    "nav" auto / minmax(0, 1fr);
+}
+
+.cap-nav {
+  grid-area: nav;
+}
+
+.cap-stage {
+  grid-area: stage;
+}
+
+.cap-tools,
+.cap-lines {
+  grid-area: panel;
+}
+
+.cap-tools {
+  border-radius: 12px;
+  border: 1px solid $border-light;
+  background: $bg-card-dark;
+  overflow-y: auto;
+}
+
+// One panel at a time until the screen has room for both
+.cap-editor.is-lines .cap-tools,
+.cap-editor:not(.is-lines) .cap-lines {
+  display: none;
+}
+
+// Phone on its side, and small tablets: the stage beside the panel.
+@media (min-width: 640px) {
+  .cap-editor {
+    grid-template:
+      "stage panel" minmax(0, 1fr)
+      "nav nav" auto / minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+// Tablet upright: a rail of tabs down the side, the stage over the panel.
+@media (min-width: 768px) and (min-height: #{$short-screen + 1px}) {
+  .cap-editor {
+    grid-template:
+      "nav stage" auto
+      "nav panel" minmax(0, 1fr) / auto minmax(0, 1fr);
+  }
+}
+
+// A wide phone on its side: the rail, then the stage beside the panel.
+@media (min-width: 768px) and (max-height: $short-screen) {
+  .cap-editor {
+    grid-template: "nav stage panel" minmax(0, 1fr) / auto minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+// Tablet on its side and desktops: the lines are always there, a tool beside them.
+@media (min-width: 1024px) and (min-height: #{$short-screen + 1px}) {
+  .cap-editor {
+    grid-template:
+      "nav stage lines" auto
+      "nav tools lines" minmax(0, 1fr) / auto minmax(0, 1.15fr) minmax(0, 1fr);
+  }
+
+  .cap-tools {
+    grid-area: tools;
+  }
+
+  .cap-lines {
+    grid-area: lines;
+  }
+
+  .cap-editor.is-lines .cap-tools,
+  .cap-editor:not(.is-lines) .cap-lines {
+    display: block;
+  }
+
+  .cap-nav-lines {
+    display: none;
+  }
+}
+
+// Televisions and very wide screens: stage, tool and lines side by side.
+@media (min-width: 1536px) and (min-height: #{$short-screen + 1px}) {
+  .cap-editor {
+    grid-template: "nav stage tools lines" minmax(0, 1fr) / auto minmax(0, 1.6fr) minmax(0, 0.85fr) minmax(0, 1.15fr);
+  }
+}
+
+.cap-nav-btn {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: $muted;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    color: $ink;
+  }
+
+  &.is-on {
+    border-color: $color-captions-line;
+    background: $color-captions-soft;
+    color: $color-captions;
+  }
+}
+
+// Where the lines are always on screen, the tool in view is the lit tab
+@media (min-width: 1024px) and (min-height: #{$short-screen + 1px}) {
+  .cap-nav-btn.is-tool {
+    border-color: $color-captions-line;
+    background: $color-captions-soft;
+    color: $color-captions;
+  }
+}
+
+.cap-name {
+  margin: 0;
+  font-weight: 700;
+  color: $muted;
+}
+
+// ── Preview: the caption as the player shows it ──
+.cap-preview {
+  flex: 0 0 auto;
+  border-radius: 12px;
+  background: #000;
+  overflow: hidden;
+}
+
+.cap-preview-audio {
+  height: 2.5rem;
+}
+
+.cap-preview-video {
+  height: 28vh;
+}
+
+.cap-media {
+  width: 100%;
+  height: 100%;
+
+  video {
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+  }
+
+  audio {
+    display: none;
+  }
+}
+
+.cap-caption {
+  position: absolute;
+  left: 4%;
+  right: 4%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-align: center;
+  line-height: 1.3;
+  font-weight: 800;
+  color: #fff;
+  text-shadow:
+    0 0 0.5em rgba(0, 0, 0, 0.85),
+    0 0.06em 0.12em rgba(0, 0, 0, 0.9);
+  pointer-events: none;
+  user-select: none;
+}
+
+.cap-preview-audio .cap-caption {
+  top: 50%;
+  margin-top: -0.65em;
+}
+
+.cap-preview-video .cap-caption {
+  bottom: 9%;
+}
+
+.cap-caption-row {
+  display: inline-block;
+  transform: scale(var(--cap-fit));
+  transform-origin: center center;
+}
+
+.cap-caption-word {
+  display: inline-block;
+  margin: 0 0.15em;
+  opacity: 0;
+
+  &.is-sung {
+    opacity: 1;
+    animation: cap-flash 0.32s ease-out;
+  }
+}
+
+@keyframes cap-flash {
+  0% {
+    opacity: 0;
+    transform: translateY(0.18em) scale(1.18);
+    filter: brightness(2.2);
+  }
+  45% {
+    opacity: 1;
+    filter: brightness(1.8);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+// ── Waveforms ──
+.cap-transport {
+  flex: 0 0 auto;
+}
+
+.cap-overview,
+.cap-strip {
+  display: block;
+  width: 100%;
+  border-radius: 8px;
+  background: $bg-input-dark;
+  cursor: pointer;
+  // Dragging scrubs: the page must not scroll or swipe instead
+  touch-action: none;
+}
+
+.cap-overview {
+  height: 1rem;
+}
+
+.cap-strip {
+  height: 3.5rem;
+  cursor: ew-resize;
+}
+
+// From tablets up there is height to spare for the caption and the strip
+@media (min-width: 768px) and (min-height: #{$short-screen + 1px}) {
+  .cap-preview-audio {
+    height: clamp(3rem, 8vh, 7rem);
+  }
+
+  .cap-strip {
+    height: clamp(4rem, 11vh, 9rem);
+  }
+}
+
+// Where the stage has a column's whole height, the picture and the strip take it
+@media (min-width: 640px) and (max-width: 767px), (min-width: 768px) and (max-height: $short-screen), (min-width: 1536px) {
+  .cap-preview-video {
+    flex: 1 1 0;
+    height: auto;
+    min-height: 4rem;
+  }
+}
+
+@media (min-width: 1536px) and (min-height: #{$short-screen + 1px}) {
+  .cap-strip {
+    height: clamp(6rem, 22vh, 16rem);
+  }
+
+  .cap-overview {
+    height: 2rem;
+  }
+
+  .cap-preview-audio {
+    height: clamp(6rem, 22vh, 14rem);
+  }
+}
+
+// ── Lines ──
+.cap-wordbar {
+  flex: 0 0 auto;
+  border-radius: 12px;
+  border: 1px solid $border-light;
+  background: $bg-card-dark;
+}
+
+.cap-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cap-line {
+  border-left: 2px solid transparent;
+  // Long transcripts: rows off screen cost nothing until scrolled to
+  content-visibility: auto;
+  contain-intrinsic-size: auto 3rem;
+
+  &.is-now {
+    border-left-color: $color-captions;
+    background: $color-captions-soft;
+  }
+}
+
+.cap-line-time {
+  width: 2.75rem;
+  border: 0;
+  background: transparent;
+  color: $muted;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    color: $color-captions;
+  }
+}
+
+.cap-word {
+  border-radius: 6px;
+  border: 1px solid $border-light;
+  background: $bg-input-dark;
+  color: $ink;
+  line-height: 1.2;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    border-color: $color-captions-line;
+  }
+
+  &.is-untimed {
+    border-style: dashed;
+    color: $muted;
+  }
+
+  &.is-sel {
+    border-color: $color-captions;
+    background: $color-captions-soft;
+  }
+
+  &.is-cursor {
+    border-color: $color-neon-green;
+    box-shadow: 0 0 0 1px $color-neon-green;
+  }
+}
+
+.cap-word-time {
+  color: $muted;
+  font-variant-numeric: tabular-nums;
+}
+
+// ── Tap along ──
+.cap-tap-line {
+  margin: 0;
+  font-weight: 800;
+  line-height: 1.25;
+
+  span {
+    color: $muted;
+  }
+
+  .is-done {
+    color: $ink;
+  }
+
+  .is-next {
+    color: $color-captions;
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+}
+
+.cap-pad {
+  border-radius: 16px;
+  border: 2px solid $color-captions;
+  background: $color-captions-soft;
+  color: $color-captions;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  // A tap is a tap: no double-tap zoom, no text selection, no delay
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+
+  &:active {
+    background: $color-captions-line;
+  }
+}
+
+.cap-pad-start {
+  border-style: dashed;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+// ── Phones on their side: little height, so the stage is cut to the bone ──
+@media (max-height: $short-screen) {
+  .cap-app .cap-name,
+  .cap-overview {
+    display: none;
+  }
+
+  .cap-preview-audio {
+    height: 2.25rem;
+  }
+
+  .cap-strip {
+    height: 3rem;
+  }
+
+  .cap-pad {
+    min-height: 3.5rem;
+  }
+}
+
+// There the lines keep the panel's whole height: the word bar stands beside them
+@media (max-height: $short-screen) and (min-width: 640px) {
+  .cap-lines-panel {
+    flex-direction: row-reverse;
+  }
+
+  .cap-wordbar {
+    flex: 0 0 44%;
+    min-width: 0;
+    overflow-y: auto;
+  }
+
+  .cap-nudges {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .cap-ops {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cap-caption-word.is-sung {
+    animation: none;
+  }
+}

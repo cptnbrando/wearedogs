@@ -32,6 +32,7 @@
     NotebookPen,
     ChartCandlestick,
     Fingerprint,
+    Captions,
   } from "lucide-svelte";
   import DogsLogo from "./DogsLogo.svelte";
   import AppCard from "./AppCard.svelte";
@@ -92,6 +93,7 @@
     pocketsand: "./apps/pocketsand/PocketSandApp.svelte",
     dogsinc: "./apps/dogsinc/DogsIncApp.svelte",
     fingerprint: "./apps/fingerprint/FingerprintApp.svelte",
+    captions: "./apps/captions/CaptionsApp.svelte",
   };
 
   // Lazy loaded app components caching
@@ -295,6 +297,7 @@
     pocketsand: "#e8c07d",
     dogsinc: "#e6b900",
     fingerprint: "#ff4f81",
+    captions: "#ffe14d",
     wordsmith: "#ff3344",
     castle: "#00d7ff",
     money24: "#00ff66",
@@ -389,6 +392,12 @@
       title: "DOGS INC",
       desc: "Build a tower, hire the dogs, click the box, and keep the money coming.",
       icon: Building2,
+    },
+    {
+      id: "captions",
+      title: "Captions",
+      desc: "Time captions and lyrics to any audio or video, word by word, and export them as .srt.",
+      icon: Captions,
     },
     {
       id: "soundstripper",

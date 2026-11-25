@@ -23,6 +23,7 @@
     ChartCandlestick,
     CalendarCheck,
     Fingerprint,
+    Captions,
   } from "lucide-svelte";
 
   let { appId } = $props();
@@ -188,6 +189,13 @@
     <Fingerprint
       size={28}
       style="color: var(--color-fingerprint, #ff4f81); filter: drop-shadow(0 0 6px rgba(255, 79, 129, 0.4));"
+    />
+  </div>
+{:else if appId === "captions"}
+  <div class="flex items-center justify-center h-full">
+    <Captions
+      size={28}
+      style="color: var(--color-captions, #ffe14d); filter: drop-shadow(0 0 6px rgba(255, 225, 77, 0.4));"
     />
   </div>
 {:else if appId === "pocketsand"}

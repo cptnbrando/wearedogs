@@ -40,6 +40,12 @@ const APP_CARDS = {
       "Scan a QR code and send files and text between your devices. No account, no app to install, nothing to plug in.",
     image: "/share/datatrain.png",
   },
+  // No banner of its own yet: the card shows the site's image
+  captions: {
+    title: "Captions",
+    description:
+      "Time captions and lyrics to any audio or video, word by word. Tap along, or let it transcribe, then export .srt for your video editor.",
+  },
 };
 
 /** The card for /music itself: what a link to the player shows. */
