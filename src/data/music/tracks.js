@@ -262,6 +262,24 @@ export const fullLibrary = [
     genre: "Hip-Hop",
     public: true
   },
+  // Also in the catalog on the data host, which is where it is kept up to date:
+  // the catalog's entry replaces this one in the player. It is listed here so
+  // /music/demons has a share card (the build cannot read the catalog: the
+  // data host turns the build machine away).
+  {
+    id: "demons",
+    title: "demons",
+    artist: "DOGS",
+    album: "DOGS RUN THE WORLD",
+    cover: "https://data.wearedogs.net/img/covers/2026/demons.webp",
+    altCover: "https://data.wearedogs.net/img/covers/2026/demons.jpg",
+    src: "https://data.wearedogs.net/music/2026/demons1.mp3",
+    instrumental: "",
+    dateAdded: "2026-11-25T06:03:09-06:00",
+    year: 2026,
+    genre: "Hip-Hop",
+    public: true
+  },
   {
     id: "toyota-jazz",
     title: "Toyota Jazz",
