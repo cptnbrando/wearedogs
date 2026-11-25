@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1795626322,
+    "firstCommitTimestamp": 1795626500,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 262616
+    "averageLinesAltered": 262658
   },
   "entries": [
     {
       "version": "1.0.3",
       "name": "Master",
       "date": "2026-11-25",
-      "timestamp": 1795626286,
+      "timestamp": 1795626457,
       "commits": [
         {
-          "hash": "1c33171",
-          "message": "feat(music): the visualizer lives in the record, lyrics sung word by word, share cards for songs",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/1c33171c6f68727f3f86b4fa07577daafeb5f6dd",
-          "timestamp": 1795626322,
-          "linesChanged": 262616
+          "hash": "d5d0670",
+          "message": "feat(share): songs added through the catalog get share cards too",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/d5d06707013f6b8cd7de8bb6685f95563922c8fb",
+          "timestamp": 1795626500,
+          "linesChanged": 262658
         }
       ]
     },
