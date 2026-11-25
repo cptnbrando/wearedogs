@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1795610099,
+    "firstCommitTimestamp": 1795611016,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 258901
+    "averageLinesAltered": 259329
   },
   "entries": [
     {
       "version": "1.0.3",
       "name": "Master",
       "date": "2026-11-25",
-      "timestamp": 1795610128,
+      "timestamp": 1795611050,
       "commits": [
         {
-          "hash": "88e3517",
-          "message": "Merge pull request #98 from cptnbrando/ai-november2026/dangerous-public-rides-kept",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/88e3517830c25b0f6ca7e8690a86d1799c7c9cb9",
-          "timestamp": 1795610099,
-          "linesChanged": 258901
+          "hash": "48cc23b",
+          "message": "Merge pull request #99 from cptnbrando/ai-november2026/rides-pin",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/48cc23b5640eb0037aa4123206379cd456c47185",
+          "timestamp": 1795611016,
+          "linesChanged": 259329
         }
       ]
     },
