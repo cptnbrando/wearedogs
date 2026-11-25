@@ -31,6 +31,7 @@
   import { musicLock } from "../lib/musicLock.svelte.js";
   import { onDoubleTap } from "../lib/doubleTap.js";
   import { playerLibrary } from "../data/music/tracks.js";
+  import { downloadChoice } from "../lib/trackDownload.js";
   import { settingsManager } from "../lib/settingsManager.svelte.js";
   import { VisualizerEngine } from "../lib/visualizer/VisualizerEngine.js";
   import DogsLogo from "./DogsLogo.svelte";
@@ -329,12 +330,19 @@
 
   let downloadingTrackId = $state(null);
 
-  // Downloads default to the instrumental; tracks without one fall back to
-  // the main mix. Fetched as a blob because the files are cross-origin (and
-  // lockup files need the auth header), so a plain <a download> won't save.
+  // The playing song is on whichever mix is audible; any other song would
+  // start on the switch's last setting.
+  function downloadFor(track) {
+    const playing = track.id === audioCore.library[audioCore.currentTrackIndex]?.id;
+    return downloadChoice(track, playing ? audioCore.isInstrumental : audioCore.userPrefersInstrumental);
+  }
+
+  // Which mix is saved is decided in lib/trackDownload.js. Fetched as a blob
+  // because the files are cross-origin (and lockup files need the auth
+  // header), so a plain <a download> won't save.
   async function handleDownloadTrack(e, track) {
     e.stopPropagation();
-    const url = track.instrumental || track.src;
+    const url = downloadFor(track).url;
     if (!url || downloadingTrackId) return;
     downloadingTrackId = track.id;
     try {
@@ -1060,10 +1068,8 @@
                       class="player-download-btn"
                       class:downloading={downloadingTrackId === currentTrack.id}
                       onclick={(e) => handleDownloadTrack(e, currentTrack)}
-                      title={currentTrack.instrumental
-                        ? "Download instrumental"
-                        : "Download track"}
-                      aria-label="Download track"
+                      title={downloadFor(currentTrack).label}
+                      aria-label={downloadFor(currentTrack).label}
                     >
                       <Download size={12} />
                     </button>
@@ -1491,10 +1497,8 @@
                         class="tr-download-btn"
                         class:downloading={downloadingTrackId === track.id}
                         onclick={(e) => handleDownloadTrack(e, track)}
-                        title={track.instrumental
-                          ? "Download instrumental"
-                          : "Download track"}
-                        aria-label="Download track"
+                        title={downloadFor(track).label}
+                        aria-label={downloadFor(track).label}
                       >
                         <Download size={12} />
                       </button>
