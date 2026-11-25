@@ -249,6 +249,20 @@ export const fullLibrary = [
     public: true
   },
   {
+    id: "gta6-freestyle",
+    title: "gta6 freestyle",
+    artist: "DOGS",
+    album: "DOGS RUN THE WORLD",
+    cover: "https://data.wearedogs.net/img/covers/2026/gta6.webp",
+    altCover: "https://data.wearedogs.net/img/covers/2026/gta6.png",
+    src: "https://data.wearedogs.net/music/2026/gta6.mp3",
+    instrumental: "https://data.wearedogs.net/music/2026/gta6-ins.mp3",
+    dateAdded: "2026-11-25T04:30:00-06:00",
+    year: 2026,
+    genre: "Hip-Hop",
+    public: true
+  },
+  {
     id: "toyota-jazz",
     title: "Toyota Jazz",
     artist: "DOG BLOG",
