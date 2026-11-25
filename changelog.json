@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1795647535,
+    "firstCommitTimestamp": 1795648515,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 264186
+    "averageLinesAltered": 266888
   },
   "entries": [
     {
       "version": "1.0.3",
       "name": "Master",
       "date": "2026-11-25",
-      "timestamp": 1795647491,
+      "timestamp": 1795648474,
       "commits": [
         {
-          "hash": "8569314",
-          "message": "fix(settings): the owner card's buttons fill the row on phones",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/8569314a48efd4ba08bb5a8e62a9a8823e8515a2",
-          "timestamp": 1795647535,
-          "linesChanged": 264186
+          "hash": "cec4222",
+          "message": "feat(captions): a new toolbox app that times captions and lyrics word by word",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/cec4222566d7be3964aa726196b3c99eb504370d",
+          "timestamp": 1795648515,
+          "linesChanged": 266888
         }
       ]
     },
