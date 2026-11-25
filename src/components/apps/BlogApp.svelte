@@ -20,6 +20,7 @@
   } from "lucide-svelte";
   import { slide } from "svelte/transition";
   import { getPosts, getPostContent } from "../../lib/blogApi.js";
+  import { linkOrigin } from "../../lib/homeOrigin.js";
   import { formatReadTime, formatDay } from "../../lib/blogStats.js";
   import BlogMusic from "../BlogMusic.svelte";
   import ReadingRail from "../ReadingRail.svelte";
@@ -341,7 +342,7 @@
     e.stopPropagation();
     if (!activePost) return;
 
-    const shareUrl = `${window.location.origin}/apps/blog/${activePost.slug}`;
+    const shareUrl = `${linkOrigin()}/apps/blog/${activePost.slug}`;
     navigator.clipboard
       .writeText(shareUrl)
       .then(() => {
@@ -406,7 +407,7 @@
     <meta property="og:description" content={activePost.description} />
     <meta
       property="og:url"
-      content="{window.location.origin}/apps/blog/{activePost.slug}"
+      content="{linkOrigin()}/apps/blog/{activePost.slug}"
     />
     <meta property="twitter:title" content={activePost.title} />
     <meta property="twitter:description" content={activePost.description} />

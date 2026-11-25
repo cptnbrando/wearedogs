@@ -36,6 +36,7 @@
   import { musicCatalog, libraryWithCatalog } from "../lib/musicCatalog.svelte.js";
   import { tether } from "../lib/tether.svelte.js";
   import { musicPaletteStyle } from "../lib/musicPalettes.js";
+  import { linkOrigin } from "../lib/homeOrigin.js";
   import { settingsManager } from "../lib/settingsManager.svelte.js";
   import { VisualizerEngine } from "../lib/visualizer/VisualizerEngine.js";
   import DogsLogo from "./DogsLogo.svelte";
@@ -386,7 +387,7 @@
 
   function handleShareTrack(e, track) {
     e.stopPropagation();
-    const shareUrl = `${window.location.origin}/music/${track.id}`;
+    const shareUrl = `${linkOrigin()}/music/${track.id}`;
     navigator.clipboard
       .writeText(shareUrl)
       .then(() => {

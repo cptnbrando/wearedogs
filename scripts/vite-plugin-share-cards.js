@@ -24,7 +24,7 @@ import { APP_SHORT_URLS } from "../src/lib/appShortUrls.js";
  * the trailing slash a host adds for directory indexes.
  */
 
-const DEFAULT_ORIGIN = "https://wearedogs.net";
+const DEFAULT_ORIGIN = "https://dogs.red";
 
 /**
  * Toolbox apps with a card of their own, keyed by app slug. Each is written at

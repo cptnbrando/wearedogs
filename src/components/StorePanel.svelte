@@ -5,6 +5,7 @@
   import { fade, scale, fly, slide } from "svelte/transition";
   import { marked } from "marked";
   import { lettersFor, receivedAgo } from "../lib/correspondence.js";
+  import { linkOrigin } from "../lib/homeOrigin.js";
   import BasePanel from "./BasePanel.svelte";
   import ProductImageSlideshow from "./apps/ProductImageSlideshow.svelte";
   import ThreeDShirtCanvas from "./apps/ThreeDShirtCanvas.svelte";
@@ -998,7 +999,7 @@
 
   function handleShare(type, id, e) {
     if (e) e.stopPropagation();
-    const shareUrl = `${window.location.origin}/store/${type}/${id}`;
+    const shareUrl = `${linkOrigin()}/store/${type}/${id}`;
     navigator.clipboard
       .writeText(shareUrl)
       .then(() => {
@@ -2083,7 +2084,7 @@
     <meta property="og:description" content={campaignShareDescription} />
     <meta
       property="og:url"
-      content="{window.location.origin}/store/campaign/{selectedCampaign.id}"
+      content="{linkOrigin()}/store/campaign/{selectedCampaign.id}"
     />
     {#if campaignShareImage}
       <meta property="og:image" content={campaignShareImage} />

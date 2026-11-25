@@ -4,6 +4,7 @@
   import ProductImageSlideshow from "./apps/ProductImageSlideshow.svelte";
   import mapSpots from "../data/map/index.js";
   import { formatReviewDate, reviewAge } from "./mapReviewDate.js";
+  import { linkOrigin } from "../lib/homeOrigin.js";
   import { spring } from "svelte/motion";
   import { fade, slide, fly } from "svelte/transition";
   import { cubicOut } from "svelte/easing";
@@ -155,7 +156,7 @@
 
   function copySpotLink() {
     if (!selectedSpot) return;
-    const link = `${window.location.origin}${getBaseMapUrl()}#spot=${selectedSpot.id}`;
+    const link = `${linkOrigin()}${getBaseMapUrl()}#spot=${selectedSpot.id}`;
     navigator.clipboard?.writeText(link).catch(() => {});
     linkCopied = true;
     clearTimeout(linkCopiedTimer);
