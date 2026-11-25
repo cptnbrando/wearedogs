@@ -12,6 +12,9 @@
   let TitlePage = $state(null);
   import("./components/TitlePage.svelte").then((m) => {
     TitlePage = m.default;
+    // Counts plays of DOGS songs (lib/playCounts.svelte.js). After TitlePage, so the
+    // player's code it watches is already loaded and the first paint waits for nothing.
+    import("./lib/playCounts.svelte.js");
   });
 
   // Lazy loaded DogsMain component

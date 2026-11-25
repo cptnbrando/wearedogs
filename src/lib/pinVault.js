@@ -39,7 +39,7 @@ export function vaultSupported() {
 }
 
 /** @param {Uint8Array|ArrayBuffer} bytes */
-function toBase64(bytes) {
+export function toBase64(bytes) {
   const view = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
   let text = "";
   for (let i = 0; i < view.length; i += 1) text += String.fromCharCode(view[i]);
@@ -47,7 +47,7 @@ function toBase64(bytes) {
 }
 
 /** @param {string} text */
-function fromBase64(text) {
+export function fromBase64(text) {
   const raw = atob(text);
   const bytes = new Uint8Array(raw.length);
   for (let i = 0; i < raw.length; i += 1) bytes[i] = raw.charCodeAt(i);
@@ -68,8 +68,8 @@ export function hasVault() {
   return vaultSupported() && !!readVault();
 }
 
-/** The key that locks the private half: the PIN, stretched. */
-async function wrappingKey(pin, salt, rounds) {
+/** The key that locks the private half: the PIN, stretched. Also wraps the owner's key (adminKey.js). */
+export async function wrappingKey(pin, salt, rounds) {
   const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(pin), "PBKDF2", false, ["deriveKey"]);
   return crypto.subtle.deriveKey(
     { name: "PBKDF2", salt, iterations: rounds, hash: HASH },

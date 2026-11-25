@@ -1,0 +1,46 @@
+// The Settings app's cards and their buttons, shared by SettingsApp.svelte and
+// the cards that live in their own components (AdminCard.svelte).
+@use "../../../styles/variables" as *;
+
+// A card: one setting, its explanation and its button
+@mixin settings-card {
+  background: $bg-card-dark;
+  border: 1px solid $border-light;
+  border-radius: 12px;
+  padding: 14px;
+}
+
+// The explanation inside a card
+@mixin settings-desc {
+  margin: 0;
+  line-height: 1.4;
+  color: var(--color-text-muted, rgba(255, 255, 255, 0.55));
+}
+
+// The quiet twin of the kill button, for actions that destroy nothing
+@mixin settings-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 12rem;
+  border-radius: 8px;
+  border: 1px solid $color-neon-green;
+  background: transparent;
+  color: $color-neon-green;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background $transition-speed-fast ease, color $transition-speed-fast ease;
+
+  &:hover,
+  &:focus-visible {
+    background: $bg-input-dark;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+}

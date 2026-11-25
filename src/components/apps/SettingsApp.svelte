@@ -23,6 +23,7 @@
   import { installPrompt } from "../../lib/installPrompt.svelte.js";
   import { MUSIC_PALETTES } from "../../lib/musicPalettes.js";
   import { killCache } from "./killCache.js";
+  import AdminCard from "./settings/AdminCard.svelte";
 
   // How long "tap again to confirm" stays armed before it disarms itself
   const KILL_CONFIRM_WINDOW_MS = 4000;
@@ -366,11 +367,14 @@
         </button>
       </div>
     </section>
+
+    <AdminCard />
   </main>
 </div>
 
 <style lang="scss">
   @use "../../styles/variables" as *;
+  @use "./settings/cards" as cards;
 
   .settings-layout {
     display: flex;
@@ -594,16 +598,11 @@
   }
 
   .kill-card {
-    background: $bg-card-dark;
-    border: 1px solid $border-light;
-    border-radius: 12px;
-    padding: 14px;
+    @include cards.settings-card;
   }
 
   .kill-desc {
-    margin: 0;
-    line-height: 1.4;
-    color: var(--color-text-muted, rgba(255, 255, 255, 0.55));
+    @include cards.settings-desc;
   }
 
   // A palette card is a button: no button chrome, text left like its siblings
@@ -631,30 +630,7 @@
 
   // The quiet twin of the kill button, for actions that destroy nothing
   .site-data-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    min-width: 12rem;
-    border-radius: 8px;
-    border: 1px solid $color-neon-green;
-    background: transparent;
-    color: $color-neon-green;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: background $transition-speed-fast ease, color $transition-speed-fast ease;
-
-    &:hover,
-    &:focus-visible {
-      background: $bg-input-dark;
-    }
-
-    &:disabled {
-      opacity: 0.5;
-      cursor: default;
-    }
+    @include cards.settings-button;
   }
 
   .kill-btn {
