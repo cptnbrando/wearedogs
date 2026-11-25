@@ -32,6 +32,7 @@
   import { onDoubleTap } from "../lib/doubleTap.js";
   import { playerLibrary } from "../data/music/tracks.js";
   import { downloadChoice } from "../lib/trackDownload.js";
+  import { musicCatalog, libraryWithCatalog } from "../lib/musicCatalog.svelte.js";
   import { settingsManager } from "../lib/settingsManager.svelte.js";
   import { VisualizerEngine } from "../lib/visualizer/VisualizerEngine.js";
   import DogsLogo from "./DogsLogo.svelte";
@@ -241,8 +242,16 @@
   // Track data lives in src/data/music/tracks.js with the rest of the data.
 
   // Non-public tracks live in the server's lockup folder and stay hidden until
-  // the calculator passcode unlocks them (persisted in localStorage)
-  let library = $derived(playerLibrary(musicLock.unlocked));
+  // the calculator passcode unlocks them (persisted in localStorage). Songs
+  // from the catalog on the data host (lib/musicCatalog.svelte.js) join the
+  // built-in ones when it arrives.
+  let library = $derived(
+    libraryWithCatalog(playerLibrary(musicLock.unlocked), musicLock.unlocked),
+  );
+
+  // A /music/<id> link to a song that only the catalog has: played once the
+  // catalog brings it.
+  let pendingTrackId = null;
 
   // Derive sort values
   function getTrackFilename(track) {
@@ -286,14 +295,21 @@
     library[audioCore.currentTrackIndex] ?? library[0],
   );
 
-  // Re-sync the player if the lockup gate opens (or is revoked) while mounted
+  // Re-sync the player if the library changes while mounted: the lockup gate
+  // opens (or is revoked), or the catalog arrives
   $effect(() => {
     const lib = library;
     if (audioCore.library === lib || audioCore.library.length === 0) return;
     const playingId = audioCore.library[audioCore.currentTrackIndex]?.id;
     audioCore.init(lib);
+    const pendingIdx = pendingTrackId
+      ? lib.findIndex((t) => t.id === pendingTrackId)
+      : -1;
     const newIdx = lib.findIndex((t) => t.id === playingId);
-    if (newIdx !== -1) {
+    if (pendingIdx !== -1) {
+      pendingTrackId = null;
+      audioCore.loadTrack(pendingIdx, true);
+    } else if (newIdx !== -1) {
       audioCore.currentTrackIndex = newIdx;
     } else {
       audioCore.pause();
@@ -372,10 +388,13 @@
   onMount(() => {
     musicLock.revalidate();
     audioCore.init(library);
+    musicCatalog.refresh();
     if (initialTrackId) {
       const idx = library.findIndex((t) => t.id === initialTrackId);
       if (idx !== -1) {
         audioCore.loadTrack(idx, true);
+      } else {
+        pendingTrackId = initialTrackId;
       }
     } else if (!audioCore.hasPickedRandomTrack) {
       audioCore.hasPickedRandomTrack = true;
