@@ -8,6 +8,7 @@ import { StreamGuard } from "./StreamGuard.js";
 import { bindMediaSession, syncMediaSession } from "./mediaSession.js";
 import { loadPeaks } from "./waveformPeaks.js";
 import { ShuffleQueue } from "./shuffleQueue.js";
+import { applySyncMessage } from "./playerSync.js";
 
 // With the screen off there's nobody to press play on a dead track, so the
 // player skips past it and never gives up. The first few skips are instant;
@@ -159,121 +160,11 @@ export class AudioCore {
   }
 
   /**
-   * The library index a sync message means, or -1 when this device does not have that song.
-   * @param {{ trackId?: string, trackIndex?: number }} msg
-   * @param {boolean} remote - from the tethered device, which goes by id
-   */
-  syncIndex(msg, remote) {
-    if (typeof msg.trackId === "string") {
-      const byId = this.library.findIndex((t) => t.id === msg.trackId);
-      if (byId !== -1 || remote) return byId;
-    }
-    const index = msg.trackIndex;
-    return Number.isInteger(index) && index >= 0 && index < this.library.length ? index : -1;
-  }
-
-  /**
    * @param {object} msg - a sync message from another tab, or from the tethered device
    * @param {boolean} [remote] - it came over the tether
    */
   handleSyncMessage(msg, remote = false) {
-    if (!msg || msg.uuid === this.tabId) return;
-
-    this.isSyncing = true;
-    try {
-      switch (msg.type) {
-        case "ping":
-          if (this.isPlaying && this.masterTabId === this.tabId) {
-            this.broadcastState("pong");
-          }
-          break;
-        case "pong":
-        case "state_change": {
-          const selfPlaying = this.isPlaying && this.masterTabId === this.tabId;
-          // Both devices were playing when they tethered: one keeps the sound.
-          // The same rule runs on both, so they agree without asking.
-          if (remote && msg.type === "pong" && selfPlaying && this.tabId > String(msg.uuid)) break;
-          const index = this.syncIndex(msg, remote);
-          if (index === -1) break;
-          this.masterTabId = msg.masterTabId;
-          this.masterIsRemote = remote && !!msg.masterTabId && msg.masterTabId !== this.tabId;
-          this.isInstrumental = msg.isInstrumental;
-          if (typeof msg.isShuffled === "boolean" && msg.isShuffled !== this.isShuffled) this.setShuffle(msg.isShuffled);
-          if (REPEAT_MODES.indexOf(msg.repeatMode) !== -1) this.repeatMode = msg.repeatMode;
-          if (this.currentTrackIndex !== index) {
-            this.currentTrackIndex = index;
-            const isSelfMaster = this.masterTabId === this.tabId;
-            this.loadTrack(index, isSelfMaster && msg.isPlaying);
-          } else {
-            const isSelfMaster = this.masterTabId === this.tabId;
-            const wasPlaying = this.isPlaying;
-            this.isPlaying = msg.isPlaying;
-            if (isSelfMaster) {
-              // Only a change of play state moves the playhead: a follower
-              // flipping shuffle or VOX / INS must not make the song skip
-              if (msg.isPlaying && !wasPlaying) {
-                this.play(msg.currentTime);
-              } else if (!msg.isPlaying && wasPlaying) {
-                this.pause();
-              } else {
-                this.applyCrossfade();
-              }
-            } else {
-              this.currentTime = msg.currentTime;
-              if (this.trackAudio && !this.trackAudio.paused) this.trackAudio.pause();
-              if (this.instAudio && !this.instAudio.paused) this.instAudio.pause();
-            }
-          }
-          break;
-        }
-        case "cmd_track": {
-          // The remote control picked a song: the device with the sound plays it
-          if (this.masterTabId && this.masterTabId !== this.tabId) break;
-          const index = this.syncIndex(msg, remote);
-          if (index === -1) break;
-          this.isSyncing = false;
-          this.masterTabId = this.tabId;
-          this.masterIsRemote = false;
-          this.loadTrack(index, true);
-          break;
-        }
-        case "time_update":
-          if (this.masterTabId !== this.tabId) {
-            this.currentTime = msg.currentTime;
-            this.duration = msg.duration;
-            this.isPlaying = msg.isPlaying;
-          }
-          break;
-        // A command changes what plays here, and every other tab and the
-        // tethered device must hear about it: carried out as this tab's own act.
-        case "cmd_play":
-          this.isSyncing = false;
-          this.masterTabId = this.tabId;
-          this.masterIsRemote = false;
-          this.play(msg.currentTime);
-          break;
-        case "cmd_pause":
-          this.isSyncing = false;
-          this.pause();
-          break;
-        case "cmd_seek":
-          this.isSyncing = false;
-          this.seek(msg.currentTime);
-          break;
-        case "cmd_next":
-          this.isSyncing = false;
-          this.nextTrack();
-          break;
-        case "cmd_prev":
-          this.isSyncing = false;
-          this.prevTrack();
-          break;
-      }
-    } catch (e) {
-      console.warn("Failed to process sync message:", e);
-    } finally {
-      this.isSyncing = false;
-    }
+    applySyncMessage(this, msg, remote, REPEAT_MODES);
   }
 
   setShuffle(val) {
