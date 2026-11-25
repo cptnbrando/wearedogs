@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1795626842,
+    "firstCommitTimestamp": 1795627046,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 263157
+    "averageLinesAltered": 263166
   },
   "entries": [
     {
       "version": "1.0.3",
       "name": "Master",
       "date": "2026-11-25",
-      "timestamp": 1795626809,
+      "timestamp": 1795627015,
       "commits": [
         {
-          "hash": "0467952",
-          "message": "feat(music): record a lyric video from the full-screen visualizer",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/0467952fd57217bf7657007dd110344dbf8c86b9",
-          "timestamp": 1795626842,
-          "linesChanged": 263157
+          "hash": "db4d6f1",
+          "message": "fix(share): ask the data host for the catalog as the site, and say when it refuses",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/db4d6f15b26ee2265cde2efd2a988107cc248f1f",
+          "timestamp": 1795627046,
+          "linesChanged": 263166
         }
       ]
     },
