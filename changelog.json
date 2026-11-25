@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1795627046,
+    "firstCommitTimestamp": 1795627227,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 263166
+    "averageLinesAltered": 263184
   },
   "entries": [
     {
       "version": "1.0.3",
       "name": "Master",
       "date": "2026-11-25",
-      "timestamp": 1795627015,
+      "timestamp": 1795627187,
       "commits": [
         {
-          "hash": "db4d6f1",
-          "message": "fix(share): ask the data host for the catalog as the site, and say when it refuses",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/db4d6f15b26ee2265cde2efd2a988107cc248f1f",
-          "timestamp": 1795627046,
-          "linesChanged": 263166
+          "hash": "c423aff",
+          "message": "feat(music): demons is listed in the site too, so its link has a share card",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/c423aff9b35202a89fc6c2bb507f9a5324a09e7a",
+          "timestamp": 1795627227,
+          "linesChanged": 263184
         }
       ]
     },
