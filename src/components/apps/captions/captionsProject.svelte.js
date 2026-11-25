@@ -69,10 +69,20 @@ export class CaptionsProject {
     this.#save();
   }
 
+  /** @returns {import("./captionsStore.js").StoredProject} the project as it is stored, on the device or in the cloud */
+  snapshot() {
+    return { key: this.key, name: this.name, kind: this.kind, trackId: this.trackId, at: Date.now(), lines: edit.linesToStored(this.lines) };
+  }
+
+  /** @param {any[]} stored - lines from a snapshot; they replace what is here (Undo brings it back) */
+  useStoredLines(stored) {
+    this.replaceLines(edit.linesFromStored(stored));
+  }
+
   #save() {
     this.#saveTimer = null;
     if (!this.key) return;
-    this.stored = saveProject({ key: this.key, name: this.name, kind: this.kind, trackId: this.trackId, lines: edit.linesToStored(this.lines) });
+    this.stored = saveProject(this.snapshot());
   }
 
   #touch() {

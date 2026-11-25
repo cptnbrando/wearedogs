@@ -12,6 +12,7 @@
   import { linesFromLyrics } from "./captionsEdit.js";
   import { EXPORT_FORMATS, IMPORT_ACCEPT, readCaptionsFile, exportCaptions } from "./captionsFiles.js";
   import { KIND_TRACK } from "./captionsStore.js";
+  import CaptionsCloud from "./CaptionsCloud.svelte";
 
   const NOTHING_TIMED = "Nothing is timed yet. Tap along, or bring in a file with times.";
   const NOT_READ = "Nothing could be read from that file.";
@@ -162,6 +163,10 @@
     </button>
     <input bind:this={fileInput} class="hidden" type="file" accept={IMPORT_ACCEPT} onchange={importFile} />
   </section>
+
+  {#if admin.unlocked}
+    <CaptionsCloud {project} {say} />
+  {/if}
 
   <p class="cap-muted text-xs 2xl:text-base">
     {project.stored ? "Your work is saved on this device as you go. The audio or video itself is not kept." : "This browser would not save your work: export it before you leave."}
