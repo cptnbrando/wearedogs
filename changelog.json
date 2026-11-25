@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1795649087,
+    "firstCommitTimestamp": 1795649214,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 267583
+    "averageLinesAltered": 267729
   },
   "entries": [
     {
       "version": "1.0.3",
       "name": "Master",
       "date": "2026-11-25",
-      "timestamp": 1795649044,
+      "timestamp": 1795649175,
       "commits": [
         {
-          "hash": "f2c53fd",
-          "message": "feat(captions): the owner can save caption projects to the cloud and load them anywhere",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/f2c53fdf4376896d0874ac1548600de58978228a",
-          "timestamp": 1795649087,
-          "linesChanged": 267583
+          "hash": "2dbb6bd",
+          "message": "feat(captions): transcribe in this browser, with nothing uploaded",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/2dbb6bd80769592ce249e078ba05f0cdf5418201",
+          "timestamp": 1795649214,
+          "linesChanged": 267729
         }
       ]
     },
