@@ -20,13 +20,13 @@ export function reply(status, body, headers = {}) {
 /**
  * CORS headers for an origin that already passed the allowlist.
  * @param {string} origin
- * @param {{ methods?: string, credentials?: boolean }} [options] a route's own needs; /likes and /mail use the defaults
+ * @param {{ methods?: string, credentials?: boolean, headers?: string }} [options] a route's own needs; /likes and /mail use the defaults
  */
 export function corsHeaders(origin, options = {}) {
   const headers = {
     "Access-Control-Allow-Origin": origin,
     "Access-Control-Allow-Methods": options.methods || DEFAULT_METHODS,
-    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Headers": options.headers || "Content-Type",
     "Access-Control-Max-Age": String(PREFLIGHT_MAX_AGE_SECONDS),
     Vary: "Origin",
   };

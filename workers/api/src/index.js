@@ -13,7 +13,9 @@
  *
  * Apps: /likes (counter), /mail (roughly yearly mailing-list signup),
  * /fingerprint (consented device recognition for the Fingerprint app),
- * /waitlist (Castle, Money 24 and 40 waitlist signups).
+ * /waitlist (Castle, Money 24 and 40 waitlist signups), /admin (the owner's
+ * sign-in, lib/admin.js), /plays (hidden play counts for the music player),
+ * /captions (speech to text and saved projects for the Captions app).
  * Adding an app:
  *   1. src/routes/<app>.js exporting { path: "/<app>", handle(request, env, ctx, visitor) }
  *   2. register it in ROUTES below
@@ -21,7 +23,8 @@
  *   4. spend writes through spendWrites(env, "<app>", rows, cap)
  *   5. its own rate limiter in wrangler.jsonc if it needs different limits
  *   6. optional daily upkeep: export scheduled(env), run by the cron in wrangler.jsonc
- *   7. optional cors: { methods, credentials } for other methods or a cookie (lib/http.js corsHeaders)
+ *   7. optional cors: { methods, credentials, headers } for other methods, a cookie or the
+ *      owner's session token (lib/http.js corsHeaders; lib/admin.js ADMIN_CORS)
  */
 
 import { reply, corsHeaders } from "./lib/http.js";
@@ -30,8 +33,14 @@ import likes from "./routes/likes.js";
 import mail from "./routes/mail.js";
 import fingerprint from "./routes/fingerprint.js";
 import waitlist from "./routes/waitlist.js";
+import admin from "./routes/admin.js";
+import plays from "./routes/plays.js";
+import captions from "./routes/captions.js";
 
-const ROUTES = { [likes.path]: likes, [mail.path]: mail, [fingerprint.path]: fingerprint, [waitlist.path]: waitlist };
+const ROUTES = {
+  [likes.path]: likes, [mail.path]: mail, [fingerprint.path]: fingerprint, [waitlist.path]: waitlist,
+  [admin.path]: admin, [plays.path]: plays, [captions.path]: captions,
+};
 const SERVICE_UNAVAILABLE = "Service temporarily unavailable";
 const BOT_UA_PATTERN =
   /bot|crawl|spider|slurp|curl|wget|python|httpclient|okhttp|scrapy|headless|phantom|go-http|java\//i;
