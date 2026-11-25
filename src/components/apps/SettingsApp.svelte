@@ -18,6 +18,7 @@
     Trash2,
     Download,
     ShieldCheck,
+    SunMoon,
   } from "lucide-svelte";
   import { installPrompt } from "../../lib/installPrompt.svelte.js";
   import { MUSIC_PALETTES } from "../../lib/musicPalettes.js";
@@ -51,7 +52,7 @@
 
   // Pre-extract variables for display swatches
   function getThemeColors(id) {
-    if (id === "random") return [];
+    if (id === "random" || id === "auto") return [];
     const t = themesData[id];
     if (!t || !t.variables) return [];
     return [
@@ -147,6 +148,13 @@
             {#if theme.id === "random"}
               <div class="theme-swatch-box random-swatch">
                 <Shuffle size={20} class="text-white/70" />
+              </div>
+            {:else if theme.id === "auto"}
+              <div
+                class="theme-swatch-box random-swatch"
+                title="Daylight while the sun is up where you are, Default after sunset. Worked out from your time zone, with no location asked."
+              >
+                <SunMoon size={20} class="text-white/70" />
               </div>
             {:else}
               <div class="theme-swatch-box">

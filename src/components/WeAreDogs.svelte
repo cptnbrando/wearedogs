@@ -1185,7 +1185,7 @@
         {@const letters = toLetters(word.text.toUpperCase())}
         {@const wordColor = isFlagColors
           ? flagColors[wordIndex % flagColors.length]
-          : "white"}
+          : "rgb(var(--page-ink-rgb, 255, 255, 255))"}
         <h1 class="word" aria-label={word.text}>
           {#each letters as letter, i}
             <span
@@ -1279,14 +1279,14 @@
   .lang-display.paused {
     width: 270px;
     padding: 12px;
-    background: rgba(10, 10, 15, 0.45);
+    background: rgba(var(--page-shade-rgb, 10, 10, 15), 0.45);
     backdrop-filter: blur(12px) saturate(160%);
     -webkit-backdrop-filter: blur(12px) saturate(160%);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(var(--page-ink-rgb, 255, 255, 255), 0.08);
     border-radius: 12px;
     box-shadow:
       0 12px 36px rgba(0, 0, 0, 0.5),
-      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      inset 0 1px 0 rgba(var(--page-ink-rgb, 255, 255, 255), 0.05);
   }
 
   @media (max-width: 480px) {
@@ -1349,7 +1349,7 @@
     font-size: 0.8rem;
     font-weight: 500;
     letter-spacing: 0.04em;
-    color: rgba(255, 255, 255, 0.4);
+    color: rgba(var(--page-ink-rgb, 255, 255, 255), 0.4);
     transition:
       all 0.3s ease,
       color 0.1s ease,
@@ -1376,7 +1376,7 @@
   .lang-display.paused .lang-name {
     font-size: 0.8rem;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.95);
+    color: rgba(var(--page-ink-rgb, 255, 255, 255), 0.95);
   }
 
   .live-stats {
@@ -1394,7 +1394,7 @@
     align-items: center;
     gap: 3px;
     font-size: 0.7rem;
-    color: rgba(255, 255, 255, 0.85);
+    color: rgba(var(--page-ink-rgb, 255, 255, 255), 0.85);
     font-family: monospace;
   }
 
@@ -1405,12 +1405,12 @@
 
   .stat-lbl {
     font-weight: 500;
-    color: rgba(255, 255, 255, 0.45);
+    color: rgba(var(--page-ink-rgb, 255, 255, 255), 0.45);
   }
 
   .stat-val {
     font-weight: 700;
-    color: rgba(255, 255, 255, 0.95);
+    color: rgba(var(--page-ink-rgb, 255, 255, 255), 0.95);
     transition:
       color 0.3s ease,
       text-shadow 0.3s ease;
@@ -1436,10 +1436,10 @@
   .stat-bar-container {
     width: 100%;
     height: 4px;
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(var(--page-ink-rgb, 255, 255, 255), 0.08);
     border-radius: 2px;
     overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(var(--page-ink-rgb, 255, 255, 255), 0.12);
     box-shadow: 0 0 6px rgba(0, 0, 0, 0.5);
   }
 
@@ -1473,7 +1473,7 @@
 
   .pct-label {
     font-size: 0.45rem;
-    color: rgba(255, 255, 255, 0.4);
+    color: rgba(var(--page-ink-rgb, 255, 255, 255), 0.4);
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }
@@ -1483,11 +1483,11 @@
     gap: 2px;
     text-align: right;
     font-size: 0.55rem;
-    color: rgba(255, 255, 255, 0.3);
+    color: rgba(var(--page-ink-rgb, 255, 255, 255), 0.3);
   }
 
   .rates-container .comma {
-    color: rgba(255, 255, 255, 0.2);
+    color: rgba(var(--page-ink-rgb, 255, 255, 255), 0.2);
   }
 
   .stat-sub-info span.highlight-green {
@@ -1519,7 +1519,7 @@
   /* ── Metadata slide-out Panel ── */
   .lang-meta {
     margin-top: 8px;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    border-top: 1px solid rgba(var(--page-ink-rgb, 255, 255, 255), 0.06);
     padding-top: 8px;
     display: flex;
     flex-direction: column;
@@ -1539,7 +1539,7 @@
     font-weight: 700;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.3);
+    color: rgba(var(--page-ink-rgb, 255, 255, 255), 0.3);
     font-family:
       system-ui,
       -apple-system,
@@ -1549,7 +1549,7 @@
   .meta-value {
     font-size: 0.68rem;
     font-weight: 400;
-    color: rgba(255, 255, 255, 0.65);
+    color: rgba(var(--page-ink-rgb, 255, 255, 255), 0.65);
     font-family:
       system-ui,
       -apple-system,
@@ -1581,7 +1581,7 @@
     font-size: clamp(0.6rem, 1.5vw, 0.8rem);
     font-weight: 400;
     font-style: italic;
-    color: rgba(255, 255, 255, 0.35);
+    color: rgba(var(--page-ink-rgb, 255, 255, 255), 0.35);
     text-align: center;
     letter-spacing: 0.06em;
     font-family:
@@ -1632,7 +1632,7 @@
     line-height: 1.05;
     gap: 0.04em;
     text-transform: uppercase;
-    color: white;
+    color: rgb(var(--page-ink-rgb, 255, 255, 255));
     white-space: nowrap;
     cursor: pointer;
   }
@@ -1748,10 +1748,10 @@
     right: 0.75rem;
     z-index: 100;
     pointer-events: none;
-    color: rgba(255, 255, 255, 0.85);
-    background: rgba(0, 0, 0, 0.6);
+    color: rgba(var(--page-ink-rgb, 255, 255, 255), 0.85);
+    background: rgba(var(--page-shade-rgb, 0, 0, 0), 0.6);
     backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(var(--page-ink-rgb, 255, 255, 255), 0.15);
     width: 3.2rem;
     height: 3.2rem;
     border-radius: 50%;
@@ -1760,7 +1760,7 @@
     justify-content: center;
     box-shadow:
       0 10px 24px rgba(0, 0, 0, 0.5),
-      inset 0 -1px 0 rgba(255, 255, 255, 0.1);
+      inset 0 -1px 0 rgba(var(--page-ink-rgb, 255, 255, 255), 0.1);
     transform-origin: top center;
     animation: bookmarkFlash 0.8s cubic-bezier(0.19, 1, 0.22, 1) forwards;
   }
@@ -1775,8 +1775,8 @@
     font-weight: 800;
     line-height: 1;
     font-family: "Outfit", "Inter", system-ui, sans-serif;
-    color: rgba(255, 255, 255, 0.95);
-    text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+    color: rgba(var(--page-ink-rgb, 255, 255, 255), 0.95);
+    text-shadow: 0 0 10px rgba(var(--page-ink-rgb, 255, 255, 255), 0.3);
   }
 
   @keyframes bookmarkFlash {
@@ -1838,11 +1838,11 @@
     flex-direction: column;
     align-items: center;
     gap: 12px;
-    background: rgba(10, 10, 15, 0.7);
+    background: rgba(var(--page-shade-rgb, 10, 10, 15), 0.7);
     backdrop-filter: blur(20px) saturate(180%);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    border-top: 1px solid rgba(var(--page-ink-rgb, 255, 255, 255), 0.08);
+    border-bottom: 1px solid rgba(var(--page-ink-rgb, 255, 255, 255), 0.08);
     padding: 20px 0;
     box-shadow:
       0 -15px 35px rgba(0, 0, 0, 0.6),
@@ -1867,7 +1867,7 @@
     font-weight: 700;
     letter-spacing: 0.16em;
     text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.45);
+    color: rgba(var(--page-ink-rgb, 255, 255, 255), 0.45);
     font-family: monospace;
   }
 
@@ -1918,7 +1918,7 @@
     height: 17px;
     border-radius: 4px;
     overflow: hidden;
-    border: 1.5px solid rgba(255, 255, 255, 0.18);
+    border: 1.5px solid rgba(var(--page-ink-rgb, 255, 255, 255), 0.18);
     box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
     transition:
       border-color 0.3s ease,
@@ -1926,7 +1926,7 @@
   }
 
   .scroller-item.active .scroller-flag-pill {
-    border-color: rgba(255, 255, 255, 0.7);
+    border-color: rgba(var(--page-ink-rgb, 255, 255, 255), 0.7);
     box-shadow: 0 0 15px var(--flag-color);
   }
 
@@ -1939,19 +1939,19 @@
     font-size: 1rem;
     font-weight: 800;
     letter-spacing: 0.05em;
-    color: rgba(255, 255, 255, 0.85);
+    color: rgba(var(--page-ink-rgb, 255, 255, 255), 0.85);
     font-family: monospace;
     line-height: 1;
   }
 
   .scroller-item.active .scroller-lang-code {
-    color: #ffffff;
-    text-shadow: 0 0 12px rgba(255, 255, 255, 0.4);
+    color: rgb(var(--page-ink-rgb, 255, 255, 255));
+    text-shadow: 0 0 12px rgba(var(--page-ink-rgb, 255, 255, 255), 0.4);
   }
 
   .scroller-lang-name {
     font-size: 0.65rem;
-    color: rgba(255, 255, 255, 0.4);
+    color: rgba(var(--page-ink-rgb, 255, 255, 255), 0.4);
     text-overflow: ellipsis;
     white-space: nowrap;
     overflow: hidden;
@@ -1964,15 +1964,15 @@
   }
 
   .scroller-item.active .scroller-lang-name {
-    color: rgba(255, 255, 255, 0.9);
+    color: rgba(var(--page-ink-rgb, 255, 255, 255), 0.9);
   }
 
   .scroller-indicator {
-    color: rgba(255, 255, 255, 0.85);
+    color: rgba(var(--page-ink-rgb, 255, 255, 255), 0.85);
     font-size: 0.75rem;
     margin-top: 2px;
     animation: pulseIndicator 1.5s infinite ease-in-out;
-    text-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
+    text-shadow: 0 0 8px rgba(var(--page-ink-rgb, 255, 255, 255), 0.4);
   }
 
   @keyframes pulseIndicator {
