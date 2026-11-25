@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1795608620,
+    "firstCommitTimestamp": 1795609318,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 258857
+    "averageLinesAltered": 258870
   },
   "entries": [
     {
       "version": "1.0.3",
       "name": "Master",
       "date": "2026-11-25",
-      "timestamp": 1795608651,
+      "timestamp": 1795609349,
       "commits": [
         {
-          "hash": "04a088a",
-          "message": "Merge pull request #95 from cptnbrando/ai-november2026/one-player-across-tabs",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/04a088aa443997837698d6674136ca2df07252b5",
-          "timestamp": 1795608620,
-          "linesChanged": 258857
+          "hash": "d5291e9",
+          "message": "Merge pull request #96 from cptnbrando/ai-november2026/reload-replaced-song",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/d5291e96004e0b3167b4c4180f353333c8d9ac49",
+          "timestamp": 1795609318,
+          "linesChanged": 258870
         }
       ]
     },
