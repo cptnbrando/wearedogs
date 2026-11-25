@@ -22,6 +22,7 @@
     Minimize2,
     Share2,
     Download,
+    Cable,
     Check,
     AlertTriangle,
     Diamond,
@@ -33,6 +34,7 @@
   import { playerLibrary } from "../data/music/tracks.js";
   import { downloadChoice } from "../lib/trackDownload.js";
   import { musicCatalog, libraryWithCatalog } from "../lib/musicCatalog.svelte.js";
+  import { tether } from "../lib/tether.svelte.js";
   import { settingsManager } from "../lib/settingsManager.svelte.js";
   import { VisualizerEngine } from "../lib/visualizer/VisualizerEngine.js";
   import DogsLogo from "./DogsLogo.svelte";
@@ -323,6 +325,16 @@
   let artistTextWidth = $state(0);
   let albumContainerWidth = $state(0);
   let albumTextWidth = $state(0);
+
+  // The tether icon's explanation, opened by a tap (a touch screen has no hover)
+  const TETHER_REMOTE = "This device is the remote: the sound is on the other one.";
+  const TETHER_SPEAKER = "Both players are in step.";
+  const TETHER_ABOUT =
+    "It stays on until you close this window, disconnect in Air Train, or nothing happens for 10 minutes.";
+  let tetherHintOpen = $state(false);
+  let tetherHint = $derived(
+    `Tethered to ${tether.peerName || "your other device"}. ${audioCore.masterIsRemote ? TETHER_REMOTE : TETHER_SPEAKER} ${TETHER_ABOUT}`,
+  );
 
   let copiedTrackId = $state(null);
   let copyTimeout = null;
@@ -1093,6 +1105,26 @@
                       <Download size={12} />
                     </button>
                   {/if}
+                  {#if tether.linked}
+                    <span class="player-tether">
+                      <button
+                        class="player-tether-btn"
+                        onclick={(e) => {
+                          e.stopPropagation();
+                          tetherHintOpen = !tetherHintOpen;
+                        }}
+                        onblur={() => (tetherHintOpen = false)}
+                        title={tetherHint}
+                        aria-label={tetherHint}
+                        aria-expanded={tetherHintOpen}
+                      >
+                        <Cable size={12} />
+                      </button>
+                      {#if tetherHintOpen}
+                        <span class="player-tether-hint" role="status">{tetherHint}</span>
+                      {/if}
+                    </span>
+                  {/if}
                 </div>
                 <div
                   class="scroll-container"
@@ -1233,9 +1265,7 @@
                 <button
                   class="ctrl ctrl-sm"
                   class:active-ctrl={audioCore.repeatMode > 0}
-                  onclick={() => {
-                    audioCore.repeatMode = (audioCore.repeatMode + 1) % 4;
-                  }}
+                  onclick={() => audioCore.cycleRepeat()}
                   aria-label="Repeat"
                   title={audioCore.repeatMode === 1
                     ? "Repeat: all"

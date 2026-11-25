@@ -8,6 +8,7 @@
 - **Target Engine**: When explicitly asked, the `Swarm-Coordinator` must execute `git checkout -b ai-[currentmonth]/[task-name]` from a clean master branch. If not explicitly asked to make separate branches, or to accomplish multiple tasks, complete work on the currently checked out branch.
 - **Transpilation Guard**: Every file edited must adhere to the Potato Target (Chrome 40+ compatibility via transpile steps).
 - **Nobody is allowed to merge branches, or any code, or anything into master, ever. You can push to any branch, and create new branches, and merge other branches, but never touch master/main branch.**
+- **The one exception: when the owner gives an explicit instruction for it in the conversation, an agent may merge or push to master. The instruction covers that conversation only, and only finished, checked work. Without it, the rule above stands.**
 
 ### 1. Structure & Control Flow
 * SINGLE-LINE FUNCTIONS: If a function can be written in one line, it should not be isolated as a function. Inline it or refactor.
@@ -56,7 +57,7 @@ Every single UI component generated MUST contain explicit Tailwind breakpoint pr
 - If a script is creating a dynamicly changing file, such as changelog.json for the changelog app, make sure that it is added to .gitignore.
 - CRITICAL: Don't use runes by default, they should be a reserved feature. They are too performance heavy.
 
-# ABSOLUTELY CRITICAL: NEVER TOUCH THE GIT MASTER BRANCH OR THE MAIN BRANCH. NEVER EVER EVER. IT MUST BE LEFT EXACTLY AS YOU FOUND IT. YOU MAY CREATE PRs TO MERGE INTO MASTER/MAIN.
+# ABSOLUTELY CRITICAL: NEVER TOUCH THE GIT MASTER BRANCH OR THE MAIN BRANCH. NEVER EVER EVER. IT MUST BE LEFT EXACTLY AS YOU FOUND IT. YOU MAY CREATE PRs TO MERGE INTO MASTER/MAIN. THE ONLY EXCEPTION IS THE OWNER'S EXPLICIT INSTRUCTION IN THE CONVERSATION (SEE CORE ORCHESTRATION INSTRUCTIONS).
 
 # ABSOLUTELY CRITICAL: ALWAYS CREATE STYLES FOR MOBILE LANDSCAPE, MOBILE PORTRAIT, TABLET LANDSCAPE, TABLET PORTRAIT, DESKTOP LANDSCAPE, DESKTOP PORTRAIT, TV, AND ULTRA-WIDE DISPLAYS. FOLLOW THE STYLING GUIDELINES ABOVE TO MINIMIZE CROPPED OUT CONTENT AND INACCESSIBLE ELEMENTS ACROSS ALL DEVICES. THE CHANGE IS INCOMPLETE IF IT DOES NOT ACCOUNT FOR ALL OF THESE VIEWPORTS. TAILWINDCSS IS YOUR BEST FRIEND FOR THIS.
 

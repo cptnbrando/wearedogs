@@ -524,6 +524,48 @@
   }
 }
 
+// The tether icon (src/lib/tether.svelte.js): two devices sharing this player.
+// Same badge as share and download, in the "live" green. Its explanation
+// floats above it, so opening it moves nothing.
+.player-tether {
+  position: relative;
+  display: flex;
+  flex-shrink: 0;
+}
+
+.player-tether-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: $bg-input-dark;
+  border: 1px solid $color-neon-green;
+  color: $color-neon-green;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.player-tether-hint {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 240px;
+  max-width: 70vw;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: $bg-app-dark;
+  border: 1px solid $color-neon-green;
+  color: $color-blog-ink-strong;
+  font-size: 0.7rem;
+  line-height: 1.4;
+  text-align: left;
+  z-index: 20;
+  pointer-events: none;
+}
+
 .tr-download-btn.downloading,
 .player-download-btn.downloading {
   animation: download-pulse 1s ease-in-out infinite;

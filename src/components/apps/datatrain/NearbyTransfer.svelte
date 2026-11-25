@@ -1,8 +1,8 @@
 <script>
   import { onMount, tick } from 'svelte';
   import QRCode from 'qrcode';
-  import { ArrowUpRight, Link, Copy, RefreshCw, Monitor, Smartphone, Check, X, Plus, Send, Radio, ClipboardPaste, Info } from 'lucide-svelte';
-  import { TransferSession } from './transferSession.js';
+  import { ArrowUpRight, Link, Copy, RefreshCw, Monitor, Smartphone, Check, X, Plus, Send, Radio, ClipboardPaste, Info, Cable } from 'lucide-svelte';
+  import { tether } from '../../../lib/tether.svelte.js';
   import { createPairingLink, parsePairingLink, takePairingLink } from './pairingLink.js';
   import { copyText } from '../../../lib/clipboard.js';
   import TransferList from './TransferList.svelte';
@@ -20,8 +20,14 @@
   const HELP_POINTS = [
     'Works on different networks too. If it won\'t connect, turn on your phone\'s hotspot and join your laptop to it.',
     'Up to 100 MB per file, and 200 MB waiting in your inbox.',
-    'Save files before you leave. Closing or refreshing the page ends the session.',
+    'You can leave Air Train and come back: the connection and your files stay while this window is open, for up to 10 minutes of nothing happening.',
+    'Save files before you close or refresh the page. That ends the session.',
   ];
+  const TETHER_ON = 'Tethered';
+  const TETHER_WAITING = 'Tether: turn it on there too';
+  const TETHER_ASKED = 'Tether asked for: turn on';
+  const TETHER_OFF = 'Tether';
+  const TETHER_HINT = 'Tether mode: dogs.red can share more between these two devices, starting with the music player. Play, pause, skip and shuffle stay in step, and this device can work as the remote. It stays on until you close this window, disconnect, or nothing happens for 10 minutes. Both devices have to turn it on.';
   const QR_OPTIONS = { width: 264, margin: 4, errorCorrectionLevel: 'M' };
   const STATUS_LABELS = {
     idle: 'Ready to pair', starting: 'Preparing your connection…', waiting: 'Waiting for your other device',
@@ -61,15 +67,17 @@
     canPaste = !!(navigator.clipboard && navigator.clipboard.readText);
     canShareFiles = supportsFileShare();
     canCopyImages = supportsImageCopy();
-    session = new TransferSession({ onChange: next => { if (!disposed) state = next; } });
+    // The session lives in the tether, so leaving Air Train does not hang up
+    const held = tether.open(next => { if (!disposed) state = next; });
+    session = held.session;
     const invite = takePairingLink() || parsePairingLink(location.hash);
     if (invite) run(() => session.join(invite.code, invite.secret));
-    else run(() => session.host());
+    else if (!held.resumed) run(() => session.host());
     window.addEventListener('hashchange', joinUpdatedLink);
     return () => {
       disposed = true;
       window.removeEventListener('hashchange', joinUpdatedLink);
-      session.destroy();
+      tether.close();
     };
   });
 
@@ -209,6 +217,7 @@
   <header class="dt-air-header">
     <div class="dt-heading"><Radio size={19} aria-hidden="true" /><h2>Air Train</h2><span>Files & text. Both ways.</span></div>
     <div class="dt-connection" class:dt-online={connected} role="status"><i></i>{STATUS_LABELS[state.status] || state.status}</div>
+    {#if connected && tether.available}<button type="button" class="dt-tether" class:dt-tether-on={tether.linked} class:dt-tether-asking={tether.on !== tether.peerOn} aria-pressed={tether.on} title={TETHER_HINT} aria-label={TETHER_HINT} onclick={() => tether.setOn(!tether.on)}><Cable size={15} aria-hidden="true" /><span>{tether.on && tether.peerOn ? TETHER_ON : tether.on ? TETHER_WAITING : tether.peerOn ? TETHER_ASKED : TETHER_OFF}</span></button>{/if}
     {#if connected}<button class="dt-quiet dt-disconnect" onclick={() => session.disconnect()}>Disconnect</button>{/if}
     {#if !connected && state.items.length}<button class="dt-quiet dt-disconnect" onclick={restart}>Clear session & reconnect</button>{/if}
   </header>
@@ -262,7 +271,7 @@
       <div class="dt-panes">
         <section class="dt-pane" class:dt-mobile-hidden={mobilePane !== 'sent'} aria-label="Outgoing transfers">
           <div class="dt-pane-title"><div><Monitor size={18} /><h3>This device</h3></div><span>{sentItems.length} sent / queued</span></div>
-          <TransferList items={sentItems} direction="sent" onCopy={(text) => copy(text, 'Text copied.')} onCancel={(id) => run(() => session.cancelTransfer(id))} onRemove={(id) => session.removeItem(id)} />
+          <TransferList items={sentItems} direction="sent" canRetry={(item) => connected && session.canRetry(item.id)} onRetry={(id) => run(() => session.retryTransfer(id))} onCopy={(text) => copy(text, 'Text copied.')} onCancel={(id) => run(() => session.cancelTransfer(id))} onRemove={(id) => session.removeItem(id)} />
         </section>
         <section class="dt-pane" class:dt-mobile-hidden={mobilePane !== 'received'} aria-label="Incoming transfers">
           <div class="dt-pane-title"><div><Smartphone size={18} /><h3>{state.peerName || 'Other device'}</h3></div><span>{receivedItems.length} received</span></div>
