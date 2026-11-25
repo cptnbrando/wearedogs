@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1795413174,
+    "firstCommitTimestamp": 1795578959,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 256885
+    "averageLinesAltered": 256867
   },
   "entries": [
     {
       "version": "1.0.3",
       "name": "Master",
-      "date": "2026-11-23",
-      "timestamp": 1795413138,
+      "date": "2026-11-25",
+      "timestamp": 1795578990,
       "commits": [
         {
-          "hash": "c6ee798",
-          "message": "demos",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/c6ee798ba7c1741b6dd1d59974f69b1732a8b7ca",
-          "timestamp": 1795413174,
-          "linesChanged": 256885
+          "hash": "e1484e1",
+          "message": "Merge pull request #84 from cptnbrando/ai-november2026/hide-forty-from-gallery",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/e1484e161b90a435d429e3d39b1e2f87ed2701f8",
+          "timestamp": 1795578959,
+          "linesChanged": 256867
         }
       ]
     },
