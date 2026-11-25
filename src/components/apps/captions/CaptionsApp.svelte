@@ -9,7 +9,7 @@
    * panels out and owns the keyboard.
    */
   import { onDestroy } from "svelte";
-  import { ListMusic, Hand, FolderOpen, X } from "lucide-svelte";
+  import { ListMusic, Hand, AudioLines, FolderOpen, X } from "lucide-svelte";
   import { CaptionsMedia } from "./captionsMedia.svelte.js";
   import { CaptionsProject } from "./captionsProject.svelte.js";
   import { KIND_FILE, KIND_TRACK } from "./captionsStore.js";
@@ -18,22 +18,25 @@
   import CaptionsTransport from "./CaptionsTransport.svelte";
   import CaptionsLines from "./CaptionsLines.svelte";
   import CaptionsTap from "./CaptionsTap.svelte";
+  import CaptionsTranscribe from "./CaptionsTranscribe.svelte";
   import CaptionsOutput from "./CaptionsOutput.svelte";
   import "./captions.scss";
 
   const TAB_LINES = "lines";
   const TAB_TAP = "tap";
+  const TAB_TRANSCRIBE = "transcribe";
   const TAB_FILES = "files";
   /** The tools shown beside the lines. On small screens the lines are a tab too. */
   const TOOLS = [
     { id: TAB_TAP, label: "Tap along", icon: Hand },
+    { id: TAB_TRANSCRIBE, label: "Transcribe", icon: AudioLines },
     { id: TAB_FILES, label: "Files", icon: FolderOpen },
   ];
   const NUDGE_S = 0.01;
   const BIG_NUDGE_S = 0.05;
   const TYPING_TAGS = ["INPUT", "TEXTAREA", "SELECT"];
   const BUTTON_TAG = "BUTTON";
-  const NAV_BUTTON = "cap-nav-btn flex flex-1 flex-row items-center justify-center gap-1 px-1 py-2 text-[0.625rem] sm:py-1 sm:text-xs md:flex-none md:flex-col md:px-3 md:py-3 xl:text-sm 2xl:px-5 2xl:py-5 2xl:text-lg";
+  const NAV_BUTTON = "cap-nav-btn flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-0 py-1 text-[0.625rem] sm:flex-row sm:gap-1 sm:text-xs md:flex-none md:flex-col md:px-3 md:py-3 xl:text-sm 2xl:px-5 2xl:py-5 2xl:text-lg";
 
   const media = new CaptionsMedia();
   const project = new CaptionsProject();
@@ -174,6 +177,8 @@
       <section class="cap-tools min-h-0 min-w-0 p-2 md:p-3 2xl:p-5">
         {#if tool === TAB_TAP}
           <CaptionsTap {media} {project} />
+        {:else if tool === TAB_TRANSCRIBE}
+          <CaptionsTranscribe {media} {project} />
         {:else}
           <CaptionsOutput {project} />
         {/if}

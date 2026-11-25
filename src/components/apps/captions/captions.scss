@@ -30,6 +30,11 @@ $ink: var(--color-text, #ffffff);
   color: $color-neon-green;
 }
 
+.cap-link {
+  color: $color-captions;
+  text-decoration: underline;
+}
+
 .cap-heading {
   margin: 0;
   font-weight: 700;
