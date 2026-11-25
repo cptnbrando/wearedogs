@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1795607715,
+    "firstCommitTimestamp": 1795608620,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 258818
+    "averageLinesAltered": 258857
   },
   "entries": [
     {
       "version": "1.0.3",
       "name": "Master",
       "date": "2026-11-25",
-      "timestamp": 1795607744,
+      "timestamp": 1795608651,
       "commits": [
         {
-          "hash": "f9a6f06",
-          "message": "Merge pull request #94 from cptnbrando/ai-november2026/air-train-shrink",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/f9a6f063332285decd8ed417b1cacfa7e3a5ee1a",
-          "timestamp": 1795607715,
-          "linesChanged": 258818
+          "hash": "04a088a",
+          "message": "Merge pull request #95 from cptnbrando/ai-november2026/one-player-across-tabs",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/04a088aa443997837698d6674136ca2df07252b5",
+          "timestamp": 1795608620,
+          "linesChanged": 258857
         }
       ]
     },
