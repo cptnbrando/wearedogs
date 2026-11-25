@@ -10,7 +10,8 @@ env.useBrowserCache = true;
 let transcriber = null;
 
 self.onmessage = async (e) => {
-  const { type, pcmData } = e.data;
+  // timestamps: also answer with when each phrase is said (the Captions app asks for this)
+  const { type, pcmData, timestamps } = e.data;
 
   if (type === "transcribe") {
     try {
@@ -32,10 +33,15 @@ self.onmessage = async (e) => {
       const result = await transcriber(pcmData, {
         chunk_length_s: 30,
         stride_length_s: 5,
+        return_timestamps: !!timestamps,
       });
 
       const fullText = result && result.text ? result.text.trim() : "No speech recognized.";
-      self.postMessage({ status: "complete", progress: 100, text: fullText });
+      // A phrase the model gave no end for (the last one, often) ends where the sound does
+      const chunks = timestamps && result && Array.isArray(result.chunks)
+        ? result.chunks.map((chunk) => ({ text: chunk.text, start: chunk.timestamp[0], end: chunk.timestamp[1] }))
+        : undefined;
+      self.postMessage({ status: "complete", progress: 100, text: fullText, chunks });
     } catch (err) {
       console.error("Worker transcription error:", err);
       self.postMessage({ status: "error", progress: 0, error: err.message || "Worker processing error" });
