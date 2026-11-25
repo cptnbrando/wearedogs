@@ -31,6 +31,9 @@ const LRC_WORD = /<(\d{1,3}):(\d{1,2}(?:[.:]\d{1,3})?)>\s*([^<]*)/g;
 const CUE_TIMES = /(\d{1,2}:)?(\d{1,2}):(\d{1,2})[.,](\d{1,3})\s*-->\s*(\d{1,2}:)?(\d{1,2}):(\d{1,2})[.,](\d{1,3})/;
 const TAGS = /<[^>]*>/g;
 
+/** A finished line stays on screen this long, unless the next one starts first. */
+const LINE_LINGER_S = 0.9;
+
 /** @typedef {{ w: [number, string][], e: number }} LyricLine */
 /** @typedef {{ v: number, lines: LyricLine[] }} Lyrics */
 
@@ -119,6 +122,18 @@ export function lineIndexAt(lines, seconds) {
     }
   }
   return found;
+}
+
+/**
+ * Which line shows at a moment: the last one that has started, until it has
+ * been over for a little while. Between verses the row is empty.
+ * @param {LyricLine[]} lines
+ * @param {number} seconds
+ * @returns {number} the line's index, or -1 for none
+ */
+export function lineOnScreen(lines, seconds) {
+  const index = lineIndexAt(lines, seconds);
+  return index >= 0 && seconds > lines[index].e + LINE_LINGER_S ? -1 : index;
 }
 
 /**

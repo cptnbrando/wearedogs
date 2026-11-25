@@ -14,10 +14,8 @@
   import { tick } from "svelte";
   import { audioCore } from "../../lib/AudioCore.svelte.js";
   import { lyrics, LYRIC_FONTS, LYRIC_SIZES } from "../../lib/lyrics.svelte.js";
-  import { lineIndexAt } from "../../lib/lyricsFormat.js";
+  import { lineOnScreen } from "../../lib/lyricsFormat.js";
 
-  /** A finished line stays this long, unless the next one starts first. */
-  const LINGER_S = 0.9;
   const MS_PER_SECOND = 1000;
   const SUNG_CLASS = "sung";
   const VARIANT_STAGE = "stage";
@@ -64,9 +62,7 @@
     const draw = () => {
       frame = requestAnimationFrame(draw);
       const now = songTime();
-      let index = lineIndexAt(current, now);
-      // Between verses the row is empty rather than stuck on the last line
-      if (index >= 0 && now > current[index].e + LINGER_S) index = -1;
+      const index = lineOnScreen(current, now);
       if (index !== lineIndex) {
         lineIndex = index;
         sungCount = 0;
@@ -159,14 +155,18 @@
     }
   }
 
-  // The big line over the full-screen visualizer.
+  // The big line over the full-screen visualizer. It is sized and placed by
+  // the frame it sits in (.stage-frame in MusicPanel, which may be tall, square
+  // or wide), so the recorded video (lib/lyricCanvas.js) matches the screen.
+  // Browsers without container units size it from the window instead.
   .lyric-stage {
     position: absolute;
-    left: 4vw;
-    right: 4vw;
+    left: 4%;
+    right: 4%;
     z-index: 15;
     text-align: center;
-    font-size: calc(clamp(1.375rem, 5.2vw, 4.5rem) * var(--lyric-scale));
+    font-size: calc(clamp(1rem, min(5.2vw, 12vh), 6rem) * var(--lyric-scale));
+    font-size: calc(clamp(1rem, min(5.2cqw, 12cqh), 6rem) * var(--lyric-scale));
     line-height: 1.3;
     font-weight: 800;
     color: rgb(var(--mp-ink-rgb, 255, 255, 255));
@@ -179,7 +179,7 @@
     }
 
     &.lyric-at-top {
-      top: 9vh;
+      top: 9%;
     }
 
     &.lyric-at-middle {
@@ -188,7 +188,7 @@
     }
 
     &.lyric-at-bottom {
-      bottom: 17vh;
+      bottom: 16%;
     }
   }
 
@@ -218,25 +218,10 @@
     }
   }
 
-  // Phones on their side: little height, so the stage line sits closer to the edges.
+  // Phones on their side: the controls take more of the height, so the bottom line sits higher.
   @media (max-height: 500px) {
-    .lyric-stage {
-      font-size: calc(clamp(1.125rem, 7vh, 2.5rem) * var(--lyric-scale));
-
-      &.lyric-at-top {
-        top: 6vh;
-      }
-
-      &.lyric-at-bottom {
-        bottom: 24vh;
-      }
-    }
-  }
-
-  // Televisions and very wide screens: the stage line grows with the room.
-  @media (min-width: 1536px) {
-    .lyric-stage {
-      font-size: calc(clamp(2.5rem, 4.4vw, 7rem) * var(--lyric-scale));
+    .lyric-stage.lyric-at-bottom {
+      bottom: 26%;
     }
   }
 

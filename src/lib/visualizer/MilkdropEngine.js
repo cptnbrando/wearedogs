@@ -78,6 +78,10 @@ export class MilkdropEngine {
   pool = null;
   /** The preset the last engine was showing: put back on as soon as its pack has loaded. */
   resume = "";
+  /** Called right after each frame is drawn, while its picture can still be copied (stageRecorder.js). */
+  onFrame = null;
+  /** Drawing pixels per page pixel. 0 follows the screen, up to MAX_PIXEL_RATIO; a recording asks for more. */
+  pixelRatio = 0;
   width = 0;
   height = 0;
 
@@ -148,7 +152,7 @@ export class MilkdropEngine {
 
   /** Matches the drawing size to the canvas's size on the page. */
   resize() {
-    const ratio = Math.min(window.devicePixelRatio || 1, MAX_PIXEL_RATIO);
+    const ratio = this.pixelRatio || Math.min(window.devicePixelRatio || 1, MAX_PIXEL_RATIO);
     const width = Math.max(1, Math.round(this.canvas.clientWidth * ratio));
     const height = Math.max(1, Math.round(this.canvas.clientHeight * ratio));
     if (width === this.width && height === this.height) return;
@@ -163,6 +167,7 @@ export class MilkdropEngine {
     if (this.destroyed) return;
     this.resize();
     this.visualizer.render();
+    if (this.onFrame) this.onFrame();
     this.animationFrameId = requestAnimationFrame(() => this.draw());
   }
 
