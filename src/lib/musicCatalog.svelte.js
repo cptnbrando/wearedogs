@@ -30,7 +30,7 @@ const TRUSTED_URL_PREFIXES = [
   "https://www.wearedogs.net/",
   "https://dogs.red/",
 ];
-const TEXT_FIELDS = ["title", "artist", "album", "genre", "dateAdded"];
+const TEXT_FIELDS = ["title", "artist", "album", "genre", "dateAdded", "released"];
 const URL_FIELDS = ["cover", "altCover", "src", "instrumental", "attrib"];
 /** `attrib` links to the artist's own site, so any https address is allowed there. */
 const ANY_HTTPS_FIELDS = ["attrib"];

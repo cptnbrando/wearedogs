@@ -1,5 +1,5 @@
 <script>
-  import { onMount, onDestroy, untrack } from "svelte";
+  import { onMount, onDestroy, untrack, tick } from "svelte";
   import * as THREE from "three";
   import {
     Play,
@@ -17,9 +17,9 @@
     ArrowLeft,
     Music,
     Guitar,
-    Waves,
-    Maximize2,
-    Minimize2,
+    Tv,
+    Maximize,
+    Speech,
     Share2,
     Download,
     Cable,
@@ -32,7 +32,7 @@
   import { goHome } from "../lib/goHome.js";
   import { musicLock } from "../lib/musicLock.svelte.js";
   import { onDoubleTap } from "../lib/doubleTap.js";
-  import { playerLibrary } from "../data/music/tracks.js";
+  import { playerLibrary, currentTrackId } from "../data/music/tracks.js";
   import { downloadChoice } from "../lib/trackDownload.js";
   import { musicCatalog, libraryWithCatalog } from "../lib/musicCatalog.svelte.js";
   import { tether } from "../lib/tether.svelte.js";
@@ -44,6 +44,13 @@
   import { PRESETS, NO_SIGNAL_PRESET } from "../lib/visualizer/presets.js";
   import { MilkdropEngine, milkdropSupported } from "../lib/visualizer/MilkdropEngine.js";
   import MilkdropControls from "./music/MilkdropControls.svelte";
+  import PresetList from "./music/PresetList.svelte";
+  import LyricLine from "./music/LyricLine.svelte";
+  import StrikeToggle from "./music/StrikeToggle.svelte";
+  import StageLyricControls from "./music/StageLyricControls.svelte";
+  import { presetDeck } from "../lib/visualizer/presetDeck.svelte.js";
+  import { lyrics } from "../lib/lyrics.svelte.js";
+  import { trackMonthYear } from "../lib/trackDate.js";
 
   import { fade } from "svelte/transition";
   import arigatoText from "./music/arigato.txt?raw";
@@ -63,7 +70,12 @@
     }
   }
 
-  let { isClosing = false, onClose, initialTrackId = null } = $props();
+  // depth takes part in TitlePage's history model: 1 = the player, 2 = the
+  // song list (phones) or the full-screen visualizer on top of it. Closing the
+  // player from there then goes back past both entries.
+  // initialTrackId is the song a /music/<id> link asked for: taken once, on
+  // mount, then cleared so reopening the player does not start it again.
+  let { isClosing = false, onClose, initialTrackId = $bindable(null), depth = $bindable(1) } = $props();
 
   // Tapping outside the panel only closes it on a double tap
   const handleBackdropTap = onDoubleTap(() => onClose());
@@ -93,17 +105,53 @@
     ? [{ id: MILKDROP_ID, name: "MilkDrop" }]
     : PRESETS;
 
-  let showVisualizer = $state(false);
+  const TV_KEY = "music_tv_v1";
+  const TV_ON = "on";
+  const TV_OFF = "off";
+  /** A second tap on the circle this soon after the first is a double tap. */
+  const DOUBLE_TAP_MS = 300;
+  /** Full screen: the controls fade this long after the last touch or move. */
+  const STAGE_IDLE_MS = 3200;
+  const TAB_TRACKS = "tracks";
+  const TAB_PRESETS = "presets";
+  const VIEW_MUSIC = "music";
+  const OVERLAY_DEPTH = 2;
+  const MOBILE_MAX_WIDTH = 640;
+
+  /** @returns {boolean} the TV button as the listener left it: on unless they switched it off */
+  function readTv() {
+    try {
+      return localStorage.getItem(TV_KEY) !== TV_OFF;
+    } catch {
+      return true;
+    }
+  }
+
+  let tvOn = $state(readTv());
   let activePresetIdx = $state(0);
   let isMilkdrop = $derived(VISUALIZERS[activePresetIdx].id === MILKDROP_ID);
-  let milkdropNames = $state([]);
-  let milkdropCurrent = $state("");
-  let milkdropAuto = $state(true);
   let isFullscreenVisualizer = $state(false);
   let canvasEl = $state(null);
+  let stageEl = $state(null);
+  let stageIdle = $state(false);
+  let stageIdleTimer = null;
+  let circleTapTimer = null;
+  let listTab = $state(TAB_TRACKS);
   let visualizerEngine = null;
-  let tracklistHistoryPushed = false;
+  let overlayPushed = false;
   let hasMusicPlayed = $state(false);
+  // The record is the visualizer whenever the TV is on. MilkDrop only needs
+  // the player's audio graph to exist; the plain shaders wait for a song.
+  let showVisualizer = $derived(tvOn && (isMilkdrop ? !!audioCore.analyser : hasMusicPlayed));
+
+  function setTv(on) {
+    tvOn = on;
+    try {
+      localStorage.setItem(TV_KEY, on ? TV_ON : TV_OFF);
+    } catch {
+      // Not kept: the choice lasts until the page closes
+    }
+  }
 
   let showArigatoModal = $state(false);
 
@@ -165,21 +213,6 @@
     return peaks;
   });
 
-  // If on mobile and kaleidoscope is turned on while tracks page is active, close tracks page.
-  // The tracklist read is untracked so this only reacts to the visualizer changing: opening
-  // the tracks page while the kaleidoscope is already on (track text tap) must not bounce it shut.
-  $effect(() => {
-    const isMobile = window.innerWidth <= 640;
-    if (
-      isMobile &&
-      showVisualizer &&
-      activePresetIdx === 0 &&
-      untrack(() => showMobileTracklist)
-    ) {
-      showMobileTracklist = false;
-    }
-  });
-
   // Track if music starts playing to flip hasMusicPlayed to true
   $effect(() => {
     if (audioCore.isPlaying) {
@@ -210,11 +243,9 @@
         visualizerEngine.start();
       } else if (analyser && audioCore.audioCtx) {
         // MilkDrop reads the sound itself, so it waits for the first song
-        const engine = new MilkdropEngine(canvasEl, analyser, audioCore.audioCtx, {
-          onPreset: (name) => (milkdropCurrent = name),
-          onNames: (names) => (milkdropNames = names),
-        });
-        engine.auto = untrack(() => milkdropAuto);
+        const engine = new MilkdropEngine(canvasEl, analyser, audioCore.audioCtx, presetDeck.listeners());
+        // Untracked: the listener changing shuffle or a heart must not rebuild the engine
+        untrack(() => presetDeck.attach(engine));
         visualizerEngine = engine;
         engine.start();
       }
@@ -222,10 +253,16 @@
 
     return () => {
       if (visualizerEngine) {
+        presetDeck.detach(visualizerEngine);
         visualizerEngine.destroy();
         visualizerEngine = null;
       }
     };
+  });
+
+  // The song playing brings its lyrics; the list of songs that have any is asked for once.
+  $effect(() => {
+    lyrics.load(currentTrack ? currentTrack.id : null);
   });
 
   // Manage Preset switches / shader changes (without destroying WebGL context)
@@ -237,35 +274,75 @@
     }
   });
 
-  // Sync tracklist state with browser history (back button closes tracklist)
+  // The phone's song list and the full-screen visualizer sit on top of the
+  // player, so the back button closes them first. They share one history
+  // entry, which carries the player's own view and a depth of 2: TitlePage
+  // reads both, and closing the player from here unwinds the whole way.
   $effect(() => {
-    if (showMobileTracklist) {
-      if (!history.state?.tracklistOpen && !tracklistHistoryPushed) {
-        history.pushState({ tracklistOpen: true }, "");
-        tracklistHistoryPushed = true;
-      }
-    } else {
-      if (tracklistHistoryPushed) {
-        history.back();
-        tracklistHistoryPushed = false;
-      }
-    }
-  });
-
-  onDestroy(() => {
-    // Clean up history state if modal closes while tracklist is open
-    if (tracklistHistoryPushed) {
+    const open = showMobileTracklist || isFullscreenVisualizer;
+    if (open === overlayPushed) return;
+    overlayPushed = open;
+    if (!open) {
       history.back();
-      tracklistHistoryPushed = false;
+      return;
     }
+    history.pushState({ ...(history.state || {}), view: VIEW_MUSIC, depth: OVERLAY_DEPTH, musicOverlay: true }, "");
+    depth = OVERLAY_DEPTH;
   });
 
   function handlePopState(e) {
-    if (!e.state?.tracklistOpen && showMobileTracklist) {
-      showMobileTracklist = false;
-      tracklistHistoryPushed = false;
-    }
+    if (!overlayPushed || e.state?.musicOverlay) return;
+    overlayPushed = false;
+    showMobileTracklist = false;
+    isFullscreenVisualizer = false;
   }
+
+  // Full screen: the browser's own full screen where it has one, and controls
+  // that fade once the listener stops touching.
+  function wakeStage() {
+    stageIdle = false;
+    clearTimeout(stageIdleTimer);
+    stageIdleTimer = setTimeout(() => (stageIdle = true), STAGE_IDLE_MS);
+  }
+
+  function enterFullscreen() {
+    setTv(true);
+    // The fader's smoke would hang over the picture: put it out, and the count starts again
+    resetFaderFx();
+    isFullscreenVisualizer = true;
+  }
+
+  function leaveFullscreen() {
+    // Leaving the browser's full screen first: its change event closes the stage
+    if (stageEl && document.fullscreenElement === stageEl) {
+      document.exitFullscreen().catch(() => (isFullscreenVisualizer = false));
+      return;
+    }
+    isFullscreenVisualizer = false;
+  }
+
+  const leaveOnDoubleTap = onDoubleTap(leaveFullscreen);
+
+  function handleStageTap(e) {
+    e.stopPropagation();
+    leaveOnDoubleTap(e);
+  }
+
+  $effect(() => {
+    const el = stageEl;
+    if (!el) return;
+    wakeStage();
+    if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
+    const onChange = () => {
+      if (!document.fullscreenElement) isFullscreenVisualizer = false;
+    };
+    document.addEventListener("fullscreenchange", onChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", onChange);
+      clearTimeout(stageIdleTimer);
+      if (document.fullscreenElement === el) document.exitFullscreen().catch(() => {});
+    };
+  });
 
   function handleWindowClick(e) {
     if (
@@ -452,12 +529,15 @@
     musicLock.revalidate();
     audioCore.init(library);
     musicCatalog.refresh();
-    if (initialTrackId) {
-      const idx = library.findIndex((t) => t.id === initialTrackId);
+    lyrics.refreshList();
+    const linkedTrackId = currentTrackId(initialTrackId);
+    initialTrackId = null;
+    if (linkedTrackId) {
+      const idx = library.findIndex((t) => t.id === linkedTrackId);
       if (idx !== -1) {
         audioCore.loadTrack(idx, true);
       } else {
-        pendingTrackId = initialTrackId;
+        pendingTrackId = linkedTrackId;
       }
     } else if (!audioCore.hasPickedRandomTrack) {
       audioCore.hasPickedRandomTrack = true;
@@ -491,22 +571,39 @@
     }
   }
 
+  // The circle (record, tape or visualizer): one tap opens the song list, two
+  // go full screen. The single tap waits a moment to see whether a second comes.
   function handleRecordClick() {
-    const isMobile = window.innerWidth <= 640;
-    if (isMobile) {
-      showMobileTracklist = true;
-    } else {
-      showVisualizer = !showVisualizer;
+    if (circleTapTimer) {
+      clearTimeout(circleTapTimer);
+      circleTapTimer = null;
+      enterFullscreen();
+      return;
     }
+    circleTapTimer = setTimeout(() => {
+      circleTapTimer = null;
+      openSongList();
+    }, DOUBLE_TAP_MS);
   }
 
-  // On mobile the title / artist / album text opens the tracklist too, same as
-  // the record. The share button lives in the same block, so only taps on the
+  // Phones open the list as its own page. Wider screens already show it, so
+  // there the song that is playing is brought into view.
+  function openSongList() {
+    listTab = TAB_TRACKS;
+    if (window.innerWidth <= MOBILE_MAX_WIDTH) {
+      showMobileTracklist = true;
+      return;
+    }
+    focusedTrackId = currentTrack.id;
+    tick().then(scrollFocusedTrackIntoView);
+  }
+
+  // The title / artist / album text opens the song list too, same as the
+  // circle. The share button lives in the same block, so only taps on the
   // text rows count.
   function handleTrackInfoClick(e) {
-    if (window.innerWidth > 640) return;
     if (!e.target.closest(".scroll-container")) return;
-    showMobileTracklist = true;
+    openSongList();
   }
 
   function toggleCrossfade() {
@@ -635,10 +732,8 @@
     };
   });
 
-  // Reset fail counts and clear meshes when track changes or leaving the player
-  $effect(() => {
-    const trackIdx = audioCore.currentTrackIndex;
-    const closing = isClosing;
+  // Puts the fader's sparks and smoke out and starts its fail count again
+  function resetFaderFx() {
     crossfadeFailCount = 0;
     hasSmokeStarted = false;
     if (fxScene) {
@@ -647,6 +742,13 @@
     }
     fxSparks = [];
     fxSmoke = [];
+  }
+
+  // Reset fail counts and clear meshes when track changes or leaving the player
+  $effect(() => {
+    const trackIdx = audioCore.currentTrackIndex;
+    const closing = isClosing;
+    resetFaderFx();
   });
 
   // The canvas is fixed over the whole viewport; the fx camera spans its CSS
@@ -888,47 +990,39 @@
                 class="vinyl-wrapper relative overflow-hidden"
                 class:deck-glitch={trackErrored}
               >
-                {#if showVisualizer && !isFullscreenVisualizer}
-                  <!-- Compact Visualizer Container -->
+                {#if showVisualizer}
+                  <!-- The record as a visualizer: the picture moves where the
+                       grooves were, and the label still turns in the middle.
+                       While it is full screen the canvas is over there. -->
                   <!-- svelte-ignore a11y_click_events_have_key_events -->
-                  <!-- svelte-ignore a11y_no_static_element_interactions -->
                   <div
-                    class="visualizer-container cursor-pointer"
-                    onclick={() => {
-                      isFullscreenVisualizer = true;
-                    }}
+                    class="visualizer-container viz-disc cursor-pointer"
+                    onclick={handleRecordClick}
+                    role="button"
+                    tabindex="0"
+                    aria-label="Open the song list. Double tap for full screen."
                   >
-                    {#key isMilkdrop}
-                      <canvas
-                        bind:this={canvasEl}
-                        class="visualizer-canvas"
-                        data-engine={isMilkdrop ? ENGINE_MILKDROP : ENGINE_SHADER}
-                      ></canvas>
-                    {/key}
-
-                    {#if !audioCore.isPlaying && !hasMusicPlayed}
-                      <div
-                        class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-10 animate-pulse"
-                      >
-                        <div
-                          class="bg-black/75 border border-red-500/30 px-3 py-1.5 rounded text-[10px] font-mono tracking-widest text-red-500 font-bold uppercase shadow-[0_0_15px_rgba(239,68,68,0.25)] select-none"
-                        >
-                          NO SIGNAL
-                        </div>
-                      </div>
+                    {#if !isFullscreenVisualizer}
+                      {#key isMilkdrop}
+                        <canvas
+                          bind:this={canvasEl}
+                          class="visualizer-canvas"
+                          data-engine={isMilkdrop ? ENGINE_MILKDROP : ENGINE_SHADER}
+                        ></canvas>
+                      {/key}
                     {/if}
-
-                    <!-- Subtle maximize icon on hover -->
-                    <div class="visualizer-hover-overlay">
-                      <Maximize2 size={16} class="text-white/70" />
+                    <div class="viz-label" class:spinning={isAnimating}>
+                      <img
+                        src={audioCore.fetchErrors[currentTrack.id] ||
+                        !currentTrack.cover
+                          ? ERROR_COVER
+                          : currentTrack.cover}
+                        alt={currentTrack.album}
+                        class="viz-art"
+                        onerror={handleCoverError}
+                      />
                     </div>
-                  </div>
-                {:else if showVisualizer && isFullscreenVisualizer}
-                  <!-- Placeholder keeping layout static when visualizer is fullscreen -->
-                  <div
-                    class="visualizer-container bg-[#050508]/40 border border-white/5 flex items-center justify-center"
-                  >
-                    <Maximize2 size={16} class="text-white/20" />
+                    <div class="viz-spindle"></div>
                   </div>
                 {:else}
                   <!-- Dynamic Deck Media Model -->
@@ -1235,6 +1329,9 @@
 
             <!-- Bottom block (Controls & Faders) - persistent on mobile -->
             <div class="player-controls-block">
+              <!-- The lyric line: one row, where the seek bar starts -->
+              <LyricLine />
+
               <!-- Seek bar -->
               <div class="progress-row">
                 <span class="ptime">{fmtTime(audioCore.currentTime)}</span>
@@ -1412,41 +1509,36 @@
                   </div>
                 {/if}
 
-                <!-- Visualizer Toggle Button & Preset Cycler -->
-                <div class="flex items-center gap-1.5">
-                  <button
-                    class="ctrl ctrl-xs"
-                    class:active-ctrl={showVisualizer}
-                    onclick={() => {
-                      showVisualizer = !showVisualizer;
-                    }}
-                    aria-label="Toggle Visualizer"
-                  >
-                    <Waves size={13} />
-                  </button>
-                  <button
-                    class="w-[90px] h-[20px] flex items-center justify-center rounded text-[9px] font-bold transition-all font-mono uppercase tracking-wider select-none cursor-pointer
-                      {showVisualizer
-                      ? 'bg-white/5 border border-white/10 text-white/70 hover:text-white hover:bg-white/10 hover:border-white/25 active:scale-95'
-                      : 'bg-transparent border border-white/5 text-white/20 hover:text-white/40 hover:border-white/10'}"
-                    onclick={() => {
-                      if (!showVisualizer) {
-                        showVisualizer = true;
-                      } else if (isMilkdrop) {
-                        // One engine, hundreds of presets: the button deals another
-                        visualizerEngine?.random?.();
-                      } else {
-                        activePresetIdx =
-                          (activePresetIdx + 1) % VISUALIZERS.length;
-                      }
-                    }}
-                    title={showVisualizer
-                      ? "Click for another preset"
-                      : "Click to enable visualizer"}
-                  >
-                    {VISUALIZERS[activePresetIdx].name}
-                  </button>
-                </div>
+                <!-- TV: the visualizer, struck through when off. Full screen. Lyrics. -->
+                <StrikeToggle
+                  on={tvOn}
+                  accent
+                  label={tvOn ? "Visualizer: on" : "Visualizer: off"}
+                  onclick={() => setTv(!tvOn)}
+                >
+                  <Tv size={14} />
+                </StrikeToggle>
+                <button
+                  class="ctrl ctrl-xs"
+                  onclick={enterFullscreen}
+                  aria-label="Full screen"
+                  title="Full screen"
+                >
+                  <Maximize size={14} />
+                </button>
+                <StrikeToggle
+                  on={lyrics.shown}
+                  accent
+                  dim={!lyrics.has(currentTrack.id)}
+                  label={!lyrics.shown
+                    ? "Lyrics: off"
+                    : lyrics.has(currentTrack.id)
+                      ? "Lyrics: on"
+                      : "Lyrics: on. This song has none yet."}
+                  onclick={() => lyrics.setPrefs({ shown: !lyrics.shown })}
+                >
+                  <Speech size={14} />
+                </StrikeToggle>
 
                 <!-- Volume controls wrapper -->
                 <div class="relative">
@@ -1486,13 +1578,35 @@
             </div>
 
             <div class="tl-header flex justify-between items-center gap-3">
-              <div class="flex items-center gap-2">
-                <List size={13} /><span>TRACKS</span>
-                <span class="tl-count">{sortedLibrary.length}</span>
+              <div class="flex items-center gap-1" role="tablist" aria-label="Songs or visualizer presets">
+                <button
+                  class="tl-tab"
+                  class:tl-tab-on={listTab === TAB_TRACKS}
+                  role="tab"
+                  aria-selected={listTab === TAB_TRACKS}
+                  onclick={() => (listTab = TAB_TRACKS)}
+                >
+                  <List size={13} /><span>TRACKS</span>
+                  <span class="tl-count">{sortedLibrary.length}</span>
+                </button>
+                {#if isMilkdrop}
+                  <button
+                    class="tl-tab"
+                    class:tl-tab-on={listTab === TAB_PRESETS}
+                    role="tab"
+                    aria-selected={listTab === TAB_PRESETS}
+                    onclick={() => (listTab = TAB_PRESETS)}
+                  >
+                    <Tv size={13} /><span>PRESETS</span>
+                    {#if presetDeck.names.length}
+                      <span class="tl-count">{presetDeck.names.length}</span>
+                    {/if}
+                  </button>
+                {/if}
               </div>
 
               <!-- Sorting selector dropdown -->
-              <div class="flex items-center gap-1.5 ml-auto">
+              <div class="flex items-center gap-1.5 ml-auto" class:invisible={listTab !== TAB_TRACKS}>
                 <span class="text-[9px] text-white/30 font-bold font-sans"
                   >SORT BY:</span
                 >
@@ -1511,7 +1625,10 @@
               </div>
             </div>
 
-            <div class="tracklist scroll-y">
+            {#if listTab === TAB_PRESETS}
+              <PresetList />
+            {/if}
+            <div class="tracklist scroll-y" class:hidden={listTab !== TAB_TRACKS}>
               {#each sortedLibrary as track, i}
                 <!-- svelte-ignore a11y_click_events_have_key_events -->
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -1562,7 +1679,7 @@
                       {/if}
                     </div>
                     <span class="tr-meta"
-                      >{track.artist} · {track.album} ({track.year || ""})</span
+                      >{track.artist} · {track.album}{trackMonthYear(track) ? ` (${trackMonthYear(track)})` : ""}</span
                     >
                   </div>
                   <div class="flex items-center gap-2 flex-shrink-0">
@@ -1629,41 +1746,47 @@
     </footer>
   </div>
 
-  {#if showVisualizer && isFullscreenVisualizer}
-    <!-- Fullscreen Visualizer Container -->
+  {#if isFullscreenVisualizer}
+    <!-- The stage: the visualizer over the whole screen, the lyric line on it.
+         Controls fade when nobody is touching; a double tap leaves. -->
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div
-      class="visualizer-container fullscreen cursor-pointer"
-      onclick={(e) => {
-        e.stopPropagation();
-        isFullscreenVisualizer = false;
-      }}
+      class="visualizer-container fullscreen"
+      class:stage-idle={stageIdle}
+      bind:this={stageEl}
+      onclick={handleStageTap}
+      onpointerdown={wakeStage}
+      onpointermove={wakeStage}
     >
-      {#key isMilkdrop}
-        <canvas
-          bind:this={canvasEl}
-          class="visualizer-canvas"
-          data-engine={isMilkdrop ? ENGINE_MILKDROP : ENGINE_SHADER}
-        ></canvas>
-      {/key}
-
-      {#if !audioCore.isPlaying && !hasMusicPlayed}
-        <div
-          class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-10 animate-pulse"
-        >
-          <div
-            class="bg-black/75 border border-red-500/30 px-4 py-2 rounded text-[12px] font-mono tracking-widest text-red-500 font-bold uppercase shadow-[0_0_20px_rgba(239,68,68,0.3)] select-none"
-          >
-            NO SIGNAL
-          </div>
-        </div>
+      {#if showVisualizer}
+        {#key isMilkdrop}
+          <canvas
+            bind:this={canvasEl}
+            class="visualizer-canvas"
+            data-engine={isMilkdrop ? ENGINE_MILKDROP : ENGINE_SHADER}
+          ></canvas>
+        {/key}
+      {:else}
+        <!-- No picture to draw here (the plain shaders before a song): the cover fills in -->
+        <img
+          src={currentTrack.cover || ERROR_COVER}
+          alt=""
+          class="stage-cover"
+          onerror={handleCoverError}
+        />
       {/if}
+
+      <LyricLine variant="stage" />
 
       <div
         class="visualizer-overlay flex-col items-stretch sm:flex-row sm:items-end"
         onclick={(e) => e.stopPropagation()}
       >
+        <StageLyricControls
+          hasLyrics={lyrics.has(currentTrack.id)}
+          onExit={leaveFullscreen}
+        />
         {#if VISUALIZERS.length > 1}
         <div
           class="flex items-center gap-1 self-start bg-black/60 backdrop-blur-md rounded-lg p-1 border border-white/10 sm:self-auto"
@@ -1682,19 +1805,7 @@
         </div>
         {/if}
         {#if isMilkdrop}
-          <MilkdropControls
-            current={milkdropCurrent}
-            names={milkdropNames}
-            auto={milkdropAuto}
-            onPrevious={() => visualizerEngine?.previous?.()}
-            onNext={() => visualizerEngine?.next?.()}
-            onRandom={() => visualizerEngine?.random?.()}
-            onPick={(name) => visualizerEngine?.loadPreset?.(name)}
-            onToggleAuto={() => {
-              milkdropAuto = !milkdropAuto;
-              visualizerEngine?.setAuto?.(milkdropAuto);
-            }}
-          />
+          <MilkdropControls />
         {/if}
       </div>
     </div>
@@ -1950,20 +2061,114 @@
     z-index: 2000;
   }
 
-  .visualizer-hover-overlay {
-    position: absolute;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    transition: opacity 0.22s ease;
-    border-radius: 50%;
+  /* The stage's controls fade once nobody is touching, and the pointer with them */
+  .visualizer-overlay {
+    transition: opacity 0.45s ease;
   }
 
-  .visualizer-container:hover .visualizer-hover-overlay {
-    opacity: 1;
+  .visualizer-container.stage-idle {
+    cursor: none;
+  }
+
+  .visualizer-container.stage-idle .visualizer-overlay {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .stage-cover {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: blur(28px) brightness(0.5);
+    transform: scale(1.15);
+  }
+
+  /* The record's label, kept in the middle of the visualizer and still turning */
+  .viz-label {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 24%;
+    height: 24%;
+    margin: -12% 0 0 -12%;
+    border-radius: 50%;
+    overflow: hidden;
+    z-index: 2;
+    border: 2px solid rgba(255, 255, 255, 0.14);
+    box-shadow:
+      0 0 0 1px rgba(0, 0, 0, 0.8),
+      0 2px 14px rgba(0, 0, 0, 0.65);
+    animation: viz-label-spin 5s linear infinite;
+    animation-play-state: paused;
+  }
+
+  .viz-label.spinning {
+    animation-play-state: running;
+  }
+
+  .viz-art {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .viz-spindle {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 7px;
+    height: 7px;
+    margin: -3.5px 0 0 -3.5px;
+    border-radius: 50%;
+    background: rgba(5, 5, 8, 0.92);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.28);
+    z-index: 3;
+  }
+
+  @keyframes viz-label-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  /* TRACKS | PRESETS, in the list's header */
+  .tl-tab {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    color: rgba(255, 255, 255, 0.28);
+    cursor: pointer;
+    transition:
+      color 0.15s ease,
+      background 0.15s ease;
+  }
+
+  .tl-tab:hover {
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  .tl-tab-on,
+  .tl-tab-on:hover {
+    color: rgba(255, 255, 255, 0.85);
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .tl-tab .tl-count {
+    margin-left: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .viz-label {
+      animation: none;
+    }
   }
 
   /* ── DJ Crossfader Easter Egg Animations & FX ── */

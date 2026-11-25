@@ -249,7 +249,7 @@ export const fullLibrary = [
     public: true
   },
   {
-    id: "gta6-freestyle",
+    id: "gta6",
     title: "gta6 freestyle",
     artist: "DOGS",
     album: "DOGS RUN THE WORLD",
@@ -279,6 +279,17 @@ export const fullLibrary = [
     from: "/apps/blog/080726-toyota",
   },
 ];
+
+/** Ids that tracks used to have. A /music/<old id> link still opens the song. */
+export const RENAMED_TRACK_IDS = { "gta6-freestyle": "gta6" };
+
+/**
+ * @param {string | null} id - a track id from a link
+ * @returns {string | null} the id that track has today
+ */
+export function currentTrackId(id) {
+  return (id && RENAMED_TRACK_IDS[id]) || id;
+}
 
 /**
  * The library the player runs on: lockup tracks only once unlocked.

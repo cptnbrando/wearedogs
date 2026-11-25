@@ -9,6 +9,7 @@ import { bindMediaSession, syncMediaSession } from "./mediaSession.js";
 import { loadPeaks } from "./waveformPeaks.js";
 import { ShuffleQueue } from "./shuffleQueue.js";
 import { applySyncMessage } from "./playerSync.js";
+import { guardOutput } from "./outputGuard.js";
 
 // With the screen off there's nobody to press play on a dead track, so the
 // player skips past it and never gives up. The first few skips are instant;
@@ -332,6 +333,7 @@ export class AudioCore {
       this.trackAudio.addEventListener(type, () => this.syncSession());
       this.instAudio.addEventListener(type, () => this.syncSession());
     });
+    guardOutput(this, [this.trackAudio, this.instAudio]);
 
     // Create gain nodes for crossfading
     this.trackGainNode = this.audioCtx.createGain();

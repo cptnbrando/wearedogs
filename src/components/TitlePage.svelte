@@ -331,12 +331,11 @@
     }
 
     if (params.type === "music-track") {
-      initialTrackId = params.trackId; // passed as prop to MusicPanel
+      // Handed to MusicPanel, which clears it once it has picked the song.
+      // (A timer used to clear it, and lost the song whenever the panel took
+      // longer than that to load.)
+      initialTrackId = params.trackId;
       openPage("music");
-      // Clear after MusicPanel has mounted and consumed the prop
-      setTimeout(() => {
-        initialTrackId = null;
-      }, 500);
       return;
     }
 
@@ -740,7 +739,7 @@
         {deepLinkArcadeGame}
       />
     {:else if activePage === "music"}
-      <Panel {isClosing} onClose={closePage} {initialTrackId} />
+      <Panel {isClosing} onClose={closePage} bind:initialTrackId bind:depth />
     {:else if activePage === "store"}
       <Panel
         {isClosing}

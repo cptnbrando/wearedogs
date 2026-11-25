@@ -72,9 +72,9 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/api/, ''),
         headers: { Origin: 'https://wearedogs.net' },
       },
-      // The owner's sign-in, the hidden play counts and the Captions app's routes of the API Worker, subpaths
+      // The owner's sign-in, the hidden play counts, the Captions app's and the lyrics routes of the API Worker, subpaths
       // included; DOGS_API_TARGET works like LIKES_API_TARGET below.
-      '^/api/(admin|plays|captions)': {
+      '^/api/(admin|plays|captions|lyrics)': {
         target: process.env.DOGS_API_TARGET || 'http://localhost:8787',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),

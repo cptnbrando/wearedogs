@@ -14,7 +14,7 @@
 
 /** Seconds one preset takes to melt into the next. */
 const BLEND_SECONDS = 2.7;
-/** How long a preset plays before the next random one, with auto-advance on. */
+/** How long a preset plays before the next one, with auto-advance on. */
 const AUTO_ADVANCE_MS = 30000;
 /** Phones report 3x and more: MilkDrop at that size cooks them for no visible gain. */
 const MAX_PIXEL_RATIO = 2;
@@ -72,6 +72,12 @@ export class MilkdropEngine {
   current = "";
   history = [];
   auto = true;
+  /** Auto-advance and "next" pick at random; off, they walk the list in order. */
+  shuffle = true;
+  /** The listener's own list of preset names (their favourites), or null for every preset. */
+  pool = null;
+  /** The preset the last engine was showing: put back on as soon as its pack has loaded. */
+  resume = "";
   width = 0;
   height = 0;
 
@@ -103,7 +109,7 @@ export class MilkdropEngine {
       });
       this.visualizer.connectAudio(this.analyser);
       this.addPack(firstPack);
-      this.random(0);
+      if (!this.resumePreset()) this.random(0);
       this.draw();
       this.loadRemainingPacks();
     } catch (e) {
@@ -117,6 +123,7 @@ export class MilkdropEngine {
         const pack = await load();
         if (this.destroyed) return;
         this.addPack(pack);
+        this.resumePreset();
       } catch (e) {
         // A pack that will not load (offline) leaves the ones that did
       }
@@ -128,6 +135,15 @@ export class MilkdropEngine {
     for (const name of Object.keys(pack)) this.presets[name] = pack[name];
     this.names = Object.keys(this.presets).sort((a, b) => a.localeCompare(b));
     this.onNames(this.names);
+  }
+
+  /** @returns {boolean} true once the preset to resume is on screen */
+  resumePreset() {
+    const name = this.resume;
+    if (!name || !this.presets[name]) return false;
+    this.resume = "";
+    this.loadPreset(name, 0, false);
+    return true;
   }
 
   /** Matches the drawing size to the canvas's size on the page. */
@@ -169,36 +185,59 @@ export class MilkdropEngine {
     this.restartAuto();
   }
 
+  /**
+   * Narrows the show to the listener's own presets, or widens it back to all.
+   * @param {string[] | null} names
+   */
+  setPool(names) {
+    this.pool = names && names.length ? names : null;
+  }
+
+  /** The presets the show moves through: the listener's list once any of it has loaded, else all. */
+  list() {
+    if (!this.pool) return this.names;
+    const loaded = this.pool.filter((name) => this.presets[name]);
+    return loaded.length ? loaded : this.names;
+  }
+
   /** A different preset, picked at random. */
   random(blend = BLEND_SECONDS) {
-    if (!this.names.length) return;
+    const list = this.list();
+    if (!list.length) return;
     let name = this.current;
-    while (name === this.current && this.names.length > 1) {
-      name = this.names[Math.floor(Math.random() * this.names.length)];
+    while (name === this.current && list.length > 1) {
+      name = list[Math.floor(Math.random() * list.length)];
     }
-    this.loadPreset(name || this.names[0], blend);
+    this.loadPreset(list.indexOf(name) === -1 ? list[0] : name, blend);
   }
 
   /** The next preset in the list, wrapping round. */
   next() {
-    if (!this.names.length) return;
-    const at = this.names.indexOf(this.current);
-    this.loadPreset(this.names[(at + 1) % this.names.length]);
+    const list = this.list();
+    if (!list.length) return;
+    this.loadPreset(list[(list.indexOf(this.current) + 1) % list.length]);
+  }
+
+  /** Moves on the way the listener set it: a random preset, or the next in order. */
+  advance() {
+    if (this.shuffle) this.random();
+    else this.next();
   }
 
   /** The preset that was on before this one; with none, the one before it in the list. */
   previous() {
-    if (!this.names.length) return;
+    const list = this.list();
+    if (!list.length) return;
     const last = this.history.pop();
     if (last) {
       this.loadPreset(last, BLEND_SECONDS, false);
       return;
     }
-    const at = this.names.indexOf(this.current);
-    this.loadPreset(this.names[(at - 1 + this.names.length) % this.names.length], BLEND_SECONDS, false);
+    const at = Math.max(0, list.indexOf(this.current));
+    this.loadPreset(list[(at - 1 + list.length) % list.length], BLEND_SECONDS, false);
   }
 
-  /** Auto-advance: a new random preset every AUTO_ADVANCE_MS. */
+  /** Auto-advance: another preset every AUTO_ADVANCE_MS. */
   setAuto(on) {
     this.auto = !!on;
     this.restartAuto();
@@ -207,7 +246,7 @@ export class MilkdropEngine {
   restartAuto() {
     clearTimeout(this.autoTimer);
     if (!this.auto || this.destroyed) return;
-    this.autoTimer = setTimeout(() => this.random(), AUTO_ADVANCE_MS);
+    this.autoTimer = setTimeout(() => this.advance(), AUTO_ADVANCE_MS);
   }
 
   destroy() {

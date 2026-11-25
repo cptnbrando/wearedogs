@@ -15,7 +15,8 @@
  * /fingerprint (consented device recognition for the Fingerprint app),
  * /waitlist (Castle, Money 24 and 40 waitlist signups), /admin (the owner's
  * sign-in, lib/admin.js), /plays (hidden play counts for the music player),
- * /captions (speech to text and saved projects for the Captions app).
+ * /captions (speech to text and saved projects for the Captions app), /lyrics
+ * (timed lyrics for the music player).
  * Adding an app:
  *   1. src/routes/<app>.js exporting { path: "/<app>", handle(request, env, ctx, visitor) }
  *   2. register it in ROUTES below
@@ -36,10 +37,11 @@ import waitlist from "./routes/waitlist.js";
 import admin from "./routes/admin.js";
 import plays from "./routes/plays.js";
 import captions from "./routes/captions.js";
+import lyrics from "./routes/lyrics.js";
 
 const ROUTES = {
   [likes.path]: likes, [mail.path]: mail, [fingerprint.path]: fingerprint, [waitlist.path]: waitlist,
-  [admin.path]: admin, [plays.path]: plays, [captions.path]: captions,
+  [admin.path]: admin, [plays.path]: plays, [captions.path]: captions, [lyrics.path]: lyrics,
 };
 const SERVICE_UNAVAILABLE = "Service temporarily unavailable";
 const BOT_UA_PATTERN =

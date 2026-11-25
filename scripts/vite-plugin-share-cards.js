@@ -2,9 +2,11 @@ import fs from "node:fs";
 import path from "node:path";
 import { CAMPAIGN_ALIASES } from "../src/lib/campaignAliases.js";
 import { APP_SHORT_URLS } from "../src/lib/appShortUrls.js";
+import { fullLibrary, RENAMED_TRACK_IDS } from "../src/data/music/tracks.js";
 
 /**
- * Share cards for every deep-linkable item: campaigns, products and blog posts.
+ * Share cards for every deep-linkable item: campaigns, products, blog posts,
+ * the music player and each of its public songs.
  *
  * Social crawlers (Facebook, iMessage, Discord, Slack, X, WhatsApp) never run
  * JavaScript, so a component setting og:* tags at runtime — the <svelte:head>
@@ -39,6 +41,16 @@ const APP_CARDS = {
     image: "/share/datatrain.png",
   },
 };
+
+/** The card for /music itself: what a link to the player shows. */
+const MUSIC_CARD = {
+  title: "DOGS MUSIC",
+  description: "Songs by DOGS. Vocals or instrumentals, with a visualizer that moves to the music. Press play.",
+};
+const MUSIC_ROUTE = "music";
+/** An album cover is square: the small card shows all of it, the large one would crop it. */
+const SQUARE_CARD = "summary";
+const SONG_TYPE = "music.song";
 
 /** Attribute-safe escaping for values dropped into content="…". */
 function esc(value) {
@@ -210,7 +222,7 @@ function renderCard(baseHtml, card) {
   // The base template writes the twitter:* tags with property= rather than
   // name=; keep that spelling so these overwrite instead of duplicating.
   const tags = [
-    ["property", "og:type", "article"],
+    ["property", "og:type", card.type || "article"],
     ["property", "og:site_name", "DOGS"],
     ["property", "og:url", esc(card.url)],
     ["property", "og:title", esc(card.title)],
@@ -222,6 +234,7 @@ function renderCard(baseHtml, card) {
     ["property", "twitter:description", esc(card.description)],
     ["property", "twitter:image", esc(card.image)],
   ];
+  if (card.twitterCard) tags.push(["property", "twitter:card", card.twitterCard]);
   for (const [attr, key, value] of tags) html = setMeta(html, attr, key, value);
 
   return html;
@@ -367,6 +380,35 @@ export default function shareCards(options = {}) {
           fs.writeFileSync(`${base}.html`, html, "utf8");
           written.push(routePath);
         }
+      }
+
+      // The music player, and one card per public song: cover, title, artist.
+      // A song that was renamed keeps a card at its old link, canonical to the new.
+      const writeCard = (routePath, html) => {
+        const base = path.join(outDir, ...routePath.split("/"));
+        fs.mkdirSync(base, { recursive: true });
+        fs.writeFileSync(path.join(base, "index.html"), html, "utf8");
+        fs.writeFileSync(`${base}.html`, html, "utf8");
+        written.push(routePath);
+      };
+      writeCard(MUSIC_ROUTE, renderCard(baseHtml, {
+        title: MUSIC_CARD.title,
+        description: MUSIC_CARD.description,
+        url: `${origin}/${MUSIC_ROUTE}`,
+        image: fallbackImage,
+      }));
+      for (const track of fullLibrary) {
+        if (track.public === false || track.hidden) continue;
+        const html = renderCard(baseHtml, {
+          title: `${track.title} · ${track.artist}`,
+          description: summarize(`${track.album}${track.year ? ` (${track.year})` : ""}. Play it on DOGS.`),
+          url: `${origin}/${MUSIC_ROUTE}/${track.id}`,
+          image: pickImage({ images: [track.cover], image: track.altCover }, origin, fallbackImage, hasLocalFile),
+          type: SONG_TYPE,
+          twitterCard: SQUARE_CARD,
+        });
+        const oldIds = Object.keys(RENAMED_TRACK_IDS).filter((old) => RENAMED_TRACK_IDS[old] === track.id);
+        for (const id of [track.id, ...oldIds]) writeCard(`${MUSIC_ROUTE}/${id}`, html);
       }
 
       this.info(

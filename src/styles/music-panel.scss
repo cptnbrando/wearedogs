@@ -688,12 +688,16 @@
   margin: 0;
 }
 
+/* A little air above and below the transport; the short-screen layouts
+   further down tighten it again (.player-controls-block > div). */
 .controls-row {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
   width: 100%;
+  margin-top: 10px;
+  margin-bottom: 6px;
 }
 
 .ctrl {
@@ -1158,6 +1162,7 @@
 
   .controls-row {
     gap: 8px;
+    margin-bottom: 0;
   }
 
   .ctrl-play {
@@ -1290,5 +1295,36 @@
   .ctrl-play {
     width: 46px;
     height: 46px;
+  }
+}
+
+/* Small phones (a 568px-tall screen): the transport gives its extra air back, so the
+   record, the song text and the controls still fit without touching. */
+@media (max-width: 640px) and (max-height: 700px) {
+  .controls-row {
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+
+  /* The controls take the height they need and the record's block takes the rest */
+  .player-top-block {
+    height: auto;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .player-controls-block {
+    height: auto;
+  }
+
+  .vinyl-wrapper,
+  .vinyl-record {
+    width: 104px;
+    height: 104px;
+  }
+
+  .record-label {
+    width: 42px;
+    height: 42px;
   }
 }

@@ -1,37 +1,18 @@
 <script>
-  // MilkdropControls: the full-screen visualizer's MilkDrop deck. What is on,
-  // previous / random / next, auto-advance, and the preset list with a search
-  // box. It only asks; MilkdropEngine (src/lib/visualizer) does the work.
-  import { ChevronLeft, ChevronRight, Shuffle, Timer, Search } from "lucide-svelte";
+  /**
+   * MilkdropControls: the full-screen visualizer's MilkDrop deck. Previous and
+   * next, the name of what is on (tap it for the list), a heart to keep it,
+   * "hearts only" to play just the kept ones, shuffle, and auto-advance.
+   * It only asks; the deck (lib/visualizer/presetDeck) and its engine do the work.
+   */
+  import { ChevronLeft, ChevronRight, Shuffle, Timer, Heart, ListMusic } from "lucide-svelte";
+  import { presetDeck } from "../../lib/visualizer/presetDeck.svelte.js";
+  import PresetList from "./PresetList.svelte";
 
-  /** How many matching presets the list shows at once: enough to browse, cheap to draw. */
-  const MAX_LISTED = 120;
   const AUTO_SECONDS = 30;
 
-  /** The preset on screen. */
-  export let current = "";
-  /** Every preset loaded so far, sorted. */
-  export let names = [];
-  /** Auto-advance is on. */
-  export let auto = true;
-  export let onPrevious = () => {};
-  export let onNext = () => {};
-  export let onRandom = () => {};
-  export let onToggleAuto = () => {};
-  /** @type {(name: string) => void} */
-  export let onPick = () => {};
-
-  let query = "";
-  let listOpen = false;
-
-  $: words = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
-  $: matches = words.length
-    ? names.filter((name) => {
-        const lower = name.toLowerCase();
-        return words.every((word) => lower.indexOf(word) !== -1);
-      })
-    : names;
-  $: listed = matches.slice(0, MAX_LISTED);
+  let listOpen = $state(false);
+  let hearted = $derived(presetDeck.isFavorite(presetDeck.current));
 </script>
 
 <div
@@ -41,55 +22,17 @@
     <div
       class="flex max-h-[40vh] flex-col overflow-hidden rounded-lg border border-white/10 bg-black/75 backdrop-blur-md sm:max-h-[50vh] 2xl:max-h-[60vh]"
     >
-      <label class="flex items-center gap-2 border-b border-white/10 px-3 py-2">
-        <Search size={14} class="shrink-0 text-white/40" />
-        <input
-          bind:value={query}
-          type="search"
-          placeholder="Search {names.length} presets"
-          aria-label="Search MilkDrop presets"
-          autocomplete="off"
-          spellcheck="false"
-          class="w-full min-w-0 bg-transparent font-mono text-[12px] text-white outline-none placeholder:text-white/30 2xl:text-[15px]"
-        />
-      </label>
-      <ul class="min-h-0 flex-1 overflow-y-auto py-1">
-        {#each listed as name (name)}
-          <li>
-            <button
-              type="button"
-              class="block w-full truncate px-3 py-1.5 text-left font-mono text-[11px] transition-colors hover:bg-white/10 md:text-[12px] 2xl:py-2 2xl:text-[15px]
-                {name === current ? 'bg-white/15 text-white' : 'text-white/60'}"
-              aria-current={name === current ? "true" : undefined}
-              onclick={() => onPick(name)}
-            >
-              {name}
-            </button>
-          </li>
-        {/each}
-        {#if !listed.length}
-          <li class="px-3 py-2 font-mono text-[11px] text-white/40 2xl:text-[15px]">
-            {names.length ? "No preset matches that." : "Loading presets…"}
-          </li>
-        {:else if matches.length > listed.length}
-          <li class="px-3 py-2 font-mono text-[10px] text-white/30 2xl:text-[13px]">
-            {matches.length - listed.length} more. Search to narrow it down.
-          </li>
-        {/if}
-      </ul>
+      <PresetList />
     </div>
   {/if}
 
   <div
     class="flex items-center gap-1 rounded-lg border border-white/10 bg-black/60 p-1 backdrop-blur-md"
   >
-    <button type="button" class="deck-btn" onclick={onPrevious} aria-label="Previous preset" title="Previous preset">
+    <button type="button" class="deck-btn" onclick={() => presetDeck.previous()} aria-label="Previous preset" title="Previous preset">
       <ChevronLeft size={16} />
     </button>
-    <button type="button" class="deck-btn" onclick={onRandom} aria-label="Random preset" title="Random preset">
-      <Shuffle size={14} />
-    </button>
-    <button type="button" class="deck-btn" onclick={onNext} aria-label="Next preset" title="Next preset">
+    <button type="button" class="deck-btn" onclick={() => presetDeck.next()} aria-label="Next preset" title="Next preset">
       <ChevronRight size={16} />
     </button>
     <button
@@ -99,16 +42,49 @@
       title={listOpen ? "Hide the preset list" : "Browse presets"}
       onclick={() => (listOpen = !listOpen)}
     >
-      {current || "Loading MilkDrop…"}
+      {presetDeck.current || "Loading MilkDrop…"}
+    </button>
+    <button
+      type="button"
+      class="deck-btn deck-heart"
+      class:deck-hearted={hearted}
+      aria-pressed={hearted}
+      aria-label={hearted ? "Take the heart off this preset" : "Heart this preset"}
+      title={hearted ? "In your hearts. Tap to take it out." : "Heart this preset"}
+      onclick={() => presetDeck.toggleFavorite()}
+    >
+      <Heart size={14} fill={hearted ? "currentColor" : "none"} />
     </button>
     <button
       type="button"
       class="deck-btn"
-      class:deck-btn-on={auto}
-      aria-pressed={auto}
+      class:deck-btn-on={presetDeck.favoritesOnly}
+      aria-pressed={presetDeck.favoritesOnly}
+      aria-label="Play only my hearted presets"
+      title={presetDeck.favoritesOnly ? "Playing only your hearts" : "Play only your hearts"}
+      onclick={() => presetDeck.setFavoritesOnly(!presetDeck.favoritesOnly)}
+    >
+      <ListMusic size={14} />
+    </button>
+    <button
+      type="button"
+      class="deck-btn"
+      class:deck-btn-on={presetDeck.shuffle}
+      aria-pressed={presetDeck.shuffle}
+      aria-label="Shuffle presets"
+      title={presetDeck.shuffle ? "Shuffle: on" : "Shuffle: off, presets go in order"}
+      onclick={() => presetDeck.setShuffle(!presetDeck.shuffle)}
+    >
+      <Shuffle size={14} />
+    </button>
+    <button
+      type="button"
+      class="deck-btn"
+      class:deck-btn-on={presetDeck.auto}
+      aria-pressed={presetDeck.auto}
       aria-label="Change preset by itself every {AUTO_SECONDS} seconds"
-      title={auto ? `A new preset every ${AUTO_SECONDS} seconds: on` : `A new preset every ${AUTO_SECONDS} seconds: off`}
-      onclick={onToggleAuto}
+      title={presetDeck.auto ? `A new preset every ${AUTO_SECONDS} seconds: on` : `A new preset every ${AUTO_SECONDS} seconds: off`}
+      onclick={() => presetDeck.setAuto(!presetDeck.auto)}
     >
       <Timer size={14} />
     </button>
@@ -127,17 +103,25 @@
     height: 30px;
     border-radius: 6px;
     color: $color-blog-ink;
-    transition: background $transition-speed-fast ease, color $transition-speed-fast ease;
+    transition: background $transition-speed-fast ease, color $transition-speed-fast ease, transform $transition-speed-fast ease;
 
     &:hover,
     &:focus-visible {
       background: $bg-blog-hover;
       color: $color-blog-ink-strong;
     }
+
+    &:active {
+      transform: scale(0.88);
+    }
   }
 
   .deck-btn-on {
     color: $color-neon-green;
+  }
+
+  .deck-hearted {
+    color: $color-like-fill;
   }
 
   // TV and ultra-wide: bigger targets for a remote or a pointer across the room
