@@ -40,6 +40,8 @@
   import { VisualizerEngine } from "../lib/visualizer/VisualizerEngine.js";
   import DogsLogo from "./DogsLogo.svelte";
   import { PRESETS, NO_SIGNAL_PRESET } from "../lib/visualizer/presets.js";
+  import { MilkdropEngine, milkdropSupported } from "../lib/visualizer/MilkdropEngine.js";
+  import MilkdropControls from "./music/MilkdropControls.svelte";
 
   import { fade } from "svelte/transition";
   import arigatoText from "./music/arigato.txt?raw";
@@ -76,8 +78,22 @@
     audioCore.isPlaying && !isClosing && !trackErrored,
   );
 
+  // The visualizers the name button cycles through: the built-in shaders, then
+  // MilkDrop where the browser can run it (WebGL 2). MilkDrop is its own
+  // engine with its own canvas (src/lib/visualizer/MilkdropEngine.js).
+  const MILKDROP_ID = "milkdrop";
+  const ENGINE_MILKDROP = "milkdrop";
+  const ENGINE_SHADER = "shader";
+  const VISUALIZERS = milkdropSupported()
+    ? [...PRESETS, { id: MILKDROP_ID, name: "MilkDrop" }]
+    : PRESETS;
+
   let showVisualizer = $state(false);
   let activePresetIdx = $state(0);
+  let isMilkdrop = $derived(VISUALIZERS[activePresetIdx].id === MILKDROP_ID);
+  let milkdropNames = $state([]);
+  let milkdropCurrent = $state("");
+  let milkdropAuto = $state(true);
   let isFullscreenVisualizer = $state(false);
   let canvasEl = $state(null);
   let visualizerEngine = null;
@@ -168,20 +184,35 @@
 
   // Dynamically derive current fragment shader to compile
   let currentShader = $derived.by(() => {
+    if (isMilkdrop) return null;
     if (!audioCore.isPlaying && !hasMusicPlayed) {
       return NO_SIGNAL_PRESET.fragmentShader;
     }
-    return PRESETS[activePresetIdx].fragmentShader;
+    return VISUALIZERS[activePresetIdx].fragmentShader;
   });
 
   // Manage Visualizer instantiation and destruction
   $effect(() => {
     const analyser = audioCore.analyser; // track dependency
-    if (showVisualizer && canvasEl && !isClosing) {
-      // Re-instantiate engine when analyser becomes available or changes
-      visualizerEngine = new VisualizerEngine(canvasEl, analyser);
-      visualizerEngine.init(currentShader);
-      visualizerEngine.start();
+    const engineKind = isMilkdrop ? ENGINE_MILKDROP : ENGINE_SHADER;
+    // Each engine draws on a canvas of its own kind (WebGL 2 or WebGL 1): wait
+    // for the right one when the kind has just changed.
+    if (showVisualizer && canvasEl && !isClosing && canvasEl.dataset.engine === engineKind) {
+      if (!isMilkdrop) {
+        // Re-instantiate engine when analyser becomes available or changes
+        visualizerEngine = new VisualizerEngine(canvasEl, analyser);
+        visualizerEngine.init(currentShader);
+        visualizerEngine.start();
+      } else if (analyser && audioCore.audioCtx) {
+        // MilkDrop reads the sound itself, so it waits for the first song
+        const engine = new MilkdropEngine(canvasEl, analyser, audioCore.audioCtx, {
+          onPreset: (name) => (milkdropCurrent = name),
+          onNames: (names) => (milkdropNames = names),
+        });
+        engine.auto = untrack(() => milkdropAuto);
+        visualizerEngine = engine;
+        engine.start();
+      }
     }
 
     return () => {
@@ -195,7 +226,7 @@
   // Manage Preset switches / shader changes (without destroying WebGL context)
   $effect(() => {
     const shader = currentShader; // track dependency
-    if (visualizerEngine && showVisualizer) {
+    if (shader && visualizerEngine && showVisualizer && !isMilkdrop) {
       visualizerEngine.setPreset(shader);
       visualizerEngine.start();
     }
@@ -848,8 +879,13 @@
                       isFullscreenVisualizer = true;
                     }}
                   >
-                    <canvas bind:this={canvasEl} class="visualizer-canvas"
-                    ></canvas>
+                    {#key isMilkdrop}
+                      <canvas
+                        bind:this={canvasEl}
+                        class="visualizer-canvas"
+                        data-engine={isMilkdrop ? ENGINE_MILKDROP : ENGINE_SHADER}
+                      ></canvas>
+                    {/key}
 
                     {#if !audioCore.isPlaying && !hasMusicPlayed}
                       <div
@@ -1378,14 +1414,14 @@
                         showVisualizer = true;
                       } else {
                         activePresetIdx =
-                          (activePresetIdx + 1) % PRESETS.length;
+                          (activePresetIdx + 1) % VISUALIZERS.length;
                       }
                     }}
                     title={showVisualizer
                       ? "Click to cycle presets"
                       : "Click to enable visualizer"}
                   >
-                    {PRESETS[activePresetIdx].name}
+                    {VISUALIZERS[activePresetIdx].name}
                   </button>
                 </div>
 
@@ -1581,7 +1617,13 @@
         isFullscreenVisualizer = false;
       }}
     >
-      <canvas bind:this={canvasEl} class="visualizer-canvas"></canvas>
+      {#key isMilkdrop}
+        <canvas
+          bind:this={canvasEl}
+          class="visualizer-canvas"
+          data-engine={isMilkdrop ? ENGINE_MILKDROP : ENGINE_SHADER}
+        ></canvas>
+      {/key}
 
       {#if !audioCore.isPlaying && !hasMusicPlayed}
         <div
@@ -1595,15 +1637,18 @@
         </div>
       {/if}
 
-      <div class="visualizer-overlay" onclick={(e) => e.stopPropagation()}>
+      <div
+        class="visualizer-overlay flex-col items-stretch sm:flex-row sm:items-end"
+        onclick={(e) => e.stopPropagation()}
+      >
         <div
-          class="flex items-center gap-1 bg-black/60 backdrop-blur-md rounded-lg p-1 border border-white/10"
+          class="flex items-center gap-1 self-start bg-black/60 backdrop-blur-md rounded-lg p-1 border border-white/10 sm:self-auto"
         >
-          {#each PRESETS as preset, index}
+          {#each VISUALIZERS as preset, index}
             <button
-              class="px-2 py-1 rounded text-[9px] font-bold transition-all uppercase tracking-wider font-mono
+              class="px-2 py-1 rounded text-[9px] font-bold transition-all uppercase tracking-wider font-mono 2xl:px-3 2xl:py-2 2xl:text-[13px]
                 {activePresetIdx === index
-                ? 'bg-purple-600 text-white'
+                ? 'bg-white text-black'
                 : 'text-white/40 hover:text-white/80'}"
               onclick={() => (activePresetIdx = index)}
             >
@@ -1611,6 +1656,21 @@
             </button>
           {/each}
         </div>
+        {#if isMilkdrop}
+          <MilkdropControls
+            current={milkdropCurrent}
+            names={milkdropNames}
+            auto={milkdropAuto}
+            onPrevious={() => visualizerEngine?.previous?.()}
+            onNext={() => visualizerEngine?.next?.()}
+            onRandom={() => visualizerEngine?.random?.()}
+            onPick={(name) => visualizerEngine?.loadPreset?.(name)}
+            onToggleAuto={() => {
+              milkdropAuto = !milkdropAuto;
+              visualizerEngine?.setAuto?.(milkdropAuto);
+            }}
+          />
+        {/if}
       </div>
     </div>
   {/if}
