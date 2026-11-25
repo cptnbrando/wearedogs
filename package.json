@@ -28,6 +28,8 @@
     "@lottiefiles/dotlottie-wc": "^0.11.1",
     "@threlte/core": "^8.7.0",
     "@threlte/extras": "^9.23.1",
+    "butterchurn": "^2.6.7",
+    "butterchurn-presets": "^2.4.7",
     "fflate": "^0.8.3",
     "jsqr": "^1.4.0",
     "lucide-svelte": "^1.0.1",
