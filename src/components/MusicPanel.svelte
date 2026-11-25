@@ -82,14 +82,14 @@
     audioCore.isPlaying && !isClosing && !trackErrored,
   );
 
-  // The visualizers the name button cycles through: the built-in shaders, then
-  // MilkDrop where the browser can run it (WebGL 2). MilkDrop is its own
-  // engine with its own canvas (src/lib/visualizer/MilkdropEngine.js).
+  // The visualizer is MilkDrop, its own engine with its own canvas
+  // (src/lib/visualizer/MilkdropEngine.js). A browser that cannot run it (it
+  // needs WebGL 2) gets the built-in shaders instead, cycled by the name button.
   const MILKDROP_ID = "milkdrop";
   const ENGINE_MILKDROP = "milkdrop";
   const ENGINE_SHADER = "shader";
   const VISUALIZERS = milkdropSupported()
-    ? [...PRESETS, { id: MILKDROP_ID, name: "MilkDrop" }]
+    ? [{ id: MILKDROP_ID, name: "MilkDrop" }]
     : PRESETS;
 
   let showVisualizer = $state(false);
@@ -1426,13 +1426,16 @@
                     onclick={() => {
                       if (!showVisualizer) {
                         showVisualizer = true;
+                      } else if (isMilkdrop) {
+                        // One engine, hundreds of presets: the button deals another
+                        visualizerEngine?.random?.();
                       } else {
                         activePresetIdx =
                           (activePresetIdx + 1) % VISUALIZERS.length;
                       }
                     }}
                     title={showVisualizer
-                      ? "Click to cycle presets"
+                      ? "Click for another preset"
                       : "Click to enable visualizer"}
                   >
                     {VISUALIZERS[activePresetIdx].name}
@@ -1655,6 +1658,7 @@
         class="visualizer-overlay flex-col items-stretch sm:flex-row sm:items-end"
         onclick={(e) => e.stopPropagation()}
       >
+        {#if VISUALIZERS.length > 1}
         <div
           class="flex items-center gap-1 self-start bg-black/60 backdrop-blur-md rounded-lg p-1 border border-white/10 sm:self-auto"
         >
@@ -1670,6 +1674,7 @@
             </button>
           {/each}
         </div>
+        {/if}
         {#if isMilkdrop}
           <MilkdropControls
             current={milkdropCurrent}

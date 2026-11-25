@@ -28,6 +28,46 @@
       "--font-primary": "\"Inter\", \"Outfit\", sans-serif"
     }
   },
+  "daylight": {
+    "name": "Daylight",
+    "variables": {
+      "--bg-app": "#050508",
+      "--bg-main": "#f4f1e8",
+      "--bg-radial-overlay": "radial-gradient(circle at top, rgba(30, 10, 15, 0.55) 0%, rgba(5, 5, 8, 1) 100%)",
+      "--bg-card": "rgba(15, 15, 22, 0.45)",
+      "--bg-input": "rgba(255, 255, 255, 0.04)",
+      "--border-color": "rgba(255, 255, 255, 0.08)",
+      "--border-light": "rgba(255, 255, 255, 0.05)",
+      "--color-neon-red": "#ff3344",
+      "--color-neon-red-rgb": "255, 51, 68",
+      "--color-neon-gold": "#e6b900",
+      "--color-neon-gold-rgb": "230, 185, 0",
+      "--color-neon-green": "#00d75f",
+      "--color-neon-green-rgb": "0, 215, 95",
+      "--color-neon-purple": "#a000eb",
+      "--color-neon-purple-rgb": "160, 0, 235",
+      "--color-neon-orange": "#ff8800",
+      "--color-neon-orange-rgb": "255, 136, 0",
+      "--color-neon-cyan": "#00d7ff",
+      "--color-neon-cyan-rgb": "0, 215, 255",
+      "--color-alert-red": "#ef4444",
+      "--color-alert-red-rgb": "239, 68, 68",
+      "--color-text": "#ffffff",
+      "--color-text-muted": "rgba(255, 255, 255, 0.5)",
+      "--font-primary": "\"Inter\", \"Outfit\", sans-serif",
+      "--page-bg-rgb": "244, 241, 232",
+      "--page-ink-rgb": "20, 18, 10",
+      "--page-shade-rgb": "255, 255, 255",
+      "--page-ink": "#14120a",
+      "--page-muted": "#5d584b",
+      "--page-faint": "rgba(20, 18, 10, 0.5)",
+      "--page-line": "rgba(20, 18, 10, 0.14)",
+      "--page-stage-line": "rgba(20, 18, 10, 0.28)",
+      "--page-solid": "#f4f1e8",
+      "--page-sketch-soft": "rgba(20, 18, 10, 0.5)",
+      "--page-sketch-hover": "rgba(20, 18, 10, 0.06)"
+    }
+  },
   "liquid-glass": {
     "name": "iOS 'Liquid Glass'",
     "variables": {
