@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1795606358,
+    "firstCommitTimestamp": 1795606544,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 257591
+    "averageLinesAltered": 257791
   },
   "entries": [
     {
       "version": "1.0.3",
       "name": "Master",
       "date": "2026-11-25",
-      "timestamp": 1795606391,
+      "timestamp": 1795606573,
       "commits": [
         {
-          "hash": "b167fb1",
-          "message": "Merge pull request #90 from cptnbrando/ai-november2026/tether-sync",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/b167fb1c32b10ae933bb47d404f4ee0fae592cb9",
-          "timestamp": 1795606358,
-          "linesChanged": 257591
+          "hash": "defbeb4",
+          "message": "Merge pull request #91 from cptnbrando/ai-november2026/ask-before-permissions",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/defbeb4d79d7b222443746c41911331c9e69f9a8",
+          "timestamp": 1795606544,
+          "linesChanged": 257791
         }
       ]
     },
