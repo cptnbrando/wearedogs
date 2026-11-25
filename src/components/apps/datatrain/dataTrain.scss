@@ -78,6 +78,15 @@
 .dt-message { white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word; font: inherit; line-height: 1.5; max-height: 160px; overflow-y: auto; padding: 10px; margin: 10px 0 0; background: t.$panel; border-radius: t.$radius; user-select: text; }
 .dt-save { background: t.$raised; color: t.$accent; margin-top: 10px; font-size: t.$small; border-color: t.$line; min-height: 36px; }
 .dt-item-error { font-size: t.$small; line-height: 1.5; margin-top: 8px !important; }
+// Big videos waiting for a choice (shrinkVideo.js): a short strip above the send dock
+.dt-held { flex-shrink: 0; max-height: 38%; overflow-y: auto; border-top: 1px solid t.$line; }
+.dt-held-item { padding: 10px 0; border-bottom: 1px solid t.$line; p { color: t.$muted; font-size: t.$small; line-height: 1.5; overflow-wrap: anywhere; } strong { color: t.$ink; font-weight: 600; } progress { display: block; width: 100%; height: 5px; margin: 8px 0 2px; accent-color: t.$accent; } .dt-save { margin-top: 0; } }
+.dt-held-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
+// Previous rides (rides.js): quick reconnect on the pairing screen
+.dt-rides { width: 100%; display: flex; flex-direction: column; gap: 8px; padding-top: 4px; }
+.dt-rides-title { color: t.$muted; font-size: t.$small; text-align: center; }
+.dt-ride { display: flex; align-items: center; gap: 6px; .dt-secondary { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } }
+.dt-rides-help { color: t.$muted; font-size: 11px; line-height: 1.5; text-align: center; }
 .dt-send-dock { flex-shrink: 0; display: flex; flex-direction: column; gap: 12px; padding: 14px 0; }
 .dt-file-action { display: flex; align-items: center; gap: 12px; span { color: t.$muted; font-size: 11px; line-height: 1.5; } }
 .dt-file-input { display: none; }
@@ -94,6 +103,11 @@
   .dt-pair-intro { width: 48%; h3 { font-size: 23px; } }
   .dt-qr { width: 126px; height: 126px; grid-row: 1 / 3; }
   .dt-qr-caption { display: none; }
+  // Short screens: the reconnect buttons alone, and the big-video strip kept low
+  .dt-rides { gap: 4px; padding-top: 0; }
+  .dt-rides-title, .dt-rides-help { display: none; }
+  .dt-ride .dt-secondary { min-height: 34px; padding: 5px 10px; }
+  .dt-held { max-height: 30%; }
   .dt-pair-help { font-size: 11px; margin-top: 12px; }
   .dt-pane-switch { display: none; }
   .dt-mobile-hidden { display: flex; }
@@ -179,6 +193,7 @@
   .dt-qr { width: 264px; height: 264px; }
 }
 @media (min-width: 2400px) {
+  .dt-rides-title, .dt-held-item p { font-size: 16px; }
   .dt-air { max-width: 1600px; padding: 40px 60px; }
   .dt-pair-intro { max-width: 480px; }
   .dt-pair-intro h3 { font-size: 52px; }

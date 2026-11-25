@@ -3,6 +3,10 @@
   import QRCode from 'qrcode';
   import { ArrowUpRight, Link, Copy, RefreshCw, Monitor, Smartphone, Check, X, Plus, Send, Radio, ClipboardPaste, Info, Cable } from 'lucide-svelte';
   import { tether } from '../../../lib/tether.svelte.js';
+  import { MAX_FILE_BYTES } from './transferSession.js';
+  import { isBigVideo, videoToMp3 } from './shrinkVideo.js';
+  import { listRides, saveRide, forgetRide } from './rides.js';
+  import { formatBytes } from './nearbyShare.js';
   import { createPairingLink, parsePairingLink, takePairingLink } from './pairingLink.js';
   import { copyText } from '../../../lib/clipboard.js';
   import TransferList from './TransferList.svelte';
@@ -23,6 +27,9 @@
     'You can leave Air Train and come back: the connection and your files stay while this window is open, for up to 10 minutes of nothing happening.',
     'Save files before you close or refresh the page. That ends the session.',
   ];
+  const SHRINK_FAILED = 'The sound could not be pulled from that video. Send the video itself, or try another file.';
+  const RECONNECT_WAITING = 'Waiting. Now open Air Train on the other device and press Reconnect there too.';
+  const RECONNECT_DIALLING = 'Calling the other device. If nothing happens, press Reconnect on it first.';
   const TETHER_ON = 'Tethered';
   const TETHER_WAITING = 'Tether: turn it on there too';
   const TETHER_ASKED = 'Tether asked for: turn on';
@@ -55,6 +62,12 @@
   // Received Blob -> shareable File (or null); weak so removed items are released.
   const shareFiles = new WeakMap();
   let canCopyImages = false;
+  // Big videos waiting for a choice: send the sound as an MP3, the video itself, or neither
+  let heldVideos = [];
+  let heldCount = 0;
+  // Devices paired with lately (rides.js), offered on the pairing screen
+  let rides = [];
+  let savedRideCode = '';
   // Received text-file Blob -> its text when short enough to copy (or null). Reassigned once a file is read so the list redraws.
   let shortTexts = new WeakMap();
   $: connected = state.status === 'connected';
@@ -62,11 +75,14 @@
   $: receivedItems = state.items.filter(item => item.direction === 'received');
   $: pairLink = createPairingLink(state.code, state.secret);
   $: if (pairLink && pairLink !== currentQrLink && state.status === 'waiting') drawQr(pairLink);
+  // A pairing that connects becomes a ride, once
+  $: if (connected && state.code && state.code !== savedRideCode) rememberRide(state);
 
   onMount(() => {
     canPaste = !!(navigator.clipboard && navigator.clipboard.readText);
     canShareFiles = supportsFileShare();
     canCopyImages = supportsImageCopy();
+    rides = listRides();
     // The session lives in the tether, so leaving Air Train does not hang up
     const held = tether.open(next => { if (!disposed) state = next; });
     session = held.session;
@@ -124,11 +140,75 @@
   }
 
   async function sendFiles(event) {
-    const files = Array.prototype.slice.call(event.target.files || []);
+    const picked = Array.prototype.slice.call(event.target.files || []);
     event.target.value = '';
+    // A big video waits for a choice; everything else goes now
+    const files = picked.filter((file) => !isBigVideo(file));
+    const big = picked.filter(isBigVideo).map((file) => ({ id: ++heldCount, file, busy: false, progress: 0, error: '' }));
+    if (big.length) heldVideos = heldVideos.concat(big);
     if (!files.length) return;
     mobilePane = 'sent';
     await run(() => session.sendFiles(files));
+  }
+
+  function patchHeld(id, changes) {
+    heldVideos = heldVideos.map((held) => (held.id === id ? Object.assign({}, held, changes) : held));
+  }
+
+  function dropHeld(id) {
+    heldVideos = heldVideos.filter((held) => held.id !== id);
+  }
+
+  /** Pull the sound out of a held video on this device and send that instead. */
+  async function sendHeldAsMp3(held) {
+    patchHeld(held.id, { busy: true, error: '', progress: 0 });
+    try {
+      const mp3 = await videoToMp3(held.file, (progress) => patchHeld(held.id, { progress }));
+      if (disposed) return;
+      mobilePane = 'sent';
+      session.sendFiles([mp3]);
+      dropHeld(held.id);
+    } catch (error) {
+      patchHeld(held.id, { busy: false, error: (error && error.message) || SHRINK_FAILED });
+    }
+  }
+
+  function sendHeldVideo(held) {
+    mobilePane = 'sent';
+    run(() => session.sendFiles([held.file]));
+    dropHeld(held.id);
+  }
+
+  function rememberRide(current) {
+    savedRideCode = current.code;
+    saveRide({ code: current.code, secret: current.secret, role: session.role, peerName: current.peerName });
+    rides = listRides();
+  }
+
+  /**
+   * Meet a device from a previous ride again. The side that showed the QR
+   * code waits on the old code and the other side dials it; the waiting side
+   * is still asked to allow the connection.
+   */
+  function reconnect(ride) {
+    qrImage = '';
+    currentQrLink = '';
+    if (ride.role === 'host') {
+      run(async () => {
+        await session.host(ride.code, ride.secret);
+        notice = RECONNECT_WAITING;
+      });
+      return;
+    }
+    run(async () => {
+      await session.join(ride.code, ride.secret);
+      notice = RECONNECT_DIALLING;
+    });
+  }
+
+  function forget(ride) {
+    forgetRide(ride.code);
+    rides = listRides();
   }
 
   async function sendText(event) {
@@ -246,6 +326,15 @@
           {#if qrImage}<img class="dt-qr" src={qrImage} width="264" height="264" alt="Scan this pairing QR code with your other device's camera" />{/if}
           <p class="dt-qr-caption">Scan to connect to this device</p>
           <button class="dt-primary" onclick={() => copy(pairLink, 'Pairing link copied. Open it on your other device.')}><Copy size={16} />Copy pairing link</button>
+          {#if rides.length}
+            <div class="dt-rides" role="group" aria-label="Previous rides">
+              <p class="dt-rides-title">Previous rides</p>
+              {#each rides as ride (ride.code)}
+                <div class="dt-ride"><button class="dt-secondary" type="button" onclick={() => reconnect(ride)}><RefreshCw size={15} />Reconnect to {ride.peerName}</button><button class="dt-icon-button" type="button" onclick={() => forget(ride)} aria-label={'Forget ' + ride.peerName}><X size={15} /></button></div>
+              {/each}
+              <p class="dt-rides-help">Press Reconnect on both devices. The one that showed the QR code is asked to allow it again.</p>
+            </div>
+          {/if}
           <details class="dt-join"><summary>Already have a pairing link?</summary>
             <form onsubmit={joinLink}>
               <label for="train-link">Pairing link from your other device</label>
@@ -278,6 +367,22 @@
           <TransferList items={receivedItems} direction="received" canShare={canShareFiles ? (item) => !!shareFileFor(item) : null} onShare={shareReceived} canCopyFile={(item) => canCopyFile(item, shortTexts)} onCopyFile={copyReceivedFile} onCopy={(text) => copy(text, TEXT_COPIED)} onCancel={(id) => run(() => session.cancelTransfer(id))} onRemove={(id) => session.removeItem(id)} />
         </section>
       </div>
+      {#if heldVideos.length}
+        <div class="dt-held" role="group" aria-label="Large videos waiting">
+          {#each heldVideos as held (held.id)}
+            <div class="dt-held-item">
+              <p><strong title={held.file.name}>{held.file.name}</strong> is {formatBytes(held.file.size)}{held.file.size > MAX_FILE_BYTES ? ', over the 100 MB limit' : ', a long ride'}. Its sound alone, as an MP3, is a fraction of that.</p>
+              {#if held.busy}<progress value={held.progress} max="100" aria-label={'Making an MP3 from ' + held.file.name}></progress>{/if}
+              {#if held.error}<p class="dt-item-error" role="alert">{held.error}</p>{/if}
+              <div class="dt-held-actions">
+                <button type="button" class="dt-save" disabled={held.busy || !connected} onclick={() => sendHeldAsMp3(held)}>{held.busy ? 'Making the MP3… ' + held.progress + '%' : 'Send as MP3'}</button>
+                {#if held.file.size <= MAX_FILE_BYTES}<button type="button" class="dt-save" disabled={held.busy || !connected} onclick={() => sendHeldVideo(held)}>Send the video</button>{/if}
+                <button type="button" class="dt-quiet" disabled={held.busy} onclick={() => dropHeld(held.id)}>Skip</button>
+              </div>
+            </div>
+          {/each}
+        </div>
+      {/if}
       <div class="dt-send-dock">
         <div class="dt-file-action"><button class="dt-primary" disabled={!connected} onclick={() => fileInput.click()}><Plus size={18} />Send files</button><span>Photos, audio, anything.<br />Up to 100 MB per file.</span><input class="dt-file-input" bind:this={fileInput} type="file" multiple aria-label="Choose files to send" onchange={sendFiles} /></div>
         <form class="dt-text-form" onsubmit={sendText}><label for="train-text">Send text to your other device</label><div class="dt-input-row"><textarea id="train-text" bind:value={draft} maxlength={MAX_TEXT_LENGTH} rows="2" placeholder={TEXT_PLACEHOLDER}></textarea>{#if canPaste}<button class="dt-secondary" type="button" disabled={!connected} onclick={pasteDraft} aria-label="Paste from clipboard"><ClipboardPaste size={18} /><span>Paste</span></button>{/if}<button class="dt-secondary" type="submit" disabled={!connected || !draft.trim()} aria-label="Send text"><Send size={18} /><span>Send</span></button></div></form>
