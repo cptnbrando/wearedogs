@@ -24,7 +24,9 @@
   const DESC_CLASS = "owner-desc text-xs md:text-sm 2xl:text-base";
   const FORM_CLASS = "grid grid-cols-1 gap-3 sm:grid-cols-2 md:gap-4 lg:grid-cols-3 xl:grid-cols-4 2xl:gap-5";
   const FIELD_CLASS = "owner-field flex flex-col gap-1 text-xs md:text-sm 2xl:text-base";
-  const BUTTON_CLASS = "owner-btn shrink-0 self-end px-4 py-3 text-xs sm:py-2 md:text-sm 2xl:px-6 2xl:py-3 2xl:text-base";
+  const BUTTON_CLASS = "owner-btn shrink-0 px-4 py-3 text-xs sm:py-2 md:text-sm 2xl:px-6 2xl:py-3 2xl:text-base";
+  // In a form the button sits on the fields' baseline: the bottom of its grid cell
+  const SUBMIT_CLASS = BUTTON_CLASS + " self-end";
   const ACTIONS_CLASS = "flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center md:gap-4";
 
   let opened = $state(false);
@@ -152,7 +154,7 @@
           PIN again
           <input class="owner-input" type="password" autocomplete="new-password" minlength={MIN_PIN_LENGTH} maxlength={MAX_PIN_LENGTH} required bind:value={pinAgain} />
         </label>
-        <button type="submit" class={BUTTON_CLASS} disabled={admin.busy}>
+        <button type="submit" class={SUBMIT_CLASS} disabled={admin.busy}>
           <KeyRound size={16} />
           {admin.busy ? "Making the key…" : "Make my key"}
         </button>
@@ -170,7 +172,7 @@
           PIN
           <input class="owner-input" type="password" autocomplete="off" maxlength={MAX_PIN_LENGTH} required bind:value={pin} />
         </label>
-        <button type="submit" class={BUTTON_CLASS} disabled={admin.busy}>
+        <button type="submit" class={SUBMIT_CLASS} disabled={admin.busy}>
           <Upload size={16} />
           {admin.busy ? "Opening…" : "Bring the key"}
         </button>
@@ -182,7 +184,7 @@
           PIN
           <input class="owner-input" type="password" autocomplete="off" maxlength={MAX_PIN_LENGTH} required bind:value={pin} />
         </label>
-        <button type="submit" class={BUTTON_CLASS} disabled={admin.busy}>
+        <button type="submit" class={SUBMIT_CLASS} disabled={admin.busy}>
           <LockOpen size={16} />
           {admin.busy ? "Unlocking…" : "Unlock"}
         </button>
