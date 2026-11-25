@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1795648515,
+    "firstCommitTimestamp": 1795648981,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 266888
+    "averageLinesAltered": 267413
   },
   "entries": [
     {
       "version": "1.0.3",
       "name": "Master",
       "date": "2026-11-25",
-      "timestamp": 1795648474,
+      "timestamp": 1795648941,
       "commits": [
         {
-          "hash": "cec4222",
-          "message": "feat(captions): a new toolbox app that times captions and lyrics word by word",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/cec4222566d7be3964aa726196b3c99eb504370d",
-          "timestamp": 1795648515,
-          "linesChanged": 266888
+          "hash": "f7b157f",
+          "message": "feat(captions): online transcription, with your own words kept",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/f7b157f85f433ec25869fada34738c07651265bb",
+          "timestamp": 1795648981,
+          "linesChanged": 267413
         }
       ]
     },

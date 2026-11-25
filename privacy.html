@@ -287,6 +287,16 @@
         on what device or from where, beyond the short-lived rate limit every request to the API gets.
       </p>
 
+      <h2 id="captions">Captions app</h2>
+      <p>
+        The Captions app in the toolbox works on your device: the file you open, your captions and tap along never
+        leave it. Only if you press <strong>Transcribe</strong>, after its warning, is the file's sound sent through
+        our API to Cloudflare's Whisper speech model (Workers AI), which sends the words back. Neither we nor the
+        model keep the sound or the words. To share out the free minutes, our API keeps a tally of the seconds
+        transcribed today under a keyed hash of your IP address, and deletes it the next day. The request runs
+        Cloudflare Turnstile first, as the like button does.
+      </p>
+
       <h2>Hosting</h2>
       <p>
         Like any website, the hosts that serve these pages see standard request information such as IP addresses:
