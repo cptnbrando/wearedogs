@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1795627227,
+    "firstCommitTimestamp": 1795647386,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 263184
+    "averageLinesAltered": 263200
   },
   "entries": [
     {
       "version": "1.0.3",
       "name": "Master",
       "date": "2026-11-25",
-      "timestamp": 1795627187,
+      "timestamp": 1795647345,
       "commits": [
         {
-          "hash": "c423aff",
-          "message": "feat(music): demons is listed in the site too, so its link has a share card",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/c423aff9b35202a89fc6c2bb507f9a5324a09e7a",
-          "timestamp": 1795627227,
-          "linesChanged": 263184
+          "hash": "22d498a",
+          "message": "fix(music): a browser with no WebGL keeps the record",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/22d498a7c690447ee56db900ad3ad01a43340db4",
+          "timestamp": 1795647386,
+          "linesChanged": 263200
         }
       ]
     },
