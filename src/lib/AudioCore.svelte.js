@@ -107,6 +107,21 @@ export class AudioCore {
     if (typeof window !== "undefined" && typeof BroadcastChannel !== "undefined") {
       this.channel = new BroadcastChannel("wearedogs_music_sync");
       this.channel.onmessage = (e) => this.handleSyncMessage(e.data);
+      // The tab with the sound is closing: the others stop following it, so
+      // the next one to press play simply plays.
+      window.addEventListener("pagehide", () => {
+        if (this.masterTabId !== this.tabId) return;
+        this.broadcast({
+          type: "state_change",
+          masterTabId: null,
+          trackIndex: this.currentTrackIndex,
+          trackId: this.library[this.currentTrackIndex]?.id,
+          isPlaying: false,
+          isInstrumental: this.isInstrumental,
+          currentTime: this.currentTime,
+          duration: this.duration
+        });
+      });
 
       // Ping to find existing master after small delay
       setTimeout(() => {
@@ -234,6 +249,8 @@ export class AudioCore {
     if (this.isShuffled) {
       this.shuffle.deal(lib.length, this.currentTrackIndex);
     }
+    // Following another tab and only now able to name its song: ask what is on
+    if (this.masterTabId && this.masterTabId !== this.tabId) this.broadcast({ type: "ping" });
   }
 
   initContext() {
@@ -441,6 +458,12 @@ export class AudioCore {
       if (autoplay) this.broadcast({ type: "cmd_track", trackId: this.library[index].id, trackIndex: index });
       return;
     }
+    // The same goes for a tab following another tab of this browser: only a
+    // song the listener picks here moves the sound here. Its own housekeeping
+    // (the panel's first random song) must not stop the tab that is playing.
+    const fromSync = this.isSyncing;
+    const following = !!this.masterTabId && this.masterTabId !== this.tabId;
+    if (following && !fromSync && !autoplay) return;
     const seq = ++this.loadSeq;
 
     clearTimeout(this.skipTimer);
@@ -601,7 +624,12 @@ export class AudioCore {
     }
     this.syncSession();
 
-    if (!this.isSyncing) {
+    // A load another tab asked for is not news to send back: by the time it
+    // finishes, this tab's idea of "playing" may be stale and would stop the
+    // tab that has the sound. Nor is a load that began before this tab heard
+    // another one is playing.
+    const followingNow = !!this.masterTabId && this.masterTabId !== this.tabId;
+    if (!fromSync && !this.isSyncing && !followingNow) {
       this.broadcastState("state_change");
     }
   }

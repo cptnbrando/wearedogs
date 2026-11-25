@@ -51,10 +51,21 @@ export function applySyncMessage(core, msg, remote, repeatModes) {
         // Both devices were playing when they tethered: one keeps the sound.
         // The same rule runs on both, so they agree without asking.
         if (remote && msg.type === "pong" && selfPlaying && core.tabId > String(msg.uuid)) break;
-        const index = syncIndex(core, msg, remote);
-        if (index === -1) break;
+        // The player with the sound gives it up to a player that is taking it
+        // (it names itself), and listens to its own followers (they name this
+        // one). Anything else is a tab that has not heard who is playing: it
+        // is told, and changes nothing here.
+        if (selfPlaying && msg.masterTabId !== core.tabId && msg.masterTabId !== msg.uuid) {
+          core.isSyncing = false;
+          core.broadcastState("pong");
+          break;
+        }
         core.masterTabId = msg.masterTabId;
         core.masterIsRemote = remote && !!msg.masterTabId && msg.masterTabId !== core.tabId;
+        // Who is playing is worth knowing even when this player cannot name
+        // the song yet (its library is not loaded, or does not have it)
+        const index = syncIndex(core, msg, remote);
+        if (index === -1) break;
         core.isInstrumental = msg.isInstrumental;
         if (typeof msg.isShuffled === "boolean" && msg.isShuffled !== core.isShuffled) core.setShuffle(msg.isShuffled);
         if (repeatModes.indexOf(msg.repeatMode) !== -1) core.repeatMode = msg.repeatMode;
