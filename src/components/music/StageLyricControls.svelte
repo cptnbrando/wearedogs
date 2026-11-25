@@ -4,14 +4,28 @@
    * out. Lyrics on or off, where the line sits (top, middle, bottom), its
    * font and its size. The choices are kept by lib/lyrics.svelte.js.
    */
-  import { Speech, Minimize, ArrowUpToLine, ArrowDownToLine, FoldVertical } from "lucide-svelte";
+  import {
+    Speech, Minimize, ArrowUpToLine, ArrowDownToLine, FoldVertical, Circle, Square, RectangleHorizontal, RectangleVertical, Expand,
+  } from "lucide-svelte";
   import { lyrics, LYRIC_PLACES, LYRIC_FONTS, LYRIC_SIZES } from "../../lib/lyrics.svelte.js";
   import StrikeToggle from "./StrikeToggle.svelte";
+  import { stageRecording, STAGE_FRAMES } from "./stageRecording.svelte.js";
 
   const PLACE_ICONS = { top: ArrowUpToLine, middle: FoldVertical, bottom: ArrowDownToLine };
+  const FRAME_ICONS = { full: Expand, tall: RectangleVertical, square: Square, wide: RectangleHorizontal };
+  const SECONDS_PER_MINUTE = 60;
 
-  /** @type {{ hasLyrics: boolean, onExit: () => void }} hasLyrics: the song playing has lyrics */
-  let { hasLyrics, onExit } = $props();
+  /**
+   * @type {{ hasLyrics: boolean, canRecord: boolean, onExit: () => void, onRecord: () => void }}
+   * hasLyrics: the song playing has lyrics; canRecord: there is a picture to record
+   */
+  let { hasLyrics, canRecord, onExit, onRecord } = $props();
+
+  let frame = $derived(STAGE_FRAMES.find((entry) => entry.id === stageRecording.frame));
+  let FrameIcon = $derived(FRAME_ICONS[frame.id]);
+  let clock = $derived(
+    `${Math.floor(stageRecording.seconds / SECONDS_PER_MINUTE)}:${String(stageRecording.seconds % SECONDS_PER_MINUTE).padStart(2, "0")}`,
+  );
 
   let font = $derived(LYRIC_FONTS.find((entry) => entry.id === lyrics.font));
   let size = $derived(LYRIC_SIZES.find((entry) => entry.id === lyrics.size));
@@ -66,7 +80,37 @@
       {size.id.toUpperCase()}
     </button>
   {/if}
+  <button
+    type="button"
+    class="stage-btn"
+    disabled={stageRecording.active}
+    aria-label="Picture shape: {frame.name}. Tap for the next one."
+    title="Picture shape: {frame.name}. Tap for the next one."
+    onclick={() => stageRecording.nextFrame()}
+  >
+    <FrameIcon size={15} />
+  </button>
+  {#if canRecord && stageRecording.supported}
+    <button
+      type="button"
+      class="stage-btn stage-btn-wide"
+      class:stage-recording={stageRecording.active}
+      aria-pressed={stageRecording.active}
+      aria-label={stageRecording.active ? "Stop recording and save the video" : "Record a video: the song starts over"}
+      title={stageRecording.active ? "Stop recording and save the video" : "Record a video: the song starts over"}
+      onclick={onRecord}
+    >
+      {#if stageRecording.active}
+        <Square size={11} fill="currentColor" /><span class="ml-1">{clock}</span>
+      {:else}
+        <Circle size={11} fill="currentColor" /><span class="ml-1">REC</span>
+      {/if}
+    </button>
+  {/if}
 </div>
+{#if stageRecording.note}
+  <p class="stage-note" role="status">{stageRecording.note}</p>
+{/if}
 
 <style lang="scss">
   @use "../../styles/variables" as *;
@@ -96,6 +140,27 @@
     min-width: 52px;
   }
 
+  div :global(.stage-btn:disabled) {
+    opacity: 0.35;
+    pointer-events: none;
+  }
+
+  .stage-recording,
+  .stage-recording:hover {
+    color: $color-like-fill;
+  }
+
+  .stage-note {
+    align-self: flex-start;
+    max-width: 22rem;
+    padding: 6px 10px;
+    border-radius: 6px;
+    background: $bg-stage-note;
+    font-size: 11px;
+    line-height: 1.4;
+    color: $color-blog-ink-strong;
+  }
+
   // TV and ultra-wide: bigger targets for a remote or a pointer across the room
   @media (min-width: 1536px) {
     div :global(.stage-btn) {
@@ -106,6 +171,11 @@
 
     .stage-btn-wide {
       min-width: 76px;
+    }
+
+    .stage-note {
+      font-size: 14px;
+      max-width: 30rem;
     }
   }
 </style>

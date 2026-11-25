@@ -48,6 +48,7 @@
   import LyricLine from "./music/LyricLine.svelte";
   import StrikeToggle from "./music/StrikeToggle.svelte";
   import StageLyricControls from "./music/StageLyricControls.svelte";
+  import { stageRecording } from "./music/stageRecording.svelte.js";
   import { presetDeck } from "../lib/visualizer/presetDeck.svelte.js";
   import { lyrics } from "../lib/lyrics.svelte.js";
   import { trackMonthYear } from "../lib/trackDate.js";
@@ -253,6 +254,8 @@
 
     return () => {
       if (visualizerEngine) {
+        // A take ends with the picture it was recording
+        stageRecording.stop();
         presetDeck.detach(visualizerEngine);
         visualizerEngine.destroy();
         visualizerEngine = null;
@@ -319,6 +322,15 @@
       return;
     }
     isFullscreenVisualizer = false;
+  }
+
+  // The record button: starts a take of the song from its beginning, or ends the take and saves it
+  function toggleRecording() {
+    if (stageRecording.active) {
+      stageRecording.stop();
+      return;
+    }
+    stageRecording.start(visualizerEngine, currentTrack);
   }
 
   const leaveOnDoubleTap = onDoubleTap(leaveFullscreen);
@@ -1759,25 +1771,32 @@
       onpointerdown={wakeStage}
       onpointermove={wakeStage}
     >
-      {#if showVisualizer}
-        {#key isMilkdrop}
-          <canvas
-            bind:this={canvasEl}
-            class="visualizer-canvas"
-            data-engine={isMilkdrop ? ENGINE_MILKDROP : ENGINE_SHADER}
-          ></canvas>
-        {/key}
-      {:else}
-        <!-- No picture to draw here (the plain shaders before a song): the cover fills in -->
-        <img
-          src={currentTrack.cover || ERROR_COVER}
-          alt=""
-          class="stage-cover"
-          onerror={handleCoverError}
-        />
-      {/if}
+      <!-- The picture and its lyric line share a frame: the whole screen, or
+           tall, square or wide for a video of that shape -->
+      <div class="stage-frame stage-frame-{stageRecording.frame}">
+        {#if showVisualizer}
+          {#key isMilkdrop}
+            <canvas
+              bind:this={canvasEl}
+              class="visualizer-canvas"
+              data-engine={isMilkdrop ? ENGINE_MILKDROP : ENGINE_SHADER}
+            ></canvas>
+          {/key}
+        {:else}
+          <!-- No picture to draw here (the plain shaders before a song): the cover fills in -->
+          <img
+            src={currentTrack.cover || ERROR_COVER}
+            alt=""
+            class="stage-cover"
+            onerror={handleCoverError}
+          />
+        {/if}
 
-      <LyricLine variant="stage" />
+        <LyricLine variant="stage" />
+      </div>
+      {#if stageRecording.active}
+        <span class="stage-rec-dot" aria-hidden="true"></span>
+      {/if}
 
       <div
         class="visualizer-overlay flex-col items-stretch sm:flex-row sm:items-end"
@@ -1785,7 +1804,9 @@
       >
         <StageLyricControls
           hasLyrics={lyrics.has(currentTrack.id)}
+          canRecord={showVisualizer && isMilkdrop}
           onExit={leaveFullscreen}
+          onRecord={toggleRecording}
         />
         {#if VISUALIZERS.length > 1}
         <div
@@ -2073,6 +2094,51 @@
   .visualizer-container.stage-idle .visualizer-overlay {
     opacity: 0;
     pointer-events: none;
+  }
+
+  /* The picture's frame: the whole stage, or a tall, square or wide box in its middle */
+  .stage-frame {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    container-type: size;
+  }
+
+  .stage-frame-tall {
+    width: min(100vw, 56.25vh);
+    height: min(100vh, 177.78vw);
+  }
+
+  .stage-frame-square {
+    width: min(100vw, 100vh);
+    height: min(100vw, 100vh);
+  }
+
+  .stage-frame-wide {
+    width: min(100vw, 177.78vh);
+    height: min(100vh, 56.25vw);
+  }
+
+  /* On while a take is being recorded. It is on the page, not in the video. */
+  .stage-rec-dot {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgb(255, 51, 68);
+    z-index: 20;
+    animation: stage-rec-blink 1.2s ease-in-out infinite;
+  }
+
+  @keyframes stage-rec-blink {
+    50% {
+      opacity: 0.25;
+    }
   }
 
   .stage-cover {
