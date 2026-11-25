@@ -31,7 +31,7 @@ export default defineConfig({
     }),
     // Emits real HTML at each /store/campaign/<id> and /store/product/<id> so
     // shared links preview with that item's own image, title and description.
-    shareCards({ origin: 'https://wearedogs.net' }),
+    shareCards({ origin: 'https://dogs.red' }),
     dropCdnWasm(),
   ],
   resolve: {

@@ -1,3 +1,5 @@
+import { linkOrigin } from '../../../lib/homeOrigin.js';
+
 const INVITE_PATTERN = /^#train=([a-f0-9]{24})\.([a-f0-9]{32})$/;
 const APP_PATH = '/apps/dataflash';
 /** Every path that opens Data Train, so a short link keeps its invitation too. */
@@ -28,5 +30,5 @@ export function takePairingLink() {
 
 export function createPairingLink(code, secret) {
   if (!code || !secret) return '';
-  return location.origin + APP_PATH + '#train=' + code + '.' + secret;
+  return linkOrigin() + APP_PATH + '#train=' + code + '.' + secret;
 }

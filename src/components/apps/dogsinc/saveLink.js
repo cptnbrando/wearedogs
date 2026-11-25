@@ -1,3 +1,5 @@
+import { linkOrigin } from '../../../lib/homeOrigin.js';
+
 const SAVE_PATTERN = /^#save=([A-Za-z0-9_-]{8,2000})$/;
 const APP_PATH = '/apps/dogsinc';
 let pendingCode = null;
@@ -23,5 +25,5 @@ export function takeSaveLink() {
 
 /** @param {string} code @returns {string} a link that opens DOGS INC and offers this save */
 export function createSaveLink(code) {
-  return location.origin + APP_PATH + '#save=' + code;
+  return linkOrigin() + APP_PATH + '#save=' + code;
 }
