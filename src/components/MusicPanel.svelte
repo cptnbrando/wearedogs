@@ -51,6 +51,9 @@
   const ERROR_COVER = "/img/error_cover.png";
   // How long a downloaded track's blob URL lives before it's freed
   const DOWNLOAD_REVOKE_DELAY_MS = 60000;
+  // A song whose file was replaced swaps to the new one only this early in it;
+  // further in, it plays out and the new file is used from the next play on
+  const SWAP_GRACE_S = 5;
 
   function handleCoverError(e) {
     if (!e.target.src.endsWith(ERROR_COVER)) {
@@ -334,7 +337,8 @@
   $effect(() => {
     const lib = library;
     if (audioCore.library === lib || audioCore.library.length === 0) return;
-    const playingId = audioCore.library[audioCore.currentTrackIndex]?.id;
+    const loaded = audioCore.library[audioCore.currentTrackIndex];
+    const playingId = loaded?.id;
     audioCore.init(lib);
     const pendingIdx = pendingTrackId
       ? lib.findIndex((t) => t.id === pendingTrackId)
@@ -345,6 +349,15 @@
       audioCore.loadTrack(pendingIdx, true);
     } else if (newIdx !== -1) {
       audioCore.currentTrackIndex = newIdx;
+      // The catalog has a newer file for the song that is loaded (a new mix
+      // posted since this visitor's last visit): swap to it, unless they are
+      // already well into the old one. A tab that only follows another tab's
+      // player leaves that to the tab with the sound.
+      const next = lib[newIdx];
+      const replaced = next.src !== loaded.src || next.instrumental !== loaded.instrumental;
+      const following = audioCore.masterTabId && audioCore.masterTabId !== audioCore.tabId;
+      const early = !audioCore.isPlaying || audioCore.currentTime < SWAP_GRACE_S;
+      if (replaced && early && !following) audioCore.loadTrack(newIdx, audioCore.isPlaying);
     } else {
       audioCore.pause();
       audioCore.loadTrack(0, false);
