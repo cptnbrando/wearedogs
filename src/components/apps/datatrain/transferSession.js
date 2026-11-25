@@ -6,7 +6,7 @@ const SECRET_BYTES = 16;
 const ID_BYTES = 12;
 const CHUNK_BYTES = 16 * 1024;
 const WINDOW_BYTES = 256 * 1024;
-const MAX_FILE_BYTES = 100 * 1024 * 1024;
+export const MAX_FILE_BYTES = 100 * 1024 * 1024;
 const MAX_INBOX_BYTES = 200 * 1024 * 1024;
 const MAX_TEXT_LENGTH = 16000;
 const MAX_TEXT_BYTES = MAX_TEXT_LENGTH * 4;
@@ -107,8 +107,14 @@ export class TransferSession {
     };
   }
 
-  /** Create an invitation that stays valid while this page waits for a device. */
-  async host() {
+  /**
+   * Create an invitation that stays valid while this page waits for a device.
+   * Given the code and secret of an earlier pairing (rides.js), it waits on
+   * that one again, so the same two devices can meet without a new QR code.
+   * @param {string} [code] @param {string} [secret]
+   */
+  async host(code, secret) {
+    if (code && CODE_PATTERN.test(code) && SECRET_PATTERN.test(secret)) return this._start("host", code, secret);
     return this._start("host");
   }
 
