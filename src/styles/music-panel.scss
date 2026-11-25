@@ -31,47 +31,42 @@
   -webkit-backdrop-filter: blur(24px) saturate(180%);
   animation: mpIn 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 
-  // Purple theme variables (Vocal/Default)
-  --glow-color: rgba(170, 90, 255, 0.85);
-  --glow-light: rgba(170, 90, 255, 0.6);
-  
-  --badge-bg: rgba(170, 90, 255, 0.13);
-  --badge-border: rgba(170, 90, 255, 0.28);
-  --badge-text: rgba(180, 110, 255, 0.9);
-  --badge-bg-hover: rgba(170, 90, 255, 0.22);
-  --badge-border-hover: rgba(170, 90, 255, 0.45);
-  
-  --active-row-bg: rgba(170, 90, 255, 0.07);
-  --active-btn-text: rgba(170, 90, 255, 0.9);
-  
-  --play-gradient-start: rgba(170, 90, 255, 0.92);
-  --play-gradient-end: rgba(90, 130, 255, 0.92);
-  --play-glow: rgba(140, 80, 255, 0.5);
-  
-  --progress-gradient-start: rgba(170, 90, 255, 0.9);
-  --progress-gradient-end: rgba(90, 180, 255, 0.8);
+  // The palette (src/lib/musicPalettes.js, chosen in Settings). MusicPanel
+  // puts the chosen one on this element as an inline style; these are the
+  // defaults until it has. Each is an "r, g, b" triplet.
+  --mp-vox-rgb: #{$mp-default-vox};
+  --mp-ins-rgb: #{$mp-default-ins};
+  --mp-deep-rgb: #{$mp-default-deep};
+  --mp-ink-rgb: #{$mp-default-ink};
+  // The accent in use: the VOX colour, or the INS colour in .theme-inst below.
+  // Everything else is a tint of it.
+  --mp-accent-rgb: var(--mp-vox-rgb);
+
+  --glow-color: rgba(var(--mp-accent-rgb), 0.85);
+  --glow-light: rgba(var(--mp-accent-rgb), 0.6);
+
+  --badge-bg: rgba(var(--mp-accent-rgb), 0.13);
+  --badge-border: rgba(var(--mp-accent-rgb), 0.28);
+  --badge-text: rgba(var(--mp-accent-rgb), 0.9);
+  --badge-bg-hover: rgba(var(--mp-accent-rgb), 0.22);
+  --badge-border-hover: rgba(var(--mp-accent-rgb), 0.45);
+
+  --active-row-bg: rgba(var(--mp-accent-rgb), 0.07);
+  --active-btn-text: rgba(var(--mp-accent-rgb), 0.9);
+  --active-title: rgba(var(--mp-accent-rgb), 0.95);
+
+  --play-gradient-start: rgba(var(--mp-accent-rgb), 0.95);
+  --play-gradient-end: rgba(var(--mp-deep-rgb), 0.95);
+  --play-glow: rgba(var(--mp-accent-rgb), 0.4);
+  --play-ink: rgb(var(--mp-ink-rgb));
+
+  --progress-gradient-start: rgba(var(--mp-accent-rgb), 0.9);
+  --progress-gradient-end: rgba(var(--mp-deep-rgb), 0.8);
 }
 
+// Instrumental mode: the same tints, from the palette's INS colour
 .mp-container.theme-inst {
-  // Blue theme variables (Instrumental)
-  --glow-color: rgba(90, 210, 255, 0.85);
-  --glow-light: rgba(90, 210, 255, 0.6);
-  
-  --badge-bg: rgba(90, 210, 255, 0.13);
-  --badge-border: rgba(90, 210, 255, 0.28);
-  --badge-text: rgba(90, 210, 255, 0.9);
-  --badge-bg-hover: rgba(90, 210, 255, 0.22);
-  --badge-border-hover: rgba(90, 210, 255, 0.45);
-  
-  --active-row-bg: rgba(90, 210, 255, 0.07);
-  --active-btn-text: rgba(90, 210, 255, 0.9);
-  
-  --play-gradient-start: rgba(90, 210, 255, 0.92);
-  --play-gradient-end: rgba(90, 130, 255, 0.92);
-  --play-glow: rgba(90, 210, 255, 0.5);
-  
-  --progress-gradient-start: rgba(90, 210, 255, 0.9);
-  --progress-gradient-end: rgba(90, 180, 255, 0.8);
+  --mp-accent-rgb: var(--mp-ins-rgb);
 }
 
 .mp-container.closing {
@@ -157,26 +152,54 @@
   flex-shrink: 0;
 }
 
+/* The record: pressed wax with fine grooves, dark gaps between the songs, a
+   run-out ring round the label and a raised rim. It turns; the light on it
+   does not (see .vinyl-record-clicker::after), which is what makes a real
+   record look like it is spinning. */
 .vinyl-record {
   width: 210px;
   height: 210px;
   border-radius: 50%;
+  /* Older browsers: plain rings */
   background: radial-gradient(circle at 50%,
-      #1a1a1a 0%,
-      #111 17%,
-      #0d0d0d 18.5%,
-      #1a1a1a 20%,
-      #0d0d0d 22%,
-      #1c1c1c 38%,
-      #0d0d0d 39%,
-      #1c1c1c 55%,
-      #0d0d0d 56%,
-      #1c1c1c 70%,
-      #0a0a0a 100%);
+      $vinyl-wax-dark 0%,
+      $vinyl-wax 22%,
+      $vinyl-wax 96%,
+      $vinyl-wax-dark 100%);
+  background:
+    /* the grooves: a hairline of light every couple of pixels */
+    repeating-radial-gradient(circle at 50% 50%,
+      $vinyl-groove 0,
+      $vinyl-groove 0.6px,
+      transparent 0.6px,
+      transparent 2.4px),
+    /* the gaps between songs */
+    radial-gradient(circle at 50% 50%,
+      transparent 44%,
+      $vinyl-wax-dark 44.4%,
+      $vinyl-wax-dark 45.4%,
+      transparent 45.8%,
+      transparent 59%,
+      $vinyl-wax-dark 59.4%,
+      $vinyl-wax-dark 60.4%,
+      transparent 60.8%,
+      transparent 77%,
+      $vinyl-wax-dark 77.4%,
+      $vinyl-wax-dark 78.2%,
+      transparent 78.6%),
+    /* run-out, playing surface, rim */
+    radial-gradient(circle at 50% 50%,
+      $vinyl-wax-dark 0%,
+      $vinyl-wax-dark 24%,
+      $vinyl-wax 25%,
+      $vinyl-wax 95.5%,
+      $vinyl-wax-dark 96.5%,
+      $vinyl-wax-dark 100%);
   box-shadow:
-    0 0 0 1.5px rgba(255, 255, 255, 0.03),
-    0 8px 40px rgba(0, 0, 0, 0.85),
-    inset 0 0 24px rgba(0, 0, 0, 0.5);
+    0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 10px 44px rgba(0, 0, 0, 0.9),
+    inset 0 0 0 2px rgba(0, 0, 0, 0.6),
+    inset 0 0 26px rgba(0, 0, 0, 0.55);
   position: relative;
   display: flex;
   align-items: center;
@@ -187,6 +210,41 @@
 
 .vinyl-record.spinning {
   animation-play-state: running;
+  /* a playing record picks up the player's colour */
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 10px 44px rgba(0, 0, 0, 0.9),
+    0 0 46px -14px var(--glow-light, transparent),
+    inset 0 0 0 2px rgba(0, 0, 0, 0.6),
+    inset 0 0 26px rgba(0, 0, 0, 0.55);
+}
+
+/* The light across the record: two streaks that stay put while the wax turns
+   under them. Cut away over the label, and under the tonearm. */
+.vinyl-record-clicker {
+  position: relative;
+}
+
+.vinyl-record-clicker::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 4;
+  background: conic-gradient(from 28deg,
+      transparent 0deg,
+      $vinyl-sheen 16deg,
+      transparent 40deg,
+      transparent 180deg,
+      $vinyl-sheen-soft 198deg,
+      transparent 222deg,
+      transparent 360deg);
+  -webkit-mask-image: radial-gradient(circle at 50% 50%, transparent 24%, #000 25.5%, #000 96%, transparent 97%);
+  mask-image: radial-gradient(circle at 50% 50%, transparent 24%, #000 25.5%, #000 96%, transparent 97%);
 }
 
 @keyframes vspin {
@@ -362,7 +420,11 @@
   border: 2px solid rgba(255, 255, 255, 0.1);
   position: relative;
   z-index: 2;
-  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.65);
+  /* the label sits in a shallow well, ringed in the player's colour */
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.8),
+    0 0 0 3px var(--badge-border, transparent),
+    0 2px 14px rgba(0, 0, 0, 0.65);
 }
 
 .record-art {
@@ -382,9 +444,12 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: radial-gradient(circle, #777 0%, #333 100%);
+  /* a chrome pin: lit from the top left */
+  background: radial-gradient(circle at 35% 30%, #fff 0%, #999 35%, #333 100%);
   z-index: 3;
-  box-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
+  box-shadow:
+    0 0 0 1.5px rgba(0, 0, 0, 0.85),
+    0 1px 4px rgba(0, 0, 0, 0.8);
 }
 
 .tonearm {
@@ -410,8 +475,8 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--glow-color, rgba(170, 90, 255, 0.85));
-  box-shadow: 0 0 8px var(--glow-light, rgba(170, 90, 255, 0.6));
+  background: var(--glow-color, rgba($mp-default-vox-color, 0.85));
+  box-shadow: 0 0 8px var(--glow-light, rgba($mp-default-vox-color, 0.6));
 }
 
 .tonearm.playing {
@@ -510,17 +575,17 @@
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: var(--badge-bg, rgba(170, 90, 255, 0.13));
-  border: 1px solid var(--badge-border, rgba(170, 90, 255, 0.28));
-  color: var(--badge-text, rgba(180, 110, 255, 0.9));
+  background: var(--badge-bg, rgba($mp-default-vox-color, 0.13));
+  border: 1px solid var(--badge-border, rgba($mp-default-vox-color, 0.28));
+  color: var(--badge-text, rgba($mp-default-vox-color, 0.9));
   cursor: pointer;
   transition: all 0.2s ease;
   flex-shrink: 0;
 
   &:hover {
-    background: var(--badge-bg-hover, rgba(170, 90, 255, 0.22));
-    color: rgba(200, 155, 255, 1);
-    border-color: var(--badge-border-hover, rgba(170, 90, 255, 0.45));
+    background: var(--badge-bg-hover, rgba($mp-default-vox-color, 0.22));
+    color: rgb(var(--mp-accent-rgb, #{$mp-default-vox}));
+    border-color: var(--badge-border-hover, rgba($mp-default-vox-color, 0.45));
   }
 }
 
@@ -667,10 +732,11 @@
   height: 54px;
   border-radius: 50%;
   color: #fff;
+  color: var(--play-ink, #fff);
   background: linear-gradient(135deg,
-      var(--play-gradient-start, rgba(170, 90, 255, 0.92)) 0%,
-      var(--play-gradient-end, rgba(90, 130, 255, 0.92)) 100%);
-  box-shadow: 0 4px 22px var(--play-glow, rgba(140, 80, 255, 0.5));
+      var(--play-gradient-start, rgba($mp-default-vox-color, 0.92)) 0%,
+      var(--play-gradient-end, rgba($mp-default-deep-color, 0.92)) 100%);
+  box-shadow: 0 4px 22px var(--play-glow, rgba($mp-default-vox-color, 0.5));
   transition: all 0.2s;
 }
 
@@ -690,7 +756,7 @@
 }
 
 .active-ctrl {
-  color: var(--active-btn-text, rgba(170, 90, 255, 0.9)) !important;
+  color: var(--active-btn-text, rgba($mp-default-vox-color, 0.9)) !important;
 }
 
 .spin-ring {
@@ -720,7 +786,7 @@
 // .vol-slider {
 //   flex: 1;
 //   height: 3px;
-//   accent-color: rgba(170, 90, 255, 0.9);
+//   accent-color: rgba($mp-default-vox-color, 0.9);
 //   cursor: pointer;
 // }
 
@@ -804,7 +870,7 @@
 }
 
 .track-row.active {
-  background: var(--active-row-bg, rgba(170, 90, 255, 0.07));
+  background: var(--active-row-bg, rgba($mp-default-vox-color, 0.07));
 }
 
 .track-row.active::before {
@@ -815,8 +881,8 @@
   bottom: 0;
   width: 3px;
   background: linear-gradient(to bottom,
-      var(--glow-color, rgba(170, 90, 255, 0.9)),
-      rgba(90, 150, 255, 0.7));
+      var(--glow-color, rgba($mp-default-vox-color, 0.9)),
+      var(--progress-gradient-end, rgba($mp-default-deep-color, 0.7)));
   border-radius: 0 2px 2px 0;
 }
 
@@ -857,7 +923,7 @@
 }
 
 .track-row.active .tr-title {
-  color: rgba(200, 155, 255, 0.95);
+  color: var(--active-title, rgba($mp-default-vox-color, 0.95));
 }
 
 .tr-meta {
@@ -907,7 +973,7 @@
 
 .eq-b {
   width: 3px;
-  background: var(--glow-color, rgba(170, 90, 255, 0.85));
+  background: var(--glow-color, rgba($mp-default-vox-color, 0.85));
   border-radius: 1px;
   animation: eq 0.55s ease infinite alternate;
 }

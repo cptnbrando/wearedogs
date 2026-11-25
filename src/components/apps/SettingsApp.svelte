@@ -20,6 +20,7 @@
     ShieldCheck,
   } from "lucide-svelte";
   import { installPrompt } from "../../lib/installPrompt.svelte.js";
+  import { MUSIC_PALETTES } from "../../lib/musicPalettes.js";
   import { killCache } from "./killCache.js";
 
   // How long "tap again to confirm" stays armed before it disarms itself
@@ -199,6 +200,42 @@
               {/if}
             </div>
           </div>
+        {/each}
+      </div>
+    </section>
+
+    <section class="settings-section mt-8">
+      <h3 class="section-title">Music Player Color</h3>
+
+      <div class="decks-grid">
+        {#each MUSIC_PALETTES as palette}
+          {@const isSelected = settingsManager.musicPalette === palette.id}
+
+          <button
+            type="button"
+            class="theme-card deck-card palette-card"
+            class:selected={isSelected}
+            aria-pressed={isSelected}
+            onclick={() => settingsManager.setMusicPalette(palette.id)}
+          >
+            <span class="palette-swatch" aria-hidden="true">
+              <span style="background: rgb({palette.vox})"></span>
+              <span style="background: rgb({palette.deep})"></span>
+              <span style="background: rgb({palette.ins})"></span>
+            </span>
+
+            <span class="theme-info deck-info">
+              <span class="flex flex-col">
+                <span class="theme-name">{palette.name}</span>
+                <span class="deck-desc">{palette.desc}</span>
+              </span>
+              {#if isSelected}
+                <span class="active-badge self-start">
+                  <Check size={12} /> Active
+                </span>
+              {/if}
+            </span>
+          </button>
         {/each}
       </div>
     </section>
@@ -559,6 +596,29 @@
     margin: 0;
     line-height: 1.4;
     color: var(--color-text-muted, rgba(255, 255, 255, 0.55));
+  }
+
+  // A palette card is a button: no button chrome, text left like its siblings
+  .palette-card {
+    width: 100%;
+    font: inherit;
+    color: inherit;
+    text-align: left;
+  }
+
+  // The palette's three colours as one disc: VOX, gradient end, INS
+  .palette-swatch {
+    display: flex;
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 1px solid $border-light;
+
+    span {
+      flex: 1;
+    }
   }
 
   // The quiet twin of the kill button, for actions that destroy nothing

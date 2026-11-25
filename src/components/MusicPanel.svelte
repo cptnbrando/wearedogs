@@ -35,6 +35,7 @@
   import { downloadChoice } from "../lib/trackDownload.js";
   import { musicCatalog, libraryWithCatalog } from "../lib/musicCatalog.svelte.js";
   import { tether } from "../lib/tether.svelte.js";
+  import { musicPaletteStyle } from "../lib/musicPalettes.js";
   import { settingsManager } from "../lib/settingsManager.svelte.js";
   import { VisualizerEngine } from "../lib/visualizer/VisualizerEngine.js";
   import DogsLogo from "./DogsLogo.svelte";
@@ -796,6 +797,7 @@
     class="mp-container"
     class:closing={isClosing}
     class:theme-inst={audioCore.isInstrumental}
+    style={musicPaletteStyle(settingsManager.musicPalette)}
     onclick={(e) => e.stopPropagation()}
   >
     <!-- Header -->
@@ -1738,13 +1740,13 @@
   }
 
   .fader-label.left-label.active {
-    color: #a855f7; /* Vocal side active */
-    text-shadow: 0 0 8px rgba(168, 85, 247, 0.4);
+    color: rgb(var(--mp-vox-rgb)); /* Vocal side active */
+    text-shadow: 0 0 8px rgba(var(--mp-vox-rgb), 0.4);
   }
 
   .fader-label.right-label.active {
-    color: #06b6d4; /* Inst side active */
-    text-shadow: 0 0 8px rgba(6, 182, 212, 0.4);
+    color: rgb(var(--mp-ins-rgb)); /* Inst side active */
+    text-shadow: 0 0 8px rgba(var(--mp-ins-rgb), 0.4);
   }
 
   .dj-fader-slot {
@@ -1811,7 +1813,7 @@
   .vol-slider-pop {
     flex: 1;
     height: 3px;
-    accent-color: #a855f7;
+    accent-color: rgb(var(--mp-accent-rgb));
     cursor: pointer;
     background: rgba(255, 255, 255, 0.1);
     border-radius: 2px;
