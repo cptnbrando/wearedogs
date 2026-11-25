@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1795616085,
+    "firstCommitTimestamp": 1795626322,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 259876
+    "averageLinesAltered": 262616
   },
   "entries": [
     {
       "version": "1.0.3",
       "name": "Master",
       "date": "2026-11-25",
-      "timestamp": 1795616113,
+      "timestamp": 1795626286,
       "commits": [
         {
-          "hash": "13cd3d8",
-          "message": "Merge pull request #102 from cptnbrando/ai-november2026/tether-holds",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/13cd3d8ec06fdfa2685244fb10cd8feb4c6d9531",
-          "timestamp": 1795616085,
-          "linesChanged": 259876
+          "hash": "1c33171",
+          "message": "feat(music): the visualizer lives in the record, lyrics sung word by word, share cards for songs",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/1c33171c6f68727f3f86b4fa07577daafeb5f6dd",
+          "timestamp": 1795626322,
+          "linesChanged": 262616
         }
       ]
     },
