@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1795603129,
+    "firstCommitTimestamp": 1795604913,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 256881
+    "averageLinesAltered": 256911
   },
   "entries": [
     {
       "version": "1.0.3",
       "name": "Master",
       "date": "2026-11-25",
-      "timestamp": 1795603160,
+      "timestamp": 1795604947,
       "commits": [
         {
-          "hash": "014e2c9",
-          "message": "Merge pull request #86 from cptnbrando/ai-november2026/kauboi-rating",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/014e2c9e37778497402154c3d76a1d6baa5f45c8",
-          "timestamp": 1795603129,
-          "linesChanged": 256881
+          "hash": "371ca09",
+          "message": "Merge pull request #87 from cptnbrando/ai-november2026/dogs-vox-download",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/371ca0951c9d1c52802209778a131ad1b6b9f6a4",
+          "timestamp": 1795604913,
+          "linesChanged": 256911
         }
       ]
     },
