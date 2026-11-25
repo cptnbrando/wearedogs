@@ -48,6 +48,44 @@ const MUSIC_CARD = {
   description: "Songs by DOGS. Vocals or instrumentals, with a visualizer that moves to the music. Press play.",
 };
 const MUSIC_ROUTE = "music";
+/** Songs added without a commit live in this file (src/lib/musicCatalog.svelte.js reads it too). */
+const CATALOG_URL = "https://data.wearedogs.net/music/catalog.json";
+const CATALOG_KIND = "dogs-music";
+const CATALOG_TIMEOUT_MS = 8000;
+const CATALOG_ID_PATTERN = /^[a-z0-9][a-z0-9-]{0,79}$/;
+const CATALOG_MAX_TEXT = 200;
+/** A catalog cover is only used from our own hosts. */
+const CATALOG_IMAGE_PREFIXES = ["https://data.wearedogs.net/", "https://dogs.red/", "https://wearedogs.net/"];
+
+/**
+ * The catalog's public songs as they stand at build time, or none when the
+ * file cannot be had: a build never fails for it. A song added later gets
+ * its card with the next build.
+ * @returns {Promise<object[]>}
+ */
+async function loadCatalogTracks() {
+  try {
+    const res = await fetch(CATALOG_URL, { signal: AbortSignal.timeout(CATALOG_TIMEOUT_MS) });
+    if (!res.ok) return [];
+    const catalog = await res.json();
+    if (!catalog || catalog.kind !== CATALOG_KIND || !Array.isArray(catalog.tracks)) return [];
+    const text = (value) => (typeof value === "string" ? value.slice(0, CATALOG_MAX_TEXT) : "");
+    const image = (value) => (CATALOG_IMAGE_PREFIXES.some((prefix) => text(value).startsWith(prefix)) ? value : "");
+    return catalog.tracks
+      .filter((track) => track && CATALOG_ID_PATTERN.test(track.id) && text(track.title) && track.public !== false)
+      .map((track) => ({
+        id: track.id,
+        title: text(track.title),
+        artist: text(track.artist),
+        album: text(track.album),
+        year: Number(track.year) || 0,
+        cover: image(track.cover),
+        altCover: image(track.altCover),
+      }));
+  } catch {
+    return [];
+  }
+}
 /** An album cover is square: the small card shows all of it, the large one would crop it. */
 const SQUARE_CARD = "summary";
 const SONG_TYPE = "music.song";
@@ -260,7 +298,7 @@ export default function shareCards(options = {}) {
     },
 
     // closeBundle: index.html and the public/ copy are both on disk by now.
-    closeBundle() {
+    async closeBundle() {
       const indexPath = path.join(outDir, "index.html");
       if (!fs.existsSync(indexPath)) return;
       const baseHtml = fs.readFileSync(indexPath, "utf8");
@@ -397,11 +435,15 @@ export default function shareCards(options = {}) {
         url: `${origin}/${MUSIC_ROUTE}`,
         image: fallbackImage,
       }));
-      for (const track of fullLibrary) {
+      // The catalog's songs join the built-in ones; one with a built-in id replaces it
+      const catalogTracks = await loadCatalogTracks();
+      const catalogIds = catalogTracks.map((track) => track.id);
+      const songs = fullLibrary.filter((track) => !catalogIds.includes(track.id)).concat(catalogTracks);
+      for (const track of songs) {
         if (track.public === false || track.hidden) continue;
         const html = renderCard(baseHtml, {
-          title: `${track.title} · ${track.artist}`,
-          description: summarize(`${track.album}${track.year ? ` (${track.year})` : ""}. Play it on DOGS.`),
+          title: track.artist ? `${track.title} · ${track.artist}` : track.title,
+          description: summarize(`${track.album ? `${track.album}${track.year ? ` (${track.year})` : ""}. ` : ""}Play it on DOGS.`),
           url: `${origin}/${MUSIC_ROUTE}/${track.id}`,
           image: pickImage({ images: [track.cover], image: track.altCover }, origin, fallbackImage, hasLocalFile),
           type: SONG_TYPE,
