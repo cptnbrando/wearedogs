@@ -1,3 +1,14 @@
+/** True when this browser can draw the built-in shaders at all (they need WebGL). */
+export function shadersSupported() {
+  if (typeof document === "undefined") return false;
+  try {
+    const canvas = document.createElement("canvas");
+    return !!(canvas.getContext("webgl") || canvas.getContext("experimental-webgl"));
+  } catch (e) {
+    return false;
+  }
+}
+
 /**
  * VisualizerEngine manages WebGL rendering contexts, compiling GLSL shaders,
  * binding frequency-domain textures, and managing the requestAnimationFrame loop.
