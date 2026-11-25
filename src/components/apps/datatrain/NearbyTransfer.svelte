@@ -23,6 +23,10 @@
     'You can leave Air Train and come back: the connection and your files stay while this window is open, for up to 10 minutes of nothing happening.',
     'Save files before you close or refresh the page. That ends the session.',
   ];
+  const TETHER_ON = 'Tethered';
+  const TETHER_WAITING = 'Tether: turn it on there too';
+  const TETHER_ASKED = 'Tether asked for: turn on';
+  const TETHER_OFF = 'Tether';
   const TETHER_HINT = 'Tether mode: dogs.red can share more between these two devices, starting with the music player. Play, pause, skip and shuffle stay in step, and this device can work as the remote. It stays on until you close this window, disconnect, or nothing happens for 10 minutes. Both devices have to turn it on.';
   const QR_OPTIONS = { width: 264, margin: 4, errorCorrectionLevel: 'M' };
   const STATUS_LABELS = {
@@ -76,13 +80,6 @@
       tether.close();
     };
   });
-
-  /** What the Tether switch says: off, waiting on one side, or on. */
-  function tetherLabel(on, peerOn) {
-    if (on && peerOn) return 'Tethered';
-    if (on) return 'Tether: turn it on there too';
-    return peerOn ? 'Tether asked for: turn on' : 'Tether';
-  }
 
   function joinUpdatedLink() {
     const invite = parsePairingLink(location.hash);
@@ -220,7 +217,7 @@
   <header class="dt-air-header">
     <div class="dt-heading"><Radio size={19} aria-hidden="true" /><h2>Air Train</h2><span>Files & text. Both ways.</span></div>
     <div class="dt-connection" class:dt-online={connected} role="status"><i></i>{STATUS_LABELS[state.status] || state.status}</div>
-    {#if connected && tether.available}<button type="button" class="dt-tether" class:dt-tether-on={tether.linked} class:dt-tether-asking={tether.on !== tether.peerOn} aria-pressed={tether.on} title={TETHER_HINT} aria-label={tetherLabel(tether.on, tether.peerOn) + '. ' + TETHER_HINT} onclick={() => tether.setOn(!tether.on)}><Cable size={15} aria-hidden="true" /><span>{tetherLabel(tether.on, tether.peerOn)}</span></button>{/if}
+    {#if connected && tether.available}<button type="button" class="dt-tether" class:dt-tether-on={tether.linked} class:dt-tether-asking={tether.on !== tether.peerOn} aria-pressed={tether.on} title={TETHER_HINT} aria-label={TETHER_HINT} onclick={() => tether.setOn(!tether.on)}><Cable size={15} aria-hidden="true" /><span>{tether.on && tether.peerOn ? TETHER_ON : tether.on ? TETHER_WAITING : tether.peerOn ? TETHER_ASKED : TETHER_OFF}</span></button>{/if}
     {#if connected}<button class="dt-quiet dt-disconnect" onclick={() => session.disconnect()}>Disconnect</button>{/if}
     {#if !connected && state.items.length}<button class="dt-quiet dt-disconnect" onclick={restart}>Clear session & reconnect</button>{/if}
   </header>

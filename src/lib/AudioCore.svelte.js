@@ -206,12 +206,17 @@ export class AudioCore {
             this.loadTrack(index, isSelfMaster && msg.isPlaying);
           } else {
             const isSelfMaster = this.masterTabId === this.tabId;
+            const wasPlaying = this.isPlaying;
             this.isPlaying = msg.isPlaying;
             if (isSelfMaster) {
-              if (msg.isPlaying) {
+              // Only a change of play state moves the playhead: a follower
+              // flipping shuffle or VOX / INS must not make the song skip
+              if (msg.isPlaying && !wasPlaying) {
                 this.play(msg.currentTime);
-              } else {
+              } else if (!msg.isPlaying && wasPlaying) {
                 this.pause();
+              } else {
+                this.applyCrossfade();
               }
             } else {
               this.currentTime = msg.currentTime;
@@ -228,6 +233,7 @@ export class AudioCore {
           if (index === -1) break;
           this.isSyncing = false;
           this.masterTabId = this.tabId;
+          this.masterIsRemote = false;
           this.loadTrack(index, true);
           break;
         }
@@ -286,20 +292,6 @@ export class AudioCore {
     this.broadcastState("state_change");
   }
 
-  /**
-   * The listener picked a song. On a remote control, the tethered device
-   * that has the sound plays it; anywhere else it plays here.
-   * @param {number} index library index
-   */
-  selectTrack(index) {
-    const track = this.library[index];
-    if (!track) return;
-    if (this.masterIsRemote) {
-      this.broadcast({ type: "cmd_track", trackId: track.id, trackIndex: index });
-      return;
-    }
-    this.loadTrack(index, true);
-  }
 
   /**
    * Resolves a track URL to something the element can play. Lockup files
@@ -550,6 +542,14 @@ export class AudioCore {
    */
   async loadTrack(index, autoplay = false, opts = {}) {
     if (index < 0 || index >= this.library.length) return;
+    // On a remote control the song belongs to the tethered device with the
+    // sound. A song the listener picked is asked of it; anything this page
+    // would load for itself (its random first song) is left alone, or it
+    // would stop the music over there.
+    if (this.masterIsRemote && !this.isSyncing) {
+      if (autoplay) this.broadcast({ type: "cmd_track", trackId: this.library[index].id, trackIndex: index });
+      return;
+    }
     const seq = ++this.loadSeq;
 
     clearTimeout(this.skipTimer);
@@ -805,6 +805,13 @@ export class AudioCore {
     this.initContext();
     await this.resumeContextSoon();
 
+    // The sound is on the tethered device: it pauses and resumes there
+    if (this.masterIsRemote) {
+      if (this.isPlaying) this.requestPause();
+      else this.broadcast({ type: "cmd_play", currentTime: this.currentTime });
+      return;
+    }
+
     const track = this.library[this.currentTrackIndex];
     const hasFetchError = track ? this.fetchErrors[track.id] : false;
     const hasSrc = this.trackAudio.src || this.instAudio.src;
@@ -816,9 +823,6 @@ export class AudioCore {
 
     if (this.isPlaying) {
       this.requestPause();
-    } else if (this.masterIsRemote) {
-      // The sound is on the tethered device: it resumes there
-      this.broadcast({ type: "cmd_play", currentTime: this.currentTime });
     } else {
       this.masterTabId = this.tabId;
       this.play(this.currentTime);
