@@ -16,7 +16,10 @@
     Music,
     Dog,
     Trash2,
+    Download,
+    ShieldCheck,
   } from "lucide-svelte";
+  import { installPrompt } from "../../lib/installPrompt.svelte.js";
   import { killCache } from "./killCache.js";
 
   // How long "tap again to confirm" stays armed before it disarms itself
@@ -233,6 +236,60 @@
           </div>
         {/each}
       </div>
+    </section>
+
+    <section class="settings-section mt-8 2xl:mt-12">
+      <h3 class="section-title">Install</h3>
+
+      <div
+        class="kill-card flex flex-col items-stretch gap-3 sm:flex-row sm:items-center md:gap-4 xl:gap-6 2xl:p-6"
+      >
+        <p class="kill-desc flex-1 text-xs md:text-sm 2xl:text-base">
+          {#if installPrompt.installed}
+            DOGS is installed on this device.
+          {:else if installPrompt.available}
+            Put DOGS on this device like an app, with its own icon and window.
+            The site never asks by itself: this button is the only way.
+          {:else}
+            This browser has no install offer right now. Where it can be done,
+            it is in the browser's own menu: Add to Home Screen, or Install.
+          {/if}
+        </p>
+        <button
+          type="button"
+          class="site-data-btn shrink-0 px-4 py-3 text-xs sm:py-2 md:text-sm 2xl:px-6 2xl:py-3 2xl:text-base"
+          disabled={!installPrompt.available}
+          onclick={() => installPrompt.install()}
+        >
+          <Download size={16} />
+          {installPrompt.installed ? "Installed" : "Install DOGS"}
+        </button>
+      </div>
+
+      {#if installPrompt.canPersist}
+        <div
+          class="kill-card mt-3 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center md:gap-4 xl:gap-6 2xl:p-6"
+        >
+          <p class="kill-desc flex-1 text-xs md:text-sm 2xl:text-base">
+            {#if installPrompt.persisted}
+              Songs and settings saved on this device are protected: the browser
+              will not clear them to free up space.
+            {:else}
+              Ask the browser to keep songs and settings saved on this device,
+              even when it runs low on space. Your browser may ask you to allow it.
+            {/if}
+          </p>
+          <button
+            type="button"
+            class="site-data-btn shrink-0 px-4 py-3 text-xs sm:py-2 md:text-sm 2xl:px-6 2xl:py-3 2xl:text-base"
+            disabled={installPrompt.persisted}
+            onclick={() => installPrompt.keepData()}
+          >
+            <ShieldCheck size={16} />
+            {installPrompt.persisted ? "Protected" : "Keep my data"}
+          </button>
+        </div>
+      {/if}
     </section>
 
     <section class="settings-section mt-8 2xl:mt-12">
@@ -502,6 +559,34 @@
     margin: 0;
     line-height: 1.4;
     color: var(--color-text-muted, rgba(255, 255, 255, 0.55));
+  }
+
+  // The quiet twin of the kill button, for actions that destroy nothing
+  .site-data-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-width: 12rem;
+    border-radius: 8px;
+    border: 1px solid $color-neon-green;
+    background: transparent;
+    color: $color-neon-green;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background $transition-speed-fast ease, color $transition-speed-fast ease;
+
+    &:hover,
+    &:focus-visible {
+      background: $bg-input-dark;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
   }
 
   .kill-btn {
