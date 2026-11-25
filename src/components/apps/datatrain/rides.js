@@ -8,14 +8,12 @@
  * changes. Both devices have to press Reconnect, and the waiting one still
  * gets the "Let this device aboard?" question and has to allow it.
  *
- * Rides are kept on this device only (localStorage), for RIDE_TTL_MS, at most
- * MAX_RIDES of them, and each can be forgotten from the list.
+ * Rides are kept on this device only (localStorage) until they are forgotten
+ * from the list, the newest MAX_RIDES of them.
  */
 
 const STORAGE_KEY = "datatrain_rides_v1";
-/** How long a ride can be reconnected. */
-const RIDE_TTL_MS = 24 * 60 * 60 * 1000;
-const MAX_RIDES = 5;
+const MAX_RIDES = 8;
 const MAX_NAME_LENGTH = 40;
 const CODE_PATTERN = /^[a-f0-9]{24}$/;
 const SECRET_PATTERN = /^[a-f0-9]{32}$/;
@@ -36,7 +34,7 @@ function write(rides) {
 }
 
 /**
- * The rides that can still be reconnected, newest first.
+ * The remembered rides, newest first.
  * @returns {{ code: string, secret: string, role: 'host'|'guest', peerName: string, at: number }[]}
  */
 export function listRides() {
@@ -47,8 +45,7 @@ export function listRides() {
     stored = [];
   }
   if (!Array.isArray(stored)) return [];
-  const cutoff = Date.now() - RIDE_TTL_MS;
-  return stored.filter((ride) => isRide(ride) && ride.at > cutoff).sort((a, b) => b.at - a.at).slice(0, MAX_RIDES);
+  return stored.filter(isRide).sort((a, b) => b.at - a.at).slice(0, MAX_RIDES);
 }
 
 /**
