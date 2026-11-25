@@ -14,6 +14,11 @@
  * the rest of the site and come back to the same connection and files. It
  * ends when the window closes, when either device disconnects, or when
  * nothing has crossed it for IDLE_LIMIT_MS while Air Train is closed.
+ *
+ * A connection that drops by itself (a phone's screen turned off, the network
+ * changed) is found again by the session (transferSession.js, "Holding on").
+ * While that goes on the players are their own again; when the devices are
+ * back together, a tether that was on comes back on without being asked.
  */
 import { audioCore } from "./AudioCore.svelte.js";
 import { TransferSession } from "../components/apps/datatrain/transferSession.js";
@@ -22,6 +27,11 @@ import { TransferSession } from "../components/apps/datatrain/transferSession.js
 const IDLE_LIMIT_MS = 10 * 60 * 1000;
 const KIND_TETHER = "tether";
 const KIND_MUSIC = "music";
+const STATUS_CONNECTED = "connected";
+/** The session is finding the other device again after a drop. */
+const STATUS_RECONNECTING = "reconnecting";
+/** A session in one of these is worth keeping when Air Train closes. */
+const LIVE_STATUSES = [STATUS_CONNECTED, STATUS_RECONNECTING];
 const MAX_ID_LENGTH = 80;
 /** The player's sync messages a tethered device may send (see AudioCore.handleSyncMessage). */
 const SYNC_TYPES = [
@@ -68,6 +78,8 @@ class Tether {
   /** The other device can tether at all (it runs a version of the site that knows how). */
   available = $state(false);
   peerName = $state("");
+  /** The connection dropped with the tether on, and is being found again. */
+  holding = $state(false);
 
   session = null;
   lastState = null;
@@ -75,6 +87,18 @@ class Tether {
   view = null;
   idleTimer = null;
   wasLinked = false;
+
+  constructor() {
+    if (typeof window === "undefined") return;
+    // A closing tab says goodbye, so the other device does not wait for it
+    window.addEventListener("pagehide", () => {
+      if (this.session) this.session.leave();
+    });
+    // A phone waking up: its timers slept, so the connection is looked at right away
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden && this.session) this.session.wake();
+    });
+  }
 
   /** Both devices opted in and the connection is up: the players are in step. */
   get linked() {
@@ -89,7 +113,7 @@ class Tether {
   open(onChange) {
     this.view = onChange;
     clearTimeout(this.idleTimer);
-    const kept = this.session && this.lastState && (this.lastState.status === "connected" || this.lastState.items.length > 0);
+    const kept = this.session && this.lastState && (LIVE_STATUSES.indexOf(this.lastState.status) !== -1 || this.lastState.items.length > 0);
     if (kept) {
       onChange(this.lastState);
       return { session: this.session, resumed: true };
@@ -106,7 +130,7 @@ class Tether {
   /** Air Train closes. A live connection (or received files) stays; anything else is dropped. */
   close() {
     this.view = null;
-    const keep = this.lastState && (this.lastState.status === "connected" || this.lastState.items.length > 0);
+    const keep = this.lastState && (LIVE_STATUSES.indexOf(this.lastState.status) !== -1 || this.lastState.items.length > 0);
     if (keep) {
       this.touch();
       return;
@@ -123,6 +147,7 @@ class Tether {
     this.connected = false;
     this.available = false;
     this.peerName = "";
+    this.holding = false;
     this.drop();
   }
 
@@ -144,16 +169,26 @@ class Tether {
   onState(session, state) {
     if (session !== this.session) return;
     this.lastState = state;
-    const connected = state.status === "connected";
+    const connected = state.status === STATUS_CONNECTED;
+    const reconnecting = state.status === STATUS_RECONNECTING;
     if (connected !== this.connected) {
       this.connected = connected;
       this.available = connected && session.canSendApp();
-      // A new connection starts untethered on both sides: opting in is per pairing
-      if (!connected) this.drop();
+      if (!connected) {
+        // A drop that is being mended remembers the switch; any other ending forgets it
+        this.holding = reconnecting && (this.on || this.holding);
+        this.drop();
+      } else if (this.holding) {
+        // Back together: the tether both sides had on comes back on. Each switches its own.
+        this.holding = false;
+        this.setOn(true);
+      }
+    } else if (!connected && !reconnecting) {
+      this.holding = false;
     }
     this.peerName = state.peerName || "";
     if (this.view) this.view(state);
-    else if (!connected && !state.items.length) this.end();
+    else if (!connected && !reconnecting && !state.items.length) this.end();
   }
 
   onApp(session, payload) {

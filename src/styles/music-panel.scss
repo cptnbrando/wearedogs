@@ -612,6 +612,17 @@
   flex-shrink: 0;
 }
 
+// The tether dropped and is being found again: amber, and breathing
+.player-tether-lost {
+  border-color: $color-neon-gold;
+  color: $color-neon-gold;
+  animation: player-tether-wait 1.6s ease-in-out infinite;
+}
+
+@keyframes player-tether-wait {
+  50% { opacity: 0.35; }
+}
+
 .player-tether-hint {
   position: absolute;
   bottom: calc(100% + 8px);

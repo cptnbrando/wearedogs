@@ -20,7 +20,25 @@ const APPROVAL_TIMEOUT = 120000;
 const TRANSFER_TIMEOUT = 30000;
 const CLOSE_DELAY = 150;
 /** What this page can do beyond transfers, told to the other device while pairing. */
-const CAPABILITIES = ["app"];
+/** "hold": this page sends heartbeats and goodbyes, and can pick a dropped connection back up. */
+const HOLD_CAPABILITY = "hold";
+const CAPABILITIES = ["app", HOLD_CAPABILITY];
+/** App messages the session keeps for itself (they never reach onApp). */
+const BEAT_KIND = "beat";
+const BYE_KIND = "bye";
+/** The answer to a heartbeat. It is sent on arrival, not on a timer, so a page whose timers the browser has slowed still answers. */
+const ECHO_KIND = "beat-back";
+const BEAT_EVERY_MS = 4000;
+/** This many heartbeats in a row with nothing heard back: the other device is gone, whatever the browser still says. */
+const MAX_MISSED_BEATS = 3;
+/** A page that wakes having heard nothing for this long was asleep, and the other device has given up on it. */
+const BEAT_TIMEOUT_MS = 13000;
+/** How long a dropped connection is looked for again before giving up. */
+const RESUME_WINDOW_MS = 10 * 60 * 1000;
+/** Waits between tries; the last one repeats. */
+const RESUME_WAITS_MS = [600, 1500, 3000, 6000];
+/** What the screen is told while a dropped connection is being found again. */
+const STATUS_RECONNECTING = "reconnecting";
 const MAX_CAPABILITIES = 8;
 const TEXT_NAME = "Text note";
 const TEXT_MIME = "text/plain;charset=utf-8";
@@ -38,6 +56,7 @@ const ERRORS = {
   unavailable: "That device is no longer waiting. Keep its page open and scan a fresh QR code.",
   rejected: "The other device declined this connection. Scan a fresh QR code to try again.",
   closed: "The other device disconnected. Keep both pages open and pair again to continue.",
+  held: "The connection dropped while this was on its way. Send it again once the devices are back together.",
   protocol: "The other device sent an invalid transfer. Pair again to continue.",
   transfer: "This transfer stopped responding. Keep both pages awake and send it again.",
   read: "This file could not be read. Select it again and retry.",
@@ -77,6 +96,15 @@ function safeName(name, fallback, limit = MAX_NAME_LENGTH) {
  * two devices (the tether, src/lib/tether.svelte.js). They go only to a device
  * that said it understands them while pairing: an older page would treat one
  * as a broken transfer and hang up.
+ *
+ * Holding on: a phone whose screen turns off, or a network that changes, kills
+ * the connection without telling anyone. Two devices that both know "hold"
+ * send each other a heartbeat; when it stops, each looks for the other again
+ * on the same invitation for RESUME_WINDOW_MS. The host lets the guest back in
+ * without asking only when it shows the resume key the host gave it over the
+ * approved connection, a key that lives in the two pages' memory and nowhere
+ * else. A page that is closed or disconnects on purpose says goodbye first, so
+ * the other one stops at once and does not wait for it.
  */
 export class TransferSession {
   /** @param {{onChange?: (state: object) => void}} options */
@@ -93,6 +121,15 @@ export class TransferSession {
     this.generation = 0;
     this.destroyed = false;
     this.connectionTimer = null;
+    /** Proves to the host that a returning guest is the one it approved. Empty: nothing to come back to. */
+    this.resumeKey = "";
+    this.resumeUntil = 0;
+    this.resumeTries = 0;
+    this.resumeTimer = null;
+    this.resumeDeadline = null;
+    this.beatTimer = null;
+    this.missedBeats = 0;
+    this.lastHeard = 0;
     this.closeTimers = [];
     this.queue = [];
     /** Sent item id -> what it was made from, so a failed one can be sent again. */
@@ -100,7 +137,7 @@ export class TransferSession {
     this.activeSend = null;
     this.activeReceive = null;
     this.state = {
-      status: "idle", error: "", code: "", secret: "", peerName: "", pendingName: "",
+      status: "idle", error: "", code: "", secret: "", peerName: "", pendingName: "", resuming: false,
       selfName: typeof navigator !== "undefined" && /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent)
         ? "Phone or tablet" : "Computer",
       items: [], busy: false,
@@ -137,7 +174,11 @@ export class TransferSession {
     this.state.pendingName = "";
     this.state.status = "connected";
     this.state.error = "";
-    if (!this._send({ type: "welcome", name: this.state.selfName, caps: CAPABILITIES })) return false;
+    // Only a guest that can hold on gets a key to come back with
+    if (this.peerCapabilities.indexOf(HOLD_CAPABILITY) === -1) this.resumeKey = "";
+    else if (!this.resumeKey) this.resumeKey = randomHex(SECRET_BYTES);
+    if (!this._send({ type: "welcome", name: this.state.selfName, caps: CAPABILITIES, resume: this.resumeKey })) return false;
+    this._linkUp();
     this._emit();
     return true;
   }
@@ -250,13 +291,37 @@ export class TransferSession {
 
   /** End pairing while retaining finished files and the UI subscription. */
   disconnect() {
+    this.leave();
     this._endConnection("disconnected", "");
+  }
+
+  /**
+   * This page is going away or hanging up on purpose: the other device is told
+   * now, so it stops at once and does not look for this one.
+   */
+  leave() {
+    const said = this._sayBye();
+    this.resumeKey = "";
+    if (said) this._closeSoon();
+  }
+
+  /** The page is in front again: timers may have slept, so look at the connection now. */
+  wake() {
+    if (this.state.resuming) {
+      this.resumeTries = 0;
+      this._resume();
+    } else if (this.state.status === "connected" && this.peerCapabilities.indexOf(HOLD_CAPABILITY) !== -1) {
+      if (Date.now() - this.lastHeard > BEAT_TIMEOUT_MS) this._endConnection("disconnected", ERRORS.closed);
+      else this._beat();
+    }
   }
 
   /** Close all network activity, cancel readers/timers and release received files. */
   destroy() {
+    this.leave();
     this.destroyed = true;
     this.generation += 1;
+    clearTimeout(this.resumeDeadline);
     this._dispose();
     this.state.items.forEach((item) => {
       if (item.url) URL.revokeObjectURL(item.url);
@@ -278,7 +343,9 @@ export class TransferSession {
       if (item.url) URL.revokeObjectURL(item.url);
     });
     this.sources.clear();
-    Object.assign(this.state, { status: "starting", error: "", code: "", secret: "", peerName: "", pendingName: "", items: [] });
+    this.resumeKey = "";
+    clearTimeout(this.resumeDeadline);
+    Object.assign(this.state, { status: "starting", error: "", code: "", secret: "", peerName: "", pendingName: "", resuming: false, items: [] });
     if (typeof window === "undefined" || !window.RTCPeerConnection || !window.crypto?.getRandomValues || typeof FileReader === "undefined") {
       this.state.status = "unsupported";
       this.state.error = ERRORS.unsupported;
@@ -289,6 +356,12 @@ export class TransferSession {
     this.state.secret = secret || randomHex(SECRET_BYTES);
     this.state.selfName = safeName(deviceName, this.state.selfName, MAX_DEVICE_LENGTH);
     this._emit();
+    return this._open(role, generation);
+  }
+
+  /** Reach the pairing service as host or guest of the invitation in this.state. */
+  async _open(role, generation) {
+    const code = this.state.code;
     this._connectionDeadline(CONNECTION_TIMEOUT, ERRORS.start);
     try {
       const { Peer } = await import("peerjs");
@@ -343,7 +416,7 @@ export class TransferSession {
     connection.on("open", () => {
       if (this.connection !== connection) return;
       if (this.role === "guest") {
-        this._send({ type: "hello", secret: this.state.secret, name: this.state.selfName, caps: CAPABILITIES });
+        this._send({ type: "hello", secret: this.state.secret, name: this.state.selfName, caps: CAPABILITIES, resume: this.resumeKey });
         this._connectionDeadline(APPROVAL_TIMEOUT, ERRORS.approval);
       }
     });
@@ -365,6 +438,8 @@ export class TransferSession {
   }
 
   _receive(data) {
+    this.lastHeard = Date.now();
+    this.missedBeats = 0;
     if (data instanceof ArrayBuffer) {
       this._receiveChunk(data);
       return;
@@ -386,6 +461,18 @@ export class TransferSession {
     }
     if (this.state.status !== "connected") {
       this._handshake(packet);
+      return;
+    }
+    const kind = packet.type === "app" && packet.payload ? packet.payload.k : "";
+    // A heartbeat only says "still here": it is not use, and must not hold the idle clock back
+    if (kind === ECHO_KIND) return;
+    if (kind === BEAT_KIND) {
+      this._sendKind(ECHO_KIND);
+      return;
+    }
+    if (kind === BYE_KIND) {
+      this.resumeKey = "";
+      this._endConnection("disconnected", ERRORS.closed);
       return;
     }
     if (this.onActivity) this.onActivity();
@@ -424,9 +511,19 @@ export class TransferSession {
         this._releaseCandidate();
         return;
       }
+      // Coming back after a drop: only the guest that was approved, shown by its key. Nobody is asked.
+      const returning = this.state.resuming;
+      if (returning && (!this.resumeKey || packet.resume !== this.resumeKey)) {
+        this._releaseCandidate();
+        return;
+      }
       this.state.pendingName = safeName(packet.name, "Other device", MAX_DEVICE_LENGTH);
       this._noteCapabilities(packet.caps);
       this.state.status = "pending";
+      if (returning) {
+        this.acceptPeer();
+        return;
+      }
       this._connectionDeadline(APPROVAL_TIMEOUT, ERRORS.approval);
       this._emit();
       return;
@@ -437,10 +534,13 @@ export class TransferSession {
       this._noteCapabilities(packet.caps);
       this.state.status = "connected";
       this.state.error = "";
+      this.resumeKey = SECRET_PATTERN.test(packet.resume) ? packet.resume : "";
+      this._linkUp();
       this._emit();
       return;
     }
     if (this.role === "guest" && packet.type === "reject") {
+      this.resumeKey = "";
       this._endConnection("disconnected", ERRORS.rejected);
       return;
     }
@@ -692,7 +792,99 @@ export class TransferSession {
   _emit() {
     if (this.destroyed) return;
     this.state.busy = !!this.activeSend || !!this.activeReceive || !!this.queue.length;
-    if (this.onChange) this.onChange({ ...this.state, items: this.state.items.map((item) => ({ ...item })) });
+    // The screen sees one "reconnecting" for every step of finding the other device again
+    const status = this.state.resuming ? STATUS_RECONNECTING : this.state.status;
+    if (this.onChange) this.onChange({ ...this.state, status, items: this.state.items.map((item) => ({ ...item })) });
+  }
+
+  /** The two devices are together: the heartbeat starts and any search for each other stops. */
+  _linkUp() {
+    this.state.resuming = false;
+    this.resumeTries = 0;
+    clearTimeout(this.resumeTimer);
+    clearTimeout(this.resumeDeadline);
+    clearInterval(this.beatTimer);
+    this.lastHeard = Date.now();
+    this.missedBeats = 0;
+    if (this.peerCapabilities.indexOf(HOLD_CAPABILITY) !== -1) this.beatTimer = setInterval(() => this._beat(), BEAT_EVERY_MS);
+  }
+
+  /** One heartbeat out, and a look at when the other device was last heard. */
+  _beat() {
+    if (this.state.status !== "connected" || this.peerCapabilities.indexOf(HOLD_CAPABILITY) === -1) return;
+    if (this.missedBeats >= MAX_MISSED_BEATS || !this._sendKind(BEAT_KIND)) {
+      this._endConnection("disconnected", ERRORS.closed);
+      return;
+    }
+    this.missedBeats += 1;
+  }
+
+  /** A message of the session's own, straight onto the channel. False when it could not go. */
+  _sendKind(kind) {
+    if (!this.connection?.open) return false;
+    try {
+      this.connection.send(JSON.stringify({ v: PROTOCOL_VERSION, type: "app", payload: { k: kind } }));
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  _sayBye() {
+    return this.state.status === "connected" && this.peerCapabilities.indexOf(HOLD_CAPABILITY) !== -1 && this._sendKind(BYE_KIND);
+  }
+
+  /** Lets go of the connection but closes it a moment later, so a goodbye just sent can leave first. */
+  _closeSoon() {
+    const connection = this.connection;
+    const peer = this.peer;
+    this.connection = null;
+    this.peer = null;
+    setTimeout(() => {
+      if (connection) connection.close();
+      if (peer) peer.destroy();
+    }, CLOSE_DELAY);
+  }
+
+  /**
+   * A connection that dropped by itself is looked for again, on the same
+   * invitation, until RESUME_WINDOW_MS has passed.
+   * @returns {boolean} true when the search is on, so the caller must not end the session
+   */
+  _resume() {
+    const live = this.state.status === "connected" || this.state.resuming;
+    if (!live || !this.resumeKey || this.destroyed) return false;
+    if (!this.state.resuming) {
+      this.resumeUntil = Date.now() + RESUME_WINDOW_MS;
+      this.resumeTries = 0;
+      clearTimeout(this.resumeDeadline);
+      this.resumeDeadline = setTimeout(() => this._endConnection("disconnected", ERRORS.closed), RESUME_WINDOW_MS);
+    }
+    if (Date.now() >= this.resumeUntil) return false;
+    this.generation += 1;
+    const generation = this.generation;
+    this._dispose();
+    this._failActive(ERRORS.held);
+    this.state.resuming = true;
+    this.state.status = "starting";
+    this.state.error = "";
+    this.state.pendingName = "";
+    this._emit();
+    const wait = RESUME_WAITS_MS[Math.min(this.resumeTries, RESUME_WAITS_MS.length - 1)];
+    this.resumeTries += 1;
+    this.resumeTimer = setTimeout(() => {
+      if (generation === this.generation && !this.destroyed) this._open(this.role, generation);
+    }, wait);
+    return true;
+  }
+
+  _failActive(error) {
+    this.state.items.forEach((item) => {
+      if (ACTIVE_STATUSES.indexOf(item.status) !== -1) {
+        item.status = "error";
+        item.error = error;
+      }
+    });
   }
 
   _releaseCandidate() {
@@ -713,13 +905,12 @@ export class TransferSession {
   }
 
   _endConnection(status, error) {
+    if (this._resume()) return;
     this._dispose();
-    this.state.items.forEach((item) => {
-      if (ACTIVE_STATUSES.indexOf(item.status) !== -1) {
-        item.status = "error";
-        item.error = error;
-      }
-    });
+    this._failActive(error);
+    clearTimeout(this.resumeDeadline);
+    this.resumeKey = "";
+    this.state.resuming = false;
     this.state.status = status;
     this.state.error = error;
     this.state.pendingName = "";
@@ -737,6 +928,8 @@ export class TransferSession {
 
   _dispose() {
     clearTimeout(this.connectionTimer);
+    clearTimeout(this.resumeTimer);
+    clearInterval(this.beatTimer);
     this._disposeJob(this.activeSend);
     this._disposeJob(this.activeReceive);
     this.activeSend = null;
