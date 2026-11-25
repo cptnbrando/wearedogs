@@ -61,12 +61,20 @@ const CATALOG_IMAGE_PREFIXES = ["https://data.wearedogs.net/", "https://dogs.red
  * The catalog's public songs as they stand at build time, or none when the
  * file cannot be had: a build never fails for it. A song added later gets
  * its card with the next build.
+ * @param {string} origin - the site's own address: the data host only answers requests that come from it
+ * @param {(message: string) => void} say - where to note why the catalog was left out
  * @returns {Promise<object[]>}
  */
-async function loadCatalogTracks() {
+async function loadCatalogTracks(origin, say) {
   try {
-    const res = await fetch(CATALOG_URL, { signal: AbortSignal.timeout(CATALOG_TIMEOUT_MS) });
-    if (!res.ok) return [];
+    const res = await fetch(CATALOG_URL, {
+      headers: { Referer: `${origin}/`, Origin: origin },
+      signal: AbortSignal.timeout(CATALOG_TIMEOUT_MS),
+    });
+    if (!res.ok) {
+      say(`share cards: the music catalog answered ${res.status}; only the built-in songs get cards`);
+      return [];
+    }
     const catalog = await res.json();
     if (!catalog || catalog.kind !== CATALOG_KIND || !Array.isArray(catalog.tracks)) return [];
     const text = (value) => (typeof value === "string" ? value.slice(0, CATALOG_MAX_TEXT) : "");
@@ -82,7 +90,8 @@ async function loadCatalogTracks() {
         cover: image(track.cover),
         altCover: image(track.altCover),
       }));
-  } catch {
+  } catch (e) {
+    say(`share cards: the music catalog could not be read (${e && e.message}); only the built-in songs get cards`);
     return [];
   }
 }
@@ -436,7 +445,7 @@ export default function shareCards(options = {}) {
         image: fallbackImage,
       }));
       // The catalog's songs join the built-in ones; one with a built-in id replaces it
-      const catalogTracks = await loadCatalogTracks();
+      const catalogTracks = await loadCatalogTracks(origin, (message) => this.info(message));
       const catalogIds = catalogTracks.map((track) => track.id);
       const songs = fullLibrary.filter((track) => !catalogIds.includes(track.id)).concat(catalogTracks);
       for (const track of songs) {
