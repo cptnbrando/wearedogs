@@ -27,6 +27,13 @@
 .dt-connection { display: block; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: t.$muted; font-size: t.$small; i { display: inline-block; vertical-align: middle; margin-right: 7px; width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; } }
 .dt-online { color: t.$success; }
 .dt-disconnect { margin-left: auto; flex-shrink: 0; white-space: nowrap; }
+// The Tether switch: an outline when off, lit when both devices have it on,
+// pulsing while one side waits for the other. Phones show the icon alone.
+.dt-tether { margin-left: auto; flex-shrink: 1; min-width: 0; display: inline-flex; align-items: center; gap: 6px; padding: 5px 9px; background: transparent; border: 1px solid t.$line; border-radius: t.$radius; color: t.$muted; font-size: t.$small !important; white-space: nowrap; > svg { flex-shrink: 0; } span { display: none; overflow: hidden; text-overflow: ellipsis; } &:hover { color: t.$ink; } + .dt-disconnect { margin-left: 0; } }
+.dt-tether-asking { color: t.$accent; border-color: t.$accent; animation: dt-tether-ask 1.6s ease-in-out infinite; span { display: inline; } }
+.dt-tether-on { color: t.$success; border-color: t.$success; animation: none; span { display: inline; } }
+@keyframes dt-tether-ask { 50% { opacity: .55; } }
+@media (prefers-reduced-motion: reduce) { .dt-tether-asking { animation: none; } }
 .dt-pair-grid { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 16px; padding: 16px 0; min-width: 0; }
 .dt-pair-intro { max-width: 390px; width: 100%; h3 { font-size: 25px; font-weight: 600; letter-spacing: -.03em; line-height: 1.08; } }
 .dt-device-symbols { display: none; align-items: center; gap: 16px; margin-bottom: 22px; color: t.$accent; span { color: t.$muted; } }
@@ -148,6 +155,7 @@
 @media (min-width: 1024px) and (min-height: 601px) {
   .dt-pair-grid { gap: 50px; }
   .dt-heading span { display: inline; }
+  .dt-tether span { display: inline; }
   .dt-send-dock { flex-direction: row; align-items: flex-end; gap: 24px; }
   .dt-file-action { align-self: center; }
 }

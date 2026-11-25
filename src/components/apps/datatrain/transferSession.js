@@ -19,6 +19,9 @@ const CONNECTION_TIMEOUT = 30000;
 const APPROVAL_TIMEOUT = 120000;
 const TRANSFER_TIMEOUT = 30000;
 const CLOSE_DELAY = 150;
+/** What this page can do beyond transfers, told to the other device while pairing. */
+const CAPABILITIES = ["app"];
+const MAX_CAPABILITIES = 8;
 const TEXT_NAME = "Text note";
 const TEXT_MIME = "text/plain;charset=utf-8";
 const FILE_MIME = "application/octet-stream";
@@ -69,11 +72,21 @@ function safeName(name, fallback, limit = MAX_NAME_LENGTH) {
  * One approved WebRTC connection with a bounded, acknowledged file/text queue.
  * PeerServer exchanges connection details; payloads travel over the data channel.
  * The invitation secret is sent only after that encrypted channel opens.
+ *
+ * Small "app" messages ride the same channel for features that work across the
+ * two devices (the tether, src/lib/tether.svelte.js). They go only to a device
+ * that said it understands them while pairing: an older page would treat one
+ * as a broken transfer and hang up.
  */
 export class TransferSession {
   /** @param {{onChange?: (state: object) => void}} options */
   constructor({ onChange } = {}) {
     this.onChange = onChange;
+    /** Called with each app message from the other device. */
+    this.onApp = null;
+    /** Called when anything crosses the connection, either way. */
+    this.onActivity = null;
+    this.peerCapabilities = [];
     this.peer = null;
     this.connection = null;
     this.role = null;
@@ -82,6 +95,8 @@ export class TransferSession {
     this.connectionTimer = null;
     this.closeTimers = [];
     this.queue = [];
+    /** Sent item id -> what it was made from, so a failed one can be sent again. */
+    this.sources = new Map();
     this.activeSend = null;
     this.activeReceive = null;
     this.state = {
@@ -116,7 +131,7 @@ export class TransferSession {
     this.state.pendingName = "";
     this.state.status = "connected";
     this.state.error = "";
-    if (!this._send({ type: "welcome", name: this.state.selfName })) return false;
+    if (!this._send({ type: "welcome", name: this.state.selfName, caps: CAPABILITIES })) return false;
     this._emit();
     return true;
   }
@@ -174,14 +189,57 @@ export class TransferSession {
     this._finishTransfer(id, "cancelled");
   }
 
+  /** True for something this device sent that failed or was cancelled and can go again. */
+  canRetry(id) {
+    const item = this.state.items.find((entry) => entry.id === id);
+    return !!item && item.direction === "sent" && (item.status === "error" || item.status === "cancelled") && this.sources.has(id);
+  }
+
+  /** Send a failed or cancelled item again, as a new transfer in the old one's place. */
+  retryTransfer(id) {
+    if (!this.canRetry(id) || !this._canSend()) return false;
+    const source = this.sources.get(id);
+    this.state.error = "";
+    this.sources.delete(id);
+    this.state.items = this.state.items.filter((entry) => entry.id !== id);
+    const accepted = this._enqueue(source.file, source.fields);
+    this._emit();
+    this._next();
+    return accepted;
+  }
+
   /** Release a finished item's Blob URL and reclaim its inbox allowance. */
   removeItem(id) {
     const item = this.state.items.find((entry) => entry.id === id);
     if (!item) return;
     if (ACTIVE_STATUSES.indexOf(item.status) !== -1) this.cancelTransfer(id);
+    this.sources.delete(id);
     if (item.url) URL.revokeObjectURL(item.url);
     this.state.items = this.state.items.filter((entry) => entry.id !== id);
     this._emit();
+  }
+
+  /** True when the other device is connected and understands app messages. */
+  canSendApp() {
+    return this.state.status === "connected" && !!this.connection?.open && this.peerCapabilities.indexOf("app") !== -1;
+  }
+
+  /**
+   * Send one small app message. Dropped (false) when the other device cannot
+   * take it or it is too big to be a control message.
+   * @param {object} payload - JSON-safe
+   */
+  sendApp(payload) {
+    if (!this.canSendApp()) return false;
+    const packet = JSON.stringify({ v: PROTOCOL_VERSION, type: "app", payload });
+    if (packet.length > MAX_CONTROL_LENGTH) return false;
+    try {
+      this.connection.send(packet);
+    } catch {
+      return false;
+    }
+    if (this.onActivity) this.onActivity();
+    return true;
   }
 
   /** End pairing while retaining finished files and the UI subscription. */
@@ -198,7 +256,10 @@ export class TransferSession {
       if (item.url) URL.revokeObjectURL(item.url);
     });
     this.state.items = [];
+    this.sources.clear();
     this.onChange = null;
+    this.onApp = null;
+    this.onActivity = null;
   }
 
   async _start(role, code, secret, deviceName) {
@@ -210,6 +271,7 @@ export class TransferSession {
     this.state.items.forEach((item) => {
       if (item.url) URL.revokeObjectURL(item.url);
     });
+    this.sources.clear();
     Object.assign(this.state, { status: "starting", error: "", code: "", secret: "", peerName: "", pendingName: "", items: [] });
     if (typeof window === "undefined" || !window.RTCPeerConnection || !window.crypto?.getRandomValues || typeof FileReader === "undefined") {
       this.state.status = "unsupported";
@@ -275,7 +337,7 @@ export class TransferSession {
     connection.on("open", () => {
       if (this.connection !== connection) return;
       if (this.role === "guest") {
-        this._send({ type: "hello", secret: this.state.secret, name: this.state.selfName });
+        this._send({ type: "hello", secret: this.state.secret, name: this.state.selfName, caps: CAPABILITIES });
         this._connectionDeadline(APPROVAL_TIMEOUT, ERRORS.approval);
       }
     });
@@ -320,6 +382,11 @@ export class TransferSession {
       this._handshake(packet);
       return;
     }
+    if (this.onActivity) this.onActivity();
+    if (packet.type === "app") {
+      if (this.onApp && packet.payload && typeof packet.payload === "object") this.onApp(packet.payload);
+      return;
+    }
     if (!CODE_PATTERN.test(packet.id)) {
       this._endConnection("error", ERRORS.protocol);
       return;
@@ -352,6 +419,7 @@ export class TransferSession {
         return;
       }
       this.state.pendingName = safeName(packet.name, "Other device", MAX_DEVICE_LENGTH);
+      this._noteCapabilities(packet.caps);
       this.state.status = "pending";
       this._connectionDeadline(APPROVAL_TIMEOUT, ERRORS.approval);
       this._emit();
@@ -360,6 +428,7 @@ export class TransferSession {
     if (this.role === "guest" && this.state.status === "connecting" && packet.type === "welcome") {
       clearTimeout(this.connectionTimer);
       this.state.peerName = safeName(packet.name, "Other device", MAX_DEVICE_LENGTH);
+      this._noteCapabilities(packet.caps);
       this.state.status = "connected";
       this.state.error = "";
       this._emit();
@@ -372,6 +441,13 @@ export class TransferSession {
     this._endConnection("error", ERRORS.protocol);
   }
 
+  /** Keep what the other device says it can do: a short list of short words, or nothing. */
+  _noteCapabilities(caps) {
+    this.peerCapabilities = Array.isArray(caps)
+      ? caps.filter((cap) => typeof cap === "string" && cap.length <= MAX_DEVICE_LENGTH).slice(0, MAX_CAPABILITIES)
+      : [];
+  }
+
   _enqueue(file, fields) {
     if (this.queue.length >= MAX_QUEUE || this.state.items.length >= MAX_ITEMS) {
       this.state.error = this.queue.length >= MAX_QUEUE ? ERRORS.queue : ERRORS.items;
@@ -380,6 +456,7 @@ export class TransferSession {
     const id = randomHex(ID_BYTES);
     this.state.items.push({ id, direction: "sent", name: "", mime: "", text: "", url: "", size: file.size, progress: 0, status: "queued", ...fields });
     this.queue.push({ id, file, ...fields, offset: 0, acknowledged: 0, reader: null, timer: null, phase: "offer" });
+    this.sources.set(id, { file, fields });
     return true;
   }
 
@@ -543,6 +620,8 @@ export class TransferSession {
       this.activeReceive = null;
     }
     this.queue = this.queue.filter((job) => job.id !== id);
+    // A delivered file needs no second try: let go of it
+    if (status === "complete") this.sources.delete(id);
     this._patchItem(id, { status, error, progress: status === "complete" ? 100 : item.progress });
     this._next();
   }
@@ -614,6 +693,7 @@ export class TransferSession {
     clearTimeout(this.connectionTimer);
     const connection = this.connection;
     this.connection = null;
+    this.peerCapabilities = [];
     this.state.pendingName = "";
     this.state.status = "waiting";
     if (connection) {
@@ -660,6 +740,7 @@ export class TransferSession {
     const peer = this.peer;
     this.connection = null;
     this.peer = null;
+    this.peerCapabilities = [];
     if (connection) connection.close();
     if (peer) peer.destroy();
     this.closeTimers.forEach((entry) => {

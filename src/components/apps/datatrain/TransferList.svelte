@@ -1,5 +1,5 @@
 <script>
-  import { ArrowDownLeft, ArrowUpRight, File, MessageSquare, Download, Copy, X, Share2 } from 'lucide-svelte';
+  import { ArrowDownLeft, ArrowUpRight, File, MessageSquare, Download, Copy, X, Share2, RotateCw } from 'lucide-svelte';
   import { formatBytes } from './nearbyShare.js';
   export let items = [];
   export let direction = 'sent';
@@ -12,6 +12,9 @@
   /** Optional: true for a received picture or short text file that can go straight to the clipboard. */
   export let canCopyFile = null;
   export let onCopyFile = null;
+  /** Optional: true for a sent item that failed or was cancelled and can be sent again. */
+  export let canRetry = null;
+  export let onRetry = null;
 </script>
 
 <div class="dt-transfer-list w-full flex flex-col sm:flex-col md:flex-col lg:flex-col xl:flex-col 2xl:flex-col">
@@ -33,6 +36,7 @@
         {#if item.kind === 'text'}<pre class="dt-message">{item.text}</pre>{/if}
         {#if item.status === 'transferring' || item.status === 'waiting'}<progress value={item.progress || 0} max="100" aria-label={'Transfer progress for ' + item.name}></progress>{/if}
         {#if item.error}<p class="dt-item-error">{item.error}</p>{/if}
+        {#if canRetry && canRetry(item)}<button type="button" class="dt-save" onclick={() => onRetry(item.id)} aria-label={'Send ' + (item.name || 'text message') + ' again'}><RotateCw size={15} />Try again</button>{/if}
         {#if item.url && item.mime.indexOf('image/') === 0}<img class="dt-preview" src={item.url} alt={'Preview of ' + item.name} loading="lazy" />
         {:else if item.url && item.mime.indexOf('audio/') === 0}<audio class="dt-preview-audio" src={item.url} controls preload="metadata"></audio>{/if}
         {#if item.status === 'complete' && direction === 'received'}

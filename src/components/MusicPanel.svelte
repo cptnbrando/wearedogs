@@ -405,7 +405,7 @@
     ) {
       audioCore.togglePlay();
     } else {
-      audioCore.loadTrack(idx, true);
+      audioCore.selectTrack(idx);
     }
   }
 
@@ -1214,9 +1214,7 @@
                 <button
                   class="ctrl ctrl-sm"
                   class:active-ctrl={audioCore.repeatMode > 0}
-                  onclick={() => {
-                    audioCore.repeatMode = (audioCore.repeatMode + 1) % 4;
-                  }}
+                  onclick={() => audioCore.cycleRepeat()}
                   aria-label="Repeat"
                   title={audioCore.repeatMode === 1
                     ? "Repeat: all"

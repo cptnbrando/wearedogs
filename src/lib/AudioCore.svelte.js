@@ -22,6 +22,7 @@ const REPEAT_OFF = 0;
 const REPEAT_ALL = 1;
 const REPEAT_ONE = 2;
 const REPEAT_DIAMOND = 3; // "show performance mode": play this song, then stop
+const REPEAT_MODES = [REPEAT_OFF, REPEAT_ALL, REPEAT_ONE, REPEAT_DIAMOND];
 
 // "Previous" restarts the song once it's this far in
 const RESTART_THRESHOLD_S = 3;
@@ -50,6 +51,12 @@ export class AudioCore {
   channel = null;
   masterTabId = null;
   isSyncing = false;
+  // A tethered device (src/lib/tether.svelte.js): sync messages go to it as
+  // well as to this browser's other tabs. Null when no device is tethered.
+  remoteLink = null;
+  // The tab playing the sound is on the tethered device, so this one is its
+  // remote control: picking a song or pressing play asks that device to do it.
+  masterIsRemote = $state(false);
 
   // Hidden tracks (src/data/music/tracks.js) are never dealt or stepped onto
   shuffle = new ShuffleQueue((i) => !!this.library[i]?.hidden);
@@ -108,10 +115,9 @@ export class AudioCore {
   }
 
   broadcast(data) {
-    if (this.channel) {
-      data.uuid = this.tabId;
-      this.channel.postMessage(data);
-    }
+    data.uuid = this.tabId;
+    if (this.channel) this.channel.postMessage(data);
+    if (this.remoteLink) this.remoteLink(data);
   }
 
   broadcastState(type = "state_change") {
@@ -119,14 +125,58 @@ export class AudioCore {
       type,
       masterTabId: this.masterTabId,
       trackIndex: this.currentTrackIndex,
+      // Another device may hold a different library (lockup, catalog): it goes by id
+      trackId: this.library[this.currentTrackIndex]?.id,
       isPlaying: this.isPlaying,
       isInstrumental: this.isInstrumental,
+      isShuffled: this.isShuffled,
+      repeatMode: this.repeatMode,
       currentTime: this.currentTime,
       duration: this.duration
     });
   }
 
-  handleSyncMessage(msg) {
+  /**
+   * Starts sharing the player with a tethered device and asks it what is playing.
+   * @param {(msg: object) => void} send - delivers one sync message to that device
+   */
+  attachRemote(send) {
+    this.remoteLink = send;
+    send({ type: "ping", uuid: this.tabId });
+    // A song already playing here is the one both devices follow
+    if (this.isPlaying && this.masterTabId === this.tabId) this.broadcastState("pong");
+  }
+
+  /** The tether ended: this device's player is its own again. */
+  detachRemote() {
+    this.remoteLink = null;
+    if (!this.masterIsRemote) return;
+    this.masterIsRemote = false;
+    this.masterTabId = null;
+    this.isPlaying = false;
+    clearInterval(this.progressInterval);
+    this.syncSession();
+  }
+
+  /**
+   * The library index a sync message means, or -1 when this device does not have that song.
+   * @param {{ trackId?: string, trackIndex?: number }} msg
+   * @param {boolean} remote - from the tethered device, which goes by id
+   */
+  syncIndex(msg, remote) {
+    if (typeof msg.trackId === "string") {
+      const byId = this.library.findIndex((t) => t.id === msg.trackId);
+      if (byId !== -1 || remote) return byId;
+    }
+    const index = msg.trackIndex;
+    return Number.isInteger(index) && index >= 0 && index < this.library.length ? index : -1;
+  }
+
+  /**
+   * @param {object} msg - a sync message from another tab, or from the tethered device
+   * @param {boolean} [remote] - it came over the tether
+   */
+  handleSyncMessage(msg, remote = false) {
     if (!msg || msg.uuid === this.tabId) return;
 
     this.isSyncing = true;
@@ -138,13 +188,22 @@ export class AudioCore {
           }
           break;
         case "pong":
-        case "state_change":
+        case "state_change": {
+          const selfPlaying = this.isPlaying && this.masterTabId === this.tabId;
+          // Both devices were playing when they tethered: one keeps the sound.
+          // The same rule runs on both, so they agree without asking.
+          if (remote && msg.type === "pong" && selfPlaying && this.tabId > String(msg.uuid)) break;
+          const index = this.syncIndex(msg, remote);
+          if (index === -1) break;
           this.masterTabId = msg.masterTabId;
+          this.masterIsRemote = remote && !!msg.masterTabId && msg.masterTabId !== this.tabId;
           this.isInstrumental = msg.isInstrumental;
-          if (this.currentTrackIndex !== msg.trackIndex) {
-            this.currentTrackIndex = msg.trackIndex;
+          if (typeof msg.isShuffled === "boolean" && msg.isShuffled !== this.isShuffled) this.setShuffle(msg.isShuffled);
+          if (REPEAT_MODES.indexOf(msg.repeatMode) !== -1) this.repeatMode = msg.repeatMode;
+          if (this.currentTrackIndex !== index) {
+            this.currentTrackIndex = index;
             const isSelfMaster = this.masterTabId === this.tabId;
-            this.loadTrack(msg.trackIndex, isSelfMaster && msg.isPlaying);
+            this.loadTrack(index, isSelfMaster && msg.isPlaying);
           } else {
             const isSelfMaster = this.masterTabId === this.tabId;
             this.isPlaying = msg.isPlaying;
@@ -161,6 +220,17 @@ export class AudioCore {
             }
           }
           break;
+        }
+        case "cmd_track": {
+          // The remote control picked a song: the device with the sound plays it
+          if (this.masterTabId && this.masterTabId !== this.tabId) break;
+          const index = this.syncIndex(msg, remote);
+          if (index === -1) break;
+          this.isSyncing = false;
+          this.masterTabId = this.tabId;
+          this.loadTrack(index, true);
+          break;
+        }
         case "time_update":
           if (this.masterTabId !== this.tabId) {
             this.currentTime = msg.currentTime;
@@ -168,20 +238,28 @@ export class AudioCore {
             this.isPlaying = msg.isPlaying;
           }
           break;
+        // A command changes what plays here, and every other tab and the
+        // tethered device must hear about it: carried out as this tab's own act.
         case "cmd_play":
+          this.isSyncing = false;
           this.masterTabId = this.tabId;
+          this.masterIsRemote = false;
           this.play(msg.currentTime);
           break;
         case "cmd_pause":
+          this.isSyncing = false;
           this.pause();
           break;
         case "cmd_seek":
+          this.isSyncing = false;
           this.seek(msg.currentTime);
           break;
         case "cmd_next":
+          this.isSyncing = false;
           this.nextTrack();
           break;
         case "cmd_prev":
+          this.isSyncing = false;
           this.prevTrack();
           break;
       }
@@ -199,6 +277,28 @@ export class AudioCore {
     } else {
       this.shuffle.upcoming = [];
     }
+    if (!this.isSyncing) this.broadcastState("state_change");
+  }
+
+  /** The repeat button: off, all, one, then stop-after-this-song. */
+  cycleRepeat() {
+    this.repeatMode = REPEAT_MODES[(REPEAT_MODES.indexOf(this.repeatMode) + 1) % REPEAT_MODES.length];
+    this.broadcastState("state_change");
+  }
+
+  /**
+   * The listener picked a song. On a remote control, the tethered device
+   * that has the sound plays it; anywhere else it plays here.
+   * @param {number} index library index
+   */
+  selectTrack(index) {
+    const track = this.library[index];
+    if (!track) return;
+    if (this.masterIsRemote) {
+      this.broadcast({ type: "cmd_track", trackId: track.id, trackIndex: index });
+      return;
+    }
+    this.loadTrack(index, true);
   }
 
   /**
@@ -716,6 +816,9 @@ export class AudioCore {
 
     if (this.isPlaying) {
       this.requestPause();
+    } else if (this.masterIsRemote) {
+      // The sound is on the tethered device: it resumes there
+      this.broadcast({ type: "cmd_play", currentTime: this.currentTime });
     } else {
       this.masterTabId = this.tabId;
       this.play(this.currentTime);
