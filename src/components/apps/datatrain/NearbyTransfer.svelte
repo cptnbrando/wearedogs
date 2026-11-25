@@ -40,7 +40,7 @@
   const STATUS_LABELS = {
     idle: 'Ready to pair', starting: 'Preparing your connection…', waiting: 'Waiting for your other device',
     connecting: 'Connecting · approve on the other device', pending: 'Device requesting access',
-    connected: 'Connected', disconnected: 'Connection ended',
+    connected: 'Connected', disconnected: 'Connection ended', reconnecting: 'Reconnecting…',
     error: 'Connection needs attention', unsupported: 'Browser not supported',
   };
   let session;
@@ -354,7 +354,9 @@
         <p class="dt-tech">Runs on <a href={WEBRTC_URL} target="_blank" rel="noopener noreferrer">WebRTC</a> and the free public <a href={PEERJS_URL} target="_blank" rel="noopener noreferrer">PeerJS</a> servers. Your data stays encrypted, even when it passes through them.</p>
       </div>
       <div class="dt-pair-action">
-        {#if state.status === 'waiting'}
+        {#if state.status === 'reconnecting'}
+          <div class="dt-pair-message"><RefreshCw size={40} /><h3>Finding {state.peerName || 'your other device'} again.</h3><p>The connection dropped: a screen turned off, or the network changed. It comes back by itself once both pages are awake. Nothing to scan.</p><button class="dt-quiet" onclick={() => session.disconnect()}>Stop trying</button></div>
+        {:else if state.status === 'waiting'}
           {#if qrImage}<img class="dt-qr" src={qrImage} width="264" height="264" alt="Scan this pairing QR code with your other device's camera" />{/if}
           <p class="dt-qr-caption">Scan to connect to this device</p>
           <button class="dt-primary" onclick={() => copy(pairLink, 'Pairing link copied. Open it on your other device.')}><Copy size={16} />Copy pairing link</button>

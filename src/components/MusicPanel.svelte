@@ -23,6 +23,7 @@
     Share2,
     Download,
     Cable,
+    Unplug,
     Check,
     AlertTriangle,
     Diamond,
@@ -377,9 +378,13 @@
   const TETHER_SPEAKER = "Both players are in step.";
   const TETHER_ABOUT =
     "It stays on until you close this window, disconnect in Air Train, or nothing happens for 10 minutes.";
+  const TETHER_LOST =
+    "The tether dropped: a screen turned off, or the network changed. This player is on its own until the devices find each other again, which they do by themselves.";
   let tetherHintOpen = $state(false);
   let tetherHint = $derived(
-    `Tethered to ${tether.peerName || "your other device"}. ${audioCore.masterIsRemote ? TETHER_REMOTE : TETHER_SPEAKER} ${TETHER_ABOUT}`,
+    tether.holding
+      ? TETHER_LOST
+      : `Tethered to ${tether.peerName || "your other device"}. ${audioCore.masterIsRemote ? TETHER_REMOTE : TETHER_SPEAKER} ${TETHER_ABOUT}`,
   );
 
   let copiedTrackId = $state(null);
@@ -1157,10 +1162,11 @@
                       <Download size={12} />
                     </button>
                   {/if}
-                  {#if tether.linked}
+                  {#if tether.linked || tether.holding}
                     <span class="player-tether">
                       <button
                         class="player-tether-btn"
+                        class:player-tether-lost={tether.holding}
                         onclick={(e) => {
                           e.stopPropagation();
                           tetherHintOpen = !tetherHintOpen;
@@ -1170,7 +1176,7 @@
                         aria-label={tetherHint}
                         aria-expanded={tetherHintOpen}
                       >
-                        <Cable size={12} />
+                        {#if tether.holding}<Unplug size={12} />{:else}<Cable size={12} />{/if}
                       </button>
                       {#if tetherHintOpen}
                         <span class="player-tether-hint" role="status">{tetherHint}</span>
