@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1795609867,
+    "firstCommitTimestamp": 1795610099,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 258904
+    "averageLinesAltered": 258901
   },
   "entries": [
     {
       "version": "1.0.3",
       "name": "Master",
       "date": "2026-11-25",
-      "timestamp": 1795609898,
+      "timestamp": 1795610128,
       "commits": [
         {
-          "hash": "16ec019",
-          "message": "Merge pull request #97 from cptnbrando/ai-november2026/dogs-red-is-home",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/16ec01978f99acc0ae69e9d653a42062550a3ecc",
-          "timestamp": 1795609867,
-          "linesChanged": 258904
+          "hash": "88e3517",
+          "message": "Merge pull request #98 from cptnbrando/ai-november2026/dangerous-public-rides-kept",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/88e3517830c25b0f6ca7e8690a86d1799c7c9cb9",
+          "timestamp": 1795610099,
+          "linesChanged": 258901
         }
       ]
     },
