@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1795607317,
+    "firstCommitTimestamp": 1795607715,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 258538
+    "averageLinesAltered": 258818
   },
   "entries": [
     {
       "version": "1.0.3",
       "name": "Master",
       "date": "2026-11-25",
-      "timestamp": 1795607344,
+      "timestamp": 1795607744,
       "commits": [
         {
-          "hash": "4d97a58",
-          "message": "Merge pull request #93 from cptnbrando/ai-november2026/milkdrop",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/4d97a583c4e96db8dfb58986b5b6f1f21c88fd23",
-          "timestamp": 1795607317,
-          "linesChanged": 258538
+          "hash": "f9a6f06",
+          "message": "Merge pull request #94 from cptnbrando/ai-november2026/air-train-shrink",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/f9a6f063332285decd8ed417b1cacfa7e3a5ee1a",
+          "timestamp": 1795607715,
+          "linesChanged": 258818
         }
       ]
     },
