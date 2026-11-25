@@ -57,6 +57,23 @@ $bg-input-dark: var(--bg-input, rgba(255, 255, 255, 0.04));
 $border-light: var(--border-light, rgba(255, 255, 255, 0.05));
 
 // ── Typography & Scales ──
+// Music player palette: the "Gold" palette of src/lib/musicPalettes.js, as "r, g, b"
+// triplets. music-panel.scss starts from these; the chosen palette then replaces
+// them through --mp-vox-rgb, --mp-ins-rgb, --mp-deep-rgb and --mp-ink-rgb.
+$mp-default-vox: 230, 185, 0;     // VOX mode accent: play button, active song, badges, glows
+$mp-default-ins: 255, 236, 170;   // INS mode accent
+$mp-default-deep: 255, 122, 0;    // Far end of the player's gradients
+$mp-default-ink: 8, 8, 10;        // On top of a filled accent (the play triangle)
+// The same two as colours, for the stylesheet's own fallbacks
+$mp-default-vox-color: rgb(nth($mp-default-vox, 1), nth($mp-default-vox, 2), nth($mp-default-vox, 3));
+$mp-default-deep-color: rgb(nth($mp-default-deep, 1), nth($mp-default-deep, 2), nth($mp-default-deep, 3));
+// Vinyl record (music-panel.scss .vinyl-record)
+$vinyl-wax: #19191c;              // The pressed surface
+$vinyl-wax-dark: #060607;         // Rim, run-out and the gaps between songs
+$vinyl-groove: rgba(255, 255, 255, 0.07);  // One groove catching the light
+$vinyl-sheen: rgba(255, 255, 255, 0.24);   // The streak of light across the record
+$vinyl-sheen-soft: rgba(255, 255, 255, 0.12); // Its dimmer twin on the far side
+
 $font-primary: "Inter", "Outfit", sans-serif;
 $transition-speed-fast: 0.15s;
 $transition-speed-normal: 0.25s;
