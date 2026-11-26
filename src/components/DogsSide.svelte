@@ -63,8 +63,8 @@
             type="button"
             class="logo-btn"
             tabindex={active ? 0 : -1}
-            on:click={() => window.dispatchEvent(new CustomEvent(audioCore.isPlaying ? "open-music-panel" : "open-info-panel"))}
-            aria-label="DOGS Logo"
+            on:click={() => audioCore.isPlaying && window.dispatchEvent(new CustomEvent("open-music-panel"))}
+            aria-label={audioCore.isPlaying ? "Open the music player" : "DOGS"}
           >
             <DogsLogo size="dict" />
           </button>

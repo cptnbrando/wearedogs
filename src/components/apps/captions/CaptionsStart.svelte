@@ -1,12 +1,14 @@
 <script>
   /**
-   * The Captions app's first screen: what it does, in a sentence, and the two
-   * ways in: a file of your own, or a song from the music player.
+   * The Captions app's first screen: what it does, in a sentence, and the way
+   * in: a file of your own. The owner, signed in (Settings, lib/admin), also
+   * gets the second way: a song from the music player, to time the lyrics
+   * everyone sees in the player.
    */
   import { FileAudio, Music, ArrowLeft } from "lucide-svelte";
-  import { playerLibrary } from "../../../data/music/tracks.js";
-  import { musicCatalog, libraryWithCatalog } from "../../../lib/musicCatalog.svelte.js";
-  import { musicLock } from "../../../lib/musicLock.svelte.js";
+  import { musicCatalog } from "../../../lib/musicCatalog.svelte.js";
+  import { lyricSongs } from "./captionsSongs.js";
+  import { admin } from "../../../lib/admin.svelte.js";
   import { listProjects, KIND_TRACK } from "./captionsStore.js";
 
   const MEDIA_ACCEPT = "audio/*,video/*,.mp3,.wav,.m4a,.flac,.ogg,.mp4,.mov,.webm,.mkv";
@@ -19,10 +21,10 @@
   let dragging = $state(false);
   let fileInput = $state(null);
 
-  let songs = $derived(
-    libraryWithCatalog(playerLibrary(musicLock.unlocked), musicLock.unlocked).filter((track) => !track.hidden && (track.src || track.instrumental)),
-  );
-  const recent = listProjects().slice(0, MAX_RECENT);
+  let songs = $derived(lyricSongs());
+  const kept = listProjects();
+  // A song's saved work is the owner's: everyone else sees only their files
+  let recent = $derived(kept.filter((entry) => admin.unlocked || entry.kind !== KIND_TRACK).slice(0, MAX_RECENT));
 
   // New songs arrive through the catalog; asking is safe and rare (lib/musicCatalog.svelte.js)
   musicCatalog.refresh();
@@ -70,17 +72,19 @@
       {/each}
     </ul>
   {:else}
-    <div class="grid min-h-0 flex-1 grid-cols-1 gap-3 sm:grid-cols-2 md:gap-6 2xl:gap-10">
+    <div class="grid min-h-0 flex-1 grid-cols-1 gap-3 md:gap-6 2xl:gap-10 {admin.unlocked ? 'sm:grid-cols-2' : ''}">
       <button type="button" class="cap-choice flex flex-col items-center justify-center gap-2 p-4 md:gap-4 2xl:gap-6" disabled={loading} onclick={() => fileInput.click()}>
         <FileAudio size={36} />
         <span class="text-base font-bold md:text-xl 2xl:text-3xl">A file</span>
         <span class="cap-muted text-xs md:text-sm 2xl:text-lg">Audio or video. Pick it, or drop it here. It stays on this device.</span>
       </button>
-      <button type="button" class="cap-choice flex flex-col items-center justify-center gap-2 p-4 md:gap-4 2xl:gap-6" disabled={loading} onclick={() => (picking = true)}>
-        <Music size={36} />
-        <span class="text-base font-bold md:text-xl 2xl:text-3xl">A song</span>
-        <span class="cap-muted text-xs md:text-sm 2xl:text-lg">From the music player, to time its lyrics.</span>
-      </button>
+      {#if admin.unlocked}
+        <button type="button" class="cap-choice flex flex-col items-center justify-center gap-2 p-4 md:gap-4 2xl:gap-6" disabled={loading} onclick={() => (picking = true)}>
+          <Music size={36} />
+          <span class="text-base font-bold md:text-xl 2xl:text-3xl">A song</span>
+          <span class="cap-muted text-xs md:text-sm 2xl:text-lg">From the music player, to time the lyrics everyone sees. Owner only.</span>
+        </button>
+      {/if}
     </div>
     <input
       bind:this={fileInput}

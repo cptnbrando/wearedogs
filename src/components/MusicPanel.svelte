@@ -51,6 +51,8 @@
   import SortCycler from "./music/SortCycler.svelte";
   import SoundSwitch from "./music/SoundSwitch.svelte";
   import TetherIcon from "./TetherIcon.svelte";
+  import TipIcon from "./icons/TipIcon.svelte";
+  import { TIP_URL, TIP_MUSIC_LABEL } from "../lib/tip.js";
   import StageLyricControls from "./music/StageLyricControls.svelte";
   import { presetDeck } from "../lib/visualizer/presetDeck.svelte.js";
   import { lyrics } from "../lib/lyrics.svelte.js";
@@ -657,6 +659,21 @@
       .padStart(2, "0")}`;
   }
 
+  /**
+   * Full screen: one step through the presets, MilkDrop's when it is on,
+   * else the visualizer list itself.
+   * @param {number} step - 1 for the next, -1 for the one before
+   */
+  function stepFullscreenPreset(step) {
+    wakeStage();
+    if (isMilkdrop) {
+      if (step > 0) presetDeck.next();
+      else presetDeck.previous();
+      return;
+    }
+    activePresetIdx = (activePresetIdx + step + VISUALIZERS.length) % VISUALIZERS.length;
+  }
+
   function handleKeydown(e) {
     const activeEl = document.activeElement;
     if (
@@ -665,6 +682,13 @@
         activeEl.tagName === "TEXTAREA" ||
         activeEl.isContentEditable)
     ) {
+      return;
+    }
+
+    // Full screen: left and right step through the visualizer's presets
+    if (isFullscreenVisualizer && (e.key === "ArrowRight" || e.key === "ArrowLeft")) {
+      e.preventDefault();
+      stepFullscreenPreset(e.key === "ArrowRight" ? 1 : -1);
       return;
     }
 
@@ -1274,6 +1298,18 @@
                       <Download size={12} />
                     </button>
                   {/if}
+                  <a
+                    class="player-tip-btn"
+                    href={TIP_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onclick={(e) => e.stopPropagation()}
+                    title={TIP_MUSIC_LABEL}
+                    aria-label={TIP_MUSIC_LABEL}
+                  >
+                    <!-- A little larger than its neighbours, so the dollar in the mug still reads -->
+                    <TipIcon size={15} />
+                  </a>
                   {#if tether.linked || tether.holding}
                     <span class="player-tether">
                       <button

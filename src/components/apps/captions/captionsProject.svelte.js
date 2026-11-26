@@ -34,6 +34,13 @@ export class CaptionsProject {
   canUndo = $state(false);
   /** False when the browser would not store the last change. */
   stored = $state(true);
+  /**
+   * Write's text while it is being edited, and the text it started from. Kept
+   * with the project, so the edit outlives the Write tab, the app closing and
+   * a reload until it is put in or thrown away. Both "" when nothing is being edited.
+   */
+  draft = $state("");
+  draftBase = $state("");
 
   counts = $derived(edit.countWords(this.lines));
   selected = $derived(edit.wordAt(this.lines, this.sel));
@@ -55,6 +62,10 @@ export class CaptionsProject {
     this.trackId = source.trackId || "";
     const kept = loadProject(this.key);
     this.lines = kept ? edit.linesFromStored(kept.lines) : [];
+    const keptDraft = kept && kept.draft;
+    const hasDraft = !!keptDraft && typeof keptDraft.text === "string" && typeof keptDraft.base === "string";
+    this.draft = hasDraft ? keptDraft.text : "";
+    this.draftBase = hasDraft ? keptDraft.base : "";
     this.sel = null;
     this.cursor = null;
     this.tapping = false;
@@ -72,7 +83,8 @@ export class CaptionsProject {
 
   /** @returns {import("./captionsStore.js").StoredProject} the project as it is stored, on the device or in the cloud */
   snapshot() {
-    return { key: this.key, name: this.name, kind: this.kind, trackId: this.trackId, at: Date.now(), lines: edit.linesToStored(this.lines) };
+    const draft = this.draft !== this.draftBase ? { text: this.draft, base: this.draftBase } : null;
+    return { key: this.key, name: this.name, kind: this.kind, trackId: this.trackId, at: Date.now(), lines: edit.linesToStored(this.lines), draft };
   }
 
   /** @param {any[]} stored - lines from a snapshot; they replace what is here (Undo brings it back) */
@@ -88,8 +100,24 @@ export class CaptionsProject {
 
   #touch() {
     this.rev++;
+    this.#queueSave();
+  }
+
+  #queueSave() {
     clearTimeout(this.#saveTimer);
     this.#saveTimer = setTimeout(() => this.#save(), SAVE_DELAY_MS);
+  }
+
+  /**
+   * Write's text changed, or was put in or thrown away ("", "").
+   * @param {string} text - the text as edited
+   * @param {string} base - the lines' text it was edited from
+   */
+  setDraft(text, base) {
+    const editing = text !== base;
+    this.draft = editing ? text : "";
+    this.draftBase = editing ? base : "";
+    this.#queueSave();
   }
 
   #remember() {

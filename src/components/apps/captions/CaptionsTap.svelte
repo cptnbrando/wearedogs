@@ -68,32 +68,32 @@
     </div>
   {:else if project.tapping}
     <div class="cap-tap-words flex flex-col gap-1 text-center" aria-live="off">
-      <p class="cap-tap-line text-lg md:text-2xl xl:text-3xl 2xl:text-5xl">
+      <p class="cap-tap-line">
         {#if cursorLine}
           {#each cursorLine.words as word, wi}
             <span class:is-done={wi < project.cursor.wi} class:is-next={wi === project.cursor.wi}>{word.x}</span>{" "}
           {/each}
         {/if}
       </p>
-      <p class="cap-muted truncate text-sm md:text-base 2xl:text-2xl">
+      <p class="cap-tap-next cap-muted truncate">
         {#if nextLine}{nextLine.words.map((word) => word.x).join(" ")}{:else}&nbsp;{/if}
       </p>
     </div>
     <button
       type="button"
-      class="cap-pad flex min-h-24 flex-1 flex-col items-center justify-center gap-2 text-xl md:text-3xl 2xl:text-5xl"
+      class="cap-pad cap-pad-tap flex min-h-24 flex-1 flex-col items-center justify-center gap-1 md:gap-2 2xl:gap-3"
       onpointerdown={(event) => {
         event.preventDefault();
         project.tap(media.now());
       }}
     >
-      <Hand size={40} />
+      <Hand class="cap-pad-icon" aria-hidden="true" />
       Tap
-      <span class="cap-muted hidden text-xs md:inline md:text-sm 2xl:text-lg">or press Space. Backspace steps back.</span>
+      <span class="cap-pad-hint cap-muted hidden md:block">or press Space. Backspace steps back.</span>
     </button>
     <div class="grid grid-cols-2 gap-2 sm:grid-cols-2 md:gap-3 lg:grid-cols-2 xl:grid-cols-2 2xl:gap-4">
       <button type="button" class={SMALL_BUTTON} onclick={() => project.tapBack()}>
-        <Undo2 size={16} /> Back one word
+        <Undo2 size={16} /> Back<span class="cap-tap-more">&nbsp;one word</span>
       </button>
       <button type="button" class={SMALL_BUTTON} onclick={stop}>
         <Square size={16} /> Stop

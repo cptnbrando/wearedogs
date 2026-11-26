@@ -137,9 +137,10 @@ class LyricsStore {
   /**
    * Asks which songs have published lyrics, unless the last answer is fresh.
    * Safe to call whenever the player opens.
+   * @param {boolean} [force] - ask even so (the owner's Admin app, which must see the truth)
    */
-  async refreshList() {
-    if (this.#listRequest || Date.now() - this.#listAt < LIST_FRESH_MS) return;
+  async refreshList(force = false) {
+    if (this.#listRequest || (!force && Date.now() - this.#listAt < LIST_FRESH_MS)) return;
     this.#listRequest = callApi("GET", "/lyrics");
     const answer = await this.#listRequest;
     this.#listRequest = null;

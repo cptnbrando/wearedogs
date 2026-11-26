@@ -3,6 +3,7 @@
   import { Canvas } from "@threlte/core";
   import { onMount } from "svelte";
   import DogDisplay from "./DogDisplay.svelte";
+  import DogStageVisuals from "./DogStageVisuals.svelte";
 
   let { isFlagColors = false, active = false } = $props();
 
@@ -17,7 +18,7 @@
   // the next successful load. Shown in place of the (empty) model.
   let loadError = $state(null);
 
-  let containerEl;
+  let containerEl = $state(null);
 
   // Fisher-Yates Shuffle algorithm
   function shuffle(array) {
@@ -277,6 +278,9 @@
     />
   </Canvas>
 
+  <!-- While music plays: the TV, music and full-screen buttons, and the MilkDrop show behind the dogs -->
+  <DogStageVisuals target={containerEl} />
+
   <!-- Why there is no dog: the model host refused, the file is missing, or it is unreadable. -->
   {#if loadError}
     <div
@@ -378,6 +382,7 @@
     width: 100%;
     height: 100%;
     position: relative;
+    isolation: isolate; // DogStageVisuals' backdrop sits behind the dogs but inside the stage
     background: transparent;
     touch-action: pan-y;
     cursor: grab;

@@ -7,11 +7,12 @@
     Music,
     ShoppingCart,
     Map,
-    Coffee,
     ChevronUp,
     ChevronDown,
   } from "lucide-svelte";
   import WeAreDogs from "./WeAreDogs.svelte";
+  import TipIcon from "./icons/TipIcon.svelte";
+  import { TIP_URL, TIP_LABEL } from "../lib/tip.js";
   import {
     parsePath,
     panelToUrl,
@@ -27,9 +28,6 @@
   // Apps opened from links that carry data in the URL fragment (Air Train pairing,
   // DOGS INC save transfer): open them right away so a slow cold load can't drop the link.
   const FRAGMENT_LINK_APPS = ["dataflash", "dogsinc"];
-  // The fifth landing tile: supporting DOGS on Buy Me a Coffee (the other apps live in the toolbox and on page two)
-  const COFFEE_URL = "https://buymeacoffee.com/dogsdogsdogs";
-  const COFFEE_LABEL = "Subscribe to DOGS";
   // How long a requested toolbox app stays in ToolboxPanel's initialApp prop before it is cleared
   const DEEP_LINK_CLEAR_MS = 400;
   // A page asked for over another one (Air Train from its drop-down): the open page closes first, in this long
@@ -699,17 +697,17 @@
         <Map size={28} />
       </button>
 
-      <!-- Buy Me a Coffee -->
+      <!-- The fifth tile: tip or subscribe to DOGS on Buy Me a Coffee (the other apps live in the toolbox and on page two) -->
       <a
         class="runic-btn border-neon-blue"
-        href={COFFEE_URL}
+        href={TIP_URL}
         target="_blank"
         rel="noopener noreferrer"
         onclick={(e) => e.stopPropagation()}
-        title={COFFEE_LABEL}
-        aria-label={COFFEE_LABEL}
+        title={TIP_LABEL}
+        aria-label={TIP_LABEL}
       >
-        <Coffee size={28} />
+        <TipIcon size={28} />
       </a>
     </div>
   {/if}
@@ -862,7 +860,7 @@
     --shadow-color: rgba(0, 150, 255, 0.35);
   }
 
-  /* The coffee tile is a link; it looks and moves exactly like the buttons beside it */
+  /* The tip tile is a link; it looks and moves exactly like the buttons beside it */
   a.runic-btn {
     box-sizing: border-box;
     text-decoration: none;
