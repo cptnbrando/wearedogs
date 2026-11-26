@@ -613,8 +613,8 @@ export class TransferSession {
     if (!this.onLog) return;
     if (packet.type !== "app") return this.onLog(direction, "transfer", describePacket(packet));
     const payload = packet.payload && typeof packet.payload === "object" ? packet.payload : {};
-    // The playing device's time, several times a second: "tick", so the log can count it rather than list it
-    const tick = payload.k === "music" && payload.msg && payload.msg.type === "time_update";
+    // The playing device's time, and the visualizer's levels, several times a second: "tick", counted rather than listed
+    const tick = payload.k === "viz" || (payload.k === "music" && payload.msg && payload.msg.type === "time_update");
     this.onLog(direction, tick ? "tick" : String(payload.k), describeApp(payload));
   }
 

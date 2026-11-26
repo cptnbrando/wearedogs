@@ -3,7 +3,7 @@
 
   /** Every order the song list knows, in the order a tap goes through them. Colours: _variables.scss. */
   export const SORT_MODES = [
-    { id: "default", name: "Default order", icon: ListOrdered },
+    { id: "default", name: "Default order", label: "Default", icon: ListOrdered },
     { id: "artist", name: "Artist", icon: MicVocal },
     { id: "album", name: "Album", icon: Disc3 },
     { id: "year", name: "Year", icon: CalendarDays },
@@ -15,9 +15,9 @@
 
 <script>
   /**
-   * SortCycler: the song list's sort on a phone, as one symbol. Each tap
-   * moves to the next order; the symbol and its colour say which one is on.
-   * Wider screens keep the SORT BY menu (MusicPanel).
+   * SortCycler: the song list's sort, as one button between the TRACKS and
+   * PRESETS tabs, shaped like them. Each tap moves to the next order; the
+   * symbol and its colour say which one is on, and from tablets up its name too.
    */
 
   /** @type {{ value: string, onchange: (id: string) => void, class?: string }} */
@@ -37,23 +37,30 @@
 >
   {#key mode.id}
     <span class="sort-icon"><mode.icon size={13} /></span>
+    <span class="sort-name hidden sm:inline">{mode.label || mode.name}</span>
   {/key}
 </button>
 
 <style lang="scss">
   @use "../../styles/variables" as *;
 
-  // Slim and square-cornered like the TRACKS and PRESETS tabs beside it (.tl-tab in MusicPanel)
+  // The same shape and size as the TRACKS and PRESETS tabs beside it (.tl-tab in MusicPanel):
+  // their type, padding and corners, outlined in the order's colour
   .sort-cycler {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 24px;
-    padding: 0;
+    gap: 6px;
+    min-width: 40px;
+    min-height: 28px;
+    padding: 4px 10px;
     border-radius: 6px;
     border: 1px solid currentColor;
-    background: transparent;
+    background: rgba(255, 255, 255, 0.06);
+    font: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    white-space: nowrap;
     cursor: pointer;
     transition: color 0.2s ease, transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
 
@@ -65,6 +72,16 @@
   .sort-icon {
     display: flex;
     animation: sort-swap 0.25s ease-out;
+  }
+
+  .sort-name {
+    animation: sort-name-in 0.25s ease-out;
+  }
+
+  @keyframes sort-name-in {
+    from {
+      opacity: 0;
+    }
   }
 
   // One colour per order (_variables.scss, "Music player song-list sort")
@@ -108,7 +125,8 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .sort-icon {
+    .sort-icon,
+    .sort-name {
       animation: none;
     }
   }

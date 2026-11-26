@@ -34,6 +34,7 @@
 import { audioCore } from "./AudioCore.svelte.js";
 import { TransferSession, RETURN_WINDOW_MS } from "../components/apps/datatrain/transferSession.js";
 import { presetDeck } from "./visualizer/presetDeck.svelte.js";
+import { soundEcho, KIND_LEVELS, KIND_WANT } from "./visualizer/soundEcho.svelte.js";
 import { deviceBellId, notePeerBell, listRides } from "../components/apps/datatrain/rides.js";
 import { isLockupUrl } from "./musicLock.svelte.js";
 
@@ -431,6 +432,9 @@ class Tether {
       presetDeck.showFromPeer(payload.name);
       return;
     }
+    // The visualizer on the device without the sound hears this one's levels (soundEcho)
+    if (payload.k === KIND_LEVELS) return soundEcho.hear(payload.b);
+    if (payload.k === KIND_WANT) return soundEcho.peerWants(payload.on);
     if (payload.k !== KIND_MUSIC) return;
     const msg = cleanSyncMessage(payload.msg);
     if (msg) audioCore.handleSyncMessage(msg, true);
@@ -450,6 +454,7 @@ class Tether {
     this.wasLinked = linked;
     if (!linked) {
       presetDeck.setLink(null);
+      soundEcho.setLink(null);
       audioCore.detachRemote();
       return;
     }
@@ -460,6 +465,7 @@ class Tether {
       // The device with the sound leads the show; the remote follows it
       leads: () => !audioCore.masterIsRemote,
     });
+    soundEcho.setLink({ send: (payload) => session.sendApp(payload), hasSound: () => !audioCore.masterIsRemote });
   }
 }
 

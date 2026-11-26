@@ -16,7 +16,7 @@
     relay: "Through a free relay server, because a network blocked the straight way. It passes the encrypted data on and cannot read it.",
     "": "Not connected right now.",
   };
-  const SENT_WORDS = "What goes across: the files and notes you send; the music player's buttons, the song's id and where it is; the visualizer preset's name; a heartbeat every few seconds. Never your passcodes, PINs or keys. The free PeerJS server only introduces the two devices; after that it sees nothing.";
+  const SENT_WORDS = "What goes across: the files and notes you send; the music player's buttons, the song's id and where it is; the visualizer preset's name and the sound's loudness for its picture; a heartbeat every few seconds. Never your passcodes, PINs or keys. The free PeerJS server only introduces the two devices; after that it sees nothing.";
   const TIME_FORMAT = { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false };
 
   /** @type {{ onClose: () => void }} */
@@ -48,7 +48,7 @@
   <div class="dt-log-facts grid grid-cols-1 gap-1 text-xs sm:grid-cols-2 md:grid-cols-2 md:text-sm lg:grid-cols-2 xl:grid-cols-3 2xl:text-base">
     <p><Lock size={12} aria-hidden="true" /> Encrypted end to end between your devices (WebRTC, DTLS).</p>
     <p>Route: {ROUTE_WORDS[route] || ROUTE_WORDS[""]}</p>
-    <p>Heartbeats {tether.beats} · song-time ticks {tether.ticks}{tether.loopStopped ? " · loop stopped" : ""}</p>
+    <p>Heartbeats {tether.beats} · song-time and visualizer ticks {tether.ticks}{tether.loopStopped ? " · loop stopped" : ""}</p>
   </div>
   <p class="dt-log-sent text-xs md:text-sm 2xl:text-base">{SENT_WORDS}</p>
 

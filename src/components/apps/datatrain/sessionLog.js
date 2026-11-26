@@ -60,6 +60,10 @@ export function describeApp(payload) {
       return payload.on ? "tether: switched on" : "tether: switched off";
     case "bell":
       return "where to ring this device next time";
+    case "viz":
+      return "visualizer: the sound's levels";
+    case "viz-want":
+      return payload.on ? "visualizer: send me the sound's levels" : "visualizer: levels no longer needed";
     case "beat":
       return "heartbeat: still here?";
     case "beat-back":

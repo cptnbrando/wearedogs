@@ -43,6 +43,7 @@
   import DogsLogo from "./DogsLogo.svelte";
   import { PRESETS, NO_SIGNAL_PRESET } from "../lib/visualizer/presets.js";
   import { MilkdropEngine, milkdropSupported } from "../lib/visualizer/MilkdropEngine.js";
+  import { soundEcho } from "../lib/visualizer/soundEcho.svelte.js";
   import MilkdropControls from "./music/MilkdropControls.svelte";
   import PresetList from "./music/PresetList.svelte";
   import LyricLine from "./music/LyricLine.svelte";
@@ -148,7 +149,15 @@
   let hasMusicPlayed = $state(false);
   // The record is the visualizer whenever the TV is on. MilkDrop only needs
   // the player's audio graph to exist; the plain shaders wait for a song.
-  let showVisualizer = $derived(CAN_VISUALIZE && tvOn && (isMilkdrop ? !!audioCore.analyser : hasMusicPlayed));
+  // Tethered with the sound on the other device: MilkDrop here hears that device's levels (soundEcho)
+  let echoWanted = $derived(CAN_VISUALIZE && tvOn && isMilkdrop && tether.linked && audioCore.masterIsRemote);
+  let milkdropAnalyser = $derived(echoWanted && soundEcho.analyser ? soundEcho.analyser : audioCore.analyser);
+  let showVisualizer = $derived(CAN_VISUALIZE && tvOn && (isMilkdrop ? !!milkdropAnalyser : hasMusicPlayed));
+
+  $effect(() => {
+    soundEcho.setWanted(echoWanted);
+    return () => soundEcho.setWanted(false);
+  });
 
   function setTv(on) {
     tvOn = on;
@@ -237,7 +246,7 @@
 
   // Manage Visualizer instantiation and destruction
   $effect(() => {
-    const analyser = audioCore.analyser; // track dependency
+    const analyser = isMilkdrop ? milkdropAnalyser : audioCore.analyser; // track dependency
     const engineKind = isMilkdrop ? ENGINE_MILKDROP : ENGINE_SHADER;
     // Each engine draws on a canvas of its own kind (WebGL 2 or WebGL 1): wait
     // for the right one when the kind has just changed.
@@ -1592,10 +1601,9 @@
               </button>
             </div>
 
-            <!-- Phones: TRACKS on the left, the sort symbol in the middle, PRESETS on the
-                 right. Wider screens: the tabs, then the SORT BY menu at the end. -->
+            <!-- TRACKS on the left, the sort button in the middle, PRESETS on the right -->
             <div class="tl-header relative flex justify-between items-center gap-3">
-              <div class="flex flex-1 items-center justify-between gap-1 sm:flex-none sm:justify-start" role="tablist" aria-label="Songs or visualizer presets">
+              <div class="flex flex-1 items-center justify-between gap-1" role="tablist" aria-label="Songs or visualizer presets">
                 <button
                   class="tl-tab"
                   class:tl-tab-on={listTab === TAB_TRACKS}
@@ -1624,30 +1632,11 @@
 
               {#if listTab === TAB_TRACKS}
                 <SortCycler
-                  class="tl-sort-cycler sm:hidden"
+                  class="tl-sort-cycler"
                   value={sortBy}
                   onchange={(id) => (sortBy = id)}
                 />
               {/if}
-
-              <!-- Sorting selector dropdown -->
-              <div class="hidden sm:flex items-center gap-1.5 ml-auto" class:invisible={listTab !== TAB_TRACKS}>
-                <span class="text-[9px] text-white/30 font-bold font-sans"
-                  >SORT BY:</span
-                >
-                <select
-                  bind:value={sortBy}
-                  class="bg-black/40 border border-white/10 rounded px-1.5 py-0.5 text-[10px] font-bold text-white/60 outline-none cursor-pointer hover:border-white/20 transition-all font-sans"
-                >
-                  <option value="default">DEFAULT</option>
-                  <option value="artist">ARTIST</option>
-                  <option value="album">ALBUM</option>
-                  <option value="year">YEAR</option>
-                  <option value="filename">FILENAME</option>
-                  <option value="genre">GENRE</option>
-                  <option value="season">SEASON</option>
-                </select>
-              </div>
             </div>
 
             {#if listTab === TAB_PRESETS}
@@ -2171,11 +2160,12 @@
     }
   }
 
-  /* TRACKS | PRESETS, in the list's header */
+  /* TRACKS | PRESETS, in the list's header (the sort button between them matches: SortCycler.svelte) */
   .tl-tab {
     display: flex;
     align-items: center;
     gap: 6px;
+    min-height: 28px;
     padding: 4px 8px;
     border-radius: 6px;
     font: inherit;
@@ -2202,11 +2192,12 @@
     margin-left: 0;
   }
 
-  /* Phones: the sort symbol sits in the middle of the header, between the two tabs */
+  /* The sort button sits in the middle of the header, between the two tabs */
   .tl-header :global(.tl-sort-cycler) {
     position: absolute;
     left: 50%;
-    top: 50%;
+    /* The header's padding is 4px deeper on top (music-panel.scss): level with the tabs, not the box */
+    top: calc(50% + 2px);
     transform: translate(-50%, -50%);
   }
 
