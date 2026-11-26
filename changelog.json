@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1795649214,
+    "firstCommitTimestamp": 1795655219,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 267729
+    "averageLinesAltered": 267660
   },
   "entries": [
     {
       "version": "1.0.3",
       "name": "Master",
-      "date": "2026-11-25",
-      "timestamp": 1795649175,
+      "date": "2026-11-26",
+      "timestamp": 1795655181,
       "commits": [
         {
-          "hash": "2dbb6bd",
-          "message": "feat(captions): transcribe in this browser, with nothing uploaded",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/2dbb6bd80769592ce249e078ba05f0cdf5418201",
-          "timestamp": 1795649214,
-          "linesChanged": 267729
+          "hash": "e545e5f",
+          "message": "fix(admin): no password and no set-up page; the owner's key is made on the owner's computer",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/e545e5fc44de105b9a906e288880fedb3f6be3f7",
+          "timestamp": 1795655219,
+          "linesChanged": 267660
         }
       ]
     },
