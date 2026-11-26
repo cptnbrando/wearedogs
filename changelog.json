@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1795667104,
+    "firstCommitTimestamp": 1795667434,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 268614
+    "averageLinesAltered": 269012
   },
   "entries": [
     {
       "version": "1.0.3",
       "name": "Master",
       "date": "2026-11-26",
-      "timestamp": 1795667066,
+      "timestamp": 1795667392,
       "commits": [
         {
-          "hash": "2506841",
-          "message": "feat(airtrain): ring the other device from Reconnect; connections survive a reload; speaker switch",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/250684186f365931cbde3e3e16caf1f671e6e822",
-          "timestamp": 1795667104,
-          "linesChanged": 268614
+          "hash": "9258163",
+          "message": "feat(airtrain): a floating bubble while devices are connected",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/9258163f50401f156f532cdc3f7b0639042dbe44",
+          "timestamp": 1795667434,
+          "linesChanged": 269012
         }
       ]
     },
