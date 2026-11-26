@@ -66,6 +66,11 @@ $ink: var(--color-text, #ffffff);
     border-color: $color-captions-line;
   }
 
+  // A narrow button wraps its words, never squeezes its icon to a dot
+  svg {
+    flex-shrink: 0;
+  }
+
   &.is-on,
   &.cap-btn-main {
     border-color: $color-captions;
@@ -475,6 +480,23 @@ button.cap-chip {
   tab-size: 2;
 }
 
+// Throw away Write's edit: small, quiet and at the far end, so it is never hit by mistake (it asks first too)
+.cap-write-discard {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  color: $muted;
+  opacity: 0.6;
+  transition: opacity $transition-speed-fast ease, color $transition-speed-fast ease;
+
+  &:hover,
+  &:focus-visible {
+    opacity: 1;
+    color: $color-alert-red;
+  }
+}
+
 .cap-wordbar {
   flex: 0 0 auto;
   border-radius: 12px;
@@ -550,10 +572,20 @@ button.cap-chip {
 }
 
 // ── Tap along ──
+// Sized by the panel's own width, not the screen's: on a desktop the tools
+// column can be as narrow as a phone. The first font-size is for browsers
+// without container units.
+.cap-tap {
+  container: cap-tap / inline-size;
+}
+
 .cap-tap-line {
   margin: 0;
   font-weight: 800;
-  line-height: 1.25;
+  line-height: 1.2;
+  font-size: 1.25rem;
+  font-size: clamp(1.125rem, 7cqi, 3rem);
+  overflow-wrap: anywhere;
 
   span {
     color: $muted;
@@ -586,6 +618,65 @@ button.cap-chip {
 
   &:active {
     background: $color-captions-line;
+  }
+}
+
+.cap-tap-next {
+  margin: 0;
+  font-size: 0.875rem;
+  font-size: clamp(0.875rem, 4.5cqi, 1.75rem);
+}
+
+// The pad sizes itself too: when it is short, the hand goes first, then the hint
+.cap-pad-tap {
+  container: cap-pad / size;
+  overflow: hidden;
+  padding: 0.75rem;
+  text-align: center;
+  font-size: 1.5rem;
+  font-size: clamp(1.25rem, 9cqi, 3rem);
+}
+
+.cap-pad-icon {
+  width: 1.4em;
+  height: 1.4em;
+}
+
+// The hint under TAP: plain words that wrap inside the pad
+.cap-pad-hint {
+  max-width: 100%;
+  font-size: 0.75rem;
+  font-size: clamp(0.7rem, 3.4cqi, 1.1rem);
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.3;
+  text-transform: none;
+}
+
+// A narrow panel keeps its buttons to one line: "Back one word" becomes "Back"
+@container cap-tap (max-width: 380px) {
+  .cap-tap-more {
+    display: none;
+  }
+}
+
+// A phone on its side: the line being tapped gives up some size so the buttons stay in view
+@media (max-height: $short-screen) {
+  .cap-tap-line {
+    font-size: 1rem;
+    font-size: clamp(0.95rem, 5.5cqi, 1.5rem);
+  }
+}
+
+@container cap-pad (max-height: 160px) {
+  .cap-pad-icon {
+    display: none;
+  }
+}
+
+@container cap-pad (max-height: 100px) {
+  .cap-pad-hint {
+    display: none;
   }
 }
 

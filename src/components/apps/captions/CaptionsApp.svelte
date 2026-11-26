@@ -13,6 +13,7 @@
   import { CaptionsMedia } from "./captionsMedia.svelte.js";
   import { CaptionsProject } from "./captionsProject.svelte.js";
   import { KIND_FILE, KIND_TRACK } from "./captionsStore.js";
+  import { admin } from "../../../lib/admin.svelte.js";
   import CaptionsStart from "./CaptionsStart.svelte";
   import CaptionsPreview from "./CaptionsPreview.svelte";
   import CaptionsTransport from "./CaptionsTransport.svelte";
@@ -57,7 +58,9 @@
     if (opened) project.open({ kind: KIND_FILE, id: file.name, name: file.name });
   }
 
+  /** A song from the player: the owner's job only (CaptionsStart shows it only to them). */
   async function openTrack(track) {
+    if (!admin.unlocked) return;
     opening = true;
     const opened = await media.openTrack(track);
     opening = false;
@@ -70,7 +73,12 @@
     media.close();
   }
 
-  /** The editor's keys. They are left alone while typing in a field. */
+  /**
+   * The editor's keys. They are left alone while typing in a field (the
+   * toolbox leaves fields alone too). Outside one, the keys that would close
+   * the app in the toolbox (Backspace, Escape) always stop here, so work in
+   * progress is never thrown out by a stray key.
+   */
   function onKeydown(event) {
     if (!media.kind || event.altKey || event.metaKey) return;
     const tag = event.target && event.target.tagName;
@@ -96,8 +104,21 @@
         else media.toggle();
         return true;
       case "Backspace":
-        if (!project.tapping) return false;
-        project.tapBack();
+      case "Delete":
+        // Tap along: back one tap. Otherwise: the selected word goes (Undo brings it back)
+        if (project.tapping) {
+          if (event.key === "Backspace") project.tapBack();
+        } else if (project.sel) {
+          project.removeWord();
+        }
+        return true;
+      case "+":
+      case "Insert":
+        // A word after the selected one, ready to be typed into the bar
+        if (!project.tapping) project.addWord();
+        return true;
+      case "Escape":
+        project.select(null);
         return true;
       case "ArrowLeft":
         project.step(-1);

@@ -14,6 +14,7 @@
   import InfoBanner from "./InfoBanner.svelte";
   import FlipButton from "./FlipButton.svelte";
   import { audioCore } from "../lib/AudioCore.svelte.js";
+  import { bark } from "../lib/bark.js";
 
   const TITLE = "apps";
   const BYLINE = "by DOGS";
@@ -53,8 +54,8 @@
           type="button"
           class="logo-btn"
           tabindex={active ? 0 : -1}
-          on:click={() => window.dispatchEvent(new CustomEvent(audioCore.isPlaying ? "open-music-panel" : "open-info-panel"))}
-          aria-label="DOGS Logo"
+          on:click={() => (audioCore.isPlaying ? window.dispatchEvent(new CustomEvent("open-music-panel")) : bark())}
+          aria-label={audioCore.isPlaying ? "Open the music player" : "DOGS: tap to hear a bark"}
         >
           <DogsLogo size="dict" />
         </button>

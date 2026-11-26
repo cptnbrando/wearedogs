@@ -1,8 +1,8 @@
 /**
  * captionsStore.js
  * The Captions app's work, kept on the device so nothing is lost when the tab
- * closes. Only the captions and the name of what they belong to are kept: the
- * audio or video file itself is never stored.
+ * closes. Only the captions, an unfinished edit in Write, and the name of what
+ * they belong to are kept: the audio or video file itself is never stored.
  *
  * One project per source: a song from the player is keyed by its track id, a
  * file by its name. The newest MAX_PROJECTS are kept; the oldest goes first.
@@ -17,7 +17,8 @@ export const KIND_TRACK = "track";
 
 /**
  * @typedef {{ key: string, name: string, kind: string, trackId: string, at: number }} ProjectEntry
- * @typedef {ProjectEntry & { lines: any[] }} StoredProject - lines as captionsEdit.js linesToStored() gives them
+ * @typedef {ProjectEntry & { lines: any[], draft?: { text: string, base: string } | null }} StoredProject
+ *   lines as captionsEdit.js linesToStored() gives them; draft: Write's unfinished edit, if any
  */
 
 /** @param {string} kind @param {string} id - a track id or a file name @returns {string} */
@@ -64,7 +65,7 @@ export function loadProject(key) {
  */
 export function saveProject(project) {
   const entry = { key: project.key, name: project.name, kind: project.kind, trackId: project.trackId || "", at: Date.now() };
-  if (!write(PROJECT_PREFIX + project.key, { ...entry, lines: project.lines })) return false;
+  if (!write(PROJECT_PREFIX + project.key, { ...entry, lines: project.lines, draft: project.draft || null })) return false;
   const index = [entry].concat(listProjects().filter((other) => other.key !== project.key));
   for (const dropped of index.splice(MAX_PROJECTS)) write(PROJECT_PREFIX + dropped.key, null);
   return write(INDEX_KEY, index);
