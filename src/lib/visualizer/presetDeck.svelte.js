@@ -1,7 +1,8 @@
 /**
  * presetDeck.svelte.js
- * The listener's side of the MilkDrop show: which presets they love, whether
- * the show sticks to those, and whether it shuffles. One deck for the whole
+ * The listener's side of the MilkDrop show: which presets they love, which
+ * they never want to see again, whether the show sticks to the loved ones,
+ * and whether it shuffles. One deck for the whole
  * site, so the full-screen controls and the player's PRESETS tab agree.
  *
  * The engine (MilkdropEngine.js) does the drawing. It exists only while the
@@ -15,6 +16,8 @@
 
 const STORAGE_KEY = "milkdrop_deck_v1";
 const MAX_FAVORITES = 500;
+/** More than there are presets, so a listener can turn down every one they like. */
+const MAX_DISLIKED = 2000;
 /** Preset names are at most this long: anything longer from another device is not one. */
 const MAX_NAME_LENGTH = 300;
 
@@ -34,6 +37,8 @@ class PresetDeck {
   current = $state("");
   /** The presets the listener hearted, oldest first. */
   favorites = $state.raw([]);
+  /** The presets the listener turned down, oldest first: the show never puts them on by itself. */
+  disliked = $state.raw([]);
   /** The show plays only the hearted presets. */
   favoritesOnly = $state(false);
   /** Moving on picks at random; off, it goes down the list. */
@@ -52,6 +57,9 @@ class PresetDeck {
     if (Array.isArray(stored.favorites)) {
       this.favorites = stored.favorites.filter((name) => typeof name === "string").slice(0, MAX_FAVORITES);
     }
+    if (Array.isArray(stored.disliked)) {
+      this.disliked = stored.disliked.filter((name) => typeof name === "string").slice(0, MAX_DISLIKED);
+    }
     this.favoritesOnly = stored.favoritesOnly === true;
     this.shuffle = stored.shuffle !== false;
     this.auto = stored.auto !== false;
@@ -60,7 +68,8 @@ class PresetDeck {
   #save() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        favorites: this.favorites, favoritesOnly: this.favoritesOnly, shuffle: this.shuffle, auto: this.auto,
+        favorites: this.favorites, disliked: this.disliked,
+        favoritesOnly: this.favoritesOnly, shuffle: this.shuffle, auto: this.auto,
       }));
     } catch {
       // Not kept: the choices last until the page closes
@@ -73,6 +82,7 @@ class PresetDeck {
     if (!engine) return;
     engine.shuffle = this.shuffle;
     engine.setPool(this.favoritesOnly ? this.favorites : null);
+    engine.setHidden(this.disliked);
     engine.setAuto(this.auto);
   }
 
@@ -99,6 +109,7 @@ class PresetDeck {
     engine.auto = this.auto;
     engine.shuffle = this.shuffle;
     engine.setPool(this.favoritesOnly ? this.favorites : null);
+    engine.setHidden(this.disliked);
     engine.canAdvance = () => !this.#link || this.#link.leads();
   }
 
@@ -150,14 +161,42 @@ class PresetDeck {
     return this.favorites.includes(name);
   }
 
-  /** Hearts a preset, or takes the heart back. With no name, the one on screen. */
+  /** @param {string} name @returns {boolean} */
+  isDisliked(name) {
+    return this.disliked.includes(name);
+  }
+
+  /** Hearts a preset, or takes the heart back. With no name, the one on screen. A hearted preset is no longer turned down. */
   toggleFavorite(name = this.current) {
     if (!name) return;
-    this.favorites = this.isFavorite(name)
-      ? this.favorites.filter((favorite) => favorite !== name)
-      : [...this.favorites, name].slice(-MAX_FAVORITES);
+    if (this.isFavorite(name)) {
+      this.favorites = this.favorites.filter((favorite) => favorite !== name);
+    } else {
+      this.favorites = [...this.favorites, name].slice(-MAX_FAVORITES);
+      this.disliked = this.disliked.filter((other) => other !== name);
+    }
     this.#save();
     this.#apply();
+  }
+
+  /**
+   * Turns a preset down so the show never puts it on again, or lets it back in.
+   * With no name, the one on screen, which then gives way to the next.
+   * Turning a preset down takes its heart off.
+   */
+  toggleDislike(name = this.current) {
+    if (!name) return;
+    if (this.isDisliked(name)) {
+      this.disliked = this.disliked.filter((other) => other !== name);
+      this.#save();
+      this.#apply();
+      return;
+    }
+    this.disliked = [...this.disliked, name].slice(-MAX_DISLIKED);
+    this.favorites = this.favorites.filter((favorite) => favorite !== name);
+    this.#save();
+    this.#apply();
+    if (name === this.current) this.next();
   }
 
   setFavoritesOnly(on) {

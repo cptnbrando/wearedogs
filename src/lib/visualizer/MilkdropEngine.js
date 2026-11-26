@@ -76,6 +76,8 @@ export class MilkdropEngine {
   shuffle = true;
   /** The listener's own list of preset names (their favourites), or null for every preset. */
   pool = null;
+  /** Presets the listener turned down: the show never moves on to them by itself. */
+  hidden = new Set();
   /** The preset the last engine was showing: put back on as soon as its pack has loaded. */
   resume = "";
   /** Asked before auto-advance moves on: false while another device leads the show (presetDeck's tether link). */
@@ -195,11 +197,21 @@ export class MilkdropEngine {
     this.pool = names && names.length ? names : null;
   }
 
-  /** The presets the show moves through: the listener's list once any of it has loaded, else all. */
+  /** @param {string[]} names - the presets the listener turned down */
+  setHidden(names) {
+    this.hidden = new Set(names);
+  }
+
+  /**
+   * The presets the show moves through: the listener's list once any of it has
+   * loaded, else all, less the ones they turned down (unless that leaves none).
+   */
   list() {
-    if (!this.pool) return this.names;
-    const loaded = this.pool.filter((name) => this.presets[name]);
-    return loaded.length ? loaded : this.names;
+    const loaded = this.pool ? this.pool.filter((name) => this.presets[name]) : [];
+    const source = loaded.length ? loaded : this.names;
+    if (!this.hidden.size) return source;
+    const shown = source.filter((name) => !this.hidden.has(name));
+    return shown.length ? shown : source;
   }
 
   /** A different preset, picked at random. */
@@ -213,11 +225,16 @@ export class MilkdropEngine {
     this.loadPreset(list.indexOf(name) === -1 ? list[0] : name, blend);
   }
 
-  /** The next preset in the list, wrapping round. */
+  /** The next preset in the list, wrapping round. One just turned down is no longer in it: the next name after it is. */
   next() {
     const list = this.list();
     if (!list.length) return;
-    this.loadPreset(list[(list.indexOf(this.current) + 1) % list.length]);
+    const at = list.indexOf(this.current);
+    if (at !== -1) {
+      this.loadPreset(list[(at + 1) % list.length]);
+      return;
+    }
+    this.loadPreset(list.find((name) => name.localeCompare(this.current) > 0) || list[0]);
   }
 
   /** Moves on the way the listener set it: a random preset, or the next in order. */
@@ -230,7 +247,8 @@ export class MilkdropEngine {
   previous() {
     const list = this.list();
     if (!list.length) return;
-    const last = this.history.pop();
+    let last = this.history.pop();
+    while (last && this.hidden.has(last)) last = this.history.pop();
     if (last) {
       this.loadPreset(last, BLEND_SECONDS, false);
       return;

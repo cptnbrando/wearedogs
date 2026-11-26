@@ -1,22 +1,31 @@
 <script>
   /**
-   * PresetList: every MilkDrop preset with a search box and a heart on each.
-   * "Hearts" narrows it to the listener's own list. Tapping a name puts that
+   * PresetList: every MilkDrop preset with a search box, a heart and a
+   * thumbs-down on each. "Hearts" narrows it to the listener's own list. A
+   * turned-down preset leaves "All" and the show for the thumbs-down list,
+   * where its thumb lets it back in. Tapping a name puts that
    * preset on screen. Used by the player's PRESETS tab and by the full-screen
    * deck (MilkdropControls); the deck itself is lib/visualizer/presetDeck.
    */
-  import { Search, Heart } from "lucide-svelte";
+  import { Search, Heart, ThumbsDown } from "lucide-svelte";
   import { presetDeck } from "../../lib/visualizer/presetDeck.svelte.js";
 
   /** How many matching presets the list draws at once: enough to browse, cheap to draw. */
   const MAX_LISTED = 120;
   const FILTER_ALL = "all";
   const FILTER_HEARTS = "hearts";
+  const FILTER_DISLIKED = "disliked";
 
   let query = $state("");
   let filter = $state(FILTER_ALL);
 
-  let pool = $derived(filter === FILTER_HEARTS ? presetDeck.favorites : presetDeck.names);
+  let pool = $derived.by(() => {
+    if (filter === FILTER_HEARTS) return presetDeck.favorites;
+    if (filter === FILTER_DISLIKED) return presetDeck.disliked;
+    if (!presetDeck.disliked.length) return presetDeck.names;
+    const turnedDown = new Set(presetDeck.disliked);
+    return presetDeck.names.filter((name) => !turnedDown.has(name));
+  });
   let words = $derived(query.trim().toLowerCase().split(/\s+/).filter(Boolean));
   let matches = $derived(
     words.length ? pool.filter((name) => words.every((word) => name.toLowerCase().indexOf(word) !== -1)) : pool,
@@ -24,6 +33,7 @@
   let listed = $derived(matches.slice(0, MAX_LISTED));
   let emptyNote = $derived.by(() => {
     if (filter === FILTER_HEARTS && !presetDeck.favorites.length) return "No hearts yet. Tap the heart on a preset you love.";
+    if (filter === FILTER_DISLIKED && !presetDeck.disliked.length) return "Nothing turned down. Tap the thumbs-down on a preset you never want to see again.";
     if (!presetDeck.names.length) return "Presets arrive when the visualizer starts. Press play.";
     return "No preset matches that.";
   });
@@ -60,6 +70,16 @@
       >
         <Heart size={10} /> {presetDeck.favorites.length}
       </button>
+      <button
+        type="button"
+        class="filter-btn"
+        class:filter-on={filter === FILTER_DISLIKED}
+        aria-pressed={filter === FILTER_DISLIKED}
+        aria-label="Presets I turned down"
+        onclick={() => (filter = FILTER_DISLIKED)}
+      >
+        <ThumbsDown size={10} /> {presetDeck.disliked.length}
+      </button>
     </div>
   </div>
   <ul class="preset-rows min-h-0 flex-1 overflow-y-auto py-1">
@@ -84,6 +104,17 @@
           onclick={() => presetDeck.toggleFavorite(name)}
         >
           <Heart size={13} fill={presetDeck.isFavorite(name) ? "currentColor" : "none"} />
+        </button>
+        <button
+          type="button"
+          class="heart-btn"
+          class:disliked={presetDeck.isDisliked(name)}
+          aria-pressed={presetDeck.isDisliked(name)}
+          aria-label={presetDeck.isDisliked(name) ? `Bring back ${name}` : `Never show ${name} again`}
+          title={presetDeck.isDisliked(name) ? "Turned down. Tap to bring it back." : "Never show this preset again"}
+          onclick={() => presetDeck.toggleDislike(name)}
+        >
+          <ThumbsDown size={13} fill={presetDeck.isDisliked(name) ? "currentColor" : "none"} />
         </button>
       </li>
     {/each}
@@ -143,6 +174,11 @@
   .hearted {
     opacity: 1;
     color: $color-like-fill;
+  }
+
+  .disliked {
+    opacity: 1;
+    color: $color-blog-ink-strong;
   }
 
   // TV and ultra-wide: bigger targets for a remote or a pointer across the room

@@ -1,11 +1,12 @@
 <script>
   /**
    * MilkdropControls: the full-screen visualizer's MilkDrop deck. Previous and
-   * next, the name of what is on (tap it for the list), a heart to keep it,
-   * "hearts only" to play just the kept ones, shuffle, and auto-advance.
+   * next, the name of what is on (tap it for the list), a heart to keep it, a
+   * thumbs-down to never see it again, "hearts only" to play just the kept
+   * ones, shuffle, and auto-advance.
    * It only asks; the deck (lib/visualizer/presetDeck) and its engine do the work.
    */
-  import { ChevronLeft, ChevronRight, Shuffle, Heart, ListMusic } from "lucide-svelte";
+  import { ChevronLeft, ChevronRight, Shuffle, Heart, ThumbsDown, ListMusic } from "lucide-svelte";
   import { presetDeck } from "../../lib/visualizer/presetDeck.svelte.js";
   import { AUTO_ADVANCE_MS } from "../../lib/visualizer/MilkdropEngine.js";
   import PresetList from "./PresetList.svelte";
@@ -55,6 +56,16 @@
       onclick={() => presetDeck.toggleFavorite()}
     >
       <Heart size={14} fill={hearted ? "currentColor" : "none"} />
+    </button>
+    <button
+      type="button"
+      class="deck-btn"
+      aria-label="Never show this preset again"
+      title="Never show this preset again (the PRESETS list keeps it, to bring back)"
+      disabled={!presetDeck.current}
+      onclick={() => presetDeck.toggleDislike()}
+    >
+      <ThumbsDown size={14} />
     </button>
     <button
       type="button"
