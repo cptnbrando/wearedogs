@@ -51,6 +51,8 @@
   import SortCycler from "./music/SortCycler.svelte";
   import SoundSwitch from "./music/SoundSwitch.svelte";
   import TetherIcon from "./TetherIcon.svelte";
+  import TipIcon from "./icons/TipIcon.svelte";
+  import { TIP_URL, TIP_MUSIC_LABEL } from "../lib/tip.js";
   import StageLyricControls from "./music/StageLyricControls.svelte";
   import { presetDeck } from "../lib/visualizer/presetDeck.svelte.js";
   import { lyrics } from "../lib/lyrics.svelte.js";
@@ -1274,6 +1276,18 @@
                       <Download size={12} />
                     </button>
                   {/if}
+                  <a
+                    class="player-tip-btn"
+                    href={TIP_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onclick={(e) => e.stopPropagation()}
+                    title={TIP_MUSIC_LABEL}
+                    aria-label={TIP_MUSIC_LABEL}
+                  >
+                    <!-- A little larger than its neighbours, so the dollar in the mug still reads -->
+                    <TipIcon size={15} />
+                  </a>
                   {#if tether.linked || tether.holding}
                     <span class="player-tether">
                       <button

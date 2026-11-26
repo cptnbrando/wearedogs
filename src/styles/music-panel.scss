@@ -568,7 +568,8 @@
 }
 
 .player-share-btn,
-.player-download-btn {
+.player-download-btn,
+.player-tip-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -587,6 +588,12 @@
     color: rgb(var(--mp-accent-rgb, #{$mp-default-vox}));
     border-color: var(--badge-border-hover, rgba($mp-default-vox-color, 0.45));
   }
+}
+
+// The tip badge (src/lib/tip.js) is a link: same badge as share and download
+.player-tip-btn {
+  box-sizing: border-box;
+  text-decoration: none;
 }
 
 // The tether icon (src/lib/tether.svelte.js): two devices sharing this player.
