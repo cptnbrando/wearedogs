@@ -8,7 +8,7 @@ import { StreamGuard } from "./StreamGuard.js";
 import { bindMediaSession, syncMediaSession } from "./mediaSession.js";
 import { loadPeaks } from "./waveformPeaks.js";
 import { ShuffleQueue } from "./shuffleQueue.js";
-import { applySyncMessage } from "./playerSync.js";
+import { applySyncMessage, askRemote } from "./playerSync.js";
 import { guardOutput } from "./outputGuard.js";
 
 // With the screen off there's nobody to press play on a dead track, so the
@@ -457,8 +457,8 @@ export class AudioCore {
     // would load for itself (its random first song) is left alone, or it
     // would stop the music over there.
     if (this.masterIsRemote && !this.isSyncing) {
-      if (autoplay) this.broadcast({ type: "cmd_track", trackId: this.library[index].id, trackIndex: index });
-      return;
+      if (!autoplay) return;
+      if (askRemote(this, index)) return;
     }
     // The same goes for a tab following another tab of this browser: only a
     // song the listener picks here moves the sound here. Its own housekeeping

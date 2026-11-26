@@ -10,7 +10,31 @@
  * One player has the sound (the "master", by its tab id). The others mirror
  * it and act as its remote controls. AudioCore sends the messages; this file
  * is what it does when one arrives.
+ *
+ * Lockup songs (lib/musicLock) open only with the calculator passcode, and
+ * the passcode never crosses the tether. A lockup song picked on a remote is
+ * played by the remote itself; the device with the sound, which may not have
+ * the song, goes quiet until the next song it has.
  */
+import { isLockupUrl } from "./musicLock.svelte.js";
+
+/**
+ * A song picked on a remote control. Asked of the device with the sound,
+ * unless it is a lockup song: then this device takes the sound and plays it.
+ * @param {object} core - the AudioCore
+ * @param {number} index - the song, in this device's library
+ * @returns {boolean} true when it was asked of the other device, false when it plays here
+ */
+export function askRemote(core, index) {
+  const track = core.library[index];
+  if (!isLockupUrl(track.src) && !isLockupUrl(track.instrumental)) {
+    core.broadcast({ type: "cmd_track", trackId: track.id, trackIndex: index });
+    return true;
+  }
+  core.masterIsRemote = false;
+  core.masterTabId = core.tabId;
+  return false;
+}
 
 /**
  * The library index a sync message means, or -1 when this device does not have that song.
@@ -65,7 +89,15 @@ export function applySyncMessage(core, msg, remote, repeatModes) {
         // Who is playing is worth knowing even when this player cannot name
         // the song yet (its library is not loaded, or does not have it)
         const index = syncIndex(core, msg, remote);
-        if (index === -1) break;
+        if (index === -1) {
+          // A song only the other device has (a lockup song): it plays there, and this one goes quiet
+          if (core.masterIsRemote) {
+            core.isPlaying = msg.isPlaying;
+            if (core.trackAudio && !core.trackAudio.paused) core.trackAudio.pause();
+            if (core.instAudio && !core.instAudio.paused) core.instAudio.pause();
+          }
+          break;
+        }
         core.isInstrumental = msg.isInstrumental;
         if (typeof msg.isShuffled === "boolean" && msg.isShuffled !== core.isShuffled) core.setShuffle(msg.isShuffled);
         if (repeatModes.indexOf(msg.repeatMode) !== -1) core.repeatMode = msg.repeatMode;

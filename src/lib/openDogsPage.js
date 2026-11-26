@@ -5,7 +5,8 @@
 export const OPEN_DOGS_PAGE_EVENT = 'open-dogs-page';
 
 /**
- * @param {{ panel?: string, app?: string }} target A panel ("map", "toolbox") or a toolbox app id ("dataflash")
+ * @param {{ panel?: string, app?: string, force?: boolean }} target A panel ("map", "toolbox") or a toolbox app id
+ *   ("dataflash"). force: open it even over another page, which closes first (left alone, that page stays).
  */
 export function openDogsPage(target) {
   window.dispatchEvent(new CustomEvent(OPEN_DOGS_PAGE_EVENT, { detail: target }));

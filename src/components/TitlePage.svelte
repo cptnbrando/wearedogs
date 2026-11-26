@@ -32,6 +32,8 @@
   const COFFEE_LABEL = "Subscribe to DOGS";
   // How long a requested toolbox app stays in ToolboxPanel's initialApp prop before it is cleared
   const DEEP_LINK_CLEAR_MS = 400;
+  // A page asked for over another one (Air Train from its drop-down): the open page closes first, in this long
+  const PAGE_SWAP_MS = 450;
 
   // Active view state: 'stats' | 'toolbox' | 'music' | 'store' | 'map' | null
   let {
@@ -195,8 +197,13 @@
     };
     // The app gallery (DOGS HOME) opens a panel or a toolbox app in place, without leaving the page
     const handleOpenDogsPage = (e) => {
-      const { panel = null, app = null } = e.detail || {};
-      if (activePage !== null) return;
+      const { panel = null, app = null, force = false } = e.detail || {};
+      if (activePage !== null) {
+        if (!force || (activePage === "toolbox" && activeApp === app)) return;
+        closePage();
+        setTimeout(() => handleOpenDogsPage({ detail: { panel, app } }), PAGE_SWAP_MS);
+        return;
+      }
       showInfo = false;
       if (!app) {
         if (panel) openPage(panel);

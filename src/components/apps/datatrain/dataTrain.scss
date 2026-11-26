@@ -258,3 +258,11 @@
 // button, so one that wraps onto a second row on a narrow phone still lines up with the first.
 .dt-shell .dt-transfer .dt-save { margin-right: 8px; }
 .dt-shell .dt-share { font-size: t.$small; line-height: 18px; }
+// Connected, on a phone (portrait or on its side): the header is Air Train, one big Tether
+// button and Disconnect. The connected dot moves next to "This device".
+.dt-pane-dot { display: none; width: 7px; height: 7px; border-radius: 50%; background: t.$success; flex-shrink: 0; }
+@media (max-width: 767px), (orientation: landscape) and (max-height: 500px) {
+  .dt-connection-up { display: none; }
+  .dt-pane-dot { display: inline-block; }
+  .dt-tether { flex: 1 1 auto; justify-content: center; min-height: 38px; padding: 6px 12px; font-size: t.$body !important; span { display: inline; } }
+}

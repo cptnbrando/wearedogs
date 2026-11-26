@@ -20,21 +20,39 @@
  * changed) is found again by the session (transferSession.js, "Holding on").
  * While that goes on the players are their own again; when the devices are
  * back together, a tether that was on comes back on without being asked.
+ *
+ * A tab that reloads keeps its connection: going away, it tells the other
+ * device "be right back" (transferSession.stepAway) and leaves what it needs
+ * in this tab's sessionStorage; loading again, it picks the connection up
+ * (rejoin) and a tether that was on comes back on. A tab closed for good is
+ * looked for by the other device for RETURN_WINDOW_MS, then let go.
+ *
+ * Once connected, each device tells the other where its ride bell is
+ * (lib/rideBell.svelte.js), so next time either one can ring the other. A
+ * device that accepts a ring joins the ride here, with Air Train closed.
  */
 import { audioCore } from "./AudioCore.svelte.js";
-import { TransferSession } from "../components/apps/datatrain/transferSession.js";
+import { TransferSession, RETURN_WINDOW_MS } from "../components/apps/datatrain/transferSession.js";
 import { presetDeck } from "./visualizer/presetDeck.svelte.js";
+import { deviceBellId, notePeerBell } from "../components/apps/datatrain/rides.js";
+import { isLockupUrl } from "./musicLock.svelte.js";
 
 /** How long a connection nobody is looking at may sit unused before it is closed. */
 const IDLE_LIMIT_MS = 10 * 60 * 1000;
+/** This tab's connection while it reloads (sessionStorage: this tab only, gone when it closes). */
+const RETURN_STORAGE_KEY = "datatrain_return_v1";
 const KIND_TETHER = "tether";
 const KIND_MUSIC = "music";
 const KIND_PRESET = "preset";
+/** "Ring me here next time": this device's ride bell. */
+const KIND_BELL = "bell";
 const STATUS_CONNECTED = "connected";
 /** The session is finding the other device again after a drop. */
 const STATUS_RECONNECTING = "reconnecting";
 /** A session in one of these is worth keeping when Air Train closes. */
 const LIVE_STATUSES = [STATUS_CONNECTED, STATUS_RECONNECTING];
+/** A ride joined in the background has got as far as it will in one of these. */
+const SETTLED_STATUSES = [STATUS_CONNECTED, "disconnected", "error", "unsupported", "idle"];
 const MAX_ID_LENGTH = 80;
 /** The player's sync messages a tethered device may send (see AudioCore.handleSyncMessage). */
 const SYNC_TYPES = [
@@ -86,6 +104,10 @@ class Tether {
 
   session = null;
   lastState = null;
+  /** The saved ride this session met on, when it was joined from a ring: Air Train must not save it again. */
+  rideCode = "";
+  /** A ride joined in the background is on its way; told how it went once. */
+  onRideSettled = null;
   /** The open Air Train screen's listener, or null while the app is closed. */
   view = null;
   idleTimer = null;
@@ -93,19 +115,93 @@ class Tether {
 
   constructor() {
     if (typeof window === "undefined") return;
-    // A closing tab says goodbye, so the other device does not wait for it
-    window.addEventListener("pagehide", () => {
-      if (this.session) this.session.leave();
+    // A tab going away may be reloading: it says "be right back" and keeps what it needs to return
+    window.addEventListener("pagehide", () => this.stepAway());
+    // Back from the browser's page cache: the page lived on, its connection did not
+    window.addEventListener("pageshow", (event) => {
+      if (event.persisted) this.returnAfterReload();
     });
     // A phone waking up: its timers slept, so the connection is looked at right away
     document.addEventListener("visibilitychange", () => {
       if (!document.hidden && this.session) this.session.wake();
     });
+    this.returnAfterReload();
+  }
+
+  /** The tab is going away, maybe to reload. */
+  stepAway() {
+    // No connection here: nothing to keep, and nothing to clear (another copy of this module may hold one)
+    if (!this.session) return;
+    const saved = this.session.stepAway();
+    try {
+      if (!saved) sessionStorage.removeItem(RETURN_STORAGE_KEY);
+      else sessionStorage.setItem(RETURN_STORAGE_KEY, JSON.stringify(Object.assign(saved, { tether: this.on || this.holding, at: Date.now() })));
+    } catch (e) {
+      // Storage is blocked: a reload starts over, as it used to
+    }
+  }
+
+  /**
+   * The tab reloaded with a connection: it is picked up again in the
+   * background, before Air Train is even open (components/RideRequest loads this).
+   */
+  returnAfterReload() {
+    let saved = null;
+    try {
+      saved = JSON.parse(sessionStorage.getItem(RETURN_STORAGE_KEY));
+      sessionStorage.removeItem(RETURN_STORAGE_KEY);
+    } catch (e) {
+      return;
+    }
+    if (!saved || typeof saved.at !== "number" || Date.now() - saved.at > RETURN_WINDOW_MS) return;
+    const session = this.newSession();
+    if (!session.rejoin(saved)) {
+      this.end();
+      return;
+    }
+    this.rideCode = saved.code;
+    // A tether that was on comes back on once the devices are together (onState)
+    this.holding = saved.tether === true;
+    this.touch();
   }
 
   /** Both devices opted in and the connection is up: the players are in step. */
   get linked() {
     return this.on && this.peerOn && this.connected;
+  }
+
+  /** The song is heard on this device (the other one is the remote). */
+  get soundHere() {
+    return !audioCore.masterIsRemote;
+  }
+
+  /**
+   * The sound can go across: not a lockup song, whose passcode never crosses
+   * the tether, so the other device may not be able to open it.
+   */
+  get soundCanMove() {
+    const track = audioCore.library[audioCore.currentTrackIndex];
+    return this.linked && !!track && !isLockupUrl(track.src) && !isLockupUrl(track.instrumental);
+  }
+
+  /**
+   * The speaker switch in the player: the sound goes to the other device, or
+   * comes here, from where the song is, and plays. The device that hands it
+   * over follows the other and goes quiet (lib/playerSync).
+   */
+  moveSound() {
+    if (!this.soundCanMove || !audioCore.remoteLink) return;
+    const at = audioCore.currentTime;
+    if (!audioCore.masterIsRemote) {
+      // First what is on here, so it plays this song and not the last one it had; then the
+      // ask, to the tethered device only: this browser's other tabs keep following as they were
+      audioCore.broadcastState("state_change");
+      audioCore.remoteLink({ type: "cmd_play", uuid: audioCore.tabId, currentTime: at });
+      return;
+    }
+    audioCore.masterIsRemote = false;
+    audioCore.masterTabId = audioCore.tabId;
+    audioCore.play(at);
   }
 
   /**
@@ -116,18 +212,38 @@ class Tether {
   open(onChange) {
     this.view = onChange;
     clearTimeout(this.idleTimer);
-    const kept = this.session && this.lastState && (LIVE_STATUSES.indexOf(this.lastState.status) !== -1 || this.lastState.items.length > 0);
+    const kept = this.session && this.lastState && (this.onRideSettled || LIVE_STATUSES.indexOf(this.lastState.status) !== -1 || this.lastState.items.length > 0);
     if (kept) {
       onChange(this.lastState);
       return { session: this.session, resumed: true };
     }
+    return { session: this.newSession(), resumed: false };
+  }
+
+  /** A fresh session in place of any old one. */
+  newSession() {
     if (this.session) this.session.destroy();
     const session = new TransferSession({ onChange: (state) => this.onState(session, state) });
     session.onApp = (payload) => this.onApp(session, payload);
     session.onActivity = () => this.touch();
     this.session = session;
     this.lastState = null;
-    return { session, resumed: false };
+    this.rideCode = "";
+    return session;
+  }
+
+  /**
+   * Join a saved ride the other device is waiting on, after this one said yes
+   * to its ring (lib/rideBell). Works with Air Train closed; an open one sees it happen.
+   * @param {string} code @param {string} secret
+   * @param {(connected: boolean, error: string) => void} onSettled - told once: connected, or why not
+   */
+  joinRide(code, secret, onSettled) {
+    const session = this.session || this.newSession();
+    clearTimeout(this.idleTimer);
+    this.rideCode = code;
+    this.onRideSettled = onSettled;
+    session.join(code, secret);
   }
 
   /** Air Train closes. A live connection (or received files) stays; anything else is dropped. */
@@ -147,6 +263,8 @@ class Tether {
     if (this.session) this.session.destroy();
     this.session = null;
     this.lastState = null;
+    this.rideCode = "";
+    this.onRideSettled = null;
     this.connected = false;
     this.available = false;
     this.peerName = "";
@@ -174,9 +292,16 @@ class Tether {
     this.lastState = state;
     const connected = state.status === STATUS_CONNECTED;
     const reconnecting = state.status === STATUS_RECONNECTING;
+    const settled = this.onRideSettled;
+    if (settled && SETTLED_STATUSES.indexOf(state.status) !== -1) {
+      this.onRideSettled = null;
+      settled(connected, state.error);
+    }
     if (connected !== this.connected) {
       this.connected = connected;
       this.available = connected && session.canSendApp();
+      // Ring me here next time (an older page never sends it, and drops it unread)
+      if (this.available) session.sendApp({ k: KIND_BELL, id: deviceBellId() });
       if (!connected) {
         // A drop that is being mended remembers the switch; any other ending forgets it
         this.holding = reconnecting && (this.on || this.holding);
@@ -191,7 +316,7 @@ class Tether {
     }
     this.peerName = state.peerName || "";
     if (this.view) this.view(state);
-    else if (!connected && !reconnecting && !state.items.length) this.end();
+    else if (!this.onRideSettled && !connected && !reconnecting && !state.items.length) this.end();
   }
 
   onApp(session, payload) {
@@ -199,6 +324,10 @@ class Tether {
     if (payload.k === KIND_TETHER) {
       this.peerOn = payload.on === true;
       this.relink();
+      return;
+    }
+    if (payload.k === KIND_BELL) {
+      if (typeof payload.id === "string") notePeerBell(session.state.secret, payload.id);
       return;
     }
     if (!this.linked) return;

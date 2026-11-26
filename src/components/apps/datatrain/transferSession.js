@@ -1,3 +1,5 @@
+import { ERRORS, randomHex, safeName } from "./sessionText.js";
+
 const PROTOCOL_VERSION = 1;
 const PEER_PREFIX = "dogs-train-";
 const CHANNEL_LABEL = "dogs-data-train-v1";
@@ -26,6 +28,11 @@ const CAPABILITIES = ["app", HOLD_CAPABILITY];
 /** App messages the session keeps for itself (they never reach onApp). */
 const BEAT_KIND = "beat";
 const BYE_KIND = "bye";
+/** "Be right back": this page is reloading (or closing) and may come straight back. */
+const AWAY_KIND = "brb";
+/** How long a device that said "be right back" is looked for. Long enough for a reload on a slow phone. */
+export const RETURN_WINDOW_MS = 90 * 1000;
+const ROLES = ["host", "guest"];
 /** The answer to a heartbeat. It is sent on arrival, not on a timer, so a page whose timers the browser has slowed still answers. */
 const ECHO_KIND = "beat-back";
 const BEAT_EVERY_MS = 4000;
@@ -47,45 +54,6 @@ const CODE_PATTERN = /^[a-f0-9]{24}$/;
 const SECRET_PATTERN = /^[a-f0-9]{32}$/;
 const MIME_PATTERN = /^[\w.+-]+\/[\w.+-]+(?:;charset=[\w-]+)?$/;
 const ACTIVE_STATUSES = ["queued", "waiting", "transferring"];
-const ERRORS = {
-  unsupported: "This browser cannot make a secure device connection. Try a current Chrome, Edge, Firefox or Safari browser.",
-  invite: "This pairing link is incomplete or invalid. Scan a fresh QR code on the other device.",
-  start: "Could not reach the pairing service. Check your internet connection and try again.",
-  timeout: "Could not connect. Keep both pages open, try the same Wi-Fi network, and scan a fresh QR code.",
-  approval: "Pairing approval timed out. Scan the QR code again and approve the device.",
-  unavailable: "That device is no longer waiting. Keep its page open and scan a fresh QR code.",
-  rejected: "The other device declined this connection. Scan a fresh QR code to try again.",
-  closed: "The other device disconnected. Keep both pages open and pair again to continue.",
-  held: "The connection dropped while this was on its way. Send it again once the devices are back together.",
-  protocol: "The other device sent an invalid transfer. Pair again to continue.",
-  transfer: "This transfer stopped responding. Keep both pages awake and send it again.",
-  read: "This file could not be read. Select it again and retry.",
-  memory: "This device could not hold the received file. Remove saved items and try a smaller file.",
-  size: "Files must be 100 MB or smaller. Choose a smaller file.",
-  inbox: "The receiving device has 200 MB in its inbox. Save and remove received items before sending more.",
-  items: "The transfer list is full. Remove finished items before sending more.",
-  queue: "The send queue is full. Wait for some transfers to finish before adding more.",
-  text: "Enter a text note of up to 16,000 characters.",
-  disconnected: "Connect another device before sending files or text.",
-};
-
-/** Generate an unguessable identifier without relying on UUID or newer crypto APIs. */
-function randomHex(length) {
-  const bytes = new Uint8Array(length);
-  window.crypto.getRandomValues(bytes);
-  let result = "";
-  for (let index = 0; index < bytes.length; index += 1) {
-    result += (bytes[index] + 256).toString(16).slice(1);
-  }
-  return result;
-}
-
-/** Remove path separators and control characters from an untrusted display/download name. */
-function safeName(name, fallback, limit = MAX_NAME_LENGTH) {
-  if (typeof name !== "string") return fallback;
-  const clean = name.replace(/[\x00-\x1f\x7f/\\]/g, "").trim().slice(0, limit);
-  return clean && clean !== "." && clean !== ".." ? clean : fallback;
-}
 
 /**
  * One approved WebRTC connection with a bounded, acknowledged file/text queue.
@@ -121,12 +89,18 @@ export class TransferSession {
     this.generation = 0;
     this.destroyed = false;
     this.connectionTimer = null;
+    /** A saved ride's reconnect: when the other device already waits on the code, this one dials it instead. */
+    this.orJoin = false;
+    /** The other device accepted this device's ring (lib/rideBell): its hello is let in without asking. */
+    this.trusted = false;
     /** Proves to the host that a returning guest is the one it approved. Empty: nothing to come back to. */
     this.resumeKey = "";
     this.resumeUntil = 0;
     this.resumeTries = 0;
     this.resumeTimer = null;
     this.resumeDeadline = null;
+    /** The next search for the other device lasts this long instead of RESUME_WINDOW_MS. 0: the usual. */
+    this.resumeWindow = 0;
     this.beatTimer = null;
     this.missedBeats = 0;
     this.lastHeard = 0;
@@ -148,15 +122,29 @@ export class TransferSession {
    * Create an invitation that stays valid while this page waits for a device.
    * Given the code and secret of an earlier pairing (rides.js), it waits on
    * that one again, so the same two devices can meet without a new QR code.
-   * @param {string} [code] @param {string} [secret]
+   * With orJoin, a code the other device is already waiting on is dialled
+   * instead: whichever device reconnects first waits, the second one joins.
+   * @param {string} [code] @param {string} [secret] @param {{ orJoin?: boolean }} [options]
    */
-  async host(code, secret) {
+  async host(code, secret, options) {
+    this.orJoin = !!(options && options.orJoin);
     if (code && CODE_PATTERN.test(code) && SECRET_PATTERN.test(secret)) return this._start("host", code, secret);
     return this._start("host");
   }
 
+  /**
+   * The other device said yes to this one's ring: the hello that comes with
+   * the invitation's secret is let in without asking again here.
+   */
+  trustNext() {
+    if (this.role !== "host") return;
+    this.trusted = true;
+    if (this.state.status === "pending") this.acceptPeer();
+  }
+
   /** @param {string} code @param {string} secret @param {string} [deviceName] */
   async join(code, secret, deviceName) {
+    this.orJoin = false;
     if (!CODE_PATTERN.test(code) || !SECRET_PATTERN.test(secret)) {
       this.state.error = ERRORS.invite;
       this.state.status = "error";
@@ -305,6 +293,50 @@ export class TransferSession {
     if (said) this._closeSoon();
   }
 
+  /**
+   * This page is going away and may be back in a moment: a reload looks just
+   * like a close from here. The other device is told to look for it for
+   * RETURN_WINDOW_MS instead of hanging up.
+   * @returns {{ role: string, code: string, secret: string, resumeKey: string, peerName: string } | null}
+   *   what this page needs to come back with rejoin(), or null when it cannot come back (it said goodbye)
+   */
+  stepAway() {
+    const canReturn = this.state.status === "connected" && !!this.resumeKey && this.peerCapabilities.indexOf(HOLD_CAPABILITY) !== -1;
+    if (!canReturn) {
+      this.leave();
+      return null;
+    }
+    const saved = { role: this.role, code: this.state.code, secret: this.state.secret, resumeKey: this.resumeKey, peerName: this.state.peerName };
+    if (this._sendKind(AWAY_KIND)) this._closeSoon();
+    return saved;
+  }
+
+  /**
+   * Come back to the connection this tab had before it reloaded (stepAway):
+   * the same invitation and resume key, so the other device, which is looking
+   * for this one, lets it straight back in.
+   * @param {{ role: string, code: string, secret: string, resumeKey: string, peerName?: string }} saved
+   * @returns {boolean} false when there is nothing to come back to
+   */
+  rejoin(saved) {
+    if (!saved || ROLES.indexOf(saved.role) === -1 || !CODE_PATTERN.test(saved.code) || !SECRET_PATTERN.test(saved.secret) || !SECRET_PATTERN.test(saved.resumeKey)) return false;
+    if (typeof window === "undefined" || !window.RTCPeerConnection) return false;
+    this.generation += 1;
+    this._dispose();
+    this.destroyed = false;
+    this.role = saved.role;
+    this.orJoin = false;
+    this.trusted = false;
+    this.resumeKey = saved.resumeKey;
+    this.resumeWindow = RETURN_WINDOW_MS;
+    Object.assign(this.state, {
+      status: "connected", error: "", code: saved.code, secret: saved.secret,
+      peerName: safeName(saved.peerName, "", MAX_DEVICE_LENGTH), pendingName: "", resuming: false, items: [],
+    });
+    // Picked up as a connection that dropped: the search is the usual one, shorter
+    return this._resume();
+  }
+
   /** The page is in front again: timers may have slept, so look at the connection now. */
   wake() {
     if (this.state.resuming) {
@@ -339,6 +371,7 @@ export class TransferSession {
     this._dispose();
     this.destroyed = false;
     this.role = role;
+    this.trusted = false;
     this.state.items.forEach((item) => {
       if (item.url) URL.revokeObjectURL(item.url);
     });
@@ -389,6 +422,11 @@ export class TransferSession {
       });
       peer.on("error", (error) => {
         if (this.peer !== peer) return;
+        // The other device is already waiting on this ride's code: dial it
+        if (error.type === "unavailable-id" && role === "host" && this.orJoin && !this.state.resuming) {
+          this._start("guest", code, this.state.secret);
+          return;
+        }
         if (this.state.status === "connected" && this.connection?.open && ["network", "socket-error", "server-error"].indexOf(error.type) !== -1) return;
         this._endConnection("error", error.type === "peer-unavailable" ? ERRORS.unavailable : ERRORS.start);
       });
@@ -475,6 +513,12 @@ export class TransferSession {
       this._endConnection("disconnected", ERRORS.closed);
       return;
     }
+    // The other page is reloading: it is looked for, but not for as long as a sleeping phone
+    if (kind === AWAY_KIND) {
+      this.resumeWindow = RETURN_WINDOW_MS;
+      this._endConnection("disconnected", ERRORS.closed);
+      return;
+    }
     if (this.onActivity) this.onActivity();
     if (packet.type === "app") {
       if (this.onApp && packet.payload && typeof packet.payload === "object") this.onApp(packet.payload);
@@ -520,7 +564,7 @@ export class TransferSession {
       this.state.pendingName = safeName(packet.name, "Other device", MAX_DEVICE_LENGTH);
       this._noteCapabilities(packet.caps);
       this.state.status = "pending";
-      if (returning) {
+      if (returning || this.trusted) {
         this.acceptPeer();
         return;
       }
@@ -855,10 +899,12 @@ export class TransferSession {
     const live = this.state.status === "connected" || this.state.resuming;
     if (!live || !this.resumeKey || this.destroyed) return false;
     if (!this.state.resuming) {
-      this.resumeUntil = Date.now() + RESUME_WINDOW_MS;
+      const searchMs = this.resumeWindow || RESUME_WINDOW_MS;
+      this.resumeWindow = 0;
+      this.resumeUntil = Date.now() + searchMs;
       this.resumeTries = 0;
       clearTimeout(this.resumeDeadline);
-      this.resumeDeadline = setTimeout(() => this._endConnection("disconnected", ERRORS.closed), RESUME_WINDOW_MS);
+      this.resumeDeadline = setTimeout(() => this._endConnection("disconnected", ERRORS.closed), searchMs);
     }
     if (Date.now() >= this.resumeUntil) return false;
     this.generation += 1;

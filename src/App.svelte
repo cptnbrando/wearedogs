@@ -15,7 +15,10 @@
     // Counts plays of DOGS songs (lib/playCounts.svelte.js). After TitlePage, so the
     // player's code it watches is already loaded and the first paint waits for nothing.
     import("./lib/playCounts.svelte.js");
+    // Air Train's "Connection requested" drop-down, and a connection picked up after a reload
+    import("./components/RideRequest.svelte").then((r) => (RideRequest = r.default));
   });
+  let RideRequest = $state(null);
 
   // Lazy loaded DogsMain component
   let DogsMainComponent = $state(null);
@@ -210,4 +213,8 @@
       </div>
     {/if}
   </div>
+  {#if RideRequest}
+    {@const Request = RideRequest}
+    <Request />
+  {/if}
 </main>

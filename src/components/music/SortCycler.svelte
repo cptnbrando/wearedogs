@@ -36,20 +36,22 @@
   onclick={() => onchange(next.id)}
 >
   {#key mode.id}
-    <span class="sort-icon"><mode.icon size={16} /></span>
+    <span class="sort-icon"><mode.icon size={13} /></span>
   {/key}
 </button>
 
 <style lang="scss">
   @use "../../styles/variables" as *;
 
+  // Slim and square-cornered like the TRACKS and PRESETS tabs beside it (.tl-tab in MusicPanel)
   .sort-cycler {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
+    width: 36px;
+    height: 24px;
+    padding: 0;
+    border-radius: 6px;
     border: 1px solid currentColor;
     background: transparent;
     cursor: pointer;

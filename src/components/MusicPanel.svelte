@@ -48,6 +48,7 @@
   import LyricLine from "./music/LyricLine.svelte";
   import StrikeToggle from "./music/StrikeToggle.svelte";
   import SortCycler from "./music/SortCycler.svelte";
+  import SoundSwitch from "./music/SoundSwitch.svelte";
   import StageLyricControls from "./music/StageLyricControls.svelte";
   import { presetDeck } from "../lib/visualizer/presetDeck.svelte.js";
   import { lyrics } from "../lib/lyrics.svelte.js";
@@ -1545,6 +1546,10 @@
                 >
                   <Speech size={14} />
                 </StrikeToggle>
+                <!-- Tethered: which device the sound comes out of -->
+                {#if tether.linked}
+                  <SoundSwitch />
+                {/if}
 
                 <!-- Volume controls wrapper -->
                 <div class="relative">

@@ -8,6 +8,13 @@ $color-neon-red: var(--color-neon-red, #ff3344);        // Main primary accent &
 $color-neon-green: var(--color-neon-green, #00d75f);      // Success, advancing status, and win states
 $color-alert-red: var(--color-alert-red, #ef4444);       // Elimination status, offline warnings
 
+// ── Air Train: "Connection requested" drop-down ──
+// Over every page of the site, music full screen included (components/RideRequest.svelte).
+$z-ride-request: 2147483000;
+$bg-ride-request: rgba(12, 12, 16, 0.94);
+$border-ride-request: rgba(255, 255, 255, 0.14);
+$shadow-ride-request: 0 12px 40px rgba(0, 0, 0, 0.55);
+
 // ── Music player song-list sort ──
 // The sort symbol's colour for each order, on phones (components/music/SortCycler.svelte).
 $color-sort-default: rgba(255, 255, 255, 0.75);

@@ -3,6 +3,7 @@
   import QRCode from 'qrcode';
   import { ArrowUpRight, Link, Copy, RefreshCw, Monitor, Smartphone, Check, X, Plus, Send, Radio, ClipboardPaste, Info, Cable } from 'lucide-svelte';
   import { tether } from '../../../lib/tether.svelte.js';
+  import { rideBell, ANSWER_YES, ANSWER_NO, ANSWER_BUSY } from '../../../lib/rideBell.svelte.js';
   import { MAX_FILE_BYTES } from './transferSession.js';
   import { isBigVideo, videoToMp3 } from './shrinkVideo.js';
   import { listRides, saveRide, forgetRide, openRide, lockRides, unlockRides, resetLockedRides, ridesLocked, canLockRides } from './rides.js';
@@ -19,7 +20,7 @@
   const TEXT_COPIED = 'Text copied. Paste it anywhere on this device.';
   const IMAGE_COPIED = 'Picture copied. Paste it anywhere on this device.';
   const PASTE_EMPTY ='Your clipboard is empty, or this browser blocked access. Paste into the box instead.';
-  const TEXT_PLACEHOLDER = 'Copy and paste anything';
+  const TEXT_PLACEHOLDER = 'Paste or type';
   const WEBRTC_URL = 'https://webrtc.org/';
   const PEERJS_URL = 'https://peerjs.com/';
   const HELP_POINTS = [
@@ -30,7 +31,15 @@
   ];
   const SHRINK_FAILED = 'The sound could not be pulled from that video. Send the video itself, or try another file.';
   const RECONNECT_WAITING = 'Waiting. Now open Air Train on the other device and press Reconnect there too.';
-  const RECONNECT_DIALLING = 'Calling the other device. If nothing happens, press Reconnect on it first.';
+  /** What Reconnect says while it rings the other device (lib/rideBell), by its answer. */
+  const RING_NOTICES = {
+    calling: (name) => 'Asking ' + name + ' to connect. A request pops up on it, wherever it is on dogs.red.',
+    [ANSWER_YES]: (name) => name + ' said yes. Connecting…',
+    [ANSWER_NO]: (name) => name + ' said no.',
+    [ANSWER_BUSY]: (name) => name + ' is busy with another connection. Try again in a moment.',
+    away: (name) => 'No answer from ' + name + '. Open dogs.red on it, or open Air Train there and press Reconnect.',
+    joining: (name) => name + ' is already waiting. Joining it…',
+  };
   const TETHER_ON = 'Tethered';
   const TETHER_WAITING = 'Tether: turn it on there too';
   const TETHER_ASKED = 'Tether asked for: turn on';
@@ -50,6 +59,10 @@
   let pastedLink = '';
   let draft = '';
   let notice = '';
+  /** The notice is about getting connected, so it goes once the devices are. */
+  let noticeEndsOnConnect = false;
+  /** A ring waiting for this device to be ready on the ride's code: { peerBell, tag, name }. */
+  let ringing = null;
   let actionError = '';
   let fileInput;
   let disposed = false;
@@ -81,6 +94,16 @@
   $: if (pairLink && pairLink !== currentQrLink && state.status === 'waiting') drawQr(pairLink);
   // A pairing that connects becomes a ride, once
   $: if (connected && state.code && state.code !== savedRideCode) rememberRide(state);
+  $: if (connected && noticeEndsOnConnect) {
+    notice = '';
+    noticeEndsOnConnect = false;
+  }
+  // Ring once this device waits on the ride's code; one that dials instead was beaten to it, and needs no ring
+  $: if (ringing && session && session.role === 'guest') {
+    notice = RING_NOTICES.joining(ringing.name);
+    ringing = null;
+  }
+  $: if (ringing && state.status === 'waiting' && session && session.role === 'host') ringOtherDevice(ringing);
 
   onMount(() => {
     canPaste = !!(navigator.clipboard && navigator.clipboard.readText);
@@ -88,6 +111,8 @@
     canCopyImages = supportsImageCopy();
     refreshRides();
     pinPossible = canLockRides();
+    // A ride joined from a ring, or picked up after a reload, is not saved twice
+    savedRideCode = tether.rideCode;
     // The session lives in the tether, so leaving Air Train does not hang up
     const held = tether.open(next => { if (!disposed) state = next; });
     session = held.session;
@@ -196,13 +221,16 @@
     } catch (error) {
       // The ride could not be sealed or stored: this pairing still works, it is just not remembered
     }
+    rideBell.refresh();
     if (!disposed) refreshRides();
   }
 
   /**
-   * Meet a device from a previous ride again. The side that showed the QR
-   * code waits on the old code and the other side dials it; the waiting side
-   * is still asked to allow the connection.
+   * Meet a device from a previous ride again, on the old code: this device
+   * waits on it, or dials it when the other one already waits. A ride that
+   * knows the other device's bell rings it, wherever it is on dogs.red
+   * (lib/rideBell); without one, the other device presses Reconnect too and
+   * the waiting side still allows it in.
    */
   async function reconnect(ride, pin) {
     // A sealed ride opens with the PIN; a wrong one is said in the list, and nothing connects
@@ -212,13 +240,19 @@
     currentQrLink = '';
     // This pairing is already a ride: connecting must not save it a second time
     savedRideCode = opened.code;
-    if (opened.role === 'host') {
-      await session.host(opened.code, opened.secret);
-      notice = RECONNECT_WAITING;
-      return;
-    }
-    await session.join(opened.code, opened.secret);
-    notice = RECONNECT_DIALLING;
+    noticeEndsOnConnect = true;
+    ringing = opened.peerBell && opened.tag ? { peerBell: opened.peerBell, tag: opened.tag, name: ride.peerName } : null;
+    notice = ringing ? RING_NOTICES.calling(ride.peerName) : RECONNECT_WAITING;
+    await session.host(opened.code, opened.secret, { orJoin: true });
+  }
+
+  /** Ring the other device; a yes lets it in here without asking again. */
+  async function ringOtherDevice(ring) {
+    ringing = null;
+    const answer = await rideBell.ring(ring.peerBell, ring.tag);
+    if (disposed || connected || !noticeEndsOnConnect) return;
+    if (answer === ANSWER_YES) session.trustNext();
+    notice = (RING_NOTICES[answer] || RING_NOTICES.away)(ring.name);
   }
 
   function forget(ride) {
@@ -328,7 +362,7 @@
 <section class="dt-air w-full flex flex-col sm:flex-col md:flex-col lg:flex-col xl:flex-col 2xl:flex-col" aria-label="Air Train">
   <header class="dt-air-header">
     <div class="dt-heading"><Radio size={19} aria-hidden="true" /><h2>Air Train</h2><span>Files & text. Both ways.</span></div>
-    <div class="dt-connection" class:dt-online={connected} role="status"><i></i>{STATUS_LABELS[state.status] || state.status}</div>
+    <div class="dt-connection" class:dt-online={connected} class:dt-connection-up={connected} role="status"><i></i>{STATUS_LABELS[state.status] || state.status}</div>
     {#if connected && tether.available}<button type="button" class="dt-tether" class:dt-tether-on={tether.linked} class:dt-tether-asking={tether.on !== tether.peerOn} aria-pressed={tether.on} title={TETHER_HINT} aria-label={TETHER_HINT} onclick={() => tether.setOn(!tether.on)}><Cable size={15} aria-hidden="true" /><span>{tether.on && tether.peerOn ? TETHER_ON : tether.on ? TETHER_WAITING : tether.peerOn ? TETHER_ASKED : TETHER_OFF}</span></button>{/if}
     {#if connected}<button class="dt-quiet dt-disconnect" onclick={() => session.disconnect()}>Disconnect</button>{/if}
     {#if !connected && state.items.length}<button class="dt-quiet dt-disconnect" onclick={restart}>Clear session & reconnect</button>{/if}
@@ -387,7 +421,7 @@
       <nav class="dt-pane-switch" aria-label="Transfer lists"><button class:dt-selected={mobilePane === 'sent'} aria-pressed={mobilePane === 'sent'} onclick={() => mobilePane = 'sent'}>Sending · {sentItems.length}</button><button class:dt-selected={mobilePane === 'received'} aria-pressed={mobilePane === 'received'} onclick={() => mobilePane = 'received'}>Received · {receivedItems.length}</button></nav>
       <div class="dt-panes">
         <section class="dt-pane" class:dt-mobile-hidden={mobilePane !== 'sent'} aria-label="Outgoing transfers">
-          <div class="dt-pane-title"><div><Monitor size={18} /><h3>This device</h3></div><span>{sentItems.length} sent / queued</span></div>
+          <div class="dt-pane-title"><div><Monitor size={18} /><h3>This device</h3>{#if connected}<i class="dt-pane-dot" title={STATUS_LABELS.connected} aria-label={STATUS_LABELS.connected}></i>{/if}</div><span>{sentItems.length} sent / queued</span></div>
           <TransferList items={sentItems} direction="sent" canRetry={(item) => connected && session.canRetry(item.id)} onRetry={(id) => run(() => session.retryTransfer(id))} onCopy={(text) => copy(text, 'Text copied.')} onCancel={(id) => run(() => session.cancelTransfer(id))} onRemove={(id) => session.removeItem(id)} />
         </section>
         <section class="dt-pane" class:dt-mobile-hidden={mobilePane !== 'received'} aria-label="Incoming transfers">
