@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1795671089,
+    "firstCommitTimestamp": 1795676248,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 269595
+    "averageLinesAltered": 270704
   },
   "entries": [
     {
       "version": "1.0.3",
       "name": "Master",
       "date": "2026-11-26",
-      "timestamp": 1795671043,
+      "timestamp": 1795676282,
       "commits": [
         {
-          "hash": "da09b85",
-          "message": "fix(music): the quiet tethered device's visualizer hears the music; one sort button, shaped like the tabs",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/da09b8595403c53dc8aec62d39cc58574c9f0b59",
-          "timestamp": 1795671089,
-          "linesChanged": 269595
+          "hash": "5673df9",
+          "message": "Merge pull request #103 from cptnbrando/ai-november2026/realistic-milkdrop-tips",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/5673df902258556e0dbcc191ca3129b3183a4644",
+          "timestamp": 1795676248,
+          "linesChanged": 270704
         }
       ]
     },
