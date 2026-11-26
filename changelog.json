@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1795670457,
+    "firstCommitTimestamp": 1795671089,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 269417
+    "averageLinesAltered": 269595
   },
   "entries": [
     {
       "version": "1.0.3",
       "name": "Master",
       "date": "2026-11-26",
-      "timestamp": 1795670418,
+      "timestamp": 1795671043,
       "commits": [
         {
-          "hash": "c5a9d64",
-          "message": "fix(tether): no more track loops; Air Train gets a live log and big pieces for big files",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/c5a9d64768288c4926580b02568ad5f95c579340",
-          "timestamp": 1795670457,
-          "linesChanged": 269417
+          "hash": "da09b85",
+          "message": "fix(music): the quiet tethered device's visualizer hears the music; one sort button, shaped like the tabs",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/da09b8595403c53dc8aec62d39cc58574c9f0b59",
+          "timestamp": 1795671089,
+          "linesChanged": 269595
         }
       ]
     },
