@@ -155,10 +155,9 @@
     }
   }
 
-  // The big line over the full-screen visualizer. It is sized and placed by
-  // the frame it sits in (.stage-frame in MusicPanel, which may be tall, square
-  // or wide), so the recorded video (lib/lyricCanvas.js) matches the screen.
-  // Browsers without container units size it from the window instead.
+  // The big line over the full-screen visualizer, sized and placed by the
+  // frame it sits in (.stage-frame in MusicPanel). Browsers without container
+  // units size it from the window instead.
   .lyric-stage {
     position: absolute;
     left: 4%;

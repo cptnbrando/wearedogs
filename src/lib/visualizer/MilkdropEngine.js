@@ -15,7 +15,7 @@
 /** Seconds one preset takes to melt into the next. */
 const BLEND_SECONDS = 2.7;
 /** How long a preset plays before the next one, with auto-advance on. */
-const AUTO_ADVANCE_MS = 30000;
+export const AUTO_ADVANCE_MS = 30000;
 /** Phones report 3x and more: MilkDrop at that size cooks them for no visible gain. */
 const MAX_PIXEL_RATIO = 2;
 /** How many presets "previous" can walk back through. */
@@ -78,10 +78,8 @@ export class MilkdropEngine {
   pool = null;
   /** The preset the last engine was showing: put back on as soon as its pack has loaded. */
   resume = "";
-  /** Called right after each frame is drawn, while its picture can still be copied (stageRecorder.js). */
-  onFrame = null;
-  /** Drawing pixels per page pixel. 0 follows the screen, up to MAX_PIXEL_RATIO; a recording asks for more. */
-  pixelRatio = 0;
+  /** Asked before auto-advance moves on: false while another device leads the show (presetDeck's tether link). */
+  canAdvance = null;
   width = 0;
   height = 0;
 
@@ -152,7 +150,7 @@ export class MilkdropEngine {
 
   /** Matches the drawing size to the canvas's size on the page. */
   resize() {
-    const ratio = this.pixelRatio || Math.min(window.devicePixelRatio || 1, MAX_PIXEL_RATIO);
+    const ratio = Math.min(window.devicePixelRatio || 1, MAX_PIXEL_RATIO);
     const width = Math.max(1, Math.round(this.canvas.clientWidth * ratio));
     const height = Math.max(1, Math.round(this.canvas.clientHeight * ratio));
     if (width === this.width && height === this.height) return;
@@ -167,7 +165,6 @@ export class MilkdropEngine {
     if (this.destroyed) return;
     this.resize();
     this.visualizer.render();
-    if (this.onFrame) this.onFrame();
     this.animationFrameId = requestAnimationFrame(() => this.draw());
   }
 
@@ -251,7 +248,11 @@ export class MilkdropEngine {
   restartAuto() {
     clearTimeout(this.autoTimer);
     if (!this.auto || this.destroyed) return;
-    this.autoTimer = setTimeout(() => this.advance(), AUTO_ADVANCE_MS);
+    this.autoTimer = setTimeout(() => {
+      // A device following another waits for that one's choice instead of picking its own
+      if (this.canAdvance && !this.canAdvance()) this.restartAuto();
+      else this.advance();
+    }, AUTO_ADVANCE_MS);
   }
 
   destroy() {

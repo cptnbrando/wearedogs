@@ -5,11 +5,12 @@
    * "hearts only" to play just the kept ones, shuffle, and auto-advance.
    * It only asks; the deck (lib/visualizer/presetDeck) and its engine do the work.
    */
-  import { ChevronLeft, ChevronRight, Shuffle, Timer, Heart, ListMusic } from "lucide-svelte";
+  import { ChevronLeft, ChevronRight, Shuffle, Heart, ListMusic } from "lucide-svelte";
   import { presetDeck } from "../../lib/visualizer/presetDeck.svelte.js";
+  import { AUTO_ADVANCE_MS } from "../../lib/visualizer/MilkdropEngine.js";
   import PresetList from "./PresetList.svelte";
 
-  const AUTO_SECONDS = 30;
+  const AUTO_SECONDS = AUTO_ADVANCE_MS / 1000;
 
   let listOpen = $state(false);
   let hearted = $derived(presetDeck.isFavorite(presetDeck.current));
@@ -86,7 +87,27 @@
       title={presetDeck.auto ? `A new preset every ${AUTO_SECONDS} seconds: on` : `A new preset every ${AUTO_SECONDS} seconds: off`}
       onclick={() => presetDeck.setAuto(!presetDeck.auto)}
     >
-      <Timer size={14} />
+      <!-- A stopwatch whose hand goes once round while a preset plays and is at
+           the top when the next one comes on. Each new preset starts it over. -->
+      {#key presetDeck.current}
+        <svg
+          class="deck-timer"
+          class:deck-timer-running={presetDeck.auto}
+          style="--auto-ms: {AUTO_ADVANCE_MS}ms"
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          aria-hidden="true"
+        >
+          <line x1="10" x2="14" y1="2" y2="2" />
+          <circle cx="12" cy="14" r="8" />
+          <line class="deck-timer-hand" x1="12" y1="14" x2="12" y2="8.5" />
+        </svg>
+      {/key}
     </button>
   </div>
 </div>
@@ -122,6 +143,45 @@
 
   .deck-hearted {
     color: $color-like-fill;
+  }
+
+  .deck-timer-hand {
+    transform-box: view-box;
+    transform-origin: 12px 14px;
+  }
+
+  // The hand sweeps once round; the watch gives a little kick when it reaches the top again
+  .deck-timer-running {
+    animation: deck-timer-kick 0.35s ease-out;
+
+    .deck-timer-hand {
+      animation: deck-timer-sweep var(--auto-ms) linear forwards;
+    }
+  }
+
+  @keyframes deck-timer-sweep {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes deck-timer-kick {
+    0% {
+      transform: scale(1.3);
+    }
+    100% {
+      transform: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .deck-timer-running,
+    .deck-timer-running .deck-timer-hand {
+      animation: none;
+    }
   }
 
   // TV and ultra-wide: bigger targets for a remote or a pointer across the room

@@ -1,8 +1,9 @@
 /**
  * The tether: two of your own devices, paired in Air Train, sharing more than
  * files. Today that is the music player: play, pause, skip, seek, shuffle,
- * repeat and the VOX / INS switch stay in step, and the device without the
- * sound works as a remote control for the one with it.
+ * repeat and the VOX / INS switch stay in step, the device without the sound
+ * works as a remote control for the one with it, and the visualizer shows the
+ * same MilkDrop preset on both (lib/visualizer/presetDeck.svelte.js).
  *
  * It rides the Air Train connection (WebRTC, straight between the devices)
  * and nothing else, so only a device you paired and approved can join, and
@@ -22,11 +23,13 @@
  */
 import { audioCore } from "./AudioCore.svelte.js";
 import { TransferSession } from "../components/apps/datatrain/transferSession.js";
+import { presetDeck } from "./visualizer/presetDeck.svelte.js";
 
 /** How long a connection nobody is looking at may sit unused before it is closed. */
 const IDLE_LIMIT_MS = 10 * 60 * 1000;
 const KIND_TETHER = "tether";
 const KIND_MUSIC = "music";
+const KIND_PRESET = "preset";
 const STATUS_CONNECTED = "connected";
 /** The session is finding the other device again after a drop. */
 const STATUS_RECONNECTING = "reconnecting";
@@ -198,7 +201,13 @@ class Tether {
       this.relink();
       return;
     }
-    if (payload.k !== KIND_MUSIC || !this.linked) return;
+    if (!this.linked) return;
+    // A device on an older version never sends this, and ignores it: the players still link
+    if (payload.k === KIND_PRESET) {
+      presetDeck.showFromPeer(payload.name);
+      return;
+    }
+    if (payload.k !== KIND_MUSIC) return;
     const msg = cleanSyncMessage(payload.msg);
     if (msg) audioCore.handleSyncMessage(msg, true);
   }
@@ -216,11 +225,17 @@ class Tether {
     if (linked === this.wasLinked) return;
     this.wasLinked = linked;
     if (!linked) {
+      presetDeck.setLink(null);
       audioCore.detachRemote();
       return;
     }
     const session = this.session;
     audioCore.attachRemote((msg) => session.sendApp({ k: KIND_MUSIC, msg }));
+    presetDeck.setLink({
+      send: (name) => session.sendApp({ k: KIND_PRESET, name }),
+      // The device with the sound leads the show; the remote follows it
+      leads: () => !audioCore.masterIsRemote,
+    });
   }
 }
 

@@ -24,6 +24,7 @@
   import { MUSIC_PALETTES } from "../../lib/musicPalettes.js";
   import { killCache } from "./killCache.js";
   import AdminCard from "./settings/AdminCard.svelte";
+  import LyricsCard from "./settings/LyricsCard.svelte";
 
   // How long "tap again to confirm" stays armed before it disarms itself
   const KILL_CONFIRM_WINDOW_MS = 4000;
@@ -248,6 +249,8 @@
         {/each}
       </div>
     </section>
+
+    <LyricsCard />
 
     <section class="settings-section mt-8">
       <h3 class="section-title">Select Landing Phrase</h3>

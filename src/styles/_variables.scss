@@ -8,6 +8,16 @@ $color-neon-red: var(--color-neon-red, #ff3344);        // Main primary accent &
 $color-neon-green: var(--color-neon-green, #00d75f);      // Success, advancing status, and win states
 $color-alert-red: var(--color-alert-red, #ef4444);       // Elimination status, offline warnings
 
+// ── Music player song-list sort ──
+// The sort symbol's colour for each order, on phones (components/music/SortCycler.svelte).
+$color-sort-default: rgba(255, 255, 255, 0.75);
+$color-sort-artist: var(--color-neon-red, #ff3344);
+$color-sort-album: var(--color-doc-sky, #38bdf8);
+$color-sort-year: var(--color-neon-gold, #e6b900);
+$color-sort-filename: var(--color-neon-green, #00d75f);
+$color-sort-genre: rgba(180, 85, 255, 0.95);
+$color-sort-season: var(--color-image-orange, #ff5e00);
+
 // ── Dog Blog: post header actions and the stats drop-down ──
 // Used in apps/BlogApp.svelte (.post-action buttons, .stat-tile).
 $color-blog-accent-line: rgba(180, 85, 255, 0.45); // Border of the open Stats button (the blog's purple)
@@ -16,7 +26,6 @@ $color-blog-ink-strong: #ffffff;                    // Hovered/open button text 
 $color-blog-ink-dim: rgba(255, 255, 255, 0.4);      // Stat tile labels
 $color-blog-line: rgba(255, 255, 255, 0.1);         // Action button border
 $bg-blog-hover: rgba(255, 255, 255, 0.08);          // Hovered/open action button
-$bg-stage-note: rgba(0, 0, 0, 0.75);                // A note over the full-screen visualizer (StageLyricControls)
 $bg-blog-tile: rgba(0, 0, 0, 0.3);                  // Stat tile background
 
 // ── Catalytic Converter: documents & crop ──
