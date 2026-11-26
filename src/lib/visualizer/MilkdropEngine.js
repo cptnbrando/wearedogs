@@ -1,7 +1,8 @@
 /**
  * MilkDrop visuals for the music player, through Butterchurn: the open-source
  * WebGL 2 build of Winamp's MilkDrop 2, with the community presets its authors
- * converted (butterchurn-presets, 395 of them across four packs).
+ * converted (butterchurn-presets, 395 of them across four packs) and our own
+ * pack of the most realistic ones they left out (realismPack.js).
  *
  * Nothing here is downloaded until MilkDrop is switched on: the engine and
  * each preset pack are separate chunks, fetched on first use. The first pack
@@ -22,9 +23,10 @@ const MAX_PIXEL_RATIO = 2;
 const MAX_HISTORY = 50;
 const WEBGL2 = "webgl2";
 
-/** The preset packs, smallest wait first. Each is its own chunk. */
+/** The preset packs, smallest wait first, then the realistic ones. Each is its own chunk. */
 const PACKS = [
   () => import("butterchurn-presets/lib/butterchurnPresets.min.js"),
+  () => import("./realismPack.js"),
   () => import("butterchurn-presets/lib/butterchurnPresetsExtra.min.js"),
   () => import("butterchurn-presets/lib/butterchurnPresetsExtra2.min.js"),
   () => import("butterchurn-presets/lib/butterchurnPresetsMD1.min.js"),
