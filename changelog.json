@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1795669924,
+    "firstCommitTimestamp": 1795670457,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 268986
+    "averageLinesAltered": 269417
   },
   "entries": [
     {
       "version": "1.0.3",
       "name": "Master",
       "date": "2026-11-26",
-      "timestamp": 1795669885,
+      "timestamp": 1795670418,
       "commits": [
         {
-          "hash": "9193c7c",
-          "message": "feat(captions): write the lines as text and move the edits onto the times; a tether icon replaces the bubble",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/9193c7c9f7c6512c8819286213999522460a3aa7",
-          "timestamp": 1795669924,
-          "linesChanged": 268986
+          "hash": "c5a9d64",
+          "message": "fix(tether): no more track loops; Air Train gets a live log and big pieces for big files",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/c5a9d64768288c4926580b02568ad5f95c579340",
+          "timestamp": 1795670457,
+          "linesChanged": 269417
         }
       ]
     },
