@@ -14,6 +14,7 @@
   import { CaptionsProject } from "./captionsProject.svelte.js";
   import { KIND_FILE, KIND_TRACK } from "./captionsStore.js";
   import { admin } from "../../../lib/admin.svelte.js";
+  import { lyricSongs, takeCaptionsAsk } from "./captionsSongs.js";
   import CaptionsStart from "./CaptionsStart.svelte";
   import CaptionsPreview from "./CaptionsPreview.svelte";
   import CaptionsTransport from "./CaptionsTransport.svelte";
@@ -156,6 +157,11 @@
   function onKeyup(event) {
     if (media.kind && event.key === " " && event.target && event.target.tagName === BUTTON_TAG) event.preventDefault();
   }
+
+  // Opened from the Admin app for one song: that song opens straight away
+  const askedTrackId = takeCaptionsAsk();
+  const askedTrack = askedTrackId && admin.unlocked ? lyricSongs().find((track) => track.id === askedTrackId) : null;
+  if (askedTrack) openTrack(askedTrack);
 
   window.addEventListener("keydown", onKeydown, true);
   window.addEventListener("keyup", onKeyup, true);

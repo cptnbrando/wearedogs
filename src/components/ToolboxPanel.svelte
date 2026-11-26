@@ -33,7 +33,9 @@
     ChartCandlestick,
     Fingerprint,
     Captions,
+    ShieldCheck,
   } from "lucide-svelte";
+  import { admin } from "../lib/admin.svelte.js";
   import DogsLogo from "./DogsLogo.svelte";
   import TetherIcon from "./TetherIcon.svelte";
   import AppCard from "./AppCard.svelte";
@@ -95,6 +97,7 @@
     dogsinc: "./apps/dogsinc/DogsIncApp.svelte",
     fingerprint: "./apps/fingerprint/FingerprintApp.svelte",
     captions: "./apps/captions/CaptionsApp.svelte",
+    admin: "./apps/admin/AdminApp.svelte",
   };
 
   // Lazy loaded app components caching
@@ -299,6 +302,7 @@
     dogsinc: "#e6b900",
     fingerprint: "#ff4f81",
     captions: "#ffe14d",
+    admin: "#ff3344",
     wordsmith: "#ff3344",
     castle: "#00d7ff",
     money24: "#00ff66",
@@ -306,7 +310,7 @@
 
   // CRITICAL: The changelog and settings apps MUST always remain next to each other at the bottom of the toolbox list, with settings last.
   // Apps with an href live on their own site: they stay first and open in a new tab.
-  const apps = [
+  const ALL_APPS = [
     {
       id: "wordsmith",
       title: "Wordsmith",
@@ -468,6 +472,14 @@
       icon: Radio,
     },
     {
+      // Owner only: shown while the owner is signed in (Settings, lib/admin)
+      id: "admin",
+      title: "Admin",
+      desc: "The owner's desk: set, edit and take down the lyrics everyone sees in the music player.",
+      icon: ShieldCheck,
+      ownerOnly: true,
+    },
+    {
       id: "changelog",
       title: "Changelog",
       desc: "View the system changelog and repository development metrics.",
@@ -481,10 +493,12 @@
     },
   ];
 
+  // The owner's apps join the list only while the owner is signed in
+  const apps = $derived(ALL_APPS.filter((app) => !app.ownerOnly || admin.unlocked));
   const appIds = $derived(apps.map((a) => a.id));
   const appCount = $derived(apps.length);
   // External apps come first in `apps`, so their indexes are 0..externalCount-1 (the top row).
-  const externalCount = apps.filter((a) => a.href).length;
+  const externalCount = ALL_APPS.filter((a) => a.href).length;
 
   let focusedIdx = $state(-1);
 

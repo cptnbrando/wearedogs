@@ -6,9 +6,8 @@
    * everyone sees in the player.
    */
   import { FileAudio, Music, ArrowLeft } from "lucide-svelte";
-  import { playerLibrary } from "../../../data/music/tracks.js";
-  import { musicCatalog, libraryWithCatalog } from "../../../lib/musicCatalog.svelte.js";
-  import { musicLock } from "../../../lib/musicLock.svelte.js";
+  import { musicCatalog } from "../../../lib/musicCatalog.svelte.js";
+  import { lyricSongs } from "./captionsSongs.js";
   import { admin } from "../../../lib/admin.svelte.js";
   import { listProjects, KIND_TRACK } from "./captionsStore.js";
 
@@ -22,9 +21,7 @@
   let dragging = $state(false);
   let fileInput = $state(null);
 
-  let songs = $derived(
-    libraryWithCatalog(playerLibrary(musicLock.unlocked), musicLock.unlocked).filter((track) => !track.hidden && (track.src || track.instrumental)),
-  );
+  let songs = $derived(lyricSongs());
   const kept = listProjects();
   // A song's saved work is the owner's: everyone else sees only their files
   let recent = $derived(kept.filter((entry) => admin.unlocked || entry.kind !== KIND_TRACK).slice(0, MAX_RECENT));
