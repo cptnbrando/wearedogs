@@ -17,8 +17,11 @@
     import("./lib/playCounts.svelte.js");
     // Air Train's "Connection requested" drop-down, and a connection picked up after a reload
     import("./components/RideRequest.svelte").then((r) => (RideRequest = r.default));
+    // ...and its floating bubble while two devices are connected
+    import("./components/AirBubble.svelte").then((b) => (AirBubble = b.default));
   });
   let RideRequest = $state(null);
+  let AirBubble = $state(null);
 
   // Lazy loaded DogsMain component
   let DogsMainComponent = $state(null);
@@ -216,5 +219,9 @@
   {#if RideRequest}
     {@const Request = RideRequest}
     <Request />
+  {/if}
+  {#if AirBubble}
+    {@const Bubble = AirBubble}
+    <Bubble />
   {/if}
 </main>

@@ -101,6 +101,14 @@ class Tether {
   peerName = $state("");
   /** The connection dropped with the tether on, and is being found again. */
   holding = $state(false);
+  /** Air Train is open on this page (the floating bubble hides while it is: components/AirBubble). */
+  viewOpen = $state(false);
+  /** Files and notes that have come in on this connection. */
+  received = $state(0);
+  /** How many of them were there when Air Train was last looked at: the rest are new. */
+  seen = $state(0);
+  /** The floating bubble was put away for this connection. */
+  bubbleDismissed = $state(false);
 
   session = null;
   lastState = null;
@@ -211,6 +219,8 @@ class Tether {
    */
   open(onChange) {
     this.view = onChange;
+    this.viewOpen = true;
+    this.seen = this.received;
     clearTimeout(this.idleTimer);
     const kept = this.session && this.lastState && (this.onRideSettled || LIVE_STATUSES.indexOf(this.lastState.status) !== -1 || this.lastState.items.length > 0);
     if (kept) {
@@ -229,6 +239,9 @@ class Tether {
     this.session = session;
     this.lastState = null;
     this.rideCode = "";
+    this.received = 0;
+    this.seen = 0;
+    this.bubbleDismissed = false;
     return session;
   }
 
@@ -249,6 +262,8 @@ class Tether {
   /** Air Train closes. A live connection (or received files) stays; anything else is dropped. */
   close() {
     this.view = null;
+    this.viewOpen = false;
+    this.seen = this.received;
     const keep = this.lastState && (LIVE_STATUSES.indexOf(this.lastState.status) !== -1 || this.lastState.items.length > 0);
     if (keep) {
       this.touch();
@@ -260,6 +275,9 @@ class Tether {
   /** Close the connection and forget the session. */
   end() {
     clearTimeout(this.idleTimer);
+    this.received = 0;
+    this.seen = 0;
+    this.bubbleDismissed = false;
     if (this.session) this.session.destroy();
     this.session = null;
     this.lastState = null;
@@ -315,6 +333,9 @@ class Tether {
       this.holding = false;
     }
     this.peerName = state.peerName || "";
+    this.received = state.items.filter((item) => item.direction === "received" && item.status === "complete").length;
+    // Looked at while Air Train is open; a removed one is not new either
+    if (this.viewOpen || this.received < this.seen) this.seen = this.received;
     if (this.view) this.view(state);
     else if (!this.onRideSettled && !connected && !reconnecting && !state.items.length) this.end();
   }

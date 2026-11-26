@@ -99,7 +99,8 @@
     noticeEndsOnConnect = false;
   }
   // Ring once this device waits on the ride's code; one that dials instead was beaten to it, and needs no ring
-  $: if (ringing && session && session.role === 'guest') {
+  // state.status is read so this runs again when the session changes sides (session itself is not watched)
+  $: if (ringing && state.status && session && session.role === 'guest') {
     notice = RING_NOTICES.joining(ringing.name);
     ringing = null;
   }
