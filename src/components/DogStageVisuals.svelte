@@ -9,6 +9,8 @@
    * Three buttons in its top corner: TV puts the MilkDrop show behind the dogs,
    * inside the stage only; the note opens the music player; the last one takes
    * the stage full screen. With no music playing there are no buttons and no show.
+   * Full screen with the show on, the left and right arrows step through its
+   * presets (instead of turning the dog).
    *
    * The show is a MilkdropEngine joined to the site's preset deck
    * (lib/visualizer/presetDeck), so hearts, turned-down presets and shuffle
@@ -33,6 +35,7 @@
   const MUSIC_LABEL = "Open the music player";
   const FULL_ON_LABEL = "Leave full screen";
   const FULL_OFF_LABEL = "Full screen";
+  const TYPING_TAGS = ["INPUT", "TEXTAREA", "SELECT"];
 
   let canvasEl = $state(null);
   let full = $state(false);
@@ -87,6 +90,23 @@
   $effect(() => {
     document.addEventListener("fullscreenchange", onFullscreenChange);
     return () => document.removeEventListener("fullscreenchange", onFullscreenChange);
+  });
+
+  /** @param {KeyboardEvent} event */
+  function onKeydown(event) {
+    if (!full || !showing || (event.key !== "ArrowRight" && event.key !== "ArrowLeft")) return;
+    const el = document.activeElement;
+    if (el && (TYPING_TAGS.includes(el.tagName) || el.isContentEditable)) return;
+    event.preventDefault();
+    // Caught first (capture), so the stage's own arrows (turning the dog) leave this press alone
+    event.stopImmediatePropagation();
+    if (event.key === "ArrowRight") presetDeck.next();
+    else presetDeck.previous();
+  }
+
+  $effect(() => {
+    window.addEventListener("keydown", onKeydown, true);
+    return () => window.removeEventListener("keydown", onKeydown, true);
   });
 
   onDestroy(() => {

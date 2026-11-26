@@ -659,6 +659,21 @@
       .padStart(2, "0")}`;
   }
 
+  /**
+   * Full screen: one step through the presets, MilkDrop's when it is on,
+   * else the visualizer list itself.
+   * @param {number} step - 1 for the next, -1 for the one before
+   */
+  function stepFullscreenPreset(step) {
+    wakeStage();
+    if (isMilkdrop) {
+      if (step > 0) presetDeck.next();
+      else presetDeck.previous();
+      return;
+    }
+    activePresetIdx = (activePresetIdx + step + VISUALIZERS.length) % VISUALIZERS.length;
+  }
+
   function handleKeydown(e) {
     const activeEl = document.activeElement;
     if (
@@ -667,6 +682,13 @@
         activeEl.tagName === "TEXTAREA" ||
         activeEl.isContentEditable)
     ) {
+      return;
+    }
+
+    // Full screen: left and right step through the visualizer's presets
+    if (isFullscreenVisualizer && (e.key === "ArrowRight" || e.key === "ArrowLeft")) {
+      e.preventDefault();
+      stepFullscreenPreset(e.key === "ArrowRight" ? 1 : -1);
       return;
     }
 
