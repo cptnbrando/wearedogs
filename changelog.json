@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1795655219,
+    "firstCommitTimestamp": 1795655996,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 267660
+    "averageLinesAltered": 267593
   },
   "entries": [
     {
       "version": "1.0.3",
       "name": "Master",
       "date": "2026-11-26",
-      "timestamp": 1795655181,
+      "timestamp": 1795655950,
       "commits": [
         {
-          "hash": "e545e5f",
-          "message": "fix(admin): no password and no set-up page; the owner's key is made on the owner's computer",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/e545e5fc44de105b9a906e288880fedb3f6be3f7",
-          "timestamp": 1795655219,
-          "linesChanged": 267660
+          "hash": "30326d9",
+          "message": "feat(music): tethered devices show the same preset; a tidier full screen and phone song list",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/30326d937f48ca0c4f5ec9732c8787c09121f4d2",
+          "timestamp": 1795655996,
+          "linesChanged": 267593
         }
       ]
     },
