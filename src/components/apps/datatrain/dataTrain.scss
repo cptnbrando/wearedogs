@@ -266,3 +266,20 @@
   .dt-pane-dot { display: inline-block; }
   .dt-tether { flex: 1 1 auto; justify-content: center; min-height: 38px; padding: 6px 12px; font-size: t.$body !important; span { display: inline; } }
 }
+// The live log (AirLog.svelte): opened from the footer, under the transfers.
+.dt-shell .dt-footnote .dt-footnote-links { display: flex; gap: 14px; }
+.dt-log { flex: 0 1 auto; min-height: 120px; max-height: 45%; margin-top: 8px; border: 1px solid t.$line; border-radius: t.$radius; background: t.$panel; }
+.dt-shell .dt-log p { display: flex; align-items: center; gap: 6px; color: t.$muted; }
+.dt-log-title { color: t.$ink; font-weight: 650; }
+.dt-shell .dt-log .dt-log-sent { display: block; line-height: 1.45; }
+.dt-log-list { margin: 0; padding: 0; list-style: none; font-variant-numeric: tabular-nums; }
+.dt-log-row { border-top: 1px solid t.$line; color: t.$ink; }
+.dt-log-time { color: t.$muted; }
+.dt-log-dir { display: flex; padding-top: 2px; color: t.$muted; }
+.dt-log-row.is-out .dt-log-dir { color: t.$accent; }
+.dt-log-row.is-in .dt-log-dir { color: t.$success; }
+.dt-log-row.is-loop { color: t.$error; }
+.dt-log-text { overflow-wrap: anywhere; }
+.dt-log-empty { color: t.$muted; }
+@media (orientation: landscape) and (max-height: 500px) { .dt-log { max-height: 60vh; } }
+@media (min-width: 1536px) and (min-height: 800px) { .dt-log { max-height: 40vh; } }

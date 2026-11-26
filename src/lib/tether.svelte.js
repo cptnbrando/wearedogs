@@ -39,6 +39,21 @@ import { isLockupUrl } from "./musicLock.svelte.js";
 
 /** How long a connection nobody is looking at may sit unused before it is closed. */
 const IDLE_LIMIT_MS = 10 * 60 * 1000;
+/** Air Train's log keeps this many entries (components/apps/datatrain/AirLog.svelte). */
+const LOG_MAX = 300;
+/** Counted, not listed: the heartbeat every few seconds and the playing song's time. */
+const BEAT_KINDS = ["beat", "beat-back"];
+const TICK_KIND = "tick";
+/** More player messages than this in LOOP_WINDOW_MS, either way, is a loop: the tether switches itself off. */
+const LOOP_LIMIT = 30;
+const LOOP_WINDOW_MS = 4000;
+const LOOP_TEXT = "Tether switched off: " + LOOP_LIMIT + "+ player messages in " + LOOP_WINDOW_MS / 1000 + " s looked like a loop. Switch it back on when you like.";
+/** What the log says when the connection changes. */
+const STATUS_WORDS = {
+  starting: "getting ready", waiting: "waiting for the other device", connecting: "connecting",
+  pending: "a device asks to come aboard", connected: "connected", reconnecting: "connection dropped: finding the other device again",
+  disconnected: "disconnected", error: "connection problem", unsupported: "this browser cannot connect",
+};
 /** This tab's connection while it reloads (sessionStorage: this tab only, gone when it closes). */
 const RETURN_STORAGE_KEY = "datatrain_return_v1";
 const KIND_TETHER = "tether";
@@ -57,7 +72,7 @@ const MAX_ID_LENGTH = 80;
 /** The player's sync messages a tethered device may send (see AudioCore.handleSyncMessage). */
 const SYNC_TYPES = [
   "ping", "pong", "state_change", "time_update",
-  "cmd_play", "cmd_pause", "cmd_seek", "cmd_next", "cmd_prev", "cmd_track",
+  "cmd_play", "cmd_take", "cmd_pause", "cmd_seek", "cmd_next", "cmd_prev", "cmd_track",
 ];
 const TEXT_FIELDS = ["uuid", "masterTabId", "trackId"];
 const FLAG_FIELDS = ["isPlaying", "isInstrumental", "isShuffled"];
@@ -103,6 +118,16 @@ class Tether {
   holding = $state(false);
   /** This device has paired in Air Train before: the panel headers show the tether even while it is off (components/TetherIcon). */
   used = $state(false);
+  /** Air Train's live log, newest last: { id, at, dir: "in" | "out" | "info", kind, text } (sessionLog.js words). */
+  log = $state.raw([]);
+  /** Heartbeats and song-time ticks, counted rather than listed. */
+  beats = $state(0);
+  ticks = $state(0);
+  /** The loop guard switched the tether off (shown in the player and the log). */
+  loopStopped = $state(false);
+  #logId = 0;
+  #burst = [];
+  #lastStatus = "";
 
   session = null;
   lastState = null;
@@ -199,7 +224,7 @@ class Tether {
       // First what is on here, so it plays this song and not the last one it had; then the
       // ask, to the tethered device only: this browser's other tabs keep following as they were
       audioCore.broadcastState("state_change");
-      audioCore.remoteLink({ type: "cmd_play", uuid: audioCore.tabId, currentTime: at });
+      audioCore.remoteLink({ type: "cmd_take", uuid: audioCore.tabId, currentTime: at });
       return;
     }
     audioCore.masterIsRemote = false;
@@ -229,6 +254,7 @@ class Tether {
     const session = new TransferSession({ onChange: (state) => this.onState(session, state) });
     session.onApp = (payload) => this.onApp(session, payload);
     session.onActivity = () => this.touch();
+    session.onLog = (direction, kind, text) => this.addLog(direction, kind, text);
     this.session = session;
     this.lastState = null;
     this.rideCode = "";
@@ -285,14 +311,79 @@ class Tether {
   /** The switch in Air Train. Tells the other device, which has to switch its own on. */
   setOn(value) {
     if (value && !(this.session && this.session.canSendApp())) return;
+    if (value) this.loopStopped = false;
     this.on = !!value;
     if (this.session) this.session.sendApp({ k: KIND_TETHER, on: this.on });
     this.relink();
   }
 
+  /**
+   * One line in Air Train's log. Player messages also feed the loop guard.
+   * @param {"in" | "out" | "info"} dir @param {string} kind @param {string} text
+   */
+  addLog(dir, kind, text) {
+    if (BEAT_KINDS.indexOf(kind) !== -1) return void this.beats++;
+    if (kind === TICK_KIND) return void this.ticks++;
+    const entry = { id: ++this.#logId, at: Date.now(), dir, kind, text };
+    this.log = this.log.length >= LOG_MAX ? this.log.slice(1).concat(entry) : this.log.concat(entry);
+    if (kind === KIND_MUSIC) this.#watchForLoop();
+  }
+
+  /**
+   * How the connection runs, from the browser's own numbers: "direct" (straight
+   * between the two devices) or "relay" (through a relay server, still
+   * encrypted end to end). "" while it cannot tell.
+   * @returns {Promise<string>}
+   */
+  async route() {
+    const pc = this.session && this.session.connection && this.session.connection.peerConnection;
+    if (!pc || !pc.getStats) return "";
+    let stats;
+    try {
+      stats = await pc.getStats();
+    } catch (e) {
+      return "";
+    }
+    const byId = {};
+    let pairId = "";
+    stats.forEach((report) => {
+      byId[report.id] = report;
+      if (report.type === "transport" && report.selectedCandidatePairId) pairId = report.selectedCandidatePairId;
+    });
+    let pair = pairId ? byId[pairId] : null;
+    if (!pair) stats.forEach((report) => {
+      if (!pair && report.type === "candidate-pair" && report.state === "succeeded" && (report.selected || report.nominated)) pair = report;
+    });
+    if (!pair) return "";
+    const ends = [byId[pair.localCandidateId], byId[pair.remoteCandidateId]];
+    return ends.some((end) => end && end.candidateType === "relay") ? "relay" : "direct";
+  }
+
+  clearLog() {
+    this.log = [];
+    this.beats = 0;
+    this.ticks = 0;
+  }
+
+  /** Too many player messages too fast: the devices are bouncing one back and forth. Stop it. */
+  #watchForLoop() {
+    const now = Date.now();
+    this.#burst = this.#burst.filter((at) => now - at < LOOP_WINDOW_MS);
+    this.#burst.push(now);
+    if (this.#burst.length <= LOOP_LIMIT || !this.on) return;
+    this.#burst = [];
+    this.loopStopped = true;
+    this.setOn(false);
+    this.addLog("info", "loop", LOOP_TEXT);
+  }
+
   onState(session, state) {
     if (session !== this.session) return;
     this.lastState = state;
+    if (state.status !== this.#lastStatus) {
+      this.#lastStatus = state.status;
+      this.addLog("info", "status", STATUS_WORDS[state.status] || state.status);
+    }
     const connected = state.status === STATUS_CONNECTED;
     const reconnecting = state.status === STATUS_RECONNECTING;
     const settled = this.onRideSettled;

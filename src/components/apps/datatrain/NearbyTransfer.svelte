@@ -1,13 +1,14 @@
 <script>
   import { onMount, tick } from 'svelte';
   import QRCode from 'qrcode';
-  import { ArrowUpRight, Link, Copy, RefreshCw, Monitor, Smartphone, Check, X, Plus, Send, Radio, ClipboardPaste, Info, Cable } from 'lucide-svelte';
+  import { ArrowUpRight, Link, Copy, RefreshCw, Monitor, Smartphone, Check, X, Plus, Send, Radio, ClipboardPaste, Info, Cable, ScrollText } from 'lucide-svelte';
   import { tether } from '../../../lib/tether.svelte.js';
   import { rideBell, ANSWER_YES, ANSWER_NO, ANSWER_BUSY } from '../../../lib/rideBell.svelte.js';
   import { MAX_FILE_BYTES } from './transferSession.js';
   import { isBigVideo, videoToMp3 } from './shrinkVideo.js';
   import { listRides, saveRide, forgetRide, openRide, lockRides, unlockRides, resetLockedRides, ridesLocked, canLockRides } from './rides.js';
   import PreviousRides from './PreviousRides.svelte';
+  import AirLog from './AirLog.svelte';
   import { formatBytes } from './nearbyShare.js';
   import { createPairingLink, parsePairingLink, takePairingLink } from './pairingLink.js';
   import { copyText } from '../../../lib/clipboard.js';
@@ -70,6 +71,8 @@
   let mobilePane = 'sent';
   let canPaste = false;
   let helpOpen = false;
+  /** The live log (AirLog.svelte): closed until asked for. */
+  let logOpen = false;
   let helpClose;
   let canShareFiles = false;
   const shareLimit = detectShareLimit();
@@ -452,7 +455,8 @@
       </div>
     </div>
   {/if}
-  <footer class="dt-footnote"><span><ArrowUpRight size={13} />{connected ? 'Encrypted device connection · save received files before leaving.' : 'Internet needed to pair · no account needed.'}</span><button type="button" class="dt-help-open" onclick={openHelp}><Info size={13} />How sharing works</button></footer>
+  {#if logOpen}<AirLog onClose={() => (logOpen = false)} />{/if}
+  <footer class="dt-footnote"><span><ArrowUpRight size={13} />{connected ? 'Encrypted device connection · save received files before leaving.' : 'Internet needed to pair · no account needed.'}</span><span class="dt-footnote-links"><button type="button" class="dt-help-open" aria-expanded={logOpen} onclick={() => (logOpen = !logOpen)}><ScrollText size={13} />{logOpen ? 'Hide the log' : 'Log'}</button><button type="button" class="dt-help-open" onclick={openHelp}><Info size={13} />How sharing works</button></span></footer>
   {#if helpOpen}
     <div class="dt-help-layer">
       <button type="button" class="dt-help-scrim" tabindex="-1" aria-label="Close how sharing works" onclick={closeHelp}></button>

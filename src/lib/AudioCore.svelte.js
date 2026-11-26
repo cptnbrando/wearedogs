@@ -284,8 +284,8 @@ export class AudioCore {
     // Streaming surfaces load failures on the element, not a fetch(). The
     // guards retry dropped connections and stalls first (screen-off networking
     // drops them all the time); only a stream they can't revive lands here.
-    // A dead vocal side falls back to the instrumental before the track dies.
-    const wantsPlayback = () => this.isPlaying || this.autoplayPending;
+    // A dead vocal side falls back to the instrumental before the track dies. A follower only shows the time: it never retries.
+    const wantsPlayback = () => (this.isPlaying || this.autoplayPending) && (!this.masterTabId || this.masterTabId === this.tabId);
     this.trackGuard = new StreamGuard(this.trackAudio, wantsPlayback, () => this.failVocalSide());
     this.instGuard = new StreamGuard(this.instAudio, wantsPlayback, () => {
       const track = this.library[this.currentTrackIndex];
@@ -394,7 +394,7 @@ export class AudioCore {
     this.isPlaying = false;
     if (wasPlaying) {
       this.syncSession();
-      if (!this.isSyncing) this.broadcastState("state_change");
+      if (!this.isSyncing && (!this.masterTabId || this.masterTabId === this.tabId)) this.broadcastState("state_change");
     }
   }
 
@@ -779,7 +779,8 @@ export class AudioCore {
    */
   nextTrack(autoplay = this.isPlaying, auto = false) {
     if (this.masterTabId && this.masterTabId !== this.tabId) {
-      this.broadcast({ type: "cmd_next" });
+      // A follower moving on by itself (a song it cannot load) must not skip the song that is playing
+      if (!auto) this.broadcast({ type: "cmd_next" });
       return;
     }
     const len = this.library.length;

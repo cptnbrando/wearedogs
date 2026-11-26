@@ -19,6 +19,30 @@
 import { isLockupUrl } from "./musicLock.svelte.js";
 
 /**
+ * The player that acts on commands: the one with the sound, or one that
+ * follows nobody. A follower never carries a command out; doing so would send
+ * it on again, and two followers would bounce it back and forth forever.
+ * @param {object} core - the AudioCore
+ */
+function leads(core) {
+  return !core.masterTabId || core.masterTabId === core.tabId;
+}
+
+/**
+ * Shuffle, repeat and VOX / INS from a follower: the player with the sound
+ * takes them and tells everyone. The follower's idea of the song is not taken.
+ * @param {object} core @param {object} msg @param {number[]} repeatModes
+ */
+function takeSettings(core, msg, repeatModes) {
+  if (typeof msg.isInstrumental === "boolean") core.isInstrumental = msg.isInstrumental;
+  if (typeof msg.isShuffled === "boolean" && msg.isShuffled !== core.isShuffled) core.setShuffle(msg.isShuffled);
+  if (repeatModes.indexOf(msg.repeatMode) !== -1) core.repeatMode = msg.repeatMode;
+  core.applyCrossfade();
+  core.isSyncing = false;
+  core.broadcastState("state_change");
+}
+
+/**
  * A song picked on a remote control. Asked of the device with the sound,
  * unless it is a lockup song: then this device takes the sound and plays it.
  * @param {object} core - the AudioCore
@@ -84,6 +108,12 @@ export function applySyncMessage(core, msg, remote, repeatModes) {
           core.broadcastState("pong");
           break;
         }
+        // A follower naming this player as the one with the sound only changed a setting:
+        // songs, play and pause come from followers as commands
+        if (msg.masterTabId === core.tabId && msg.uuid !== core.tabId) {
+          takeSettings(core, msg, repeatModes);
+          break;
+        }
         core.masterTabId = msg.masterTabId;
         core.masterIsRemote = remote && !!msg.masterTabId && msg.masterTabId !== core.tabId;
         // Who is playing is worth knowing even when this player cannot name
@@ -129,7 +159,7 @@ export function applySyncMessage(core, msg, remote, repeatModes) {
       }
       case "cmd_track": {
         // The remote control picked a song: the device with the sound plays it
-        if (core.masterTabId && core.masterTabId !== core.tabId) break;
+        if (!leads(core)) break;
         const index = syncIndex(core, msg, remote);
         if (index === -1) break;
         core.isSyncing = false;
@@ -147,25 +177,39 @@ export function applySyncMessage(core, msg, remote, repeatModes) {
         break;
       // A command changes what plays here, and every other tab and the
       // tethered device must hear about it: carried out as this tab's own act.
+      // Only the player with the sound carries a command out (leads()).
       case "cmd_play":
+        if (!leads(core)) break;
+        core.isSyncing = false;
+        core.masterTabId = core.tabId;
+        core.masterIsRemote = false;
+        core.play(msg.currentTime);
+        break;
+      // The speaker switch (tether.moveSound): sent to the tethered device alone, which takes the sound
+      case "cmd_take":
+        if (!remote) break;
         core.isSyncing = false;
         core.masterTabId = core.tabId;
         core.masterIsRemote = false;
         core.play(msg.currentTime);
         break;
       case "cmd_pause":
+        if (!leads(core)) break;
         core.isSyncing = false;
         core.pause();
         break;
       case "cmd_seek":
+        if (!leads(core)) break;
         core.isSyncing = false;
         core.seek(msg.currentTime);
         break;
       case "cmd_next":
+        if (!leads(core)) break;
         core.isSyncing = false;
         core.nextTrack();
         break;
       case "cmd_prev":
+        if (!leads(core)) break;
         core.isSyncing = false;
         core.prevTrack();
         break;

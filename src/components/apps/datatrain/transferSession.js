@@ -1,4 +1,12 @@
 import { ERRORS, randomHex, safeName } from "./sessionText.js";
+import {
+  WIDE_CAPABILITY, MAX_FILE_BYTES, MAX_TEXT_LENGTH, MAX_ITEMS, TEXT_NAME, TEXT_MIME, FILE_MIME, MIME_PATTERN,
+  receiveOffer, pump, receiveChunk, acknowledge, receiveEnd,
+} from "./transferPieces.js";
+
+import { describeApp, describePacket } from "./sessionLog.js";
+
+export { MAX_FILE_BYTES };
 
 const PROTOCOL_VERSION = 1;
 const PEER_PREFIX = "dogs-train-";
@@ -6,13 +14,6 @@ const CHANNEL_LABEL = "dogs-data-train-v1";
 const CODE_BYTES = 12;
 const SECRET_BYTES = 16;
 const ID_BYTES = 12;
-const CHUNK_BYTES = 16 * 1024;
-const WINDOW_BYTES = 256 * 1024;
-export const MAX_FILE_BYTES = 100 * 1024 * 1024;
-const MAX_INBOX_BYTES = 200 * 1024 * 1024;
-const MAX_TEXT_LENGTH = 16000;
-const MAX_TEXT_BYTES = MAX_TEXT_LENGTH * 4;
-const MAX_ITEMS = 200;
 const MAX_QUEUE = 64;
 const MAX_NAME_LENGTH = 255;
 const MAX_DEVICE_LENGTH = 40;
@@ -24,7 +25,8 @@ const CLOSE_DELAY = 150;
 /** What this page can do beyond transfers, told to the other device while pairing. */
 /** "hold": this page sends heartbeats and goodbyes, and can pick a dropped connection back up. */
 const HOLD_CAPABILITY = "hold";
-const CAPABILITIES = ["app", HOLD_CAPABILITY];
+/** "wide": big pieces, fewer acks (transferPieces.js). */
+const CAPABILITIES = ["app", HOLD_CAPABILITY, WIDE_CAPABILITY];
 /** App messages the session keeps for itself (they never reach onApp). */
 const BEAT_KIND = "beat";
 const BYE_KIND = "bye";
@@ -47,12 +49,8 @@ const RESUME_WAITS_MS = [600, 1500, 3000, 6000];
 /** What the screen is told while a dropped connection is being found again. */
 const STATUS_RECONNECTING = "reconnecting";
 const MAX_CAPABILITIES = 8;
-const TEXT_NAME = "Text note";
-const TEXT_MIME = "text/plain;charset=utf-8";
-const FILE_MIME = "application/octet-stream";
 const CODE_PATTERN = /^[a-f0-9]{24}$/;
 const SECRET_PATTERN = /^[a-f0-9]{32}$/;
-const MIME_PATTERN = /^[\w.+-]+\/[\w.+-]+(?:;charset=[\w-]+)?$/;
 const ACTIVE_STATUSES = ["queued", "waiting", "transferring"];
 
 /**
@@ -82,6 +80,10 @@ export class TransferSession {
     this.onApp = null;
     /** Called when anything crosses the connection, either way. */
     this.onActivity = null;
+    /** Called with each thing worth showing in Air Train's log: (direction, kind, text). Never a secret. */
+    this.onLog = null;
+    /** Both devices know big pieces (transferPieces.js). */
+    this.wide = false;
     this.peerCapabilities = [];
     this.peer = null;
     this.connection = null;
@@ -273,6 +275,7 @@ export class TransferSession {
     } catch {
       return false;
     }
+    this._logPacket("out", { type: "app", payload });
     if (this.onActivity) this.onActivity();
     return true;
   }
@@ -497,6 +500,7 @@ export class TransferSession {
       this._endConnection("error", ERRORS.protocol);
       return;
     }
+    this._logPacket("in", packet);
     if (this.state.status !== "connected") {
       this._handshake(packet);
       return;
@@ -596,6 +600,22 @@ export class TransferSession {
     this.peerCapabilities = Array.isArray(caps)
       ? caps.filter((cap) => typeof cap === "string" && cap.length <= MAX_DEVICE_LENGTH).slice(0, MAX_CAPABILITIES)
       : [];
+    this.wide = this.peerCapabilities.indexOf(WIDE_CAPABILITY) !== -1;
+  }
+
+  /** @param {"in" | "out" | "info"} direction @param {string} kind @param {string} text */
+  _log(direction, kind, text) {
+    if (this.onLog) this.onLog(direction, kind, text);
+  }
+
+  /** A message that crossed, for the log: its kind, in words, never its secrets (sessionLog.js). */
+  _logPacket(direction, packet) {
+    if (!this.onLog) return;
+    if (packet.type !== "app") return this.onLog(direction, "transfer", describePacket(packet));
+    const payload = packet.payload && typeof packet.payload === "object" ? packet.payload : {};
+    // The playing device's time, several times a second: "tick", so the log can count it rather than list it
+    const tick = payload.k === "music" && payload.msg && payload.msg.type === "time_update";
+    this.onLog(direction, tick ? "tick" : String(payload.k), describeApp(payload));
   }
 
   _enqueue(file, fields) {
@@ -620,142 +640,23 @@ export class TransferSession {
   }
 
   _receiveOffer(packet) {
-    if (this.activeReceive || this.state.items.some((item) => item.id === packet.id)) {
-      this._endConnection("error", ERRORS.protocol);
-      return;
-    }
-    const validKind = packet.kind === "file" || packet.kind === "text";
-    const sizeLimit = packet.kind === "text" ? MAX_TEXT_BYTES : MAX_FILE_BYTES;
-    if (!validKind || !Number.isSafeInteger(packet.size) || packet.size < 0 || packet.size > sizeLimit || typeof packet.name !== "string" || packet.name.length > MAX_NAME_LENGTH || typeof packet.mime !== "string" || packet.mime.length > MAX_NAME_LENGTH) {
-      this._send({ type: "transfer-error", id: packet.id, reason: ERRORS.size });
-      return;
-    }
-    const usedBytes = this.state.items.reduce((sum, item) => sum + (item.direction === "received" && item.status === "complete" ? item.size : 0), 0);
-    if (this.state.items.length >= MAX_ITEMS || usedBytes + packet.size > MAX_INBOX_BYTES) {
-      this._send({ type: "transfer-error", id: packet.id, reason: this.state.items.length >= MAX_ITEMS ? ERRORS.items : ERRORS.inbox });
-      return;
-    }
-    const item = {
-      id: packet.id, direction: "received", kind: packet.kind,
-      name: packet.kind === "text" ? TEXT_NAME : safeName(packet.name, "Shared file"),
-      mime: packet.kind === "text" ? TEXT_MIME : (MIME_PATTERN.test(packet.mime) ? packet.mime : FILE_MIME),
-      size: packet.size, text: "", url: "", progress: 0, status: "transferring",
-    };
-    this.state.items.push(item);
-    this.activeReceive = { id: packet.id, size: packet.size, offset: 0, chunks: [], timer: null, reader: null, item };
-    this._transferDeadline(this.activeReceive);
-    this._emit();
-    this._send({ type: "ready", id: packet.id });
+    receiveOffer(this, packet);
   }
 
   _pump() {
-    const job = this.activeSend;
-    if (!job || job.reader || job.phase !== "chunks" || this.state.status !== "connected") return;
-    if (job.offset === job.file.size) {
-      if (job.acknowledged !== job.offset) return;
-      job.phase = "end";
-      this._transferDeadline(job);
-      this._send({ type: "end", id: job.id, size: job.offset });
-      return;
-    }
-    if (job.offset - job.acknowledged >= WINDOW_BYTES) return;
-    const reader = new FileReader();
-    job.reader = reader;
-    reader.onload = () => {
-      if (this.activeSend !== job || this.state.status !== "connected") return;
-      job.reader = null;
-      const buffer = reader.result;
-      if (!(buffer instanceof ArrayBuffer) || !buffer.byteLength || buffer.byteLength > CHUNK_BYTES) {
-        this._transferFailure(job.id, ERRORS.read);
-        return;
-      }
-      job.offset += buffer.byteLength;
-      if (!this._send(buffer)) return;
-      this._pump();
-    };
-    reader.onerror = () => {
-      if (this.activeSend === job) this._transferFailure(job.id, ERRORS.read);
-    };
-    try {
-      reader.readAsArrayBuffer(job.file.slice(job.offset, job.offset + CHUNK_BYTES));
-    } catch {
-      this._transferFailure(job.id, ERRORS.read);
-    }
+    pump(this);
   }
 
   _receiveChunk(buffer) {
-    if (this.state.status !== "connected" || buffer.byteLength > CHUNK_BYTES || !buffer.byteLength) {
-      this._endConnection("error", ERRORS.protocol);
-      return;
-    }
-    // A cancelled transfer can still have up to one bounded window in flight.
-    const job = this.activeReceive;
-    if (!job) return;
-    if (job.reader || buffer.byteLength !== Math.min(CHUNK_BYTES, job.size - job.offset)) {
-      this._transferFailure(job.id, ERRORS.protocol);
-      return;
-    }
-    job.chunks.push(buffer);
-    job.offset += buffer.byteLength;
-    this._transferDeadline(job);
-    this._progress(job.id, job.offset, job.size);
-    this._send({ type: "ack", id: job.id, offset: job.offset });
+    receiveChunk(this, buffer);
   }
 
   _acknowledge(packet) {
-    const job = this.activeSend;
-    if (!job || job.id !== packet.id || job.phase !== "chunks") return;
-    if (!Number.isSafeInteger(packet.offset) || packet.offset <= job.acknowledged || packet.offset > job.offset || (packet.offset !== job.file.size && packet.offset % CHUNK_BYTES !== 0)) {
-      this._endConnection("error", ERRORS.protocol);
-      return;
-    }
-    job.acknowledged = packet.offset;
-    this._transferDeadline(job);
-    this._progress(job.id, job.acknowledged, job.file.size);
-    this._pump();
+    acknowledge(this, packet);
   }
 
   _receiveEnd(packet) {
-    const job = this.activeReceive;
-    if (!job || job.id !== packet.id) return;
-    if (job.reader || packet.size !== job.size || job.offset !== job.size) {
-      this._transferFailure(job.id, ERRORS.protocol);
-      return;
-    }
-    let blob;
-    try {
-      blob = new Blob(job.chunks, { type: job.item.mime });
-      if (job.item.kind === "file") {
-        job.item.url = URL.createObjectURL(blob);
-        // Kept so the share sheet (AirDrop / Quick Share) can open from a tap without an async fetch.
-        job.item.blob = blob;
-      }
-    } catch {
-      this._transferFailure(job.id, ERRORS.memory);
-      return;
-    }
-    job.chunks = [];
-    if (job.item.kind === "file") {
-      this._finishTransfer(job.id, "complete");
-      this._send({ type: "complete", id: job.id });
-      return;
-    }
-    const reader = new FileReader();
-    job.reader = reader;
-    reader.onload = () => {
-      if (this.activeReceive !== job || this.state.status !== "connected") return;
-      if (typeof reader.result !== "string" || reader.result.length > MAX_TEXT_LENGTH) {
-        this._transferFailure(job.id, ERRORS.text);
-        return;
-      }
-      job.item.text = reader.result;
-      this._finishTransfer(job.id, "complete");
-      this._send({ type: "complete", id: job.id });
-    };
-    reader.onerror = () => {
-      if (this.activeReceive === job) this._transferFailure(job.id, ERRORS.read);
-    };
-    reader.readAsText(blob);
+    receiveEnd(this, packet);
   }
 
   _finishTransfer(id, status, error = "") {
@@ -806,6 +707,7 @@ export class TransferSession {
     }
     try {
       this.connection.send(packet instanceof ArrayBuffer ? packet : JSON.stringify({ v: PROTOCOL_VERSION, ...packet }));
+      if (!(packet instanceof ArrayBuffer)) this._logPacket("out", packet);
       return true;
     } catch {
       this._endConnection("error", ERRORS.closed);
@@ -868,6 +770,7 @@ export class TransferSession {
     if (!this.connection?.open) return false;
     try {
       this.connection.send(JSON.stringify({ v: PROTOCOL_VERSION, type: "app", payload: { k: kind } }));
+      this._logPacket("out", { type: "app", payload: { k: kind } });
       return true;
     } catch {
       return false;
