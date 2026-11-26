@@ -2,10 +2,21 @@
   /**
    * The lines: every line and every word with its time, and the bar that
    * edits the selected word (its text, its time, and the line around it).
+   * Or, in Write, all of it as plain text (CaptionsWrite.svelte).
    */
   import { tick } from "svelte";
-  import { Undo2, Scissors, Merge, Plus, Delete, ListPlus, ListX, Volume2, Crosshair } from "lucide-svelte";
+  import { Undo2, Scissors, Merge, Plus, Delete, ListPlus, ListX, Volume2, Crosshair, LayoutGrid, PenLine } from "lucide-svelte";
   import { clock, lineStart, lineIndexAtTime } from "./captionsEdit.js";
+  import CaptionsWrite from "./CaptionsWrite.svelte";
+
+  const MODE_WORDS = "words";
+  const MODE_WRITE = "write";
+  /** Which way the lines were last shown, kept on this device. */
+  const MODE_KEY = "captions_lines_mode_v1";
+  const MODES = [
+    { id: MODE_WORDS, label: "Words", title: "Every word in its own box, with its time", icon: LayoutGrid },
+    { id: MODE_WRITE, label: "Write", title: "The lines as text: a row per line, a blank row between verses", icon: PenLine },
+  ];
 
   /** The nudge buttons, in seconds. */
   const NUDGES = [-0.05, -0.01, 0.01, 0.05];
@@ -28,6 +39,24 @@
   ];
 
   let listEl = $state(null);
+  let mode = $state(readMode());
+
+  function readMode() {
+    try {
+      return localStorage.getItem(MODE_KEY) === MODE_WRITE ? MODE_WRITE : MODE_WORDS;
+    } catch (e) {
+      return MODE_WORDS;
+    }
+  }
+
+  function showMode(id) {
+    mode = id;
+    try {
+      localStorage.setItem(MODE_KEY, id);
+    } catch (e) {
+      // Not kept: the panel opens on Words next time
+    }
+  }
   let activeLine = $derived(lineIndexAtTime(project.lines, media.time));
 
   const nudgeLabel = (delta) => `${delta > 0 ? "+" : "−"}${Math.round(Math.abs(delta) * MS_PER_SECOND)}`;
@@ -63,7 +92,19 @@
   });
 </script>
 
-<div class="cap-lines-panel flex h-full min-h-0 flex-col gap-2 md:gap-3 2xl:gap-4">
+<div class="cap-lines-panel flex h-full min-h-0 flex-col gap-2 md:gap-3 2xl:gap-4" class:is-writing={mode === MODE_WRITE}>
+  <div class="cap-modes flex flex-row gap-1 md:gap-2 2xl:gap-3" role="group" aria-label="Show the lines as">
+    {#each MODES as item (item.id)}
+      {@const Icon = item.icon}
+      <button type="button" class="{BAR_BUTTON} flex-1 sm:flex-none" class:is-on={mode === item.id} aria-pressed={mode === item.id} title={item.title} onclick={() => showMode(item.id)}>
+        <Icon size={14} /> {item.label}
+      </button>
+    {/each}
+  </div>
+
+  {#if mode === MODE_WRITE}
+    <CaptionsWrite {media} {project} />
+  {:else}
   <div class="cap-wordbar flex flex-col gap-2 p-2 md:p-3 2xl:gap-3 2xl:p-4">
     {#if project.selected}
       <div class="flex flex-row flex-wrap items-center gap-2">
@@ -133,4 +174,5 @@
       </li>
     {/each}
   </ol>
+  {/if}
 </div>

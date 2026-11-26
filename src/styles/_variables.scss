@@ -15,14 +15,9 @@ $bg-ride-request: rgba(12, 12, 16, 0.94);
 $border-ride-request: rgba(255, 255, 255, 0.14);
 $shadow-ride-request: 0 12px 40px rgba(0, 0, 0, 0.55);
 
-// ── Air Train: the floating bubble while devices are connected (components/AirBubble.svelte) ──
-// Under the "Connection requested" drop-down, over everything else.
-$z-air-bubble: 2147482000;
-$bg-air-bubble: rgba(14, 14, 20, 0.92);
-$border-air-bubble: rgba(255, 255, 255, 0.16);
-$shadow-air-bubble: 0 8px 28px rgba(0, 0, 0, 0.55);
-$color-air-bubble-badge: var(--color-neon-red, #ff3344);
-$bg-air-bubble-bin: rgba(0, 0, 0, 0.7);
+// ── Air Train: the tether icon in the panel headers (components/TetherIcon.svelte) ──
+$color-tether-off: rgba(255, 255, 255, 0.45);     // Paired before, not connected now
+$color-tether-holding: #ffb020;                  // The connection dropped and is being found again
 
 // ── Music player song-list sort ──
 // The sort symbol's colour for each order, on phones (components/music/SortCycler.svelte).

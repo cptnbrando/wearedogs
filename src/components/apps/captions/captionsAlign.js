@@ -72,8 +72,18 @@ export function timeWrittenWords(writtenLines, heard) {
   // A word with no match sits evenly between the matched words around it
   const first = pairs[0][0];
   const last = pairs[pairs.length - 1][0];
-  for (let i = first - 1; i >= 0; i--) flat[i].t = Math.max(0, flat[i + 1].t - UNHEARD_STEP_S);
-  for (let i = last + 1; i < flat.length; i++) flat[i].t = flat[i - 1].t + UNHEARD_STEP_S;
+  // Before the first match and after the last, a written word takes the time of the heard word in
+  // its place, while there is one (a word changed at the very start or end); past that, a short step
+  const heardFirst = pairs[0][1];
+  const heardLast = pairs[pairs.length - 1][1];
+  for (let i = first - 1; i >= 0; i--) {
+    const k = heardFirst - (first - i);
+    flat[i].t = k >= 0 && heard[k].s < flat[i + 1].t ? heard[k].s : Math.max(0, flat[i + 1].t - UNHEARD_STEP_S);
+  }
+  for (let i = last + 1; i < flat.length; i++) {
+    const k = heardLast + (i - last);
+    flat[i].t = k < heard.length && heard[k].s > flat[i - 1].t ? heard[k].s : flat[i - 1].t + UNHEARD_STEP_S;
+  }
   let misheard = 0;
   for (let p = 0; p + 1 < pairs.length; p++) {
     const from = pairs[p][0];

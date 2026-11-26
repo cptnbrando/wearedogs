@@ -450,6 +450,31 @@ button.cap-chip {
 }
 
 // ── Lines ──
+.cap-modes {
+  flex: 0 0 auto;
+}
+
+// Write: the lines as text (CaptionsWrite.svelte)
+.cap-write-now {
+  flex: 0 0 auto;
+  margin: 0;
+  border-left: 2px solid $color-captions;
+  font-weight: 700;
+  color: $color-captions;
+
+  &.is-quiet {
+    border-left-color: $border-light;
+    font-weight: 400;
+    color: $muted;
+  }
+}
+
+.cap-write-text {
+  white-space: pre;
+  overflow: auto;
+  tab-size: 2;
+}
+
 .cap-wordbar {
   flex: 0 0 auto;
   border-radius: 12px;
@@ -592,8 +617,12 @@ button.cap-chip {
 
 // There the lines keep the panel's whole height: the word bar stands beside them
 @media (max-height: $short-screen) and (min-width: 640px) {
-  .cap-lines-panel {
+  .cap-lines-panel:not(.is-writing) {
     flex-direction: row-reverse;
+  }
+
+  .cap-lines-panel:not(.is-writing) .cap-modes {
+    flex-direction: column;
   }
 
   .cap-wordbar {

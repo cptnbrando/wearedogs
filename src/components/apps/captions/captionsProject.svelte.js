@@ -9,6 +9,7 @@
  */
 import * as edit from "./captionsEdit.js";
 import { saveProject, loadProject, projectKey } from "./captionsStore.js";
+import { timeWrittenWords } from "./captionsAlign.js";
 
 const MAX_UNDO = 60;
 const SAVE_DELAY_MS = 700;
@@ -149,6 +150,27 @@ export class CaptionsProject {
       this.cursor = null;
       this.tapping = false;
     });
+  }
+
+  /**
+   * The lines as written out by hand (Write, in the lines panel): a row per
+   * line, blank rows between verses. The times move onto the new words: a
+   * word still there keeps its time, a word changed in place takes the old
+   * one's, and a new word sits evenly between its neighbours. Undo brings
+   * back what was there.
+   * @param {string} text
+   * @returns {{ kept: number, total: number, timed: boolean }} how many words kept a time, of all of them;
+   *   timed: there were times to move (with none, the words go in waiting for Tap along or Transcribe)
+   */
+  rewrite(text) {
+    const rows = edit.rowsFromText(text);
+    const heard = [];
+    for (const line of this.lines) for (const word of line.words) if (word.t !== null) heard.push({ w: word.x, s: word.t });
+    const timed = heard.length ? timeWrittenWords(rows.map((row) => row.words), heard) : null;
+    const lines = timed ? timed.lines : rows.map((row) => edit.makeLine(row.words.map((x) => ({ t: null, x }))));
+    lines.forEach((line, li) => (line.gap = rows[li].gap));
+    this.replaceLines(lines);
+    return { kept: timed ? timed.matched : 0, total: timed ? timed.total : edit.countWords(lines).words, timed: !!timed };
   }
 
   /** @param {string} text - the selected word's new text */

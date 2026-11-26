@@ -12,6 +12,7 @@
   } from "lucide-svelte";
   import SwipeTabNav from "./SwipeTabNav.svelte";
   import DogsLogo from "./DogsLogo.svelte";
+  import TetherIcon from "./TetherIcon.svelte";
   import { goHome } from "../lib/goHome.js";
   import { onDoubleTap } from "../lib/doubleTap.js";
   import {
@@ -214,6 +215,7 @@
       </div>
 
       <div class="header-actions">
+        <TetherIcon />
         <button
           class="unit-toggle"
           onclick={unitClick}

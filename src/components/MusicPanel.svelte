@@ -49,6 +49,7 @@
   import StrikeToggle from "./music/StrikeToggle.svelte";
   import SortCycler from "./music/SortCycler.svelte";
   import SoundSwitch from "./music/SoundSwitch.svelte";
+  import TetherIcon from "./TetherIcon.svelte";
   import StageLyricControls from "./music/StageLyricControls.svelte";
   import { presetDeck } from "../lib/visualizer/presetDeck.svelte.js";
   import { lyrics } from "../lib/lyrics.svelte.js";
@@ -970,9 +971,12 @@
         <h1>{title}</h1>
       </div>
 
-      <button class="close-btn" onclick={onClose} aria-label="Close panel">
-        <ArrowLeft size={20} />
-      </button>
+      <div class="header-end flex items-center gap-1 md:gap-2">
+        <TetherIcon />
+        <button class="close-btn" onclick={onClose} aria-label="Close panel">
+          <ArrowLeft size={20} />
+        </button>
+      </div>
     </header>
 
     <div class="mp-body">

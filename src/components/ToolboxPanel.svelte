@@ -35,6 +35,7 @@
     Captions,
   } from "lucide-svelte";
   import DogsLogo from "./DogsLogo.svelte";
+  import TetherIcon from "./TetherIcon.svelte";
   import AppCard from "./AppCard.svelte";
   import { goHome } from "../lib/goHome.js";
   import { onDoubleTap } from "../lib/doubleTap.js";
@@ -630,6 +631,7 @@
         <div class="w-6 ml-1.5 shrink-0 pointer-events-none"></div>
       </div>
 
+      <TetherIcon />
       <button
         class="close-btn"
         onclick={activeApp !== null ? handleBack : handleCloseClick}

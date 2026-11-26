@@ -1,6 +1,7 @@
 <script>
   import { ArrowLeft } from "lucide-svelte";
   import DogsLogo from "./DogsLogo.svelte";
+  import TetherIcon from "./TetherIcon.svelte";
   import { goHome } from "../lib/goHome.js";
   import { onDoubleTap } from "../lib/doubleTap.js";
 
@@ -37,9 +38,12 @@
         <h1>{title}</h1>
       </div>
 
-      <button class="close-btn" onclick={onClose} aria-label="Close panel">
-        <ArrowLeft size={20} />
-      </button>
+      <div class="header-end flex items-center gap-1 md:gap-2">
+        <TetherIcon />
+        <button class="close-btn" onclick={onClose} aria-label="Close panel">
+          <ArrowLeft size={20} />
+        </button>
+      </div>
     </header>
 
     <!-- Inner Window (No tabs, single content pane) -->

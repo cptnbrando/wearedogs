@@ -3,10 +3,11 @@
  * The Captions app's working copy of a set of captions, and every change that
  * can be made to it. No DOM and no state here: plain functions over arrays.
  *
- * The working copy is the lyrics shape of src/lib/lyricsFormat.js with two
- * things the editor needs: a word may have no time yet (pasted words waiting
- * for tap along), and each line has an id so the list can be keyed.
- *   [{ id, words: [{ t: seconds | null, x: "word" }], e: seconds | null }]
+ * The working copy is the lyrics shape of src/lib/lyricsFormat.js with what
+ * the editor needs: a word may have no time yet (pasted words waiting for tap
+ * along), each line has an id so the list can be keyed, and a line may start
+ * a new verse (a blank row before it, when the lines are written as text).
+ *   [{ id, words: [{ t: seconds | null, x: "word" }], e: seconds | null, gap: boolean }]
  * toLyrics() turns it back into the shape everything else reads and writes.
  */
 import { cleanLyrics, LYRICS_VERSION } from "../../../lib/lyricsFormat.js";
@@ -17,9 +18,11 @@ const TIME_STEPS_PER_SECOND = 100;
 /** A new word put after another one starts this much later. */
 const NEW_WORD_GAP_S = 0.2;
 export const NEW_WORD_TEXT = "word";
+/** Lines written as text with no verses marked yet (a transcription): a pause this long between two lines starts a new verse. */
+const VERSE_PAUSE_S = 2.5;
 
 /** @typedef {{ t: number | null, x: string }} Word */
-/** @typedef {{ id: number, words: Word[], e: number | null }} Line */
+/** @typedef {{ id: number, words: Word[], e: number | null, gap: boolean }} Line - gap: a new verse starts here */
 /** @typedef {{ li: number, wi: number }} Spot - a word's place: line index, word index */
 
 let nextLineId = 1;
@@ -27,9 +30,49 @@ let nextLineId = 1;
 /** Times are kept to the hundredth of a second, as lyricsFormat.js keeps them. */
 export const roundTime = (seconds) => Math.round(seconds * TIME_STEPS_PER_SECOND) / TIME_STEPS_PER_SECOND;
 
-/** @param {Word[]} words @param {number | null} [end] @returns {Line} */
-export function makeLine(words, end = null) {
-  return { id: nextLineId++, words, e: end };
+/** @param {Word[]} words @param {number | null} [end] @param {boolean} [gap] - a new verse starts here @returns {Line} */
+export function makeLine(words, end = null, gap = false) {
+  return { id: nextLineId++, words, e: end, gap };
+}
+
+/**
+ * The lines as text to write in: a row per line, a blank row before each
+ * new verse. Lines that never had verses marked get one at each long pause.
+ * @param {Line[]} lines
+ * @returns {string}
+ */
+export function linesToText(lines) {
+  const marked = lines.some((line) => line.gap);
+  const rows = [];
+  lines.forEach((line, li) => {
+    const pause = li > 0 && lineStart(line) !== null && lastWordTime(lines[li - 1]) !== null
+      ? lineStart(line) - lastWordTime(lines[li - 1])
+      : 0;
+    const verse = marked ? line.gap : pause > VERSE_PAUSE_S;
+    if (verse && rows.length) rows.push("");
+    rows.push(line.words.map((word) => word.x).join(" "));
+  });
+  return rows.join("\n");
+}
+
+/**
+ * Text as it was written: each row's words, and whether a blank row came before it.
+ * @param {string} text
+ * @returns {{ words: string[], gap: boolean }[]}
+ */
+export function rowsFromText(text) {
+  const rows = [];
+  let blank = false;
+  for (const row of String(text || "").split(/\r?\n/)) {
+    const words = row.trim().split(/\s+/).filter(Boolean);
+    if (!words.length) {
+      blank = true;
+      continue;
+    }
+    rows.push({ words, gap: blank && rows.length > 0 });
+    blank = false;
+  }
+  return rows;
 }
 
 /** @param {import("../../../lib/lyricsFormat.js").Lyrics | null} lyrics @returns {Line[]} */
@@ -54,10 +97,14 @@ export function linesFromText(text) {
 /**
  * The working copy as it is stored on the device: times may still be null.
  * @param {Line[]} lines
- * @returns {{ w: [number | null, string][], e: number | null }[]}
+ * @returns {{ w: [number | null, string][], e: number | null, g?: 1 }[]} g: a new verse starts here
  */
 export function linesToStored(lines) {
-  return lines.map((line) => ({ w: line.words.map((word) => [word.t, word.x]), e: line.e }));
+  return lines.map((line) => {
+    const stored = { w: line.words.map((word) => [word.t, word.x]), e: line.e };
+    if (line.gap) stored.g = 1;
+    return stored;
+  });
 }
 
 /** @param {any} stored - what linesToStored() gave @returns {Line[]} */
@@ -71,6 +118,7 @@ export function linesFromStored(stored) {
         .filter((word) => Array.isArray(word) && typeof word[1] === "string" && word[1])
         .map((word) => ({ t: isTime(word[0]) ? word[0] : null, x: word[1] })),
       isTime(line.e) ? line.e : null,
+      line.g === 1,
     ))
     .filter((line) => line.words.length);
 }
