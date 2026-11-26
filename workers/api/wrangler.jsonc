@@ -10,8 +10,7 @@
 //   TURNSTILE_SECRET  for the invisible Turnstile widget "wearedogs-api likes" (dashboard > Turnstile),
 //                     which covers wearedogs.net, dogs.red (and their subdomains), wearedogs.pages.dev and yeahdogs.github.io. Likes, mail, waitlist and
 //                     fingerprint, admin sign-in and captions share it, each with its own action.
-//   ADMIN_PASSWORD    the owner's password (src/lib/admin.js): at least 8 characters. It opens the play
-//                     counts and the saved caption projects. Changing it signs every browser out.
+// The owner signs in with a key file, not a secret here (src/lib/admin.js, scripts/owner-key.js).
 // Local dev uses Cloudflare's always-pass invisible test keys: in .dev.vars set
 // TURNSTILE_SECRET=1x0000000000000000000000000000000AA and
 // TURNSTILE_HOSTNAMES="localhost,127.0.0.1". Verification always requires an allowed

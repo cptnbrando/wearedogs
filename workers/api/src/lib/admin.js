@@ -1,16 +1,18 @@
 /**
  * The owner's sign-in, for routes only the owner may use.
  *
- * The owner holds a key: a P-384 private key made in their own browser, kept
- * there behind a PIN and in a key file they store themselves (src/lib/adminKey.js).
- * This Worker holds only the public half, in admin_keys. To sign in, the
- * browser asks for a challenge, signs it with the key, and gets a session
- * token back. The private key and the PIN never leave the owner's device, and
- * nothing kept here can be used to sign in.
+ * The owner holds a key: a P-384 private key made on their own computer
+ * (scripts/owner-key.js) and kept in a key file, locked with a PIN, on the
+ * owner's devices and nowhere else (src/lib/adminKey.js reads it in the
+ * browser). This Worker holds only the public half, in admin_keys. To sign
+ * in, the browser asks for a challenge, signs it with the key, and gets a
+ * session token back. The private key and the PIN never leave the owner's
+ * devices, and nothing kept here can be used to sign in.
  *
- * ADMIN_PASSWORD (a Worker secret) is only for setting up: it registers the
- * first key, and is refused from then on. To start over, delete the key and
- * it works once more:
+ * There is no password and no way to register a key through the site. The
+ * one row of admin_keys is written from the owner's computer, with the
+ * owner's own Cloudflare login (scripts/owner-key.js prints the command).
+ * To replace the key, delete the row and register the new one the same way:
  *   npx wrangler d1 execute sql --remote -c workers/api/wrangler.jsonc --command "DELETE FROM admin_keys"
  *
  * A session token is an expiry time signed with a key made from HASH_SALT and
@@ -23,7 +25,6 @@ const HOUR_MS = 60 * 60 * 1000;
 const CHALLENGE_SECONDS = 120;
 const SECOND_MS = 1000;
 const NONCE_BYTES = 16;
-const MIN_PASSWORD_LENGTH = 8;
 const BEARER_PREFIX = "Bearer ";
 const TOKEN_PATTERN = /^(\d{13})\.([0-9a-f]{64})$/;
 const CHALLENGE_PATTERN = /^(\d{13})\.([0-9a-f]{32})\.([0-9a-f]{64})$/;
@@ -39,7 +40,6 @@ const KEY_ALGORITHM = { name: "ECDSA", namedCurve: "P-384" };
 const SIGN_ALGORITHM = { name: "ECDSA", hash: "SHA-384" };
 const KEY_FORMAT = "spki";
 const READ_KEY_SQL = "SELECT public_key FROM admin_keys WHERE id = 1";
-const SAVE_KEY_SQL = "INSERT OR IGNORE INTO admin_keys (id, public_key, created_at) VALUES (1, ?1, ?2)";
 /** What a route's cors option needs so the page may send the token and use every method. */
 export const ADMIN_CORS = { methods: "GET, POST, PUT, DELETE, OPTIONS", headers: "Content-Type, Authorization" };
 
@@ -60,13 +60,6 @@ async function sign(secret, message) {
   return hex(await crypto.subtle.sign("HMAC", key, encoder.encode(message)));
 }
 
-/** Compares two strings without the time taken giving away where they differ. */
-async function sameText(env, left, right) {
-  // Signing both first makes them the same length, whatever was typed
-  const [a, b] = await Promise.all([sign(env.HASH_SALT, left), sign(env.HASH_SALT, right)]);
-  return crypto.subtle.timingSafeEqual(encoder.encode(a), encoder.encode(b));
-}
-
 /**
  * The owner's public key, as base64 SPKI, or "" before one is registered.
  * @param {{ DB: D1Database }} env
@@ -85,25 +78,6 @@ async function importPublicKey(publicKey) {
   } catch {
     return null;
   }
-}
-
-/** @param {object} env @param {string} given @returns {Promise<boolean>} the setup password, exactly */
-export async function setupPasswordMatches(env, given) {
-  const real = env.ADMIN_PASSWORD;
-  if (typeof real !== "string" || real.length < MIN_PASSWORD_LENGTH || typeof given !== "string" || !given) return false;
-  return sameText(env, given, real);
-}
-
-/**
- * Registers the owner's key, if there is none yet.
- * @param {object} env
- * @param {string} publicKey base64 SPKI
- * @returns {Promise<"saved" | "invalid" | "taken">}
- */
-export async function registerKey(env, publicKey) {
-  if (!(await importPublicKey(publicKey))) return "invalid";
-  const outcome = await env.DB.prepare(SAVE_KEY_SQL).bind(publicKey, Date.now()).run();
-  return outcome.meta.changes ? "saved" : "taken";
 }
 
 /**

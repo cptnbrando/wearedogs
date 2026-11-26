@@ -8,16 +8,14 @@
    * a new browser, unlocking with the PIN, and, once unlocked, the play counts.
    */
   import { onDestroy } from "svelte";
-  import { KeyRound, Lock, LockOpen, Download, Upload, Trash2 } from "lucide-svelte";
+  import { Lock, LockOpen, Download, Upload, Trash2 } from "lucide-svelte";
   import { admin } from "../../../lib/admin.svelte.js";
-  import { ADMIN_KEY_FILE_NAME, MIN_PIN_LENGTH, MAX_PIN_LENGTH } from "../../../lib/adminKey.js";
+  import { ADMIN_KEY_FILE_NAME, MAX_PIN_LENGTH } from "../../../lib/adminKey.js";
   import PlayCounts from "./PlayCounts.svelte";
 
   // How long "tap again to confirm" stays armed before it disarms itself
   const FORGET_CONFIRM_WINDOW_MS = 4000;
   const KEY_FILE_TYPE = "application/json";
-  const MAX_PASSWORD_LENGTH = 256;
-  const PINS_DIFFER = "The two PINs are not the same.";
   const NO_FILE = "Choose the key file first.";
   const TIME_FORMAT = { hour: "2-digit", minute: "2-digit" };
   const CARD_CLASS = "owner-card flex flex-col gap-3 md:gap-4 2xl:gap-5 2xl:p-6";
@@ -31,11 +29,8 @@
 
   let opened = $state(false);
   let message = $state("");
-  let password = $state("");
   let pin = $state("");
-  let pinAgain = $state("");
   let keyFile = $state(null);
-  let justSetUp = $state(false);
   let forgetArmed = $state(false);
   let forgetTimer = null;
 
@@ -43,7 +38,7 @@
   let step = $derived.by(() => {
     if (!admin.supported) return "unsupported";
     if (admin.unlocked) return "unlocked";
-    if (admin.enrolled === false && (opened || admin.hasKey)) return "setup";
+    if (admin.enrolled === false && (opened || admin.hasKey)) return "none";
     if (admin.hasKey) return "locked";
     if (!opened) return "closed";
     return admin.enrolled ? "bring" : "checking";
@@ -56,9 +51,7 @@
   onDestroy(() => clearTimeout(forgetTimer));
 
   function clearFields() {
-    password = "";
     pin = "";
-    pinAgain = "";
     keyFile = null;
   }
 
@@ -76,12 +69,6 @@
     if (outcome.ok) return;
     opened = false;
     message = outcome.error;
-  }
-
-  async function setUp(event) {
-    event.preventDefault();
-    if (pin !== pinAgain) return (message = PINS_DIFFER);
-    justSetUp = settle(await admin.setUp(password, pin));
   }
 
   async function unlock(event) {
@@ -102,7 +89,6 @@
     link.download = ADMIN_KEY_FILE_NAME;
     link.click();
     URL.revokeObjectURL(url);
-    justSetUp = false;
   }
 
   function forget() {
@@ -136,29 +122,11 @@
       </div>
     {:else if step === "checking"}
       <p class={DESC_CLASS} aria-live="polite">Asking the site…</p>
-    {:else if step === "setup"}
+    {:else if step === "none"}
       <p class={DESC_CLASS}>
-        No key is registered yet. This makes one on this device and locks it with your PIN. The site is given
-        the public half only: the key and the PIN never leave this device. The setup password works this once.
+        No owner key is registered, and none can be registered from this page. The owner's key is made on the
+        owner's own computer.
       </p>
-      <form class={FORM_CLASS} onsubmit={setUp}>
-        <label class={FIELD_CLASS}>
-          Setup password
-          <input class="owner-input" type="password" autocomplete="off" maxlength={MAX_PASSWORD_LENGTH} required bind:value={password} />
-        </label>
-        <label class={FIELD_CLASS}>
-          New PIN ({MIN_PIN_LENGTH} characters or more)
-          <input class="owner-input" type="password" autocomplete="new-password" minlength={MIN_PIN_LENGTH} maxlength={MAX_PIN_LENGTH} required bind:value={pin} />
-        </label>
-        <label class={FIELD_CLASS}>
-          PIN again
-          <input class="owner-input" type="password" autocomplete="new-password" minlength={MIN_PIN_LENGTH} maxlength={MAX_PIN_LENGTH} required bind:value={pinAgain} />
-        </label>
-        <button type="submit" class={SUBMIT_CLASS} disabled={admin.busy}>
-          <KeyRound size={16} />
-          {admin.busy ? "Making the key…" : "Make my key"}
-        </button>
-      </form>
     {:else if step === "bring"}
       <p class={DESC_CLASS}>
         The owner's key is not on this device. Bring its key file and the PIN it was made with.
@@ -196,12 +164,6 @@
     {:else}
       <p class={DESC_CLASS} aria-live="polite">
         Unlocked on this browser until {until}. Closing the browser locks it too.
-        {#if justSetUp}
-          <strong class="owner-strong">
-            Save the key file now and keep it in your password vault. If this browser's data is cleared, that file
-            and your PIN are the only way back in.
-          </strong>
-        {/if}
       </p>
       <div class={ACTIONS_CLASS}>
         <button type="button" class={BUTTON_CLASS} onclick={() => admin.lock()}>
@@ -252,12 +214,6 @@
 
   .owner-desc {
     @include cards.settings-desc;
-  }
-
-  .owner-strong {
-    display: block;
-    margin-top: 6px;
-    color: $color-neon-gold;
   }
 
   .owner-btn {

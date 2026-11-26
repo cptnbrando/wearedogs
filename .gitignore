@@ -40,3 +40,5 @@ dist-ssr
 # Cloudflare Worker local state and secrets
 workers/*/.wrangler/
 workers/*/.dev.vars
+# The owner's key file (scripts/owner-key.js). Never committed.
+.owner/

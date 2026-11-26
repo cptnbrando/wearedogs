@@ -5,7 +5,9 @@
  * (src/components/apps/settings/AdminCard.svelte); the Captions app reads
  * `unlocked` and `token` to publish lyrics.
  *
- * The owner holds a key (adminKey.js) behind a PIN. Unlocking signs a
+ * The owner holds a key file (made by scripts/owner-key.js on their own
+ * computer) locked with a PIN. There is no password and no set-up here: a
+ * browser gets the key by being handed the file. Unlocking signs a
  * challenge with it and gets a session token good for twelve hours. The token
  * is kept in memory and in sessionStorage only, so closing the browser signs
  * out. The PIN is never stored and never sent.
@@ -14,21 +16,18 @@
  * somebody opens the owner's card on purpose, or a session is already held.
  */
 import { callApi } from "./dogsApi.js";
-import { getTurnstileToken } from "../components/turnstileToken.js";
 import {
-  adminKeySupported, hasAdminKey, createAdminKey, unlockAdminKey, signChallenge,
-  exportAdminKeyFile, importAdminKeyFile, forgetAdminKey, pinIsLongEnough, SHORT_PIN,
+  adminKeySupported, hasAdminKey, unlockAdminKey, signChallenge,
+  exportAdminKeyFile, importAdminKeyFile, forgetAdminKey,
 } from "./adminKey.js";
 
 const SESSION_KEY = "dogs_admin_session_v1";
-const TURNSTILE_ACTION = "admin";
 const TOKEN_PATTERN = /^\d{13}\.[0-9a-f]{64}$/;
 /** setTimeout cannot wait longer than this. */
 const MAX_TIMER_MS = 2147483647;
 const STATUS_REFUSED = 401;
 const STATUS_NOT_SET_UP = 409;
 const NO_SECURE_PAGE = "This needs a secure page (https).";
-const NOT_HUMAN = "The check that you are a person did not finish. Try again.";
 const KEY_REFUSED = "The site did not accept this key. It is not the registered one, so it was removed from this device.";
 
 /** @typedef {{ ok: boolean, error: string }} Outcome */
@@ -132,36 +131,6 @@ class Admin {
     const answer = await callApi("POST", "/admin/login", { body: { challenge: asked.data.challenge, signature } });
     if (answer.ok && answer.data) this.#open(answer.data);
     return answer;
-  }
-
-  /**
-   * The first set-up: makes the key on this device, behind `pin`, and registers
-   * its public half with the setup password. Works once, while no key is registered.
-   * @param {string} password - the setup password (a Worker secret)
-   * @param {string} pin
-   * @returns {Promise<Outcome>}
-   */
-  setUp(password, pin) {
-    return this.#work(async () => {
-      if (!pinIsLongEnough(pin)) return failed(SHORT_PIN);
-      let turnstile = "";
-      try {
-        turnstile = await getTurnstileToken(TURNSTILE_ACTION);
-      } catch (e) {
-        return failed(NOT_HUMAN);
-      }
-      // The key is stored before it is registered: a registered key that was lost could not be replaced from here
-      const { publicKey } = await createAdminKey(pin);
-      const answer = await callApi("POST", "/admin/enroll", { body: { password, token: turnstile, publicKey } });
-      if (!answer.ok || !answer.data) {
-        forgetAdminKey();
-        return failed(answer.error);
-      }
-      this.hasKey = true;
-      this.enrolled = true;
-      this.#open(answer.data);
-      return done();
-    });
   }
 
   /**

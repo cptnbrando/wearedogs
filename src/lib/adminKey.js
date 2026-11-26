@@ -3,17 +3,18 @@
  * The owner's key: what proves to the API Worker (workers/api/src/lib/admin.js)
  * that the browser in front of it is the owner's.
  *
- * The key is a P-384 key pair made here, in the browser. The Worker is given
- * the public half and nothing else. The private half is kept in this site's
- * storage encrypted with a key stretched from the owner's PIN, the way
- * pinVault.js does it, and is only ever opened in memory to sign a sign-in
- * challenge. The PIN and the private half never leave the device.
+ * The key is a P-384 key pair made on the owner's own computer
+ * (scripts/owner-key.js), never here: this page cannot make or register one.
+ * The Worker holds the public half and nothing else. The private half lives
+ * in the key file, encrypted with a key stretched from the owner's PIN, the
+ * way pinVault.js does it. A browser the owner hands the file to keeps that
+ * same encrypted record in this site's storage and opens it only in memory,
+ * to sign a sign-in challenge. The PIN and the private half never leave the
+ * owner's devices.
  *
- * The key file is the same PIN-encrypted record as a small JSON file, for the
- * owner to keep in their password vault and bring to another browser. The
- * file alone opens nothing: it takes the PIN as well. A short PIN can be
+ * The file alone opens nothing: it takes the PIN as well. A short PIN can be
  * guessed by someone who has the file, so the PIN has a minimum length and
- * every guess costs STRETCH_ROUNDS of work.
+ * every guess costs the file's stretching rounds of work.
  *
  * Web Crypto only exists on secure pages (https and localhost).
  */
@@ -25,12 +26,8 @@ const FILE_VERSION = 1;
 export const ADMIN_KEY_FILE_NAME = "dogs-admin-key.json";
 export const MIN_PIN_LENGTH = 6;
 export const MAX_PIN_LENGTH = 128;
-/** Each guess at the PIN costs this much stretching work (PBKDF2-SHA256). */
-const STRETCH_ROUNDS = 600000;
 const MIN_ROUNDS = 100000;
 const MAX_ROUNDS = 5000000;
-const SALT_BYTES = 16;
-const IV_BYTES = 12;
 const WRAP = "AES-GCM";
 const KEY_ALGORITHM = { name: "ECDSA", namedCurve: "P-384" };
 const SIGN_ALGORITHM = { name: "ECDSA", hash: "SHA-384" };
@@ -41,7 +38,6 @@ const MAX_FIELD_LENGTH = 2000;
 const MAX_FILE_LENGTH = 8000;
 
 export const WRONG_PIN = "That PIN is not right.";
-export const SHORT_PIN = `A PIN is at least ${MIN_PIN_LENGTH} characters.`;
 export const NO_KEY_HERE = "This device does not hold the key.";
 export const BAD_KEY_FILE = "That is not a DOGS key file.";
 const STORAGE_REFUSED = "This browser would not store the key. Check that site storage is allowed.";
@@ -113,32 +109,6 @@ async function openRecord(record, pin) {
 }
 
 /**
- * Makes a new key, keeps it on this device behind the PIN, and returns its
- * public half for the Worker. Replaces any key already on this device.
- * @param {string} pin
- * @returns {Promise<{ publicKey: string, signingKey: CryptoKey }>} publicKey is base64 SPKI
- */
-export async function createAdminKey(pin) {
-  if (!pinIsLongEnough(pin)) throw new Error(SHORT_PIN);
-  const pair = await crypto.subtle.generateKey(KEY_ALGORITHM, true, ["sign", "verify"]);
-  const salt = crypto.getRandomValues(new Uint8Array(SALT_BYTES));
-  const iv = crypto.getRandomValues(new Uint8Array(IV_BYTES));
-  const key = await wrappingKey(pin, salt, STRETCH_ROUNDS);
-  const privateBytes = await crypto.subtle.exportKey("pkcs8", pair.privateKey);
-  const record = {
-    kind: FILE_KIND,
-    v: FILE_VERSION,
-    rounds: STRETCH_ROUNDS,
-    salt: toBase64(salt),
-    iv: toBase64(iv),
-    wrapped: toBase64(await crypto.subtle.encrypt({ name: WRAP, iv }, key, privateBytes)),
-    publicKey: toBase64(await crypto.subtle.exportKey("spki", pair.publicKey)),
-  };
-  writeRecord(record);
-  return { publicKey: record.publicKey, signingKey: await openRecord(record, pin) };
-}
-
-/**
  * Opens this device's key with the PIN.
  * @param {string} pin
  * @returns {Promise<CryptoKey>} throws WRONG_PIN, or NO_KEY_HERE
@@ -151,7 +121,7 @@ export async function unlockAdminKey(pin) {
 
 /**
  * Signs a sign-in challenge from the Worker.
- * @param {CryptoKey} signingKey - from unlockAdminKey() or createAdminKey()
+ * @param {CryptoKey} signingKey - from unlockAdminKey() or importAdminKeyFile()
  * @param {string} challenge
  * @returns {Promise<string>} the signature, base64 (r and s side by side)
  */
