@@ -1,24 +1,24 @@
 {
   "metrics": {
     "inceptionTimestamp": 1782015530,
-    "firstCommitTimestamp": 1795655996,
+    "firstCommitTimestamp": 1795667104,
     "grossAverageDurationSeconds": 0,
     "averageInnerDurationSeconds": 0,
-    "averageLinesAltered": 267593
+    "averageLinesAltered": 268614
   },
   "entries": [
     {
       "version": "1.0.3",
       "name": "Master",
       "date": "2026-11-26",
-      "timestamp": 1795655950,
+      "timestamp": 1795667066,
       "commits": [
         {
-          "hash": "30326d9",
-          "message": "feat(music): tethered devices show the same preset; a tidier full screen and phone song list",
-          "url": "https://github.com/cptnbrando/wearedogs/commit/30326d937f48ca0c4f5ec9732c8787c09121f4d2",
-          "timestamp": 1795655996,
-          "linesChanged": 267593
+          "hash": "2506841",
+          "message": "feat(airtrain): ring the other device from Reconnect; connections survive a reload; speaker switch",
+          "url": "https://github.com/cptnbrando/wearedogs/commit/250684186f365931cbde3e3e16caf1f671e6e822",
+          "timestamp": 1795667104,
+          "linesChanged": 268614
         }
       ]
     },
