@@ -86,6 +86,12 @@ export class MilkdropEngine {
   canAdvance = null;
   width = 0;
   height = 0;
+  /** A drawing size of its own ({ width, height }), whatever the canvas's size on the page: a video's frame. */
+  size = null;
+  /** How long a preset plays before auto-advance moves on. */
+  autoMs = AUTO_ADVANCE_MS;
+  /** Called after every frame is drawn: a recorder copies it from here. */
+  onFrame = null;
 
   /**
    * @param {HTMLCanvasElement} canvas - one that has never given out a context
@@ -152,11 +158,11 @@ export class MilkdropEngine {
     return true;
   }
 
-  /** Matches the drawing size to the canvas's size on the page. */
+  /** Matches the drawing size to the canvas's size on the page, or to `size` when it has one. */
   resize() {
     const ratio = Math.min(window.devicePixelRatio || 1, MAX_PIXEL_RATIO);
-    const width = Math.max(1, Math.round(this.canvas.clientWidth * ratio));
-    const height = Math.max(1, Math.round(this.canvas.clientHeight * ratio));
+    const width = this.size ? this.size.width : Math.max(1, Math.round(this.canvas.clientWidth * ratio));
+    const height = this.size ? this.size.height : Math.max(1, Math.round(this.canvas.clientHeight * ratio));
     if (width === this.width && height === this.height) return;
     this.width = width;
     this.height = height;
@@ -169,6 +175,7 @@ export class MilkdropEngine {
     if (this.destroyed) return;
     this.resize();
     this.visualizer.render();
+    if (this.onFrame) this.onFrame();
     this.animationFrameId = requestAnimationFrame(() => this.draw());
   }
 
@@ -272,7 +279,7 @@ export class MilkdropEngine {
       // A device following another waits for that one's choice instead of picking its own
       if (this.canAdvance && !this.canAdvance()) this.restartAuto();
       else this.advance();
-    }, AUTO_ADVANCE_MS);
+    }, this.autoMs);
   }
 
   destroy() {

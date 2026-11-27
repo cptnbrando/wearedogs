@@ -34,6 +34,7 @@
     Fingerprint,
     Captions,
     ShieldCheck,
+    Clapperboard,
   } from "lucide-svelte";
   import { admin } from "../lib/admin.svelte.js";
   import DogsLogo from "./DogsLogo.svelte";
@@ -97,6 +98,7 @@
     dogsinc: "./apps/dogsinc/DogsIncApp.svelte",
     fingerprint: "./apps/fingerprint/FingerprintApp.svelte",
     captions: "./apps/captions/CaptionsApp.svelte",
+    lyricvideo: "./apps/lyricvideo/LyricVideoApp.svelte",
     admin: "./apps/admin/AdminApp.svelte",
   };
 
@@ -302,6 +304,7 @@
     dogsinc: "#e6b900",
     fingerprint: "#ff4f81",
     captions: "#ffe14d",
+    lyricvideo: "#b26bff",
     admin: "#ff3344",
     wordsmith: "#ff3344",
     castle: "#00d7ff",
@@ -403,6 +406,12 @@
       title: "Captions",
       desc: "Time captions and lyrics to any audio or video, word by word, and export them as .srt.",
       icon: Captions,
+    },
+    {
+      id: "lyricvideo",
+      title: "Lyric Video",
+      desc: "Make a visualizer video with lyrics from any song, or play it full screen. Vertical, horizontal or square.",
+      icon: Clapperboard,
     },
     {
       id: "soundstripper",

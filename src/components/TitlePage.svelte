@@ -27,7 +27,7 @@
 
   // Apps opened from links that carry data in the URL fragment (Air Train pairing,
   // DOGS INC save transfer): open them right away so a slow cold load can't drop the link.
-  const FRAGMENT_LINK_APPS = ["dataflash", "dogsinc"];
+  const FRAGMENT_LINK_APPS = ["dataflash", "dogsinc", "lyricvideo"];
   // How long a requested toolbox app stays in ToolboxPanel's initialApp prop before it is cleared
   const DEEP_LINK_CLEAR_MS = 400;
   // A page asked for over another one (Air Train from its drop-down): the open page closes first, in this long

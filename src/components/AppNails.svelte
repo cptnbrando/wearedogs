@@ -24,6 +24,7 @@
     CalendarCheck,
     Fingerprint,
     Captions,
+    Clapperboard,
   } from "lucide-svelte";
 
   let { appId } = $props();
@@ -196,6 +197,13 @@
     <Captions
       size={28}
       style="color: var(--color-captions, #ffe14d); filter: drop-shadow(0 0 6px rgba(255, 225, 77, 0.4));"
+    />
+  </div>
+{:else if appId === "lyricvideo"}
+  <div class="flex items-center justify-center h-full">
+    <Clapperboard
+      size={28}
+      style="color: var(--color-lyricvideo, #b26bff); filter: drop-shadow(0 0 6px rgba(178, 107, 255, 0.4));"
     />
   </div>
 {:else if appId === "pocketsand"}

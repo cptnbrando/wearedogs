@@ -78,6 +78,13 @@ $color-captions: var(--color-captions, #ffe14d);
 $color-captions-soft: rgba(255, 225, 77, 0.12);
 $color-captions-line: rgba(255, 225, 77, 0.4);
 
+// ── Lyric Video: the accent, the record button and the take's progress ──
+// Used in apps/lyricvideo/lyricvideo.scss; the toolbox icon color matches.
+$color-lyricvideo: var(--color-lyricvideo, #b26bff);
+$color-lyricvideo-soft: rgba(178, 107, 255, 0.14);
+$color-lyricvideo-line: rgba(178, 107, 255, 0.45);
+$color-record: var(--color-record, #ff3b5c);
+
 // ── Background Gradients & Colors ──
 $bg-app-dark: var(--bg-app, #050508);
 $bg-radial-overlay: var(--bg-radial-overlay, radial-gradient(circle at top, rgba(30, 10, 15, 0.55) 0%, rgba(5, 5, 8, 1) 100%));

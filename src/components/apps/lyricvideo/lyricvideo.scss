@@ -1,0 +1,302 @@
+// The Lyric Video app (LyricVideoApp.svelte and its panels). One sheet for all
+// of them, every class prefixed lv-. Spacing and type sizes are Tailwind
+// classes in the markup; this holds the look and the editor's grid.
+@use "../../../styles/variables" as *;
+
+// A screen this short is a phone on its side: everything gives up height
+$short-screen: 500px;
+$muted: var(--color-text-muted, rgba(255, 255, 255, 0.55));
+$ink: var(--color-text, #ffffff);
+$radius: 10px;
+
+.lv-app {
+  color: $ink;
+}
+
+.lv-muted {
+  color: $muted;
+}
+
+.lv-error {
+  color: $color-alert-red;
+}
+
+.lv-ok {
+  color: $color-neon-green;
+}
+
+.lv-accent {
+  color: $color-lyricvideo;
+}
+
+.lv-heading {
+  margin: 0;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: $color-lyricvideo;
+}
+
+.lv-clock {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: $muted;
+}
+
+.lv-btn,
+.lv-chip,
+.lv-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid $border-light;
+  color: $ink;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background $transition-speed-fast ease, border-color $transition-speed-fast ease, color $transition-speed-fast ease;
+
+  svg {
+    flex-shrink: 0;
+  }
+
+  &:hover,
+  &:focus-visible {
+    border-color: $color-lyricvideo-line;
+  }
+
+  &.is-on {
+    border-color: $color-lyricvideo;
+    background: $color-lyricvideo-soft;
+    color: $color-lyricvideo;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+}
+
+.lv-btn {
+  border-radius: 8px;
+  background: $bg-input-dark;
+}
+
+.lv-btn-main {
+  border-color: $color-lyricvideo;
+  color: $color-lyricvideo;
+}
+
+.lv-btn-rec {
+  border-color: $color-record;
+  color: $color-record;
+}
+
+.lv-chip {
+  gap: 6px;
+  border-radius: 999px;
+  background: transparent;
+}
+
+.lv-tab {
+  border-color: transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: $muted;
+  white-space: nowrap;
+}
+
+.lv-input {
+  border-radius: 8px;
+  border: 1px solid $border-light;
+  background: $bg-input-dark;
+  color: $ink;
+  font: inherit;
+
+  &:focus-visible {
+    outline: 1px solid $color-lyricvideo;
+  }
+}
+
+.lv-color {
+  border-radius: 8px;
+  border: 1px solid $border-light;
+  background: $bg-input-dark;
+  cursor: pointer;
+}
+
+.lv-range,
+.lv-seek {
+  accent-color: $color-lyricvideo;
+  width: 100%;
+}
+
+.lv-seek {
+  width: auto;
+}
+
+// ── First screen ──
+.lv-lead {
+  margin: 0;
+  color: $muted;
+}
+
+.lv-choice {
+  border-radius: 12px;
+  border: 1px dashed $color-lyricvideo-line;
+  background: $bg-card-dark;
+  color: $ink;
+
+  svg {
+    color: $color-lyricvideo;
+  }
+}
+
+button.lv-choice {
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    background: $color-lyricvideo-soft;
+  }
+}
+
+.lv-start.is-dragging button.lv-choice {
+  border-style: solid;
+  background: $color-lyricvideo-soft;
+}
+
+.lv-choice-title {
+  font-weight: 700;
+}
+
+.lv-songs {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lv-song {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: $bg-input-dark;
+  color: $ink;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    border-color: $color-lyricvideo-line;
+  }
+}
+
+.lv-tag {
+  border-radius: 999px;
+  border: 1px solid $color-lyricvideo-line;
+  color: $color-lyricvideo;
+}
+
+// ── The editor's grid ──
+// Phone upright: the picture on top, the tabs and their panel below.
+.lv-editor {
+  display: grid;
+  grid-template:
+    "stage" minmax(0, 1fr)
+    "side" minmax(0, 1.1fr) / minmax(0, 1fr);
+}
+
+.lv-stage-col {
+  grid-area: stage;
+}
+
+.lv-side {
+  grid-area: side;
+}
+
+.lv-panel {
+  border-radius: 12px;
+  border: 1px solid $border-light;
+  background: $bg-card-dark;
+}
+
+// Phones on their side, tablets, desktops: the picture beside the panel
+@media (min-width: 640px) {
+  .lv-editor {
+    grid-template: "stage side" minmax(0, 1fr) / minmax(0, 1.4fr) minmax(0, 1fr);
+  }
+}
+
+@media (min-width: 1280px) and (min-height: #{$short-screen + 1px}) {
+  .lv-editor {
+    grid-template: "stage side" minmax(0, 1fr) / minmax(0, 1.7fr) minmax(0, 1fr);
+  }
+}
+
+// Televisions: the panel gets a fixed, generous share; the picture the rest
+@media (min-width: 1536px) and (min-height: #{$short-screen + 1px}) {
+  .lv-editor {
+    grid-template: "stage side" minmax(0, 1fr) / minmax(0, 2fr) minmax(0, 1fr);
+  }
+}
+
+// ── The picture ──
+.lv-frame {
+  position: relative;
+  min-height: 0;
+  border-radius: $radius;
+  background: #000;
+  overflow: hidden;
+}
+
+// The canvas fills the frame and keeps the video's shape inside it (object-fit works on a canvas)
+.lv-canvas {
+  width: 100%;
+  height: 100%;
+
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  &.is-recording canvas {
+    outline: 2px solid $color-record;
+    outline-offset: -2px;
+  }
+}
+
+.lv-frame.is-full {
+  border-radius: 0;
+
+  .lv-canvas {
+    border-radius: 0;
+  }
+}
+
+.lv-full-bar {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  opacity: 0.35;
+  transition: opacity $transition-speed-fast ease;
+
+  &:hover,
+  &:focus-within {
+    opacity: 1;
+  }
+}
+
+.lv-progress {
+  border-radius: 999px;
+  background: $bg-input-dark;
+  overflow: hidden;
+}
+
+.lv-progress-bar {
+  background: $color-record;
+  transition: width 0.2s linear;
+}
+
+.lv-result {
+  border-radius: 8px;
+  background: #000;
+}

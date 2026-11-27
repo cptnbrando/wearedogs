@@ -9,11 +9,12 @@
    * panels out and owns the keyboard.
    */
   import { onDestroy } from "svelte";
-  import { ListMusic, Hand, AudioLines, FolderOpen, X } from "lucide-svelte";
+  import { ListMusic, Hand, AudioLines, FolderOpen, X, Clapperboard } from "lucide-svelte";
   import { CaptionsMedia } from "./captionsMedia.svelte.js";
   import { CaptionsProject } from "./captionsProject.svelte.js";
   import { KIND_FILE, KIND_TRACK } from "./captionsStore.js";
   import { admin } from "../../../lib/admin.svelte.js";
+  import { openDogsPage } from "../../../lib/openDogsPage.js";
   import { lyricSongs, takeCaptionsAsk } from "./captionsSongs.js";
   import CaptionsStart from "./CaptionsStart.svelte";
   import CaptionsPreview from "./CaptionsPreview.svelte";
@@ -37,6 +38,8 @@
   const NUDGE_S = 0.01;
   const BIG_NUDGE_S = 0.05;
   const TYPING_TAGS = ["INPUT", "TEXTAREA", "SELECT"];
+  /** The apps that can hand Captions their work, and what their way-back button says. */
+  const RETURN_LABELS = { lyricvideo: "Lyric Video" };
   const BUTTON_TAG = "BUTTON";
   const NAV_BUTTON = "cap-nav-btn flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-0 py-1 text-[0.625rem] sm:flex-row sm:gap-1 sm:text-xs md:flex-none md:flex-col md:px-3 md:py-3 xl:text-sm 2xl:px-5 2xl:py-5 2xl:text-lg";
 
@@ -158,10 +161,18 @@
     if (media.kind && event.key === " " && event.target && event.target.tagName === BUTTON_TAG) event.preventDefault();
   }
 
-  // Opened from the Admin app for one song: that song opens straight away
-  const askedTrackId = takeCaptionsAsk();
-  const askedTrack = askedTrackId && admin.unlocked ? lyricSongs().find((track) => track.id === askedTrackId) : null;
+  // Opened from another app (Admin, Lyric Video) for one song or file: it opens straight away
+  const ask = takeCaptionsAsk();
+  const askedTrack = ask.trackId && admin.unlocked ? lyricSongs().find((track) => track.id === ask.trackId) : null;
   if (askedTrack) openTrack(askedTrack);
+  else if (ask.file) openFile(new File([ask.file.blob], ask.file.name, { type: ask.file.blob.type }));
+  /** The app that sent its work here: a button goes back to it, the edits saved on the way. */
+  const returnTo = RETURN_LABELS[ask.returnTo] ? ask.returnTo : "";
+
+  function goBack() {
+    project.flush();
+    openDogsPage({ app: returnTo, force: true });
+  }
 
   window.addEventListener("keydown", onKeydown, true);
   window.addEventListener("keyup", onKeyup, true);
@@ -190,7 +201,12 @@
             <Icon size={18} /> {item.label}
           </button>
         {/each}
-        <button type="button" class="{NAV_BUTTON} md:mt-auto" title="Close this and open something else. Your work stays saved on this device." onclick={closeProject}>
+        {#if returnTo}
+          <button type="button" class="{NAV_BUTTON} cap-nav-back md:mt-auto" title="Back to {RETURN_LABELS[returnTo]}, with these edits." onclick={goBack}>
+            <Clapperboard size={18} /> {RETURN_LABELS[returnTo]}
+          </button>
+        {/if}
+        <button type="button" class="{NAV_BUTTON} {returnTo ? '' : 'md:mt-auto'}" title="Close this and open something else. Your work stays saved on this device." onclick={closeProject}>
           <X size={18} /> Close
         </button>
       </nav>

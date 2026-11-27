@@ -46,6 +46,12 @@ const APP_CARDS = {
     description:
       "Time captions and lyrics to any audio or video, word by word. Tap along, or let it transcribe, then export .srt for your video editor.",
   },
+  // No banner of its own yet: the card shows the site's image
+  lyricvideo: {
+    title: "Lyric Video",
+    description:
+      "Turn any song into a MilkDrop visualizer video with its lyrics: vertical, horizontal or square, made in your browser.",
+  },
 };
 
 /** The card for /music itself: what a link to the player shows. */
